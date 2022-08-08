@@ -401,3 +401,162 @@ def test_delete_fleet():
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
     len(instances).should.equal(0)
+
+
+@mock_ec2
+def test_create_fleet_api_response():
+    conn = boto3.client("ec2", region_name="us-west-2")
+    subnet_id = get_subnet_id(conn)
+
+    launch_template_id, _ = get_launch_template(conn)
+
+    lt_config = {
+        "LaunchTemplateSpecification": {
+            "LaunchTemplateId": launch_template_id,
+            "Version": "1",
+        },
+        "Overrides": [
+            {
+                "AvailabilityZone": "us-west-1a",
+                "InstanceRequirements": {
+                    "AcceleratorCount": {
+                        "Max": 10,
+                        "Min": 1,
+                    },
+                    "AcceleratorManufacturers": ["nvidia"],
+                    "AcceleratorNames": ["t4"],
+                    "AcceleratorTotalMemoryMiB": {
+                        "Max": 20972,
+                        "Min": 1,
+                    },
+                    "AcceleratorTypes": ["gpu"],
+                    "BareMetal": "included",
+                    "BaselineEbsBandwidthMbps": {
+                        "Max": 10000,
+                        "Min": 125,
+                    },
+                    "BurstablePerformance": "included",
+                    "CpuManufacturers": ["amd", "intel"],
+                    "ExcludedInstanceTypes": ["m5.8xlarge"],
+                    "InstanceGenerations": ["current"],
+                    "LocalStorage": "included",
+                    "LocalStorageTypes": ["ssd"],
+                    "MemoryGiBPerVCpu": {
+                        "Min": 1,
+                        "Max": 160,
+                    },
+                    "MemoryMiB": {
+                        "Min": 2048,
+                        "Max": 40960,
+                    },
+                    "NetworkInterfaceCount": {
+                        "Max": 1,
+                        "Min": 1,
+                    },
+                    "OnDemandMaxPricePercentageOverLowestPrice": 99999,
+                    "RequireHibernateSupport": True,
+                    "SpotMaxPricePercentageOverLowestPrice": 99999,
+                    "TotalLocalStorageGB": {
+                        "Min": 100,
+                        "Max": 10000,
+                    },
+                    "VCpuCount": {
+                        "Min": 2,
+                        "Max": 160,
+                    },
+                },
+                "MaxPrice": "0.5",
+                "Priority": 2,
+                "SubnetId": subnet_id,
+                "WeightedCapacity": 1,
+            },
+        ],
+    }
+
+    fleet_res = conn.create_fleet(
+        ExcessCapacityTerminationPolicy="no-termination",
+        LaunchTemplateConfigs=[lt_config],
+        TargetCapacitySpecification={
+            "DefaultTargetCapacityType": "on-demand",
+            "OnDemandTargetCapacity": 10,
+            "SpotTargetCapacity": 10,
+            "TotalTargetCapacity": 30,
+        },
+        SpotOptions={
+            "AllocationStrategy": "lowest-price",
+            "InstanceInterruptionBehavior": "terminate",
+            "InstancePoolsToUseCount": 1,
+            "MaintenanceStrategies": {
+                "CapacityRebalance": {
+                    "ReplacementStrategy": "launch-before-terminate",
+                    "TerminationDelay": 120,
+                },
+            },
+            "MaxTotalPrice": "50",
+            "MinTargetCapacity": 1,
+            "SingleAvailabilityZone": True,
+            "SingleInstanceType": True,
+        },
+        OnDemandOptions={
+            "AllocationStrategy": "lowest-price",
+            "MaxTotalPrice": "50",
+            "MinTargetCapacity": 1,
+            "SingleAvailabilityZone": True,
+            "SingleInstanceType": True,
+        },
+        ReplaceUnhealthyInstances=True,
+        TerminateInstancesWithExpiration=True,
+        Type="maintain",
+        ValidFrom="2020-01-01T00:00:00Z",
+        ValidUntil="2020-12-31T00:00:00Z",
+    )
+    fleet_id = fleet_res["FleetId"]
+
+    fleet_res = conn.describe_fleets(FleetIds=[fleet_id])["Fleets"]
+    fleet_res.should.have.length_of(1)
+    fleet_res[0].should.have.key("FleetId").equals(fleet_id)
+    fleet_res[0].should.have.key("ExcessCapacityTerminationPolicy").equals(
+        "no-termination"
+    )
+    fleet_res[0].should.have.key("LaunchTemplateConfigs").equals([lt_config])
+    fleet_res[0].should.have.key("TargetCapacitySpecification").equals(
+        {
+            "DefaultTargetCapacityType": "on-demand",
+            "OnDemandTargetCapacity": 10,
+            "SpotTargetCapacity": 10,
+            "TotalTargetCapacity": 30,
+        }
+    )
+    fleet_res[0].should.have.key("SpotOptions").equals(
+        {
+            "AllocationStrategy": "lowest-price",
+            "InstanceInterruptionBehavior": "terminate",
+            "InstancePoolsToUseCount": 1,
+            "MaintenanceStrategies": {
+                "CapacityRebalance": {
+                    "ReplacementStrategy": "launch-before-terminate",
+                    "TerminationDelay": 120,
+                },
+            },
+            "MaxTotalPrice": "50",
+            "MinTargetCapacity": 1,
+            "SingleAvailabilityZone": True,
+            "SingleInstanceType": True,
+        }
+    )
+    fleet_res[0].should.have.key("OnDemandOptions").equals(
+        {
+            "AllocationStrategy": "lowest-price",
+            "MaxTotalPrice": "50",
+            "MinTargetCapacity": 1,
+            "SingleAvailabilityZone": True,
+            "SingleInstanceType": True,
+        }
+    )
+    fleet_res[0].should.have.key("ReplaceUnhealthyInstances").equals(True)
+    fleet_res[0].should.have.key("TerminateInstancesWithExpiration").equals(True)
+    fleet_res[0].should.have.key("Type").equals("maintain")
+    fleet_res[0].should.have.key("ValidFrom")
+    fleet_res[0]["ValidFrom"].isoformat().should.equal("2020-01-01T00:00:00+00:00")
+    fleet_res[0].should.have.key("ValidUntil")
+    fleet_res[0]["ValidUntil"].isoformat().should.equal("2020-12-31T00:00:00+00:00")
