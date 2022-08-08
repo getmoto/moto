@@ -369,7 +369,7 @@ DESCRIBE_FLEET_INSTANCES_TEMPLATE = """<DescribeFleetInstancesResponse xmlns="ht
         {% for i in instances %}
         <item>
             <instanceId>{{ i.instance.id }}</instanceId>
-            {% if i.sir_id %}
+            {% if i.id %}
             <spotInstanceRequestId>{{ i.id }}</spotInstanceRequestId>
             {% endif %}
             <instanceType>{{ i.instance.instance_type }}</instanceType>
