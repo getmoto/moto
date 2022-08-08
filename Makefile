@@ -61,3 +61,6 @@ scaffold:
 
 int_test:
 	@./scripts/int_test.sh
+
+docker-dev: 
+	docker build -t moto . && docker run -dit --name moto -v $(shell pwd):/moto/ moto
