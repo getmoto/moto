@@ -85,6 +85,186 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                         <launchTemplateId>{{ config.LaunchTemplateSpecification.LaunchTemplateId }}</launchTemplateId>
                         <version>{{ config.LaunchTemplateSpecification.Version }}</version>
                     </launchTemplateSpecification>
+                    {% if config.Overrides %}
+                    <overrides>
+                        {% for override in config.Overrides %}
+                        <item>
+                            {% if override.AvailabilityZone %}
+                            <availabilityZone>{{ override.AvailabilityZone }}</availabilityZone>
+                            {% endif %}
+                            {% if override.InstanceType %}
+                            <instanceType>{{ override.InstanceType }}</instanceType>
+                            {% endif %}
+                            {% if override.InstanceRequirements %}
+                            <instanceRequirements>
+                                {% if override.InstanceRequirements.AcceleratorCount %}
+                                <acceleratorCount>
+                                    {% if override.InstanceRequirements.AcceleratorCount.Max %}
+                                    <max>{{ override.InstanceRequirements.AcceleratorCount.Max }}</max>
+                                    {% endif %}
+                                    {% if override.InstanceRequirements.AcceleratorCount.Min %}
+                                    <min>{{ override.InstanceRequirements.AcceleratorCount.Min }}</min>
+                                    {% endif %}
+                                </acceleratorCount>
+                                {% endif %}
+                                {% if override.InstanceRequirements.AcceleratorManufacturer %}
+                                <acceleratorManufacturerSet>
+                                    {% for manufacturer in override.InstanceRequirements.AcceleratorManufacturer %}
+                                    <item>{{ manufacturer }}</item>
+                                    {% endfor %}
+                                </acceleratorManufacturerSet>
+                                {% endif %}
+                                {% if override.InstanceRequirements.AcceleratorName %}
+                                <acceleratorNameSet>
+                                    {% for name in override.InstanceRequirements.AcceleratorName %}
+                                    <item>{{ name }}</item>
+                                    {% endfor %}
+                                </acceleratorNameSet>
+                                {% endif %}
+                                {% if override.InstanceRequirements.AcceleratorTotalMemoryMiB %}
+                                <acceleratorTotalMemoryMiB>
+                                    {% if override.InstanceRequirements.AcceleratorTotalMemoryMiB.Max %}
+                                    <max>{{ override.InstanceRequirements.AcceleratorTotalMemoryMiB.Max }}</max>
+                                    {% endif %}
+                                    {% if override.InstanceRequirements.AcceleratorTotalMemoryMiB.Min %}
+                                    <min>{{ override.InstanceRequirements.AcceleratorTotalMemoryMiB.Min }}</min>
+                                    {% endif %}
+                                </acceleratorTotalMemoryMiB>
+                                {% endif %}
+                                {% if override.InstanceRequirements.AcceleratorType %}
+                                <acceleratorTypeSet>
+                                    {% for type in override.InstanceRequirements.AcceleratorType %}
+                                    <item>{{ type }}</item>
+                                    {% endfor %}
+                                </acceleratorTypeSet>
+                                {% endif %}
+                                {% if override.InstanceRequirements.BareMetal %}
+                                <bareMetal>{{ override.InstanceRequirements.BareMetal }}</bareMetal>
+                                {% endif %}
+                                {% if override.InstanceRequirements.BaselineEbsBandwidthMbps %}
+                                <baselineEbsBandwidthMbps>
+                                    {% if override.InstanceRequirements.BaselineEbsBandwidthMbps.Min %}
+                                    <min>{{ override.InstanceRequirements.BaselineEbsBandwidthMbps.Min }}</min>
+                                    {% endif %}
+                                    {% if override.InstanceRequirements.BaselineEbsBandwidthMbps.Max %}
+                                    <max>{{ override.InstanceRequirements.BaselineEbsBandwidthMbps.Max }}</max>
+                                    {% endif %}
+                                </baselineEbsBandwidthMbps>
+                                {% endif %}
+                                {% if override.InstanceRequirements.BurstablePerformance %}
+                                <burstablePerformance>{{ override.InstanceRequirements.BurstablePerformance }}</burstablePerformance>
+                                {% endif %}
+                                {% if override.InstanceRequirements.CpuManufacturer %}
+                                <cpuManufacturerSet>
+                                    {% for manufacturer in override.InstanceRequirements.CpuManufacturer %}
+                                    <item>{{ manufacturer }}</item>
+                                    {% endfor %}
+                                </cpuManufacturerSet>
+                                {% endif %}
+                                {% if override.InstanceRequirements.ExcludedInstanceType %}
+                                <excludedInstanceTypeSet>
+                                    {% for type in override.InstanceRequirements.ExcludedInstanceType %}
+                                    <item>{{ type }}</item>
+                                    {% endfor %}
+                                </excludedInstanceTypeSet>
+                                {% endif %}
+                                {% if override.InstanceRequirements.InstanceGeneration %}
+                                <instanceGenerationSet>
+                                    {% for generation in override.InstanceRequirements.InstanceGeneration %}
+                                    <item>{{ generation }}</item>
+                                    {% endfor %}
+                                </instanceGenerationSet>
+                                {% endif %}
+                                {% if override.InstanceRequirements.LocalStorage %}
+                                <localStorage>{{ override.InstanceRequirements.LocalStorage }}</localStorage>
+                                {% endif %}
+                                {% if override.InstanceRequirements.LocalStorageType %}
+                                <localStorageTypeSet>
+                                    {% for type in override.InstanceRequirements.LocalStorageType %}
+                                    <item>{{ type }}</item>
+                                    {% endfor %}
+                                </localStorageTypeSet>
+                                {% endif %}
+                                {% if override.InstanceRequirements.MemoryGiBPerVCpu %}
+                                <memoryGiBPerVCpu>
+                                    <min>{{ override.InstanceRequirements.MemoryGiBPerVCpu.Min }}</min>
+                                    <max>{{ override.InstanceRequirements.MemoryGiBPerVCpu.Max }}</max>
+                                </memoryGiBPerVCpu>
+                                {% endif %}
+                                {% if override.InstanceRequirements.MemoryMiB %}
+                                <memoryMiB>
+                                    {% if override.InstanceRequirements.MemoryMiB.Min %}
+                                    <min>{{ override.InstanceRequirements.MemoryMiB.Min }}</min>
+                                    {% endif %}
+                                    {% if override.InstanceRequirements.MemoryMiB.Max %}
+                                    <max>{{ override.InstanceRequirements.MemoryMiB.Max }}</max>
+                                    {% endif %}
+                                </memoryMiB>
+                                {% endif %}
+                                {% if override.InstanceRequirements.NetworkInterfaceCount %}
+                                <networkInterfaceCount>
+                                    {% if override.InstanceRequirements.NetworkInterfaceCount.Max %}
+                                    <max>{{ override.InstanceRequirements.NetworkInterfaceCount.Max }}</max>
+                                    {% endif %}
+                                    {% if override.InstanceRequirements.NetworkInterfaceCount.Min %}
+                                    <min>{{ override.InstanceRequirements.NetworkInterfaceCount.Min }}</min>
+                                    {% endif %}
+                                </networkInterfaceCount>
+                                {% endif %}
+                                {% if override.InstanceRequirements.OnDemandMaxPricePercentageOverLowestPrice %}
+                                <onDemandMaxPricePercentageOverLowestPrice>{{ override.InstanceRequirements.OnDemandMaxPricePercentageOverLowestPrice }}</onDemandMaxPricePercentageOverLowestPrice>
+                                {% endif %}
+                                {% if override.InstanceRequirements.RequireHibernateSupport %}
+                                <requireHibernateSupport>{{ override.InstanceRequirements.RequireHibernateSupport }}</requireHibernateSupport>
+                                {% endif %}
+                                {% if override.InstanceRequirements.SpotMaxPricePercentageOverLowestPrice %}
+                                <spotMaxPricePercentageOverLowestPrice>{{ override.InstanceRequirements.SpotMaxPricePercentageOverLowestPrice }}</spotMaxPricePercentageOverLowestPrice>
+                                {% endif %}
+                                {% if override.InstanceRequirements.TotalLocalStorageGB %}
+                                <totalLocalStorageGB>
+                                    {% if override.InstanceRequirements.TotalLocalStorageGB.Min %}
+                                    <min>{{ override.InstanceRequirements.TotalLocalStorageGB.Min }}</min>
+                                    {% endif %}
+                                    {% if override.InstanceRequirements.TotalLocalStorageGB.Max %}
+                                    <max>{{ override.InstanceRequirements.TotalLocalStorageGB.Max }}</max>
+                                    {% endif %}
+                                </totalLocalStorageGB>
+                                {% endif %}
+                                {% if override.InstanceRequirements.VCpuCount %}
+                                <vCpuCount>
+                                    {% if override.InstanceRequirements.VCpuCount.Min %}
+                                    <min>{{ override.InstanceRequirements.VCpuCount.Min }}</min>
+                                    {% endif %}
+                                    {% if override.InstanceRequirements.VCpuCount.Max %}
+                                    <max>{{ override.InstanceRequirements.VCpuCount.Max }}</max>
+                                    {% endif %}
+                                </vCpuCount>
+                                {% endif %}
+                            </instanceRequirements>
+                            {% endif %}
+                            {% if override.MaxPrice %}
+                            <maxPrice>{{ override.MaxPrice }}</maxPrice>
+                            {% endif %}
+                            {% if override.Placement %}
+                            <placement>
+                                {% if override.Placement.GroupName %}
+                                <groupName>{{ override.Placement.GroupName }}</groupName>
+                                {% endif %}
+                            </placement>
+                            {% endif %}
+                            {% if override.Priority %}
+                            <priority>{{ override.Priority }}</priority>
+                            {% endif %}
+                            {% if override.SubnetId %}
+                            <subnetId>{{ override.SubnetId }}</subnetId>
+                            {% endif %}
+                            {% if override.WeightedCapacity %}
+                            <weightedCapacity>{{ override.WeightedCapacity }}</weightedCapacity>
+                            {% endif %}
+                        </item>
+                        {% endfor %}
+                    </overrides>
+                    {% endif %}
                 </item>
                 {% endfor %}
             </launchTemplateConfigs>
@@ -109,12 +289,58 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                 {% if request.spot_options.InstancePoolsToUseCount %}
                 <instancePoolsToUseCount>{{ request.spot_options.InstancePoolsToUseCount }}</instancePoolsToUseCount>
                 {% endif %}
+                {% if request.spot_options.MaintenanceStrategies %}
+                <maintenanceStrategies>
+                    {% if request.spot_options.MaintenanceStrategies.CapacityRebalance %}
+                    <capacityRebalance>
+                        {% if request.spot_options.MaintenanceStrategies.CapacityRebalance.ReplacementStrategy %}
+                        <replacementStrategy>{{ request.spot_options.MaintenanceStrategies.CapacityRebalance.ReplacementStrategy }}</replacementStrategy>
+                        {% endif %}
+                        {% if request.spot_options.MaintenanceStrategies.CapacityRebalance.TerminationDelay %}
+                        <terminationDelay>{{ request.spot_options.MaintenanceStrategies.CapacityRebalance.TerminationDelay }}</terminationDelay>
+                        {% endif %}
+                    </capacityRebalance>
+                    {% endif %}
+                </maintenanceStrategies>
+                {% endif %}
+                {% if request.spot_options.MaxTotalPrice %}
+                <maxTotalPrice>{{ request.spot_options.MaxTotalPrice }}</maxTotalPrice>
+                {% endif %}
+                {% if request.spot_options.MinTargetCapacity %}
+                <minTargetCapacity>{{ request.spot_options.MinTargetCapacity }}</minTargetCapacity>
+                {% endif %}
+                {% if request.spot_options.SingleAvailabilityZone %}
+                <singleAvailabilityZone>{{ request.spot_options.SingleAvailabilityZone }}</singleAvailabilityZone>
+                {% endif %}
+                {% if request.spot_options.SingleInstanceType %}
+                <singleInstanceType>{{ request.spot_options.SingleInstanceType }}</singleInstanceType>
+                {% endif %}
             </spotOptions>
             {% endif %}
+            <!-- {'AllocationStrategy': 'lowest-price', 'MaxTotalPrice': '50', 'MinTargetCapacity': 1, 'SingleAvailabilityZone': True, 'SingleInstanceType': True} -->
             {% if request.on_demand_options %}
             <onDemandOptions>
                 {% if request.on_demand_options.AllocationStrategy %}
                 <allocationStrategy>{{ request.on_demand_options.AllocationStrategy }}</allocationStrategy>
+                {% endif %}
+                {% if request.on_demand_options.MaxTotalPrice %}
+                <maxTotalPrice>{{ request.on_demand_options.MaxTotalPrice }}</maxTotalPrice>
+                {% endif %}
+                {% if request.on_demand_options.MinTargetCapacity %}
+                <minTargetCapacity>{{ request.on_demand_options.MinTargetCapacity }}</minTargetCapacity>
+                {% endif %}
+                {% if request.on_demand_options.SingleAvailabilityZone %}
+                <singleAvailabilityZone>{{ request.on_demand_options.SingleAvailabilityZone }}</singleAvailabilityZone>
+                {% endif %}
+                {% if request.on_demand_options.SingleInstanceType %}
+                <singleInstanceType>{{ request.on_demand_options.SingleInstanceType }}</singleInstanceType>
+                {% endif %}
+                {% if request.on_demand_options.CapacityReservationOptions %}
+                <capacityReservationOptions>
+                    {% if request.on_demand_options.CapacityReservationOptions.UsageStrategy %}
+                    <usageStrategy>{{ request.on_demand_options.CapacityReservationOptions.UsageStrategy }}</usageStrategy>
+                    {% endif %}
+                </capacityReservationOptions>
                 {% endif %}
             </onDemandOptions>
             {% endif %}
