@@ -1587,7 +1587,7 @@
 - [X] create_default_vpc
 - [X] create_dhcp_options
 - [X] create_egress_only_internet_gateway
-- [ ] create_fleet
+- [X] create_fleet
 - [X] create_flow_logs
 - [ ] create_fpga_image
 - [X] create_image
@@ -1653,7 +1653,7 @@
 - [X] delete_customer_gateway
 - [ ] delete_dhcp_options
 - [X] delete_egress_only_internet_gateway
-- [ ] delete_fleets
+- [X] delete_fleets
 - [X] delete_flow_logs
 - [ ] delete_fpga_image
 - [ ] delete_instance_event_window
@@ -1743,8 +1743,8 @@
 - [ ] describe_fast_launch_images
 - [ ] describe_fast_snapshot_restores
 - [ ] describe_fleet_history
-- [ ] describe_fleet_instances
-- [ ] describe_fleets
+- [X] describe_fleet_instances
+- [X] describe_fleets
 - [X] describe_flow_logs
 - [ ] describe_fpga_image_attribute
 - [ ] describe_fpga_images
