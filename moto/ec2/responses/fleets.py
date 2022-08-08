@@ -66,6 +66,28 @@ class Fleets(BaseResponse):
 CREATE_FLEET_TEMPLATE = """<CreateFleetResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>60262cc5-2bd4-4c8d-98ed-example</requestId>
     <fleetId>{{ request.id }}</fleetId>
+    {% if request.fleet_type == "instant" %}
+    <fleetInstanceSet>
+        {% for instance in request.on_demand_instances %}
+        <item>
+            <instanceType>{{ instance["instance"].instance_type }}</instanceType>
+            <lifecycle>on-demand</lifecycle>
+            <instanceIds>
+                <item>{{ instance["instance"].id }}</item>
+            </instanceIds>
+        </item>
+        {% endfor %}
+        {% for instance in request.spot_requests %}
+        <item>
+            <instanceType>{{ instance.instance.instance_type }}</instanceType>
+            <lifecycle>spot</lifecycle>
+            <instanceIds>
+                <item>{{ instance.instance.id }}</item>
+            </instanceIds>
+        </item>
+        {% endfor %}
+    </fleetInstanceSet>
+    {% endif %}
 </CreateFleetResponse>"""
 
 DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">
@@ -364,7 +386,7 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
 
 DESCRIBE_FLEET_INSTANCES_TEMPLATE = """<DescribeFleetInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">
     <requestId>cfb09950-45e2-472d-a6a9-example</requestId>
-    <spotFleetRequestId>{{ fleet_id }}</spotFleetRequestId>
+    <fleetId>{{ fleet_id }}</fleetId>
     <activeInstanceSet>
         {% for i in instances %}
         <item>
@@ -373,6 +395,7 @@ DESCRIBE_FLEET_INSTANCES_TEMPLATE = """<DescribeFleetInstancesResponse xmlns="ht
             <spotInstanceRequestId>{{ i.id }}</spotInstanceRequestId>
             {% endif %}
             <instanceType>{{ i.instance.instance_type }}</instanceType>
+            <instanceHealth>healthy</instanceHealth>
         </item>
         {% endfor %}
     </activeInstanceSet>
