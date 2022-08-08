@@ -19,6 +19,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "transit-gateway-route-table": "tgw-rtb",
     "transit-gateway-attachment": "tgw-attach",
     "dhcp-options": "dopt",
+    "fleet": "fleet",
     "flow-logs": "fl",
     "image": "ami",
     "instance": "i",
@@ -87,6 +88,10 @@ def random_security_group_id():
 
 def random_security_group_rule_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group-rule"], size=17)
+
+
+def random_fleet_id():
+    return f"fleet-{random_resource_id(size=8)}-{random_resource_id(size=4)}-{random_resource_id(size=4)}-{random_resource_id(size=4)}-{random_resource_id(size=12)}"
 
 
 def random_flow_log_id():
