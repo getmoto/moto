@@ -142,7 +142,7 @@ quicksight:
   - TestAccQuickSightUser
 redshift:
   - TestAccRedshiftServiceAccountDataSource
-route53:
+route53|1:
   - TestAccRoute53Record_basic
   - TestAccRoute53Record_underscored
   - TestAccRoute53Record_disappears
@@ -170,6 +170,7 @@ route53:
   - TestAccRoute53Record_longTXTrecord
   - TestAccRoute53Record_doNotAllowOverwrite
   - TestAccRoute53Record_allowOverwrite
+route53|2:
   - TestAccRoute53Zone_basic
   - TestAccRoute53Zone_disappears
   - TestAccRoute53Zone_multiple

@@ -49,6 +49,7 @@ ec2
 - [X] associate_route_table
 - [X] associate_subnet_cidr_block
 - [ ] associate_transit_gateway_multicast_domain
+- [ ] associate_transit_gateway_policy_table
 - [X] associate_transit_gateway_route_table
 - [ ] associate_trunk_interface
 - [X] associate_vpc_cidr_block
@@ -135,9 +136,11 @@ ec2
 - [ ] create_transit_gateway_connect_peer
 - [ ] create_transit_gateway_multicast_domain
 - [X] create_transit_gateway_peering_attachment
+- [ ] create_transit_gateway_policy_table
 - [ ] create_transit_gateway_prefix_list_reference
 - [X] create_transit_gateway_route
 - [X] create_transit_gateway_route_table
+- [ ] create_transit_gateway_route_table_announcement
 - [X] create_transit_gateway_vpc_attachment
 - [X] create_volume
 - [X] create_vpc
@@ -197,9 +200,11 @@ ec2
 - [ ] delete_transit_gateway_connect_peer
 - [ ] delete_transit_gateway_multicast_domain
 - [X] delete_transit_gateway_peering_attachment
+- [ ] delete_transit_gateway_policy_table
 - [ ] delete_transit_gateway_prefix_list_reference
 - [X] delete_transit_gateway_route
 - [X] delete_transit_gateway_route_table
+- [ ] delete_transit_gateway_route_table_announcement
 - [X] delete_transit_gateway_vpc_attachment
 - [X] delete_volume
 - [X] delete_vpc
@@ -333,6 +338,8 @@ ec2
 - [ ] describe_transit_gateway_connects
 - [ ] describe_transit_gateway_multicast_domains
 - [X] describe_transit_gateway_peering_attachments
+- [ ] describe_transit_gateway_policy_tables
+- [ ] describe_transit_gateway_route_table_announcements
 - [ ] describe_transit_gateway_route_tables
 - [X] describe_transit_gateway_vpc_attachments
 - [X] describe_transit_gateways
@@ -396,6 +403,7 @@ ec2
 - [X] disassociate_route_table
 - [X] disassociate_subnet_cidr_block
 - [ ] disassociate_transit_gateway_multicast_domain
+- [ ] disassociate_transit_gateway_policy_table
 - [X] disassociate_transit_gateway_route_table
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
@@ -444,6 +452,8 @@ ec2
 - [ ] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
 - [ ] get_transit_gateway_multicast_domain_associations
+- [ ] get_transit_gateway_policy_table_associations
+- [ ] get_transit_gateway_policy_table_entries
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations

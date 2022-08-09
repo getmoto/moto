@@ -2,11 +2,13 @@ import copy
 
 from .fixtures.datacatalog import TABLE_INPUT, PARTITION_INPUT, DATABASE_INPUT
 from .fixtures.schema_registry import (
-    REGISTRY_NAME,
-    SCHEMA_NAME,
-    BACKWARD_COMPATIBILITY,
-    AVRO_DATA_FORMAT,
-    AVRO_SCHEMA_DEFINITION,
+    TEST_REGISTRY_NAME,
+    TEST_SCHEMA_NAME,
+    TEST_BACKWARD_COMPATIBILITY,
+    TEST_AVRO_DATA_FORMAT,
+    TEST_AVRO_SCHEMA_DEFINITION,
+    TEST_SCHEMA_ID,
+    TEST_NEW_AVRO_SCHEMA_DEFINITION,
 )
 
 
@@ -166,21 +168,27 @@ def create_crawler(
     )
 
 
-def create_registry(client, registry_name=REGISTRY_NAME):
+def create_registry(client, registry_name=TEST_REGISTRY_NAME):
     return client.create_registry(RegistryName=registry_name)
 
 
 def create_schema(
     client,
     registry_id,
-    data_format=AVRO_DATA_FORMAT,
-    compatibility=BACKWARD_COMPATIBILITY,
-    schema_definition=AVRO_SCHEMA_DEFINITION,
+    data_format=TEST_AVRO_DATA_FORMAT,
+    compatibility=TEST_BACKWARD_COMPATIBILITY,
+    schema_definition=TEST_AVRO_SCHEMA_DEFINITION,
 ):
     return client.create_schema(
         RegistryId=registry_id,
-        SchemaName=SCHEMA_NAME,
+        SchemaName=TEST_SCHEMA_NAME,
         DataFormat=data_format,
         Compatibility=compatibility,
         SchemaDefinition=schema_definition,
+    )
+
+
+def register_schema_version(client):
+    return client.register_schema_version(
+        SchemaId=TEST_SCHEMA_ID, SchemaDefinition=TEST_NEW_AVRO_SCHEMA_DEFINITION
     )

@@ -27,7 +27,7 @@ mediaconnect
 
 - [ ] add_flow_media_streams
 - [X] add_flow_outputs
-- [ ] add_flow_sources
+- [X] add_flow_sources
 - [X] add_flow_vpc_interfaces
 - [X] create_flow
 - [X] delete_flow
@@ -54,5 +54,5 @@ mediaconnect
 - [ ] update_flow_entitlement
 - [ ] update_flow_media_stream
 - [ ] update_flow_output
-- [ ] update_flow_source
+- [X] update_flow_source
 
