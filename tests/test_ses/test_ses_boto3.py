@@ -195,7 +195,11 @@ def test_send_bulk_templated_email():
         DefaultTemplateData='{"name": "test"}',
     )
 
-    conn.send_bulk_templated_email.when.called_with(**kwargs).should.throw(ClientError)
+    with pytest.raises(ClientError) as ex:
+        conn.send_bulk_templated_email(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
+    ex.value.response["Error"]["Message"].should.equal("Email address not verified test@example.com")
 
     conn.verify_domain_identity(Domain="example.com")
 
@@ -217,16 +221,23 @@ def test_send_bulk_templated_email():
 
     too_many_destinations = list({"Destination": {"ToAddresses": ["to%s@example.com" % i], "CcAddresses": [],
                                                   "BccAddresses": []}} for i in range(51))
-    conn.send_bulk_templated_email.when.called_with(
-        **dict(kwargs, Destinations=too_many_destinations)
-    ).should.throw(ClientError)
+
+    with pytest.raises(ClientError) as ex:
+        args = dict(kwargs, Destinations= too_many_destinations)
+        conn.send_bulk_templated_email(**args)
+
+    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
+    ex.value.response["Error"]["Message"].should.equal("Too many destinations.")
 
     too_many_destinations = list("to%s@example.com" % i for i in range(51))
 
-    conn.send_bulk_templated_email.when.called_with(
-        **dict(kwargs, Destinations=[{"Destination": {"ToAddresses": too_many_destinations,
-                                                      "CcAddresses": [], "BccAddresses": []}}])
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError) as ex:
+        args = dict(kwargs, Destinations=[{"Destination": {"ToAddresses": too_many_destinations,
+                                                           "CcAddresses": [], "BccAddresses": []}}])
+        conn.send_bulk_templated_email(**args)
+
+    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
+    ex.value.response["Error"]["Message"].should.equal("Too many destinations.")
 
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
