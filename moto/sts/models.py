@@ -92,10 +92,6 @@ class STSBackend(BaseBackend):
         """
         Assume an IAM Role. Note that the role does not need to exist. The ARN can point to another account, providing an opportunity to switch accounts.
         """
-        # Access Keys are created against a user
-        # What user are we creating this against? Root user? System user?
-        # Maybe check against AWS how these roles/access keys are created
-        # They could be invisible, i.e. special type of access creds that cannot be seen by the user
         account_id, access_key = self._create_access_key(role=role_arn)
         role = AssumedRole(
             account_id,

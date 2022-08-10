@@ -2149,10 +2149,7 @@ class IAMBackend(BaseBackend):
 
         instance_profile_id = random_resource_id()
 
-        roles = [
-            iam_backends[self.account_id]["global"].get_role(role_name)
-            for role_name in role_names
-        ]
+        roles = [self.get_role(role_name) for role_name in role_names]
         instance_profile = InstanceProfile(
             self.account_id, instance_profile_id, name, path, roles, tags
         )
@@ -2778,9 +2775,6 @@ class IAMBackend(BaseBackend):
         if "AWSManagedPolicy" in policy_filter:
             returned_policies = self.aws_managed_policies
         if "LocalManagedPolicy" in policy_filter:
-            print(
-                f"{len(policies)}::{len(local_policies)}::{len(self.aws_managed_policies)}"
-            )
             returned_policies = returned_policies + list(local_policies)
 
         return {

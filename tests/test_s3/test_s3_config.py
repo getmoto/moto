@@ -4,17 +4,17 @@ import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_s3
 from moto.core.exceptions import InvalidNextTokenException
+from moto.s3.config import s3_config_query
 from tests import DEFAULT_ACCOUNT_ID
+
+s3_config_query_backend = s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
 
 
 @mock_s3
 def test_s3_public_access_block_to_config_dict():
-    from moto.s3.config import s3_config_query
 
     # With 1 bucket in us-west-2:
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_bucket(
-        "bucket1", "us-west-2"
-    )
+    s3_config_query_backend.create_bucket("bucket1", "us-west-2")
 
     public_access_block = {
         "BlockPublicAcls": "True",
@@ -24,26 +24,20 @@ def test_s3_public_access_block_to_config_dict():
     }
 
     # Add a public access block:
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID][
-        "global"
-    ].put_bucket_public_access_block("bucket1", public_access_block)
-
-    result = (
-        s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
-        .buckets["bucket1"]
-        .public_access_block.to_config_dict()
+    s3_config_query_backend.put_bucket_public_access_block(
+        "bucket1", public_access_block
     )
+
+    result = s3_config_query_backend.buckets[
+        "bucket1"
+    ].public_access_block.to_config_dict()
 
     for key, value in public_access_block.items():
         k = "{lowercase}{rest}".format(lowercase=key[0].lower(), rest=key[1:])
         assert result[k] is (value == "True")
 
     # Verify that this resides in the full bucket's to_config_dict:
-    full_result = (
-        s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
-        .buckets["bucket1"]
-        .to_config_dict()
-    )
+    full_result = s3_config_query_backend.buckets["bucket1"].to_config_dict()
     assert (
         json.loads(
             full_result["supplementaryConfiguration"]["PublicAccessBlockConfiguration"]
@@ -54,7 +48,6 @@ def test_s3_public_access_block_to_config_dict():
 
 @mock_s3
 def test_list_config_discovered_resources():
-    from moto.s3.config import s3_config_query
 
     # Without any buckets:
     assert s3_config_query.list_config_service_resources(
@@ -63,15 +56,11 @@ def test_list_config_discovered_resources():
 
     # With 10 buckets in us-west-2:
     for x in range(0, 10):
-        s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_bucket(
-            "bucket{}".format(x), "us-west-2"
-        )
+        s3_config_query_backend.create_bucket(f"bucket{x}", "us-west-2")
 
     # With 2 buckets in eu-west-1:
     for x in range(10, 12):
-        s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_bucket(
-            "eu-bucket{}".format(x), "eu-west-1"
-        )
+        s3_config_query_backend.create_bucket(f"eu-bucket{x}", "eu-west-1")
 
     result, next_token = s3_config_query.list_config_service_resources(
         DEFAULT_ACCOUNT_ID, None, None, 100, None
@@ -155,12 +144,8 @@ def test_list_config_discovered_resources():
 
 @mock_s3
 def test_s3_lifecycle_config_dict():
-    from moto.s3.config import s3_config_query
-
     # With 1 bucket in us-west-2:
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_bucket(
-        "bucket1", "us-west-2"
-    )
+    s3_config_query_backend.create_bucket("bucket1", "us-west-2")
 
     # And a lifecycle policy
     lifecycle = [
@@ -189,16 +174,12 @@ def test_s3_lifecycle_config_dict():
             "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1},
         },
     ]
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].put_bucket_lifecycle(
-        "bucket1", lifecycle
-    )
+    s3_config_query_backend.put_bucket_lifecycle("bucket1", lifecycle)
 
     # Get the rules for this:
     lifecycles = [
         rule.to_config_dict()
-        for rule in s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
-        .buckets["bucket1"]
-        .rules
+        for rule in s3_config_query_backend.buckets["bucket1"].rules
     ]
 
     # Verify the first:
@@ -275,12 +256,8 @@ def test_s3_lifecycle_config_dict():
 
 @mock_s3
 def test_s3_notification_config_dict():
-    from moto.s3.config import s3_config_query
-
     # With 1 bucket in us-west-2:
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_bucket(
-        "bucket1", "us-west-2"
-    )
+    s3_config_query_backend.create_bucket("bucket1", "us-west-2")
 
     # And some notifications:
     notifications = {
@@ -327,11 +304,9 @@ def test_s3_notification_config_dict():
     ].put_bucket_notification_configuration("bucket1", notifications)
 
     # Get the notifications for this:
-    notifications = (
-        s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
-        .buckets["bucket1"]
-        .notification_configuration.to_config_dict()
-    )
+    notifications = s3_config_query_backend.buckets[
+        "bucket1"
+    ].notification_configuration.to_config_dict()
 
     # Verify it all:
     assert notifications == {
@@ -378,20 +353,13 @@ def test_s3_notification_config_dict():
 
 @mock_s3
 def test_s3_acl_to_config_dict():
-    from moto.s3.config import s3_config_query
     from moto.s3.models import FakeAcl, FakeGrant, FakeGrantee, OWNER
 
     # With 1 bucket in us-west-2:
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_bucket(
-        "logbucket", "us-west-2"
-    )
+    s3_config_query_backend.create_bucket("logbucket", "us-west-2")
 
     # Get the config dict with nothing other than the owner details:
-    acls = (
-        s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
-        .buckets["logbucket"]
-        .acl.to_config_dict()
-    )
+    acls = s3_config_query_backend.buckets["logbucket"].acl.to_config_dict()
     owner_acl = {
         "grantee": {"id": OWNER, "displayName": None},
         "permission": "FullControl",
@@ -416,15 +384,9 @@ def test_s3_acl_to_config_dict():
             FakeGrant([FakeGrantee(grantee_id=OWNER)], "FULL_CONTROL"),
         ]
     )
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].put_bucket_acl(
-        "logbucket", log_acls
-    )
+    s3_config_query_backend.put_bucket_acl("logbucket", log_acls)
 
-    acls = (
-        s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
-        .buckets["logbucket"]
-        .acl.to_config_dict()
-    )
+    acls = s3_config_query_backend.buckets["logbucket"].acl.to_config_dict()
     assert acls == {
         "grantSet": None,
         "grantList": [
@@ -448,14 +410,8 @@ def test_s3_acl_to_config_dict():
             FakeGrant([FakeGrantee(grantee_id=OWNER)], "WRITE_ACP"),
         ]
     )
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].put_bucket_acl(
-        "logbucket", log_acls
-    )
-    acls = (
-        s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
-        .buckets["logbucket"]
-        .acl.to_config_dict()
-    )
+    s3_config_query_backend.put_bucket_acl("logbucket", log_acls)
+    acls = s3_config_query_backend.buckets["logbucket"].acl.to_config_dict()
     assert acls == {
         "grantSet": None,
         "grantList": [
@@ -468,7 +424,6 @@ def test_s3_acl_to_config_dict():
 
 @mock_s3
 def test_s3_config_dict():
-    from moto.s3.config import s3_config_query
     from moto.s3.models import FakeAcl, FakeGrant, FakeGrantee, OWNER
 
     # Without any buckets:
@@ -477,17 +432,11 @@ def test_s3_config_dict():
     tags = {"someTag": "someValue", "someOtherTag": "someOtherValue"}
 
     # With 1 bucket in us-west-2:
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_bucket(
-        "bucket1", "us-west-2"
-    )
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].put_bucket_tagging(
-        "bucket1", tags
-    )
+    s3_config_query_backend.create_bucket("bucket1", "us-west-2")
+    s3_config_query_backend.put_bucket_tagging("bucket1", tags)
 
     # With a log bucket:
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_bucket(
-        "logbucket", "us-west-2"
-    )
+    s3_config_query_backend.create_bucket("logbucket", "us-west-2")
     log_acls = FakeAcl(
         [
             FakeGrant(
@@ -502,10 +451,8 @@ def test_s3_config_dict():
         ]
     )
 
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].put_bucket_acl(
-        "logbucket", log_acls
-    )
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].put_bucket_logging(
+    s3_config_query_backend.put_bucket_acl("logbucket", log_acls)
+    s3_config_query_backend.put_bucket_logging(
         "bucket1", {"TargetBucket": "logbucket", "TargetPrefix": ""}
     )
 
@@ -524,9 +471,7 @@ def test_s3_config_dict():
 
     # The policy is a byte array -- need to encode in Python 3
     pass_policy = bytes(policy, "utf-8")
-    s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].put_bucket_policy(
-        "bucket1", pass_policy
-    )
+    s3_config_query_backend.put_bucket_policy("bucket1", pass_policy)
 
     # Get the us-west-2 bucket and verify that it works properly:
     bucket1_result = s3_config_query.get_config_resource(DEFAULT_ACCOUNT_ID, "bucket1")

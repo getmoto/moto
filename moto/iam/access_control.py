@@ -58,7 +58,7 @@ class IAMUserAccessKey:
 
     def __init__(self, account_id, access_key_id, headers):
         self.account_id = account_id
-        iam_users = self.iam_backend.list_users("/", None, None)
+        iam_users = self.backend.list_users("/", None, None)
 
         for iam_user in iam_users:
             for access_key in iam_user.access_keys:
@@ -70,10 +70,6 @@ class IAMUserAccessKey:
                         raise CreateAccessKeyFailure(reason="InvalidToken")
                     return
         raise CreateAccessKeyFailure(reason="InvalidId")
-
-    @property
-    def iam_backend(self):
-        return iam_backends[self.account_id]["global"]
 
     @property
     def arn(self):
@@ -136,10 +132,6 @@ class AssumedRoleAccessKey(object):
                     raise CreateAccessKeyFailure(reason="InvalidToken")
                 return
         raise CreateAccessKeyFailure(reason="InvalidId")
-
-    @property
-    def iam_backend(self):
-        return iam_backends[self.account_id]["global"]
 
     @property
     def arn(self):

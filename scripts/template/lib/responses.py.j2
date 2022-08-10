@@ -14,7 +14,7 @@ class {{ service_class }}Response(BaseResponse):
     @property
     def {{ escaped_service }}_backend(self):
         """Return backend instance specific for this region."""
-        return {{ escaped_service }}_backends[self.region]
+        return {{ escaped_service }}_backends[self.current_account][self.region]
 
     # add methods from here
 
