@@ -387,6 +387,8 @@ class Database(CloudFormationModel):
         if self.backup_retention_period is None:
             self.backup_retention_period = 1
         self.availability_zone = kwargs.get("availability_zone")
+        if not self.availability_zone:
+            self.availability_zone = f"{self.region_name}a"
         self.multi_az = kwargs.get("multi_az")
         self.db_subnet_group_name = kwargs.get("db_subnet_group_name")
         if self.db_subnet_group_name:
@@ -495,6 +497,7 @@ class Database(CloudFormationModel):
     def to_xml(self):
         template = Template(
             """<DBInstance>
+              <AvailabilityZone>{{ database.availability_zone }}</AvailabilityZone>
               <BackupRetentionPeriod>{{ database.backup_retention_period }}</BackupRetentionPeriod>
               <DBInstanceStatus>{{ database.status }}</DBInstanceStatus>
               {% if database.db_name %}<DBName>{{ database.db_name }}</DBName>{% endif %}
