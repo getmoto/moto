@@ -98,6 +98,7 @@ def test_key_pairs_create_boto3():
 
     kps = client.describe_key_pairs(KeyNames=[key_name])["KeyPairs"]
     kps.should.have.length_of(1)
+    kps[0].should.have.key("KeyPairId")
     kps[0].should.have.key("KeyName").equal(key_name)
     kps[0].should.have.key("KeyFingerprint")
 
@@ -160,6 +161,7 @@ def test_key_pairs_import_boto3():
         KeyName=key_name, PublicKeyMaterial=RSA_PUBLIC_KEY_OPENSSH
     )
 
+    kp1.should.have.key("KeyPairId")
     kp1.should.have.key("KeyName").equal(key_name)
     kp1.should.have.key("KeyFingerprint").equal(RSA_PUBLIC_KEY_FINGERPRINT)
 
@@ -167,6 +169,7 @@ def test_key_pairs_import_boto3():
     kp2 = client.import_key_pair(
         KeyName=key_name2, PublicKeyMaterial=RSA_PUBLIC_KEY_RFC4716
     )
+    kp2.should.have.key("KeyPairId")
     kp2.should.have.key("KeyName").equal(key_name2)
     kp2.should.have.key("KeyFingerprint").equal(RSA_PUBLIC_KEY_FINGERPRINT)
 

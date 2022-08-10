@@ -54,6 +54,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "vpn-gateway": "vgw",
     "iam-instance-profile-association": "iip-assoc",
     "carrier-gateway": "cagw",
+    "key-pair": "key",
 }
 
 
@@ -141,6 +142,10 @@ def random_customer_gateway_id():
 
 def random_volume_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["volume"])
+
+
+def random_key_pair_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["key-pair"])
 
 
 def random_vpc_id():
