@@ -1,7 +1,10 @@
 from collections import OrderedDict
 from .core import TaggedEC2Resource
 from ..utils import generic_filter, random_launch_template_id, utc_date_and_time
-from ..exceptions import InvalidLaunchTemplateNameError
+from ..exceptions import (
+    InvalidLaunchTemplateNameAlreadyExistsError,
+    InvalidLaunchTemplateNameNotFoundError,
+)
 
 
 class LaunchTemplateVersion(object):
@@ -81,7 +84,7 @@ class LaunchTemplateBackend:
 
     def create_launch_template(self, name, description, template_data):
         if name in self.launch_template_name_to_ids:
-            raise InvalidLaunchTemplateNameError()
+            raise InvalidLaunchTemplateNameAlreadyExistsError()
         template = LaunchTemplate(self, name, template_data, description)
         self.launch_templates[template.id] = template
         self.launch_template_name_to_ids[template.name] = template.id
@@ -105,6 +108,8 @@ class LaunchTemplateBackend:
         if template_names and not template_ids:
             template_ids = []
             for name in template_names:
+                if name not in self.launch_template_name_to_ids:
+                    raise InvalidLaunchTemplateNameNotFoundError()
                 template_ids.append(self.launch_template_name_to_ids[name])
 
         if template_ids:

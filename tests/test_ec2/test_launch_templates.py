@@ -305,6 +305,20 @@ def test_describe_launch_template_versions_with_min_and_max():
 
 
 @mock_ec2
+def test_describe_launch_templates_with_non_existent_name():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+
+    with pytest.raises(ClientError) as ex:
+        cli.describe_launch_templates(LaunchTemplateNames=[template_name])
+
+    str(ex.value).should.equal(
+        "An error occurred (InvalidLaunchTemplateName.NotFoundException) when calling the DescribeLaunchTemplates operation: At least one of the launch templates specified in the request does not exist."
+    )
+
+
+@mock_ec2
 def test_describe_launch_templates():
     cli = boto3.client("ec2", region_name="us-east-1")
 
