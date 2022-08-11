@@ -223,7 +223,7 @@ def test_send_bulk_templated_email():
                                                   "BccAddresses": []}} for i in range(51))
 
     with pytest.raises(ClientError) as ex:
-        args = dict(kwargs, Destinations= too_many_destinations)
+        args = dict(kwargs, Destinations=too_many_destinations)
         conn.send_bulk_templated_email(**args)
 
     ex.value.response["Error"]["Code"].should.equal("MessageRejected")
