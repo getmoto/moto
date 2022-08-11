@@ -73,7 +73,7 @@ all_extra_deps = [
     _dep_openapi,
     _setuptools,
 ]
-all_server_deps = all_extra_deps + ["flask", "flask-cors"]
+all_server_deps = all_extra_deps + ["flask<2.2.0", "flask-cors"]
 
 extras_per_service = {}
 for service_name in [
