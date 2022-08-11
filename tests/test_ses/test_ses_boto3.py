@@ -177,19 +177,21 @@ def test_send_bulk_templated_email():
 
     kwargs = dict(
         Source="test@example.com",
-        Destinations=[{
-            'Destination': {
-                "ToAddresses": ["test_to@example.com"],
-                "CcAddresses": ["test_cc@example.com"],
-                "BccAddresses": ["test_bcc@example.com"],
-            }
-        }, {
-            'Destination': {
-                "ToAddresses": ["test_to1@example.com"],
-                "CcAddresses": ["test_cc1@example.com"],
-                "BccAddresses": ["test_bcc1@example.com"],
-            }
-        }
+        Destinations=[
+            {
+                "Destination": {
+                    "ToAddresses": ["test_to@example.com"],
+                    "CcAddresses": ["test_cc@example.com"],
+                    "BccAddresses": ["test_bcc@example.com"],
+                }
+            },
+            {
+                "Destination": {
+                    "ToAddresses": ["test_to1@example.com"],
+                    "CcAddresses": ["test_cc1@example.com"],
+                    "BccAddresses": ["test_bcc1@example.com"],
+                }
+            },
         ],
         Template="test_template",
         DefaultTemplateData='{"name": "test"}',
@@ -199,7 +201,9 @@ def test_send_bulk_templated_email():
         conn.send_bulk_templated_email(**kwargs)
 
     ex.value.response["Error"]["Code"].should.equal("MessageRejected")
-    ex.value.response["Error"]["Message"].should.equal("Email address not verified test@example.com")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Email address not verified test@example.com"
+    )
 
     conn.verify_domain_identity(Domain="example.com")
 
@@ -219,8 +223,16 @@ def test_send_bulk_templated_email():
 
     conn.send_bulk_templated_email(**kwargs)
 
-    too_many_destinations = list({"Destination": {"ToAddresses": ["to%s@example.com" % i], "CcAddresses": [],
-                                                  "BccAddresses": []}} for i in range(51))
+    too_many_destinations = list(
+        {
+            "Destination": {
+                "ToAddresses": ["to%s@example.com" % i],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            }
+        }
+        for i in range(51)
+    )
 
     with pytest.raises(ClientError) as ex:
         args = dict(kwargs, Destinations=too_many_destinations)
@@ -232,8 +244,18 @@ def test_send_bulk_templated_email():
     too_many_destinations = list("to%s@example.com" % i for i in range(51))
 
     with pytest.raises(ClientError) as ex:
-        args = dict(kwargs, Destinations=[{"Destination": {"ToAddresses": too_many_destinations,
-                                                           "CcAddresses": [], "BccAddresses": []}}])
+        args = dict(
+            kwargs,
+            Destinations=[
+                {
+                    "Destination": {
+                        "ToAddresses": too_many_destinations,
+                        "CcAddresses": [],
+                        "BccAddresses": [],
+                    }
+                }
+            ],
+        )
         conn.send_bulk_templated_email(**args)
 
     ex.value.response["Error"]["Code"].should.equal("MessageRejected")
@@ -1123,9 +1145,9 @@ def test_create_ses_template():
             "TemplateName": "MyTemplate",
             "SubjectPart": "Greetings, {{name}}!",
             "TextPart": "Dear {{name}},"
-                        "\r\nYour favorite animal is {{favoriteanimal}}.",
+            "\r\nYour favorite animal is {{favoriteanimal}}.",
             "HtmlPart": "<h1>Hello {{name}},"
-                        "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
         }
     )
     with pytest.raises(ClientError) as ex:
@@ -1134,9 +1156,9 @@ def test_create_ses_template():
                 "TemplateName": "MyTemplate",
                 "SubjectPart": "Greetings, {{name}}!",
                 "TextPart": "Dear {{name}},"
-                            "\r\nYour favorite animal is {{favoriteanimal}}.",
+                "\r\nYour favorite animal is {{favoriteanimal}}.",
                 "HtmlPart": "<h1>Hello {{name}},"
-                            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+                "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
             }
         )
 
@@ -1177,9 +1199,9 @@ def test_render_template():
             "TemplateName": "MyTestTemplate",
             "SubjectPart": "Greetings, {{name}}!",
             "TextPart": "Dear {{name}},"
-                        "\r\nYour favorite animal is {{favoriteanimal}}.",
+            "\r\nYour favorite animal is {{favoriteanimal}}.",
             "HtmlPart": "<h1>Hello {{name}},"
-                        "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
         }
     )
     result = conn.test_render_template(**kwargs)
@@ -1198,9 +1220,9 @@ def test_render_template():
             "TemplateName": "MyTestTemplate1",
             "SubjectPart": "Greetings, {{name}}!",
             "TextPart": "Dear {{name}},"
-                        "\r\nYour favorite animal is {{favoriteanimal}}.",
+            "\r\nYour favorite animal is {{favoriteanimal}}.",
             "HtmlPart": "<h1>Hello {{name}},"
-                        "</h1><p>Your favorite animal is {{favoriteanimal  }}.</p>",
+            "</h1><p>Your favorite animal is {{favoriteanimal  }}.</p>",
         }
     )
 
@@ -1217,7 +1239,10 @@ def test_render_template():
     with pytest.raises(ClientError) as ex:
         conn.test_render_template(**kwargs)
     assert ex.value.response["Error"]["Code"] == "MissingRenderingAttributeException"
-    assert (ex.value.response["Error"]["Message"] == "Attribute 'favoriteanimal' is not present in the rendering data.")
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Attribute 'favoriteanimal' is not present in the rendering data."
+    )
 
 
 @mock_ses
@@ -1228,7 +1253,7 @@ def test_update_ses_template():
         "SubjectPart": "Greetings, {{name}}!",
         "TextPart": "Dear {{name}}," "\r\nYour favorite animal is {{favoriteanimal}}.",
         "HtmlPart": "<h1>Hello {{name}},"
-                    "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+        "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
     }
 
     with pytest.raises(ClientError) as ex:

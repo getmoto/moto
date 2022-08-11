@@ -101,14 +101,20 @@ class EmailResponse(BaseResponse):
 
         destinations = []
         for i in range(1, 52):
-            destination_field = "Destinations.member.%s.Destination.ToAddresses.member.1" % (i)
+            destination_field = (
+                "Destinations.member.%s.Destination.ToAddresses.member.1" % (i)
+            )
             if self.querystring.get(destination_field) is None:
                 break
             destination = {"ToAddresses": [], "CcAddresses": [], "BccAddresses": []}
             for dest_type in destination:
                 # consume up to 51 to allow exception
                 for j in range(1, 52):
-                    field = "Destinations.member.%s.Destination.%s.member.%s" % (i, dest_type, j)
+                    field = "Destinations.member.%s.Destination.%s.member.%s" % (
+                        i,
+                        dest_type,
+                        j,
+                    )
                     address = self.querystring.get(field)
                     if address is None:
                         break

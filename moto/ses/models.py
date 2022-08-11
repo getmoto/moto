@@ -197,8 +197,9 @@ class SESBackend(BaseBackend):
         if recipient_count > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many destinations.")
 
-        total_recipient_count = sum(map(lambda d: sum(map(len, d['Destination'].values())),
-                                        destinations))
+        total_recipient_count = sum(
+            map(lambda d: sum(map(len, d["Destination"].values())), destinations)
+        )
         if total_recipient_count > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many destinations.")
 
@@ -209,6 +210,8 @@ class SESBackend(BaseBackend):
         if not self.templates.get(template[0]):
             raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
 
+        self.__process_sns_feedback__(source, destinations, region)
+
         message_id = get_random_message_id()
         message = TemplateMessage(
             message_id, source, template, template_data, destinations
@@ -217,8 +220,7 @@ class SESBackend(BaseBackend):
         self.sent_message_count += total_recipient_count
 
         ids = list(map(lambda x: get_random_message_id(), range(len(destinations))))
-        return BulkTemplateMessage(ids, source, template,
-                                   template_data, destinations)
+        return BulkTemplateMessage(ids, source, template, template_data, destinations)
 
     def send_templated_email(
         self, source, template, template_data, destinations, region
