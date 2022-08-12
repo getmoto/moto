@@ -1,14 +1,11 @@
 import json
-
 import boto3
 from botocore.exceptions import ClientError
 from botocore.exceptions import ParamValidationError
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import pytest
-
 import sure  # noqa # pylint: disable=unused-import
-
 from moto import mock_ses
 
 
@@ -172,6 +169,101 @@ def test_send_email_invalid_address():
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidParameterValue")
     err["Message"].should.equal("Missing domain")
+
+
+@mock_ses
+def test_send_bulk_templated_email():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        Source="test@example.com",
+        Destinations=[
+            {
+                "Destination": {
+                    "ToAddresses": ["test_to@example.com"],
+                    "CcAddresses": ["test_cc@example.com"],
+                    "BccAddresses": ["test_bcc@example.com"],
+                }
+            },
+            {
+                "Destination": {
+                    "ToAddresses": ["test_to1@example.com"],
+                    "CcAddresses": ["test_cc1@example.com"],
+                    "BccAddresses": ["test_bcc1@example.com"],
+                }
+            },
+        ],
+        Template="test_template",
+        DefaultTemplateData='{"name": "test"}',
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_bulk_templated_email(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Email address not verified test@example.com"
+    )
+
+    conn.verify_domain_identity(Domain="example.com")
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_bulk_templated_email(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+
+    conn.create_template(
+        Template={
+            "TemplateName": "test_template",
+            "SubjectPart": "lalala",
+            "HtmlPart": "",
+            "TextPart": "",
+        }
+    )
+
+    conn.send_bulk_templated_email(**kwargs)
+
+    too_many_destinations = list(
+        {
+            "Destination": {
+                "ToAddresses": ["to%s@example.com" % i],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            }
+        }
+        for i in range(51)
+    )
+
+    with pytest.raises(ClientError) as ex:
+        args = dict(kwargs, Destinations=too_many_destinations)
+        conn.send_bulk_templated_email(**args)
+
+    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
+    ex.value.response["Error"]["Message"].should.equal("Too many destinations.")
+
+    too_many_destinations = list("to%s@example.com" % i for i in range(51))
+
+    with pytest.raises(ClientError) as ex:
+        args = dict(
+            kwargs,
+            Destinations=[
+                {
+                    "Destination": {
+                        "ToAddresses": too_many_destinations,
+                        "CcAddresses": [],
+                        "BccAddresses": [],
+                    }
+                }
+            ],
+        )
+        conn.send_bulk_templated_email(**args)
+
+    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
+    ex.value.response["Error"]["Message"].should.equal("Too many destinations.")
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    sent_count.should.equal(6)
 
 
 @mock_ses

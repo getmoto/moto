@@ -6,6 +6,7 @@ from moto import settings
 
 from moto.core import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
+from moto.ec2.models.fleets import Fleet
 from moto.ec2.models.instance_types import (
     INSTANCE_TYPE_OFFERINGS,
     InstanceTypeOfferingBackend,
@@ -113,6 +114,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         )
         self.sriov_net_support = "simple"
         self._spot_fleet_id = kwargs.get("spot_fleet_id", None)
+        self._fleet_id = kwargs.get("fleet_id", None)
         self.associate_public_ip = kwargs.get("associate_public_ip", False)
         if in_ec2_classic:
             # If we are in EC2-Classic, autoassign a public IP
@@ -366,18 +368,28 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         self.teardown_defaults()
 
-        if self._spot_fleet_id:
-            spot_fleet = self.ec2_backend.get_spot_fleet_request(self._spot_fleet_id)
-            for spec in spot_fleet.launch_specs:
+        if self._spot_fleet_id or self._fleet_id:
+            fleet = self.ec2_backend.get_spot_fleet_request(self._spot_fleet_id)
+            if not fleet:
+                fleet = self.ec2_backend.get_fleet(
+                    self._spot_fleet_id
+                ) or self.ec2_backend.get_fleet(self._fleet_id)
+            for spec in fleet.launch_specs:
                 if (
                     spec.instance_type == self.instance_type
                     and spec.subnet_id == self.subnet_id
                 ):
                     break
-            spot_fleet.fulfilled_capacity -= spec.weighted_capacity
-            spot_fleet.spot_requests = [
-                req for req in spot_fleet.spot_requests if req.instance != self
+            fleet.fulfilled_capacity -= spec.weighted_capacity
+            fleet.spot_requests = [
+                req for req in fleet.spot_requests if req.instance != self
             ]
+            if isinstance(fleet, Fleet):
+                fleet.on_demand_instances = [
+                    inst
+                    for inst in fleet.on_demand_instances
+                    if inst["instance"] != self
+                ]
 
         self._state.name = "terminated"
         self._state.code = 48

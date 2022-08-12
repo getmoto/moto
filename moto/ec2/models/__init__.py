@@ -13,6 +13,7 @@ from .dhcp_options import DHCPOptionsSetBackend
 from .elastic_block_store import EBSBackend
 from .elastic_ip_addresses import ElasticAddressBackend
 from .elastic_network_interfaces import NetworkInterfaceBackend
+from .fleets import FleetsBackend
 from .flow_logs import FlowLogsBackend
 from .key_pairs import KeyPairBackend
 from .launch_templates import LaunchTemplateBackend
@@ -121,6 +122,7 @@ class EC2Backend(
     LaunchTemplateBackend,
     IamInstanceProfileAssociationBackend,
     CarrierGatewayBackend,
+    FleetsBackend,
 ):
     """
     Implementation of the AWS EC2 endpoint.

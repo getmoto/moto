@@ -38,6 +38,7 @@ DESCRIBE_KEY_PAIRS_RESPONSE = """<DescribeKeyPairsResponse xmlns="http://ec2.ama
     <keySet>
     {% for keypair in keypairs %}
       <item>
+           <keyPairId>{{ keypair.id }}</keyPairId>
            <keyName>{{ keypair.name }}</keyName>
            <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
       </item>
@@ -47,6 +48,7 @@ DESCRIBE_KEY_PAIRS_RESPONSE = """<DescribeKeyPairsResponse xmlns="http://ec2.ama
 
 
 CREATE_KEY_PAIR_RESPONSE = """<CreateKeyPairResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+   <keyPairId>{{ keypair.id }}</keyPairId>
    <keyName>{{ keypair.name }}</keyName>
    <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
    <keyMaterial>{{ keypair.material }}</keyMaterial>
@@ -61,6 +63,7 @@ DELETE_KEY_PAIR_RESPONSE = """<DeleteKeyPairResponse xmlns="http://ec2.amazonaws
 IMPORT_KEYPAIR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <ImportKeyPairResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>471f9fdd-8fe2-4a84-86b0-bd3d3e350979</requestId>
+    <keyPairId>{{ keypair.id }}</keyPairId>
     <keyName>{{ keypair.name }}</keyName>
     <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
   </ImportKeyPairResponse>"""

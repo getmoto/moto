@@ -7,6 +7,7 @@ from .dhcp_options import DHCPOptions
 from .elastic_block_store import ElasticBlockStore
 from .elastic_ip_addresses import ElasticIPAddresses
 from .elastic_network_interfaces import ElasticNetworkInterfaces
+from .fleets import Fleets
 from .general import General
 from .instances import InstanceResponse
 from .internet_gateways import InternetGateways
@@ -52,6 +53,7 @@ class EC2Response(
     ElasticBlockStore,
     ElasticIPAddresses,
     ElasticNetworkInterfaces,
+    Fleets,
     General,
     InstanceResponse,
     InternetGateways,

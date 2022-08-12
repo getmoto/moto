@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.17
 -----
-Docker Digest for 3.1.17: <autopopulateddigest>
+Docker Digest for 3.1.17: _sha256:8a7e397a8856a5e63ad50689cdc3638831112768b193ea0fc308ac7dfdac57f0_
 
     General:
         * Werkzeug has been pinned to 2.1.x, as the latest 2.2.x releases cause some issues
