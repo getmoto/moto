@@ -230,3 +230,69 @@ def test_delete_layer_version():
 
     result = conn.list_layer_versions(LayerName=layer_name)["LayerVersions"]
     result.should.equal([])
+
+
+@mock_lambda
+@mock_s3
+def test_get_layer_with_no_layer_versions():
+    def get_layer_by_layer_name_from_list_of_layer_dicts(layer_name, layer_list):
+        for layer in layer_list:
+            if layer["LayerName"] == layer_name:
+                return layer
+        return None
+
+    conn = boto3.client("lambda", _lambda_region)
+    layer_name = str(uuid4())[0:6]
+
+    # Publish a new Layer and assert Layer exists and only version 1 is there
+    conn.publish_layer_version(
+        LayerName=layer_name,
+        Content={"ZipFile": get_test_zip_file1()},
+    )
+    assert (
+        get_layer_by_layer_name_from_list_of_layer_dicts(
+            layer_name, conn.list_layers()["Layers"]
+        )["LatestMatchingVersion"]["Version"]
+        == 1
+    )
+
+    # Add a new version of that Layer then delete that version
+    conn.publish_layer_version(
+        LayerName=layer_name,
+        Content={"ZipFile": get_test_zip_file1()},
+    )
+    assert (
+        get_layer_by_layer_name_from_list_of_layer_dicts(
+            layer_name, conn.list_layers()["Layers"]
+        )["LatestMatchingVersion"]["Version"]
+        == 2
+    )
+
+    conn.delete_layer_version(LayerName=layer_name, VersionNumber=2)
+    assert (
+        get_layer_by_layer_name_from_list_of_layer_dicts(
+            layer_name, conn.list_layers()["Layers"]
+        )["LatestMatchingVersion"]["Version"]
+        == 1
+    )
+
+    # Delete the last layer_version and check that the Layer is still in the LayerStorage
+    conn.delete_layer_version(LayerName=layer_name, VersionNumber=1)
+    assert (
+        get_layer_by_layer_name_from_list_of_layer_dicts(
+            layer_name, conn.list_layers()["Layers"]
+        )
+        is None
+    )
+
+    # Assert _latest_version didn't decrement
+    conn.publish_layer_version(
+        LayerName=layer_name,
+        Content={"ZipFile": get_test_zip_file1()},
+    )
+    assert (
+        get_layer_by_layer_name_from_list_of_layer_dicts(
+            layer_name, conn.list_layers()["Layers"]
+        )["LatestMatchingVersion"]["Version"]
+        == 3
+    )

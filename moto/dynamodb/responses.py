@@ -7,6 +7,7 @@ from functools import wraps
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
+from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 from .exceptions import (
     MockValidationException,
     ResourceNotFoundException,
@@ -98,6 +99,21 @@ def put_has_empty_attrs(field_updates, table):
         ]
         return any([_validate_attr(attr) for attr in attrs_to_check])
     return False
+
+
+def check_projection_expression(expression):
+    if expression.upper() in ReservedKeywords.get_reserved_keywords():
+        raise MockValidationException(
+            f"ProjectionExpression: Attribute name is a reserved keyword; reserved keyword: {expression}"
+        )
+    if expression[0].isnumeric():
+        raise MockValidationException(
+            "ProjectionExpression: Attribute name starts with a number"
+        )
+    if " " in expression:
+        raise MockValidationException(
+            "ProjectionExpression: Attribute name contains white space"
+        )
 
 
 class DynamoHandler(BaseResponse):
@@ -731,14 +747,17 @@ class DynamoHandler(BaseResponse):
                 else expression
             )
 
-        if projection_expression and expr_attr_names:
+        if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(",")]
-            return ",".join(
-                [
-                    ".".join([_adjust(expr) for expr in nested_expr.split(".")])
-                    for nested_expr in expressions
-                ]
-            )
+            for expression in expressions:
+                check_projection_expression(expression)
+            if expr_attr_names:
+                return ",".join(
+                    [
+                        ".".join([_adjust(expr) for expr in nested_expr.split(".")])
+                        for nested_expr in expressions
+                    ]
+                )
 
         return projection_expression
 
@@ -762,6 +781,10 @@ class DynamoHandler(BaseResponse):
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
         index_name = self.body.get("IndexName")
+
+        projection_expression = self._adjust_projection_expression(
+            projection_expression, expression_attribute_names
+        )
 
         try:
             items, scanned_count, last_evaluated_key = self.dynamodb_backend.scan(

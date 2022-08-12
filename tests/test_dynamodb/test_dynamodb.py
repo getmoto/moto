@@ -5781,3 +5781,63 @@ def test_projection_expression_execution_order():
         ProjectionExpression="#a",
         ExpressionAttributeNames={"#a": "hashKey"},
     )
+
+
+@mock_dynamodb
+def test_invalid_projection_expressions():
+    table_name = "test-projection-expressions-table"
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "customer", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "customer", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    with pytest.raises(
+        ClientError,
+        match="ProjectionExpression: Attribute name is a reserved keyword; reserved keyword: name",
+    ):
+        client.scan(TableName=table_name, ProjectionExpression="name")
+    with pytest.raises(
+        ClientError, match="ProjectionExpression: Attribute name starts with a number"
+    ):
+        client.scan(TableName=table_name, ProjectionExpression="3ame")
+    with pytest.raises(
+        ClientError, match="ProjectionExpression: Attribute name contains white space"
+    ):
+        client.scan(TableName=table_name, ProjectionExpression="na me")
+
+    with pytest.raises(
+        ClientError,
+        match="ProjectionExpression: Attribute name is a reserved keyword; reserved keyword: name",
+    ):
+        client.get_item(
+            TableName=table_name,
+            Key={"customer": {"S": "a"}},
+            ProjectionExpression="name",
+        )
+
+    with pytest.raises(
+        ClientError,
+        match="ProjectionExpression: Attribute name is a reserved keyword; reserved keyword: name",
+    ):
+        client.query(
+            TableName=table_name,
+            KeyConditionExpression="a",
+            ProjectionExpression="name",
+        )
+
+    with pytest.raises(
+        ClientError,
+        match="ProjectionExpression: Attribute name is a reserved keyword; reserved keyword: name",
+    ):
+        client.scan(TableName=table_name, ProjectionExpression="not_a_keyword, name")
+    with pytest.raises(
+        ClientError, match="ProjectionExpression: Attribute name starts with a number"
+    ):
+        client.scan(TableName=table_name, ProjectionExpression="not_a_keyword, 3ame")
+    with pytest.raises(
+        ClientError, match="ProjectionExpression: Attribute name contains white space"
+    ):
+        client.scan(TableName=table_name, ProjectionExpression="not_a_keyword, na me")

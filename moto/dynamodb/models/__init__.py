@@ -1490,13 +1490,6 @@ class DynamoDBBackend(BaseBackend):
             filter_expression, expr_names, expr_values
         )
 
-        projection_expression = ",".join(
-            [
-                expr_names.get(attr, attr)
-                for attr in projection_expression.replace(" ", "").split(",")
-            ]
-        )
-
         return table.scan(
             scan_filters,
             limit,

@@ -502,6 +502,10 @@ def test_create_configuration_set():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
 
+    with pytest.raises(ClientError) as ex:
+        conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
+    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetAlreadyExists")
+
     conn.create_configuration_set_event_destination(
         ConfigurationSetName="test",
         EventDestination={
@@ -543,6 +547,25 @@ def test_create_configuration_set():
         )
 
     ex.value.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
+
+
+@mock_ses
+def test_describe_configuration_set():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    name = "test"
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": name}))
+
+    with pytest.raises(ClientError) as ex:
+        conn.describe_configuration_set(
+            ConfigurationSetName="failtest",
+        )
+    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
+
+    config_set = conn.describe_configuration_set(
+        ConfigurationSetName=name,
+    )
+    config_set["ConfigurationSet"]["Name"].should.equal(name)
 
 
 @mock_ses

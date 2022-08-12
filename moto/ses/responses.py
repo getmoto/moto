@@ -197,6 +197,12 @@ class EmailResponse(BaseResponse):
         template = self.response_template(CREATE_CONFIGURATION_SET)
         return template.render()
 
+    def describe_configuration_set(self):
+        configuration_set_name = self.querystring.get("ConfigurationSetName")[0]
+        self.backend.describe_configuration_set(configuration_set_name)
+        template = self.response_template(DESCRIBE_CONFIGURATION_SET)
+        return template.render(name=configuration_set_name)
+
     def create_configuration_set_event_destination(self):
 
         configuration_set_name = self._get_param("ConfigurationSetName")
@@ -535,6 +541,17 @@ CREATE_CONFIGURATION_SET = """<CreateConfigurationSetResponse xmlns="http://ses.
     <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
   </ResponseMetadata>
 </CreateConfigurationSetResponse>"""
+
+DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <DescribeConfigurationSetResult>
+    <ConfigurationSet>
+      <Name>{{ name }}</Name>
+    </ConfigurationSet>
+  </DescribeConfigurationSetResult>
+  <ResponseMetadata>
+    <RequestId>8e410745-c1bd-4450-82e0-f968cf2105f2</RequestId>
+  </ResponseMetadata>
+</DescribeConfigurationSetResponse>"""
 
 CREATE_CONFIGURATION_SET_EVENT_DESTINATION = """<CreateConfigurationSetEventDestinationResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <CreateConfigurationSetEventDestinationResult/>
