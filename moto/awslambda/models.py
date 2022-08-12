@@ -364,11 +364,15 @@ class Layer(object):
         self.layer_versions.pop(str(layer_version), None)
 
     def to_dict(self):
+        if not self.layer_versions:
+            return {}
+            
+        last_key = sorted(self.layer_versions.keys(), key=lambda version: int(version))[-1]
         return {
             "LayerName": self.name,
             "LayerArn": self.layer_arn,
             "LatestMatchingVersion": self.layer_versions[
-                str(self._latest_version)
+                last_key
             ].get_layer_version(),
         }
 
@@ -1242,7 +1246,7 @@ class LayerStorage(object):
         self._layers[layer_version.name].attach_version(layer_version)
 
     def list_layers(self):
-        return [layer.to_dict() for layer in self._layers.values()]
+        return [layer.to_dict() for layer in self._layers.values() if layer.layer_versions]
 
     def delete_layer_version(self, layer_name, layer_version):
         self._layers[layer_name].delete_version(layer_version)
