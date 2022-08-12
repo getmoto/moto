@@ -7,6 +7,7 @@ from moto import settings
 from moto.core import get_account_id
 from moto.core import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
+from moto.ec2.models.fleets import Fleet
 from moto.ec2.models.instance_types import (
     INSTANCE_TYPE_OFFERINGS,
     InstanceTypeOfferingBackend,
@@ -384,14 +385,12 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             fleet.spot_requests = [
                 req for req in fleet.spot_requests if req.instance != self
             ]
-            try:
+            if isinstance(fleet, Fleet):
                 fleet.on_demand_instances = [
                     inst
                     for inst in fleet.on_demand_instances
                     if inst["instance"] != self
                 ]
-            except AttributeError:
-                pass
 
         self._state.name = "terminated"
         self._state.code = 48
