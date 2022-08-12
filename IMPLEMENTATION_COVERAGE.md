@@ -5533,7 +5533,7 @@
 
 ## ses
 <details>
-<summary>36% implemented</summary>
+<summary>38% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -5581,7 +5581,7 @@
 - [ ] put_identity_policy
 - [ ] reorder_receipt_rule_set
 - [ ] send_bounce
-- [ ] send_bulk_templated_email
+- [X] send_bulk_templated_email
 - [ ] send_custom_verification_email
 - [X] send_email
 - [X] send_raw_email
@@ -6131,6 +6131,7 @@
 - autoscaling-plans
 - backup
 - backup-gateway
+- backupstorage
 - billingconductor
 - braket
 - chime
@@ -6266,6 +6267,7 @@
 - pinpoint-sms-voice
 - pinpoint-sms-voice-v2
 - pricing
+- privatenetworks
 - proton
 - qldb
 - qldb-session

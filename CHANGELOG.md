@@ -1,6 +1,31 @@
 Moto Changelog
 ==============
 
+3.1.18
+-----
+Docker Digest for 3.1.18: <autopopulateddigest>
+
+    General:
+        * Flask has now also been pinned to 2.1.x, as that is the latest release that works with werkzeug 2.1.x
+
+    New Methods:
+        * EC2:
+            * create_fleet()
+            * describe_fleets()
+            * describe_fleet_instances()
+            * delete_fleets()
+
+        * SES:
+            * send_bulk_templated_email()
+
+    Miscellaneous:
+        * EC2: describe_key_pairs() now returns the KeyPairId-attribute
+        * EC2: import_key_pair() now returns the KeyPairId-attribute
+        * EC2: describe_launch_templates() now behaves correctly when called with an unknown template name
+        * RDS: create_db_instance() now returns the AvailabilityZone-attribute
+        * RDS: describe_db_instances() now returns the AvailabilityZone-attribute
+
+
 3.1.17
 -----
 Docker Digest for 3.1.17: _sha256:8a7e397a8856a5e63ad50689cdc3638831112768b193ea0fc308ac7dfdac57f0_

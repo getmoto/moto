@@ -71,7 +71,7 @@ ses
 - [ ] put_identity_policy
 - [ ] reorder_receipt_rule_set
 - [ ] send_bounce
-- [ ] send_bulk_templated_email
+- [X] send_bulk_templated_email
 - [ ] send_custom_verification_email
 - [X] send_email
 - [X] send_raw_email
