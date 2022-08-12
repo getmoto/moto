@@ -16,6 +16,7 @@ Docker Digest for 3.1.18: <autopopulateddigest>
             * delete_fleets()
 
         * SES:
+            * describe_configuration_set()
             * send_bulk_templated_email()
 
     Miscellaneous:
