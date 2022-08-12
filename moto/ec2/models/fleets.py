@@ -239,7 +239,9 @@ class Fleet(TaggedEC2Resource):
             req for req in self.spot_requests if req.instance.id not in instance_ids
         ]
         self.on_demand_instances = [
-            req for req in self.on_demand_instances if req["id"] not in instance_ids
+            req
+            for req in self.on_demand_instances
+            if req["instance"].id not in instance_ids
         ]
         self.ec2_backend.terminate_instances(instance_ids)
 
