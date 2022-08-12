@@ -366,7 +366,7 @@ class SESBackend(BaseBackend):
         self.config_set[configuration_set_name] = 1
         return {}
 
-    def get_configuration_set(self, configuration_set_name):
+    def describe_configuration_set(self, configuration_set_name):
         if configuration_set_name not in self.config_set:
             raise ConfigurationSetDoesNotExist(
                 f"Configuration set <{configuration_set_name}> does not exist"

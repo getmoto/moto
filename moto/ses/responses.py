@@ -196,7 +196,7 @@ class EmailResponse(BaseResponse):
 
     def describe_configuration_set(self):
         configuration_set_name = self.querystring.get("ConfigurationSetName")[0]
-        self.backend.get_configuration_set(configuration_set_name)
+        self.backend.describe_configuration_set(configuration_set_name)
         template = self.response_template(DESCRIBE_CONFIGURATION_SET)
         return template.render(name=configuration_set_name)
 

@@ -5533,7 +5533,7 @@
 
 ## ses
 <details>
-<summary>38% implemented</summary>
+<summary>39% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -5556,7 +5556,7 @@
 - [ ] delete_template
 - [ ] delete_verified_email_address
 - [ ] describe_active_receipt_rule_set
-- [ ] describe_configuration_set
+- [X] describe_configuration_set
 - [X] describe_receipt_rule
 - [X] describe_receipt_rule_set
 - [ ] get_account_sending_enabled

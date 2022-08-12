@@ -46,7 +46,7 @@ ses
 - [ ] delete_template
 - [ ] delete_verified_email_address
 - [ ] describe_active_receipt_rule_set
-- [ ] describe_configuration_set
+- [X] describe_configuration_set
 - [X] describe_receipt_rule
 - [X] describe_receipt_rule_set
 - [ ] get_account_sending_enabled
