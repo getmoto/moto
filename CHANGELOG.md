@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.18
 -----
-Docker Digest for 3.1.18: <autopopulateddigest>
+Docker Digest for 3.1.18: _sha256:52fa7fdf8deee66d47fa760fafce1231ec9007d7bfc9c7a3080a8badd372b300_
 
     General:
         * Flask has now also been pinned to 2.1.x, as that is the latest release that works with werkzeug 2.1.x
