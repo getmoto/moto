@@ -135,6 +135,7 @@ class LaunchTemplates(EC2BaseResponse):
                     "latestVersionNumber": version.number,
                     "launchTemplateId": template.id,
                     "launchTemplateName": template.name,
+                    "tags": template.tags,
                 },
             )
 
