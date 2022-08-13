@@ -13,7 +13,7 @@ from moto import mock_sqs, settings
 from unittest import SkipTest, mock
 
 import pytest
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sqs.models import (
     Queue,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,

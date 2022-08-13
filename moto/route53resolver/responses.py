@@ -11,10 +11,13 @@ from moto.route53resolver.validations import validate_args
 class Route53ResolverResponse(BaseResponse):
     """Handler for Route53Resolver requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="route53-resolver")
+
     @property
     def route53resolver_backend(self):
         """Return backend instance specific for this region."""
-        return route53resolver_backends[self.region]
+        return route53resolver_backends[self.current_account][self.region]
 
     def associate_resolver_rule(self):
         """Associate a Resolver rule with a VPC."""
@@ -23,7 +26,6 @@ class Route53ResolverResponse(BaseResponse):
         vpc_id = self._get_param("VPCId")
         resolver_rule_association = (
             self.route53resolver_backend.associate_resolver_rule(
-                region=self.region,
                 resolver_rule_id=resolver_rule_id,
                 name=name,
                 vpc_id=vpc_id,
@@ -263,7 +265,6 @@ class Route53ResolverResponse(BaseResponse):
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
         resolver_endpoint = (
             self.route53resolver_backend.associate_resolver_endpoint_ip_address(
-                region=self.region,
                 resolver_endpoint_id=resolver_endpoint_id,
                 ip_address=ip_address,
             )

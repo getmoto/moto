@@ -10,9 +10,12 @@ from .models import autoscaling_backends
 
 
 class AutoScalingResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="autoscaling")
+
     @property
     def autoscaling_backend(self):
-        return autoscaling_backends[self.region]
+        return autoscaling_backends[self.current_account][self.region]
 
     def create_launch_configuration(self):
         instance_monitoring_string = self._get_param("InstanceMonitoring.Enabled")

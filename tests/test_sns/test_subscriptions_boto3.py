@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_sns, mock_sqs
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sns.models import (
     DEFAULT_PAGE_SIZE,
     DEFAULT_EFFECTIVE_DELIVERY_POLICY,

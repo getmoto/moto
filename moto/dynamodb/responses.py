@@ -117,6 +117,9 @@ def check_projection_expression(expression):
 
 
 class DynamoHandler(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="dynamodb")
+
     def get_endpoint_name(self, headers):
         """Parses request headers and extracts part od the X-Amz-Target
         that corresponds to a method of DynamoHandler
@@ -134,7 +137,7 @@ class DynamoHandler(BaseResponse):
         :return: DynamoDB2 Backend
         :rtype: moto.dynamodb2.models.DynamoDBBackend
         """
-        return dynamodb_backends[self.region]
+        return dynamodb_backends[self.current_account][self.region]
 
     @amz_crc32
     @amzn_request_id

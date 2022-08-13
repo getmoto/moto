@@ -9,4 +9,4 @@ class BatchSimpleResponse(BatchResponse):
         :return: Batch Backend
         :rtype: moto.batch.models.BatchBackend
         """
-        return batch_simple_backends[self.region]
+        return batch_simple_backends[self.current_account][self.region]

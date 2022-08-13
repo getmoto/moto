@@ -6,13 +6,16 @@ from .exceptions import (
     PartitionNotFoundException,
     TableNotFoundException,
 )
-from .models import glue_backend
+from .models import glue_backends
 
 
 class GlueResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="glue")
+
     @property
     def glue_backend(self):
-        return glue_backend
+        return glue_backends[self.current_account]["global"]
 
     @property
     def parameters(self):

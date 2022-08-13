@@ -4,7 +4,6 @@ import os
 import re
 import warnings
 
-from moto.core import get_account_id
 from moto.core.responses import BaseResponse
 from moto.kms.utils import RESERVED_ALIASES
 from .models import kms_backends
@@ -17,6 +16,9 @@ from .exceptions import (
 
 
 class KmsResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="kms")
+
     @property
     def parameters(self):
         params = json.loads(self.body)
@@ -29,7 +31,7 @@ class KmsResponse(BaseResponse):
 
     @property
     def kms_backend(self):
-        return kms_backends[self.region]
+        return kms_backends[self.current_account][self.region]
 
     def _display_arn(self, key_id):
         if key_id.startswith("arn:"):
@@ -40,9 +42,7 @@ class KmsResponse(BaseResponse):
         else:
             id_type = "key/"
 
-        return "arn:aws:kms:{region}:{account}:{id_type}{key_id}".format(
-            region=self.region, account=get_account_id(), id_type=id_type, key_id=key_id
-        )
+        return f"arn:aws:kms:{self.region}:{self.current_account}:{id_type}{key_id}"
 
     def _validate_cmk_id(self, key_id):
         """Determine whether a CMK ID exists.
@@ -120,7 +120,7 @@ class KmsResponse(BaseResponse):
         multi_region = self.parameters.get("MultiRegion")
 
         key = self.kms_backend.create_key(
-            policy, key_usage, key_spec, description, tags, self.region, multi_region
+            policy, key_usage, key_spec, description, tags, multi_region
         )
         return json.dumps(key.to_dict())
 
@@ -235,7 +235,7 @@ class KmsResponse(BaseResponse):
                 "An alias with the name arn:aws:kms:{region}:{account_id}:{alias_name} "
                 "already exists".format(
                     region=self.region,
-                    account_id=get_account_id(),
+                    account_id=self.current_account,
                     alias_name=alias_name,
                 )
             )
@@ -270,11 +270,7 @@ class KmsResponse(BaseResponse):
                 # TODO: add creation date and last updated in response_aliases
                 response_aliases.append(
                     {
-                        "AliasArn": "arn:aws:kms:{region}:{account_id}:{alias_name}".format(
-                            region=region,
-                            account_id=get_account_id(),
-                            alias_name=alias_name,
-                        ),
+                        "AliasArn": f"arn:aws:kms:{region}:{self.current_account}:{alias_name}",
                         "AliasName": alias_name,
                         "TargetKeyId": target_key_id,
                     }
@@ -286,11 +282,7 @@ class KmsResponse(BaseResponse):
             if not exsisting:
                 response_aliases.append(
                     {
-                        "AliasArn": "arn:aws:kms:{region}:{account_id}:{reserved_alias}".format(
-                            region=region,
-                            account_id=get_account_id(),
-                            reserved_alias=reserved_alias,
-                        ),
+                        "AliasArn": f"arn:aws:kms:{region}:{self.current_account}:{reserved_alias}",
                         "AliasName": reserved_alias,
                     }
                 )

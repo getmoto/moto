@@ -3,6 +3,7 @@ from collections import defaultdict
 import datetime
 import json
 import logging
+import os
 import re
 import requests
 
@@ -137,7 +138,11 @@ class ActionAuthenticatorMixin(object):
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
         ):
             iam_request = iam_request_cls(
-                method=self.method, path=self.path, data=self.data, headers=self.headers
+                account_id=self.current_account,
+                method=self.method,
+                path=self.path,
+                data=self.data,
+                headers=self.headers,
             )
             iam_request.check_signature()
             iam_request.check_action_permitted()
@@ -214,6 +219,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
     aws_service_spec = None
+
+    def __init__(self, service_name=None):
+        super().__init__()
+        self.service_name = service_name
 
     @classmethod
     def dispatch(cls, *args, **kwargs):
@@ -295,6 +304,18 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.headers["host"] = urlparse(full_url).netloc
         self.response_headers = {"server": "amazon.com"}
 
+        # Register visit with IAM
+        from moto.iam.models import mark_account_as_visited
+
+        self.access_key = self.get_access_key()
+        self.current_account = self.get_current_account()
+        mark_account_as_visited(
+            account_id=self.current_account,
+            access_key=self.access_key,
+            service=self.service_name,
+            region=self.region,
+        )
+
     def get_region_from_url(self, request, full_url):
         url_match = self.region_regex.search(full_url)
         user_agent_match = self.region_from_useragent_regex.search(
@@ -313,7 +334,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             region = self.default_region
         return region
 
-    def get_current_user(self):
+    def get_access_key(self):
         """
         Returns the access key id used in this request as the current user id
         """
@@ -323,10 +344,24 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return match.group(1)
 
         if self.querystring.get("AWSAccessKeyId"):
-            return self.querystring.get("AWSAccessKeyId")
+            return self.querystring.get("AWSAccessKeyId")[0]
         else:
-            # Should we raise an unauthorized exception instead?
-            return "111122223333"
+            return "AKIAEXAMPLE"
+
+    def get_current_account(self):
+        # PRIO 1: Check if we have a Environment Variable set
+        if "MOTO_ACCOUNT_ID" in os.environ:
+            return os.environ["MOTO_ACCOUNT_ID"]
+
+        # PRIO 2: Check if we have a specific request header that specifies the Account ID
+        if "x-moto-account-id" in self.headers:
+            return self.headers["x-moto-account-id"]
+
+        # PRIO 3: Use the access key to get the Account ID
+        # PRIO 4: This method will return the default Account ID as a last resort
+        from moto.iam.models import get_account_id_from
+
+        return get_account_id_from(self.get_access_key())
 
     def _dispatch(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -372,10 +407,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         # service response class should have 'SERVICE_NAME' class member,
         # if you want to get action from method and url
-        if not hasattr(self, "SERVICE_NAME"):
-            return None
-        service = self.SERVICE_NAME
-        conn = boto3.client(service, region_name=self.region)
+        conn = boto3.client(self.service_name, region_name=self.region)
 
         # make cache if it does not exist yet
         if not hasattr(self, "method_urls"):
@@ -396,15 +428,15 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _get_action(self):
         action = self.querystring.get("Action", [""])[0]
-        if not action:  # Some services use a header for the action
-            # Headers are case-insensitive. Probably a better way to do this.
-            match = self.headers.get("x-amz-target") or self.headers.get("X-Amz-Target")
-            if match:
-                action = match.split(".")[-1]
+        if action:
+            return action
+        # Some services use a header for the action
+        # Headers are case-insensitive. Probably a better way to do this.
+        match = self.headers.get("x-amz-target") or self.headers.get("X-Amz-Target")
+        if match:
+            return match.split(".")[-1]
         # get action from method and uri
-        if not action:
-            return self._get_action_from_method_and_request_uri(self.method, self.path)
-        return action
+        return self._get_action_from_method_and_request_uri(self.method, self.path)
 
     def call_action(self):
         headers = self.response_headers

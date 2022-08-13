@@ -1,4 +1,5 @@
 import pytest
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.dynamodb.models import Table
 
 
@@ -6,6 +7,7 @@ from moto.dynamodb.models import Table
 def table():
     return Table(
         "Forums",
+        account_id=DEFAULT_ACCOUNT_ID,
         region="us-east-1",
         schema=[
             {"KeyType": "HASH", "AttributeName": "forum_name"},

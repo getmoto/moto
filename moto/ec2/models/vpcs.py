@@ -4,7 +4,6 @@ import weakref
 from collections import defaultdict
 from operator import itemgetter
 
-from moto.core import get_account_id
 from moto.core import CloudFormationModel
 from .core import TaggedEC2Resource
 from ..exceptions import (
@@ -85,7 +84,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.ec2_backend.account_id
 
     @property
     def physical_resource_id(self):
@@ -101,7 +100,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
@@ -116,7 +115,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         route_table_ids = properties.get("RouteTableIds")
         security_group_ids = properties.get("SecurityGroupIds")
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         vpc_endpoint = ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
             service_name=service_name,
@@ -167,7 +166,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.ec2_backend.account_id
 
     @staticmethod
     def cloudformation_name_type():
@@ -180,13 +179,13 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         vpc = ec2_backend.create_vpc(
             cidr_block=properties["CidrBlock"],
             instance_tenancy=properties.get("InstanceTenancy", "default"),
@@ -629,7 +628,7 @@ class VPCBackend:
         return generic_filter(filters, vpc_end_points)
 
     @staticmethod
-    def _collect_default_endpoint_services(region):
+    def _collect_default_endpoint_services(account_id, region):
         """Return list of default services using list of backends."""
         if DEFAULT_VPC_ENDPOINT_SERVICES:
             return DEFAULT_VPC_ENDPOINT_SERVICES
@@ -643,7 +642,8 @@ class VPCBackend:
 
         from moto import backends  # pylint: disable=import-outside-toplevel
 
-        for _backends in backends.unique_backends():
+        for _backends in backends.service_backends():
+            _backends = _backends[account_id]
             if region in _backends:
                 service = _backends[region].default_vpc_endpoint_service(region, zones)
                 if service:
@@ -757,7 +757,9 @@ class VPCBackend:
 
         The DryRun parameter is ignored.
         """
-        default_services = self._collect_default_endpoint_services(region)
+        default_services = self._collect_default_endpoint_services(
+            self.account_id, region
+        )
         for service_name in service_names:
             if service_name not in [x["ServiceName"] for x in default_services]:
                 raise InvalidServiceName(service_name)

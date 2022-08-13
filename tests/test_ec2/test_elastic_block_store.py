@@ -4,7 +4,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_ec2
-from moto.ec2.models import OWNER_ID
+from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
 from moto.kms import mock_kms
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4

@@ -1,4 +1,4 @@
-from moto.core import get_account_id, CloudFormationModel
+from moto.core import CloudFormationModel
 from ..exceptions import InvalidNetworkAttachmentIdError, InvalidNetworkInterfaceIdError
 from .core import TaggedEC2Resource
 from .security_groups import SecurityGroup
@@ -134,7 +134,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.ec2_backend.account_id
 
     @property
     def association(self):
@@ -160,7 +160,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
@@ -168,7 +168,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
         security_group_ids = properties.get("SecurityGroups", [])
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         subnet_id = properties.get("SubnetId")
         if subnet_id:
             subnet = ec2_backend.get_subnet(subnet_id)

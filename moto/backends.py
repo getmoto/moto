@@ -26,8 +26,9 @@ def backends():
         yield _import_backend(module_name, backends_name)
 
 
-def unique_backends():
-    for module_name, backends_name in sorted(set(BACKENDS.values())):
+def service_backends():
+    services = [(f.name, f.backend) for f in decorator_functions]
+    for module_name, backends_name in sorted(set(services)):
         yield _import_backend(module_name, backends_name)
 
 

@@ -13,9 +13,10 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
 from jinja2 import Template
+from typing import Mapping
 from urllib import parse
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel, get_account_id, CloudFormationModel
+from moto.core import DEFAULT_ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
@@ -62,6 +63,24 @@ SERVICE_NAME_CONVERSION = {
 }
 
 
+def get_account_id_from(access_key):
+    for account_id, account in iam_backends.items():
+        if access_key in account["global"].access_keys:
+            return account_id
+    return DEFAULT_ACCOUNT_ID
+
+
+def mark_account_as_visited(account_id, access_key, service, region):
+    account = iam_backends[account_id]
+    if access_key in account["global"].access_keys:
+        account["global"].access_keys[access_key].last_used = AccessKeyLastUsed(
+            timestamp=datetime.utcnow(), service=service, region=region
+        )
+    else:
+        # User provided access credentials unknown to us
+        pass
+
+
 LIMIT_KEYS_PER_USER = 2
 
 
@@ -80,10 +99,8 @@ class MFADevice(object):
 
 
 class VirtualMfaDevice(object):
-    def __init__(self, device_name):
-        self.serial_number = "arn:aws:iam::{0}:mfa{1}".format(
-            get_account_id(), device_name
-        )
+    def __init__(self, account_id, device_name):
+        self.serial_number = f"arn:aws:iam::{account_id}:mfa{device_name}"
 
         random_base32_string = "".join(
             random.choice(string.ascii_uppercase + "234567") for _ in range(64)
@@ -114,6 +131,7 @@ class Policy(CloudFormationModel):
     def __init__(
         self,
         name,
+        account_id,
         default_version_id=None,
         description=None,
         document=None,
@@ -123,7 +141,7 @@ class Policy(CloudFormationModel):
         tags=None,
     ):
         self.name = name
-
+        self.account_id = account_id
         self.attachment_count = 0
         self.description = description or ""
         self.id = random_policy_id()
@@ -166,20 +184,24 @@ class Policy(CloudFormationModel):
 
 
 class SAMLProvider(BaseModel):
-    def __init__(self, name, saml_metadata_document=None):
+    def __init__(self, account_id, name, saml_metadata_document=None):
+        self.account_id = account_id
         self.name = name
         self.saml_metadata_document = saml_metadata_document
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:saml-provider/{1}".format(get_account_id(), self.name)
+        return f"arn:aws:iam::{self.account_id}:saml-provider/{self.name}"
 
 
 class OpenIDConnectProvider(BaseModel):
-    def __init__(self, url, thumbprint_list, client_id_list=None, tags=None):
+    def __init__(
+        self, account_id, url, thumbprint_list, client_id_list=None, tags=None
+    ):
         self._errors = []
         self._validate(url, thumbprint_list, client_id_list)
 
+        self.account_id = account_id
         parsed_url = parse.urlparse(url)
         self.url = parsed_url.netloc + parsed_url.path
         self.thumbprint_list = thumbprint_list
@@ -189,7 +211,7 @@ class OpenIDConnectProvider(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:oidc-provider/{1}".format(get_account_id(), self.url)
+        return f"arn:aws:iam::{self.account_id}:oidc-provider/{self.url}"
 
     @property
     def created_iso_8601(self):
@@ -282,6 +304,10 @@ class PolicyVersion(object):
 class ManagedPolicy(Policy, CloudFormationModel):
     """Managed policy."""
 
+    @property
+    def backend(self):
+        return iam_backends[self.account_id]["global"]
+
     is_attachable = True
 
     def attach_to(self, obj):
@@ -295,7 +321,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
     @property
     def arn(self):
         return "arn:aws:iam::{0}:policy{1}{2}".format(
-            get_account_id(), self.path, self.name
+            self.account_id, self.path, self.name
         )
 
     def to_config_dict(self):
@@ -306,7 +332,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
             "configurationStateId": str(
                 int(time.mktime(self.create_date.timetuple()))
             ),  # PY2 and 3 compatible
-            "arn": "arn:aws:iam::{}:policy/{}".format(get_account_id(), self.name),
+            "arn": "arn:aws:iam::{}:policy/{}".format(self.account_id, self.name),
             "resourceType": "AWS::IAM::Policy",
             "resourceId": self.id,
             "resourceName": self.name,
@@ -317,7 +343,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
             "configuration": {
                 "policyName": self.name,
                 "policyId": self.id,
-                "arn": "arn:aws:iam::{}:policy/{}".format(get_account_id(), self.name),
+                "arn": "arn:aws:iam::{}:policy/{}".format(self.account_id, self.name),
                 "path": self.path,
                 "defaultVersionId": self.default_version_id,
                 "attachmentCount": self.attachment_count,
@@ -357,7 +383,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         policy_document = json.dumps(properties.get("PolicyDocument"))
@@ -369,7 +395,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
         role_names = properties.get("Roles", [])
         tags = properties.get("Tags", {})
 
-        policy = iam_backends["global"].create_policy(
+        policy = iam_backends[account_id]["global"].create_policy(
             description=description,
             path=path,
             policy_document=policy_document,
@@ -377,15 +403,15 @@ class ManagedPolicy(Policy, CloudFormationModel):
             tags=tags,
         )
         for group_name in group_names:
-            iam_backends["global"].attach_group_policy(
+            iam_backends[account_id]["global"].attach_group_policy(
                 group_name=group_name, policy_arn=policy.arn
             )
         for user_name in user_names:
-            iam_backends["global"].attach_user_policy(
+            iam_backends[account_id]["global"].attach_user_policy(
                 user_name=user_name, policy_arn=policy.arn
             )
         for role_name in role_names:
-            iam_backends["global"].attach_role_policy(
+            iam_backends[account_id]["global"].attach_role_policy(
                 role_name=role_name, policy_arn=policy.arn
             )
         return policy
@@ -399,9 +425,10 @@ class AWSManagedPolicy(ManagedPolicy):
     """AWS-managed policy."""
 
     @classmethod
-    def from_data(cls, name, data):
+    def from_data(cls, name, account_id, data):
         return cls(
             name,
+            account_id=account_id,
             default_version_id=data.get("DefaultVersionId"),
             path=data.get("Path"),
             document=json.dumps(data.get("Document")),
@@ -416,16 +443,6 @@ class AWSManagedPolicy(ManagedPolicy):
     @property
     def arn(self):
         return "arn:aws:iam::aws:policy{0}{1}".format(self.path, self.name)
-
-
-# AWS defines some of its own managed policies and we periodically
-# import them via `make aws_managed_policies`
-# FIXME: Takes about 40ms at import time
-aws_managed_policies_data_parsed = json.loads(aws_managed_policies_data)
-aws_managed_policies = [
-    AWSManagedPolicy.from_data(name, d)
-    for name, d in aws_managed_policies_data_parsed.items()
-]
 
 
 class InlinePolicy(CloudFormationModel):
@@ -468,7 +485,7 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         policy_document = properties.get("PolicyDocument")
@@ -477,7 +494,7 @@ class InlinePolicy(CloudFormationModel):
         role_names = properties.get("Roles")
         group_names = properties.get("Groups")
 
-        return iam_backends["global"].create_inline_policy(
+        return iam_backends[account_id]["global"].create_inline_policy(
             resource_name,
             policy_name,
             policy_document,
@@ -488,7 +505,12 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
@@ -497,11 +519,14 @@ class InlinePolicy(CloudFormationModel):
             if resource_name_property not in properties:
                 properties[resource_name_property] = new_resource_name
             new_resource = cls.create_from_cloudformation_json(
-                properties[resource_name_property], cloudformation_json, region_name
+                properties[resource_name_property],
+                cloudformation_json,
+                account_id,
+                region_name,
             )
             properties[resource_name_property] = original_resource.name
             cls.delete_from_cloudformation_json(
-                original_resource.name, cloudformation_json, region_name
+                original_resource.name, cloudformation_json, account_id, region_name
             )
             return new_resource
 
@@ -513,7 +538,7 @@ class InlinePolicy(CloudFormationModel):
             role_names = properties.get("Roles")
             group_names = properties.get("Groups")
 
-            return iam_backends["global"].update_inline_policy(
+            return iam_backends[account_id]["global"].update_inline_policy(
                 original_resource.name,
                 policy_name,
                 policy_document,
@@ -524,9 +549,9 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        iam_backends["global"].delete_inline_policy(resource_name)
+        iam_backends[account_id]["global"].delete_inline_policy(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -574,6 +599,7 @@ class InlinePolicy(CloudFormationModel):
 class Role(CloudFormationModel):
     def __init__(
         self,
+        account_id,
         role_id,
         name,
         assume_role_policy_document,
@@ -584,6 +610,7 @@ class Role(CloudFormationModel):
         max_session_duration,
         linked_service=None,
     ):
+        self.account_id = account_id
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
@@ -619,12 +646,13 @@ class Role(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         role_name = properties.get("RoleName", resource_name)
 
-        role = iam_backends["global"].create_role(
+        iam_backend = iam_backends[account_id]["global"]
+        role = iam_backend.create_role(
             role_name=role_name,
             assume_role_policy_document=properties["AssumeRolePolicyDocument"],
             path=properties.get("Path", "/"),
@@ -644,24 +672,23 @@ class Role(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        for profile in iam_backends["global"].instance_profiles.values():
+        backend = iam_backends[account_id]["global"]
+        for profile in backend.instance_profiles.values():
             profile.delete_role(role_name=resource_name)
 
-        for role in iam_backends["global"].roles.values():
+        for role in backend.roles.values():
             if role.name == resource_name:
                 for arn in role.policies.keys():
                     role.delete_policy(arn)
-        iam_backends["global"].delete_role(resource_name)
+        backend.delete_role(resource_name)
 
     @property
     def arn(self):
         if self._linked_service:
-            return f"arn:aws:iam::{get_account_id()}:role/aws-service-role/{self._linked_service}/{self.name}"
-        return "arn:aws:iam::{0}:role{1}{2}".format(
-            get_account_id(), self.path, self.name
-        )
+            return f"arn:aws:iam::{self.account_id}:role/aws-service-role/{self._linked_service}/{self.name}"
+        return f"arn:aws:iam::{self.account_id}:role{self.path}{self.name}"
 
     def to_config_dict(self):
         _managed_policies = []
@@ -669,7 +696,9 @@ class Role(CloudFormationModel):
             _managed_policies.append(
                 {
                     "policyArn": key,
-                    "policyName": iam_backends["global"].managed_policies[key].name,
+                    "policyName": iam_backends[self.account_id]["global"]
+                    .managed_policies[key]
+                    .name,
                 }
             )
 
@@ -680,7 +709,9 @@ class Role(CloudFormationModel):
             )
 
         _instance_profiles = []
-        for key, instance_profile in iam_backends["global"].instance_profiles.items():
+        for key, instance_profile in iam_backends[self.account_id][
+            "global"
+        ].instance_profiles.items():
             for _ in instance_profile.roles:
                 _instance_profiles.append(instance_profile.to_embedded_config_dict())
                 break
@@ -692,7 +723,7 @@ class Role(CloudFormationModel):
             "configurationStateId": str(
                 int(time.mktime(self.create_date.timetuple()))
             ),  # PY2 and 3 compatible
-            "arn": "arn:aws:iam::{}:role/{}".format(get_account_id(), self.name),
+            "arn": f"arn:aws:iam::{self.account_id}:role/{self.name}",
             "resourceType": "AWS::IAM::Role",
             "resourceId": self.name,
             "resourceName": self.name,
@@ -706,7 +737,7 @@ class Role(CloudFormationModel):
                 "path": self.path,
                 "roleName": self.name,
                 "roleId": self.id,
-                "arn": "arn:aws:iam::{}:role/{}".format(get_account_id(), self.name),
+                "arn": f"arn:aws:iam::{self.account_id}:role/{self.name}",
                 "assumeRolePolicyDocument": parse.quote(
                     self.assume_role_policy_document
                 )
@@ -809,8 +840,9 @@ class Role(CloudFormationModel):
 
 
 class InstanceProfile(CloudFormationModel):
-    def __init__(self, instance_profile_id, name, path, roles, tags=None):
+    def __init__(self, account_id, instance_profile_id, name, path, roles, tags=None):
         self.id = instance_profile_id
+        self.account_id = account_id
         self.name = name
         self.path = path or "/"
         self.roles = roles if roles else []
@@ -832,12 +864,12 @@ class InstanceProfile(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
         role_names = properties["Roles"]
-        return iam_backends["global"].create_instance_profile(
+        return iam_backends[account_id]["global"].create_instance_profile(
             name=resource_name,
             path=properties.get("Path", "/"),
             role_names=role_names,
@@ -845,18 +877,16 @@ class InstanceProfile(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        iam_backends["global"].delete_instance_profile(resource_name)
+        iam_backends[account_id]["global"].delete_instance_profile(resource_name)
 
     def delete_role(self, role_name):
         self.roles = [role for role in self.roles if role.name != role_name]
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:instance-profile{1}{2}".format(
-            get_account_id(), self.path, self.name
-        )
+        return f"arn:aws:iam::{self.account_id}:instance-profile{self.path}{self.name}"
 
     @property
     def physical_resource_id(self):
@@ -883,9 +913,7 @@ class InstanceProfile(CloudFormationModel):
                     "path": role.path,
                     "roleName": role.name,
                     "roleId": role.id,
-                    "arn": "arn:aws:iam::{}:role/{}".format(
-                        get_account_id(), role.name
-                    ),
+                    "arn": f"arn:aws:iam::{self.account_id}:role/{role.name}",
                     "createDate": str(role.create_date),
                     "assumeRolePolicyDocument": parse.quote(
                         role.assume_role_policy_document
@@ -907,16 +935,17 @@ class InstanceProfile(CloudFormationModel):
             "path": self.path,
             "instanceProfileName": self.name,
             "instanceProfileId": self.id,
-            "arn": "arn:aws:iam::{}:instance-profile/{}".format(
-                get_account_id(), self.name
-            ),
+            "arn": f"arn:aws:iam::{self.account_id}:instance-profile/{role.name}",
             "createDate": str(self.create_date),
             "roles": roles,
         }
 
 
 class Certificate(BaseModel):
-    def __init__(self, cert_name, cert_body, private_key, cert_chain=None, path=None):
+    def __init__(
+        self, account_id, cert_name, cert_body, private_key, cert_chain=None, path=None
+    ):
+        self.account_id = account_id
         self.cert_name = cert_name
         if cert_body:
             cert_body = cert_body.rstrip()
@@ -931,9 +960,7 @@ class Certificate(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:server-certificate{1}{2}".format(
-            get_account_id(), self.path, self.cert_name
-        )
+        return f"arn:aws:iam::{self.account_id}:server-certificate{self.path}{self.cert_name}"
 
 
 class SigningCertificate(BaseModel):
@@ -949,22 +976,29 @@ class SigningCertificate(BaseModel):
         return iso_8601_datetime_without_milliseconds(self.upload_date)
 
 
+class AccessKeyLastUsed:
+    def __init__(self, timestamp, service, region):
+        self._timestamp = timestamp
+        self.service = service
+        self.region = region
+
+    @property
+    def timestamp(self):
+        return iso_8601_datetime_without_milliseconds(self._timestamp)
+
+
 class AccessKey(CloudFormationModel):
-    def __init__(self, user_name, status="Active"):
+    def __init__(self, user_name, prefix, status="Active"):
         self.user_name = user_name
-        self.access_key_id = "AKIA" + random_access_key()
+        self.access_key_id = prefix + random_access_key()
         self.secret_access_key = random_alphanumeric(40)
         self.status = status
         self.create_date = datetime.utcnow()
-        self.last_used = None
+        self.last_used: AccessKeyLastUsed = None
 
     @property
     def created_iso_8601(self):
         return iso_8601_datetime_without_milliseconds(self.create_date)
-
-    @property
-    def last_used_iso_8601(self):
-        return iso_8601_datetime_without_milliseconds(self.last_used)
 
     @classmethod
     def has_cfn_attr(cls, attr):
@@ -987,41 +1021,51 @@ class AccessKey(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         user_name = properties.get("UserName")
         status = properties.get("Status", "Active")
 
-        return iam_backends["global"].create_access_key(user_name, status=status)
+        return iam_backends[account_id]["global"].create_access_key(
+            user_name, status=status
+        )
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
         if cls.is_replacement_update(properties):
             new_resource = cls.create_from_cloudformation_json(
-                new_resource_name, cloudformation_json, region_name
+                new_resource_name, cloudformation_json, account_id, region_name
             )
             cls.delete_from_cloudformation_json(
-                original_resource.physical_resource_id, cloudformation_json, region_name
+                original_resource.physical_resource_id,
+                cloudformation_json,
+                account_id,
+                region_name,
             )
             return new_resource
 
         else:  # No Interruption
             properties = cloudformation_json.get("Properties", {})
             status = properties.get("Status")
-            return iam_backends["global"].update_access_key(
+            return iam_backends[account_id]["global"].update_access_key(
                 original_resource.user_name, original_resource.access_key_id, status
             )
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        iam_backends["global"].delete_access_key_by_name(resource_name)
+        iam_backends[account_id]["global"].delete_access_key_by_name(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -1053,7 +1097,8 @@ class SshPublicKey(BaseModel):
 
 
 class Group(BaseModel):
-    def __init__(self, name, path="/"):
+    def __init__(self, account_id, name, path="/"):
+        self.account_id = account_id
         self.name = name
         self.id = random_resource_id()
         self.path = path
@@ -1081,12 +1126,10 @@ class Group(BaseModel):
     @property
     def arn(self):
         if self.path == "/":
-            return "arn:aws:iam::{0}:group/{1}".format(get_account_id(), self.name)
+            return f"arn:aws:iam::{self.account_id}:group/{self.name}"
 
         else:
-            return "arn:aws:iam::{0}:group/{1}/{2}".format(
-                get_account_id(), self.path, self.name
-            )
+            return f"arn:aws:iam::{self.account_id}:group/{self.path}/{self.name}"
 
     def get_policy(self, policy_name):
         try:
@@ -1114,7 +1157,8 @@ class Group(BaseModel):
 
 
 class User(CloudFormationModel):
-    def __init__(self, name, path=None):
+    def __init__(self, account_id, name, path=None):
+        self.account_id = account_id
         self.name = name
         self.id = random_resource_id()
         self.path = path if path else "/"
@@ -1122,7 +1166,7 @@ class User(CloudFormationModel):
         self.mfa_devices = {}
         self.policies = {}
         self.managed_policies = {}
-        self.access_keys = []
+        self.access_keys: Mapping[str, AccessKey] = []
         self.ssh_public_keys = []
         self.password = None
         self.password_last_used = None
@@ -1131,9 +1175,7 @@ class User(CloudFormationModel):
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:user{1}{2}".format(
-            get_account_id(), self.path, self.name
-        )
+        return f"arn:aws:iam::{self.account_id}:user{self.path}{self.name}"
 
     @property
     def created_iso_8601(self):
@@ -1164,8 +1206,8 @@ class User(CloudFormationModel):
 
         del self.policies[policy_name]
 
-    def create_access_key(self, status="Active"):
-        access_key = AccessKey(self.name, status)
+    def create_access_key(self, prefix, status="Active") -> AccessKey:
+        access_key = AccessKey(self.name, prefix=prefix, status=status)
         self.access_keys.append(access_key)
         return access_key
 
@@ -1328,16 +1370,21 @@ class User(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
-        user, _ = iam_backends["global"].create_user(resource_name, path)
+        user, _ = iam_backends[account_id]["global"].create_user(resource_name, path)
         return user
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1346,11 +1393,14 @@ class User(CloudFormationModel):
             if resource_name_property not in properties:
                 properties[resource_name_property] = new_resource_name
             new_resource = cls.create_from_cloudformation_json(
-                properties[resource_name_property], cloudformation_json, region_name
+                properties[resource_name_property],
+                cloudformation_json,
+                account_id,
+                region_name,
             )
             properties[resource_name_property] = original_resource.name
             cls.delete_from_cloudformation_json(
-                original_resource.name, cloudformation_json, region_name
+                original_resource.name, cloudformation_json, account_id, region_name
             )
             return new_resource
 
@@ -1361,9 +1411,9 @@ class User(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        iam_backends["global"].delete_user(resource_name)
+        iam_backends[account_id]["global"].delete_user(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -1596,13 +1646,15 @@ def filter_items_with_path_prefix(path_prefix, items):
 
 
 class IAMBackend(BaseBackend):
-    def __init__(self, region_name, account_id=None):
+    def __init__(self, region_name, account_id=None, aws_policies=None):
+        super().__init__(region_name=region_name, account_id=account_id)
         self.instance_profiles = {}
         self.roles = {}
         self.certificates = {}
         self.groups = {}
         self.users = {}
         self.credential_report = None
+        self.aws_managed_policies = aws_policies or self._init_aws_policies()
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
         self.saml_providers = {}
@@ -1615,10 +1667,27 @@ class IAMBackend(BaseBackend):
         self.access_keys = {}
 
         self.tagger = TaggingService()
-        super().__init__(region_name=region_name, account_id=account_id)
+
+    def _init_aws_policies(self):
+        # AWS defines some of its own managed policies and we periodically
+        # import them via `make aws_managed_policies`
+        aws_managed_policies_data_parsed = json.loads(aws_managed_policies_data)
+        return [
+            AWSManagedPolicy.from_data(name, self.account_id, d)
+            for name, d in aws_managed_policies_data_parsed.items()
+        ]
 
     def _init_managed_policies(self):
-        return dict((p.arn, p) for p in aws_managed_policies)
+        return dict((p.arn, p) for p in self.aws_managed_policies)
+
+    def reset(self):
+        region_name = self.region_name
+        account_id = self.account_id
+        # Do not reset these policies, as they take a long time to load
+        aws_policies = self.aws_managed_policies
+        self._reset_model_refs()
+        self.__dict__ = {}
+        self.__init__(region_name, account_id, aws_policies)
 
     def attach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -1702,6 +1771,7 @@ class IAMBackend(BaseBackend):
         clean_tags = self._tag_verification(tags)
         policy = ManagedPolicy(
             policy_name,
+            account_id=self.account_id,
             description=description,
             document=policy_document,
             path=path,
@@ -1817,6 +1887,7 @@ class IAMBackend(BaseBackend):
 
         clean_tags = self._tag_verification(tags)
         role = Role(
+            self.account_id,
             role_id,
             role_name,
             assume_role_policy_document,
@@ -2078,8 +2149,10 @@ class IAMBackend(BaseBackend):
 
         instance_profile_id = random_resource_id()
 
-        roles = [iam_backends["global"].get_role(role_name) for role_name in role_names]
-        instance_profile = InstanceProfile(instance_profile_id, name, path, roles, tags)
+        roles = [self.get_role(role_name) for role_name in role_names]
+        instance_profile = InstanceProfile(
+            self.account_id, instance_profile_id, name, path, roles, tags
+        )
         self.instance_profiles[name] = instance_profile
         return instance_profile
 
@@ -2141,7 +2214,9 @@ class IAMBackend(BaseBackend):
         self, cert_name, cert_body, private_key, cert_chain=None, path=None
     ):
         certificate_id = random_resource_id()
-        cert = Certificate(cert_name, cert_body, private_key, cert_chain, path)
+        cert = Certificate(
+            self.account_id, cert_name, cert_body, private_key, cert_chain, path
+        )
         self.certificates[certificate_id] = cert
         return cert
 
@@ -2178,7 +2253,7 @@ class IAMBackend(BaseBackend):
         if group_name in self.groups:
             raise IAMConflictException("Group {0} already exists".format(group_name))
 
-        group = Group(group_name, path)
+        group = Group(self.account_id, group_name, path)
         self.groups[group_name] = group
         return group
 
@@ -2262,12 +2337,12 @@ class IAMBackend(BaseBackend):
                 "EntityAlreadyExists", "User {0} already exists".format(user_name)
             )
 
-        user = User(user_name, path)
+        user = User(self.account_id, user_name, path)
         self.tagger.tag_resource(user.arn, tags or [])
         self.users[user_name] = user
         return user, self.tagger.list_tags_for_resource(user.arn)
 
-    def get_user(self, name):
+    def get_user(self, name) -> User:
         user = self.users.get(name)
 
         if not user:
@@ -2448,15 +2523,21 @@ class IAMBackend(BaseBackend):
         policy = self.get_policy(policy_arn)
         del self.managed_policies[policy.arn]
 
-    def create_access_key(self, user_name=None, status="Active"):
-        user = self.get_user(user_name)
+    def create_access_key(self, user_name=None, prefix="AKIA", status="Active"):
         keys = self.list_access_keys(user_name)
         if len(keys) >= LIMIT_KEYS_PER_USER:
             raise IAMLimitExceededException(
                 f"Cannot exceed quota for AccessKeysPerUser: {LIMIT_KEYS_PER_USER}"
             )
+        user = self.get_user(user_name)
+        key = user.create_access_key(prefix=prefix, status=status)
+        self.access_keys[key.physical_resource_id] = key
+        return key
 
-        key = user.create_access_key(status)
+    def create_temp_access_key(self):
+        # Temporary access keys such as the ones returned by STS when assuming a role temporarily
+        key = AccessKey(user_name=None, prefix="ASIA")
+
         self.access_keys[key.physical_resource_id] = key
         return key
 
@@ -2468,7 +2549,7 @@ class IAMBackend(BaseBackend):
         access_keys_list = self.get_all_access_keys_for_all_users()
         for key in access_keys_list:
             if key.access_key_id == access_key_id:
-                return {"user_name": key.user_name, "last_used": key.last_used_iso_8601}
+                return {"user_name": key.user_name, "last_used": key.last_used}
 
         raise IAMNotFoundException(
             f"The Access Key with id {access_key_id} cannot be found"
@@ -2476,8 +2557,9 @@ class IAMBackend(BaseBackend):
 
     def get_all_access_keys_for_all_users(self):
         access_keys_list = []
-        for user_name in self.users:
-            access_keys_list += self.list_access_keys(user_name)
+        for account in iam_backends.values():
+            for user_name in account["global"].users:
+                access_keys_list += account["global"].list_access_keys(user_name)
         return access_keys_list
 
     def list_access_keys(self, user_name):
@@ -2592,7 +2674,7 @@ class IAMBackend(BaseBackend):
                 "Member must have length less than or equal to 512"
             )
 
-        device = VirtualMfaDevice(path + device_name)
+        device = VirtualMfaDevice(self.account_id, path + device_name)
 
         if device.serial_number in self.virtual_mfa_devices:
             raise EntityAlreadyExists(
@@ -2678,7 +2760,7 @@ class IAMBackend(BaseBackend):
 
     def get_account_authorization_details(self, policy_filter):
         policies = self.managed_policies.values()
-        local_policies = set(policies) - set(aws_managed_policies)
+        local_policies = set(policies) - set(self.aws_managed_policies)
         returned_policies = []
 
         if len(policy_filter) == 0:
@@ -2691,7 +2773,7 @@ class IAMBackend(BaseBackend):
             }
 
         if "AWSManagedPolicy" in policy_filter:
-            returned_policies = aws_managed_policies
+            returned_policies = self.aws_managed_policies
         if "LocalManagedPolicy" in policy_filter:
             returned_policies = returned_policies + list(local_policies)
 
@@ -2704,7 +2786,7 @@ class IAMBackend(BaseBackend):
         }
 
     def create_saml_provider(self, name, saml_metadata_document):
-        saml_provider = SAMLProvider(name, saml_metadata_document)
+        saml_provider = SAMLProvider(self.account_id, name, saml_metadata_document)
         self.saml_providers[name] = saml_provider
         return saml_provider
 
@@ -2747,7 +2829,7 @@ class IAMBackend(BaseBackend):
     ):
         clean_tags = self._tag_verification(tags)
         open_id_provider = OpenIDConnectProvider(
-            url, thumbprint_list, client_id_list, clean_tags
+            self.account_id, url, thumbprint_list, client_id_list, clean_tags
         )
 
         if open_id_provider.arn in self.open_id_providers:
@@ -2833,9 +2915,7 @@ class IAMBackend(BaseBackend):
     def get_account_password_policy(self):
         if not self.account_password_policy:
             raise NoSuchEntity(
-                "The Password Policy with domain name {} cannot be found.".format(
-                    get_account_id()
-                )
+                f"The Password Policy with domain name {self.account_id} cannot be found."
             )
 
         return self.account_password_policy
@@ -2963,6 +3043,6 @@ class IAMBackend(BaseBackend):
         return True
 
 
-iam_backends = BackendDict(
+iam_backends: Mapping[str, Mapping[str, IAMBackend]] = BackendDict(
     IAMBackend, "iam", use_boto3_regions=False, additional_regions=["global"]
 )

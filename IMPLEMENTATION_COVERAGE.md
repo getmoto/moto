@@ -2577,7 +2577,7 @@
 - [ ] list_job_runs
 - [ ] list_tags_for_resource
 - [X] start_application
-- [ ] start_job_run
+- [X] start_job_run
 - [X] stop_application
 - [ ] tag_resource
 - [ ] untag_resource

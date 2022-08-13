@@ -4,13 +4,16 @@ from datetime import datetime
 import time
 
 from moto.core.responses import BaseResponse
-from .models import ecr_backends, DEFAULT_REGISTRY_ID
+from .models import ecr_backends
 
 
 class ECRResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="ecr")
+
     @property
     def ecr_backend(self):
-        return ecr_backends[self.region]
+        return ecr_backends[self.current_account][self.region]
 
     @property
     def request_params(self):
@@ -131,7 +134,7 @@ class ECRResponse(BaseResponse):
     def get_authorization_token(self):
         registry_ids = self._get_param("registryIds")
         if not registry_ids:
-            registry_ids = [DEFAULT_REGISTRY_ID]
+            registry_ids = [self.current_account]
         auth_data = []
         for registry_id in registry_ids:
             password = "{}-auth-token".format(registry_id)

@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_firehose
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import get_random_hex
 from moto.firehose.models import MAX_TAGS_PER_DELIVERY_STREAM
 from tests.test_firehose.test_firehose import TEST_REGION

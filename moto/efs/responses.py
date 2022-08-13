@@ -6,11 +6,12 @@ from .models import efs_backends
 
 
 class EFSResponse(BaseResponse):
-    SERVICE_NAME = "efs"
+    def __init__(self):
+        super().__init__(service_name="efs")
 
     @property
     def efs_backend(self):
-        return efs_backends[self.region]
+        return efs_backends[self.current_account][self.region]
 
     def create_file_system(self):
         creation_token = self._get_param("CreationToken")

@@ -1,4 +1,4 @@
-from moto.core import get_account_id, CloudFormationModel
+from moto.core import CloudFormationModel
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
 from ..exceptions import (
     InvalidAMIAttributeItemValueError,
@@ -38,7 +38,7 @@ class VolumeAttachment(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
@@ -47,7 +47,7 @@ class VolumeAttachment(CloudFormationModel):
         instance_id = properties["InstanceId"]
         volume_id = properties["VolumeId"]
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         attachment = ec2_backend.attach_volume(
             volume_id=volume_id,
             instance_id=instance_id,
@@ -90,13 +90,13 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         volume = ec2_backend.create_volume(
             size=properties.get("Size"), zone_name=properties.get("AvailabilityZone")
         )
@@ -150,7 +150,7 @@ class Snapshot(TaggedEC2Resource):
         volume,
         description,
         encrypted=False,
-        owner_id=get_account_id(),
+        owner_id=None,
         from_ami=None,
     ):
         self.id = snapshot_id
@@ -162,7 +162,7 @@ class Snapshot(TaggedEC2Resource):
         self.ec2_backend = ec2_backend
         self.status = "completed"
         self.encrypted = encrypted
-        self.owner_id = owner_id
+        self.owner_id = owner_id or ec2_backend.account_id
         self.from_ami = from_ami
 
     def get_filter_value(self, filter_name):
@@ -339,9 +339,9 @@ class EBSBackend:
     def copy_snapshot(self, source_snapshot_id, source_region, description=None):
         from ..models import ec2_backends
 
-        source_snapshot = ec2_backends[source_region].describe_snapshots(
-            snapshot_ids=[source_snapshot_id]
-        )[0]
+        source_snapshot = ec2_backends[self.account_id][
+            source_region
+        ].describe_snapshots(snapshot_ids=[source_snapshot_id])[0]
         snapshot_id = random_snapshot_id()
         snapshot = Snapshot(
             self,
@@ -405,7 +405,7 @@ class EBSBackend:
         # an encrypted resource using an AWS service integrated with KMS.
         from moto.kms import kms_backends
 
-        kms = kms_backends[self.region_name]
+        kms = kms_backends[self.account_id][self.region_name]
         ebs_alias = "alias/aws/ebs"
         if not kms.alias_exists(ebs_alias):
             key = kms.create_key(
@@ -414,7 +414,6 @@ class EBSBackend:
                 key_spec="SYMMETRIC_DEFAULT",
                 description="Default master key that protects my EBS volumes when no other key is defined",
                 tags=None,
-                region=self.region_name,
             )
             kms.add_alias(key.id, ebs_alias)
         ebs_key = kms.describe_key(ebs_alias)

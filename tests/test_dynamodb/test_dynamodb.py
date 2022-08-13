@@ -7,6 +7,7 @@ from boto3.dynamodb.conditions import Attr, Key
 import re
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_dynamodb, settings
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.dynamodb import dynamodb_backends
 from botocore.exceptions import ClientError
 
@@ -401,7 +402,7 @@ def test_put_item_with_streams():
     )
 
     if not settings.TEST_SERVER_MODE:
-        table = dynamodb_backends["us-west-2"].get_table(name)
+        table = dynamodb_backends[ACCOUNT_ID]["us-west-2"].get_table(name)
         len(table.stream_shard.items).should.be.equal(1)
         stream_record = table.stream_shard.items[0].record
         stream_record["eventName"].should.be.equal("INSERT")

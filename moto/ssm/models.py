@@ -4,7 +4,7 @@ from typing import Dict
 
 from collections import defaultdict
 
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
@@ -46,11 +46,12 @@ from .exceptions import (
 
 
 class ParameterDict(defaultdict):
-    def __init__(self, region_name):
+    def __init__(self, account_id, region_name):
         # each value is a list of all of the versions for a parameter
         # to get the current value, grab the last item of the list
         super().__init__(list)
         self.parameters_loaded = False
+        self.account_id = account_id
         self.region_name = region_name
 
     def _check_loading_status(self, key):
@@ -73,6 +74,7 @@ class ParameterDict(defaultdict):
             version = 1
             super().__getitem__(name).append(
                 Parameter(
+                    account_id=self.account_id,
                     name=name,
                     value=value,
                     parameter_type=parameter_type,
@@ -87,14 +89,15 @@ class ParameterDict(defaultdict):
         self.parameters_loaded = True
 
     def _get_secretsmanager_parameter(self, secret_name):
-        secret = secretsmanager_backends[self.region_name].describe_secret(secret_name)
+        secrets_backend = secretsmanager_backends[self.account_id][self.region_name]
+        secret = secrets_backend.describe_secret(secret_name)
         version_id_to_stage = secret["VersionIdsToStages"]
         # Sort version ID's so that AWSCURRENT is last
         sorted_version_ids = [
             k for k in version_id_to_stage if "AWSCURRENT" not in version_id_to_stage[k]
         ] + [k for k in version_id_to_stage if "AWSCURRENT" in version_id_to_stage[k]]
         values = [
-            secretsmanager_backends[self.region_name].get_secret_value(
+            secrets_backend.get_secret_value(
                 secret_name,
                 version_id=version_id,
                 version_stage=None,
@@ -103,6 +106,7 @@ class ParameterDict(defaultdict):
         ]
         return [
             Parameter(
+                account_id=self.account_id,
                 name=secret["Name"],
                 value=val.get("SecretString"),
                 parameter_type="SecureString",
@@ -153,6 +157,7 @@ PARAMETER_HISTORY_MAX_RESULTS = 50
 class Parameter(BaseModel):
     def __init__(
         self,
+        account_id,
         name,
         value,
         parameter_type,
@@ -166,6 +171,7 @@ class Parameter(BaseModel):
         labels=None,
         source_result=None,
     ):
+        self.account_id = account_id
         self.name = name
         self.type = parameter_type
         self.description = description
@@ -210,7 +216,7 @@ class Parameter(BaseModel):
             r["SourceResult"] = self.source_result
 
         if region:
-            r["ARN"] = parameter_arn(region, self.name)
+            r["ARN"] = parameter_arn(self.account_id, region, self.name)
 
         return r
 
@@ -426,6 +432,7 @@ class Documents(BaseModel):
 class Document(BaseModel):
     def __init__(
         self,
+        account_id,
         name,
         version_name,
         content,
@@ -447,7 +454,7 @@ class Document(BaseModel):
 
         self.status = "Active"
         self.document_version = document_version
-        self.owner = get_account_id()
+        self.owner = account_id
         self.created_date = datetime.datetime.utcnow()
 
         if document_format == "JSON":
@@ -523,6 +530,7 @@ class Document(BaseModel):
 class Command(BaseModel):
     def __init__(
         self,
+        account_id,
         comment="",
         document_name="",
         timeout_seconds=MAX_TIMEOUT_SECONDS,
@@ -554,6 +562,7 @@ class Command(BaseModel):
         self.command_id = str(uuid.uuid4())
         self.status = "Success"
         self.status_details = "Details placeholder"
+        self.account_id = account_id
 
         self.requested_date_time = datetime.datetime.now()
         self.requested_date_time_iso = self.requested_date_time.isoformat()
@@ -598,7 +607,7 @@ class Command(BaseModel):
 
     def _get_instance_ids_from_targets(self):
         target_instance_ids = []
-        ec2_backend = ec2_backends[self.backend_region]
+        ec2_backend = ec2_backends[self.account_id][self.backend_region]
         ec2_filters = {target["Key"]: target["Values"] for target in self.targets}
         reservations = ec2_backend.all_reservations(filters=ec2_filters)
         for reservation in reservations:
@@ -735,7 +744,7 @@ def _document_filter_list_includes_comparator(keyed_value_list, _filter):
     return False
 
 
-def _document_filter_match(filters, ssm_doc):
+def _document_filter_match(account_id, filters, ssm_doc):
     for _filter in filters:
         if _filter["Key"] == "Name" and not _document_filter_equal_comparator(
             ssm_doc.name, _filter
@@ -747,7 +756,7 @@ def _document_filter_match(filters, ssm_doc):
                 raise ValidationException("Owner filter can only have one value.")
             if _filter["Values"][0] == "Self":
                 # Update to running account ID
-                _filter["Values"][0] = get_account_id()
+                _filter["Values"][0] = account_id
             if not _document_filter_equal_comparator(ssm_doc.owner, _filter):
                 return False
 
@@ -840,7 +849,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
-        self._parameters = ParameterDict(region_name)
+        self._parameters = ParameterDict(account_id, region_name)
 
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
@@ -918,6 +927,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         tags,
     ):
         ssm_document = Document(
+            account_id=self.account_id,
             name=name,
             version_name=version_name,
             content=content,
@@ -1065,6 +1075,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         new_version = str(int(documents.latest_version) + 1)
         new_ssm_document = Document(
+            account_id=self.account_id,
             name=name,
             version_name=version_name,
             content=content,
@@ -1115,7 +1126,9 @@ class SimpleSystemManagerBackend(BaseBackend):
                 continue
 
             ssm_doc = documents.get_default_version()
-            if filters and not _document_filter_match(filters, ssm_doc):
+            if filters and not _document_filter_match(
+                self.account_id, filters, ssm_doc
+            ):
                 # If we have filters enabled, and we don't match them,
                 continue
             else:
@@ -1761,6 +1774,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         last_modified_date = time.time()
         self._parameters[name].append(
             Parameter(
+                account_id=self.account_id,
                 name=name,
                 value=value,
                 parameter_type=parameter_type,
@@ -1821,6 +1835,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def send_command(self, **kwargs):
         command = Command(
+            account_id=self.account_id,
             comment=kwargs.get("Comment", ""),
             document_name=kwargs.get("DocumentName"),
             timeout_seconds=kwargs.get("TimeoutSeconds", 3600),

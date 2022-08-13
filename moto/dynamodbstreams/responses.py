@@ -4,9 +4,12 @@ from .models import dynamodbstreams_backends
 
 
 class DynamoDBStreamsHandler(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="dynamodb-streams")
+
     @property
     def backend(self):
-        return dynamodbstreams_backends[self.region]
+        return dynamodbstreams_backends[self.current_account][self.region]
 
     def describe_stream(self):
         arn = self._get_param("StreamArn")

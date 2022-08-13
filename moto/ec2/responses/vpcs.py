@@ -1,4 +1,3 @@
-from moto.core import get_account_id
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import add_tag_specification
 from ._base_response import EC2BaseResponse
@@ -237,7 +236,7 @@ class VPCs(EC2BaseResponse):
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
         return template.render(
-            vpc_end_points=vpc_end_points, account_id=get_account_id()
+            vpc_end_points=vpc_end_points, account_id=self.current_account
         )
 
     def delete_vpc_endpoints(self):

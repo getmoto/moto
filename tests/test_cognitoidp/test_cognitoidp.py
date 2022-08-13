@@ -22,7 +22,7 @@ import pytest
 
 from moto import mock_cognitoidp, settings
 from moto.cognitoidp.utils import create_id
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_cognitoidp
@@ -2408,7 +2408,7 @@ def test_get_user_unconfirmed():
     conn = boto3.client("cognito-idp", "us-west-2")
     outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
 
-    backend = moto.cognitoidp.models.cognitoidp_backends["us-west-2"]
+    backend = moto.cognitoidp.models.cognitoidp_backends[ACCOUNT_ID]["us-west-2"]
     user_pool = backend.user_pools[outputs["user_pool_id"]]
     user_pool.users[outputs["username"]].status = "UNCONFIRMED"
 

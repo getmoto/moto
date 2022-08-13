@@ -9,10 +9,13 @@ from .models import pinpoint_backends
 class PinpointResponse(BaseResponse):
     """Handler for Pinpoint requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="pinpoint")
+
     @property
     def pinpoint_backend(self):
         """Return backend instance specific for this region."""
-        return pinpoint_backends[self.region]
+        return pinpoint_backends[self.current_account][self.region]
 
     def app(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

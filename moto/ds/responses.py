@@ -10,10 +10,13 @@ from moto.ds.models import ds_backends
 class DirectoryServiceResponse(BaseResponse):
     """Handler for DirectoryService requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="ds")
+
     @property
     def ds_backend(self):
         """Return backend instance specific for this region."""
-        return ds_backends[self.region]
+        return ds_backends[self.current_account][self.region]
 
     def connect_directory(self):
         """Create an AD Connector to connect to a self-managed directory."""

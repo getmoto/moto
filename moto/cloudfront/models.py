@@ -2,7 +2,7 @@ import random
 import string
 
 from datetime import datetime
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -181,7 +181,7 @@ class Distribution(BaseModel, ManagedState):
         )
         return resource_id
 
-    def __init__(self, config):
+    def __init__(self, account_id, config):
         # Configured ManagedState
         super().__init__(
             "cloudfront::distribution", transitions=[("InProgress", "Deployed")]
@@ -189,7 +189,7 @@ class Distribution(BaseModel, ManagedState):
         # Configure internal properties
         self.distribution_id = Distribution.random_id()
         self.arn = (
-            f"arn:aws:cloudfront:{get_account_id()}:distribution/{self.distribution_id}"
+            f"arn:aws:cloudfront:{account_id}:distribution/{self.distribution_id}"
         )
         self.distribution_config = DistributionConfig(config)
         self.active_trusted_signers = ActiveTrustedSigners()
@@ -247,7 +247,7 @@ class CloudFrontBackend(BaseBackend):
         we're not persisting/returning the correct attributes for your
         use-case.
         """
-        dist = Distribution(distribution_config)
+        dist = Distribution(self.account_id, distribution_config)
         caller_reference = dist.distribution_config.caller_reference
         existing_dist = self._distribution_with_caller_reference(caller_reference)
         if existing_dist:

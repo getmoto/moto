@@ -65,13 +65,13 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         vpc = ec2_backend.get_vpc(properties["VpcId"])
         peer_vpc = ec2_backend.get_vpc(properties["PeerVpcId"])
 

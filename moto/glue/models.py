@@ -4,7 +4,6 @@ from datetime import datetime
 from uuid import uuid4
 
 from moto.core import BaseBackend, BaseModel
-from moto.core.models import get_account_id
 from moto.core.utils import BackendDict
 from moto.glue.exceptions import (
     CrawlerRunningException,
@@ -296,14 +295,14 @@ class GlueBackend(BaseBackend):
     def create_registry(self, registry_name, description=None, tags=None):
         # If registry name id default-registry, create default-registry
         if registry_name == DEFAULT_REGISTRY_NAME:
-            registry = FakeRegistry(registry_name, description, tags)
+            registry = FakeRegistry(self.account_id, registry_name, description, tags)
             self.registries[registry_name] = registry
             return registry
 
         # Validate Registry Parameters
         validate_registry_params(self.registries, registry_name, description, tags)
 
-        registry = FakeRegistry(registry_name, description, tags)
+        registry = FakeRegistry(self.account_id, registry_name, description, tags)
         self.registries[registry_name] = registry
         return registry.as_dict()
 
@@ -344,10 +343,15 @@ class GlueBackend(BaseBackend):
 
         # Create Schema
         schema_version = FakeSchemaVersion(
-            registry_name, schema_name, schema_definition, version_number=1
+            self.account_id,
+            registry_name,
+            schema_name,
+            schema_definition,
+            version_number=1,
         )
         schema_version_id = schema_version.get_schema_version_id()
         schema = FakeSchema(
+            self.account_id,
             registry_name,
             schema_name,
             data_format,
@@ -410,7 +414,11 @@ class GlueBackend(BaseBackend):
         self.num_schema_versions += 1
 
         schema_version = FakeSchemaVersion(
-            registry_name, schema_name, schema_definition, version_number
+            self.account_id,
+            registry_name,
+            schema_name,
+            schema_definition,
+            version_number,
         )
         self.registries[registry_name].schemas[schema_name].schema_versions[
             schema_version.schema_version_id
@@ -730,7 +738,7 @@ class FakeCrawler(BaseModel):
         self.version = 1
         self.crawl_elapsed_time = 0
         self.last_crawl_info = None
-        self.arn = f"arn:aws:glue:us-east-1:{get_account_id()}:crawler/{self.name}"
+        self.arn = f"arn:aws:glue:us-east-1:{backend.account_id}:crawler/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 
@@ -853,7 +861,7 @@ class FakeJob:
         self.worker_type = worker_type
         self.created_on = datetime.utcnow()
         self.last_modified_on = datetime.utcnow()
-        self.arn = f"arn:aws:glue:us-east-1:{get_account_id()}:job/{self.name}"
+        self.arn = f"arn:aws:glue:us-east-1:{backend.account_id}:job/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 
@@ -951,16 +959,14 @@ class FakeJobRun:
 
 
 class FakeRegistry(BaseModel):
-    def __init__(self, registry_name, description=None, tags=None):
+    def __init__(self, account_id, registry_name, description=None, tags=None):
         self.name = registry_name
         self.description = description
         self.tags = tags
         self.created_time = datetime.utcnow()
         self.updated_time = datetime.utcnow()
         self.status = "AVAILABLE"
-        self.registry_arn = (
-            f"arn:aws:glue:us-east-1:{get_account_id()}:registry/{self.name}"
-        )
+        self.registry_arn = f"arn:aws:glue:us-east-1:{account_id}:registry/{self.name}"
         self.schemas = OrderedDict()
 
     def as_dict(self):
@@ -975,6 +981,7 @@ class FakeRegistry(BaseModel):
 class FakeSchema(BaseModel):
     def __init__(
         self,
+        account_id,
         registry_name,
         schema_name,
         data_format,
@@ -985,10 +992,10 @@ class FakeSchema(BaseModel):
     ):
         self.registry_name = registry_name
         self.registry_arn = (
-            f"arn:aws:glue:us-east-1:{get_account_id()}:registry/{self.registry_name}"
+            f"arn:aws:glue:us-east-1:{account_id}:registry/{self.registry_name}"
         )
         self.schema_name = schema_name
-        self.schema_arn = f"arn:aws:glue:us-east-1:{get_account_id()}:schema/{self.registry_name}/{self.schema_name}"
+        self.schema_arn = f"arn:aws:glue:us-east-1:{account_id}:schema/{self.registry_name}/{self.schema_name}"
         self.description = description
         self.data_format = data_format
         self.compatibility = compatibility
@@ -1032,10 +1039,12 @@ class FakeSchema(BaseModel):
 
 
 class FakeSchemaVersion(BaseModel):
-    def __init__(self, registry_name, schema_name, schema_definition, version_number):
+    def __init__(
+        self, account_id, registry_name, schema_name, schema_definition, version_number
+    ):
         self.registry_name = registry_name
         self.schema_name = schema_name
-        self.schema_arn = f"arn:aws:glue:us-east-1:{get_account_id()}:schema/{self.registry_name}/{self.schema_name}"
+        self.schema_arn = f"arn:aws:glue:us-east-1:{account_id}:schema/{self.registry_name}/{self.schema_name}"
         self.schema_definition = schema_definition
         self.schema_version_status = AVAILABLE_STATUS
         self.version_number = version_number
@@ -1078,4 +1087,3 @@ class FakeSchemaVersion(BaseModel):
 glue_backends = BackendDict(
     GlueBackend, "glue", use_boto3_regions=False, additional_regions=["global"]
 )
-glue_backend = glue_backends["global"]

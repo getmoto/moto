@@ -5,7 +5,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_timestreamwrite, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_timestreamwrite
@@ -299,7 +299,7 @@ def test_write_records():
     if not settings.TEST_SERVER_MODE:
         from moto.timestreamwrite.models import timestreamwrite_backends
 
-        backend = timestreamwrite_backends["us-east-1"]
+        backend = timestreamwrite_backends[ACCOUNT_ID]["us-east-1"]
         records = backend.databases["mydatabase"].tables["mytable"].records
         records.should.equal(sample_records)
 

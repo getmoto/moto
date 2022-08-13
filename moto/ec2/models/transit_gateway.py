@@ -1,5 +1,5 @@
 from datetime import datetime
-from moto.core import get_account_id, CloudFormationModel
+from moto.core import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.utils import filter_resources, merge_multiple_dicts
 from .core import TaggedEC2Resource
@@ -38,7 +38,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.ec2_backend.account_id
 
     @staticmethod
     def cloudformation_name_type():
@@ -51,11 +51,11 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
         description = properties["Description"]
         options = dict(properties)

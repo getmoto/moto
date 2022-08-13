@@ -5,7 +5,6 @@ from .exceptions import (
     ResourceAlreadyExistsException,
     ResourceNotFoundException,
 )
-from moto.core import get_account_id
 import json
 import re
 
@@ -29,11 +28,8 @@ def _validate_required_params_source(source):
         raise InvalidInputException("Project source location is required")
 
 
-def _validate_required_params_service_role(service_role):
-    if (
-        "arn:aws:iam::{0}:role/service-role/".format(get_account_id())
-        not in service_role
-    ):
+def _validate_required_params_service_role(account_id, service_role):
+    if f"arn:aws:iam::{account_id}:role/service-role/" not in service_role:
         raise InvalidInputException(
             "Invalid service role: Service role account ID does not match caller's account"
         )
@@ -99,7 +95,7 @@ def _validate_required_params_id(build_id, build_ids):
 class CodeBuildResponse(BaseResponse):
     @property
     def codebuild_backend(self):
-        return codebuild_backends[self.region]
+        return codebuild_backends[self.current_account][self.region]
 
     def list_builds_for_project(self):
         _validate_required_params_project_name(self._get_param("projectName"))
@@ -110,7 +106,7 @@ class CodeBuildResponse(BaseResponse):
         ):
             raise ResourceNotFoundException(
                 "The provided project arn:aws:codebuild:{0}:{1}:project/{2} does not exist".format(
-                    self.region, get_account_id(), self._get_param("projectName")
+                    self.region, self.current_account, self._get_param("projectName")
                 )
             )
 
@@ -122,7 +118,9 @@ class CodeBuildResponse(BaseResponse):
 
     def create_project(self):
         _validate_required_params_source(self._get_param("source"))
-        _validate_required_params_service_role(self._get_param("serviceRole"))
+        _validate_required_params_service_role(
+            self.current_account, self._get_param("serviceRole")
+        )
         _validate_required_params_artifacts(self._get_param("artifacts"))
         _validate_required_params_environment(self._get_param("environment"))
         _validate_required_params_project_name(self._get_param("name"))
@@ -130,7 +128,7 @@ class CodeBuildResponse(BaseResponse):
         if self._get_param("name") in self.codebuild_backend.codebuild_projects.keys():
             raise ResourceAlreadyExistsException(
                 "Project already exists: arn:aws:codebuild:{0}:{1}:project/{2}".format(
-                    self.region, get_account_id(), self._get_param("name")
+                    self.region, self.current_account, self._get_param("name")
                 )
             )
 
@@ -157,7 +155,7 @@ class CodeBuildResponse(BaseResponse):
         ):
             raise ResourceNotFoundException(
                 "Project cannot be found: arn:aws:codebuild:{0}:{1}:project/{2}".format(
-                    self.region, get_account_id(), self._get_param("projectName")
+                    self.region, self.current_account, self._get_param("projectName")
                 )
             )
 

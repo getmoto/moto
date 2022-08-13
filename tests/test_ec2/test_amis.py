@@ -6,9 +6,8 @@ import sure  # noqa # pylint: disable=unused-import
 import random
 
 from moto import mock_ec2
-from moto.ec2.models import OWNER_ID
 from moto.ec2.models.amis import AMIS
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
 from uuid import uuid4
 
@@ -281,7 +280,7 @@ def test_copy_image_changes_owner_id():
     # confirm the source ami owner id is different from the default owner id.
     # if they're ever the same it means this test is invalid.
     check_resp = conn.describe_images(ImageIds=[source_ami_id])
-    check_resp["Images"][0]["OwnerId"].should_not.equal(OWNER_ID)
+    check_resp["Images"][0]["OwnerId"].should_not.equal(ACCOUNT_ID)
 
     new_image_name = str(uuid4())[0:6]
 
@@ -296,7 +295,7 @@ def test_copy_image_changes_owner_id():
         Owners=["self"], Filters=[{"Name": "name", "Values": [new_image_name]}]
     )["Images"]
     describe_resp.should.have.length_of(1)
-    describe_resp[0]["OwnerId"].should.equal(OWNER_ID)
+    describe_resp[0]["OwnerId"].should.equal(ACCOUNT_ID)
     describe_resp[0]["ImageId"].should.equal(copy_resp["ImageId"])
 
 

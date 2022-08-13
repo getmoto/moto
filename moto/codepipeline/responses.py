@@ -5,9 +5,12 @@ from .models import codepipeline_backends
 
 
 class CodePipelineResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="codepipeline")
+
     @property
     def codepipeline_backend(self):
-        return codepipeline_backends[self.region]
+        return codepipeline_backends[self.current_account][self.region]
 
     def create_pipeline(self):
         pipeline, tags = self.codepipeline_backend.create_pipeline(

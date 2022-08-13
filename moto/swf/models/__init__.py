@@ -105,8 +105,9 @@ class SWFBackend(BaseBackend):
         domain = Domain(
             name,
             workflow_execution_retention_period_in_days,
-            self.region_name,
-            description,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            description=description,
         )
         self.domains.append(domain)
 

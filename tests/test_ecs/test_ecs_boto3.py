@@ -7,7 +7,7 @@ import sure  # noqa # pylint: disable=unused-import
 import json
 import os
 
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2 import utils as ec2_utils
 from uuid import UUID
 

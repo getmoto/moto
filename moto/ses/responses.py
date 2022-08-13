@@ -6,9 +6,12 @@ from datetime import datetime
 
 
 class EmailResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="ses")
+
     @property
     def backend(self):
-        return ses_backends["global"]
+        return ses_backends[self.current_account]["global"]
 
     def verify_email_identity(self):
         address = self.querystring.get("EmailAddress")[0]

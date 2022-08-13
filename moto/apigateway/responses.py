@@ -13,6 +13,9 @@ ENDPOINT_CONFIGURATION_TYPES = ["PRIVATE", "EDGE", "REGIONAL"]
 
 
 class APIGatewayResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="apigateway")
+
     def error(self, type_, message, status=400):
         headers = self.response_headers or {}
         headers["X-Amzn-Errortype"] = type_
@@ -20,7 +23,7 @@ class APIGatewayResponse(BaseResponse):
 
     @property
     def backend(self):
-        return apigateway_backends[self.region]
+        return apigateway_backends[self.current_account][self.region]
 
     def __validate_api_key_source(self, api_key_source):
         if api_key_source and api_key_source not in API_KEY_SOURCES:
