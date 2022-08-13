@@ -4,7 +4,7 @@ from os import listdir
 from ..utils import generic_filter
 
 from moto.utilities.utils import load_resource
-from ..exceptions import InvalidInstanceTypeError
+from ..exceptions import FilterNotImplementedError, InvalidInstanceTypeError
 
 INSTANCE_TYPES = load_resource(__name__, "../resources/instance_types.json")
 INSTANCE_FAMILIES = list(set([i.split(".")[0] for i in INSTANCE_TYPES.keys()]))
@@ -50,7 +50,7 @@ class InstanceType(dict):
         elif filter_name in ("current-generation"):
             return str(self.get("CurrentGeneration")).lower()
         else:
-            return super().get_filter_value(filter_name, "DescribeInstanceTypes")
+            return FilterNotImplementedError(filter_name, "DescribeInstanceTypes")
 
 
 class InstanceTypeBackend:
