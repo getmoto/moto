@@ -118,7 +118,7 @@ class LaunchTemplates(EC2BaseResponse):
                 parsed_template_data["TagSpecifications"].extend(converted_tag_spec)
 
             template = self.ec2_backend.create_launch_template(
-                name, version_description, parsed_template_data
+                name, version_description, parsed_template_data, tag_spec
             )
             version = template.default_version()
 
@@ -298,6 +298,7 @@ class LaunchTemplates(EC2BaseResponse):
                         "latestVersionNumber": template.latest_version_number,
                         "launchTemplateId": template.id,
                         "launchTemplateName": template.name,
+                        "tags": template.tags,
                     },
                 )
 
