@@ -50,7 +50,7 @@ class InstanceType(dict):
         elif filter_name in ("current-generation"):
             return str(self.get("CurrentGeneration")).lower()
         else:
-            return super().get_filter_value(filter_name, "DescribeSubnets")
+            return super().get_filter_value(filter_name, "DescribeInstanceTypes")
 
 
 class InstanceTypeBackend:
