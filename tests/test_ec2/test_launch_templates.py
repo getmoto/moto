@@ -541,7 +541,7 @@ def test_launch_template_describe_with_tags():
     cli = boto3.client("ec2", region_name="us-east-1")
 
     template_name = str(uuid4())
-    resp = cli.create_launch_template(
+    cli.create_launch_template(
         LaunchTemplateName=template_name,
         # the absolute minimum needed to create a template without other resources
         LaunchTemplateData={
