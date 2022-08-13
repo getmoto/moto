@@ -22,7 +22,7 @@ for location_type in listdir(root / offerings_path):
 
 
 class InstanceTypeBackend:
-    def describe_instance_types(self, instance_types=None):
+    def describe_instance_types(self, instance_types=None, filters=None):
         matches = INSTANCE_TYPES.values()
         if instance_types:
             matches = [t for t in matches if t.get("InstanceType") in instance_types]
@@ -31,7 +31,30 @@ class InstanceTypeBackend:
                     t.get("InstanceType") for t in matches
                 )
                 raise InvalidInstanceTypeError(unknown_ids)
+        if filters:
+            matches = [o for o in matches if self.matches_filters(o, filters or {})]
         return matches
+
+    def matches_filters(self, instance, filters):
+        def matches_filter(key, values):
+            if key == "instance-type":
+                return instance.get("InstanceType") in values
+            elif key == "vcpu-info.default-vcpus":
+                return str(instance.get("VCpuInfo").get("DefaultVCpus")) in values
+            elif key == "memory-info.size-in-mib":
+                return str(instance.get("MemoryInfo").get("SizeInMiB")) in values
+            elif key == "bare-metal":
+                return str(instance.get("BareMetal")).lower() in values
+            elif key == "burstable-performance-supported":
+                return (
+                    str(instance.get("BurstablePerformanceSupported")).lower() in values
+                )
+            elif key == "current-generation":
+                return str(instance.get("CurrentGeneration")).lower() in values
+            else:
+                return False
+
+        return all([matches_filter(key, values) for key, values in filters.items()])
 
 
 class InstanceTypeOfferingBackend:
