@@ -134,8 +134,8 @@ class DynamoHandler(BaseResponse):
     @property
     def dynamodb_backend(self):
         """
-        :return: DynamoDB2 Backend
-        :rtype: moto.dynamodb2.models.DynamoDBBackend
+        :return: DynamoDB Backend
+        :rtype: moto.dynamodb.models.DynamoDBBackend
         """
         return dynamodb_backends[self.current_account][self.region]
 
