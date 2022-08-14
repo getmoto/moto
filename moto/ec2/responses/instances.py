@@ -72,6 +72,7 @@ class InstanceResponse(EC2BaseResponse):
                 "InstanceInitiatedShutdownBehavior"
             ),
             "launch_template": self._get_multi_param_dict("LaunchTemplate"),
+            "hibernation_options": self._get_multi_param_dict("HibernationOptions"),
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(
@@ -462,6 +463,11 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <clientToken/>
           <hypervisor>xen</hypervisor>
           <ebsOptimized>false</ebsOptimized>
+          {% if instance.hibernation_options %}
+          <hibernationOptions>
+            <configured>{{ instance.hibernation_options.get("Configured") }}</configured>
+          </hibernationOptions>
+          {% endif %}
           <tagSet>
             {% for tag in instance.get_tags() %}
               <item>

@@ -112,6 +112,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.instance_initiated_shutdown_behavior = (
             kwargs.get("instance_initiated_shutdown_behavior") or "stop"
         )
+        self.hibernation_options = kwargs.get("hibernation_options")
         self.sriov_net_support = "simple"
         self._spot_fleet_id = kwargs.get("spot_fleet_id", None)
         self._fleet_id = kwargs.get("fleet_id", None)
