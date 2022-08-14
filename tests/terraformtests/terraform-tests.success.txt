@@ -210,6 +210,13 @@ servicediscovery:
   - TestAccServiceDiscoveryPrivateDNSNamespace
   - TestAccServiceDiscoveryPublicDNSNamespace
   - TestAccServiceDiscoveryService
+signer:
+ - TestAccSignerSigningProfileDataSource_basic
+ - TestAccSignerSigningProfile_basic
+ - TestAccSignerSigningProfile_generateNameWithNamePrefix
+ - TestAccSignerSigningProfile_generateName
+ - TestAccSignerSigningProfile_tags
+ - TestAccSignerSigningProfile_signatureValidityPeriod
 sns:
   - TestAccSNSTopicPolicy
   - TestAccSNSTopicDataSource

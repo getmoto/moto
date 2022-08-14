@@ -5608,6 +5608,29 @@
 - [X] verify_email_identity
 </details>
 
+## signer
+<details>
+<summary>23% implemented</summary>
+
+- [ ] add_profile_permission
+- [X] cancel_signing_profile
+- [ ] describe_signing_job
+- [ ] get_signing_platform
+- [X] get_signing_profile
+- [ ] list_profile_permissions
+- [ ] list_signing_jobs
+- [X] list_signing_platforms
+- [ ] list_signing_profiles
+- [ ] list_tags_for_resource
+- [X] put_signing_profile
+- [ ] remove_profile_permission
+- [ ] revoke_signature
+- [ ] revoke_signing_profile
+- [ ] start_signing_job
+- [ ] tag_resource
+- [ ] untag_resource
+</details>
+
 ## sns
 <details>
 <summary>55% implemented</summary>
@@ -6296,7 +6319,6 @@
 - servicecatalog-appregistry
 - sesv2
 - shield
-- signer
 - sms
 - sms-voice
 - snow-device-management

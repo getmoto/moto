@@ -142,6 +142,7 @@ backend_url_patterns = [
     ),
     ("ses", re.compile("https?://email\\.(.+)\\.amazonaws\\.com")),
     ("ses", re.compile("https?://ses\\.(.+)\\.amazonaws\\.com")),
+    ("signer", re.compile("https?://signer\\.(.+)\\.amazonaws\\.com")),
     ("sns", re.compile("https?://sns\\.(.+)\\.amazonaws\\.com")),
     ("sqs", re.compile("https?://(.*\\.)?(queue|sqs)\\.(.*\\.)?amazonaws\\.com")),
     ("ssm", re.compile("https?://ssm\\.(.+)\\.amazonaws\\.com")),
