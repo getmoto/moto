@@ -771,6 +771,33 @@ def test_create_auto_scaling_from_template_version__default():
     response["LaunchTemplate"].should.have.key("Version").equals("$Default")
 
 
+@mock_ec2
+@mock_autoscaling
+def test_create_auto_scaling_from_template_version__no_version():
+    ec2_client = boto3.client("ec2", region_name="us-west-1")
+    launch_template_name = "tester"
+    ec2_client.create_launch_template(
+        LaunchTemplateName=launch_template_name,
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.medium"},
+    )
+    asg_client = boto3.client("autoscaling", region_name="us-west-1")
+    asg_client.create_auto_scaling_group(
+        AutoScalingGroupName="name",
+        DesiredCapacity=1,
+        MinSize=1,
+        MaxSize=1,
+        LaunchTemplate={"LaunchTemplateName": launch_template_name},
+        AvailabilityZones=["us-west-1a"],
+    )
+
+    response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["name"])[
+        "AutoScalingGroups"
+    ][0]
+    response.should.have.key("LaunchTemplate")
+    # We never specified the version - this is what it defaults to
+    response["LaunchTemplate"].should.have.key("Version").equals("$Default")
+
+
 @mock_autoscaling
 @mock_ec2
 def test_create_autoscaling_group_no_template_ref():
