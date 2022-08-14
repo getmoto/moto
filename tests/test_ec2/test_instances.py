@@ -1,5 +1,6 @@
 import base64
 import ipaddress
+import warnings
 from unittest import SkipTest, mock
 from uuid import uuid4
 
@@ -2303,14 +2304,13 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
         LaunchTemplateName=str(uuid4()), LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID}
     )["LaunchTemplate"]
 
-    with pytest.warns(None) as captured_warnings:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         resource.create_instances(
             MinCount=1,
             MaxCount=1,
             LaunchTemplate={launch_template_kind: template[launch_template_kind]},
         )
-
-    assert len(captured_warnings) == 0
 
 
 @mock_ec2

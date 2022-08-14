@@ -589,10 +589,12 @@ def test_thing_group_already_exists_with_same_properties_returned():
     current_thing_group = client.create_thing_group(
         thingGroupName=thing_group_name, thingGroupProperties=thing_group_properties
     )
+    current_thing_group.pop("ResponseMetadata")
 
     thing_group = client.create_thing_group(
         thingGroupName=thing_group_name, thingGroupProperties=thing_group_properties
     )
+    thing_group.pop("ResponseMetadata")
     assert thing_group == current_thing_group
 
 
