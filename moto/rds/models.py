@@ -260,7 +260,9 @@ class ClusterSnapshot(BaseModel):
         self.snapshot_id = snapshot_id
         self.tags = tags
         self.status = "available"
-        self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        self.created_at = iso_8601_datetime_with_milliseconds(
+            datetime.datetime.utcnow()
+        )
 
     @property
     def snapshot_arn(self):
