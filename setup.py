@@ -35,7 +35,7 @@ install_requires = [
     "werkzeug>=0.5,<2.2.0",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
-    "responses>=0.9.0",
+    "responses>=0.13.0",
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
     "Jinja2>=2.10.1",
     "importlib_metadata ; python_version < '3.8'",
