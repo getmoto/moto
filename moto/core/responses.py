@@ -61,7 +61,6 @@ def _decode_dict(d):
 
 
 class DynamicDictLoader(DictLoader):
-
     def update(self, mapping):
         self.mapping.update(mapping)
 
