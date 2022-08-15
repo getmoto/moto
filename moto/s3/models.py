@@ -343,7 +343,16 @@ class FakeKey(BaseModel, ManagedState):
 
 
 class FakeMultipart(BaseModel):
-    def __init__(self, key_name, metadata, storage=None, tags=None, acl=None):
+    def __init__(
+        self,
+        key_name,
+        metadata,
+        storage=None,
+        tags=None,
+        acl=None,
+        sse_encryption=None,
+        kms_key_id=None,
+    ):
         self.key_name = key_name
         self.metadata = metadata
         self.storage = storage
@@ -355,6 +364,8 @@ class FakeMultipart(BaseModel):
         self.id = (
             rand_b64.decode("utf-8").replace("=", "").replace("+", "").replace("/", "")
         )
+        self.sse_encryption = sse_encryption
+        self.kms_key_id = kms_key_id
 
     def complete(self, body):
         decode_hex = codecs.getdecoder("hex_codec")
@@ -389,7 +400,9 @@ class FakeMultipart(BaseModel):
         if part_id < 1:
             raise NoSuchUpload(upload_id=part_id)
 
-        key = FakeKey(part_id, value)
+        key = FakeKey(
+            part_id, value, encryption=self.sse_encryption, kms_key_id=self.kms_key_id
+        )
         self.parts[part_id] = key
         if part_id not in self.partlist:
             insort(self.partlist, part_id)
@@ -1928,10 +1941,24 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return len(bucket.multiparts[multipart_id].parts) > next_part_number_marker
 
     def create_multipart_upload(
-        self, bucket_name, key_name, metadata, storage_type, tags, acl
+        self,
+        bucket_name,
+        key_name,
+        metadata,
+        storage_type,
+        tags,
+        acl,
+        sse_encryption,
+        kms_key_id,
     ):
         multipart = FakeMultipart(
-            key_name, metadata, storage=storage_type, tags=tags, acl=acl
+            key_name,
+            metadata,
+            storage=storage_type,
+            tags=tags,
+            acl=acl,
+            sse_encryption=sse_encryption,
+            kms_key_id=kms_key_id,
         )
 
         bucket = self.get_bucket(bucket_name)
