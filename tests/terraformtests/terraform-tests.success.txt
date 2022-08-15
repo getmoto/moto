@@ -30,11 +30,18 @@ cloudwatch:
 cognitoidp:
   - TestAccCognitoIDPIdentityProvider
   - TestAccCognitoIDPUserGroup_
-  - TestAccCognitoIDPUserPool_
-  - TestAccCognitoUser_
-  - TestAccCognitoUserInGroup_
-  - TestAccCognitoIDPUserPoolClients
+  - TestAccCognitoIDPUserInGroup
   - TestAccCognitoIDPUserPoolClientDataSource
+  - TestAccCognitoIDPUserPoolClient_basic
+  - TestAccCognitoIDPUserPoolClient_enableRevocation
+  - TestAccCognitoIDPUserPoolClient_refreshTokenValidity
+  - TestAccCognitoIDPUserPoolClient_accessTokenValidity
+  - TestAccCognitoIDPUserPoolClient_idTokenValidity
+  - TestAccCognitoIDPUserPoolClient_name
+  - TestAccCognitoIDPUserPoolClient_allFields
+  - TestAccCognitoIDPUserPool_
+  - TestAccCognitoIDPUser_
+  - TestAccCognitoIDPUserPoolClients
 dax:
   - TestAccDAXCluster_basic
   - TestAccDAXCluster_Encryption
@@ -171,17 +178,7 @@ route53|1:
   - TestAccRoute53Record_doNotAllowOverwrite
   - TestAccRoute53Record_allowOverwrite
 route53|2:
-  - TestAccRoute53Zone_basic
-  - TestAccRoute53Zone_disappears
-  - TestAccRoute53Zone_multiple
-  - TestAccRoute53Zone_comment
-  - TestAccRoute53Zone_delegationSetID
-  - TestAccRoute53Zone_forceDestroy
-  - TestAccRoute53Zone_ForceDestroy_trailingPeriod
-  - TestAccRoute53Zone_tags
-  - TestAccRoute53Zone_VPC_single
-  - TestAccRoute53Zone_VPC_multiple
-  - TestAccRoute53Zone_VPC_updates
+  - TestAccRoute53Zone_
   - TestAccRoute53ZoneAssociation
   - TestAccRoute53ZoneDataSource_id
   - TestAccRoute53ZoneDataSource_name
