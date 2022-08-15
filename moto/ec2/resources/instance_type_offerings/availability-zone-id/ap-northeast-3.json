@@ -72,6 +72,78 @@
   "Location": "apne3-az1"
  },
  {
+  "InstanceType": "c6g.12xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6g.16xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6g.2xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6g.4xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6g.8xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6g.large",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6g.medium",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6g.metal",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6g.xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6gd.12xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6gd.16xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6gd.2xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6gd.4xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6gd.8xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6gd.large",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6gd.medium",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6gd.metal",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6gd.xlarge",
+  "Location": "apne3-az1"
+ },
+ {
   "InstanceType": "g4dn.12xlarge",
   "Location": "apne3-az1"
  },
@@ -401,6 +473,78 @@
  },
  {
   "InstanceType": "c5d.xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6g.12xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6g.16xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6g.2xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6g.4xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6g.8xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6g.large",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6g.medium",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6g.metal",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6g.xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6gd.12xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6gd.16xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6gd.2xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6gd.4xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6gd.8xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6gd.large",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6gd.medium",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6gd.metal",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6gd.xlarge",
   "Location": "apne3-az2"
  },
  {
@@ -741,6 +885,78 @@
  },
  {
   "InstanceType": "c5d.xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6g.12xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6g.16xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6g.2xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6g.4xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6g.8xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6g.large",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6g.medium",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6g.metal",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6g.xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6gd.12xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6gd.16xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6gd.2xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6gd.4xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6gd.8xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6gd.large",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6gd.medium",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6gd.metal",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6gd.xlarge",
   "Location": "apne3-az3"
  },
  {
