@@ -432,7 +432,7 @@ def test_create_method_response():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal(
-        {"ResponseMetadata": {"HTTPStatusCode": 200}, "statusCode": "200"}
+        {"ResponseMetadata": {"HTTPStatusCode": 201}, "statusCode": "200"}
     )
 
     response = client.get_method_response(
@@ -451,7 +451,7 @@ def test_create_method_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal({"ResponseMetadata": {"HTTPStatusCode": 200}})
+    response.should.equal({"ResponseMetadata": {"HTTPStatusCode": 204}})
 
 
 @mock_apigateway
@@ -527,7 +527,7 @@ def test_integrations():
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal(
         {
-            "ResponseMetadata": {"HTTPStatusCode": 200},
+            "ResponseMetadata": {"HTTPStatusCode": 201},
             "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
@@ -657,7 +657,7 @@ def test_integration_response():
         {
             "statusCode": "200",
             "selectionPattern": "foobar",
-            "ResponseMetadata": {"HTTPStatusCode": 200},
+            "ResponseMetadata": {"HTTPStatusCode": 201},
             "responseTemplates": {},  # Note: TF compatibility
         }
     )
@@ -733,7 +733,7 @@ def test_integration_response():
         {
             "statusCode": "200",
             "selectionPattern": "foobar",
-            "ResponseMetadata": {"HTTPStatusCode": 200},
+            "ResponseMetadata": {"HTTPStatusCode": 201},
             "responseTemplates": {},  # Note: TF compatibility
             "contentHandling": "CONVERT_TO_BINARY",
         }
@@ -927,7 +927,7 @@ def test_create_authorizer():
             "providerARNs": [user_pool_arn],
             "identitySource": "method.request.header.Authorization",
             "authorizerResultTtlInSeconds": 300,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
+            "ResponseMetadata": {"HTTPStatusCode": 201},
         }
     )
 

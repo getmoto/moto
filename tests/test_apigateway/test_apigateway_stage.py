@@ -30,7 +30,7 @@ def test_create_stage_minimal():
     response.should.have.key("variables").equals({})
     response.should.have.key("ResponseMetadata").should.have.key(
         "HTTPStatusCode"
-    ).equals(200)
+    ).equals(201)
     response.should.have.key("description").equals("")
     response.shouldnt.have.key("cacheClusterStatus")
     response.should.have.key("cacheClusterEnabled").equals(False)
@@ -65,7 +65,7 @@ def test_create_stage_with_env_vars():
     response.should.have.key("variables").equals({"env": "dev"})
     response.should.have.key("ResponseMetadata").should.have.key(
         "HTTPStatusCode"
-    ).equals(200)
+    ).equals(201)
     response.should.have.key("description").equals("")
     response.shouldnt.have.key("cacheClusterStatus")
     response.should.have.key("cacheClusterEnabled").equals(False)
@@ -103,7 +103,7 @@ def test_create_stage_with_vars_and_cache():
     response.should.have.key("variables").equals({"env": "dev"})
     response.should.have.key("ResponseMetadata").should.have.key(
         "HTTPStatusCode"
-    ).equals(200)
+    ).equals(201)
     response.should.have.key("description").equals("hello moto")
     response.should.have.key("cacheClusterStatus").equals("AVAILABLE")
     response.should.have.key("cacheClusterEnabled").equals(True)
@@ -143,7 +143,7 @@ def test_create_stage_with_cache_settings():
     response.should.have.key("variables").equals({"env": "dev"})
     response.should.have.key("ResponseMetadata").should.have.key(
         "HTTPStatusCode"
-    ).equals(200)
+    ).equals(201)
     response.should.have.key("description").equals("hello moto")
     response.should.have.key("cacheClusterStatus").equals("AVAILABLE")
     response.should.have.key("cacheClusterEnabled").equals(True)
