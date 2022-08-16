@@ -1585,7 +1585,14 @@ class BatchBackend(BaseBackend):
         return jobs
 
     def cancel_job(self, job_id, reason):
+        if job_id is None:
+            raise ClientException("Job ID does not exist")
+        if reason is None:
+            raise ClientException("Reason does not exist")
+
         job = self.get_job_by_id(job_id)
+        if job is None:
+            raise ClientException("Job not found")
         if job.status in ["SUBMITTED", "PENDING", "RUNNABLE"]:
             job.terminate(reason)
         # No-Op for jobs that have already started - user has to explicitly terminate those
