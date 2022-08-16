@@ -164,11 +164,7 @@ class MockAll(ContextDecorator):
     def __init__(self):
         self.mocks = []
         for mock in dir(sys.modules["moto"]):
-            if (
-                mock.startswith("mock_")
-                and not mock.endswith("_deprecated")
-                and not mock == ("mock_all")
-            ):
+            if mock.startswith("mock_") and not mock == ("mock_all"):
                 self.mocks.append(globals()[mock]())
 
     def __enter__(self):

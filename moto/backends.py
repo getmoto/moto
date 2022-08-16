@@ -3,11 +3,7 @@ import moto
 import sys
 
 
-decorators = [
-    d
-    for d in dir(moto)
-    if d.startswith("mock_") and not d.endswith("_deprecated") and not d == "mock_all"
-]
+decorators = [d for d in dir(moto) if d.startswith("mock_") and not d == "mock_all"]
 decorator_functions = [getattr(moto, f) for f in decorators]
 BACKENDS = {f.boto3_name: (f.name, f.backend) for f in decorator_functions}
 BACKENDS["dynamodb_v20111205"] = ("dynamodb_v20111205", "dynamodb_backends")
