@@ -10,7 +10,7 @@ from io import BytesIO
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
-from moto import settings, mock_s3, mock_kms
+from moto import settings, mock_s3
 import moto.s3.models as s3model
 from moto.settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 
@@ -888,25 +888,23 @@ def test_complete_multipart_with_empty_partlist():
 
 
 @mock_s3
-@mock_kms
 def test_ssm_key_headers_in_create_multipart():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    kms_client = boto3.client("kms", region_name=DEFAULT_REGION_NAME)
 
     bucket_name = "ssm-headers-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
 
-    kms_key = kms_client.create_key()["KeyMetadata"]
+    kms_key_id = "random-id"
     key_name = "test-file.txt"
 
     create_multipart_response = s3_client.create_multipart_upload(
         Bucket=bucket_name,
         Key=key_name,
         ServerSideEncryption="aws:kms",
-        SSEKMSKeyId=kms_key["KeyId"],
+        SSEKMSKeyId=kms_key_id,
     )
     assert create_multipart_response["ServerSideEncryption"] == "aws:kms"
-    assert create_multipart_response["SSEKMSKeyId"] == kms_key["KeyId"]
+    assert create_multipart_response["SSEKMSKeyId"] == kms_key_id
 
     upload_part_response = s3_client.upload_part(
         Body=b"bytes",
@@ -916,7 +914,7 @@ def test_ssm_key_headers_in_create_multipart():
         UploadId=create_multipart_response["UploadId"],
     )
     assert upload_part_response["ServerSideEncryption"] == "aws:kms"
-    assert upload_part_response["SSEKMSKeyId"] == kms_key["KeyId"]
+    assert upload_part_response["SSEKMSKeyId"] == kms_key_id
 
     parts = {"Parts": [{"PartNumber": 1, "ETag": upload_part_response["ETag"]}]}
     complete_multipart_response = s3_client.complete_multipart_upload(
@@ -926,4 +924,4 @@ def test_ssm_key_headers_in_create_multipart():
         MultipartUpload=parts,
     )
     assert complete_multipart_response["ServerSideEncryption"] == "aws:kms"
-    assert complete_multipart_response["SSEKMSKeyId"] == kms_key["KeyId"]
+    assert complete_multipart_response["SSEKMSKeyId"] == kms_key_id
