@@ -11,7 +11,7 @@ import pytz
 
 from moto.core.exceptions import DryRunClientError
 
-from jinja2 import Environment, DictLoader, TemplateNotFound
+from jinja2 import Environment, DictLoader
 
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
@@ -61,18 +61,6 @@ def _decode_dict(d):
 
 
 class DynamicDictLoader(DictLoader):
-    """
-    Note: There's a bug in jinja2 pre-2.7.3 DictLoader where caching does not work.
-      Including the fixed (current) method version here to ensure performance benefit
-      even for those using older jinja versions.
-    """
-
-    def get_source(self, environment, template):
-        if template in self.mapping:
-            source = self.mapping[template]
-            return source, None, lambda: source == self.mapping.get(template)
-        raise TemplateNotFound(template)
-
     def update(self, mapping):
         self.mapping.update(mapping)
 
