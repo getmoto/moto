@@ -74,6 +74,7 @@ input_instance_groups = [
 
 
 @mock_emr
+@pytest.mark.filterwarnings("ignore")
 def test_describe_cluster():
     region_name = "us-east-1"
     client = boto3.client("emr", region_name=region_name)
@@ -251,6 +252,7 @@ def test_describe_job_flows():
 
 
 @mock_emr
+@pytest.mark.filterwarnings("ignore")
 def test_describe_job_flow():
     client = boto3.client("emr", region_name="us-east-1")
 
