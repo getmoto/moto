@@ -1585,29 +1585,26 @@ class BatchBackend(BaseBackend):
         return jobs
 
     def cancel_job(self, job_id, reason):
-        if job_id is None:
-            raise ClientException("Job ID does not exist")
-        if reason is None:
-            raise ClientException("Reason does not exist")
-
+        if job_id == '':
+            raise ClientException("'reason' is a required field (cannot be an empty string)")
+        if reason == '':
+            raise ClientException("'jobId' is a required field (cannot be an empty string)")
+        
         job = self.get_job_by_id(job_id)
-        if job is None:
-            raise ClientException("Job not found")
-        if job.status in ["SUBMITTED", "PENDING", "RUNNABLE"]:
-            job.terminate(reason)
-        # No-Op for jobs that have already started - user has to explicitly terminate those
+        if job is not None:
+            if job.status in ["SUBMITTED", "PENDING", "RUNNABLE"]:
+                job.terminate(reason)
+            # No-Op for jobs that have already started - user has to explicitly terminate those
 
     def terminate_job(self, job_id, reason):
-        if job_id is None:
-            raise ClientException("Job ID does not exist")
-        if reason is None:
-            raise ClientException("Reason does not exist")
+        if job_id == '':
+            raise ClientException("'reason' is a required field (cannot be a empty string)")
+        if reason == '':
+            raise ClientException("'jobId' is a required field (cannot be a empty string)")
 
         job = self.get_job_by_id(job_id)
-        if job is None:
-            raise ClientException("Job not found")
-
-        job.terminate(reason)
+        if job is not None:
+            job.terminate(reason)
 
     def tag_resource(self, resource_arn, tags):
         tags = self.tagger.convert_dict_to_tags_input(tags or {})
