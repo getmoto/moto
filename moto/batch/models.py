@@ -1585,11 +1585,15 @@ class BatchBackend(BaseBackend):
         return jobs
 
     def cancel_job(self, job_id, reason):
-        if job_id == '':
-            raise ClientException("'reason' is a required field (cannot be an empty string)")
-        if reason == '':
-            raise ClientException("'jobId' is a required field (cannot be an empty string)")
-        
+        if job_id == "":
+            raise ClientException(
+                "'reason' is a required field (cannot be an empty string)"
+            )
+        if reason == "":
+            raise ClientException(
+                "'jobId' is a required field (cannot be an empty string)"
+            )
+
         job = self.get_job_by_id(job_id)
         if job is not None:
             if job.status in ["SUBMITTED", "PENDING", "RUNNABLE"]:
@@ -1597,10 +1601,14 @@ class BatchBackend(BaseBackend):
             # No-Op for jobs that have already started - user has to explicitly terminate those
 
     def terminate_job(self, job_id, reason):
-        if job_id == '':
-            raise ClientException("'reason' is a required field (cannot be a empty string)")
-        if reason == '':
-            raise ClientException("'jobId' is a required field (cannot be a empty string)")
+        if job_id == "":
+            raise ClientException(
+                "'reason' is a required field (cannot be a empty string)"
+            )
+        if reason == "":
+            raise ClientException(
+                "'jobId' is a required field (cannot be a empty string)"
+            )
 
         job = self.get_job_by_id(job_id)
         if job is not None:

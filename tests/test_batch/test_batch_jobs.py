@@ -252,8 +252,10 @@ def test_terminate_nonexisting_job():
     Test verifies that you get a 200 HTTP status code when terminating a non-existing job.
     """
     _, _, _, _, batch_client = _get_clients()
-    resp = batch_client.terminate_job(jobId='nonexisting_job', reason='test_terminate_nonexisting_job')
-    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    resp = batch_client.terminate_job(
+        jobId="nonexisting_job", reason="test_terminate_nonexisting_job"
+    )
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
 
 @mock_batch
@@ -263,12 +265,12 @@ def test_terminate_job_empty_argument_strings():
     """
     _, _, _, _, batch_client = _get_clients()
     with pytest.raises(botocore.exceptions.ClientError) as exc:
-        batch_client.terminate_job(jobId='', reason='not_a_empty_string')
-    assert exc.match('ClientException')
+        batch_client.terminate_job(jobId="", reason="not_a_empty_string")
+    assert exc.match("ClientException")
 
     with pytest.raises(botocore.exceptions.ClientError) as exc:
-        batch_client.terminate_job(jobId='not_a_empty_string', reason='')
-    assert exc.match('ClientException')
+        batch_client.terminate_job(jobId="not_a_empty_string", reason="")
+    assert exc.match("ClientException")
 
 
 @mock_logs
@@ -347,8 +349,10 @@ def test_cancel_nonexisting_job():
     Test verifies that you get a 200 HTTP status code when cancelling a non-existing job.
     """
     _, _, _, _, batch_client = _get_clients()
-    resp = batch_client.cancel_job(jobId='nonexisting_job', reason='test_cancel_nonexisting_job')
-    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    resp = batch_client.cancel_job(
+        jobId="nonexisting_job", reason="test_cancel_nonexisting_job"
+    )
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
 
 @mock_batch
@@ -358,12 +362,12 @@ def test_cancel_job_empty_argument_strings():
     """
     _, _, _, _, batch_client = _get_clients()
     with pytest.raises(botocore.exceptions.ClientError) as exc:
-        batch_client.cancel_job(jobId='', reason='not_a_empty_string')
-    assert exc.match('ClientException')
+        batch_client.cancel_job(jobId="", reason="not_a_empty_string")
+    assert exc.match("ClientException")
 
     with pytest.raises(botocore.exceptions.ClientError) as exc:
-        batch_client.cancel_job(jobId='not_a_empty_string', reason='')
-    assert exc.match('ClientException')
+        batch_client.cancel_job(jobId="not_a_empty_string", reason="")
+    assert exc.match("ClientException")
 
 
 def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):
