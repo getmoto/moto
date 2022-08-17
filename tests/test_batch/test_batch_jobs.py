@@ -249,7 +249,7 @@ def test_terminate_job():
 @mock_batch
 def test_terminate_nonexisting_job():
     """
-    Test verifies that you get a 200 HTTP status code when terminating a non-existing job
+    Test verifies that you get a 200 HTTP status code when terminating a non-existing job.
     """
     _, _, _, _, batch_client = _get_clients()
     resp = batch_client.terminate_job(jobId='nonexisting_job', reason='test_terminate_nonexisting_job')
@@ -344,7 +344,7 @@ def test_cancel_running_job():
 @mock_batch
 def test_cancel_nonexisting_job():
     """
-    Test verifies that you get a 200 HTTP status code when cancelling a non-existing job
+    Test verifies that you get a 200 HTTP status code when cancelling a non-existing job.
     """
     _, _, _, _, batch_client = _get_clients()
     resp = batch_client.cancel_job(jobId='nonexisting_job', reason='test_cancel_nonexisting_job')
