@@ -10,7 +10,6 @@ from ..exceptions import (
     InvalidVolumeDetachmentError,
     InvalidParameterDependency,
     InvalidParameterValueError,
-    UnknownVolumeType,
 )
 from .core import TaggedEC2Resource
 from ..utils import (

@@ -802,11 +802,3 @@ class UnknownVpcEndpointService(EC2ClientError):
             "InvalidVpcEndpointServiceId.NotFound",
             f"The VpcEndpointService Id '{service_id}' does not exist",
         )
-
-
-class UnknownVolumeType(EC2ClientError):
-    def __init__(self, volume_type):
-        super().__init__(
-            "UnknownVolumeType",
-            f"Unsupported volume type '{volume_type}' for volume creation.",
-        )

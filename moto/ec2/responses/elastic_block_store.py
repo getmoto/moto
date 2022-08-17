@@ -443,7 +443,7 @@ MODIFY_VOLUME_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 DESCRIBE_VOLUMES_MODIFICATIONS_RESPONSE = """
 <?xml version="1.0" encoding="UTF-8"?>
 <DescribeVolumesModificationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-    <requestId>a7c46ed9-c5e5-4874-a174-bd95d97dd7db</requestId>
+    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
     <volumeModificationSet>
       {% for modification in modifications %}
         <item>
