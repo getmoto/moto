@@ -96,10 +96,14 @@ def test_get_databases_several_items():
 def test_update_database():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "existingdatabase"
-    helpers.create_database(client, database_name, {"Name": database_name})
+    database_catalog_id = ACCOUNT_ID
+    helpers.create_database(
+        client, database_name, {"Name": database_name}, database_catalog_id
+    )
 
     response = helpers.get_database(client, database_name)
     database = response["Database"]
+    database.get("CatalogId").should.equal(database_catalog_id)
     database.get("Description").should.be.none
     database.get("LocationUri").should.be.none
 
@@ -108,10 +112,13 @@ def test_update_database():
         "Description": "desc",
         "LocationUri": "s3://bucket/existingdatabase/",
     }
-    client.update_database(Name=database_name, DatabaseInput=database_input)
+    client.update_database(
+        CatalogId=database_catalog_id, Name=database_name, DatabaseInput=database_input
+    )
 
     response = helpers.get_database(client, database_name)
     database = response["Database"]
+    database.get("CatalogId").should.equal(database_catalog_id)
     database.get("Description").should.equal("desc")
     database.get("LocationUri").should.equal("s3://bucket/existingdatabase/")
 
