@@ -215,7 +215,7 @@ glue
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule
-- [ ] update_database
+- [X] update_database
 - [ ] update_dev_endpoint
 - [ ] update_job
 - [ ] update_ml_transform
