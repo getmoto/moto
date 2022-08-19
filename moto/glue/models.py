@@ -99,6 +99,12 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise DatabaseNotFoundException(database_name)
 
+    def update_database(self, database_name, database_input):
+        if database_name not in self.databases:
+            raise DatabaseNotFoundException(database_name)
+
+        self.databases[database_name].input = database_input
+
     def get_databases(self):
         return [self.databases[key] for key in self.databases] if self.databases else []
 

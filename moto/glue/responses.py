@@ -40,6 +40,14 @@ class GlueResponse(BaseResponse):
             {"DatabaseList": [database.as_dict() for database in database_list]}
         )
 
+    def update_database(self):
+        database_input = self.parameters.get("DatabaseInput")
+        database_name = self.parameters.get("Name")
+        if "CatalogId" in self.parameters:
+            database_input["CatalogId"] = self.parameters.get("CatalogId")
+        self.glue_backend.update_database(database_name, database_input)
+        return ""
+
     def delete_database(self):
         name = self.parameters.get("Name")
         self.glue_backend.delete_database(name)
