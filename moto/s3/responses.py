@@ -907,7 +907,8 @@ class S3Response(BaseResponse):
                 new_bucket.object_lock_enabled = True
                 new_bucket.versioning_status = "Enabled"
 
-            if ownership_rule := request.headers.get("x-amz-object-ownership"):
+            ownership_rule = request.headers.get("x-amz-object-ownership")
+            if ownership_rule:
                 new_bucket.ownership_rule = ownership_rule
 
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
