@@ -113,7 +113,8 @@ class Key(CloudFormationModel):
         ]
 
     def revoke_grant(self, grant_id) -> None:
-        self.grants.pop(grant_id, None)
+        if not self.grants.pop(grant_id, None):
+            raise JsonRESTError("NotFoundException", f"Grant ID {grant_id} not found")
 
     def retire_grant(self, grant_id) -> None:
         self.grants.pop(grant_id, None)
