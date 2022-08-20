@@ -459,7 +459,14 @@ class DynamoHandler(BaseResponse):
                 "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an "
                 f"empty string value. Key: {empty_keys[0]}"
             )
+
         projection_expression = self.body.get("ProjectionExpression")
+        attributes_to_get = self.body.get("AttributesToGet")
+        if projection_expression and attributes_to_get:
+            raise MockValidationException(
+                "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributesToGet} Expression parameters: {ProjectionExpression}"
+            )
+
         expression_attribute_names = self.body.get("ExpressionAttributeNames")
         if expression_attribute_names == {}:
             if projection_expression is None:
