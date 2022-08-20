@@ -3,7 +3,7 @@ Moto Changelog
 
 4.0.0
 -----
-Docker Digest for 4.0.0: <autopopulateddigest>
+Docker Digest for 4.0.0: _sha256:348b516e706e19544dec3643d25304e24b75e48c92b1a6d347e5cd8c349cd8cd_
 
     General:
         * Introduces MultiAccount support (see http://docs.getmoto.org/en/latest/docs/multi_account.html)
