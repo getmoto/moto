@@ -713,7 +713,7 @@
 
 ## cloudwatch
 <details>
-<summary>38% implemented</summary>
+<summary>36% implemented</summary>
 
 - [X] delete_alarms
 - [ ] delete_anomaly_detector
@@ -736,6 +736,7 @@
 - [ ] get_metric_stream
 - [ ] get_metric_widget_image
 - [X] list_dashboards
+- [ ] list_managed_insight_rules
 - [ ] list_metric_streams
 - [X] list_metrics
 - [X] list_tags_for_resource
@@ -743,6 +744,7 @@
 - [ ] put_composite_alarm
 - [X] put_dashboard
 - [ ] put_insight_rule
+- [ ] put_managed_insight_rules
 - [X] put_metric_alarm
 - [X] put_metric_data
 - [ ] put_metric_stream
@@ -1459,7 +1461,7 @@
 
 ## dynamodb
 <details>
-<summary>58% implemented</summary>
+<summary>54% implemented</summary>
 
 - [ ] batch_execute_statement
 - [X] batch_get_item
@@ -1477,6 +1479,7 @@
 - [ ] describe_export
 - [ ] describe_global_table
 - [ ] describe_global_table_settings
+- [ ] describe_import
 - [ ] describe_kinesis_streaming_destination
 - [ ] describe_limits
 - [X] describe_table
@@ -1488,10 +1491,12 @@
 - [ ] execute_transaction
 - [ ] export_table_to_point_in_time
 - [X] get_item
+- [ ] import_table
 - [X] list_backups
 - [ ] list_contributor_insights
 - [ ] list_exports
 - [ ] list_global_tables
+- [ ] list_imports
 - [X] list_tables
 - [X] list_tags_of_resource
 - [X] put_item
@@ -2577,7 +2582,7 @@
 - [ ] list_job_runs
 - [ ] list_tags_for_resource
 - [X] start_application
-- [X] start_job_run
+- [ ] start_job_run
 - [X] stop_application
 - [ ] tag_resource
 - [ ] untag_resource
@@ -4779,6 +4784,7 @@
 <summary>6% implemented</summary>
 
 - [ ] compare_faces
+- [ ] copy_project_version
 - [ ] create_collection
 - [ ] create_dataset
 - [ ] create_project
@@ -4788,6 +4794,7 @@
 - [ ] delete_dataset
 - [ ] delete_faces
 - [ ] delete_project
+- [ ] delete_project_policy
 - [ ] delete_project_version
 - [ ] delete_stream_processor
 - [ ] describe_collection
@@ -4816,8 +4823,10 @@
 - [ ] list_dataset_entries
 - [ ] list_dataset_labels
 - [ ] list_faces
+- [ ] list_project_policies
 - [ ] list_stream_processors
 - [ ] list_tags_for_resource
+- [ ] put_project_policy
 - [ ] recognize_celebrities
 - [ ] search_faces
 - [ ] search_faces_by_image

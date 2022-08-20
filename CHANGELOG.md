@@ -1,6 +1,19 @@
 Moto Changelog
 ==============
 
+4.0.0
+-----
+Docker Digest for 4.0.0: <autopopulateddigest>
+
+    General:
+        * Introduces MultiAccount support (see http://docs.getmoto.org/en/latest/docs/multi_account.html)
+        * Removes deprecated decorators mock_dynamodb2 and mock_rds2
+        * The API for the TreadedMotoServer is now considered stable
+
+    Dependencies:
+        * The responses-module now has a minimum version of 0.13.0
+
+
 3.1.18
 -----
 Docker Digest for 3.1.18: _sha256:52fa7fdf8deee66d47fa760fafce1231ec9007d7bfc9c7a3080a8badd372b300_
