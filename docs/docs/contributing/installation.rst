@@ -41,4 +41,21 @@ If black fails, you can run the following command to automatically format the of
 
   make format
 
+Alternatively, it is available to set up the development environment by using Docker. To build a docker container and run a development server, run the following command: 
+
+.. code-block:: bash
+
+  make docker-dev
+
+The code is volumized on the container so any change at the host device should persist without rebuilding a container. 
+
+You can run the above test commands for all the tests or a specific service inside the container by using docker exec command, for example:
+
+.. code-block:: bash
+
+  make docker-dev
+
+
 If any of these steps fail, please see our :ref:`contributing faq` or open an issue on Github.
+
+
