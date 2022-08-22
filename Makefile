@@ -63,4 +63,6 @@ int_test:
 	@./scripts/int_test.sh
 
 docker-dev: 
-	docker build -t moto . && docker run -dit --name moto -v $(shell pwd):/moto/ moto
+	docker build -t moto . 
+	docker run -dit --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v $(shell pwd):/moto/ -v /var/run/docker.sock:/var/run/docker.sock -p 5000:5000 moto
+	
