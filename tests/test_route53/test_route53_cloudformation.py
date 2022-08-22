@@ -224,3 +224,22 @@ def test_route53_with_update():
 
     record_set = rrsets[0]
     record_set["ResourceRecords"][0]["Value"].should.equal("my_other.example.com")
+
+
+@mock_cloudformation
+@mock_route53
+def test_delete_route53_recordset():
+
+    route53 = boto3.client("route53", region_name="us-west-1")
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+
+    # given a stack with a record set
+    stack_name = "test_stack_recordset_delete"
+    template_json = json.dumps(route53_health_check.template)
+
+    cf.create_stack(StackName=stack_name, TemplateBody=template_json)
+
+    # when the stack is deleted
+    cf.delete_stack(StackName=stack_name)
+
+    # then it should not error
