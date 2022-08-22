@@ -249,7 +249,7 @@ class RecordSet(CloudFormationModel):
 
     def delete(self, account_id, region):  # pylint: disable=unused-argument
         """Not exposed as part of the Route 53 API - used for CloudFormation"""
-        backend = route53_backends[account_id][region]
+        backend = route53_backends[account_id]["global"]
         hosted_zone = backend.get_hosted_zone_by_name(self.hosted_zone_name)
         if not hosted_zone:
             hosted_zone = backend.get_hosted_zone(self.hosted_zone_id)
