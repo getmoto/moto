@@ -230,7 +230,6 @@ def test_route53_with_update():
 @mock_route53
 def test_delete_route53_recordset():
 
-    route53 = boto3.client("route53", region_name="us-west-1")
     cf = boto3.client("cloudformation", region_name="us-west-1")
 
     # given a stack with a record set
