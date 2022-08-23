@@ -1129,13 +1129,21 @@ def test_run_instance_with_security_group_id():
 
 
 @mock_ec2
-def test_run_instance_with_instance_type():
+@pytest.mark.parametrize("hibernate", [True, False])
+def test_run_instance_with_additional_args(hibernate):
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     instance = ec2.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, InstanceType="t1.micro"
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        InstanceType="t1.micro",
+        Placement={"AvailabilityZone": "us-east-1b"},
+        HibernationOptions={"Configured": hibernate},
     )[0]
 
     instance.instance_type.should.equal("t1.micro")
+    instance.placement.should.have.key("AvailabilityZone").equal("us-east-1b")
+    instance.hibernation_options.should.equal({"Configured": hibernate})
 
 
 @mock_ec2
@@ -1144,19 +1152,6 @@ def test_run_instance_with_default_placement():
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
 
     instance.placement.should.have.key("AvailabilityZone").equal("us-east-1a")
-
-
-@mock_ec2
-def test_run_instance_with_placement():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    instance = ec2.create_instances(
-        ImageId=EXAMPLE_AMI_ID,
-        MinCount=1,
-        MaxCount=1,
-        Placement={"AvailabilityZone": "us-east-1b"},
-    )[0]
-
-    instance.placement.should.have.key("AvailabilityZone").equal("us-east-1b")
 
 
 @mock_ec2
