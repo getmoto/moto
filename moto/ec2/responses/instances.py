@@ -158,7 +158,10 @@ class InstanceResponse(EC2BaseResponse):
 
     def describe_instance_types(self):
         instance_type_filters = self._get_multi_param("InstanceType")
-        instance_types = self.ec2_backend.describe_instance_types(instance_type_filters)
+        filter_dict = self._filters_from_querystring()
+        instance_types = self.ec2_backend.describe_instance_types(
+            instance_type_filters, filter_dict
+        )
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPES)
         return template.render(instance_types=instance_types)
 

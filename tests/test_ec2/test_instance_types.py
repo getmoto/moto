@@ -89,3 +89,94 @@ def test_describe_instance_types_unknown_type():
             "The instance type '{'t1.non_existent'}' does not exist"
         )
         err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_ec2
+def test_describe_instance_types_filter_by_vcpus():
+    client = boto3.client("ec2", "us-east-1")
+    instance_types = client.describe_instance_types(
+        Filters=[{"Name": "vcpu-info.default-vcpus", "Values": ["1", "2"]}]
+    )
+
+    instance_types.should.have.key("InstanceTypes")
+    types = [
+        instance_type["InstanceType"]
+        for instance_type in instance_types["InstanceTypes"]
+    ]
+    types.should.contain("t1.micro")
+    types.should.contain("t2.nano")
+
+    # not contain
+    types.should_not.contain("m5d.xlarge")
+
+
+@mock_ec2
+def test_describe_instance_types_filter_by_memory():
+    client = boto3.client("ec2", "us-east-1")
+    instance_types = client.describe_instance_types(
+        Filters=[{"Name": "memory-info.size-in-mib", "Values": ["512"]}]
+    )
+
+    instance_types.should.have.key("InstanceTypes")
+    types = [
+        instance_type["InstanceType"]
+        for instance_type in instance_types["InstanceTypes"]
+    ]
+    types.should.contain("t4g.nano")
+
+    # not contain
+    types.should_not.contain("m5d.xlarge")
+
+
+@mock_ec2
+def test_describe_instance_types_filter_by_bare_metal():
+    client = boto3.client("ec2", "us-east-1")
+    instance_types = client.describe_instance_types(
+        Filters=[{"Name": "bare-metal", "Values": ["true"]}]
+    )
+
+    instance_types.should.have.key("InstanceTypes")
+    types = [
+        instance_type["InstanceType"]
+        for instance_type in instance_types["InstanceTypes"]
+    ]
+    types.should.contain("a1.metal")
+
+    # not contain
+    types.should_not.contain("t1.micro")
+
+
+@mock_ec2
+def test_describe_instance_types_filter_by_burstable_performance_supported():
+    client = boto3.client("ec2", "us-east-1")
+    instance_types = client.describe_instance_types(
+        Filters=[{"Name": "burstable-performance-supported", "Values": ["true"]}]
+    )
+
+    instance_types.should.have.key("InstanceTypes")
+    types = [
+        instance_type["InstanceType"]
+        for instance_type in instance_types["InstanceTypes"]
+    ]
+    types.should.contain("t2.micro")
+
+    # not contain
+    types.should_not.contain("t1.micro")
+
+
+@mock_ec2
+def test_describe_instance_types_filter_by_current_generation():
+    client = boto3.client("ec2", "us-east-1")
+    instance_types = client.describe_instance_types(
+        Filters=[{"Name": "current-generation", "Values": ["true"]}]
+    )
+
+    instance_types.should.have.key("InstanceTypes")
+    types = [
+        instance_type["InstanceType"]
+        for instance_type in instance_types["InstanceTypes"]
+    ]
+    types.should.contain("t2.micro")
+
+    # not contain
+    types.should_not.contain("t1.micro")
