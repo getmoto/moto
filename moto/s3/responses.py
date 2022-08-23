@@ -1356,6 +1356,16 @@ class S3Response(BaseResponse):
             "x-amz-server-side-encryption-aws-kms-key-id", None
         )
 
+        checksum_algorithm = request.headers.get("x-amz-sdk-checksum-algorithm", "")
+        checksum_header = f"x-amz-checksum-{checksum_algorithm.lower()}"
+        checksum_value = request.headers.get(checksum_header)
+        if not checksum_value and checksum_algorithm:
+            search = re.search(r"x-amz-checksum-\w+:(\w+={1,2})", body.decode())
+            checksum_value = search.group(1) if search else None
+
+        if checksum_value:
+            response_headers.update({checksum_header: checksum_value})
+
         bucket_key_enabled = request.headers.get(
             "x-amz-server-side-encryption-bucket-key-enabled", None
         )
