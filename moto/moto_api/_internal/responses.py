@@ -54,7 +54,7 @@ class MotoAPIResponse(BaseResponse):
                         if not attr.startswith("_"):
                             try:
                                 json.dumps(getattr(instance, attr))
-                            except TypeError:
+                            except (TypeError, AttributeError):
                                 pass
                             else:
                                 inst_result[attr] = getattr(instance, attr)
