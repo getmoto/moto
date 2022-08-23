@@ -1929,20 +1929,38 @@ class S3Response(BaseResponse):
         self._set_action("KEY", "POST", query)
         self._authenticate_and_authorize_s3_action()
 
+        encryption = request.headers.get("x-amz-server-side-encryption")
+        kms_key_id = request.headers.get("x-amz-server-side-encryption-aws-kms-key-id")
+
         if body == b"" and "uploads" in query:
+            response_headers = {}
             metadata = metadata_from_headers(request.headers)
             tagging = self._tagging_from_headers(request.headers)
             storage_type = request.headers.get("x-amz-storage-class", "STANDARD")
             acl = self._acl_from_headers(request.headers)
+
             multipart_id = self.backend.create_multipart_upload(
-                bucket_name, key_name, metadata, storage_type, tagging, acl
+                bucket_name,
+                key_name,
+                metadata,
+                storage_type,
+                tagging,
+                acl,
+                encryption,
+                kms_key_id,
             )
+            if encryption:
+                response_headers["x-amz-server-side-encryption"] = encryption
+            if kms_key_id:
+                response_headers[
+                    "x-amz-server-side-encryption-aws-kms-key-id"
+                ] = kms_key_id
 
             template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(
                 bucket_name=bucket_name, key_name=key_name, upload_id=multipart_id
             )
-            return 200, {}, response
+            return 200, response_headers, response
 
         if query.get("uploadId"):
             body = self._complete_multipart_body(body)
@@ -1961,6 +1979,8 @@ class S3Response(BaseResponse):
                 storage=multipart.storage,
                 etag=etag,
                 multipart=multipart,
+                encryption=multipart.sse_encryption,
+                kms_key_id=multipart.kms_key_id,
             )
             key.set_metadata(multipart.metadata)
             self.backend.set_key_tags(key, multipart.tags)
@@ -1970,6 +1990,13 @@ class S3Response(BaseResponse):
             headers = {}
             if key.version_id:
                 headers["x-amz-version-id"] = key.version_id
+
+            if key.encryption:
+                headers["x-amz-server-side-encryption"] = key.encryption
+
+            if key.kms_key_id:
+                headers["x-amz-server-side-encryption-aws-kms-key-id"] = key.kms_key_id
+
             return (
                 200,
                 headers,

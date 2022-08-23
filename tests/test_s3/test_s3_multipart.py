@@ -885,3 +885,43 @@ def test_complete_multipart_with_empty_partlist():
     err["Message"].should.equal(
         "The XML you provided was not well-formed or did not validate against our published schema"
     )
+
+
+@mock_s3
+def test_ssm_key_headers_in_create_multipart():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    bucket_name = "ssm-headers-bucket"
+    s3_client.create_bucket(Bucket=bucket_name)
+
+    kms_key_id = "random-id"
+    key_name = "test-file.txt"
+
+    create_multipart_response = s3_client.create_multipart_upload(
+        Bucket=bucket_name,
+        Key=key_name,
+        ServerSideEncryption="aws:kms",
+        SSEKMSKeyId=kms_key_id,
+    )
+    assert create_multipart_response["ServerSideEncryption"] == "aws:kms"
+    assert create_multipart_response["SSEKMSKeyId"] == kms_key_id
+
+    upload_part_response = s3_client.upload_part(
+        Body=b"bytes",
+        Bucket=bucket_name,
+        Key=key_name,
+        PartNumber=1,
+        UploadId=create_multipart_response["UploadId"],
+    )
+    assert upload_part_response["ServerSideEncryption"] == "aws:kms"
+    assert upload_part_response["SSEKMSKeyId"] == kms_key_id
+
+    parts = {"Parts": [{"PartNumber": 1, "ETag": upload_part_response["ETag"]}]}
+    complete_multipart_response = s3_client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=key_name,
+        UploadId=create_multipart_response["UploadId"],
+        MultipartUpload=parts,
+    )
+    assert complete_multipart_response["ServerSideEncryption"] == "aws:kms"
+    assert complete_multipart_response["SSEKMSKeyId"] == kms_key_id
