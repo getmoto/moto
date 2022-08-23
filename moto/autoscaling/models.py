@@ -484,7 +484,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 self.launch_template = self.ec2_backend.get_launch_template_by_name(
                     launch_template_name
                 )
-            self.launch_template_version = launch_template["version"]
+            self.launch_template_version = launch_template.get("version") or "$Default"
 
     @staticmethod
     def __set_string_propagate_at_launch_booleans_on_tags(tags):
