@@ -161,4 +161,5 @@ rds
 - [X] stop_db_cluster
 - [X] stop_db_instance
 - [ ] stop_db_instance_automated_backups_replication
+- [ ] switchover_read_replica
 

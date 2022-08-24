@@ -564,7 +564,7 @@ class S3Response(BaseResponse):
             template = self.response_template(S3_REPLICATION_CONFIG)
             return 200, {}, template.render(replication=replication)
         elif "ownershipControls" in querystring:
-            ownership_rule = self.backend.get_bucket_ownership_rule(bucket_name)
+            ownership_rule = self.backend.get_bucket_ownership_controls(bucket_name)
             if not ownership_rule:
                 template = self.response_template(S3_ERROR_BUCKET_ONWERSHIP_NOT_FOUND)
                 return 404, {}, template.render(bucket_name=bucket_name)
@@ -846,7 +846,7 @@ class S3Response(BaseResponse):
             return ""
         elif "ownershipControls" in querystring:
             ownership_rule = self._ownership_rule_from_body()
-            self.backend.put_bucket_ownership_rule(
+            self.backend.put_bucket_ownership_controls(
                 bucket_name, ownership=ownership_rule
             )
             return ""
@@ -943,7 +943,7 @@ class S3Response(BaseResponse):
             self.backend.delete_bucket_replication(bucket_name)
             return 204, {}, ""
         elif "ownershipControls" in querystring:
-            self.backend.delete_bucket_ownership_rule(bucket_name)
+            self.backend.delete_bucket_ownership_controls(bucket_name)
             return 204, {}, ""
 
         removed_bucket = self.backend.delete_bucket(bucket_name)
