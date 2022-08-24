@@ -93,6 +93,48 @@ def test_get_databases_several_items():
 
 
 @mock_glue
+def test_update_database():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "existingdatabase"
+    database_catalog_id = ACCOUNT_ID
+    helpers.create_database(
+        client, database_name, {"Name": database_name}, database_catalog_id
+    )
+
+    response = helpers.get_database(client, database_name)
+    database = response["Database"]
+    database.get("CatalogId").should.equal(database_catalog_id)
+    database.get("Description").should.be.none
+    database.get("LocationUri").should.be.none
+
+    database_input = {
+        "Name": database_name,
+        "Description": "desc",
+        "LocationUri": "s3://bucket/existingdatabase/",
+    }
+    client.update_database(
+        CatalogId=database_catalog_id, Name=database_name, DatabaseInput=database_input
+    )
+
+    response = helpers.get_database(client, database_name)
+    database = response["Database"]
+    database.get("CatalogId").should.equal(database_catalog_id)
+    database.get("Description").should.equal("desc")
+    database.get("LocationUri").should.equal("s3://bucket/existingdatabase/")
+
+
+@mock_glue
+def test_update_unknown_database():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.update_database(Name="x", DatabaseInput={"Name": "x"})
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.equal("Database x not found.")
+
+
+@mock_glue
 def test_delete_database():
     client = boto3.client("glue", region_name="us-east-1")
     database_name_1, database_name_2 = "firstdatabase", "seconddatabase"

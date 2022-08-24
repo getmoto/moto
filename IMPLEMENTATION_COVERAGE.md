@@ -2814,7 +2814,7 @@
 
 ## glue
 <details>
-<summary>16% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2989,7 +2989,7 @@
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule
-- [ ] update_database
+- [X] update_database
 - [ ] update_dev_endpoint
 - [ ] update_job
 - [ ] update_ml_transform
