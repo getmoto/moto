@@ -1641,13 +1641,11 @@ class APIGatewayBackend(BaseBackend):
         response_templates,
         content_handling,
     ):
-        integration = self.get_integration(function_id, resource_id, method_type)
-        if not integration:
-            raise NoIntegrationResponseDefined()
-        integration_response = integration.create_integration_response(
-            status_code, selection_pattern, response_templates, content_handling
-        )
-        return integration_response
+        if integration := self.get_integration(function_id, resource_id, method_type):
+            return integration.create_integration_response(
+                status_code, selection_pattern, response_templates, content_handling
+            )
+        raise NoIntegrationDefined()
 
     def get_integration_response(
         self, function_id, resource_id, method_type, status_code
