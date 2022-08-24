@@ -1381,8 +1381,7 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(function_id)
         if resource_id not in api.resources:
             raise ResourceIdNotFoundException
-        resource = api.resources[resource_id]
-        return resource
+        return api.resources[resource_id]
 
     def create_resource(self, function_id, parent_resource_id, path_part):
         api = self.get_rest_api(function_id)
@@ -1643,6 +1642,8 @@ class APIGatewayBackend(BaseBackend):
         content_handling,
     ):
         integration = self.get_integration(function_id, resource_id, method_type)
+        if not integration:
+            raise NoIntegrationResponseDefined()
         integration_response = integration.create_integration_response(
             status_code, selection_pattern, response_templates, content_handling
         )

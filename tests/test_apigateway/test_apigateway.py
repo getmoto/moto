@@ -1056,6 +1056,36 @@ def test_put_integration_response_with_response_template():
 
 
 @mock_apigateway
+def test_put_integration_response_but_integration_not_found():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
+    )
+    client.put_method_response(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.put_integration_response(
+            restApiId=api_id,
+            resourceId=root_id,
+            httpMethod="GET",
+            statusCode="200",
+            selectionPattern="foobar",
+            responseTemplates={"application/json": json.dumps({"data": "test"})},
+        )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
 def test_put_integration_validation():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
