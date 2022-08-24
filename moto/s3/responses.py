@@ -563,6 +563,13 @@ class S3Response(BaseResponse):
                 return 404, {}, template.render(bucket_name=bucket_name)
             template = self.response_template(S3_REPLICATION_CONFIG)
             return 200, {}, template.render(replication=replication)
+        elif "ownershipControls" in querystring:
+            ownership_rule = self.backend.get_bucket_ownership_rule(bucket_name)
+            if not ownership_rule:
+                template = self.response_template(S3_ERROR_BUCKET_ONWERSHIP_NOT_FOUND)
+                return 404, {}, template.render(bucket_name=bucket_name)
+            template = self.response_template(S3_BUCKET_GET_OWNERSHIP_RULE)
+            return 200, {}, template.render(ownership_rule=ownership_rule)
 
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get("prefix", [None])[0]
@@ -837,6 +844,13 @@ class S3Response(BaseResponse):
             replication_config = self._replication_config_from_xml(self.body)
             self.backend.put_bucket_replication(bucket_name, replication_config)
             return ""
+        elif "ownershipControls" in querystring:
+            ownership_rule = self._ownership_rule_from_body()
+            self.backend.put_bucket_ownership_rule(
+                bucket_name, ownership=ownership_rule
+            )
+            return ""
+
         else:
             # us-east-1, the default AWS region behaves a bit differently
             # - you should not use it as a location constraint --> it fails
@@ -893,6 +907,10 @@ class S3Response(BaseResponse):
                 new_bucket.object_lock_enabled = True
                 new_bucket.versioning_status = "Enabled"
 
+            ownership_rule = request.headers.get("x-amz-object-ownership")
+            if ownership_rule:
+                new_bucket.ownership_rule = ownership_rule
+
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
             return 200, {}, template.render(bucket=new_bucket)
 
@@ -923,6 +941,9 @@ class S3Response(BaseResponse):
             return 204, {}, ""
         elif "replication" in querystring:
             self.backend.delete_bucket_replication(bucket_name)
+            return 204, {}, ""
+        elif "ownershipControls" in querystring:
+            self.backend.delete_bucket_ownership_rule(bucket_name)
             return 204, {}, ""
 
         removed_bucket = self.backend.delete_bucket(bucket_name)
@@ -1760,6 +1781,14 @@ class S3Response(BaseResponse):
             raise MalformedXML()
 
         return parsed_xml["ServerSideEncryptionConfiguration"]
+
+    def _ownership_rule_from_body(self):
+        parsed_xml = xmltodict.parse(self.body)
+
+        if not parsed_xml["OwnershipControls"]["Rule"].get("ObjectOwnership"):
+            raise MalformedXML()
+
+        return parsed_xml["OwnershipControls"]["Rule"]["ObjectOwnership"]
 
     def _logging_from_body(self):
         parsed_xml = xmltodict.parse(self.body)
@@ -2783,4 +2812,22 @@ S3_REPLICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 {% endfor %}
 <Role>{{ replication["Role"] }}</Role>
 </ReplicationConfiguration>
+"""
+
+S3_BUCKET_GET_OWNERSHIP_RULE = """<?xml version="1.0" encoding="UTF-8"?>
+<OwnershipControls xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    <Rule>
+        <ObjectOwnership>{{ownership_rule}}</ObjectOwnership>
+    </Rule>
+</OwnershipControls>
+"""
+
+S3_ERROR_BUCKET_ONWERSHIP_NOT_FOUND = """
+<Error>
+    <Code>OwnershipControlsNotFoundError</Code>
+    <Message>The bucket ownership controls were not found</Message>
+    <BucketName>{{bucket_name}}</BucketName>
+    <RequestId>294PFVCB9GFVXY2S</RequestId>
+    <HostId>l/tqqyk7HZbfvFFpdq3+CAzA9JXUiV4ZajKYhwolOIpnmlvZrsI88AKsDLsgQI6EvZ9MuGHhk7M=</HostId>
+</Error>
 """
