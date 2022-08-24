@@ -2,6 +2,7 @@ import boto3
 import os
 import pytest
 import sure  # noqa # pylint: disable=unused-import
+import requests
 
 from botocore.client import ClientError
 from functools import wraps
@@ -925,3 +926,46 @@ def test_ssm_key_headers_in_create_multipart():
     )
     assert complete_multipart_response["ServerSideEncryption"] == "aws:kms"
     assert complete_multipart_response["SSEKMSKeyId"] == kms_key_id
+
+
+@mock_s3
+@reduced_min_part_size
+def test_generate_presigned_url_on_multipart_upload_without_acl():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    bucket_name = "testing"
+    client.create_bucket(Bucket=bucket_name)
+
+    object_key = "test_multipart_object"
+    multipart_response = client.create_multipart_upload(
+        Bucket=bucket_name, Key=object_key
+    )
+    upload_id = multipart_response["UploadId"]
+
+    parts = []
+    n_parts = 10
+    for i in range(1, n_parts + 1):
+        part_size = REDUCED_PART_SIZE + i
+        body = b"1" * part_size
+        part = client.upload_part(
+            Bucket=bucket_name,
+            Key=object_key,
+            PartNumber=i,
+            UploadId=upload_id,
+            Body=body,
+            ContentLength=len(body),
+        )
+        parts.append({"PartNumber": i, "ETag": part["ETag"]})
+
+    client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=object_key,
+        UploadId=upload_id,
+        MultipartUpload={"Parts": parts},
+    )
+
+    url = client.generate_presigned_url(
+        "head_object", Params={"Bucket": bucket_name, "Key": object_key}
+    )
+    res = requests.get(url)
+    res.status_code.should.equal(200)
