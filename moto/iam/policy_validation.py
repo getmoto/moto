@@ -568,4 +568,5 @@ class IAMTrustPolicyDocumentValidator(BaseIAMPolicyValidator):
             "sts:AssumeRole",
             "sts:AssumeRoleWithSAML",
             "sts:AssumeRoleWithWebIdentity",
+            "sts:TagSession",
         )
