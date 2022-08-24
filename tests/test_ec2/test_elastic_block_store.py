@@ -47,6 +47,42 @@ def test_create_and_delete_volume():
 
 
 @mock_ec2
+def test_modify_volumes():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    old_size = 80
+    new_size = 160
+    new_type = "io2"
+
+    volume_id = ec2.create_volume(Size=old_size, AvailabilityZone="us-east-1a").id
+
+    # Ensure no modification records exist
+    modifications = client.describe_volumes_modifications()
+    modifications["VolumesModifications"].should.have.length_of(0)
+
+    # Ensure volume size can be modified
+    response = client.modify_volume(VolumeId=volume_id, Size=new_size)
+    response["VolumeModification"]["OriginalSize"].should.equal(old_size)
+    response["VolumeModification"]["TargetSize"].should.equal(new_size)
+    client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["Size"].should.equal(
+        new_size
+    )
+
+    # Ensure volume type can be modified
+    response = client.modify_volume(VolumeId=volume_id, VolumeType=new_type)
+    response["VolumeModification"]["OriginalVolumeType"].should.equal("gp2")
+    response["VolumeModification"]["TargetVolumeType"].should.equal(new_type)
+    client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0][
+        "VolumeType"
+    ].should.equal(new_type)
+
+    # Ensure volume modifications are tracked
+    modifications = client.describe_volumes_modifications()
+    modifications["VolumesModifications"].should.have.length_of(2)
+
+
+@mock_ec2
 def test_delete_attached_volume():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")

@@ -1856,7 +1856,7 @@
 - [ ] describe_volume_attribute
 - [ ] describe_volume_status
 - [X] describe_volumes
-- [ ] describe_volumes_modifications
+- [X] describe_volumes_modifications
 - [X] describe_vpc_attribute
 - [ ] describe_vpc_classic_link
 - [ ] describe_vpc_classic_link_dns_support
@@ -1998,7 +1998,7 @@
 - [X] modify_transit_gateway
 - [ ] modify_transit_gateway_prefix_list_reference
 - [X] modify_transit_gateway_vpc_attachment
-- [ ] modify_volume
+- [X] modify_volume
 - [ ] modify_volume_attribute
 - [X] modify_vpc_attribute
 - [ ] modify_vpc_endpoint

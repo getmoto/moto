@@ -9,6 +9,7 @@ from ..exceptions import (
     InvalidVolumeAttachmentError,
     InvalidVolumeDetachmentError,
     InvalidParameterDependency,
+    InvalidParameterValueError,
 )
 from .core import TaggedEC2Resource
 from ..utils import (
@@ -17,6 +18,35 @@ from ..utils import (
     generic_filter,
     utc_date_and_time,
 )
+
+
+class VolumeModification(object):
+    def __init__(self, volume, target_size=None, target_volume_type=None):
+        if not any([target_size, target_volume_type]):
+            raise InvalidParameterValueError(
+                "Invalid input: Must specify at least one of size or type"
+            )
+
+        self.volume = volume
+        self.original_size = volume.size
+        self.original_volume_type = volume.volume_type
+        self.target_size = target_size or volume.size
+        self.target_volume_type = target_volume_type or volume.volume_type
+
+        self.start_time = utc_date_and_time()
+        self.end_time = utc_date_and_time()
+
+    def get_filter_value(self, filter_name):
+        if filter_name == "original-size":
+            return self.original_size
+        elif filter_name == "original-volume-type":
+            return self.original_volume_type
+        elif filter_name == "target-size":
+            return self.target_size
+        elif filter_name == "target-volume-type":
+            return self.target_volume_type
+        elif filter_name == "volume-id":
+            return self.volume.id
 
 
 class VolumeAttachment(CloudFormationModel):
@@ -78,6 +108,16 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.encrypted = encrypted
         self.kms_key_id = kms_key_id
+        self.modifications = []
+
+    def modify(self, target_size=None, target_volume_type=None):
+        modification = VolumeModification(
+            volume=self, target_size=target_size, target_volume_type=target_volume_type
+        )
+        self.modifications.append(modification)
+
+        self.size = modification.target_size
+        self.volume_type = modification.target_volume_type
 
     @staticmethod
     def cloudformation_name_type():
@@ -236,6 +276,20 @@ class EBSBackend:
         if filters:
             matches = generic_filter(filters, matches)
         return matches
+
+    def modify_volume(self, volume_id, target_size=None, target_volume_type=None):
+        volume = self.get_volume(volume_id)
+        volume.modify(target_size=target_size, target_volume_type=target_volume_type)
+        return volume
+
+    def describe_volumes_modifications(self, volume_ids=None, filters=None):
+        volumes = self.describe_volumes(volume_ids)
+        modifications = []
+        for volume in volumes:
+            modifications.extend(volume.modifications)
+        if filters:
+            modifications = generic_filter(filters, modifications)
+        return modifications
 
     def get_volume(self, volume_id):
         volume = self.volumes.get(volume_id, None)
