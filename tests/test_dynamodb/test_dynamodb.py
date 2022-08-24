@@ -412,6 +412,7 @@ def test_put_item_with_streams():
 @mock_dynamodb
 def test_basic_projection_expression_using_get_item():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
     table = dynamodb.create_table(
@@ -452,6 +453,17 @@ def test_basic_projection_expression_using_get_item():
     result["Item"].should.be.equal(
         {"forum_name": "the-key", "subject": "123", "body": "some test message"}
     )
+
+    # Running this against AWS DDB gives an exception so make sure it also fails.:
+    with pytest.raises(client.exceptions.ClientError):
+        # botocore.exceptions.ClientError: An error occurred (ValidationException) when calling the GetItem
+        # operation: "Can not use both expression and non-expression parameters in the same request:
+        #  Non-expression parameters: {AttributesToGet} Expression parameters: {ProjectionExpression}"
+        table.get_item(
+            Key={"forum_name": "the-key", "subject": "123"},
+            ProjectionExpression="body",
+            AttributesToGet=["body"],
+        )
 
 
 @mock_dynamodb
