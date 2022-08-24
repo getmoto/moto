@@ -1641,7 +1641,8 @@ class APIGatewayBackend(BaseBackend):
         response_templates,
         content_handling,
     ):
-        if integration := self.get_integration(function_id, resource_id, method_type):
+        integration = self.get_integration(function_id, resource_id, method_type)
+        if integration:
             return integration.create_integration_response(
                 status_code, selection_pattern, response_templates, content_handling
             )
