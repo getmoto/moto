@@ -10,7 +10,7 @@ url_paths = {
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/aliases$": response.aliases,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/aliases/(?P<alias_name>[\w_-]+)$": response.alias,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/versions/?$": response.versions,
-    r"{0}/(?P<api_version>[^/]+)/event-source-mappings/?$": response.event_source_mappings,
+    r"{0}/(?P<api_version>[^/]+)/event-source-mappings/$": response.event_source_mappings,
     r"{0}/(?P<api_version>[^/]+)/event-source-mappings/(?P<UUID>[\w_-]+)/?$": response.event_source_mapping,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/invocations/?$": response.invoke,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<resource_arn>.+)/invocations/?$": response.invoke,
