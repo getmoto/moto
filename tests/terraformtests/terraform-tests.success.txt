@@ -140,6 +140,7 @@ kms:
 lambda:
   - TestAccLambdaAlias_
   - TestAccLambdaLayerVersion_
+  - TestAccLambdaFunctionURL
 meta:
   - TestAccMetaBillingServiceAccountDataSource
 mq:

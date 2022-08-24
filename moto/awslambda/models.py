@@ -35,6 +35,7 @@ from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
 from .exceptions import (
     CrossAccountNotAllowed,
+    FunctionUrlConfigNotFound,
     InvalidRoleFormat,
     InvalidParameterValueException,
     UnknownLayerException,
@@ -404,6 +405,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.logs_backend = logs_backends[account_id][self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
         self.policy = None
+        self.url_config = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
 
@@ -914,6 +916,48 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         alias.update(description, function_version, routing_config)
         return alias
 
+    def create_url_config(self, config):
+        self.url_config = FunctionUrlConfig(function=self, config=config)
+        return self.url_config
+
+    def delete_url_config(self):
+        self.url_config = None
+
+    def get_url_config(self):
+        if not self.url_config:
+            raise FunctionUrlConfigNotFound()
+        return self.url_config
+
+    def update_url_config(self, config):
+        self.url_config.update(config)
+        return self.url_config
+
+
+class FunctionUrlConfig:
+    def __init__(self, function: LambdaFunction, config):
+        self.function = function
+        self.config = config
+        self.url = f"https://{uuid.uuid4().hex}.lambda-url.{function.region}.on.aws"
+        self.created = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        self.last_modified = self.created
+
+    def to_dict(self):
+        return {
+            "FunctionUrl": self.url,
+            "FunctionArn": self.function.function_arn,
+            "AuthType": self.config.get("AuthType"),
+            "Cors": self.config.get("Cors"),
+            "CreationTime": self.created,
+            "LastModifiedTime": self.last_modified,
+        }
+
+    def update(self, new_config):
+        if new_config.get("Cors"):
+            self.config["Cors"] = new_config["Cors"]
+        if new_config.get("AuthType"):
+            self.config["AuthType"] = new_config["AuthType"]
+        self.last_modified = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+
 
 class EventSourceMapping(CloudFormationModel):
     def __init__(self, spec):
@@ -1138,7 +1182,9 @@ class LambdaStorage(object):
             arn = ":".join(arn.split(":")[0:-1])
         return self._arns.get(arn, None)
 
-    def get_function_by_name_or_arn(self, name_or_arn, qualifier=None):
+    def get_function_by_name_or_arn(
+        self, name_or_arn, qualifier=None
+    ) -> LambdaFunction:
         fn = self.get_function_by_name(name_or_arn, qualifier) or self.get_arn(
             name_or_arn
         )
@@ -1408,6 +1454,37 @@ class LambdaBackend(BaseBackend):
             )  # We don't want to change the actual version - just the return value
             fn.version = ver.version
         return fn
+
+    def create_function_url_config(self, name_or_arn, config):
+        """
+        The Qualifier-parameter is not yet implemented.
+        Function URLs are not yet mocked, so invoking them will fail
+        """
+        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        return function.create_url_config(config)
+
+    def delete_function_url_config(self, name_or_arn):
+        """
+        The Qualifier-parameter is not yet implemented
+        """
+        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        function.delete_url_config()
+
+    def get_function_url_config(self, name_or_arn):
+        """
+        The Qualifier-parameter is not yet implemented
+        """
+        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        if not function:
+            raise UnknownFunctionException(arn=name_or_arn)
+        return function.get_url_config()
+
+    def update_function_url_config(self, name_or_arn, config):
+        """
+        The Qualifier-parameter is not yet implemented
+        """
+        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        return function.update_url_config(config)
 
     def create_event_source_mapping(self, spec):
         required = ["EventSourceArn", "FunctionName"]

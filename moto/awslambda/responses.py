@@ -188,6 +188,19 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    def function_url_config(self, request, full_url, headers):
+        http_method = request.method
+        self.setup_class(request, full_url, headers)
+
+        if http_method == "DELETE":
+            return self._delete_function_url_config()
+        elif http_method == "GET":
+            return self._get_function_url_config()
+        elif http_method == "POST":
+            return self._create_function_url_config()
+        elif http_method == "PUT":
+            return self._update_function_url_config()
+
     def _add_policy(self, request):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = unquote(path.split("/")[-2])
@@ -283,6 +296,26 @@ class LambdaResponse(BaseResponse):
         fn = self.backend.create_function(self.json_body)
         config = fn.get_configuration(on_create=True)
         return 201, {}, json.dumps(config)
+
+    def _create_function_url_config(self):
+        function_name = unquote(self.path.split("/")[-2])
+        config = self.backend.create_function_url_config(function_name, self.json_body)
+        return 201, {}, json.dumps(config.to_dict())
+
+    def _delete_function_url_config(self):
+        function_name = unquote(self.path.split("/")[-2])
+        self.backend.delete_function_url_config(function_name)
+        return 204, {}, "{}"
+
+    def _get_function_url_config(self):
+        function_name = unquote(self.path.split("/")[-2])
+        config = self.backend.get_function_url_config(function_name)
+        return 201, {}, json.dumps(config.to_dict())
+
+    def _update_function_url_config(self):
+        function_name = unquote(self.path.split("/")[-2])
+        config = self.backend.update_function_url_config(function_name, self.json_body)
+        return 200, {}, json.dumps(config.to_dict())
 
     def _create_event_source_mapping(self):
         fn = self.backend.create_event_source_mapping(self.json_body)
