@@ -3,7 +3,7 @@ Moto Changelog
 
 4.0.1
 -----
-Docker Digest for 4.0.1: <autopopulateddigest>
+Docker Digest for 4.0.1: _sha256:effbe303d0ac958569537b725e7632354deb6e9ce0a78ced1a2c6bdd4123831d_
 
     New Services:
         * Personalize:
