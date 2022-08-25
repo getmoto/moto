@@ -1618,13 +1618,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def delete_bucket_encryption(self, bucket_name):
         self.get_bucket(bucket_name).encryption = None
 
-    def get_bucket_ownership_rule(self, bucket_name):
+    def get_bucket_ownership_controls(self, bucket_name):
         return self.get_bucket(bucket_name).ownership_rule
 
-    def put_bucket_ownership_rule(self, bucket_name, ownership):
+    def put_bucket_ownership_controls(self, bucket_name, ownership):
         self.get_bucket(bucket_name).ownership_rule = ownership
 
-    def delete_bucket_ownership_rule(self, bucket_name):
+    def delete_bucket_ownership_controls(self, bucket_name):
         self.get_bucket(bucket_name).ownership_rule = None
 
     def get_bucket_replication(self, bucket_name):

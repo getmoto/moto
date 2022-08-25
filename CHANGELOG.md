@@ -1,6 +1,49 @@
 Moto Changelog
 ==============
 
+4.0.1
+-----
+Docker Digest for 4.0.1: <autopopulateddigest>
+
+    New Services:
+        * Personalize:
+            * create_schema()
+            * delete_schema()
+            * describe_schema()
+            * list_schemas()
+
+        * Signer:
+            * cancel_signing_profile()
+            * get_signing_profile()
+            * list_signing_platforms()
+            * put_signing_profile()
+
+    New Methods:
+        * AWS Lambda:
+            * create_function_url_config()
+            * delete_function_url_config()
+            * get_function_url_config()
+            * update_function_url_config()
+
+        * Glue:
+            * update_database()
+
+        * EC2:
+            * describe_volumes_modifications()
+            * modify_volume()
+
+        * S3:
+            * delete_bucket_ownership_rule()
+            * get_bucket_ownership_rule()
+            * put_bucket_ownership_rule()
+
+    Miscellaneous:
+        * CloudFormation: Fixed a bug where deletion of AWS::Route53::RecordSet would result in an error
+        * DynamoDB: Fixed a bug where a TableARN would always return region=us-east-1
+        * EC2:create_launch_template() now supports the TagSpecifications-parameter
+        * EC2:describe_instance_types() now supports the Filters-parameter
+        * EC2:run_instances() now supports the HibernationOptions-param
+
 4.0.0
 -----
 Docker Digest for 4.0.0: _sha256:348b516e706e19544dec3643d25304e24b75e48c92b1a6d347e5cd8c349cd8cd_

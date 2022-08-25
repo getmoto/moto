@@ -1542,7 +1542,7 @@
 
 ## ec2
 <details>
-<summary>35% implemented</summary>
+<summary>36% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -2718,7 +2718,7 @@
 
 ## forecast
 <details>
-<summary>9% implemented</summary>
+<summary>7% implemented</summary>
 
 - [ ] create_auto_predictor
 - [ ] create_dataset
@@ -2731,6 +2731,9 @@
 - [ ] create_monitor
 - [ ] create_predictor
 - [ ] create_predictor_backtest_export_job
+- [ ] create_what_if_analysis
+- [ ] create_what_if_forecast
+- [ ] create_what_if_forecast_export
 - [ ] delete_dataset
 - [X] delete_dataset_group
 - [ ] delete_dataset_import_job
@@ -2742,6 +2745,9 @@
 - [ ] delete_predictor
 - [ ] delete_predictor_backtest_export_job
 - [ ] delete_resource_tree
+- [ ] delete_what_if_analysis
+- [ ] delete_what_if_forecast
+- [ ] delete_what_if_forecast_export
 - [ ] describe_auto_predictor
 - [ ] describe_dataset
 - [X] describe_dataset_group
@@ -2753,6 +2759,9 @@
 - [ ] describe_monitor
 - [ ] describe_predictor
 - [ ] describe_predictor_backtest_export_job
+- [ ] describe_what_if_analysis
+- [ ] describe_what_if_forecast
+- [ ] describe_what_if_forecast_export
 - [ ] get_accuracy_metrics
 - [X] list_dataset_groups
 - [ ] list_dataset_import_jobs
@@ -2766,6 +2775,9 @@
 - [ ] list_predictor_backtest_export_jobs
 - [ ] list_predictors
 - [ ] list_tags_for_resource
+- [ ] list_what_if_analyses
+- [ ] list_what_if_forecast_exports
+- [ ] list_what_if_forecasts
 - [ ] resume_resource
 - [ ] stop_resource
 - [ ] tag_resource
@@ -4702,6 +4714,7 @@
 - [X] stop_db_cluster
 - [X] stop_db_instance
 - [ ] stop_db_instance_automated_backups_replication
+- [ ] switchover_read_replica
 </details>
 
 ## redshift
@@ -5097,7 +5110,7 @@
 
 ## s3
 <details>
-<summary>58% implemented</summary>
+<summary>61% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -5112,7 +5125,7 @@
 - [ ] delete_bucket_inventory_configuration
 - [X] delete_bucket_lifecycle
 - [ ] delete_bucket_metrics_configuration
-- [ ] delete_bucket_ownership_controls
+- [X] delete_bucket_ownership_controls
 - [X] delete_bucket_policy
 - [X] delete_bucket_replication
 - [X] delete_bucket_tagging
@@ -5135,7 +5148,7 @@
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification
 - [X] get_bucket_notification_configuration
-- [ ] get_bucket_ownership_controls
+- [X] get_bucket_ownership_controls
 - [X] get_bucket_policy
 - [ ] get_bucket_policy_status
 - [X] get_bucket_replication
@@ -5177,7 +5190,7 @@
 - [ ] put_bucket_metrics_configuration
 - [ ] put_bucket_notification
 - [X] put_bucket_notification_configuration
-- [ ] put_bucket_ownership_controls
+- [X] put_bucket_ownership_controls
 - [X] put_bucket_policy
 - [X] put_bucket_replication
 - [ ] put_bucket_request_payment
@@ -6402,6 +6415,7 @@
 - sso
 - sso-oidc
 - storagegateway
+- support-app
 - synthetics
 - timestream-query
 - transfer

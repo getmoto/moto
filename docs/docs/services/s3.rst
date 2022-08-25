@@ -105,7 +105,7 @@ s3
 - [ ] put_bucket_metrics_configuration
 - [ ] put_bucket_notification
 - [X] put_bucket_notification_configuration
-
+  
         The configuration can be persisted, but at the moment we only send notifications to the following targets:
 
          - AWSLambda
