@@ -841,7 +841,7 @@ def test_filter_description():
         Owners=["amazon"],
         Filters=[{"Name": "description", "Values": ["Amazon Linux AMI*"]}],
     )["Images"]
-    resp.should.have.length_of(4)
+    resp.should.have.length_of(9)
 
     # Search for full description
     resp = client.describe_images(

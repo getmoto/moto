@@ -59,6 +59,28 @@ class ParameterDict(defaultdict):
             self._load_global_parameters()
 
     def _load_global_parameters(self):
+        try:
+            latest_amis_linux = load_resource(
+                __name__, f"resources/ami-amazon-linux-latest/{self.region_name}.json"
+            )
+        except FileNotFoundError:
+            latest_amis_linux = []
+        for param in latest_amis_linux:
+            name = param["Name"]
+            super().__getitem__(name).append(
+                Parameter(
+                    account_id=self.account_id,
+                    name=name,
+                    value=param["Value"],
+                    parameter_type=param["Type"],
+                    description=None,
+                    allowed_pattern=None,
+                    keyid=None,
+                    last_modified_date=param["LastModifiedDate"],
+                    version=param["Version"],
+                    data_type=param["DataType"],
+                )
+            )
         regions = load_resource(__name__, "resources/regions.json")
         services = load_resource(__name__, "resources/services.json")
         params = []
