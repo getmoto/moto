@@ -354,7 +354,11 @@ def test_create_method():
     ]["id"]
 
     client.put_method(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="none"
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod="GET",
+        authorizationType="none",
+        requestParameters={"method.request.header.InvocationType": True},
     )
 
     response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
@@ -368,6 +372,7 @@ def test_create_method():
             "authorizationType": "none",
             "apiKeyRequired": False,
             "methodResponses": {},
+            "requestParameters": {"method.request.header.InvocationType": True},
             "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )

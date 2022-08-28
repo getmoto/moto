@@ -190,6 +190,7 @@ class APIGatewayResponse(BaseResponse):
             authorizer_id = self._get_param("authorizerId")
             authorization_scopes = self._get_param("authorizationScopes")
             request_validator_id = self._get_param("requestValidatorId")
+            request_parameters = self._get_param("requestParameters")
             method = self.backend.put_method(
                 function_id,
                 resource_id,
@@ -197,6 +198,7 @@ class APIGatewayResponse(BaseResponse):
                 authorization_type,
                 api_key_required,
                 request_models=request_models,
+                request_parameters=request_parameters,
                 operation_name=operation_name,
                 authorizer_id=authorizer_id,
                 authorization_scopes=authorization_scopes,
