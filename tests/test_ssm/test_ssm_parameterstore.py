@@ -83,3 +83,12 @@ def test_get_key_beginning_with_aws():
             "/aws/service/global-infrastructure/regions/us-west-1/partition",
         }
     )
+
+
+def test_ssm_parameter_from_unknown_region():
+    store = ParameterDict("accnt", "region")
+    list(
+        store.get_keys_beginning_with(
+            "/aws/service/ami-amazon-linux-latest", recursive=False
+        )
+    ).should.equal([])
