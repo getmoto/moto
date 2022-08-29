@@ -167,7 +167,7 @@ class DomainDispatcherApplication(object):
         elif path_info.startswith("/latest/meta-data/"):
             host = "instance_metadata"
         else:
-            host = environ["HTTP_HOST"].split(":")[0]
+            host = environ.get("HTTP_HOST", ":").split(":")[0]
 
         with self.lock:
             backend = self.get_backend_for_host(host)
