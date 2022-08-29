@@ -58,6 +58,11 @@ logs
 - [X] describe_subscription_filters
 - [ ] disassociate_kms_key
 - [X] filter_log_events
+  
+        The following filter patterns are currently supported: Single Terms, Multiple Terms, Exact Phrases.
+        If the pattern is not supported, all events are returned.
+        
+
 - [X] get_log_events
 - [ ] get_log_group_fields
 - [ ] get_log_record

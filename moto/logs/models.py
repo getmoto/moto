@@ -14,7 +14,7 @@ from moto.logs.exceptions import (
     LimitExceededException,
 )
 from moto.s3.models import s3_backends
-from .utils import PAGINATION_MODEL
+from .utils import PAGINATION_MODEL, EventMessageFilter
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
 
@@ -234,14 +234,14 @@ class LogStream(BaseModel):
         )
 
     def filter_log_events(self, start_time, end_time, filter_pattern):
-        if filter_pattern:
-            raise NotImplementedError("filter_pattern is not yet implemented")
-
         def filter_func(event):
             if start_time and event.timestamp < start_time:
                 return False
 
             if end_time and event.timestamp > end_time:
+                return False
+
+            if not EventMessageFilter(filter_pattern).matches(event.message):
                 return False
 
             return True
@@ -769,6 +769,10 @@ class LogsBackend(BaseBackend):
         filter_pattern,
         interleaved,
     ):
+        """
+        The following filter patterns are currently supported: Single Terms, Multiple Terms, Exact Phrases.
+        If the pattern is not supported, all events are returned.
+        """
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         if limit and limit > 1000:
