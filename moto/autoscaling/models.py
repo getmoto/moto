@@ -368,6 +368,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
         autoscaling_backend,
         ec2_backend,
         tags,
+        mixed_instance_policy,
+        capacity_rebalance,
         new_instances_protected_from_scale_in=False,
     ):
         self.autoscaling_backend = autoscaling_backend
@@ -376,6 +378,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self._id = str(uuid4())
         self.region = self.autoscaling_backend.region_name
         self.account_id = self.autoscaling_backend.account_id
+        self.service_linked_role = f"arn:aws:iam::{self.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
 
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier)
 
@@ -385,7 +388,10 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.launch_template = None
         self.launch_config = None
 
-        self._set_launch_configuration(launch_config_name, launch_template)
+        self._set_launch_configuration(
+            launch_config_name, launch_template, mixed_instance_policy
+        )
+        self.mixed_instance_policy = mixed_instance_policy
 
         self.default_cooldown = (
             default_cooldown if default_cooldown else DEFAULT_COOLDOWN
@@ -395,6 +401,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.load_balancers = load_balancers
         self.target_group_arns = target_group_arns
         self.placement_group = placement_group
+        self.capacity_rebalance = capacity_rebalance
         self.termination_policies = termination_policies or ["Default"]
         self.new_instances_protected_from_scale_in = (
             new_instances_protected_from_scale_in
@@ -458,16 +465,29 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.availability_zones = availability_zones
         self.vpc_zone_identifier = vpc_zone_identifier
 
-    def _set_launch_configuration(self, launch_config_name, launch_template):
+    def _set_launch_configuration(
+        self, launch_config_name, launch_template, mixed_instance_policy
+    ):
         if launch_config_name:
             self.launch_config = self.autoscaling_backend.launch_configurations[
                 launch_config_name
             ]
             self.launch_config_name = launch_config_name
 
-        if launch_template:
-            launch_template_id = launch_template.get("launch_template_id")
-            launch_template_name = launch_template.get("launch_template_name")
+        if launch_template or mixed_instance_policy:
+            if launch_template:
+                launch_template_id = launch_template.get("launch_template_id")
+                launch_template_name = launch_template.get("launch_template_name")
+                self.launch_template_version = (
+                    launch_template.get("version") or "$Default"
+                )
+            else:
+                spec = mixed_instance_policy["LaunchTemplate"][
+                    "LaunchTemplateSpecification"
+                ]
+                launch_template_id = spec.get("LaunchTemplateId")
+                launch_template_name = spec.get("LaunchTemplateName")
+                self.launch_template_version = spec.get("Version") or "$Default"
 
             if not (launch_template_id or launch_template_name) or (
                 launch_template_id and launch_template_name
@@ -484,7 +504,6 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 self.launch_template = self.ec2_backend.get_launch_template_by_name(
                     launch_template_name
                 )
-            self.launch_template_version = launch_template.get("version") or "$Default"
 
     @staticmethod
     def __set_string_propagate_at_launch_booleans_on_tags(tags):
@@ -637,7 +656,9 @@ class FakeAutoScalingGroup(CloudFormationModel):
             if max_size is not None and max_size < len(self.instance_states):
                 desired_capacity = max_size
 
-        self._set_launch_configuration(launch_config_name, launch_template)
+        self._set_launch_configuration(
+            launch_config_name, launch_template, mixed_instance_policy=None
+        )
 
         if health_check_period is not None:
             self.health_check_period = health_check_period
@@ -909,8 +930,10 @@ class AutoScalingBackend(BaseBackend):
         placement_group,
         termination_policies,
         tags,
+        capacity_rebalance=False,
         new_instances_protected_from_scale_in=False,
         instance_id=None,
+        mixed_instance_policy=None,
     ):
         max_size = self.make_int(max_size)
         min_size = self.make_int(min_size)
@@ -921,9 +944,13 @@ class AutoScalingBackend(BaseBackend):
         else:
             health_check_period = self.make_int(health_check_period)
 
-        # TODO: Add MixedInstancesPolicy once implemented.
         # Verify only a single launch config-like parameter is provided.
-        params = [launch_config_name, launch_template, instance_id]
+        params = [
+            launch_config_name,
+            launch_template,
+            instance_id,
+            mixed_instance_policy,
+        ]
         num_params = sum([1 for param in params if param])
 
         if num_params != 1:
@@ -962,6 +989,8 @@ class AutoScalingBackend(BaseBackend):
             ec2_backend=self.ec2_backend,
             tags=tags,
             new_instances_protected_from_scale_in=new_instances_protected_from_scale_in,
+            mixed_instance_policy=mixed_instance_policy,
+            capacity_rebalance=capacity_rebalance,
         )
 
         self.autoscaling_groups[name] = group

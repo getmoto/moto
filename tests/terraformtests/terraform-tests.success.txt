@@ -11,6 +11,14 @@ autoscaling:
   - TestAccAutoScalingAttachment
   - TestAccAutoScalingGroupDataSource
   - TestAccAutoScalingGroupTag
+  - TestAccAutoScalingGroup_basic
+  - TestAccAutoScalingGroup_disappears
+  - TestAccAutoScalingGroup_nameGenerated
+  - TestAccAutoScalingGroup_namePrefix
+  - TestAccAutoScalingGroup_enablingMetrics
+  - TestAccAutoScalingGroup_suspendingProcesses
+  - TestAccAutoScalingGroup_mixedInstancesPolicy
+  - TestAccAutoScalingGroup_MixedInstancesPolicy_capacityRebalance
   - TestAccAutoScalingLaunchConfigurationDataSource
   - TestAccAutoScalingLaunchConfiguration_
 batch:

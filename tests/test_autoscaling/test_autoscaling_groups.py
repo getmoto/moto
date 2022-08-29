@@ -44,6 +44,20 @@ class TestAutoScalingGroup(TestCase):
         group["TerminationPolicies"].should.equal(["Default"])
         group["Tags"].should.equal([])
 
+    def test_create_autoscaling_group__additional_params(self):
+        self.as_client.create_auto_scaling_group(
+            AutoScalingGroupName="tester_group",
+            MinSize=1,
+            MaxSize=2,
+            LaunchConfigurationName=self.lc_name,
+            CapacityRebalance=True,
+            VPCZoneIdentifier=self.mocked_networking["subnet1"],
+        )
+
+        group = self.as_client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
+        group["AutoScalingGroupName"].should.equal("tester_group")
+        group["CapacityRebalance"].should.equal(True)
+
     def test_list_many_autoscaling_groups(self):
 
         for i in range(51):

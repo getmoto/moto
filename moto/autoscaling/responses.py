@@ -80,6 +80,7 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def create_auto_scaling_group(self):
+        params = self._get_params()
         self.autoscaling_backend.create_auto_scaling_group(
             name=self._get_param("AutoScalingGroupName"),
             availability_zones=self._get_multi_param("AvailabilityZones.member"),
@@ -89,6 +90,7 @@ class AutoScalingResponse(BaseResponse):
             instance_id=self._get_param("InstanceId"),
             launch_config_name=self._get_param("LaunchConfigurationName"),
             launch_template=self._get_dict_param("LaunchTemplate."),
+            mixed_instance_policy=params.get("MixedInstancesPolicy"),
             vpc_zone_identifier=self._get_param("VPCZoneIdentifier"),
             default_cooldown=self._get_int_param("DefaultCooldown"),
             health_check_period=self._get_int_param("HealthCheckGracePeriod"),
@@ -98,6 +100,7 @@ class AutoScalingResponse(BaseResponse):
             placement_group=self._get_param("PlacementGroup"),
             termination_policies=self._get_multi_param("TerminationPolicies.member"),
             tags=self._get_list_prefix("Tags.member"),
+            capacity_rebalance=self._get_bool_param("CapacityRebalance"),
             new_instances_protected_from_scale_in=self._get_bool_param(
                 "NewInstancesProtectedFromScaleIn", False
             ),
@@ -748,6 +751,30 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
         {% if group.launch_config_name %}
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
+        {% elif group.mixed_instance_policy %}
+        <MixedInstancesPolicy>
+          <LaunchTemplate>
+            <LaunchTemplateSpecification>
+              <LaunchTemplateId>{{ group.launch_template.id }}</LaunchTemplateId>
+              <Version>{{ group.launch_template_version }}</Version>
+              <LaunchTemplateName>{{ group.launch_template.name }}</LaunchTemplateName>
+            </LaunchTemplateSpecification>
+            {% if group.mixed_instance_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
+            <Overrides>
+              {% for member in group.mixed_instance_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
+              <member>
+                {% if member.get("InstanceType") %}
+                <InstanceType>{{ member.get("InstanceType") }}</InstanceType>
+                {% endif %}
+                {% if member.get("WeightedCapacity") %}
+                <WeightedCapacity>{{ member.get("WeightedCapacity") }}</WeightedCapacity>
+                {% endif %}
+              </member>
+              {% endfor %}
+            </Overrides>
+            {% endif %}
+          </LaunchTemplate>
+        </MixedInstancesPolicy>
         {% elif group.launch_template %}
         <LaunchTemplate>
           <LaunchTemplateId>{{ group.launch_template.id }}</LaunchTemplateId>
@@ -777,6 +804,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
           {% endfor %}
         </Instances>
         <DesiredCapacity>{{ group.desired_capacity }}</DesiredCapacity>
+        <CapacityRebalance>{{ 'true' if group.capacity_rebalance else 'false' }}</CapacityRebalance>
         <AvailabilityZones>
           {% for availability_zone in group.availability_zones %}
           <member>{{ availability_zone }}</member>
@@ -833,6 +861,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
           {% endfor %}
         </EnabledMetrics>
         {% endif %}
+        <ServiceLinkedRoleARN>{{ group.service_linked_role }}</ServiceLinkedRoleARN>
       </member>
       {% endfor %}
     </AutoScalingGroups>

@@ -61,22 +61,6 @@ def test_create_autoscaling_group_from_instance():
         MinSize=1,
         MaxSize=3,
         DesiredCapacity=2,
-        Tags=[
-            {
-                "ResourceId": "test_asg",
-                "ResourceType": "auto-scaling-group",
-                "Key": "propogated-tag-key",
-                "Value": "propagate-tag-value",
-                "PropagateAtLaunch": True,
-            },
-            {
-                "ResourceId": "test_asg",
-                "ResourceType": "auto-scaling-group",
-                "Key": "not-propogated-tag-key",
-                "Value": "not-propagate-tag-value",
-                "PropagateAtLaunch": False,
-            },
-        ],
         VPCZoneIdentifier=mocked_instance_with_networking["subnet1"],
         NewInstancesProtectedFromScaleIn=False,
     )
@@ -871,6 +855,116 @@ def test_create_autoscaling_policy_with_predictive_scaling_config():
     policy = resp["ScalingPolicies"][0]
     policy.should.have.key("PredictiveScalingConfiguration").equals(
         {"MetricSpecifications": [{"TargetValue": 5.0}], "SchedulingBufferTime": 7}
+    )
+
+
+@mock_autoscaling
+@mock_ec2
+def test_create_auto_scaling_group_with_mixed_instances_policy():
+    mocked_networking = setup_networking(region_name="eu-west-1")
+    client = boto3.client("autoscaling", region_name="eu-west-1")
+    ec2_client = boto3.client("ec2", region_name="eu-west-1")
+    asg_name = "asg_test"
+
+    lt = ec2_client.create_launch_template(
+        LaunchTemplateName="launchie",
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID},
+    )["LaunchTemplate"]
+    client.create_auto_scaling_group(
+        MixedInstancesPolicy={
+            "LaunchTemplate": {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": "launchie",
+                    "Version": "$DEFAULT",
+                }
+            }
+        },
+        AutoScalingGroupName=asg_name,
+        MinSize=2,
+        MaxSize=2,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    # Assert we can describe MixedInstancesPolicy
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+    group = response["AutoScalingGroups"][0]
+    group.should.have.key("MixedInstancesPolicy").equals(
+        {
+            "LaunchTemplate": {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateId": lt["LaunchTemplateId"],
+                    "LaunchTemplateName": "launchie",
+                    "Version": "$DEFAULT",
+                }
+            }
+        }
+    )
+
+    # Assert the LaunchTemplate is known for the resulting instances
+    response = client.describe_auto_scaling_instances()
+    len(response["AutoScalingInstances"]).should.equal(2)
+    for instance in response["AutoScalingInstances"]:
+        instance["LaunchTemplate"].should.equal(
+            {
+                "LaunchTemplateId": lt["LaunchTemplateId"],
+                "LaunchTemplateName": "launchie",
+                "Version": "$DEFAULT",
+            }
+        )
+
+
+@mock_autoscaling
+@mock_ec2
+def test_create_auto_scaling_group_with_mixed_instances_policy_overrides():
+    mocked_networking = setup_networking(region_name="eu-west-1")
+    client = boto3.client("autoscaling", region_name="eu-west-1")
+    ec2_client = boto3.client("ec2", region_name="eu-west-1")
+    asg_name = "asg_test"
+
+    lt = ec2_client.create_launch_template(
+        LaunchTemplateName="launchie",
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID},
+    )["LaunchTemplate"]
+    client.create_auto_scaling_group(
+        MixedInstancesPolicy={
+            "LaunchTemplate": {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": "launchie",
+                    "Version": "$DEFAULT",
+                },
+                "Overrides": [
+                    {
+                        "InstanceType": "t2.medium",
+                        "WeightedCapacity": "50",
+                    }
+                ],
+            }
+        },
+        AutoScalingGroupName=asg_name,
+        MinSize=2,
+        MaxSize=2,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    # Assert we can describe MixedInstancesPolicy
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+    group = response["AutoScalingGroups"][0]
+    group.should.have.key("MixedInstancesPolicy").equals(
+        {
+            "LaunchTemplate": {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateId": lt["LaunchTemplateId"],
+                    "LaunchTemplateName": "launchie",
+                    "Version": "$DEFAULT",
+                },
+                "Overrides": [
+                    {
+                        "InstanceType": "t2.medium",
+                        "WeightedCapacity": "50",
+                    }
+                ],
+            }
+        }
     )
 
 
