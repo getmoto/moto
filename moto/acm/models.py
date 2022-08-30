@@ -130,7 +130,7 @@ class CertBundle(BaseModel):
         cert_type="IMPORTED",
         cert_status="ISSUED",
     ):
-        self.created_at = datetime.datetime.now()
+        self.created_at = datetime.datetime.utcnow()
         self.cert = certificate
         self._cert = None
         self.common_name = None
@@ -306,7 +306,7 @@ class CertBundle(BaseModel):
                 )
                 self._chain.append(cert)
 
-                now = datetime.datetime.now()
+                now = datetime.datetime.utcnow()
                 if self._cert.not_valid_after < now:
                     raise AWSValidationException(
                         "The certificate chain has expired, is not valid."
@@ -328,7 +328,7 @@ class CertBundle(BaseModel):
         # Basically, if the certificate is pending, and then checked again after a
         # while, it will appear as if its been validated. The default wait time is 60
         # seconds but you can set an environment to change it.
-        waited_seconds = (datetime.datetime.now() - self.created_at).total_seconds()
+        waited_seconds = (datetime.datetime.utcnow() - self.created_at).total_seconds()
         if (
             self.type == "AMAZON_ISSUED"
             and self.status == "PENDING_VALIDATION"
@@ -458,7 +458,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         :param token: String token
         :return: None or ARN
         """
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         if token in self._idempotency_tokens:
             if self._idempotency_tokens[token]["expires"] < now:
                 # Token has expired, new request
@@ -472,7 +472,7 @@ class AWSCertificateManagerBackend(BaseBackend):
     def _set_idempotency_token_arn(self, token, arn):
         self._idempotency_tokens[token] = {
             "arn": arn,
-            "expires": datetime.datetime.now() + datetime.timedelta(hours=1),
+            "expires": datetime.datetime.utcnow() + datetime.timedelta(hours=1),
         }
 
     def import_cert(self, certificate, private_key, chain=None, arn=None, tags=None):
