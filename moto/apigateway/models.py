@@ -1610,7 +1610,7 @@ class APIGatewayBackend(BaseBackend):
         if integration_type in ["AWS", "AWS_PROXY"] and not re.match("^arn:aws:", uri):
             raise InvalidArn()
         if integration_type in ["AWS", "AWS_PROXY"] and not re.match(
-            "^arn:aws:apigateway:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+:(path|action)/", uri
+            "^arn:aws:apigateway:[a-zA-Z0-9-]+:[a-zA-Z0-9-.]+:(path|action)/", uri
         ):
             raise InvalidIntegrationArn()
         integration = resource.add_integration(
