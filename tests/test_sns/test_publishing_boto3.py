@@ -1120,3 +1120,165 @@ def test_filtering_all_AND_matching_no_match():
     message_bodies.should.equal([])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
     message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_prefix():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"prefix": "bas"}]}
+    )
+
+    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "String", "StringValue": interest},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match1", "match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": "basketball"}]}
+    )
+
+    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "String", "StringValue": interest},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match2", "match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_multiple_values():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": ["basketball", "rugby"]}]}
+    )
+
+    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "String", "StringValue": interest},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_prefix():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": {"prefix": "bas"}}]}
+    )
+
+    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "String", "StringValue": interest},
+            },
+        )
+
+    # This should match rugby only
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match2"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_unknown():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": {"unknown": "bas"}}]}
+    )
+
+    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "String", "StringValue": interest},
+            },
+        )
+
+    # This should match rugby only
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_numeric():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": ["100"]}]}
+    )
+
+    for nr, idx in [("50", "1"), ("100", "2"), ("150", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "Number", "StringValue": nr},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match1", "match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_numeric_match():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"numeric": ["=", "100"]}]}
+    )
+
+    for nr, idx in [("50", "1"), ("100", "2"), ("150", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "Number", "StringValue": nr},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match2"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_numeric_range():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"numeric": [">", "49", "<=", "100"]}]}
+    )
+
+    for nr, idx in [("50", "1"), ("100", "2"), ("150", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "Number", "StringValue": nr},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match1", "match2"})
