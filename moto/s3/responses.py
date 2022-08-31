@@ -1579,6 +1579,12 @@ class S3Response(BaseResponse):
             if if_none_match and key.etag == if_none_match:
                 return 304, response_headers, "Not Modified"
 
+            if part_number:
+                full_key = self.backend.head_object(bucket_name, key_name, version_id)
+                if full_key.multipart:
+                    mp_part_count = str(len(full_key.multipart.partlist))
+                    response_headers["x-amz-mp-parts-count"] = mp_part_count
+
             return 200, response_headers, ""
         else:
             return 404, response_headers, ""

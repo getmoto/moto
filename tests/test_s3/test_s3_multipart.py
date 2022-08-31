@@ -969,3 +969,43 @@ def test_generate_presigned_url_on_multipart_upload_without_acl():
     )
     res = requests.get(url)
     res.status_code.should.equal(200)
+
+
+@mock_s3
+@reduced_min_part_size
+def test_head_object_returns_part_count():
+    bucket = "telstra-energy-test"
+    key = "test-single-multi-part"
+
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket=bucket)
+
+    mp_id = client.create_multipart_upload(Bucket=bucket, Key=key)["UploadId"]
+
+    num_parts = 2
+    parts = []
+
+    for p in range(1, num_parts + 1):
+        response = client.upload_part(
+            Body=b"x" * (REDUCED_PART_SIZE + p),
+            Bucket=bucket,
+            Key=key,
+            PartNumber=p,
+            UploadId=mp_id,
+        )
+
+        parts.append({"ETag": response["ETag"], "PartNumber": p})
+
+    client.complete_multipart_upload(
+        Bucket=bucket,
+        Key=key,
+        MultipartUpload={"Parts": parts},
+        UploadId=mp_id,
+    )
+
+    resp = client.head_object(Bucket=bucket, Key=key, PartNumber=1)
+    resp.should.have.key("PartsCount").equals(num_parts)
+
+    # Header is not returned when we do not pass PartNumber
+    resp = client.head_object(Bucket=bucket, Key=key)
+    resp.shouldnt.have.key("PartsCount")
