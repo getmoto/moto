@@ -265,8 +265,6 @@ class Subscription(BaseModel):
             )
 
     def _matches_filter_policy(self, message_attributes):
-        # TODO: support Anything-but matching, prefix matching and
-        #       numeric value matching.
         if not self._filter_policy:
             return True
 
@@ -311,12 +309,75 @@ class Subscription(BaseModel):
                             return True
                 if isinstance(rule, dict):
                     keyword = list(rule.keys())[0]
-                    attributes = list(rule.values())[0]
+                    value = list(rule.values())[0]
                     if keyword == "exists":
-                        if attributes and field in message_attributes:
+                        if value and field in message_attributes:
                             return True
-                        elif not attributes and field not in message_attributes:
+                        elif not value and field not in message_attributes:
                             return True
+                    elif keyword == "prefix" and isinstance(value, str):
+                        if field in message_attributes:
+                            attr = message_attributes[field]
+                            if attr["Type"] == "String" and attr["Value"].startswith(
+                                value
+                            ):
+                                return True
+                    elif keyword == "anything-but":
+                        if field not in message_attributes:
+                            continue
+                        attr = message_attributes[field]
+                        if isinstance(value, dict):
+                            # We can combine anything-but with the prefix-filter
+                            anything_but_key = list(value.keys())[0]
+                            anything_but_val = list(value.values())[0]
+                            if anything_but_key != "prefix":
+                                return False
+                            if attr["Type"] == "String":
+                                actual_values = [attr["Value"]]
+                            else:
+                                actual_values = [v for v in attr["Value"]]
+                            if all(
+                                [
+                                    not v.startswith(anything_but_val)
+                                    for v in actual_values
+                                ]
+                            ):
+                                return True
+                        else:
+                            undesired_values = (
+                                [value] if isinstance(value, str) else value
+                            )
+                            if attr["Type"] == "Number":
+                                actual_values = [str(attr["Value"])]
+                            elif attr["Type"] == "String":
+                                actual_values = [attr["Value"]]
+                            else:
+                                actual_values = [v for v in attr["Value"]]
+                            if all([v not in undesired_values for v in actual_values]):
+                                return True
+                    elif keyword == "numeric" and isinstance(value, list):
+                        # [(< x), (=, y), (>=, z)]
+                        numeric_ranges = zip(value[0::2], value[1::2])
+                        if (
+                            message_attributes.get(field, {}).get("Type", "")
+                            == "Number"
+                        ):
+                            msg_value = message_attributes[field]["Value"]
+                            matches = []
+                            for operator, test_value in numeric_ranges:
+                                test_value = int(test_value)
+                                if operator == ">":
+                                    matches.append((msg_value > test_value))
+                                if operator == ">=":
+                                    matches.append((msg_value >= test_value))
+                                if operator == "=":
+                                    matches.append((msg_value == test_value))
+                                if operator == "<":
+                                    matches.append((msg_value < test_value))
+                                if operator == "<=":
+                                    matches.append((msg_value <= test_value))
+                            return all(matches)
+                        attr = message_attributes[field]
             return False
 
         return all(
