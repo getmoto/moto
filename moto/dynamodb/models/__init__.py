@@ -1381,9 +1381,7 @@ class DynamoDBBackend(BaseBackend):
                 for key in keys:
                     if key in table.hash_key_names:
                         return key, None
-            # for potential_hash, potential_range in zip(table.hash_key_names, table.range_key_names):
-            #     if set([potential_hash, potential_range]) == set(keys):
-            #         return potential_hash, potential_range
+
             potential_hash, potential_range = None, None
             for key in set(keys):
                 if key in table.hash_key_names:

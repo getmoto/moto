@@ -68,7 +68,10 @@ def include_consumed_capacity(val=1.0):
     return _inner
 
 
-def put_has_empty_keys(field_updates, table):
+def get_empty_keys_on_put(field_updates, table):
+    """
+    Return the first key-name that has an empty value. None if all keys are filled
+    """
     if table:
         key_names = table.attribute_keys
 
@@ -78,7 +81,9 @@ def put_has_empty_keys(field_updates, table):
             for (key, val) in field_updates.items()
             if next(iter(val.keys())) in ["S", "B"] and next(iter(val.values())) == ""
         ]
-        return any([keyname in empty_str_fields for keyname in key_names])
+        return next(
+            (keyname for keyname in key_names if keyname in empty_str_fields), None
+        )
     return False
 
 
@@ -371,9 +376,10 @@ class DynamoHandler(BaseResponse):
         if return_values not in ("ALL_OLD", "NONE"):
             raise MockValidationException("Return values set to invalid value")
 
-        if put_has_empty_keys(item, self.dynamodb_backend.get_table(name)):
+        empty_key = get_empty_keys_on_put(item, self.dynamodb_backend.get_table(name))
+        if empty_key:
             raise MockValidationException(
-                "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+                f"One or more parameter values were invalid: An AttributeValue may not contain an empty string. Key: {empty_key}"
             )
         if put_has_empty_attrs(item, self.dynamodb_backend.get_table(name)):
             raise MockValidationException(
@@ -421,17 +427,29 @@ class DynamoHandler(BaseResponse):
 
     def batch_write_item(self):
         table_batches = self.body["RequestItems"]
-
+        put_requests = []
+        delete_requests = []
         for table_name, table_requests in table_batches.items():
+            table = self.dynamodb_backend.get_table(table_name)
             for table_request in table_requests:
                 request_type = list(table_request.keys())[0]
                 request = list(table_request.values())[0]
                 if request_type == "PutRequest":
                     item = request["Item"]
-                    self.dynamodb_backend.put_item(table_name, item)
+                    empty_key = get_empty_keys_on_put(item, table)
+                    if empty_key:
+                        raise MockValidationException(
+                            f"One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {empty_key}"
+                        )
+                    put_requests.append((table_name, item))
                 elif request_type == "DeleteRequest":
                     keys = request["Key"]
-                    self.dynamodb_backend.delete_item(table_name, keys)
+                    delete_requests.append((table_name, keys))
+
+        for (table_name, item) in put_requests:
+            self.dynamodb_backend.put_item(table_name, item)
+        for (table_name, keys) in delete_requests:
+            self.dynamodb_backend.delete_item(table_name, keys)
 
         response = {
             "ConsumedCapacity": [
