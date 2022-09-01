@@ -12,6 +12,7 @@ from moto.utilities.utils import md5_hash
 from .exceptions import (
     ConsumerNotFound,
     StreamNotFoundError,
+    StreamCannotBeUpdatedError,
     ShardNotFoundError,
     ResourceInUseError,
     ResourceNotFoundError,
@@ -164,7 +165,13 @@ class Shard(BaseModel):
 
 class Stream(CloudFormationModel):
     def __init__(
-        self, stream_name, shard_count, retention_period_hours, account_id, region_name
+        self,
+        stream_name,
+        shard_count,
+        stream_mode,
+        retention_period_hours,
+        account_id,
+        region_name,
     ):
         self.stream_name = stream_name
         self.creation_datetime = datetime.datetime.now().strftime(
@@ -177,10 +184,11 @@ class Stream(CloudFormationModel):
         self.tags = {}
         self.status = "ACTIVE"
         self.shard_count = None
+        self.stream_mode = stream_mode or {"StreamMode": "PROVISIONED"}
+        if self.stream_mode.get("StreamMode", "") == "ON_DEMAND":
+            shard_count = 4
         self.init_shards(shard_count)
-        self.retention_period_hours = (
-            retention_period_hours if retention_period_hours else 24
-        )
+        self.retention_period_hours = retention_period_hours or 24
         self.shard_level_metrics = []
         self.encryption_type = "NONE"
         self.key_id = None
@@ -289,6 +297,10 @@ class Stream(CloudFormationModel):
             )
 
     def update_shard_count(self, target_shard_count):
+        if self.stream_mode.get("StreamMode", "") == "ON_DEMAND":
+            raise StreamCannotBeUpdatedError(
+                stream_name=self.stream_name, account_id=self.account_id
+            )
         current_shard_count = len([s for s in self.shards.values() if s.is_open])
         if current_shard_count == target_shard_count:
             return
@@ -393,8 +405,12 @@ class Stream(CloudFormationModel):
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
                 "StreamStatus": self.status,
+                "StreamModeDetails": self.stream_mode,
+                "RetentionPeriodHours": self.retention_period_hours,
                 "StreamCreationTimestamp": self.creation_datetime,
+                "EnhancedMonitoring": [{"ShardLevelMetrics": self.shard_level_metrics}],
                 "OpenShardCount": self.shard_count,
+                "EncryptionType": self.encryption_type,
             }
         }
 
@@ -421,7 +437,7 @@ class Stream(CloudFormationModel):
 
         backend = kinesis_backends[account_id][region_name]
         stream = backend.create_stream(
-            resource_name, shard_count, retention_period_hours
+            resource_name, shard_count, retention_period_hours=retention_period_hours
         )
         if any(tags):
             backend.add_tags_to_stream(stream.stream_name, tags)
@@ -510,15 +526,18 @@ class KinesisBackend(BaseBackend):
             service_region, zones, "kinesis", special_service_name="kinesis-streams"
         )
 
-    def create_stream(self, stream_name, shard_count, retention_period_hours):
+    def create_stream(
+        self, stream_name, shard_count, stream_mode=None, retention_period_hours=None
+    ):
         if stream_name in self.streams:
             raise ResourceInUseError(stream_name)
         stream = Stream(
             stream_name,
             shard_count,
-            retention_period_hours,
-            self.account_id,
-            self.region_name,
+            stream_mode=stream_mode,
+            retention_period_hours=retention_period_hours,
+            account_id=self.account_id,
+            region_name=self.region_name,
         )
         self.streams[stream_name] = stream
         return stream

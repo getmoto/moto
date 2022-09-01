@@ -14,6 +14,29 @@ import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_kinesis
+def test_stream_creation_on_demand():
+    client = boto3.client("kinesis", region_name="eu-west-1")
+    client.create_stream(
+        StreamName="my_stream", StreamModeDetails={"StreamMode": "ON_DEMAND"}
+    )
+
+    # AWS starts with 4 shards by default
+    shard_list = client.list_shards(StreamName="my_stream")["Shards"]
+    shard_list.should.have.length_of(4)
+
+    # Cannot update-shard-count when we're in on-demand mode
+    with pytest.raises(ClientError) as exc:
+        client.update_shard_count(
+            StreamName="my_stream", TargetShardCount=3, ScalingType="UNIFORM_SCALING"
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        f"Request is invalid. Stream my_stream under account {ACCOUNT_ID} is in On-Demand mode."
+    )
+
+
+@mock_kinesis
 def test_describe_non_existent_stream_boto3():
     client = boto3.client("kinesis", region_name="us-west-2")
     with pytest.raises(ClientError) as exc:
