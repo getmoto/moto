@@ -3,6 +3,7 @@ import re
 
 backend_url_patterns = [
     ("acm", re.compile("https?://acm\\.(.+)\\.amazonaws\\.com")),
+    ("amp", re.compile("https?://aps\\.(.+)\\.amazonaws\\.com")),
     ("apigateway", re.compile("https?://apigateway\\.(.+)\\.amazonaws.com")),
     (
         "applicationautoscaling",

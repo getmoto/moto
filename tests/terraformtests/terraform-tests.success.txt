@@ -1,5 +1,8 @@
 acm:
   - TestAccACMCertificateDataSource
+amp:
+  - TestAccAMPWorkspace
+  - TestAccAMPRuleGroupNamespace
 apigateway:
   - TestAccAPIGatewayGatewayResponse
 apigatewayv2:
