@@ -16,6 +16,7 @@ def lazy_load(module_name, element, boto3_name=None, backend=None):
 
 
 mock_acm = lazy_load(".acm", "mock_acm")
+mock_amp = lazy_load(".amp", "mock_amp")
 mock_apigateway = lazy_load(".apigateway", "mock_apigateway")
 mock_apigatewayv2 = lazy_load(".apigatewayv2", "mock_apigatewayv2")
 mock_appsync = lazy_load(".appsync", "mock_appsync")
