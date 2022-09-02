@@ -23,6 +23,15 @@ class StreamNotFoundError(ResourceNotFoundError):
         super().__init__(f"Stream {stream_name} under account {account_id} not found.")
 
 
+class StreamCannotBeUpdatedError(BadRequest):
+    def __init__(self, stream_name, account_id):
+        super().__init__()
+        message = f"Request is invalid. Stream {stream_name} under account {account_id} is in On-Demand mode."
+        self.description = json.dumps(
+            {"message": message, "__type": "ValidationException"}
+        )
+
+
 class ShardNotFoundError(ResourceNotFoundError):
     def __init__(self, shard_id, stream, account_id):
         super().__init__(

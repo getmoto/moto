@@ -19,9 +19,9 @@ class KinesisResponse(BaseResponse):
     def create_stream(self):
         stream_name = self.parameters.get("StreamName")
         shard_count = self.parameters.get("ShardCount")
-        retention_period_hours = self.parameters.get("RetentionPeriodHours")
+        stream_mode = self.parameters.get("StreamModeDetails")
         self.kinesis_backend.create_stream(
-            stream_name, shard_count, retention_period_hours
+            stream_name, shard_count, stream_mode=stream_mode
         )
         return ""
 

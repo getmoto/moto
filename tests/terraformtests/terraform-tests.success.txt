@@ -134,6 +134,9 @@ iam:
   - TestAccIAMUserSSHKeyDataSource_
 iot:
   - TestAccIoTEndpointDataSource
+kinesis:
+  - TestAccKinesisStream_basic
+  - TestAccKinesisStream_disappear
 kms:
   - TestAccKMSAlias
   - TestAccKMSGrant_arn
