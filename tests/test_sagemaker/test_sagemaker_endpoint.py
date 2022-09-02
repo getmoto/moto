@@ -47,7 +47,6 @@ def sagemaker_client():
     return boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
-@mock_sagemaker
 def create_endpoint_config_helper(sagemaker_client, production_variants):
     _create_model(sagemaker_client, TEST_MODEL_NAME)
 
