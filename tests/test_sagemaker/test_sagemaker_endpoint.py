@@ -35,7 +35,7 @@ TEST_SERVERLESS_PRODUCTION_VARIANTS = [
         "VariantName": TEST_VARIANT_NAME,
         "ModelName": TEST_MODEL_NAME,
         "ServerlessConfig": {
-            "MemorySizeInMb": TEST_MEMORY_SIZE,
+            "MemorySizeInMB": TEST_MEMORY_SIZE,
             "MaxConcurrency": TEST_CONCURRENCY,
         },
     },
@@ -48,15 +48,9 @@ def sagemaker_client():
 
 
 @mock_sagemaker
-def create_endpoint_config(sagemaker_client, production_variants):
-    with pytest.raises(ClientError) as e:
-        sagemaker_client.create_endpoint_config(
-            EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
-            ProductionVariants=production_variants,
-        )
-    assert e.value.response["Error"]["Message"].startswith("Could not find model")
-
+def create_endpoint_config_helper(sagemaker_client, production_variants):
     _create_model(sagemaker_client, TEST_MODEL_NAME)
+
     resp = sagemaker_client.create_endpoint_config(
         EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
         ProductionVariants=production_variants,
@@ -81,12 +75,28 @@ def create_endpoint_config(sagemaker_client, production_variants):
 
 @mock_sagemaker
 def test_create_endpoint_config(sagemaker_client):
-    create_endpoint_config(sagemaker_client, TEST_PRODUCTION_VARIANTS)
+    with pytest.raises(ClientError) as e:
+        sagemaker_client.create_endpoint_config(
+            EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
+            ProductionVariants=TEST_PRODUCTION_VARIANTS,
+        )
+    assert e.value.response["Error"]["Message"].startswith("Could not find model")
+
+    # Testing instance-based endpoint configuration
+    create_endpoint_config_helper(sagemaker_client, TEST_PRODUCTION_VARIANTS)
 
 
 @mock_sagemaker
 def test_create_endpoint_config_serverless(sagemaker_client):
-    create_endpoint_config(sagemaker_client, TEST_SERVERLESS_PRODUCTION_VARIANTS)
+    with pytest.raises(ClientError) as e:
+        sagemaker_client.create_endpoint_config(
+            EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
+            ProductionVariants=TEST_SERVERLESS_PRODUCTION_VARIANTS,
+        )
+    assert e.value.response["Error"]["Message"].startswith("Could not find model")
+
+    # Testing serverless endpoint configuration
+    create_endpoint_config_helper(sagemaker_client, TEST_SERVERLESS_PRODUCTION_VARIANTS)
 
 
 @mock_sagemaker
@@ -155,9 +165,9 @@ def test_create_endpoint_invalid_instance_type(sagemaker_client):
 def test_create_endpoint_invalid_memory_size(sagemaker_client):
     _create_model(sagemaker_client, TEST_MODEL_NAME)
 
-    memory_size = "999"
-    production_variants = TEST_PRODUCTION_VARIANTS
-    production_variants[0]["MemorySizeInMb"] = memory_size
+    memory_size = 1111
+    production_variants = TEST_SERVERLESS_PRODUCTION_VARIANTS
+    production_variants[0]["ServerlessConfig"]["MemorySizeInMB"] = memory_size
 
     with pytest.raises(ClientError) as e:
         sagemaker_client.create_endpoint_config(
@@ -165,7 +175,7 @@ def test_create_endpoint_invalid_memory_size(sagemaker_client):
             ProductionVariants=production_variants,
         )
     assert e.value.response["Error"]["Code"] == "ValidationException"
-    expected_message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: [".format(
+    expected_message = "Value '{}' at 'MemorySizeInMB' failed to satisfy constraint: Member must satisfy enum value set: [".format(
         memory_size
     )
     assert expected_message in e.value.response["Error"]["Message"]

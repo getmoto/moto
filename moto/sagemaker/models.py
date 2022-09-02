@@ -409,7 +409,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
                 raise ValidationError(message=message)
 
     def validate_serverless_config(self, serverless_config):
-        VALID_SERVERLESS_MEMORY_SIZE = ["1024", "2048", "3072", "4096", "5120", "6144"]
+        VALID_SERVERLESS_MEMORY_SIZE = [1024, 2048, 3072, 4096, 5120, 6144]
         if not validators.is_one_of(
             serverless_config["MemorySizeInMB"], VALID_SERVERLESS_MEMORY_SIZE
         ):
