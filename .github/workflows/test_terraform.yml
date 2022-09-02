@@ -25,12 +25,13 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: 'true'
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.8"
     - name: Start MotoServer
       run: |
+        pip install PyYAML
         python setup.py sdist
         docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
         MOTO_PORT=4566 python scripts/ci_wait_for_server.py
@@ -40,9 +41,9 @@ jobs:
         path: |
           ~/go/pkg/mod
           ~/.cache/go-build
-        key: ${{ runner.os }}-go-${{ matrix.go-version }}-2-${{ hashFiles('**/tests/terraformtests/terraform-provider-aws/go.sum') }}
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ matrix.service }}-${{ hashFiles('**/tests/terraformtests/terraform-provider-aws/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go-${{ matrix.go-version }}-2-
+          ${{ runner.os }}-go-${{ matrix.go-version }}-${{ matrix.service }}-
     - name: Get list of tests for  this service
       id: get-list
       run: echo "::set-output name=testlist::$(python tests/terraformtests/get_tf_tests.py '${{ matrix.service }}')"
