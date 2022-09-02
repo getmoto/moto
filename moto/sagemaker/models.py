@@ -398,7 +398,25 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
     def validate_production_variants(self, production_variants):
         for production_variant in production_variants:
-            self.validate_instance_type(production_variant["InstanceType"])
+            if "InstanceType" in production_variant.keys():
+                self.validate_instance_type(production_variant["InstanceType"])
+            elif "ServerlessConfig" in production_variant.keys():
+                self.validate_serverless_config(production_variant["ServerlessConfig"])
+            else:
+                message = "Invalid Keys for ProductionVariant: received {} but expected it to contain one of {}".format(
+                    production_variant.keys(), ["InstanceType", "ServerlessConfig"]
+                )
+                raise ValidationError(message=message)
+
+    def validate_serverless_config(self, serverless_config):
+        VALID_SERVERLESS_MEMORY_SIZE = [1024, 2048, 3072, 4096, 5120, 6144]
+        if not validators.is_one_of(
+            serverless_config["MemorySizeInMB"], VALID_SERVERLESS_MEMORY_SIZE
+        ):
+            message = "Value '{}' at 'MemorySizeInMB' failed to satisfy constraint: Member must satisfy enum value set: {}".format(
+                serverless_config["MemorySizeInMB"], VALID_SERVERLESS_MEMORY_SIZE
+            )
+            raise ValidationError(message=message)
 
     def validate_instance_type(self, instance_type):
         VALID_INSTANCE_TYPES = [

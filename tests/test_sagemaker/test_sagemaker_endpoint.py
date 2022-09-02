@@ -20,12 +20,24 @@ TEST_ENDPOINT_NAME = "MyEndpoint"
 TEST_ENDPOINT_CONFIG_NAME = "MyEndpointConfig"
 TEST_VARIANT_NAME = "MyProductionVariant"
 TEST_INSTANCE_TYPE = "ml.t2.medium"
+TEST_MEMORY_SIZE = 1024
+TEST_CONCURRENCY = 10
 TEST_PRODUCTION_VARIANTS = [
     {
         "VariantName": TEST_VARIANT_NAME,
         "ModelName": TEST_MODEL_NAME,
         "InitialInstanceCount": 1,
         "InstanceType": TEST_INSTANCE_TYPE,
+    },
+]
+TEST_SERVERLESS_PRODUCTION_VARIANTS = [
+    {
+        "VariantName": TEST_VARIANT_NAME,
+        "ModelName": TEST_MODEL_NAME,
+        "ServerlessConfig": {
+            "MemorySizeInMB": TEST_MEMORY_SIZE,
+            "MaxConcurrency": TEST_CONCURRENCY,
+        },
     },
 ]
 
@@ -35,19 +47,12 @@ def sagemaker_client():
     return boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
-@mock_sagemaker
-def test_create_endpoint_config(sagemaker_client):
-    with pytest.raises(ClientError) as e:
-        sagemaker_client.create_endpoint_config(
-            EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
-            ProductionVariants=TEST_PRODUCTION_VARIANTS,
-        )
-    assert e.value.response["Error"]["Message"].startswith("Could not find model")
-
+def create_endpoint_config_helper(sagemaker_client, production_variants):
     _create_model(sagemaker_client, TEST_MODEL_NAME)
+
     resp = sagemaker_client.create_endpoint_config(
         EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
-        ProductionVariants=TEST_PRODUCTION_VARIANTS,
+        ProductionVariants=production_variants,
     )
     resp["EndpointConfigArn"].should.match(
         r"^arn:aws:sagemaker:.*:.*:endpoint-config/{}$".format(
@@ -64,7 +69,33 @@ def test_create_endpoint_config(sagemaker_client):
         )
     )
     resp["EndpointConfigName"].should.equal(TEST_ENDPOINT_CONFIG_NAME)
-    resp["ProductionVariants"].should.equal(TEST_PRODUCTION_VARIANTS)
+    resp["ProductionVariants"].should.equal(production_variants)
+
+
+@mock_sagemaker
+def test_create_endpoint_config(sagemaker_client):
+    with pytest.raises(ClientError) as e:
+        sagemaker_client.create_endpoint_config(
+            EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
+            ProductionVariants=TEST_PRODUCTION_VARIANTS,
+        )
+    assert e.value.response["Error"]["Message"].startswith("Could not find model")
+
+    # Testing instance-based endpoint configuration
+    create_endpoint_config_helper(sagemaker_client, TEST_PRODUCTION_VARIANTS)
+
+
+@mock_sagemaker
+def test_create_endpoint_config_serverless(sagemaker_client):
+    with pytest.raises(ClientError) as e:
+        sagemaker_client.create_endpoint_config(
+            EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
+            ProductionVariants=TEST_SERVERLESS_PRODUCTION_VARIANTS,
+        )
+    assert e.value.response["Error"]["Message"].startswith("Could not find model")
+
+    # Testing serverless endpoint configuration
+    create_endpoint_config_helper(sagemaker_client, TEST_SERVERLESS_PRODUCTION_VARIANTS)
 
 
 @mock_sagemaker
@@ -125,6 +156,26 @@ def test_create_endpoint_invalid_instance_type(sagemaker_client):
     assert e.value.response["Error"]["Code"] == "ValidationException"
     expected_message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: [".format(
         instance_type
+    )
+    assert expected_message in e.value.response["Error"]["Message"]
+
+
+@mock_sagemaker
+def test_create_endpoint_invalid_memory_size(sagemaker_client):
+    _create_model(sagemaker_client, TEST_MODEL_NAME)
+
+    memory_size = 1111
+    production_variants = TEST_SERVERLESS_PRODUCTION_VARIANTS
+    production_variants[0]["ServerlessConfig"]["MemorySizeInMB"] = memory_size
+
+    with pytest.raises(ClientError) as e:
+        sagemaker_client.create_endpoint_config(
+            EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
+            ProductionVariants=production_variants,
+        )
+    assert e.value.response["Error"]["Code"] == "ValidationException"
+    expected_message = "Value '{}' at 'MemorySizeInMB' failed to satisfy constraint: Member must satisfy enum value set: [".format(
+        memory_size
     )
     assert expected_message in e.value.response["Error"]["Message"]
 
