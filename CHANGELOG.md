@@ -1,6 +1,37 @@
 Moto Changelog
 ==============
 
+4.0.2
+-----
+Docker Digest for 4.0.2: <autopopulateddigest>
+
+    New Services:
+        * Amazon Managed Prometheus (AMP)
+            * create_rule_groups_namespace()
+            * create_workspace()
+            * delete_rule_groups_namespace()
+            * delete_workspace()
+            * describe_rule_groups_namespace()
+            * describe_workspace()
+            * list_rule_groups_namespaces()
+            * list_tags_for_resource()
+            * list_workspaces()
+            * put_rule_groups_namespace()
+            * tag_resource()
+            * untag_resource()
+            * update_workspace_alias()
+
+    Miscellaneous:
+        * APIGateway:put_method() now supports the requestParameters-parameter
+        * AutoScaling:create_auto_scaling_group() now supports the MixedInstancesPolicy-parameter
+        * CloudWatchLogs:filter_log_events() now supports the filterPattern-parameter
+        * DynamoDB:batch_put_item() now has validatior for empty keys
+        * Kinesis:create_stream() now supports stream-mode=OnDemand
+        * S3:head_object() now returns the PartsCount-header
+        * SNS:subscribe() now has increased support for the FilterPolicy-argument
+        * SSM now returns the /aws/service/ami-amazon-linux-latest-parameters as provided by AWS
+
+
 4.0.1
 -----
 Docker Digest for 4.0.1: _sha256:effbe303d0ac958569537b725e7632354deb6e9ce0a78ced1a2c6bdd4123831d_
