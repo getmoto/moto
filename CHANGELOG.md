@@ -3,7 +3,7 @@ Moto Changelog
 
 4.0.2
 -----
-Docker Digest for 4.0.2: <autopopulateddigest>
+Docker Digest for 4.0.2: _sha256:32b30fef5d54d30eb7beca263dcb0ba08bd3718adb8b5d95f9f4b6e9cfc854f1_
 
     New Services:
         * Amazon Managed Prometheus (AMP)
