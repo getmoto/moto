@@ -1608,13 +1608,13 @@ class CognitoIdpBackend(BaseBackend):
         )
 
         user_pool = None
+        client = None
         for p in self.user_pools.values():
             if client_id in p.clients:
                 user_pool = p
+                client = p.clients.get(client_id)
         if user_pool is None:
             raise ResourceNotFoundError(client_id)
-
-        client = p.clients.get(client_id)
 
         if auth_flow is AuthFlow.USER_SRP_AUTH:
             username = auth_parameters.get("USERNAME")
