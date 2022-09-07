@@ -7,11 +7,12 @@ from .models import greengrass_backends
 
 
 class GreengrassResponse(BaseResponse):
-    SERVICE_NAME = "greengrass"
+    def __init__(self):
+        super().__init__(service_name="greengrass")
 
     @property
     def greengrass_backend(self):
-        return greengrass_backends[self.region]
+        return greengrass_backends[self.current_account][self.region]
 
     def core_definitions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

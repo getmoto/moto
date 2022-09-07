@@ -2,7 +2,11 @@ import sure  # noqa # pylint: disable=unused-import
 import requests
 
 import boto3
-from moto import mock_sqs, settings
+import json
+import pytest
+from botocore.exceptions import ClientError
+from moto import mock_autoscaling, mock_sqs, settings
+from unittest import SkipTest
 
 base_url = (
     "http://localhost:5000"
@@ -33,3 +37,39 @@ def test_data_api():
     len(queues).should.equal(1)
     queue = queues[0]
     queue["name"].should.equal("queue1")
+
+
+@mock_autoscaling
+def test_creation_error__data_api_still_returns_thing():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("No point in testing this behaves the same in ServerMode")
+    # Timeline:
+    #
+    # When calling BaseModel.__new__, the created instance (of type FakeAutoScalingGroup) is stored in `model_data`
+    # We then try and initialize the instance by calling __init__
+    #
+    # Initialization fails in this test, but: by then, the instance is already registered
+    # This test ensures that we can still print/__repr__ the uninitialized instance, despite the fact that no attributes have been set
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    # Creating this ASG fails, because it doesn't specify a Region/VPC
+    with pytest.raises(ClientError):
+        client.create_auto_scaling_group(
+            AutoScalingGroupName="test_asg",
+            LaunchTemplate={
+                "LaunchTemplateName": "test_launch_template",
+                "Version": "1",
+            },
+            MinSize=0,
+            MaxSize=20,
+        )
+
+    from moto.moto_api._internal.urls import response_instance
+
+    _, _, x = response_instance.model_data(None, None, None)
+
+    as_objects = json.loads(x)["autoscaling"]
+    as_objects.should.have.key("FakeAutoScalingGroup")
+    assert len(as_objects["FakeAutoScalingGroup"]) >= 1
+
+    names = [obj["name"] for obj in as_objects["FakeAutoScalingGroup"]]
+    names.should.contain("test_asg")

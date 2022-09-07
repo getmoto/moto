@@ -43,6 +43,7 @@ guardduty
 - [ ] delete_members
 - [ ] delete_publishing_destination
 - [ ] delete_threat_intel_set
+- [ ] describe_malware_scans
 - [ ] describe_organization_configuration
 - [ ] describe_publishing_destination
 - [ ] disable_organization_admin_account
@@ -57,6 +58,7 @@ guardduty
 - [ ] get_findings_statistics
 - [ ] get_invitations_count
 - [ ] get_ip_set
+- [ ] get_malware_scan_settings
 - [ ] get_master_account
 - [ ] get_member_detectors
 - [ ] get_members
@@ -91,6 +93,7 @@ guardduty
 - [X] update_filter
 - [ ] update_findings_feedback
 - [ ] update_ip_set
+- [ ] update_malware_scan_settings
 - [ ] update_member_detectors
 - [ ] update_organization_configuration
 - [ ] update_publishing_destination

@@ -8,10 +8,13 @@ from .models import rekognition_backends
 class RekognitionResponse(BaseResponse):
     """Handler for Rekognition requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="rekognition")
+
     @property
     def rekognition_backend(self):
         """Return backend instance specific for this region."""
-        return rekognition_backends[self.region]
+        return rekognition_backends[self.current_account][self.region]
 
     def get_face_search(self):
         (

@@ -116,7 +116,7 @@ class NestableExpressionParserMixin(object):
 
         self.target_clauses looks like:  ( SET a=3 >> REMOVE b )
         Returns:
-            moto.dynamodb2.ast_nodes.Node: Node of an AST representing the Expression as produced by the factory.
+            moto.dynamodb.ast_nodes.Node: Node of an AST representing the Expression as produced by the factory.
         """
         assert len(self.target_clauses) > 0, "No nodes for {cn}".format(
             cn=self.__class__.__name__
@@ -151,7 +151,7 @@ class ExpressionParser(metaclass=abc.ABCMeta):
         Start parsing the token_list from token_pos for the factory type.
 
         Returns:
-            moto.dynamodb2.ast_nodes.Node: AST which is root node of resulting abstract syntax tree
+            moto.dynamodb.ast_nodes.Node: AST which is root node of resulting abstract syntax tree
         """
 
     @classmethod
@@ -164,7 +164,7 @@ class ExpressionParser(metaclass=abc.ABCMeta):
         """
 
         Args:
-            token(moto.dynamodb2.tokens.Token):
+            token(moto.dynamodb.tokens.Token):
 
         Returns:
             bool: True if token is a possible start for entries processed by `cls`
@@ -200,7 +200,7 @@ class ExpressionParser(metaclass=abc.ABCMeta):
         Get the next token to be processed
 
         Returns:
-            moto.dynamodb2.tokens.Token: or None if no more next token
+            moto.dynamodb.tokens.Token: or None if no more next token
         """
         try:
             return self.token_list[self.token_pos]
@@ -413,7 +413,7 @@ class NestableBinExpressionParser(ExpressionParser):
 
         self.target_nodes looks like: (  a >> + >> :val >> - >> :val2 )
         Returns:
-            moto.dynamodb2.ast_nodes.Node: Node of an AST representing the Expression as produced by the factory.
+            moto.dynamodb.ast_nodes.Node: Node of an AST representing the Expression as produced by the factory.
         """
         if len(self.target_nodes) == 1:
             return UpdateExpressionValue(children=[self.target_nodes.popleft()])

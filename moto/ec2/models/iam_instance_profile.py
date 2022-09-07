@@ -1,4 +1,3 @@
-from moto.core import get_account_id
 from moto.core import CloudFormationModel
 from ..exceptions import (
     IncorrectStateIamProfileAssociationError,
@@ -9,8 +8,6 @@ from ..utils import (
     filter_iam_instance_profile_associations,
     filter_iam_instance_profiles,
 )
-
-OWNER_ID = get_account_id()
 
 
 class IamInstanceProfileAssociation(CloudFormationModel):
@@ -32,7 +29,7 @@ class IamInstanceProfileAssociationBackend:
         iam_association_id = random_iam_instance_profile_association_id()
 
         instance_profile = filter_iam_instance_profiles(
-            iam_instance_profile_arn, iam_instance_profile_name
+            self.account_id, iam_instance_profile_arn, iam_instance_profile_name
         )
 
         if instance_id in self.iam_instance_profile_associations.keys():
@@ -101,7 +98,7 @@ class IamInstanceProfileAssociationBackend:
         iam_instance_profile_arn=None,
     ):
         instance_profile = filter_iam_instance_profiles(
-            iam_instance_profile_arn, iam_instance_profile_name
+            self.account_id, iam_instance_profile_arn, iam_instance_profile_name
         )
 
         iam_instance_profile_association = None

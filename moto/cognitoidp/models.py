@@ -9,7 +9,6 @@ import random
 from jose import jws
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from moto.core import get_account_id
 from moto.core.utils import BackendDict
 from .exceptions import (
     GroupExistsException,
@@ -371,16 +370,15 @@ class CognitoIdpUserPool(BaseModel):
 
     MAX_ID_LENGTH = 56
 
-    def __init__(self, region, name, extended_config):
+    def __init__(self, account_id, region, name, extended_config):
+        self.account_id = account_id
         self.region = region
 
         user_pool_id = generate_id(
             get_cognito_idp_user_pool_id_strategy(), region, name, extended_config
         )
         self.id = "{}_{}".format(self.region, user_pool_id)[: self.MAX_ID_LENGTH]
-        self.arn = "arn:aws:cognito-idp:{}:{}:userpool/{}".format(
-            self.region, get_account_id(), self.id
-        )
+        self.arn = f"arn:aws:cognito-idp:{self.region}:{account_id}:userpool/{self.id}"
 
         self.name = name
         self.status = None
@@ -445,7 +443,7 @@ class CognitoIdpUserPool(BaseModel):
 
     @property
     def backend(self):
-        return cognitoidp_backends[self.region]
+        return cognitoidp_backends[self.account_id][self.region]
 
     @property
     def domain(self):
@@ -862,7 +860,9 @@ class CognitoIdpBackend(BaseBackend):
 
     # User pool
     def create_user_pool(self, name, extended_config):
-        user_pool = CognitoIdpUserPool(self.region_name, name, extended_config)
+        user_pool = CognitoIdpUserPool(
+            self.account_id, self.region_name, name, extended_config
+        )
         self.user_pools[user_pool.id] = user_pool
         return user_pool
 
@@ -1041,10 +1041,11 @@ class CognitoIdpBackend(BaseBackend):
 
         return user_pool.groups[group_name]
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_groups(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
-        return user_pool.groups.values()
+        return list(user_pool.groups.values())
 
     def delete_group(self, user_pool_id, group_name):
         user_pool = self.describe_user_pool(user_pool_id)
@@ -1072,9 +1073,11 @@ class CognitoIdpBackend(BaseBackend):
         group.users.add(user)
         user.groups.add(group)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_users_in_group(self, user_pool_id, group_name):
+        user_pool = self.describe_user_pool(user_pool_id)
         group = self.get_group(user_pool_id, group_name)
-        return list(group.users)
+        return list(filter(lambda user: user in group.users, user_pool.users.values()))
 
     def admin_list_groups_for_user(self, user_pool_id, username):
         user = self.admin_get_user(user_pool_id, username)
@@ -1830,24 +1833,24 @@ class RegionAgnosticBackend:
     # This backend will cycle through all backends as a workaround
 
     def _find_backend_by_access_token(self, access_token):
-        account_specific_backends = cognitoidp_backends[get_account_id()]
-        for region, backend in account_specific_backends.items():
-            if region == "global":
-                continue
-            for p in backend.user_pools.values():
-                if access_token in p.access_tokens:
-                    return backend
-        return account_specific_backends["us-east-1"]
+        for account_specific_backends in cognitoidp_backends.values():
+            for region, backend in account_specific_backends.items():
+                if region == "global":
+                    continue
+                for p in backend.user_pools.values():
+                    if access_token in p.access_tokens:
+                        return backend
+        return backend
 
     def _find_backend_for_clientid(self, client_id):
-        account_specific_backends = cognitoidp_backends[get_account_id()]
-        for region, backend in account_specific_backends.items():
-            if region == "global":
-                continue
-            for p in backend.user_pools.values():
-                if client_id in p.clients:
-                    return backend
-        return account_specific_backends["us-east-1"]
+        for account_specific_backends in cognitoidp_backends.values():
+            for region, backend in account_specific_backends.items():
+                if region == "global":
+                    continue
+                for p in backend.user_pools.values():
+                    if client_id in p.clients:
+                        return backend
+        return backend
 
     def sign_up(self, client_id, username, password, attributes):
         backend = self._find_backend_for_clientid(client_id)
@@ -1880,17 +1883,16 @@ cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
 # Hack to help moto-server process requests on localhost, where the region isn't
 # specified in the host header. Some endpoints (change password, confirm forgot
 # password) have no authorization header from which to extract the region.
-def find_region_by_value(key, value):
-    account_specific_backends = cognitoidp_backends[get_account_id()]
-    for region in account_specific_backends:
-        backend = cognitoidp_backends[region]
-        for user_pool in backend.user_pools.values():
-            if key == "client_id" and value in user_pool.clients:
-                return region
+def find_account_region_by_value(key, value):
+    for account_id, account_specific_backend in cognitoidp_backends.items():
+        for region, backend in account_specific_backend.items():
+            for user_pool in backend.user_pools.values():
+                if key == "client_id" and value in user_pool.clients:
+                    return account_id, region
 
-            if key == "access_token" and value in user_pool.access_tokens:
-                return region
+                if key == "access_token" and value in user_pool.access_tokens:
+                    return account_id, region
     # If we can't find the `client_id` or `access_token`, we just pass
     # back a default backend region, which will raise the appropriate
     # error message (e.g. NotAuthorized or NotFound).
-    return list(account_specific_backends)[0]
+    return account_id, region

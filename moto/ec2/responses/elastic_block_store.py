@@ -74,6 +74,27 @@ class ElasticBlockStore(EC2BaseResponse):
             template = self.response_template(CREATE_VOLUME_RESPONSE)
             return template.render(volume=volume)
 
+    def modify_volume(self):
+        volume_id = self._get_param("VolumeId")
+        target_size = self._get_param("Size")
+        target_volume_type = self._get_param("VolumeType")
+
+        if self.is_not_dryrun("ModifyVolume"):
+            volume = self.ec2_backend.modify_volume(
+                volume_id, target_size, target_volume_type
+            )
+            template = self.response_template(MODIFY_VOLUME_RESPONSE)
+            return template.render(volume=volume)
+
+    def describe_volumes_modifications(self):
+        filters = self._filters_from_querystring()
+        volume_ids = self._get_multi_param("VolumeId")
+        modifications = self.ec2_backend.describe_volumes_modifications(
+            volume_ids=volume_ids, filters=filters
+        )
+        template = self.response_template(DESCRIBE_VOLUMES_MODIFICATIONS_RESPONSE)
+        return template.render(modifications=modifications)
+
     def delete_snapshot(self):
         snapshot_id = self._get_param("SnapshotId")
         if self.is_not_dryrun("DeleteSnapshot"):
@@ -402,3 +423,40 @@ MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE = """
     <return>true</return>
 </ModifySnapshotAttributeResponse>
 """
+
+MODIFY_VOLUME_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ModifyVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+    <volumeModification>
+        {% set volume_modification = volume.modifications[-1] %}
+        <modificationState>modifying</modificationState>
+        <originalSize>{{ volume_modification.original_size }}</originalSize>
+        <originalVolumeType>{{ volume_modification.original_volume_type }}</originalVolumeType>
+        <progress>0</progress>
+        <startTime>{{ volume_modification.start_time }}</startTime>
+        <targetSize>{{ volume_modification.target_size }}</targetSize>
+        <targetVolumeType>{{ volume_modification.target_volume_type }}</targetVolumeType>
+        <volumeId>{{ volume.id }}</volumeId>
+    </volumeModification>
+</ModifyVolumeResponse>"""
+
+DESCRIBE_VOLUMES_MODIFICATIONS_RESPONSE = """
+<?xml version="1.0" encoding="UTF-8"?>
+<DescribeVolumesModificationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+    <volumeModificationSet>
+      {% for modification in modifications %}
+        <item>
+            <endTime>{{ modification.end_time }}</endTime>
+            <modificationState>completed</modificationState>
+            <originalSize>{{ modification.original_size }}</originalSize>
+            <originalVolumeType>{{ modification.original_volume_type }}</originalVolumeType>
+            <progress>100</progress>
+            <startTime>{{ modification.start_time }}</startTime>
+            <targetSize>{{ modification.target_size }}</targetSize>
+            <targetVolumeType>{{ modification.target_volume_type }}</targetVolumeType>
+            <volumeId>{{ modification.volume.id }}</volumeId>
+        </item>
+      {% endfor %}
+    </volumeModificationSet>
+</DescribeVolumesModificationsResponse>"""

@@ -3,6 +3,7 @@ from . import _get_clients, _setup
 import datetime
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
+import botocore.exceptions
 import pytest
 import time
 from uuid import uuid4
@@ -245,6 +246,33 @@ def test_terminate_job():
     resp["events"][0]["message"].should.equal("start")
 
 
+@mock_batch
+def test_terminate_nonexisting_job():
+    """
+    Test verifies that you get a 200 HTTP status code when terminating a non-existing job.
+    """
+    _, _, _, _, batch_client = _get_clients()
+    resp = batch_client.terminate_job(
+        jobId="nonexisting_job", reason="test_terminate_nonexisting_job"
+    )
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_batch
+def test_terminate_job_empty_argument_strings():
+    """
+    Test verifies that a `ClientException` is raised if `jobId` or `reason` is a empty string when terminating a job.
+    """
+    _, _, _, _, batch_client = _get_clients()
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        batch_client.terminate_job(jobId="", reason="not_a_empty_string")
+    assert exc.match("ClientException")
+
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        batch_client.terminate_job(jobId="not_a_empty_string", reason="")
+    assert exc.match("ClientException")
+
+
 @mock_logs
 @mock_ec2
 @mock_ecs
@@ -313,6 +341,33 @@ def test_cancel_running_job():
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test_job_name")
     resp["jobs"][0].shouldnt.have.key("statusReason")
+
+
+@mock_batch
+def test_cancel_nonexisting_job():
+    """
+    Test verifies that you get a 200 HTTP status code when cancelling a non-existing job.
+    """
+    _, _, _, _, batch_client = _get_clients()
+    resp = batch_client.cancel_job(
+        jobId="nonexisting_job", reason="test_cancel_nonexisting_job"
+    )
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_batch
+def test_cancel_job_empty_argument_strings():
+    """
+    Test verifies that a `ClientException` is raised if `jobId` or `reason` is a empty string when cancelling a job.
+    """
+    _, _, _, _, batch_client = _get_clients()
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        batch_client.cancel_job(jobId="", reason="not_a_empty_string")
+    assert exc.match("ClientException")
+
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        batch_client.cancel_job(jobId="not_a_empty_string", reason="")
+    assert exc.match("ClientException")
 
 
 def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):

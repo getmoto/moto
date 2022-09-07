@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 from dateutil.tz import tzlocal
 
-from moto.core import get_account_id, BaseBackend, CloudFormationModel
+from moto.core import BaseBackend, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from uuid import uuid4
 from .exceptions import (
@@ -159,24 +159,29 @@ class StateMachine(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         name = properties.get("StateMachineName", resource_name)
         definition = properties.get("DefinitionString", "")
         role_arn = properties.get("RoleArn", "")
         tags = cfn_to_api_tags(properties.get("Tags", []))
-        sf_backend = stepfunction_backends[region_name]
+        sf_backend = stepfunction_backends[account_id][region_name]
         return sf_backend.create_state_machine(name, definition, role_arn, tags=tags)
 
     @classmethod
-    def delete_from_cloudformation_json(cls, resource_name, _, region_name):
-        sf_backend = stepfunction_backends[region_name]
+    def delete_from_cloudformation_json(cls, resource_name, _, account_id, region_name):
+        sf_backend = stepfunction_backends[account_id][region_name]
         sf_backend.delete_state_machine(resource_name)
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json.get("Properties", {})
         name = properties.get("StateMachineName", original_resource.name)
@@ -186,10 +191,10 @@ class StateMachine(CloudFormationModel):
             new_properties = original_resource.get_cfn_properties(properties)
             cloudformation_json["Properties"] = new_properties
             new_resource = cls.create_from_cloudformation_json(
-                name, cloudformation_json, region_name
+                name, cloudformation_json, account_id, region_name
             )
             cls.delete_from_cloudformation_json(
-                original_resource.arn, cloudformation_json, region_name
+                original_resource.arn, cloudformation_json, account_id, region_name
             )
             return new_resource
 
@@ -198,7 +203,7 @@ class StateMachine(CloudFormationModel):
             definition = properties.get("DefinitionString")
             role_arn = properties.get("RoleArn")
             tags = cfn_to_api_tags(properties.get("Tags", []))
-            sf_backend = stepfunction_backends[region_name]
+            sf_backend = stepfunction_backends[account_id][region_name]
             state_machine = sf_backend.update_state_machine(
                 original_resource.arn, definition=definition, role_arn=role_arn
             )
@@ -451,14 +456,7 @@ class StepFunctionBackend(BaseBackend):
     def create_state_machine(self, name, definition, roleArn, tags=None):
         self._validate_name(name)
         self._validate_role_arn(roleArn)
-        arn = (
-            "arn:aws:states:"
-            + self.region_name
-            + ":"
-            + str(self._get_account_id())
-            + ":stateMachine:"
-            + name
-        )
+        arn = f"arn:aws:states:{self.region_name}:{self.account_id}:stateMachine:{name}"
         try:
             return self.describe_state_machine(arn)
         except StateMachineDoesNotExist:
@@ -499,7 +497,7 @@ class StepFunctionBackend(BaseBackend):
         state_machine = self.describe_state_machine(state_machine_arn)
         execution = state_machine.start_execution(
             region_name=self.region_name,
-            account_id=self._get_account_id(),
+            account_id=self.account_id,
             execution_name=name or str(uuid4()),
             execution_input=execution_input,
         )
@@ -612,9 +610,6 @@ class StepFunctionBackend(BaseBackend):
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
         return self.describe_state_machine(state_machine_arn)
-
-    def _get_account_id(self):
-        return get_account_id()
 
 
 stepfunction_backends = BackendDict(StepFunctionBackend, "stepfunctions")

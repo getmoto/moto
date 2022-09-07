@@ -33,12 +33,13 @@ These are the available methos:
 class EMRServerlessResponse(BaseResponse):
     """Handler for EMRServerless requests and responses."""
 
-    SERVICE_NAME = "emr-serverless"
+    def __init__(self):
+        super().__init__("emr-serverless")
 
     @property
     def emrserverless_backend(self):
         """Return backend instance specific for this region."""
-        return emrserverless_backends[self.region]
+        return emrserverless_backends[self.current_account][self.region]
 
     def create_application(self):
         name = self._get_param("name")

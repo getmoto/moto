@@ -17,9 +17,12 @@ def _is_repository_name_valid(repository_name):
 
 
 class CodeCommitResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="codecommit")
+
     @property
     def codecommit_backend(self):
-        return codecommit_backends[self.region]
+        return codecommit_backends[self.current_account][self.region]
 
     def create_repository(self):
         if not _is_repository_name_valid(self._get_param("repositoryName")):

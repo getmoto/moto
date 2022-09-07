@@ -45,9 +45,12 @@ def itemize(data):
 
 
 class RedshiftResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="redshift")
+
     @property
     def redshift_backend(self):
-        return redshift_backends[self.region]
+        return redshift_backends[self.current_account][self.region]
 
     def get_response(self, response):
         if self.request_json:
@@ -390,7 +393,6 @@ class RedshiftResponse(BaseResponse):
         security_group = self.redshift_backend.create_cluster_security_group(
             cluster_security_group_name=cluster_security_group_name,
             description=description,
-            region_name=self.region,
             tags=tags,
         )
 

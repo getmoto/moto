@@ -241,7 +241,7 @@ def test_replay_recording(m_open):
         else "http://motoapi.amazonaws.com"
     )
 
-    recorded_data = '{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}'
+    recorded_data = '{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "current_account": "123456789012", "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}'
     file_handle = m_open.return_value.__enter__.return_value
     file_handle.readlines.return_value = [recorded_data]
 
@@ -318,3 +318,45 @@ def test_set_seed():
     )
 
     assert reservation_1[0].id == reservation_2[0].id
+
+
+def test_response_environment_preserved_by_type():
+    """Ensure Jinja environment is cached by response type."""
+
+    class ResponseA(BaseResponse):
+        pass
+
+    class ResponseB(BaseResponse):
+        pass
+
+    resp_a = ResponseA()
+    another_resp_a = ResponseA()
+    resp_b = ResponseB()
+
+    assert resp_a.environment is another_resp_a.environment
+    assert resp_b.environment is not resp_a.environment
+
+    source_1 = "template"
+    source_2 = "amother template"
+
+    assert not resp_a.contains_template(BaseResponse._make_template_id(source_1))
+    resp_a.response_template(source_1)
+    assert resp_a.contains_template(BaseResponse._make_template_id(source_1))
+
+    assert not resp_a.contains_template(BaseResponse._make_template_id(source_2))
+    resp_a.response_template(source_2)
+    assert resp_a.contains_template(BaseResponse._make_template_id(source_2))
+
+    assert not resp_b.contains_template(BaseResponse._make_template_id(source_1))
+    assert not resp_b.contains_template(BaseResponse._make_template_id(source_2))
+
+    assert another_resp_a.contains_template(BaseResponse._make_template_id(source_1))
+    assert another_resp_a.contains_template(BaseResponse._make_template_id(source_2))
+
+    resp_a_new_instance = ResponseA()
+    assert resp_a_new_instance.contains_template(
+        BaseResponse._make_template_id(source_1)
+    )
+    assert resp_a_new_instance.contains_template(
+        BaseResponse._make_template_id(source_2)
+    )

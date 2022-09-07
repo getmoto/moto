@@ -1,5 +1,6 @@
 import base64
 import ipaddress
+import warnings
 from unittest import SkipTest, mock
 from uuid import uuid4
 
@@ -9,7 +10,7 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError, ParamValidationError
 from freezegun import freeze_time
 from moto import mock_ec2, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
 decode_method = base64.decodebytes
@@ -1128,13 +1129,21 @@ def test_run_instance_with_security_group_id():
 
 
 @mock_ec2
-def test_run_instance_with_instance_type():
+@pytest.mark.parametrize("hibernate", [True, False])
+def test_run_instance_with_additional_args(hibernate):
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     instance = ec2.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, InstanceType="t1.micro"
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        InstanceType="t1.micro",
+        Placement={"AvailabilityZone": "us-east-1b"},
+        HibernationOptions={"Configured": hibernate},
     )[0]
 
     instance.instance_type.should.equal("t1.micro")
+    instance.placement.should.have.key("AvailabilityZone").equal("us-east-1b")
+    instance.hibernation_options.should.equal({"Configured": hibernate})
 
 
 @mock_ec2
@@ -1143,19 +1152,6 @@ def test_run_instance_with_default_placement():
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
 
     instance.placement.should.have.key("AvailabilityZone").equal("us-east-1a")
-
-
-@mock_ec2
-def test_run_instance_with_placement():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    instance = ec2.create_instances(
-        ImageId=EXAMPLE_AMI_ID,
-        MinCount=1,
-        MaxCount=1,
-        Placement={"AvailabilityZone": "us-east-1b"},
-    )[0]
-
-    instance.placement.should.have.key("AvailabilityZone").equal("us-east-1b")
 
 
 @mock_ec2
@@ -1566,6 +1562,25 @@ def test_run_instance_with_keypair():
 
 
 @mock_ec2
+def test_describe_instances_with_keypair_filter():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    for i in range(3):
+        key_name = "kp-single" if i % 2 else "kp-multiple"
+        ec2.create_instances(
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, KeyName=key_name
+        )
+    test_data = [
+        (["kp-single"], 1),
+        (["kp-multiple"], 2),
+        (["kp-single", "kp-multiple"], 3),
+    ]
+    for filter_values, expected_instance_count in test_data:
+        _filter = [{"Name": "key-name", "Values": filter_values}]
+        instances_found = list(ec2.instances.filter(Filters=_filter))
+        instances_found.should.have.length_of(expected_instance_count)
+
+
+@mock_ec2
 @mock.patch(
     "moto.ec2.models.instances.settings.ENABLE_KEYPAIR_VALIDATION",
     new_callable=mock.PropertyMock(return_value=True),
@@ -1972,6 +1987,22 @@ def test_modify_delete_on_termination():
 
 
 @mock_ec2
+def test_create_instance_with_default_options():
+    client = boto3.client("ec2", region_name="eu-west-1")
+
+    def assert_instance(instance):
+        # TODO: Add additional asserts for default instance response
+        assert instance["ImageId"] == EXAMPLE_AMI_ID
+        assert "KeyName" not in instance
+
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1)
+    assert_instance(resp["Instances"][0])
+
+    resp = client.describe_instances(InstanceIds=[resp["Instances"][0]["InstanceId"]])
+    assert_instance(resp["Reservations"][0]["Instances"][0])
+
+
+@mock_ec2
 def test_create_instance_ebs_optimized():
     ec2_resource = boto3.resource("ec2", region_name="eu-west-1")
 
@@ -2268,14 +2299,13 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
         LaunchTemplateName=str(uuid4()), LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID}
     )["LaunchTemplate"]
 
-    with pytest.warns(None) as captured_warnings:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         resource.create_instances(
             MinCount=1,
             MaxCount=1,
             LaunchTemplate={launch_template_kind: template[launch_template_kind]},
         )
-
-    assert len(captured_warnings) == 0
 
 
 @mock_ec2

@@ -4,7 +4,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_ec2
-from moto.ec2.models import OWNER_ID
+from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
 from moto.kms import mock_kms
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
@@ -44,6 +44,42 @@ def test_create_and_delete_volume():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidVolume.NotFound")
+
+
+@mock_ec2
+def test_modify_volumes():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    old_size = 80
+    new_size = 160
+    new_type = "io2"
+
+    volume_id = ec2.create_volume(Size=old_size, AvailabilityZone="us-east-1a").id
+
+    # Ensure no modification records exist
+    modifications = client.describe_volumes_modifications()
+    modifications["VolumesModifications"].should.have.length_of(0)
+
+    # Ensure volume size can be modified
+    response = client.modify_volume(VolumeId=volume_id, Size=new_size)
+    response["VolumeModification"]["OriginalSize"].should.equal(old_size)
+    response["VolumeModification"]["TargetSize"].should.equal(new_size)
+    client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["Size"].should.equal(
+        new_size
+    )
+
+    # Ensure volume type can be modified
+    response = client.modify_volume(VolumeId=volume_id, VolumeType=new_type)
+    response["VolumeModification"]["OriginalVolumeType"].should.equal("gp2")
+    response["VolumeModification"]["TargetVolumeType"].should.equal(new_type)
+    client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0][
+        "VolumeType"
+    ].should.equal(new_type)
+
+    # Ensure volume modifications are tracked
+    modifications = client.describe_volumes_modifications()
+    modifications["VolumesModifications"].should.have.length_of(2)
 
 
 @mock_ec2

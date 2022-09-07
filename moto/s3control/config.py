@@ -7,12 +7,12 @@ from boto3 import Session
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.common_models import ConfigQueryModel
 from moto.s3control import s3control_backends
-from moto.s3.models import get_moto_s3_account_id
 
 
 class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
     def list_config_service_resources(
         self,
+        account_id,
         resource_ids,
         resource_name,
         limit,
@@ -29,19 +29,18 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
             return [], None
 
         pab = None
-        account_id = get_moto_s3_account_id()
         regions = [region for region in Session().get_available_regions("config")]
 
         # If a resource ID was passed in, then filter accordingly:
         if resource_ids:
             for resource_id in resource_ids:
                 if account_id == resource_id:
-                    pab = self.backends["global"].public_access_block
+                    pab = self.backends[account_id]["global"].public_access_block
                     break
 
         # Otherwise, just grab the one from the backend:
         if not resource_ids:
-            pab = self.backends["global"].public_access_block
+            pab = self.backends[account_id]["global"].public_access_block
 
         # If it's not present, then return nothing
         if not pab:
@@ -95,18 +94,23 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
         )
 
     def get_config_resource(
-        self, resource_id, resource_name=None, backend_region=None, resource_region=None
+        self,
+        account_id,
+        resource_id,
+        resource_name=None,
+        backend_region=None,
+        resource_region=None,
     ):
+
         # Do we even have this defined?
-        if not self.backends["global"].public_access_block:
+        backend = self.backends[account_id]["global"]
+        if not backend.public_access_block:
             return None
 
         # Resource name can only ever be "" if it's supplied:
         if resource_name is not None and resource_name != "":
             return None
 
-        # Are we filtering based on region?
-        account_id = get_moto_s3_account_id()
         regions = [region for region in Session().get_available_regions("config")]
 
         # Is the resource ID correct?:
@@ -138,9 +142,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
             "resourceId": account_id,
             "awsRegion": pab_region,
             "availabilityZone": "Not Applicable",
-            "configuration": self.backends[
-                "global"
-            ].public_access_block.to_config_dict(),
+            "configuration": backend.public_access_block.to_config_dict(),
             "supplementaryConfiguration": {},
         }
 

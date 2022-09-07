@@ -80,7 +80,11 @@ class WAFV2Backend(BaseBackend):
     def create_web_acl(self, name, visibility_config, default_action, scope):
         wacl_id = str(uuid4())
         arn = make_arn_for_wacl(
-            name=name, region_name=self.region_name, wacl_id=wacl_id, scope=scope
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            wacl_id=wacl_id,
+            scope=scope,
         )
         if arn in self.wacls or self._is_duplicate_name(name):
             raise WAFV2DuplicateItemException()

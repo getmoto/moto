@@ -5,11 +5,12 @@ from .models import mediastore_backends
 
 
 class MediaStoreResponse(BaseResponse):
-    SERVICE_NAME = "mediastore"
+    def __init__(self):
+        super().__init__(service_name="mediastore")
 
     @property
     def mediastore_backend(self):
-        return mediastore_backends[self.region]
+        return mediastore_backends[self.current_account][self.region]
 
     def create_container(self):
         name = self._get_param("ContainerName")

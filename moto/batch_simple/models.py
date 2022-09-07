@@ -12,7 +12,7 @@ class BatchSimpleBackend(BaseBackend):
 
     @property
     def backend(self):
-        return batch_backends[self.region_name]
+        return batch_backends[self.account_id][self.region_name]
 
     def __getattribute__(self, name):
         """
@@ -22,6 +22,7 @@ class BatchSimpleBackend(BaseBackend):
         """
         if name in [
             "backend",
+            "account_id",
             "region_name",
             "urls",
             "_url_module",

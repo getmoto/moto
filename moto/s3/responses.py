@@ -17,7 +17,6 @@ import xmltodict
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import path_url
-from moto.core import get_account_id
 
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,
@@ -155,9 +154,12 @@ def is_delete_keys(request, path):
 
 
 class S3Response(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="s3")
+
     @property
     def backend(self):
-        return s3_backends["global"]
+        return s3_backends[self.current_account]["global"]
 
     @property
     def should_autoescape(self):
@@ -429,7 +431,11 @@ class S3Response(BaseResponse):
                     if upload.key_name.startswith(prefix)
                 ]
             template = self.response_template(S3_ALL_MULTIPARTS)
-            return template.render(bucket_name=bucket_name, uploads=multiparts)
+            return template.render(
+                bucket_name=bucket_name,
+                uploads=multiparts,
+                account_id=self.current_account,
+            )
         elif "location" in querystring:
             location = self.backend.get_bucket_location(bucket_name)
             template = self.response_template(S3_BUCKET_LOCATION)
@@ -557,6 +563,13 @@ class S3Response(BaseResponse):
                 return 404, {}, template.render(bucket_name=bucket_name)
             template = self.response_template(S3_REPLICATION_CONFIG)
             return 200, {}, template.render(replication=replication)
+        elif "ownershipControls" in querystring:
+            ownership_rule = self.backend.get_bucket_ownership_controls(bucket_name)
+            if not ownership_rule:
+                template = self.response_template(S3_ERROR_BUCKET_ONWERSHIP_NOT_FOUND)
+                return 404, {}, template.render(bucket_name=bucket_name)
+            template = self.response_template(S3_BUCKET_GET_OWNERSHIP_RULE)
+            return 200, {}, template.render(ownership_rule=ownership_rule)
 
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get("prefix", [None])[0]
@@ -831,6 +844,13 @@ class S3Response(BaseResponse):
             replication_config = self._replication_config_from_xml(self.body)
             self.backend.put_bucket_replication(bucket_name, replication_config)
             return ""
+        elif "ownershipControls" in querystring:
+            ownership_rule = self._ownership_rule_from_body()
+            self.backend.put_bucket_ownership_controls(
+                bucket_name, ownership=ownership_rule
+            )
+            return ""
+
         else:
             # us-east-1, the default AWS region behaves a bit differently
             # - you should not use it as a location constraint --> it fails
@@ -887,6 +907,10 @@ class S3Response(BaseResponse):
                 new_bucket.object_lock_enabled = True
                 new_bucket.versioning_status = "Enabled"
 
+            ownership_rule = request.headers.get("x-amz-object-ownership")
+            if ownership_rule:
+                new_bucket.ownership_rule = ownership_rule
+
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
             return 200, {}, template.render(bucket=new_bucket)
 
@@ -917,6 +941,9 @@ class S3Response(BaseResponse):
             return 204, {}, ""
         elif "replication" in querystring:
             self.backend.delete_bucket_replication(bucket_name)
+            return 204, {}, ""
+        elif "ownershipControls" in querystring:
+            self.backend.delete_bucket_ownership_controls(bucket_name)
             return 204, {}, ""
 
         removed_bucket = self.backend.delete_bucket(bucket_name)
@@ -1129,7 +1156,7 @@ class S3Response(BaseResponse):
             key = self.backend.get_object(bucket_name, key_name)
 
             if key:
-                if not key.acl.public_read and not signed_url:
+                if (key.acl and not key.acl.public_read) and not signed_url:
                     return 403, {}, ""
             elif signed_url:
                 # coming in from requests.get(s3.generate_presigned_url())
@@ -1350,6 +1377,16 @@ class S3Response(BaseResponse):
             "x-amz-server-side-encryption-aws-kms-key-id", None
         )
 
+        checksum_algorithm = request.headers.get("x-amz-sdk-checksum-algorithm", "")
+        checksum_header = f"x-amz-checksum-{checksum_algorithm.lower()}"
+        checksum_value = request.headers.get(checksum_header)
+        if not checksum_value and checksum_algorithm:
+            search = re.search(r"x-amz-checksum-\w+:(\w+={1,2})", body.decode())
+            checksum_value = search.group(1) if search else None
+
+        if checksum_value:
+            response_headers.update({checksum_header: checksum_value})
+
         bucket_key_enabled = request.headers.get(
             "x-amz-server-side-encryption-bucket-key-enabled", None
         )
@@ -1541,6 +1578,12 @@ class S3Response(BaseResponse):
                     return 304, response_headers, "Not Modified"
             if if_none_match and key.etag == if_none_match:
                 return 304, response_headers, "Not Modified"
+
+            if part_number:
+                full_key = self.backend.head_object(bucket_name, key_name, version_id)
+                if full_key.multipart:
+                    mp_part_count = str(len(full_key.multipart.partlist))
+                    response_headers["x-amz-mp-parts-count"] = mp_part_count
 
             return 200, response_headers, ""
         else:
@@ -1745,6 +1788,14 @@ class S3Response(BaseResponse):
 
         return parsed_xml["ServerSideEncryptionConfiguration"]
 
+    def _ownership_rule_from_body(self):
+        parsed_xml = xmltodict.parse(self.body)
+
+        if not parsed_xml["OwnershipControls"]["Rule"].get("ObjectOwnership"):
+            raise MalformedXML()
+
+        return parsed_xml["OwnershipControls"]["Rule"]["ObjectOwnership"]
+
     def _logging_from_body(self):
         parsed_xml = xmltodict.parse(self.body)
 
@@ -1913,20 +1964,38 @@ class S3Response(BaseResponse):
         self._set_action("KEY", "POST", query)
         self._authenticate_and_authorize_s3_action()
 
+        encryption = request.headers.get("x-amz-server-side-encryption")
+        kms_key_id = request.headers.get("x-amz-server-side-encryption-aws-kms-key-id")
+
         if body == b"" and "uploads" in query:
+            response_headers = {}
             metadata = metadata_from_headers(request.headers)
             tagging = self._tagging_from_headers(request.headers)
             storage_type = request.headers.get("x-amz-storage-class", "STANDARD")
             acl = self._acl_from_headers(request.headers)
+
             multipart_id = self.backend.create_multipart_upload(
-                bucket_name, key_name, metadata, storage_type, tagging, acl
+                bucket_name,
+                key_name,
+                metadata,
+                storage_type,
+                tagging,
+                acl,
+                encryption,
+                kms_key_id,
             )
+            if encryption:
+                response_headers["x-amz-server-side-encryption"] = encryption
+            if kms_key_id:
+                response_headers[
+                    "x-amz-server-side-encryption-aws-kms-key-id"
+                ] = kms_key_id
 
             template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(
                 bucket_name=bucket_name, key_name=key_name, upload_id=multipart_id
             )
-            return 200, {}, response
+            return 200, response_headers, response
 
         if query.get("uploadId"):
             body = self._complete_multipart_body(body)
@@ -1945,6 +2014,8 @@ class S3Response(BaseResponse):
                 storage=multipart.storage,
                 etag=etag,
                 multipart=multipart,
+                encryption=multipart.sse_encryption,
+                kms_key_id=multipart.kms_key_id,
             )
             key.set_metadata(multipart.metadata)
             self.backend.set_key_tags(key, multipart.tags)
@@ -1954,6 +2025,13 @@ class S3Response(BaseResponse):
             headers = {}
             if key.version_id:
                 headers["x-amz-version-id"] = key.version_id
+
+            if key.encryption:
+                headers["x-amz-server-side-encryption"] = key.encryption
+
+            if key.kms_key_id:
+                headers["x-amz-server-side-encryption-aws-kms-key-id"] = key.kms_key_id
+
             return (
                 200,
                 headers,
@@ -2429,8 +2507,7 @@ S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </CompleteMultipartUploadResult>
 """
 
-S3_ALL_MULTIPARTS = (
-    """<?xml version="1.0" encoding="UTF-8"?>
+S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
 <ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Bucket>{{ bucket_name }}</Bucket>
   <KeyMarker></KeyMarker>
@@ -2442,9 +2519,7 @@ S3_ALL_MULTIPARTS = (
     <Key>{{ upload.key_name }}</Key>
     <UploadId>{{ upload.id }}</UploadId>
     <Initiator>
-      <ID>arn:aws:iam::"""
-    + get_account_id()
-    + """:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
+      <ID>arn:aws:iam::{{ account_id }}:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
       <DisplayName>user1-11111a31-17b5-4fb7-9df5-b111111f13de</DisplayName>
     </Initiator>
     <Owner>
@@ -2457,7 +2532,6 @@ S3_ALL_MULTIPARTS = (
   {% endfor %}
 </ListMultipartUploadsResult>
 """
-)
 
 S3_NO_POLICY = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>
@@ -2744,4 +2818,22 @@ S3_REPLICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 {% endfor %}
 <Role>{{ replication["Role"] }}</Role>
 </ReplicationConfiguration>
+"""
+
+S3_BUCKET_GET_OWNERSHIP_RULE = """<?xml version="1.0" encoding="UTF-8"?>
+<OwnershipControls xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    <Rule>
+        <ObjectOwnership>{{ownership_rule}}</ObjectOwnership>
+    </Rule>
+</OwnershipControls>
+"""
+
+S3_ERROR_BUCKET_ONWERSHIP_NOT_FOUND = """
+<Error>
+    <Code>OwnershipControlsNotFoundError</Code>
+    <Message>The bucket ownership controls were not found</Message>
+    <BucketName>{{bucket_name}}</BucketName>
+    <RequestId>294PFVCB9GFVXY2S</RequestId>
+    <HostId>l/tqqyk7HZbfvFFpdq3+CAzA9JXUiV4ZajKYhwolOIpnmlvZrsI88AKsDLsgQI6EvZ9MuGHhk7M=</HostId>
+</Error>
 """

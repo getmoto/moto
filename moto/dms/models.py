@@ -1,7 +1,7 @@
 import json
 
 from datetime import datetime
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 
 from .exceptions import (
@@ -46,6 +46,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
             migration_type=migration_type,
             table_mappings=table_mappings,
             replication_task_settings=replication_task_settings,
+            account_id=self.account_id,
             region_name=self.region_name,
         )
 
@@ -106,6 +107,7 @@ class FakeReplicationTask(BaseModel):
         target_endpoint_arn,
         table_mappings,
         replication_task_settings,
+        account_id,
         region_name,
     ):
         self.id = replication_task_identifier
@@ -117,17 +119,12 @@ class FakeReplicationTask(BaseModel):
         self.table_mappings = table_mappings
         self.replication_task_settings = replication_task_settings
 
+        self.arn = f"arn:aws:dms:{region_name}:{account_id}:task:{self.id}"
         self.status = "creating"
 
         self.creation_date = datetime.utcnow()
         self.start_date = None
         self.stop_date = None
-
-    @property
-    def arn(self):
-        return "arn:aws:dms:{region}:{account_id}:task:{task_id}".format(
-            region=self.region, account_id=get_account_id(), task_id=self.id
-        )
 
     def to_dict(self):
         start_date = self.start_date.isoformat() if self.start_date else None

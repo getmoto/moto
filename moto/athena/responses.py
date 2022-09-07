@@ -5,9 +5,12 @@ from .models import athena_backends
 
 
 class AthenaResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="athena")
+
     @property
     def athena_backend(self):
-        return athena_backends[self.region]
+        return athena_backends[self.current_account][self.region]
 
     def create_work_group(self):
         name = self._get_param("Name")

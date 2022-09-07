@@ -6,12 +6,12 @@ from .models import timestreamwrite_backends
 
 class TimestreamWriteResponse(BaseResponse):
     def __init__(self):
-        super().__init__()
+        super().__init__(service_name="timestream-write")
 
     @property
     def timestreamwrite_backend(self):
         """Return backend instance specific for this region."""
-        return timestreamwrite_backends[self.region]
+        return timestreamwrite_backends[self.current_account][self.region]
 
     def create_database(self):
         database_name = self._get_param("DatabaseName")

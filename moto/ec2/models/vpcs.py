@@ -4,7 +4,6 @@ import weakref
 from collections import defaultdict
 from operator import itemgetter
 
-from moto.core import get_account_id
 from moto.core import CloudFormationModel
 from .core import TaggedEC2Resource
 from ..exceptions import (
@@ -85,7 +84,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.ec2_backend.account_id
 
     @property
     def physical_resource_id(self):
@@ -101,7 +100,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
@@ -116,7 +115,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         route_table_ids = properties.get("RouteTableIds")
         security_group_ids = properties.get("SecurityGroupIds")
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         vpc_endpoint = ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
             service_name=service_name,
@@ -139,6 +138,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         is_default,
         instance_tenancy="default",
         amazon_provided_ipv6_cidr_block=False,
+        ipv6_cidr_block_network_border_group=None,
     ):
 
         self.ec2_backend = ec2_backend
@@ -161,11 +161,12 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
             self.associate_vpc_cidr_block(
                 cidr_block,
                 amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
+                ipv6_cidr_block_network_border_group=ipv6_cidr_block_network_border_group,
             )
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.ec2_backend.account_id
 
     @staticmethod
     def cloudformation_name_type():
@@ -178,13 +179,13 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         vpc = ec2_backend.create_vpc(
             cidr_block=properties["CidrBlock"],
             instance_tenancy=properties.get("InstanceTenancy", "default"),
@@ -246,7 +247,10 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         return True
 
     def associate_vpc_cidr_block(
-        self, cidr_block, amazon_provided_ipv6_cidr_block=False
+        self,
+        cidr_block,
+        amazon_provided_ipv6_cidr_block=False,
+        ipv6_cidr_block_network_border_group=None,
     ):
         max_associations = 5 if not amazon_provided_ipv6_cidr_block else 1
 
@@ -274,6 +278,11 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         association_set["cidr_block"] = (
             random_ipv6_cidr() if amazon_provided_ipv6_cidr_block else cidr_block
         )
+        if amazon_provided_ipv6_cidr_block:
+            association_set["ipv6_pool"] = "Amazon"
+            association_set[
+                "ipv6_cidr_block_network_border_group"
+            ] = ipv6_cidr_block_network_border_group
         self.cidr_block_association_set[association_id] = association_set
         return association_set
 
@@ -345,6 +354,7 @@ class VPCBackend:
         cidr_block,
         instance_tenancy="default",
         amazon_provided_ipv6_cidr_block=False,
+        ipv6_cidr_block_network_border_group=None,
         tags=None,
         is_default=False,
     ):
@@ -362,6 +372,7 @@ class VPCBackend:
             is_default=is_default,
             instance_tenancy=instance_tenancy,
             amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
+            ipv6_cidr_block_network_border_group=ipv6_cidr_block_network_border_group,
         )
 
         for tag in tags or []:
@@ -617,7 +628,7 @@ class VPCBackend:
         return generic_filter(filters, vpc_end_points)
 
     @staticmethod
-    def _collect_default_endpoint_services(region):
+    def _collect_default_endpoint_services(account_id, region):
         """Return list of default services using list of backends."""
         if DEFAULT_VPC_ENDPOINT_SERVICES:
             return DEFAULT_VPC_ENDPOINT_SERVICES
@@ -631,7 +642,8 @@ class VPCBackend:
 
         from moto import backends  # pylint: disable=import-outside-toplevel
 
-        for _backends in backends.unique_backends():
+        for _backends in backends.service_backends():
+            _backends = _backends[account_id]
             if region in _backends:
                 service = _backends[region].default_vpc_endpoint_service(region, zones)
                 if service:
@@ -745,7 +757,9 @@ class VPCBackend:
 
         The DryRun parameter is ignored.
         """
-        default_services = self._collect_default_endpoint_services(region)
+        default_services = self._collect_default_endpoint_services(
+            self.account_id, region
+        )
         for service_name in service_names:
             if service_name not in [x["ServiceName"] for x in default_services]:
                 raise InvalidServiceName(service_name)

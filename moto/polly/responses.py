@@ -11,9 +11,12 @@ LEXICON_NAME_REGEX = re.compile(r"^[0-9A-Za-z]{1,20}$")
 
 
 class PollyResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="polly")
+
     @property
     def polly_backend(self):
-        return polly_backends[self.region]
+        return polly_backends[self.current_account][self.region]
 
     @property
     def json(self):

@@ -1,13 +1,16 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import organizations_backend
+from .models import organizations_backends
 
 
 class OrganizationsResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="organizations")
+
     @property
     def organizations_backend(self):
-        return organizations_backend
+        return organizations_backends[self.current_account]["global"]
 
     @property
     def request_params(self):

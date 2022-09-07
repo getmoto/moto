@@ -11,6 +11,7 @@ import pytz
 from freezegun import freeze_time
 
 from moto import mock_glue, settings
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from . import helpers
 
 
@@ -22,8 +23,9 @@ FROZEN_CREATE_TIME = datetime(2015, 1, 1, 0, 0, 0)
 def test_create_database():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
+    database_catalog_id = ACCOUNT_ID
     database_input = helpers.create_database_input(database_name)
-    helpers.create_database(client, database_name, database_input)
+    helpers.create_database(client, database_name, database_input, database_catalog_id)
 
     response = helpers.get_database(client, database_name)
     database = response["Database"]
@@ -38,7 +40,7 @@ def test_create_database():
         database_input.get("CreateTableDefaultPermissions")
     )
     database.get("TargetDatabase").should.equal(database_input.get("TargetDatabase"))
-    database.get("CatalogId").should.equal(database_input.get("CatalogId"))
+    database.get("CatalogId").should.equal(database_catalog_id)
 
 
 @mock_glue
@@ -88,6 +90,48 @@ def test_get_databases_several_items():
     database_list.should.have.length_of(2)
     database_list[0]["Name"].should.equal(database_name_1)
     database_list[1]["Name"].should.equal(database_name_2)
+
+
+@mock_glue
+def test_update_database():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "existingdatabase"
+    database_catalog_id = ACCOUNT_ID
+    helpers.create_database(
+        client, database_name, {"Name": database_name}, database_catalog_id
+    )
+
+    response = helpers.get_database(client, database_name)
+    database = response["Database"]
+    database.get("CatalogId").should.equal(database_catalog_id)
+    database.get("Description").should.be.none
+    database.get("LocationUri").should.be.none
+
+    database_input = {
+        "Name": database_name,
+        "Description": "desc",
+        "LocationUri": "s3://bucket/existingdatabase/",
+    }
+    client.update_database(
+        CatalogId=database_catalog_id, Name=database_name, DatabaseInput=database_input
+    )
+
+    response = helpers.get_database(client, database_name)
+    database = response["Database"]
+    database.get("CatalogId").should.equal(database_catalog_id)
+    database.get("Description").should.equal("desc")
+    database.get("LocationUri").should.equal("s3://bucket/existingdatabase/")
+
+
+@mock_glue
+def test_update_unknown_database():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.update_database(Name="x", DatabaseInput={"Name": "x"})
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.equal("Database x not found.")
 
 
 @mock_glue

@@ -9,10 +9,13 @@ from .models import es_backends
 class ElasticsearchServiceResponse(BaseResponse):
     """Handler for ElasticsearchService requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="elasticsearch")
+
     @property
     def es_backend(self):
         """Return backend instance specific for this region."""
-        return es_backends[self.region]
+        return es_backends[self.current_account][self.region]
 
     @classmethod
     def list_domains(cls, request, full_url, headers):

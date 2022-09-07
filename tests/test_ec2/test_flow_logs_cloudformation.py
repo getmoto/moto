@@ -4,7 +4,7 @@ import json
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudformation, mock_ec2, mock_s3
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
 

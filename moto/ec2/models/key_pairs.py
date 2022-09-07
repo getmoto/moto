@@ -10,11 +10,13 @@ from ..utils import (
     rsa_public_key_fingerprint,
     rsa_public_key_parse,
     generic_filter,
+    random_key_pair_id,
 )
 
 
 class KeyPair(BaseModel):
     def __init__(self, name, fingerprint, material):
+        self.id = random_key_pair_id()
         self.name = name
         self.fingerprint = fingerprint
         self.material = material

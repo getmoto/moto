@@ -83,7 +83,7 @@ VALID_RESOURCE_PATH_STARTING_VALUES = {
 }
 
 
-class IAMPolicyDocumentValidator:
+class BaseIAMPolicyValidator:
     def __init__(self, policy_document):
         self._policy_document = policy_document
         self._policy_json = {}
@@ -117,10 +117,6 @@ class IAMPolicyDocumentValidator:
             self._validate_action_like_exist()
         except Exception:
             raise MalformedPolicyDocument("Policy statement must contain actions.")
-        try:
-            self._validate_resource_exist()
-        except Exception:
-            raise MalformedPolicyDocument("Policy statement must contain resources.")
 
         if self._resource_error != "":
             raise MalformedPolicyDocument(self._resource_error)
@@ -521,3 +517,56 @@ class IAMPolicyDocumentValidator:
             if seconds_with_decimal_fraction_partition[1] == ".":
                 decimal_seconds = seconds_with_decimal_fraction_partition[2]
                 assert 0 <= int(decimal_seconds) <= 999999999
+
+
+class IAMPolicyDocumentValidator(BaseIAMPolicyValidator):
+    def __init__(self, policy_document):
+        super().__init__(policy_document)
+
+    def validate(self):
+        super().validate()
+        try:
+            self._validate_resource_exist()
+        except Exception:
+            raise MalformedPolicyDocument("Policy statement must contain resources.")
+
+
+class IAMTrustPolicyDocumentValidator(BaseIAMPolicyValidator):
+    def __init__(self, policy_document):
+        super().__init__(policy_document)
+
+    def validate(self):
+        super().validate()
+        try:
+            for statement in self._statements:
+                if isinstance(statement["Action"], str):
+                    IAMTrustPolicyDocumentValidator._validate_trust_policy_action(
+                        statement["Action"]
+                    )
+                else:
+                    for action in statement["Action"]:
+                        IAMTrustPolicyDocumentValidator._validate_trust_policy_action(
+                            action
+                        )
+        except Exception:
+            raise MalformedPolicyDocument(
+                "Trust Policy statement actions can only be sts:AssumeRole, "
+                "sts:AssumeRoleWithSAML,  and sts:AssumeRoleWithWebIdentity"
+            )
+        try:
+            self._validate_resource_not_exist()
+        except Exception:
+            raise MalformedPolicyDocument("Has prohibited field Resource.")
+
+    def _validate_resource_not_exist(self):
+        for statement in self._statements:
+            assert "Resource" not in statement and "NotResource" not in statement
+
+    @staticmethod
+    def _validate_trust_policy_action(action):
+        assert action in (
+            "sts:AssumeRole",
+            "sts:AssumeRoleWithSAML",
+            "sts:AssumeRoleWithWebIdentity",
+            "sts:TagSession",
+        )

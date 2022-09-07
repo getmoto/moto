@@ -1,12 +1,7 @@
-from moto.core import get_account_id
-
-
-def parameter_arn(region, parameter_name):
+def parameter_arn(account_id, region, parameter_name):
     if parameter_name[0] == "/":
         parameter_name = parameter_name[1:]
-    return "arn:aws:ssm:{0}:{1}:parameter/{2}".format(
-        region, get_account_id(), parameter_name
-    )
+    return f"arn:aws:ssm:{region}:{account_id}:parameter/{parameter_name}"
 
 
 def convert_to_tree(parameters):

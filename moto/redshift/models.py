@@ -29,14 +29,12 @@ from .exceptions import (
 )
 
 
-from moto.core import get_account_id
-
-
 class TaggableResourceMixin(object):
 
     resource_type = None
 
-    def __init__(self, region_name, tags):
+    def __init__(self, account_id, region_name, tags):
+        self.account_id = account_id
         self.region = region_name
         self.tags = tags or []
 
@@ -46,12 +44,7 @@ class TaggableResourceMixin(object):
 
     @property
     def arn(self):
-        return "arn:aws:redshift:{region}:{account_id}:{resource_type}:{resource_id}".format(
-            region=self.region,
-            account_id=get_account_id(),
-            resource_type=self.resource_type,
-            resource_id=self.resource_id,
-        )
+        return f"arn:aws:redshift:{self.region}:{self.account_id}:{self.resource_type}:{self.resource_id}"
 
     def create_tags(self, tags):
         new_keys = [tag_set["Key"] for tag_set in tags]
@@ -97,7 +90,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         restored_from_snapshot=False,
         kms_key_id=None,
     ):
-        super().__init__(region_name, tags)
+        super().__init__(redshift_backend.account_id, region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
         self.create_time = iso_8601_datetime_with_milliseconds(
@@ -171,9 +164,9 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        redshift_backend = redshift_backends[region_name]
+        redshift_backend = redshift_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
         if "ClusterSubnetGroupName" in properties:
@@ -359,7 +352,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
         region_name,
         tags=None,
     ):
-        super().__init__(region_name, tags)
+        super().__init__(ec2_backend.account_id, region_name, tags)
         self.ec2_backend = ec2_backend
         self.cluster_subnet_group_name = cluster_subnet_group_name
         self.description = description
@@ -378,9 +371,9 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        redshift_backend = redshift_backends[region_name]
+        redshift_backend = redshift_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
         subnet_group = redshift_backend.create_cluster_subnet_group(
@@ -426,9 +419,14 @@ class SecurityGroup(TaggableResourceMixin, BaseModel):
     resource_type = "securitygroup"
 
     def __init__(
-        self, cluster_security_group_name, description, region_name, tags=None
+        self,
+        cluster_security_group_name,
+        description,
+        account_id,
+        region_name,
+        tags=None,
     ):
-        super().__init__(region_name, tags)
+        super().__init__(account_id, region_name, tags)
         self.cluster_security_group_name = cluster_security_group_name
         self.description = description
         self.ingress_rules = []
@@ -456,10 +454,11 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
         cluster_parameter_group_name,
         group_family,
         description,
+        account_id,
         region_name,
         tags=None,
     ):
-        super().__init__(region_name, tags)
+        super().__init__(account_id, region_name, tags)
         self.cluster_parameter_group_name = cluster_parameter_group_name
         self.group_family = group_family
         self.description = description
@@ -475,9 +474,9 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        redshift_backend = redshift_backends[region_name]
+        redshift_backend = redshift_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
         parameter_group = redshift_backend.create_cluster_parameter_group(
@@ -509,12 +508,13 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         self,
         cluster,
         snapshot_identifier,
+        account_id,
         region_name,
         tags=None,
         iam_roles_arn=None,
         snapshot_type="manual",
     ):
-        super().__init__(region_name, tags)
+        super().__init__(account_id, region_name, tags)
         self.cluster = copy.copy(cluster)
         self.snapshot_identifier = snapshot_identifier
         self.snapshot_type = snapshot_type
@@ -559,7 +559,7 @@ class RedshiftBackend(BaseBackend):
         self.subnet_groups = {}
         self.security_groups = {
             "Default": SecurityGroup(
-                "Default", "Default Redshift Security Group", self.region_name
+                "Default", "Default Redshift Security Group", account_id, region_name
             )
         }
         self.parameter_groups = {
@@ -567,10 +567,11 @@ class RedshiftBackend(BaseBackend):
                 "default.redshift-1.0",
                 "redshift-1.0",
                 "Default Redshift parameter group",
+                self.account_id,
                 self.region_name,
             )
         }
-        self.ec2_backend = ec2_backends[self.region_name]
+        self.ec2_backend = ec2_backends[self.account_id][self.region_name]
         self.snapshots = OrderedDict()
         self.RESOURCE_TYPE_MAP = {
             "cluster": self.clusters,
@@ -776,10 +777,14 @@ class RedshiftBackend(BaseBackend):
         raise ClusterSubnetGroupNotFoundError(subnet_identifier)
 
     def create_cluster_security_group(
-        self, cluster_security_group_name, description, region_name, tags=None
+        self, cluster_security_group_name, description, tags=None
     ):
         security_group = SecurityGroup(
-            cluster_security_group_name, description, region_name, tags
+            cluster_security_group_name,
+            description,
+            self.account_id,
+            self.region_name,
+            tags,
         )
         self.security_groups[cluster_security_group_name] = security_group
         return security_group
@@ -817,7 +822,12 @@ class RedshiftBackend(BaseBackend):
         tags=None,
     ):
         parameter_group = ParameterGroup(
-            cluster_parameter_group_name, group_family, description, region_name, tags
+            cluster_parameter_group_name,
+            group_family,
+            description,
+            self.account_id,
+            region_name,
+            tags,
         )
         self.parameter_groups[cluster_parameter_group_name] = parameter_group
 
@@ -851,7 +861,12 @@ class RedshiftBackend(BaseBackend):
         if self.snapshots.get(snapshot_identifier) is not None:
             raise ClusterSnapshotAlreadyExistsError(snapshot_identifier)
         snapshot = Snapshot(
-            cluster, snapshot_identifier, region_name, tags, snapshot_type=snapshot_type
+            cluster,
+            snapshot_identifier,
+            self.account_id,
+            region_name,
+            tags,
+            snapshot_type=snapshot_type,
         )
         self.snapshots[snapshot_identifier] = snapshot
         return snapshot

@@ -6,7 +6,7 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_mediaconnect
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 region = "eu-west-1"
 
@@ -381,3 +381,93 @@ def test_remove_flow_output_succeeds():
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
     len(describe_response["Flow"]["Outputs"]).should.equal(0)
+
+
+@mock_mediaconnect
+def test_add_flow_sources_fails():
+    client = boto3.client("mediaconnect", region_name=region)
+    flow_arn = "unknown-flow"
+    with pytest.raises(ClientError) as err:
+        client.add_flow_sources(FlowArn=flow_arn, Sources=[])
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("flow with arn=unknown-flow not found")
+
+
+@mock_mediaconnect
+def test_add_flow_sources_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config("test-Flow-1")
+
+    create_response = client.create_flow(**channel_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    create_response["Flow"]["Status"].should.equal("STANDBY")
+    flow_arn = create_response["Flow"]["FlowArn"]
+
+    client.add_flow_sources(
+        FlowArn=flow_arn,
+        Sources=[
+            {
+                "Description": "string",
+                "Name": "string",
+                "Protocol": "rist",
+                "SenderControlPort": 123,
+            }
+        ],
+    )
+
+    describe_response = client.describe_flow(FlowArn=flow_arn)
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(describe_response["Flow"]["Sources"]).should.equal(1)
+
+
+@mock_mediaconnect
+def test_update_flow_source_fails():
+    client = boto3.client("mediaconnect", region_name=region)
+    flow_arn = "unknown-flow"
+    source_arn = "unknown-source"
+
+    channel_config = _create_flow_config("test-Flow-1")
+    client.create_flow(**channel_config)
+
+    with pytest.raises(ClientError) as err:
+        client.update_flow_source(
+            FlowArn=flow_arn, SourceArn=source_arn, Description="new description"
+        )
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("flow with arn=unknown-flow not found")
+
+
+@mock_mediaconnect
+def test_update_flow_source_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config("test-Flow-1")
+
+    create_response = client.create_flow(**channel_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    create_response["Flow"]["Status"].should.equal("STANDBY")
+    flow_arn = create_response["Flow"]["FlowArn"]
+
+    add_response = client.add_flow_sources(
+        FlowArn=flow_arn,
+        Sources=[
+            {
+                "Description": "string",
+                "Name": "string",
+                "Protocol": "rist",
+                "SenderControlPort": 123,
+            }
+        ],
+    )
+
+    describe_response = client.describe_flow(FlowArn=flow_arn)
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(describe_response["Flow"]["Sources"]).should.equal(1)
+
+    source_arn = add_response["Sources"][0]["SourceArn"]
+
+    update_response = client.update_flow_source(
+        FlowArn=flow_arn, SourceArn=source_arn, Description="new description"
+    )
+    update_response["Source"]["Description"].should.equal("new description")

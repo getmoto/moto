@@ -7,7 +7,7 @@ from botocore.parsers import ResponseParserError
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import settings, mock_ec2, mock_s3, mock_logs
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2.exceptions import FilterNotImplementedError
 from uuid import uuid4
 

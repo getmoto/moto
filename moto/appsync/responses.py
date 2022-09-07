@@ -9,10 +9,13 @@ from .models import appsync_backends
 class AppSyncResponse(BaseResponse):
     """Handler for AppSync requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="appsync")
+
     @property
     def appsync_backend(self):
         """Return backend instance specific for this region."""
-        return appsync_backends[self.region]
+        return appsync_backends[self.current_account][self.region]
 
     def graph_ql(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -114,7 +117,6 @@ class AppSyncResponse(BaseResponse):
         log_config = params.get("logConfig")
         authentication_type = params.get("authenticationType")
         user_pool_config = params.get("userPoolConfig")
-        print(user_pool_config)
         open_id_connect_config = params.get("openIDConnectConfig")
         additional_authentication_providers = params.get(
             "additionalAuthenticationProviders"
@@ -152,7 +154,6 @@ class AppSyncResponse(BaseResponse):
         api_key = self.appsync_backend.create_api_key(
             api_id=api_id, description=description, expires=expires
         )
-        print(api_key.to_json())
         return 200, {}, json.dumps(dict(apiKey=api_key.to_json()))
 
     def delete_api_key(self):

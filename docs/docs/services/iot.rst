@@ -225,7 +225,7 @@ iot
 - [ ] list_security_profiles_for_target
 - [ ] list_streams
 - [ ] list_tags_for_resource
-- [ ] list_targets_for_policy
+- [X] list_targets_for_policy
 - [ ] list_targets_for_security_profile
 - [X] list_thing_groups
 - [X] list_thing_groups_for_thing

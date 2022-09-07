@@ -1,6 +1,5 @@
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
-from moto.core import get_account_id
 from moto.core.utils import BackendDict
 import uuid
 import datetime
@@ -316,6 +315,7 @@ class Stack(BaseModel):
     def __init__(
         self,
         name,
+        account_id,
         region,
         service_role_arn,
         default_instance_profile_arn,
@@ -372,7 +372,7 @@ class Stack(BaseModel):
         self.id = "{0}".format(uuid.uuid4())
         self.layers = []
         self.apps = []
-        self.account_number = get_account_id()
+        self.account_number = account_id
         self.created_at = datetime.datetime.utcnow()
 
     def __eq__(self, other):
@@ -502,10 +502,10 @@ class OpsWorksBackend(BaseBackend):
         self.layers = {}
         self.apps = {}
         self.instances = {}
-        self.ec2_backend = ec2_backends[region_name]
+        self.ec2_backend = ec2_backends[account_id][region_name]
 
     def create_stack(self, **kwargs):
-        stack = Stack(**kwargs)
+        stack = Stack(account_id=self.account_id, **kwargs)
         self.stacks[stack.id] = stack
         return stack
 

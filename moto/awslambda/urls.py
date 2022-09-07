@@ -22,6 +22,7 @@ url_paths = {
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/code/?$": response.code,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/code-signing-config$": response.code_signing_config,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/concurrency/?$": response.function_concurrency,
+    r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/url/?$": response.function_url_config,
     r"{0}/(?P<api_version>[^/]+)/layers/?$": response.list_layers,
     r"{0}/(?P<api_version>[^/]+)/layers/(?P<layer_name>[\w_-]+)/versions/?$": response.layers_versions,
     r"{0}/(?P<api_version>[^/]+)/layers/(?P<layer_name>[\w_-]+)/versions/(?P<layer_version>[\w_-]+)$": response.layers_version,

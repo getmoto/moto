@@ -135,9 +135,12 @@ SSL_POLICIES = [
 
 
 class ELBV2Response(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="elbv2")
+
     @property
     def elbv2_backend(self):
-        return elbv2_backends[self.region]
+        return elbv2_backends[self.current_account][self.region]
 
     @amzn_request_id
     def create_load_balancer(self):

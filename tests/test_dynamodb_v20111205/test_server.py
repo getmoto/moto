@@ -315,7 +315,6 @@ def test_put_return_none_without_range_key(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
-    print(res)
     # This seems wrong - it should return nothing, considering return_values is set to none
     res["Attributes"].should.equal({"hkey": "customer", "name": "myname"})
 

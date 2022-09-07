@@ -7,11 +7,9 @@ from moto.core.utils import BackendDict
 from .resources import VOICE_DATA
 from .utils import make_arn_for_lexicon
 
-from moto.core import get_account_id
-
 
 class Lexicon(BaseModel):
-    def __init__(self, name, content, region_name):
+    def __init__(self, name, content, account_id, region_name):
         self.name = name
         self.content = content
         self.size = 0
@@ -19,7 +17,7 @@ class Lexicon(BaseModel):
         self.last_modified = None
         self.language_code = None
         self.lexemes_count = 0
-        self.arn = make_arn_for_lexicon(get_account_id(), name, region_name)
+        self.arn = make_arn_for_lexicon(account_id, name, region_name)
 
         self.update()
 
@@ -107,7 +105,9 @@ class PollyBackend(BaseBackend):
             # but keeps the ARN
             self._lexicons.update(content)
         else:
-            lexicon = Lexicon(name, content, region_name=self.region_name)
+            lexicon = Lexicon(
+                name, content, self.account_id, region_name=self.region_name
+            )
             self._lexicons[name] = lexicon
 
 

@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from ipaddress import ip_address, ip_network, IPv4Address
 import re
 
-from moto.core import get_account_id
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex, BackendDict
 from moto.ec2 import ec2_backends
@@ -87,6 +86,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
+        account_id,
         region,
         rule_id,
         creator_request_id,
@@ -96,6 +96,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
         resolver_endpoint_id=None,
         name=None,
     ):  # pylint: disable=too-many-arguments
+        self.account_id = account_id
         self.region = region
         self.creator_request_id = creator_request_id
         self.name = name
@@ -123,7 +124,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
     @property
     def arn(self):
         """Return ARN for this resolver rule."""
-        return f"arn:aws:route53resolver:{self.region}:{get_account_id()}:resolver-rule/{self.id}"
+        return f"arn:aws:route53resolver:{self.region}:{self.account_id}:resolver-rule/{self.id}"
 
     def description(self):
         """Return a dictionary of relevant info for this resolver rule."""
@@ -138,7 +139,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
             "Name": self.name,
             "TargetIps": self.target_ips,
             "ResolverEndpointId": self.resolver_endpoint_id,
-            "OwnerId": get_account_id(),
+            "OwnerId": self.account_id,
             "ShareStatus": self.share_status,
             "CreationTime": self.creation_time,
             "ModificationTime": self.modification_time,
@@ -165,6 +166,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
 
     def __init__(
         self,
+        account_id,
         region,
         endpoint_id,
         creator_request_id,
@@ -173,12 +175,14 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         ip_addresses,
         name=None,
     ):  # pylint: disable=too-many-arguments
+        self.account_id = account_id
         self.region = region
         self.creator_request_id = creator_request_id
         self.name = name
         self.security_group_ids = security_group_ids
         self.direction = direction
         self.ip_addresses = ip_addresses
+        self.ec2_backend = ec2_backends[self.account_id][self.region]
 
         # Constructed members.
         self.id = endpoint_id  # pylint: disable=invalid-name
@@ -204,7 +208,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
     @property
     def arn(self):
         """Return ARN for this resolver endpoint."""
-        return f"arn:aws:route53resolver:{self.region}:{get_account_id()}:resolver-endpoint/{self.id}"
+        return f"arn:aws:route53resolver:{self.region}:{self.account_id}:resolver-endpoint/{self.id}"
 
     def _vpc_id_from_subnet(self):
         """Return VPC Id associated with the subnet.
@@ -214,9 +218,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         of the subnets has already been checked.
         """
         first_subnet_id = self.ip_addresses[0]["SubnetId"]
-        subnet_info = ec2_backends[self.region].get_all_subnets(
-            subnet_ids=[first_subnet_id]
-        )[0]
+        subnet_info = self.ec2_backend.get_all_subnets(subnet_ids=[first_subnet_id])[0]
         return subnet_info.vpc_id
 
     def _build_subnet_info(self):
@@ -234,7 +236,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         eni_ids = []
         for subnet, ip_info in self.subnets.items():
             for ip_addr, eni_id in ip_info.items():
-                eni_info = ec2_backends[self.region].create_network_interface(
+                eni_info = self.ec2_backend.create_network_interface(
                     description=f"Route 53 Resolver: {self.id}:{eni_id}",
                     group_ids=self.security_group_ids,
                     interface_type="interface",
@@ -250,7 +252,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
     def delete_eni(self):
         """Delete the VPC ENI created for the subnet and IP combos."""
         for eni_id in self.eni_ids:
-            ec2_backends[self.region].delete_network_interface(eni_id)
+            self.ec2_backend.delete_network_interface(eni_id)
 
     def description(self):
         """Return a dictionary of relevant info for this resolver endpoint."""
@@ -299,7 +301,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         eni_id = f"rni-{get_random_hex(17)}"
         self.subnets[ip_address["SubnetId"]][ip_address["Ip"]] = eni_id
 
-        eni_info = ec2_backends[self.region].create_network_interface(
+        eni_info = self.ec2_backend.create_network_interface(
             description=f"Route 53 Resolver: {self.id}:{eni_id}",
             group_ids=self.security_group_ids,
             interface_type="interface",
@@ -326,9 +328,9 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             else:
                 self.subnets[ip_address["SubnetId"]].pop(ip_address["Ip"])
             for eni_id in self.eni_ids:
-                eni_info = ec2_backends[self.region].get_network_interface(eni_id)
+                eni_info = self.ec2_backend.get_network_interface(eni_id)
                 if eni_info.private_ip_address == ip_address.get("Ip"):
-                    ec2_backends[self.region].delete_network_interface(eni_id)
+                    self.ec2_backend.delete_network_interface(eni_id)
                     self.eni_ids.remove(eni_id)
             self.ip_address_count = len(self.ip_addresses)
 
@@ -343,6 +345,8 @@ class Route53ResolverBackend(BaseBackend):
         self.resolver_rule_associations = {}  # Key is resolver_rule_association_id)
         self.tagger = TaggingService()
 
+        self.ec2_backend = ec2_backends[self.account_id][self.region_name]
+
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
         """List of dicts representing default VPC endpoints for this service."""
@@ -350,18 +354,20 @@ class Route53ResolverBackend(BaseBackend):
             service_region, zones, "route53resolver"
         )
 
-    def associate_resolver_rule(self, region, resolver_rule_id, name, vpc_id):
+    def associate_resolver_rule(self, resolver_rule_id, name, vpc_id):
         validate_args(
             [("resolverRuleId", resolver_rule_id), ("name", name), ("vPCId", vpc_id)]
         )
 
         associations = [
-            x for x in self.resolver_rule_associations.values() if x.region == region
+            x
+            for x in self.resolver_rule_associations.values()
+            if x.region == self.region_name
         ]
         if len(associations) > ResolverRuleAssociation.MAX_RULE_ASSOCIATIONS_PER_REGION:
             # This error message was not verified to be the same for AWS.
             raise LimitExceededException(
-                f"Account '{get_account_id()}' has exceeded 'max-rule-association'"
+                f"Account '{self.account_id}' has exceeded 'max-rule-association'"
             )
 
         if resolver_rule_id not in self.resolver_rules:
@@ -369,7 +375,7 @@ class Route53ResolverBackend(BaseBackend):
                 f"Resolver rule with ID '{resolver_rule_id}' does not exist."
             )
 
-        vpcs = ec2_backends[region].describe_vpcs()
+        vpcs = self.ec2_backend.describe_vpcs()
         if vpc_id not in [x.id for x in vpcs]:
             raise InvalidParameterException(f"The vpc ID '{vpc_id}' does not exist")
 
@@ -386,14 +392,14 @@ class Route53ResolverBackend(BaseBackend):
 
         rule_association_id = f"rslvr-rrassoc-{get_random_hex(17)}"
         rule_association = ResolverRuleAssociation(
-            region, rule_association_id, resolver_rule_id, vpc_id, name
+            self.region_name, rule_association_id, resolver_rule_id, vpc_id, name
         )
         self.resolver_rule_associations[rule_association_id] = rule_association
         return rule_association
 
-    @staticmethod
-    def _verify_subnet_ips(region, ip_addresses, initial=True):
-        """Perform additional checks on the IPAddresses.
+    def _verify_subnet_ips(self, ip_addresses, initial=True):
+        """
+        Perform additional checks on the IPAddresses.
 
         NOTE: This does not include IPv6 addresses.
         """
@@ -407,9 +413,9 @@ class Route53ResolverBackend(BaseBackend):
         subnets = defaultdict(set)
         for subnet_id, ip_addr in [(x["SubnetId"], x["Ip"]) for x in ip_addresses]:
             try:
-                subnet_info = ec2_backends[region].get_all_subnets(
-                    subnet_ids=[subnet_id]
-                )[0]
+                subnet_info = self.ec2_backend.get_all_subnets(subnet_ids=[subnet_id])[
+                    0
+                ]
             except InvalidSubnetIdError as exc:
                 raise InvalidParameterException(
                     f"The subnet ID '{subnet_id}' does not exist"
@@ -430,8 +436,7 @@ class Route53ResolverBackend(BaseBackend):
                 )
             subnets[subnet_id].add(ip_addr)
 
-    @staticmethod
-    def _verify_security_group_ids(region, security_group_ids):
+    def _verify_security_group_ids(self, security_group_ids):
         """Perform additional checks on the security groups."""
         if len(security_group_ids) > 10:
             raise InvalidParameterException("Maximum of 10 security groups are allowed")
@@ -443,7 +448,7 @@ class Route53ResolverBackend(BaseBackend):
                     f"(expecting 'sg-...')"
                 )
             try:
-                ec2_backends[region].describe_security_groups(group_ids=[group_id])
+                self.ec2_backend.describe_security_groups(group_ids=[group_id])
             except InvalidSecurityGroupNotFoundError as exc:
                 raise ResourceNotFoundException(
                     f"The security group '{group_id}' does not exist"
@@ -484,18 +489,18 @@ class Route53ResolverBackend(BaseBackend):
         endpoints = [x for x in self.resolver_endpoints.values() if x.region == region]
         if len(endpoints) > ResolverEndpoint.MAX_ENDPOINTS_PER_REGION:
             raise LimitExceededException(
-                f"Account '{get_account_id()}' has exceeded 'max-endpoints'"
+                f"Account '{self.account_id}' has exceeded 'max-endpoints'"
             )
 
         for x in ip_addresses:
             if not x.get("Ip"):
-                subnet_info = ec2_backends[region].get_all_subnets(
+                subnet_info = self.ec2_backend.get_all_subnets(
                     subnet_ids=[x["SubnetId"]]
                 )[0]
                 x["Ip"] = subnet_info.get_available_subnet_ip(self)
 
-        self._verify_subnet_ips(region, ip_addresses)
-        self._verify_security_group_ids(region, security_group_ids)
+        self._verify_subnet_ips(ip_addresses)
+        self._verify_security_group_ids(security_group_ids)
         if creator_request_id in [
             x.creator_request_id for x in self.resolver_endpoints.values()
         ]:
@@ -508,6 +513,7 @@ class Route53ResolverBackend(BaseBackend):
             f"rslvr-{'in' if direction == 'INBOUND' else 'out'}-{get_random_hex(17)}"
         )
         resolver_endpoint = ResolverEndpoint(
+            self.account_id,
             region,
             endpoint_id,
             creator_request_id,
@@ -553,7 +559,7 @@ class Route53ResolverBackend(BaseBackend):
         if len(rules) > ResolverRule.MAX_RULES_PER_REGION:
             # Did not verify that this is the actual error message.
             raise LimitExceededException(
-                f"Account '{get_account_id()}' has exceeded 'max-rules'"
+                f"Account '{self.account_id}' has exceeded 'max-rules'"
             )
 
         # Per the AWS documentation and as seen with the AWS console, target
@@ -601,6 +607,7 @@ class Route53ResolverBackend(BaseBackend):
 
         rule_id = f"rslvr-rr-{get_random_hex(17)}"
         resolver_rule = ResolverRule(
+            self.account_id,
             region,
             rule_id,
             creator_request_id,
@@ -865,18 +872,16 @@ class Route53ResolverBackend(BaseBackend):
         resolver_endpoint.update_name(name)
         return resolver_endpoint
 
-    def associate_resolver_endpoint_ip_address(
-        self, region, resolver_endpoint_id, ip_address
-    ):
+    def associate_resolver_endpoint_ip_address(self, resolver_endpoint_id, ip_address):
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
 
         if not ip_address.get("Ip"):
-            subnet_info = ec2_backends[region].get_all_subnets(
+            subnet_info = self.ec2_backend.get_all_subnets(
                 subnet_ids=[ip_address.get("SubnetId")]
             )[0]
             ip_address["Ip"] = subnet_info.get_available_subnet_ip(self)
-        self._verify_subnet_ips(region, [ip_address], False)
+        self._verify_subnet_ips([ip_address], False)
 
         resolver_endpoint.associate_ip_address(ip_address)
         return resolver_endpoint
