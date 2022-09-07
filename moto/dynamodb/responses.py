@@ -1,12 +1,12 @@
 import copy
 import json
-import re
 
 import itertools
 from functools import wraps
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
+from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 from .exceptions import (
     MockValidationException,
@@ -587,110 +587,15 @@ class DynamoHandler(BaseResponse):
         filter_kwargs = {}
 
         if key_condition_expression:
-            value_alias_map = self.body.get("ExpressionAttributeValues", {})
-
             index_name = self.body.get("IndexName")
             schema = self.dynamodb_backend.get_schema(
                 table_name=name, index_name=index_name
             )
-
-            reverse_attribute_lookup = dict(
-                (v, k) for k, v in self.body.get("ExpressionAttributeNames", {}).items()
-            )
-
-            if " and " in key_condition_expression.lower():
-                expressions = re.split(
-                    " AND ", key_condition_expression, maxsplit=1, flags=re.IGNORECASE
-                )
-
-                index_hash_key = [key for key in schema if key["KeyType"] == "HASH"][0]
-                hash_key_var = reverse_attribute_lookup.get(
-                    index_hash_key["AttributeName"], index_hash_key["AttributeName"]
-                )
-                hash_key_regex = r"(^|[\s(]){0}\b".format(hash_key_var)
-                i, hash_key_expression = next(
-                    (
-                        (i, e)
-                        for i, e in enumerate(expressions)
-                        if re.search(hash_key_regex, e)
-                    ),
-                    (None, None),
-                )
-                if hash_key_expression is None:
-                    raise MockValidationException(
-                        "Query condition missed key schema element: {}".format(
-                            hash_key_var
-                        )
-                    )
-                hash_key_expression = hash_key_expression.strip("()")
-                expressions.pop(i)
-
-                # TODO implement more than one range expression and OR operators
-                range_key_expression = expressions[0].strip("()")
-                # Split expression, and account for all kinds of whitespacing around commas and brackets
-                range_key_expression_components = re.split(
-                    r"\s*\(\s*|\s*,\s*|\s", range_key_expression
-                )
-                # Skip whitespace
-                range_key_expression_components = [
-                    c for c in range_key_expression_components if c
-                ]
-                range_comparison = range_key_expression_components[1]
-
-                if " and " in range_key_expression.lower():
-                    range_comparison = "BETWEEN"
-                    # [range_key, between, x, and, y]
-                    range_values = [
-                        value_alias_map[range_key_expression_components[2]],
-                        value_alias_map[range_key_expression_components[4]],
-                    ]
-                    supplied_range_key = range_key_expression_components[0]
-                elif "begins_with" in range_key_expression:
-                    range_comparison = "BEGINS_WITH"
-                    # [begins_with, range_key, x]
-                    range_values = [
-                        value_alias_map[range_key_expression_components[-1]]
-                    ]
-                    supplied_range_key = range_key_expression_components[1]
-                elif "begins_with" in range_key_expression.lower():
-                    function_used = range_key_expression[
-                        range_key_expression.lower().index("begins_with") : len(
-                            "begins_with"
-                        )
-                    ]
-                    raise MockValidationException(
-                        "Invalid KeyConditionExpression: Invalid function name; function: {}".format(
-                            function_used
-                        )
-                    )
-                else:
-                    # [range_key, =, x]
-                    range_values = [value_alias_map[range_key_expression_components[2]]]
-                    supplied_range_key = range_key_expression_components[0]
-
-                supplied_range_key = expression_attribute_names.get(
-                    supplied_range_key, supplied_range_key
-                )
-                range_keys = [
-                    k["AttributeName"] for k in schema if k["KeyType"] == "RANGE"
-                ]
-                if supplied_range_key not in range_keys:
-                    raise MockValidationException(
-                        "Query condition missed key schema element: {}".format(
-                            range_keys[0]
-                        )
-                    )
-            else:
-                hash_key_expression = key_condition_expression.strip("()")
-                range_comparison = None
-                range_values = []
-
-            if not re.search("[^<>]=", hash_key_expression):
-                raise MockValidationException("Query key condition not supported")
-            hash_key_value_alias = hash_key_expression.split("=")[1].strip()
-            # Temporary fix until we get proper KeyConditionExpression function
-            hash_key = value_alias_map.get(
-                hash_key_value_alias, {"S": hash_key_value_alias}
+            hash_key, range_comparison, range_values = parse_expression(
+                key_condition_expression=key_condition_expression,
+                expression_attribute_names=expression_attribute_names,
+                expression_attribute_values=expression_attribute_values,
+                schema=schema,
             )
         else:
             # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}

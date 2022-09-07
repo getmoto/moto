@@ -101,6 +101,33 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
 
 
 @mock_dynamodb
+def test_query_table_with_wrong_key_attribute_names_throws_exception():
+    item = {
+        "partitionKey": "pk-1",
+        "someAttribute": "lore ipsum",
+    }
+
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    table = dynamodb.Table("test-table")
+    table.put_item(Item=item)
+
+    # check using wrong name for sort key throws exception
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression="wrongName = :pk",
+            ExpressionAttributeValues={":pk": "pk"},
+        )["Items"]
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "Query condition missed key schema element: partitionKey"
+    )
+
+
+@mock_dynamodb
 def test_empty_expressionattributenames():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
@@ -667,3 +694,31 @@ def test_batch_put_item_with_empty_value():
     # Empty regular parameter workst just fine though
     with table.batch_writer() as batch:
         batch.put_item(Item={"pk": "sth", "sk": "else", "par": ""})
+
+
+@mock_dynamodb
+def test_query_begins_with_without_brackets():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName="test-table",
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
+    )
+    with pytest.raises(ClientError) as exc:
+        client.query(
+            TableName="test-table",
+            KeyConditionExpression="pk=:pk AND begins_with sk, :sk ",
+            ExpressionAttributeValues={":pk": {"S": "test1"}, ":sk": {"S": "test2"}},
+        )
+    err = exc.value.response["Error"]
+    err["Message"].should.equal(
+        'Invalid KeyConditionExpression: Syntax error; token: "sk"'
+    )
+    err["Code"].should.equal("ValidationException")
