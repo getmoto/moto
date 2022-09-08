@@ -72,7 +72,7 @@ class Execution(BaseModel):
         self.config = config
         self.workgroup = workgroup
         self.start_time = time.time()
-        self.status = "QUEUED"
+        self.status = "SUCCEEDED"
 
 
 class NamedQuery(BaseModel):
@@ -139,8 +139,40 @@ class AthenaBackend(BaseBackend):
         self.executions[execution.id] = execution
         return execution.id
 
-    def get_execution(self, exec_id):
+    def get_query_execution(self, exec_id):
         return self.executions[exec_id]
+
+    def list_query_executions(self):
+        return self.executions
+
+    def get_query_results(self, exec_id):
+        return {
+            "ResultSet": {
+                "Rows": [
+                    {
+                        "Data": [
+                            {"VarCharValue": "string"},
+                        ]
+                    },
+                ],
+                "ResultSetMetadata": {
+                    "ColumnInfo": [
+                        {
+                            "CatalogName": "string",
+                            "SchemaName": "string",
+                            "TableName": "string",
+                            "Name": "string",
+                            "Label": "string",
+                            "Type": "string",
+                            "Precision": 123,
+                            "Scale": 123,
+                            "Nullable": "NOT_NULL",
+                            "CaseSensitive": False,
+                        },
+                    ]
+                },
+            }
+        }
 
     def stop_query_execution(self, exec_id):
         execution = self.executions[exec_id]

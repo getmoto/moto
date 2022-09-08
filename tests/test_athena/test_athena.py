@@ -134,7 +134,7 @@ def test_get_query_execution():
     details["StatementType"].should.equal("DDL")
     details["ResultConfiguration"]["OutputLocation"].should.equal(location)
     details["QueryExecutionContext"]["Database"].should.equal(database)
-    details["Status"]["State"].should.equal("QUEUED")
+    details["Status"]["State"].should.equal("SUCCEEDED")
     details["Statistics"].should.equal(
         {
             "EngineExecutionTimeInMillis": 0,
