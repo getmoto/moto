@@ -82,3 +82,36 @@ class ValidationException(BadRequest):
                 "__type": "ValidationException",
             }
         )
+
+
+class RecordSizeExceedsLimit(BadRequest):
+    def __init__(self, position):
+        super().__init__()
+        self.description = json.dumps(
+            {
+                "message": f"1 validation error detected: Value at 'records.{position}.member.data' failed to satisfy constraint: Member must have length less than or equal to 1048576",
+                "__type": "ValidationException",
+            }
+        )
+
+
+class TotalRecordsSizeExceedsLimit(BadRequest):
+    def __init__(self):
+        super().__init__()
+        self.description = json.dumps(
+            {
+                "message": "Records size exceeds 5 MB limit",
+                "__type": "InvalidArgumentException",
+            }
+        )
+
+
+class TooManyRecords(BadRequest):
+    def __init__(self):
+        super().__init__()
+        self.description = json.dumps(
+            {
+                "message": "1 validation error detected: Value at 'records' failed to satisfy constraint: Member must have length less than or equal to 500",
+                "__type": "ValidationException",
+            }
+        )
