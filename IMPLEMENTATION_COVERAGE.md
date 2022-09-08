@@ -3638,7 +3638,7 @@
 
 ## kinesis
 <details>
-<summary>89% implemented</summary>
+<summary>93% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -3668,7 +3668,7 @@
 - [X] stop_stream_encryption
 - [ ] subscribe_to_shard
 - [X] update_shard_count
-- [ ] update_stream_mode
+- [X] update_stream_mode
 </details>
 
 ## kinesis-video-archived-media

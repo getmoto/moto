@@ -135,8 +135,10 @@ iam:
 iot:
   - TestAccIoTEndpointDataSource
 kinesis:
-  - TestAccKinesisStream_basic
-  - TestAccKinesisStream_disappear
+  - TestAccKinesisStreamConsumerDataSource_
+  - TestAccKinesisStreamConsumer_
+  - TestAccKinesisStreamDataSource_
+  - TestAccKinesisStream_
 kms:
   - TestAccKMSAlias
   - TestAccKMSGrant_arn
