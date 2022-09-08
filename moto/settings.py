@@ -28,9 +28,6 @@ ENABLE_KEYPAIR_VALIDATION = bool(
 
 ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False))
 
-ENABLE_RECORDING = bool(os.environ.get("MOTO_ENABLE_RECORDING", False))
-RECORDING_FILEPATH = str(os.environ.get("MOTO_RECORDING_FILEPATH", "moto_recording"))
-
 
 def get_sf_execution_history_type():
     """

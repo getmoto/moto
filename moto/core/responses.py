@@ -433,86 +433,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         random.seed(request.args["seed"])
         return 200, {}, "Rand seed is {0}".format(request.args["seed"])
 
-    def _record_to_file(self):
-        filepath = settings.RECORDING_FILEPATH
-        with open(filepath, "a+") as file:
-            entry = {
-                "module": self.__module__,
-                "response_type": self.__class__.__name__,
-                "response_headers": self.response_headers,
-                "region": self.region,
-                "body": self.body,
-                "uri_match": self.uri_match,
-                "querystring": self.querystring,
-            }
-            file.write(json.dumps(entry))
-            file.write("\n")
-
-    def reset_recording(
-        self, request, full_url, headers
-    ):  # pylint: disable=unused-argument
-        filepath = settings.RECORDING_FILEPATH
-        with open(filepath, "w"):
-            pass
-        return 200, {}, ""
-
-    def start_recording(
-        self, request, full_url, headers
-    ):  # pylint: disable=unused-argument
-        settings.ENABLE_RECORDING = True
-        return 200, {}, "Recording is set to {0}".format(settings.ENABLE_RECORDING)
-
-    def stop_recording(
-        self, request, full_url, headers
-    ):  # pylint: disable=unused-argument
-        settings.ENABLE_RECORDING = False
-        return 200, {}, "Recording is set to {0}".format(settings.ENABLE_RECORDING)
-
-    def upload_recording(
-        self, request, full_url, headers
-    ):  # pylint: disable=unused-argument
-        filepath = settings.RECORDING_FILEPATH
-        with open(filepath, "bw") as file:
-            file.write(request.data)
-        return 200, {}, ""
-
-    def download_recording(
-        self, request, full_url, headers
-    ):  # pylint: disable=unused-argument
-        filepath = settings.RECORDING_FILEPATH
-        with open(filepath, "r") as file:
-            return 200, {}, file.read()
-
-    # NOTE: Replaying assumes, for simplicity, that it is the only action
-    # running against moto at the time. No recording happens while replaying.
-    def replay_recording(
-        self, request, full_url, headers
-    ):  # pylint: disable=unused-argument
-        filepath = settings.RECORDING_FILEPATH
-
-        # do not record the replay itself
-        old_setting = settings.ENABLE_RECORDING
-        settings.ENABLE_RECORDING = False
-
-        with open(filepath, "r") as file:
-            entries = file.readlines()
-
-        for row in entries:
-            row_loaded = json.loads(row)
-            response_class = getattr(
-                importlib.import_module(row_loaded.pop("module")),
-                row_loaded.pop("response_type"),
-            )
-            response = response_class()
-            for attr in list(row_loaded):
-                setattr(response, attr, row_loaded[attr])
-            response.call_action()
-
-        # restore the recording setting
-        settings.ENABLE_RECORDING = old_setting
-
-        return 200, {}, ""
-
     def call_action(self):
         headers = self.response_headers
 
@@ -532,9 +452,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 response_headers = dict(http_error.get_headers() or [])
                 response_headers["status"] = http_error.code
                 response = http_error.description, response_headers
-
-            if settings.ENABLE_RECORDING and not action.lower().startswith("describe"):
-                self._record_to_file()
 
             if isinstance(response, str):
                 return 200, headers, response

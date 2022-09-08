@@ -32,6 +32,8 @@ class BotocoreStubber:
     def __call__(self, event_name, request, **kwargs):
         if not self.enabled:
             return None
+
+        from moto.moto_api._internal.record_replay import record_replay_api
         response = None
         response_callback = None
         found_index = None
@@ -55,6 +57,13 @@ class BotocoreStubber:
                 status, headers, body = response_callback(
                     request, request.url, request.headers
                 )
+
+                # TODO:
+                # record manual HTTP requests
+                # test boto requests with body
+                # test manual requests with body
+                # technical approach: Unified pre-process method that we call before calling `response_callback` or the werkzeug equivalent?
+                record_replay_api.record_request(request)
             except HTTPException as e:
                 status = e.code
                 headers = e.get_headers()

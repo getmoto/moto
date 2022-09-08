@@ -124,9 +124,11 @@ class convert_to_flask_response(object):
 
     def __call__(self, args=None, **kwargs):
         from flask import request, Response
+        from moto.moto_api._internal.record_replay import record_replay_api
 
         try:
             result = self.callback(request, request.url, dict(request.headers))
+            record_replay_api.record_request(request)
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple
