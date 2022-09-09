@@ -11,7 +11,7 @@ import pytz
 
 from moto.core.exceptions import DryRunClientError
 
-from jinja2 import Environment, DictLoader, TemplateNotFound
+from jinja2 import Environment, DictLoader
 
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
