@@ -1,24 +1,30 @@
-import datetime
 import functools
-import importlib
+from collections import defaultdict
+import datetime
 import json
 import logging
 import os
-import random
 import re
-from collections import OrderedDict, defaultdict
+import requests
+
+import pytz
+
+from moto.core.exceptions import DryRunClientError
+
+from jinja2 import Environment, DictLoader, TemplateNotFound
+
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
-import boto3
-import pytz
-import requests
 import xmltodict
-from jinja2 import DictLoader, Environment
-from moto import settings
-from moto.core.exceptions import DryRunClientError
+from werkzeug.exceptions import HTTPException
+
+import boto3
+from collections import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
-from werkzeug.exceptions import HTTPException
+from moto import settings
+import importlib
+import random
 
 
 log = logging.getLogger(__name__)
