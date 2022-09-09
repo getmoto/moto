@@ -1,8 +1,9 @@
 import boto3
 import sure  # noqa # pylint: disable=unused-import
+import pytest
 
 from moto import mock_kms
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 grantee_principal = (
@@ -137,23 +138,18 @@ def test_revoke_grant():
 
 
 @mock_kms
-def test_revoke_grant_by_token():
-
+def test_revoke_grant_raises_when_grant_does_not_exist():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
+    not_existent_grant_id = "aabbccdd"
 
-    client.list_grants(KeyId=key_id).should.have.key("Grants").equals([])
+    with pytest.raises(client.exceptions.NotFoundException) as ex:
+        client.revoke_grant(KeyId=key_id, GrantId=not_existent_grant_id)
 
-    grant_id = client.create_grant(
-        KeyId=key_id,
-        GranteePrincipal=grantee_principal,
-        Operations=["DECRYPT"],
-        Name="testgrant",
-    )["GrantId"]
-
-    client.revoke_grant(KeyId=key_id, GrantId=grant_id)
-
-    client.list_grants(KeyId=key_id)["Grants"].should.have.length_of(0)
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["Error"]["Message"].should.equal(
+        f"Grant ID {not_existent_grant_id} not found"
+    )
 
 
 @mock_kms

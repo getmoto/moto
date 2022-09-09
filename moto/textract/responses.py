@@ -8,10 +8,13 @@ from .models import textract_backends
 class TextractResponse(BaseResponse):
     """Handler for Textract requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="textract")
+
     @property
     def textract_backend(self):
         """Return backend instance specific for this region."""
-        return textract_backends[self.region]
+        return textract_backends[self.current_account][self.region]
 
     def get_document_text_detection(self):
         params = json.loads(self.body)

@@ -64,7 +64,7 @@ kms
 - [X] list_retirable_grants
 - [X] put_key_policy
 - [X] re_encrypt
-- [ ] replicate_key
+- [X] replicate_key
 - [X] retire_grant
 - [X] revoke_grant
 - [X] schedule_key_deletion

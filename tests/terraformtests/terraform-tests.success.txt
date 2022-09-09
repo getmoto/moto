@@ -1,5 +1,8 @@
 acm:
   - TestAccACMCertificateDataSource
+amp:
+  - TestAccAMPWorkspace
+  - TestAccAMPRuleGroupNamespace
 apigateway:
   - TestAccAPIGatewayGatewayResponse
 apigatewayv2:
@@ -11,6 +14,14 @@ autoscaling:
   - TestAccAutoScalingAttachment
   - TestAccAutoScalingGroupDataSource
   - TestAccAutoScalingGroupTag
+  - TestAccAutoScalingGroup_basic
+  - TestAccAutoScalingGroup_disappears
+  - TestAccAutoScalingGroup_nameGenerated
+  - TestAccAutoScalingGroup_namePrefix
+  - TestAccAutoScalingGroup_enablingMetrics
+  - TestAccAutoScalingGroup_suspendingProcesses
+  - TestAccAutoScalingGroup_mixedInstancesPolicy
+  - TestAccAutoScalingGroup_MixedInstancesPolicy_capacityRebalance
   - TestAccAutoScalingLaunchConfigurationDataSource
   - TestAccAutoScalingLaunchConfiguration_
 batch:
@@ -30,11 +41,18 @@ cloudwatch:
 cognitoidp:
   - TestAccCognitoIDPIdentityProvider
   - TestAccCognitoIDPUserGroup_
-  - TestAccCognitoIDPUserPool_
-  - TestAccCognitoUser_
-  - TestAccCognitoUserInGroup_
-  - TestAccCognitoIDPUserPoolClients
+  - TestAccCognitoIDPUserInGroup
   - TestAccCognitoIDPUserPoolClientDataSource
+  - TestAccCognitoIDPUserPoolClient_basic
+  - TestAccCognitoIDPUserPoolClient_enableRevocation
+  - TestAccCognitoIDPUserPoolClient_refreshTokenValidity
+  - TestAccCognitoIDPUserPoolClient_accessTokenValidity
+  - TestAccCognitoIDPUserPoolClient_idTokenValidity
+  - TestAccCognitoIDPUserPoolClient_name
+  - TestAccCognitoIDPUserPoolClient_allFields
+  - TestAccCognitoIDPUserPool_
+  - TestAccCognitoIDPUser_
+  - TestAccCognitoIDPUserPoolClients
 dax:
   - TestAccDAXCluster_basic
   - TestAccDAXCluster_Encryption
@@ -56,6 +74,7 @@ ec2:
   - TestAccEC2VPCsDataSource
   - TestAccEC2VPNGateway_
   - TestAccEC2VPNGatewayAttachment_
+  - TestAccVPC_
 ecr:
   - TestAccECRLifecyclePolicy
   - TestAccECRRegistryPolicy
@@ -115,6 +134,11 @@ iam:
   - TestAccIAMUserSSHKeyDataSource_
 iot:
   - TestAccIoTEndpointDataSource
+kinesis:
+  - TestAccKinesisStreamConsumerDataSource_
+  - TestAccKinesisStreamConsumer_
+  - TestAccKinesisStreamDataSource_
+  - TestAccKinesisStream_
 kms:
   - TestAccKMSAlias
   - TestAccKMSGrant_arn
@@ -132,6 +156,7 @@ kms:
 lambda:
   - TestAccLambdaAlias_
   - TestAccLambdaLayerVersion_
+  - TestAccLambdaFunctionURL
 meta:
   - TestAccMetaBillingServiceAccountDataSource
 mq:
@@ -141,7 +166,7 @@ quicksight:
   - TestAccQuickSightUser
 redshift:
   - TestAccRedshiftServiceAccountDataSource
-route53:
+route53|1:
   - TestAccRoute53Record_basic
   - TestAccRoute53Record_underscored
   - TestAccRoute53Record_disappears
@@ -169,17 +194,8 @@ route53:
   - TestAccRoute53Record_longTXTrecord
   - TestAccRoute53Record_doNotAllowOverwrite
   - TestAccRoute53Record_allowOverwrite
-  - TestAccRoute53Zone_basic
-  - TestAccRoute53Zone_disappears
-  - TestAccRoute53Zone_multiple
-  - TestAccRoute53Zone_comment
-  - TestAccRoute53Zone_delegationSetID
-  - TestAccRoute53Zone_forceDestroy
-  - TestAccRoute53Zone_ForceDestroy_trailingPeriod
-  - TestAccRoute53Zone_tags
-  - TestAccRoute53Zone_VPC_single
-  - TestAccRoute53Zone_VPC_multiple
-  - TestAccRoute53Zone_VPC_updates
+route53|2:
+  - TestAccRoute53Zone_
   - TestAccRoute53ZoneAssociation
   - TestAccRoute53ZoneDataSource_id
   - TestAccRoute53ZoneDataSource_name
@@ -208,6 +224,13 @@ servicediscovery:
   - TestAccServiceDiscoveryPrivateDNSNamespace
   - TestAccServiceDiscoveryPublicDNSNamespace
   - TestAccServiceDiscoveryService
+signer:
+ - TestAccSignerSigningProfileDataSource_basic
+ - TestAccSignerSigningProfile_basic
+ - TestAccSignerSigningProfile_generateNameWithNamePrefix
+ - TestAccSignerSigningProfile_generateName
+ - TestAccSignerSigningProfile_tags
+ - TestAccSignerSigningProfile_signatureValidityPeriod
 sns:
   - TestAccSNSTopicPolicy
   - TestAccSNSTopicDataSource

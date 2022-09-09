@@ -3,6 +3,7 @@ import re
 
 backend_url_patterns = [
     ("acm", re.compile("https?://acm\\.(.+)\\.amazonaws\\.com")),
+    ("amp", re.compile("https?://aps\\.(.+)\\.amazonaws\\.com")),
     ("apigateway", re.compile("https?://apigateway\\.(.+)\\.amazonaws.com")),
     (
         "applicationautoscaling",
@@ -18,6 +19,7 @@ backend_url_patterns = [
     ("cloudfront", re.compile("https?://cloudfront\\.amazonaws\\.com")),
     ("cloudtrail", re.compile("https?://cloudtrail\\.(.+)\\.amazonaws\\.com")),
     ("cloudwatch", re.compile("https?://monitoring\\.(.+)\\.amazonaws.com")),
+    ("codebuild", re.compile("https?://codebuild\\.(.+)\\.amazonaws\\.com")),
     ("codecommit", re.compile("https?://codecommit\\.(.+)\\.amazonaws\\.com")),
     ("codepipeline", re.compile("https?://codepipeline\\.(.+)\\.amazonaws\\.com")),
     (
@@ -102,6 +104,7 @@ backend_url_patterns = [
     ("mq", re.compile("https?://mq\\.(.+)\\.amazonaws\\.com")),
     ("opsworks", re.compile("https?://opsworks\\.us-east-1\\.amazonaws.com")),
     ("organizations", re.compile("https?://organizations\\.(.+)\\.amazonaws\\.com")),
+    ("personalize", re.compile("https?://personalize\\.(.+)\\.amazonaws\\.com")),
     ("pinpoint", re.compile("https?://pinpoint\\.(.+)\\.amazonaws\\.com")),
     ("polly", re.compile("https?://polly\\.(.+)\\.amazonaws.com")),
     ("quicksight", re.compile("https?://quicksight\\.(.+)\\.amazonaws\\.com")),
@@ -141,6 +144,7 @@ backend_url_patterns = [
     ),
     ("ses", re.compile("https?://email\\.(.+)\\.amazonaws\\.com")),
     ("ses", re.compile("https?://ses\\.(.+)\\.amazonaws\\.com")),
+    ("signer", re.compile("https?://signer\\.(.+)\\.amazonaws\\.com")),
     ("sns", re.compile("https?://sns\\.(.+)\\.amazonaws\\.com")),
     ("sqs", re.compile("https?://(.*\\.)?(queue|sqs)\\.(.*\\.)?amazonaws\\.com")),
     ("ssm", re.compile("https?://ssm\\.(.+)\\.amazonaws\\.com")),

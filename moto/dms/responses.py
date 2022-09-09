@@ -4,11 +4,12 @@ import json
 
 
 class DatabaseMigrationServiceResponse(BaseResponse):
-    SERVICE_NAME = "dms"
+    def __init__(self):
+        super().__init__(service_name="dms")
 
     @property
     def dms_backend(self):
-        return dms_backends[self.region]
+        return dms_backends[self.current_account][self.region]
 
     def create_replication_task(self):
         replication_task_identifier = self._get_param("ReplicationTaskIdentifier")

@@ -10,7 +10,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_ec2, mock_ssm
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ssm.models import PARAMETER_VERSION_LIMIT, PARAMETER_HISTORY_MAX_RESULTS
 from tests import EXAMPLE_AMI_ID
 

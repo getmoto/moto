@@ -13,7 +13,7 @@ from freezegun import freeze_time
 import pytest
 
 from moto import mock_kms
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 PLAINTEXT_VECTORS = [
@@ -118,6 +118,60 @@ def test_create_key():
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_512"])
+
+
+@mock_kms
+def test_create_multi_region_key():
+    conn = boto3.client("kms", region_name="us-east-1")
+    key = conn.create_key(
+        Policy="my policy",
+        Description="my key",
+        KeyUsage="ENCRYPT_DECRYPT",
+        MultiRegion=True,
+        Tags=[{"TagKey": "project", "TagValue": "moto"}],
+    )
+
+    key["KeyMetadata"]["KeyId"].should.match("^mrk-")
+    key["KeyMetadata"]["MultiRegion"].should.equal(True)
+
+
+@mock_kms
+def test_non_multi_region_keys_should_not_have_multi_region_properties():
+    conn = boto3.client("kms", region_name="us-east-1")
+    key = conn.create_key(
+        Policy="my policy",
+        Description="my key",
+        KeyUsage="ENCRYPT_DECRYPT",
+        MultiRegion=False,
+        Tags=[{"TagKey": "project", "TagValue": "moto"}],
+    )
+
+    key["KeyMetadata"]["KeyId"].should_not.match("^mrk-")
+    key["KeyMetadata"]["MultiRegion"].should.equal(False)
+
+
+@mock_kms
+def test_replicate_key():
+    region_to_replicate_from = "us-east-1"
+    region_to_replicate_to = "us-west-1"
+    from_region_client = boto3.client("kms", region_name=region_to_replicate_from)
+    to_region_client = boto3.client("kms", region_name=region_to_replicate_to)
+
+    response = from_region_client.create_key(
+        Policy="my policy",
+        Description="my key",
+        KeyUsage="ENCRYPT_DECRYPT",
+        MultiRegion=True,
+        Tags=[{"TagKey": "project", "TagValue": "moto"}],
+    )
+    key_id = response["KeyMetadata"]["KeyId"]
+
+    with pytest.raises(to_region_client.exceptions.NotFoundException):
+        to_region_client.describe_key(KeyId=key_id)
+
+    from_region_client.replicate_key(KeyId=key_id, ReplicaRegion=region_to_replicate_to)
+    to_region_client.describe_key(KeyId=key_id)
+    from_region_client.describe_key(KeyId=key_id)
 
 
 @mock_kms

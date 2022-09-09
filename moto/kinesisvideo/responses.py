@@ -4,11 +4,12 @@ import json
 
 
 class KinesisVideoResponse(BaseResponse):
-    SERVICE_NAME = "kinesisvideo"
+    def __init__(self):
+        super().__init__(service_name="kinesisvideo")
 
     @property
     def kinesisvideo_backend(self):
-        return kinesisvideo_backends[self.region]
+        return kinesisvideo_backends[self.current_account][self.region]
 
     def create_stream(self):
         device_name = self._get_param("DeviceName")

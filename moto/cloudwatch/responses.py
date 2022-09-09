@@ -9,9 +9,12 @@ from .exceptions import InvalidParameterCombination
 
 
 class CloudWatchResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="cloudwatch")
+
     @property
     def cloudwatch_backend(self):
-        return cloudwatch_backends[self.region]
+        return cloudwatch_backends[self.current_account][self.region]
 
     def _error(self, code, message, status=400):
         template = self.response_template(ERROR_RESPONSE_TEMPLATE)
@@ -76,7 +79,7 @@ class CloudWatchResponse(BaseResponse):
         dimensions = self._get_list_prefix("Dimensions.member")
         alarm_actions = self._get_multi_param("AlarmActions.member")
         ok_actions = self._get_multi_param("OKActions.member")
-        actions_enabled = self._get_param("ActionsEnabled")
+        actions_enabled = self._get_bool_param("ActionsEnabled")
         insufficient_data_actions = self._get_multi_param(
             "InsufficientDataActions.member"
         )
@@ -354,7 +357,7 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
         <{{tag_name}}>
             {% for alarm in alarms %}
             <member>
-                <ActionsEnabled>{{ alarm.actions_enabled }}</ActionsEnabled>
+                <ActionsEnabled>{{ "true" if alarm.actions_enabled else "false" }}</ActionsEnabled>
                 <AlarmActions>
                     {% for action in alarm.alarm_actions %}
                     <member>{{ action }}</member>
@@ -480,7 +483,7 @@ DESCRIBE_METRIC_ALARMS_TEMPLATE = """<DescribeAlarmsForMetricResponse xmlns="htt
         <MetricAlarms>
             {% for alarm in alarms %}
             <member>
-                <ActionsEnabled>{{ alarm.actions_enabled }}</ActionsEnabled>
+                <ActionsEnabled>{{ "true" if alarm.actions_enabled else "false" }}</ActionsEnabled>
                 <AlarmActions>
                     {% for action in alarm.alarm_actions %}
                     <member>{{ action }}</member>

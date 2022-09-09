@@ -1,7 +1,7 @@
 import base64
 import xmltodict
 
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, get_random_hex, unix_time
 from moto.utilities.tagging_service import TaggingService
 
@@ -57,9 +57,9 @@ class ConfigurationRevision(BaseModel):
 
 
 class Configuration(BaseModel):
-    def __init__(self, region, name, engine_type, engine_version):
+    def __init__(self, account_id, region, name, engine_type, engine_version):
         self.id = f"c-{get_random_hex(6)}"
-        self.arn = f"arn:aws:mq:{region}:{get_account_id()}:configuration:{self.id}"
+        self.arn = f"arn:aws:mq:{region}:{account_id}:configuration:{self.id}"
         self.created = unix_time()
 
         self.name = name
@@ -140,6 +140,7 @@ class Broker(BaseModel):
     def __init__(
         self,
         name,
+        account_id,
         region,
         authentication_strategy,
         auto_minor_version_upgrade,
@@ -160,7 +161,7 @@ class Broker(BaseModel):
     ):
         self.name = name
         self.id = get_random_hex(6)
-        self.arn = f"arn:aws:mq:{region}:{get_account_id()}:broker:{self.id}"
+        self.arn = f"arn:aws:mq:{region}:{account_id}:broker:{self.id}"
         self.state = "RUNNING"
         self.created = unix_time()
 
@@ -379,6 +380,7 @@ class MQBackend(BaseBackend):
     ):
         broker = Broker(
             name=broker_name,
+            account_id=self.account_id,
             region=self.region_name,
             authentication_strategy=authentication_strategy,
             auto_minor_version_upgrade=auto_minor_version_upgrade,
@@ -444,6 +446,7 @@ class MQBackend(BaseBackend):
         if engine_type.upper() != "ACTIVEMQ":
             raise UnknownEngineType(engine_type)
         config = Configuration(
+            account_id=self.account_id,
             region=self.region_name,
             name=name,
             engine_type=engine_type,

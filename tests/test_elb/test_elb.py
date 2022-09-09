@@ -5,7 +5,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_acm, mock_elb, mock_ec2, mock_iam
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
 
@@ -1129,7 +1129,7 @@ def test_subnets():
 
     lb.should.have.key("VPCId").which.should.equal(vpc.id)
     lb.should.have.key("SourceSecurityGroup").equals(
-        {"OwnerAlias": f"{ACCOUNT_ID}", "GroupName": "default"}
+        {"OwnerAlias": f"{DEFAULT_ACCOUNT_ID}", "GroupName": "default"}
     )
 
 

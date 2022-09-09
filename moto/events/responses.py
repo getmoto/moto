@@ -5,6 +5,9 @@ from moto.events import events_backends
 
 
 class EventsHandler(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="events")
+
     @property
     def events_backend(self):
         """
@@ -13,7 +16,7 @@ class EventsHandler(BaseResponse):
         :return: Events Backend object
         :rtype: moto.events.models.EventsBackend
         """
-        return events_backends[self.region]
+        return events_backends[self.current_account][self.region]
 
     @property
     def request_params(self):

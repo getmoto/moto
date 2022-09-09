@@ -9,7 +9,7 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError, ParamValidationError
 
 from moto import mock_emrcontainers, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest.mock import patch
 
 from moto.emrcontainers import REGION as DEFAULT_REGION

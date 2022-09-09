@@ -3,7 +3,7 @@ import boto3
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_lambda, mock_s3
-from moto.core.models import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from uuid import uuid4
 from .utilities import get_role_name, get_test_zip_file2
 

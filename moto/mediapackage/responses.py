@@ -4,11 +4,12 @@ import json
 
 
 class MediaPackageResponse(BaseResponse):
-    SERVICE_NAME = "mediapackage"
+    def __init__(self):
+        super().__init__(service_name="mediapackage")
 
     @property
     def mediapackage_backend(self):
-        return mediapackage_backends[self.region]
+        return mediapackage_backends[self.current_account][self.region]
 
     def create_channel(self):
         description = self._get_param("description")

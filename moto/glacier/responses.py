@@ -6,9 +6,12 @@ from .utils import vault_from_glacier_url
 
 
 class GlacierResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="glacier")
+
     @property
     def glacier_backend(self):
-        return glacier_backends[self.region]
+        return glacier_backends[self.current_account][self.region]
 
     def all_vault_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

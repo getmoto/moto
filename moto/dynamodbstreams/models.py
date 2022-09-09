@@ -70,7 +70,7 @@ class DynamoDBStreamsBackend(BaseBackend):
 
     @property
     def dynamodb(self):
-        return dynamodb_backends[self.region_name]
+        return dynamodb_backends[self.account_id][self.region_name]
 
     def _get_table_from_arn(self, arn):
         table_name = arn.split(":", 6)[5].split("/")[1]

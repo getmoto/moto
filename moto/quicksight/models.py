@@ -1,6 +1,6 @@
 """QuickSightBackend class with methods for supported APIs."""
 
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from .exceptions import ResourceNotFoundException
 
@@ -10,23 +10,24 @@ def _create_id(aws_account_id, namespace, _id):
 
 
 class QuicksightDataSet(BaseModel):
-    def __init__(self, region, _id, name):
-        self.arn = f"arn:aws:quicksight:{region}:{get_account_id()}:data-set/{_id}"
+    def __init__(self, account_id, region, _id, name):
+        self.arn = f"arn:aws:quicksight:{region}:{account_id}:data-set/{_id}"
         self._id = _id
         self.name = name
         self.region = region
+        self.account_id = account_id
 
     def to_json(self):
         return {
             "Arn": self.arn,
             "DataSetId": self._id,
-            "IngestionArn": f"arn:aws:quicksight:{self.region}:{get_account_id()}:ingestion/tbd",
+            "IngestionArn": f"arn:aws:quicksight:{self.region}:{self.account_id}:ingestion/tbd",
         }
 
 
 class QuicksightIngestion(BaseModel):
-    def __init__(self, region, data_set_id, ingestion_id):
-        self.arn = f"arn:aws:quicksight:{region}:{get_account_id()}:data-set/{data_set_id}/ingestions/{ingestion_id}"
+    def __init__(self, account_id, region, data_set_id, ingestion_id):
+        self.arn = f"arn:aws:quicksight:{region}:{account_id}:data-set/{data_set_id}/ingestions/{ingestion_id}"
         self.ingestion_id = ingestion_id
 
     def to_json(self):
@@ -38,10 +39,12 @@ class QuicksightIngestion(BaseModel):
 
 
 class QuicksightMembership(BaseModel):
-    def __init__(self, region, group, user):
+    def __init__(self, account_id, region, group, user):
         self.group = group
         self.user = user
-        self.arn = f"arn:aws:quicksight:{region}:{get_account_id()}:group/default/{group}/{user}"
+        self.arn = (
+            f"arn:aws:quicksight:{region}:{account_id}:group/default/{group}/{user}"
+        )
 
     def to_json(self):
         return {"Arn": self.arn, "MemberName": self.user}
@@ -50,7 +53,7 @@ class QuicksightMembership(BaseModel):
 class QuicksightGroup(BaseModel):
     def __init__(self, region, group_name, description, aws_account_id, namespace):
         self.arn = (
-            f"arn:aws:quicksight:{region}:{get_account_id()}:group/default/{group_name}"
+            f"arn:aws:quicksight:{region}:{aws_account_id}:group/default/{group_name}"
         )
         self.group_name = group_name
         self.description = description
@@ -61,7 +64,9 @@ class QuicksightGroup(BaseModel):
         self.members = dict()
 
     def add_member(self, user_name):
-        membership = QuicksightMembership(self.region, self.group_name, user_name)
+        membership = QuicksightMembership(
+            self.aws_account_id, self.region, self.group_name, user_name
+        )
         self.members[user_name] = membership
         return membership
 
@@ -85,10 +90,8 @@ class QuicksightGroup(BaseModel):
 
 
 class QuicksightUser(BaseModel):
-    def __init__(self, region, email, identity_type, username, user_role):
-        self.arn = (
-            f"arn:aws:quicksight:{region}:{get_account_id()}:user/default/{username}"
-        )
+    def __init__(self, account_id, region, email, identity_type, username, user_role):
+        self.arn = f"arn:aws:quicksight:{region}:{account_id}:user/default/{username}"
         self.email = email
         self.identity_type = identity_type
         self.username = username
@@ -115,7 +118,9 @@ class QuickSightBackend(BaseBackend):
         self.users = dict()
 
     def create_data_set(self, data_set_id, name):
-        return QuicksightDataSet(self.region_name, data_set_id, name=name)
+        return QuicksightDataSet(
+            self.account_id, self.region_name, data_set_id, name=name
+        )
 
     def create_group(self, group_name, description, aws_account_id, namespace):
         group = QuicksightGroup(
@@ -134,7 +139,9 @@ class QuickSightBackend(BaseBackend):
         return group.add_member(user_name)
 
     def create_ingestion(self, data_set_id, ingestion_id):
-        return QuicksightIngestion(self.region_name, data_set_id, ingestion_id)
+        return QuicksightIngestion(
+            self.account_id, self.region_name, data_set_id, ingestion_id
+        )
 
     def delete_group(self, aws_account_id, namespace, group_name):
         _id = _create_id(aws_account_id, namespace, group_name)
@@ -197,6 +204,7 @@ class QuickSightBackend(BaseBackend):
         IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType, CustomFederationProviderUrl, ExternalLoginId
         """
         user = QuicksightUser(
+            account_id=self.account_id,
             region=self.region_name,
             email=email,
             identity_type=identity_type,

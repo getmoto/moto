@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_logs
 from moto import mock_route53
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import get_random_hex
 
 # The log group must be in the us-east-1 region.

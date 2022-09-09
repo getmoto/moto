@@ -270,7 +270,7 @@ class UpdateExpressionExecutor(object):
 
     def execute(self, node=None):
         """
-        As explained in moto.dynamodb2.parsing.expressions.NestableExpressionParserMixin._create_node the order of nodes
+        As explained in moto.dynamodb.parsing.expressions.NestableExpressionParserMixin._create_node the order of nodes
         in the AST can be translated of the order of statements in the expression. As such we can start at the root node
         and process the nodes 1-by-1. If no specific execution for the node type is defined we can execute the children
         in order since it will be a container node that is expandable and left child will be first in the statement.

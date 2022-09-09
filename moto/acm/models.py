@@ -13,8 +13,6 @@ import cryptography.hazmat.primitives.asymmetric.rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
 
-from moto.core import get_account_id
-
 
 AWS_ROOT_CA = b"""-----BEGIN CERTIFICATE-----
 MIIESTCCAzGgAwIBAgITBntQXCplJ7wevi2i0ZmY7bibLDANBgkqhkiG9w0BAQsF
@@ -123,6 +121,7 @@ class TagHolder(dict):
 class CertBundle(BaseModel):
     def __init__(
         self,
+        account_id,
         certificate,
         private_key,
         chain=None,
@@ -131,7 +130,7 @@ class CertBundle(BaseModel):
         cert_type="IMPORTED",
         cert_status="ISSUED",
     ):
-        self.created_at = datetime.datetime.now()
+        self.created_at = datetime.datetime.utcnow()
         self.cert = certificate
         self._cert = None
         self.common_name = None
@@ -161,12 +160,12 @@ class CertBundle(BaseModel):
 
         # Used for when one wants to overwrite an arn
         if arn is None:
-            self.arn = make_arn_for_certificate(get_account_id(), region)
+            self.arn = make_arn_for_certificate(account_id, region)
         else:
             self.arn = arn
 
     @classmethod
-    def generate_cert(cls, domain_name, region, sans=None):
+    def generate_cert(cls, domain_name, account_id, region, sans=None):
         if sans is None:
             sans = set()
         else:
@@ -235,10 +234,11 @@ class CertBundle(BaseModel):
         )
 
         return cls(
-            cert_armored,
-            private_key,
+            certificate=cert_armored,
+            private_key=private_key,
             cert_type="AMAZON_ISSUED",
             cert_status="PENDING_VALIDATION",
+            account_id=account_id,
             region=region,
         )
 
@@ -306,7 +306,7 @@ class CertBundle(BaseModel):
                 )
                 self._chain.append(cert)
 
-                now = datetime.datetime.now()
+                now = datetime.datetime.utcnow()
                 if self._cert.not_valid_after < now:
                     raise AWSValidationException(
                         "The certificate chain has expired, is not valid."
@@ -328,7 +328,7 @@ class CertBundle(BaseModel):
         # Basically, if the certificate is pending, and then checked again after a
         # while, it will appear as if its been validated. The default wait time is 60
         # seconds but you can set an environment to change it.
-        waited_seconds = (datetime.datetime.now() - self.created_at).total_seconds()
+        waited_seconds = (datetime.datetime.utcnow() - self.created_at).total_seconds()
         if (
             self.type == "AMAZON_ISSUED"
             and self.status == "PENDING_VALIDATION"
@@ -435,11 +435,8 @@ class AWSCertificateManagerBackend(BaseBackend):
             service_region, zones, "acm-pca"
         )
 
-    @staticmethod
-    def _arn_not_found(arn):
-        msg = "Certificate with arn {0} not found in account {1}".format(
-            arn, get_account_id()
-        )
+    def _arn_not_found(self, arn):
+        msg = f"Certificate with arn {arn} not found in account {self.account_id}"
         return AWSResourceNotFoundException(msg)
 
     def set_certificate_in_use_by(self, arn, load_balancer_name):
@@ -461,7 +458,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         :param token: String token
         :return: None or ARN
         """
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         if token in self._idempotency_tokens:
             if self._idempotency_tokens[token]["expires"] < now:
                 # Token has expired, new request
@@ -475,7 +472,7 @@ class AWSCertificateManagerBackend(BaseBackend):
     def _set_idempotency_token_arn(self, token, arn):
         self._idempotency_tokens[token] = {
             "arn": arn,
-            "expires": datetime.datetime.now() + datetime.timedelta(hours=1),
+            "expires": datetime.datetime.utcnow() + datetime.timedelta(hours=1),
         }
 
     def import_cert(self, certificate, private_key, chain=None, arn=None, tags=None):
@@ -485,6 +482,7 @@ class AWSCertificateManagerBackend(BaseBackend):
             else:
                 # Will reuse provided ARN
                 bundle = CertBundle(
+                    self.account_id,
                     certificate,
                     private_key,
                     chain=chain,
@@ -494,7 +492,11 @@ class AWSCertificateManagerBackend(BaseBackend):
         else:
             # Will generate a random ARN
             bundle = CertBundle(
-                certificate, private_key, chain=chain, region=self.region_name
+                self.account_id,
+                certificate,
+                private_key,
+                chain=chain,
+                region=self.region_name,
             )
 
         self._certificates[bundle.arn] = bundle
@@ -546,7 +548,10 @@ class AWSCertificateManagerBackend(BaseBackend):
                 return arn
 
         cert = CertBundle.generate_cert(
-            domain_name, region=self.region_name, sans=subject_alt_names
+            domain_name,
+            account_id=self.account_id,
+            region=self.region_name,
+            sans=subject_alt_names,
         )
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)

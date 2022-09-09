@@ -3,7 +3,7 @@ import itertools
 import json
 from collections import defaultdict
 
-from moto.core import get_account_id, CloudFormationModel
+from moto.core import CloudFormationModel
 from moto.core.utils import aws_api_matches
 from ..exceptions import (
     DependencyViolationError,
@@ -30,6 +30,7 @@ from ..utils import (
 class SecurityRule(object):
     def __init__(
         self,
+        account_id,
         ip_protocol,
         from_port,
         to_port,
@@ -37,6 +38,7 @@ class SecurityRule(object):
         source_groups,
         prefix_list_ids=None,
     ):
+        self.account_id = account_id
         self.id = random_security_group_rule_id()
         self.ip_protocol = str(ip_protocol)
         self.ip_ranges = ip_ranges or []
@@ -69,7 +71,7 @@ class SecurityRule(object):
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.account_id
 
     def __eq__(self, other):
         if self.ip_protocol != other.ip_protocol:
@@ -126,7 +128,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.egress_rules = []
         self.enis = {}
         self.vpc_id = vpc_id
-        self.owner_id = get_account_id()
+        self.owner_id = ec2_backend.account_id
         self.add_tags(tags or {})
         self.is_default = is_default or False
 
@@ -135,11 +137,15 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             vpc = self.ec2_backend.vpcs.get(vpc_id)
             if vpc:
                 self.egress_rules.append(
-                    SecurityRule("-1", None, None, [{"CidrIp": "0.0.0.0/0"}], [])
+                    SecurityRule(
+                        self.owner_id, "-1", None, None, [{"CidrIp": "0.0.0.0/0"}], []
+                    )
                 )
             if vpc and len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
                 self.egress_rules.append(
-                    SecurityRule("-1", None, None, [{"CidrIpv6": "::/0"}], [])
+                    SecurityRule(
+                        self.owner_id, "-1", None, None, [{"CidrIpv6": "::/0"}], []
+                    )
                 )
 
         # each filter as a simple function in a mapping
@@ -181,13 +187,13 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         vpc_id = properties.get("VpcId")
         security_group = ec2_backend.create_security_group(
             name=resource_name,
@@ -223,35 +229,44 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         cls._delete_security_group_given_vpc_id(
-            original_resource.name, original_resource.vpc_id, region_name
+            original_resource.name, original_resource.vpc_id, account_id, region_name
         )
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
         vpc_id = properties.get("VpcId")
-        cls._delete_security_group_given_vpc_id(resource_name, vpc_id, region_name)
+        cls._delete_security_group_given_vpc_id(
+            resource_name, vpc_id, account_id, region_name
+        )
 
     @classmethod
-    def _delete_security_group_given_vpc_id(cls, resource_name, vpc_id, region_name):
+    def _delete_security_group_given_vpc_id(
+        cls, resource_name, vpc_id, account_id, region_name
+    ):
         from ..models import ec2_backends
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         security_group = ec2_backend.get_security_group_by_name_or_id(
             resource_name, vpc_id
         )
         if security_group:
-            security_group.delete(region_name)
+            security_group.delete(account_id, region_name)
 
-    def delete(self, region_name):  # pylint: disable=unused-argument
+    def delete(self, account_id, region_name):  # pylint: disable=unused-argument
         """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
 
@@ -603,7 +618,13 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
 
         if security_rule in group.ingress_rules:
@@ -660,7 +681,13 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
 
         # To match drift property of the security rules.
@@ -748,7 +775,13 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
 
         if security_rule in group.egress_rules:
@@ -820,7 +853,13 @@ class SecurityGroupBackend:
                         ip_ranges.remove(item)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
 
         # To match drift property of the security rules.
@@ -901,7 +940,13 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
         for rule in group.ingress_rules:
             if (
@@ -951,7 +996,13 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
         for rule in group.egress_rules:
             if (
@@ -1008,7 +1059,7 @@ class SecurityGroupBackend:
         _source_groups = []
         for item in source_groups or []:
             if "OwnerId" not in item:
-                item["OwnerId"] = get_account_id()
+                item["OwnerId"] = self.account_id
             # for VPCs
             if "GroupId" in item:
                 if not self.get_security_group_by_name_or_id(
@@ -1061,13 +1112,13 @@ class SecurityGroupIngress(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         group_name = properties.get("GroupName")
         group_id = properties.get("GroupId")
         ip_protocol = properties.get("IpProtocol")

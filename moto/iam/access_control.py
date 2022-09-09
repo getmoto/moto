@@ -22,7 +22,6 @@ from botocore.auth import SigV4Auth, S3SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
 
-from moto.core import get_account_id
 from moto.core.exceptions import (
     SignatureDoesNotMatchError,
     AccessDeniedError,
@@ -45,20 +44,22 @@ from .models import iam_backends, Policy
 log = logging.getLogger(__name__)
 
 
-def create_access_key(access_key_id, headers):
+def create_access_key(account_id, access_key_id, headers):
     if access_key_id.startswith("AKIA") or "X-Amz-Security-Token" not in headers:
-        return IAMUserAccessKey(access_key_id, headers)
+        return IAMUserAccessKey(account_id, access_key_id, headers)
     else:
-        return AssumedRoleAccessKey(access_key_id, headers)
+        return AssumedRoleAccessKey(account_id, access_key_id, headers)
 
 
-class IAMUserAccessKey(object):
+class IAMUserAccessKey:
     @property
     def backend(self):
-        return iam_backends["global"]
+        return iam_backends[self.account_id]["global"]
 
-    def __init__(self, access_key_id, headers):
+    def __init__(self, account_id, access_key_id, headers):
+        self.account_id = account_id
         iam_users = self.backend.list_users("/", None, None)
+
         for iam_user in iam_users:
             for access_key in iam_user.access_keys:
                 if access_key.access_key_id == access_key_id:
@@ -73,7 +74,7 @@ class IAMUserAccessKey(object):
     @property
     def arn(self):
         return "arn:aws:iam::{account_id}:user/{iam_user_name}".format(
-            account_id=get_account_id(), iam_user_name=self._owner_user_name
+            account_id=self.account_id, iam_user_name=self._owner_user_name
         )
 
     def create_credentials(self):
@@ -116,10 +117,11 @@ class IAMUserAccessKey(object):
 class AssumedRoleAccessKey(object):
     @property
     def backend(self):
-        return iam_backends["global"]
+        return iam_backends[self.account_id]["global"]
 
-    def __init__(self, access_key_id, headers):
-        for assumed_role in sts_backends["global"].assumed_roles:
+    def __init__(self, account_id, access_key_id, headers):
+        self.account_id = account_id
+        for assumed_role in sts_backends[account_id]["global"].assumed_roles:
             if assumed_role.access_key_id == access_key_id:
                 self._access_key_id = access_key_id
                 self._secret_access_key = assumed_role.secret_access_key
@@ -135,7 +137,7 @@ class AssumedRoleAccessKey(object):
     def arn(self):
         return (
             "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-                account_id=get_account_id(),
+                account_id=self.account_id,
                 role_name=self._owner_role_name,
                 session_name=self._session_name,
             )
@@ -171,7 +173,7 @@ class CreateAccessKeyFailure(Exception):
 
 
 class IAMRequestBase(object, metaclass=ABCMeta):
-    def __init__(self, method, path, data, headers):
+    def __init__(self, account_id, method, path, data, headers):
         log.debug(
             "Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
                 class_name=self.__class__.__name__,
@@ -181,6 +183,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
                 headers=headers,
             )
         )
+        self.account_id = account_id
         self._method = method
         self._path = path
         self._data = data
@@ -202,7 +205,9 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         )
         try:
             self._access_key = create_access_key(
-                access_key_id=credential_data[0], headers=headers
+                account_id=self.account_id,
+                access_key_id=credential_data[0],
+                headers=headers,
             )
         except CreateAccessKeyFailure as e:
             self._raise_invalid_access_key(e.reason)

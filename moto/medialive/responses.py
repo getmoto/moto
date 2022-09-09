@@ -4,11 +4,12 @@ import json
 
 
 class MediaLiveResponse(BaseResponse):
-    SERVICE_NAME = "medialive"
+    def __init__(self):
+        super().__init__(service_name="medialive")
 
     @property
     def medialive_backend(self):
-        return medialive_backends[self.region]
+        return medialive_backends[self.current_account][self.region]
 
     def create_channel(self):
         cdi_input_specification = self._get_param("cdiInputSpecification")

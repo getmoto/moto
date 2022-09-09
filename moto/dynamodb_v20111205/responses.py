@@ -6,6 +6,9 @@ from .models import dynamodb_backends, dynamo_json_dump
 
 
 class DynamoHandler(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="dynamodb")
+
     def get_endpoint_name(self, headers):
         """Parses request headers and extracts part od the X-Amz-Target
         that corresponds to a method of DynamoHandler
@@ -38,7 +41,7 @@ class DynamoHandler(BaseResponse):
 
     @property
     def backend(self):
-        return dynamodb_backends["global"]
+        return dynamodb_backends[self.current_account]["global"]
 
     def list_tables(self):
         body = self.body

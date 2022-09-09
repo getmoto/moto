@@ -1,4 +1,3 @@
-from moto.core import get_account_id
 from moto.utilities.utils import filter_resources
 
 from .core import TaggedEC2Resource
@@ -20,7 +19,7 @@ class CarrierGateway(TaggedEC2Resource):
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.ec2_backend.account_id
 
 
 class CarrierGatewayBackend:

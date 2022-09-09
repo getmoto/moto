@@ -9,12 +9,15 @@ XMLNS = "http://cloudfront.amazonaws.com/doc/2020-05-31/"
 
 
 class CloudFrontResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="cloudfront")
+
     def _get_xml_body(self):
         return xmltodict.parse(self.body, dict_constructor=dict)
 
     @property
     def backend(self):
-        return cloudfront_backends["global"]
+        return cloudfront_backends[self.current_account]["global"]
 
     def distributions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

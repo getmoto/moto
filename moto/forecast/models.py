@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 
-from moto.core import get_account_id, BaseBackend
+from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from .exceptions import (
     InvalidInputException,
@@ -25,19 +25,18 @@ class DatasetGroup:
     ]
 
     def __init__(
-        self, region_name, dataset_arns, dataset_group_name, domain, tags=None
+        self,
+        account_id,
+        region_name,
+        dataset_arns,
+        dataset_group_name,
+        domain,
+        tags=None,
     ):
         self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
         self.modified_date = self.creation_date
 
-        self.arn = (
-            "arn:aws:forecast:"
-            + region_name
-            + ":"
-            + str(get_account_id())
-            + ":dataset-group/"
-            + dataset_group_name
-        )
+        self.arn = f"arn:aws:forecast:{region_name}:{account_id}:dataset-group/{dataset_group_name}"
         self.dataset_arns = dataset_arns if dataset_arns else []
         self.dataset_group_name = dataset_group_name
         self.domain = domain
@@ -106,6 +105,7 @@ class ForecastBackend(BaseBackend):
 
     def create_dataset_group(self, dataset_group_name, domain, dataset_arns, tags):
         dataset_group = DatasetGroup(
+            account_id=self.account_id,
             region_name=self.region_name,
             dataset_group_name=dataset_group_name,
             domain=domain,

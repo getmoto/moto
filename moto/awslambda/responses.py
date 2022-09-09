@@ -9,6 +9,9 @@ from .models import lambda_backends
 
 
 class LambdaResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="awslambda")
+
     @property
     def json_body(self):
         """
@@ -18,13 +21,8 @@ class LambdaResponse(BaseResponse):
         return json.loads(self.body)
 
     @property
-    def lambda_backend(self):
-        """
-        Get backend
-        :return: Lambda Backend
-        :rtype: moto.awslambda.models.LambdaBackend
-        """
-        return lambda_backends[self.region]
+    def backend(self):
+        return lambda_backends[self.current_account][self.region]
 
     def root(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -190,18 +188,31 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    def function_url_config(self, request, full_url, headers):
+        http_method = request.method
+        self.setup_class(request, full_url, headers)
+
+        if http_method == "DELETE":
+            return self._delete_function_url_config()
+        elif http_method == "GET":
+            return self._get_function_url_config()
+        elif http_method == "POST":
+            return self._create_function_url_config()
+        elif http_method == "PUT":
+            return self._update_function_url_config()
+
     def _add_policy(self, request):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = unquote(path.split("/")[-2])
         qualifier = self.querystring.get("Qualifier", [None])[0]
         statement = self.body
-        self.lambda_backend.add_permission(function_name, qualifier, statement)
+        self.backend.add_permission(function_name, qualifier, statement)
         return 200, {}, json.dumps({"Statement": statement})
 
     def _get_policy(self, request):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = unquote(path.split("/")[-2])
-        out = self.lambda_backend.get_policy(function_name)
+        out = self.backend.get_policy(function_name)
         return 200, {}, out
 
     def _del_policy(self, request, querystring):
@@ -209,8 +220,8 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(path.split("/")[-3])
         statement_id = path.split("/")[-1].split("?")[0]
         revision = querystring.get("RevisionId", "")
-        if self.lambda_backend.get_function(function_name):
-            self.lambda_backend.remove_permission(function_name, statement_id, revision)
+        if self.backend.get_function(function_name):
+            self.backend.remove_permission(function_name, statement_id, revision)
             return 204, {}, "{}"
         else:
             return 404, {}, "{}"
@@ -222,7 +233,7 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("qualifier")
 
-        payload = self.lambda_backend.invoke(
+        payload = self.backend.invoke(
             function_name, qualifier, self.body, self.headers, response_headers
         )
         if payload:
@@ -254,7 +265,7 @@ class LambdaResponse(BaseResponse):
 
         function_name = unquote(self.path.rsplit("/", 3)[-3])
 
-        fn = self.lambda_backend.get_function(function_name, None)
+        fn = self.backend.get_function(function_name, None)
         payload = fn.invoke(self.body, self.headers, response_headers)
         response_headers["Content-Length"] = str(len(payload))
         return 202, response_headers, payload
@@ -264,7 +275,7 @@ class LambdaResponse(BaseResponse):
         func_version = querystring.get("FunctionVersion", [None])[0]
         result = {"Functions": []}
 
-        for fn in self.lambda_backend.list_functions(func_version):
+        for fn in self.backend.list_functions(func_version):
             json_data = fn.get_configuration()
             result["Functions"].append(json_data)
 
@@ -273,7 +284,7 @@ class LambdaResponse(BaseResponse):
     def _list_versions_by_function(self, function_name):
         result = {"Versions": []}
 
-        functions = self.lambda_backend.list_versions_by_function(function_name)
+        functions = self.backend.list_versions_by_function(function_name)
         if functions:
             for fn in functions:
                 json_data = fn.get_configuration()
@@ -282,38 +293,56 @@ class LambdaResponse(BaseResponse):
         return 200, {}, json.dumps(result)
 
     def _create_function(self):
-        fn = self.lambda_backend.create_function(self.json_body)
+        fn = self.backend.create_function(self.json_body)
         config = fn.get_configuration(on_create=True)
         return 201, {}, json.dumps(config)
 
+    def _create_function_url_config(self):
+        function_name = unquote(self.path.split("/")[-2])
+        config = self.backend.create_function_url_config(function_name, self.json_body)
+        return 201, {}, json.dumps(config.to_dict())
+
+    def _delete_function_url_config(self):
+        function_name = unquote(self.path.split("/")[-2])
+        self.backend.delete_function_url_config(function_name)
+        return 204, {}, "{}"
+
+    def _get_function_url_config(self):
+        function_name = unquote(self.path.split("/")[-2])
+        config = self.backend.get_function_url_config(function_name)
+        return 201, {}, json.dumps(config.to_dict())
+
+    def _update_function_url_config(self):
+        function_name = unquote(self.path.split("/")[-2])
+        config = self.backend.update_function_url_config(function_name, self.json_body)
+        return 200, {}, json.dumps(config.to_dict())
+
     def _create_event_source_mapping(self):
-        fn = self.lambda_backend.create_event_source_mapping(self.json_body)
+        fn = self.backend.create_event_source_mapping(self.json_body)
         config = fn.get_configuration()
         return 201, {}, json.dumps(config)
 
     def _list_event_source_mappings(self, event_source_arn, function_name):
-        esms = self.lambda_backend.list_event_source_mappings(
-            event_source_arn, function_name
-        )
+        esms = self.backend.list_event_source_mappings(event_source_arn, function_name)
         result = {"EventSourceMappings": [esm.get_configuration() for esm in esms]}
         return 200, {}, json.dumps(result)
 
     def _get_event_source_mapping(self, uuid):
-        result = self.lambda_backend.get_event_source_mapping(uuid)
+        result = self.backend.get_event_source_mapping(uuid)
         if result:
             return 200, {}, json.dumps(result.get_configuration())
         else:
             return 404, {}, "{}"
 
     def _update_event_source_mapping(self, uuid):
-        result = self.lambda_backend.update_event_source_mapping(uuid, self.json_body)
+        result = self.backend.update_event_source_mapping(uuid, self.json_body)
         if result:
             return 202, {}, json.dumps(result.get_configuration())
         else:
             return 404, {}, "{}"
 
     def _delete_event_source_mapping(self, uuid):
-        esm = self.lambda_backend.delete_event_source_mapping(uuid)
+        esm = self.backend.delete_event_source_mapping(uuid)
         if esm:
             json_result = esm.get_configuration()
             json_result.update({"State": "Deleting"})
@@ -325,7 +354,7 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.split("/")[-2])
         description = self._get_param("Description")
 
-        fn = self.lambda_backend.publish_function(function_name, description)
+        fn = self.backend.publish_function(function_name, description)
         config = fn.get_configuration()
         return 201, {}, json.dumps(config)
 
@@ -333,7 +362,7 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.rsplit("/", 1)[-1])
         qualifier = self._get_param("Qualifier", None)
 
-        self.lambda_backend.delete_function(function_name, qualifier)
+        self.backend.delete_function(function_name, qualifier)
         return 204, {}, ""
 
     @staticmethod
@@ -348,7 +377,7 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.rsplit("/", 1)[-1])
         qualifier = self._get_param("Qualifier", None)
 
-        fn = self.lambda_backend.get_function(function_name, qualifier)
+        fn = self.backend.get_function(function_name, qualifier)
 
         code = fn.get_code()
         code["Configuration"] = self._set_configuration_qualifier(
@@ -360,7 +389,7 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("Qualifier", None)
 
-        fn = self.lambda_backend.get_function(function_name, qualifier)
+        fn = self.backend.get_function(function_name, qualifier)
 
         configuration = self._set_configuration_qualifier(
             fn.get_configuration(), qualifier
@@ -377,26 +406,26 @@ class LambdaResponse(BaseResponse):
     def _list_tags(self):
         function_arn = unquote(self.path.rsplit("/", 1)[-1])
 
-        tags = self.lambda_backend.list_tags(function_arn)
+        tags = self.backend.list_tags(function_arn)
         return 200, {}, json.dumps({"Tags": tags})
 
     def _tag_resource(self):
         function_arn = unquote(self.path.rsplit("/", 1)[-1])
 
-        self.lambda_backend.tag_resource(function_arn, self.json_body["Tags"])
+        self.backend.tag_resource(function_arn, self.json_body["Tags"])
         return 200, {}, "{}"
 
     def _untag_resource(self):
         function_arn = unquote(self.path.rsplit("/", 1)[-1])
         tag_keys = self.querystring["tagKeys"]
 
-        self.lambda_backend.untag_resource(function_arn, tag_keys)
+        self.backend.untag_resource(function_arn, tag_keys)
         return 204, {}, "{}"
 
     def _put_configuration(self):
         function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("Qualifier", None)
-        resp = self.lambda_backend.update_function_configuration(
+        resp = self.backend.update_function_configuration(
             function_name, qualifier, body=self.json_body
         )
 
@@ -408,7 +437,7 @@ class LambdaResponse(BaseResponse):
     def _put_code(self):
         function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("Qualifier", None)
-        resp = self.lambda_backend.update_function_code(
+        resp = self.backend.update_function_code(
             function_name, qualifier, body=self.json_body
         )
 
@@ -419,65 +448,63 @@ class LambdaResponse(BaseResponse):
 
     def _get_code_signing_config(self):
         function_name = unquote(self.path.rsplit("/", 2)[-2])
-        resp = self.lambda_backend.get_code_signing_config(function_name)
+        resp = self.backend.get_code_signing_config(function_name)
         return 200, {}, json.dumps(resp)
 
     def _get_function_concurrency(self):
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
-        function_name = self.lambda_backend.get_function(path_function_name)
+        function_name = self.backend.get_function(path_function_name)
 
         if function_name is None:
             return 404, {}, "{}"
 
-        resp = self.lambda_backend.get_function_concurrency(path_function_name)
+        resp = self.backend.get_function_concurrency(path_function_name)
         return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})
 
     def _delete_function_concurrency(self):
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
-        function_name = self.lambda_backend.get_function(path_function_name)
+        function_name = self.backend.get_function(path_function_name)
 
         if function_name is None:
             return 404, {}, "{}"
 
-        self.lambda_backend.delete_function_concurrency(path_function_name)
+        self.backend.delete_function_concurrency(path_function_name)
 
         return 204, {}, "{}"
 
     def _put_function_concurrency(self):
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
-        function = self.lambda_backend.get_function(path_function_name)
+        function = self.backend.get_function(path_function_name)
 
         if function is None:
             return 404, {}, "{}"
 
         concurrency = self._get_param("ReservedConcurrentExecutions", None)
-        resp = self.lambda_backend.put_function_concurrency(
-            path_function_name, concurrency
-        )
+        resp = self.backend.put_function_concurrency(path_function_name, concurrency)
 
         return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})
 
     def _list_layers(self):
-        layers = self.lambda_backend.list_layers()
+        layers = self.backend.list_layers()
         return 200, {}, json.dumps({"Layers": layers})
 
     def _delete_layer_version(self):
         layer_name = self.path.split("/")[-3]
         layer_version = self.path.split("/")[-1]
 
-        self.lambda_backend.delete_layer_version(layer_name, layer_version)
+        self.backend.delete_layer_version(layer_name, layer_version)
         return 200, {}, "{}"
 
     def _get_layer_version(self):
         layer_name = self.path.split("/")[-3]
         layer_version = self.path.split("/")[-1]
 
-        layer = self.lambda_backend.get_layer_version(layer_name, layer_version)
+        layer = self.backend.get_layer_version(layer_name, layer_version)
         return 200, {}, json.dumps(layer.get_layer_version())
 
     def _get_layer_versions(self):
         layer_name = self.path.rsplit("/", 2)[-2]
-        layer_versions = self.lambda_backend.get_layer_versions(layer_name)
+        layer_versions = self.backend.get_layer_versions(layer_name)
         return (
             200,
             {},
@@ -490,7 +517,7 @@ class LambdaResponse(BaseResponse):
         spec = self.json_body
         if "LayerName" not in spec:
             spec["LayerName"] = self.path.rsplit("/", 2)[-2]
-        layer_version = self.lambda_backend.publish_layer_version(spec)
+        layer_version = self.backend.publish_layer_version(spec)
         config = layer_version.get_layer_version()
         return 201, {}, json.dumps(config)
 
@@ -501,7 +528,7 @@ class LambdaResponse(BaseResponse):
         description = params.get("Description", "")
         function_version = params.get("FunctionVersion")
         routing_config = params.get("RoutingConfig")
-        alias = self.lambda_backend.create_alias(
+        alias = self.backend.create_alias(
             name=alias_name,
             function_name=function_name,
             function_version=function_version,
@@ -513,15 +540,13 @@ class LambdaResponse(BaseResponse):
     def _delete_alias(self):
         function_name = unquote(self.path.rsplit("/")[-3])
         alias_name = unquote(self.path.rsplit("/", 2)[-1])
-        self.lambda_backend.delete_alias(name=alias_name, function_name=function_name)
+        self.backend.delete_alias(name=alias_name, function_name=function_name)
         return 201, {}, "{}"
 
     def _get_alias(self):
         function_name = unquote(self.path.rsplit("/")[-3])
         alias_name = unquote(self.path.rsplit("/", 2)[-1])
-        alias = self.lambda_backend.get_alias(
-            name=alias_name, function_name=function_name
-        )
+        alias = self.backend.get_alias(name=alias_name, function_name=function_name)
         return 201, {}, json.dumps(alias.to_json())
 
     def _update_alias(self):
@@ -531,7 +556,7 @@ class LambdaResponse(BaseResponse):
         description = params.get("Description")
         function_version = params.get("FunctionVersion")
         routing_config = params.get("RoutingConfig")
-        alias = self.lambda_backend.update_alias(
+        alias = self.backend.update_alias(
             name=alias_name,
             function_name=function_name,
             function_version=function_version,

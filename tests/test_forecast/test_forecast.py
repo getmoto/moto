@@ -3,7 +3,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_forecast
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 region = "us-east-1"
 account_id = None

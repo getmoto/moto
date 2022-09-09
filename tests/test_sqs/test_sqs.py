@@ -1,4 +1,5 @@
 import json
+import os
 import time
 import uuid
 import hashlib
@@ -13,7 +14,7 @@ from moto import mock_sqs, settings
 from unittest import SkipTest, mock
 
 import pytest
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sqs.models import (
     Queue,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
@@ -630,6 +631,19 @@ def test_set_queue_attributes():
     queue.attributes["VisibilityTimeout"].should.equal("45")
 
 
+def _get_common_url(region):
+    # Different versions of botocore return different URLs
+    # See https://github.com/boto/botocore/issues/2705
+    common_name_enabled = (
+        os.environ.get("BOTO_DISABLE_COMMONNAME", "false").lower() == "false"
+    )
+    return (
+        f"https://{region}.queue.amazonaws.com"
+        if common_name_enabled
+        else f"https://sqs.{region}.amazonaws.com"
+    )
+
+
 @mock_sqs
 def test_create_queues_in_multiple_region():
     w1 = boto3.client("sqs", region_name="us-west-1")
@@ -640,19 +654,13 @@ def test_create_queues_in_multiple_region():
     w2_name = str(uuid4())[0:6]
     w2.create_queue(QueueName=w2_name)
 
-    base_url = (
-        "http://localhost:5000"
-        if settings.TEST_SERVER_MODE
-        else "https://us-west-1.queue.amazonaws.com"
-    )
+    boto_common_url = _get_common_url("us-west-1")
+    base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else boto_common_url
     w1.list_queues()["QueueUrls"].should.contain(f"{base_url}/{ACCOUNT_ID}/{w1_name}")
     w1.list_queues()["QueueUrls"].shouldnt.contain(f"{base_url}/{ACCOUNT_ID}/{w2_name}")
 
-    base_url = (
-        "http://localhost:5000"
-        if settings.TEST_SERVER_MODE
-        else "https://us-west-2.queue.amazonaws.com"
-    )
+    boto_common_url = _get_common_url("us-west-2")
+    base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else boto_common_url
     w2.list_queues()["QueueUrls"].shouldnt.contain(f"{base_url}/{ACCOUNT_ID}/{w1_name}")
     w2.list_queues()["QueueUrls"].should.contain(f"{base_url}/{ACCOUNT_ID}/{w2_name}")
 
@@ -667,11 +675,8 @@ def test_get_queue_with_prefix():
     q_name2 = f"{prefix}-test"
     conn.create_queue(QueueName=q_name2)
 
-    base_url = (
-        "http://localhost:5000"
-        if settings.TEST_SERVER_MODE
-        else "https://us-west-1.queue.amazonaws.com"
-    )
+    boto_common_url = _get_common_url("us-west-1")
+    base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else boto_common_url
     expected_url1 = f"{base_url}/{ACCOUNT_ID}/{q_name1}"
     expected_url2 = f"{base_url}/{ACCOUNT_ID}/{q_name2}"
 

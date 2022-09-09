@@ -11,7 +11,7 @@ class CostExplorerResponse(BaseResponse):
     @property
     def ce_backend(self):
         """Return backend instance specific for this region."""
-        return ce_backends["global"]
+        return ce_backends[self.current_account]["global"]
 
     def create_cost_category_definition(self):
         params = json.loads(self.body)

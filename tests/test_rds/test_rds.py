@@ -3,7 +3,7 @@ import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2, mock_kms, mock_rds
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_rds
@@ -2019,3 +2019,39 @@ def test_create_db_instance_with_tags():
 
     resp = client.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
     resp["DBInstances"][0]["TagList"].should.equal(tags)
+
+
+@mock_rds
+def test_create_db_instance_without_availability_zone():
+    region = "us-east-1"
+    client = boto3.client("rds", region_name=region)
+    db_instance_identifier = "test-db-instance"
+    resp = client.create_db_instance(
+        DBInstanceIdentifier=db_instance_identifier,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+    )
+    resp["DBInstance"]["AvailabilityZone"].should.contain(region)
+
+    resp = client.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
+    resp["DBInstances"][0]["AvailabilityZone"].should.contain(region)
+
+
+@mock_rds
+def test_create_db_instance_with_availability_zone():
+    region = "us-east-1"
+    availability_zone = f"{region}c"
+    client = boto3.client("rds", region_name=region)
+    db_instance_identifier = "test-db-instance"
+    resp = client.create_db_instance(
+        DBInstanceIdentifier=db_instance_identifier,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        AvailabilityZone=availability_zone,
+    )
+    resp["DBInstance"]["AvailabilityZone"].should.equal(availability_zone)
+
+    resp = client.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
+    resp["DBInstances"][0]["AvailabilityZone"].should.equal(availability_zone)

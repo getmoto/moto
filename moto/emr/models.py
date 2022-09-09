@@ -5,7 +5,7 @@ import warnings
 
 import pytz
 from dateutil.parser import parse as dtparse
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.emr.exceptions import (
     InvalidRequestException,
@@ -280,7 +280,7 @@ class FakeCluster(BaseModel):
     @property
     def arn(self):
         return "arn:aws:elasticmapreduce:{0}:{1}:cluster/{2}".format(
-            self.emr_backend.region_name, get_account_id(), self.id
+            self.emr_backend.region_name, self.emr_backend.account_id, self.id
         )
 
     @property
@@ -411,7 +411,7 @@ class ElasticMapReduceBackend(BaseBackend):
         """
         from moto.ec2 import ec2_backends
 
-        return ec2_backends[self.region_name]
+        return ec2_backends[self.account_id][self.region_name]
 
     def add_applications(self, cluster_id, applications):
         cluster = self.describe_cluster(cluster_id)

@@ -1,6 +1,5 @@
 import uuid
 
-from moto.core import get_account_id
 from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
@@ -37,77 +36,77 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         """
         :rtype: moto.s3.models.S3Backend
         """
-        return s3_backends["global"]
+        return s3_backends[self.account_id]["global"]
 
     @property
     def ec2_backend(self):
         """
         :rtype: moto.ec2.models.EC2Backend
         """
-        return ec2_backends[self.region_name]
+        return ec2_backends[self.account_id][self.region_name]
 
     @property
     def elb_backend(self):
         """
         :rtype: moto.elb.models.ELBBackend
         """
-        return elb_backends[self.region_name]
+        return elb_backends[self.account_id][self.region_name]
 
     @property
     def elbv2_backend(self):
         """
         :rtype: moto.elbv2.models.ELBv2Backend
         """
-        return elbv2_backends[self.region_name]
+        return elbv2_backends[self.account_id][self.region_name]
 
     @property
     def kinesis_backend(self):
         """
         :rtype: moto.kinesis.models.KinesisBackend
         """
-        return kinesis_backends[self.region_name]
+        return kinesis_backends[self.account_id][self.region_name]
 
     @property
     def kms_backend(self):
         """
         :rtype: moto.kms.models.KmsBackend
         """
-        return kms_backends[self.region_name]
+        return kms_backends[self.account_id][self.region_name]
 
     @property
     def rds_backend(self):
         """
         :rtype: moto.rds.models.RDSBackend
         """
-        return rds_backends[self.region_name]
+        return rds_backends[self.account_id][self.region_name]
 
     @property
     def glacier_backend(self):
         """
         :rtype: moto.glacier.models.GlacierBackend
         """
-        return glacier_backends[self.region_name]
+        return glacier_backends[self.account_id][self.region_name]
 
     @property
     def emr_backend(self):
         """
         :rtype: moto.emr.models.ElasticMapReduceBackend
         """
-        return emr_backends[self.region_name]
+        return emr_backends[self.account_id][self.region_name]
 
     @property
     def redshift_backend(self):
         """
         :rtype: moto.redshift.models.RedshiftBackend
         """
-        return redshift_backends[self.region_name]
+        return redshift_backends[self.account_id][self.region_name]
 
     @property
     def lambda_backend(self):
         """
         :rtype: moto.awslambda.models.LambdaBackend
         """
-        return lambda_backends[self.region_name]
+        return lambda_backends[self.account_id][self.region_name]
 
     def _get_resources_generator(self, tag_filters=None, resource_type_filters=None):
         # Look at
@@ -414,9 +413,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": "arn:aws:ec2:{0}:{1}:vpc/{2}".format(
-                        self.region_name, get_account_id(), vpc.id
-                    ),
+                    "ResourceARN": f"arn:aws:ec2:{self.region_name}:{self.account_id}:vpc/{vpc.id}",
                     "Tags": tags,
                 }
         # VPC Customer Gateway
