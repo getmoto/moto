@@ -1,6 +1,6 @@
-import io
+import sure  # noqa # pylint: disable=unused-import
 
-# import sure  # noqa # pylint: disable=unused-import
+import io
 
 from collections import OrderedDict
 
