@@ -248,9 +248,7 @@ def test_recording(m_open, m_setting):
 )
 def test_start_stop_recording(m_record):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
-            "mock patch does not work in server mode"
-        )
+        raise SkipTest("mock patch does not work in server mode")
     ec2 = boto3.resource("ec2", "us-east-1")
     BASE_URL = (
         "http://localhost:5000"
@@ -301,9 +299,7 @@ def test_replay_recording(m_open):
 @mock.patch("moto.core.responses.open", return_value=mock.MagicMock(spec=io.IOBase))
 def test_download_recording(m_open):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
-            "mock patch does not work in server mode"
-        )
+        raise SkipTest("mock patch does not work in server mode")
     boto3.resource("ec2", "us-east-1")
     BASE_URL = (
         "http://localhost:5000"
@@ -326,9 +322,7 @@ def test_download_recording(m_open):
 )
 def test_upload_recording(m_open):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
-            "mock patch does not work in server mode"
-        )
+        raise SkipTest("mock patch does not work in server mode")
     boto3.resource("ec2", "us-east-1")
     BASE_URL = (
         "http://localhost:5000"
