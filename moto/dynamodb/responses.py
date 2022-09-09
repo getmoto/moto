@@ -1,12 +1,13 @@
 import copy
 import json
-import re
 
 import itertools
 from functools import wraps
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
+from moto.dynamodb.parsing.key_condition_expression import parse_expression
+from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 from .exceptions import (
     MockValidationException,
     ResourceNotFoundException,
@@ -67,7 +68,10 @@ def include_consumed_capacity(val=1.0):
     return _inner
 
 
-def put_has_empty_keys(field_updates, table):
+def get_empty_keys_on_put(field_updates, table):
+    """
+    Return the first key-name that has an empty value. None if all keys are filled
+    """
     if table:
         key_names = table.attribute_keys
 
@@ -77,7 +81,9 @@ def put_has_empty_keys(field_updates, table):
             for (key, val) in field_updates.items()
             if next(iter(val.keys())) in ["S", "B"] and next(iter(val.values())) == ""
         ]
-        return any([keyname in empty_str_fields for keyname in key_names])
+        return next(
+            (keyname for keyname in key_names if keyname in empty_str_fields), None
+        )
     return False
 
 
@@ -100,7 +106,25 @@ def put_has_empty_attrs(field_updates, table):
     return False
 
 
+def check_projection_expression(expression):
+    if expression.upper() in ReservedKeywords.get_reserved_keywords():
+        raise MockValidationException(
+            f"ProjectionExpression: Attribute name is a reserved keyword; reserved keyword: {expression}"
+        )
+    if expression[0].isnumeric():
+        raise MockValidationException(
+            "ProjectionExpression: Attribute name starts with a number"
+        )
+    if " " in expression:
+        raise MockValidationException(
+            "ProjectionExpression: Attribute name contains white space"
+        )
+
+
 class DynamoHandler(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="dynamodb")
+
     def get_endpoint_name(self, headers):
         """Parses request headers and extracts part od the X-Amz-Target
         that corresponds to a method of DynamoHandler
@@ -115,10 +139,10 @@ class DynamoHandler(BaseResponse):
     @property
     def dynamodb_backend(self):
         """
-        :return: DynamoDB2 Backend
-        :rtype: moto.dynamodb2.models.DynamoDBBackend
+        :return: DynamoDB Backend
+        :rtype: moto.dynamodb.models.DynamoDBBackend
         """
-        return dynamodb_backends[self.region]
+        return dynamodb_backends[self.current_account][self.region]
 
     @amz_crc32
     @amzn_request_id
@@ -352,9 +376,10 @@ class DynamoHandler(BaseResponse):
         if return_values not in ("ALL_OLD", "NONE"):
             raise MockValidationException("Return values set to invalid value")
 
-        if put_has_empty_keys(item, self.dynamodb_backend.get_table(name)):
+        empty_key = get_empty_keys_on_put(item, self.dynamodb_backend.get_table(name))
+        if empty_key:
             raise MockValidationException(
-                "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+                f"One or more parameter values were invalid: An AttributeValue may not contain an empty string. Key: {empty_key}"
             )
         if put_has_empty_attrs(item, self.dynamodb_backend.get_table(name)):
             raise MockValidationException(
@@ -402,17 +427,29 @@ class DynamoHandler(BaseResponse):
 
     def batch_write_item(self):
         table_batches = self.body["RequestItems"]
-
+        put_requests = []
+        delete_requests = []
         for table_name, table_requests in table_batches.items():
+            table = self.dynamodb_backend.get_table(table_name)
             for table_request in table_requests:
                 request_type = list(table_request.keys())[0]
                 request = list(table_request.values())[0]
                 if request_type == "PutRequest":
                     item = request["Item"]
-                    self.dynamodb_backend.put_item(table_name, item)
+                    empty_key = get_empty_keys_on_put(item, table)
+                    if empty_key:
+                        raise MockValidationException(
+                            f"One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {empty_key}"
+                        )
+                    put_requests.append((table_name, item))
                 elif request_type == "DeleteRequest":
                     keys = request["Key"]
-                    self.dynamodb_backend.delete_item(table_name, keys)
+                    delete_requests.append((table_name, keys))
+
+        for (table_name, item) in put_requests:
+            self.dynamodb_backend.put_item(table_name, item)
+        for (table_name, keys) in delete_requests:
+            self.dynamodb_backend.delete_item(table_name, keys)
 
         response = {
             "ConsumedCapacity": [
@@ -434,7 +471,20 @@ class DynamoHandler(BaseResponse):
         name = self.body["TableName"]
         self.dynamodb_backend.get_table(name)
         key = self.body["Key"]
+        empty_keys = [k for k, v in key.items() if not next(iter(v.values()))]
+        if empty_keys:
+            raise MockValidationException(
+                "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an "
+                f"empty string value. Key: {empty_keys[0]}"
+            )
+
         projection_expression = self.body.get("ProjectionExpression")
+        attributes_to_get = self.body.get("AttributesToGet")
+        if projection_expression and attributes_to_get:
+            raise MockValidationException(
+                "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributesToGet} Expression parameters: {ProjectionExpression}"
+            )
+
         expression_attribute_names = self.body.get("ExpressionAttributeNames")
         if expression_attribute_names == {}:
             if projection_expression is None:
@@ -537,110 +587,15 @@ class DynamoHandler(BaseResponse):
         filter_kwargs = {}
 
         if key_condition_expression:
-            value_alias_map = self.body.get("ExpressionAttributeValues", {})
-
             index_name = self.body.get("IndexName")
             schema = self.dynamodb_backend.get_schema(
                 table_name=name, index_name=index_name
             )
-
-            reverse_attribute_lookup = dict(
-                (v, k) for k, v in self.body.get("ExpressionAttributeNames", {}).items()
-            )
-
-            if " and " in key_condition_expression.lower():
-                expressions = re.split(
-                    " AND ", key_condition_expression, maxsplit=1, flags=re.IGNORECASE
-                )
-
-                index_hash_key = [key for key in schema if key["KeyType"] == "HASH"][0]
-                hash_key_var = reverse_attribute_lookup.get(
-                    index_hash_key["AttributeName"], index_hash_key["AttributeName"]
-                )
-                hash_key_regex = r"(^|[\s(]){0}\b".format(hash_key_var)
-                i, hash_key_expression = next(
-                    (
-                        (i, e)
-                        for i, e in enumerate(expressions)
-                        if re.search(hash_key_regex, e)
-                    ),
-                    (None, None),
-                )
-                if hash_key_expression is None:
-                    raise MockValidationException(
-                        "Query condition missed key schema element: {}".format(
-                            hash_key_var
-                        )
-                    )
-                hash_key_expression = hash_key_expression.strip("()")
-                expressions.pop(i)
-
-                # TODO implement more than one range expression and OR operators
-                range_key_expression = expressions[0].strip("()")
-                # Split expression, and account for all kinds of whitespacing around commas and brackets
-                range_key_expression_components = re.split(
-                    r"\s*\(\s*|\s*,\s*|\s", range_key_expression
-                )
-                # Skip whitespace
-                range_key_expression_components = [
-                    c for c in range_key_expression_components if c
-                ]
-                range_comparison = range_key_expression_components[1]
-
-                if " and " in range_key_expression.lower():
-                    range_comparison = "BETWEEN"
-                    # [range_key, between, x, and, y]
-                    range_values = [
-                        value_alias_map[range_key_expression_components[2]],
-                        value_alias_map[range_key_expression_components[4]],
-                    ]
-                    supplied_range_key = range_key_expression_components[0]
-                elif "begins_with" in range_key_expression:
-                    range_comparison = "BEGINS_WITH"
-                    # [begins_with, range_key, x]
-                    range_values = [
-                        value_alias_map[range_key_expression_components[-1]]
-                    ]
-                    supplied_range_key = range_key_expression_components[1]
-                elif "begins_with" in range_key_expression.lower():
-                    function_used = range_key_expression[
-                        range_key_expression.lower().index("begins_with") : len(
-                            "begins_with"
-                        )
-                    ]
-                    raise MockValidationException(
-                        "Invalid KeyConditionExpression: Invalid function name; function: {}".format(
-                            function_used
-                        )
-                    )
-                else:
-                    # [range_key, =, x]
-                    range_values = [value_alias_map[range_key_expression_components[2]]]
-                    supplied_range_key = range_key_expression_components[0]
-
-                supplied_range_key = expression_attribute_names.get(
-                    supplied_range_key, supplied_range_key
-                )
-                range_keys = [
-                    k["AttributeName"] for k in schema if k["KeyType"] == "RANGE"
-                ]
-                if supplied_range_key not in range_keys:
-                    raise MockValidationException(
-                        "Query condition missed key schema element: {}".format(
-                            range_keys[0]
-                        )
-                    )
-            else:
-                hash_key_expression = key_condition_expression.strip("()")
-                range_comparison = None
-                range_values = []
-
-            if not re.search("[^<>]=", hash_key_expression):
-                raise MockValidationException("Query key condition not supported")
-            hash_key_value_alias = hash_key_expression.split("=")[1].strip()
-            # Temporary fix until we get proper KeyConditionExpression function
-            hash_key = value_alias_map.get(
-                hash_key_value_alias, {"S": hash_key_value_alias}
+            hash_key, range_comparison, range_values = parse_expression(
+                key_condition_expression=key_condition_expression,
+                expression_attribute_names=expression_attribute_names,
+                expression_attribute_values=expression_attribute_values,
+                schema=schema,
             )
         else:
             # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}
@@ -698,7 +653,7 @@ class DynamoHandler(BaseResponse):
             expr_names=expression_attribute_names,
             expr_values=expression_attribute_values,
             filter_expression=filter_expression,
-            **filter_kwargs
+            **filter_kwargs,
         )
 
         result = {
@@ -722,14 +677,17 @@ class DynamoHandler(BaseResponse):
                 else expression
             )
 
-        if projection_expression and expr_attr_names:
+        if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(",")]
-            return ",".join(
-                [
-                    ".".join([_adjust(expr) for expr in nested_expr.split(".")])
-                    for nested_expr in expressions
-                ]
-            )
+            for expression in expressions:
+                check_projection_expression(expression)
+            if expr_attr_names:
+                return ",".join(
+                    [
+                        ".".join([_adjust(expr) for expr in nested_expr.split(".")])
+                        for nested_expr in expressions
+                    ]
+                )
 
         return projection_expression
 
@@ -753,6 +711,10 @@ class DynamoHandler(BaseResponse):
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
         index_name = self.body.get("IndexName")
+
+        projection_expression = self._adjust_projection_expression(
+            projection_expression, expression_attribute_names
+        )
 
         try:
             items, scanned_count, last_evaluated_key = self.dynamodb_backend.scan(

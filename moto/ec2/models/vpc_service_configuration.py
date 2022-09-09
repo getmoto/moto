@@ -44,7 +44,7 @@ class VPCServiceConfigurationBackend:
     def elbv2_backend(self):
         from moto.elbv2.models import elbv2_backends
 
-        return elbv2_backends[self.region_name]
+        return elbv2_backends[self.account_id][self.region_name]
 
     def get_vpc_endpoint_service(self, resource_id):
         return self.configurations.get(resource_id)

@@ -12,8 +12,12 @@ import time
 from urllib.parse import urlparse
 import responses
 
-from openapi_spec_validator.exceptions import OpenAPIValidationError
-from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
+try:
+    from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
+except ImportError:
+    # OpenAPI Spec Validator < 0.5.0
+    from openapi_spec_validator.exceptions import OpenAPIValidationError
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url, BackendDict
 from .integration_parsers.aws_parser import TypeAwsParser
@@ -84,13 +88,13 @@ class Deployment(CloudFormationModel, dict):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
         name = properties["StageName"]
         desc = properties.get("Description", "")
-        backend = apigateway_backends[region_name]
+        backend = apigateway_backends[account_id][region_name]
         return backend.create_deployment(
             function_id=rest_api_id, name=name, description=desc
         )
@@ -190,7 +194,7 @@ class Method(CloudFormationModel, dict):
                 authorizerId=kwargs.get("authorizer_id"),
                 authorizationScopes=kwargs.get("authorization_scopes"),
                 apiKeyRequired=kwargs.get("api_key_required") or False,
-                requestParameters=None,
+                requestParameters=kwargs.get("request_parameters"),
                 requestModels=kwargs.get("request_models"),
                 methodIntegration=None,
                 operationName=kwargs.get("operation_name"),
@@ -209,7 +213,7 @@ class Method(CloudFormationModel, dict):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
@@ -217,7 +221,7 @@ class Method(CloudFormationModel, dict):
         method_type = properties["HttpMethod"]
         auth_type = properties["AuthorizationType"]
         key_req = properties["ApiKeyRequired"]
-        backend = apigateway_backends[region_name]
+        backend = apigateway_backends[account_id][region_name]
         m = backend.put_method(
             function_id=rest_api_id,
             resource_id=resource_id,
@@ -253,9 +257,12 @@ class Method(CloudFormationModel, dict):
 
 
 class Resource(CloudFormationModel):
-    def __init__(self, resource_id, region_name, api_id, path_part, parent_id):
+    def __init__(
+        self, resource_id, account_id, region_name, api_id, path_part, parent_id
+    ):
         super().__init__()
         self.id = resource_id
+        self.account_id = account_id
         self.region_name = region_name
         self.api_id = api_id
         self.path_part = path_part
@@ -291,14 +298,14 @@ class Resource(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         api_id = properties["RestApiId"]
         parent = properties["ParentId"]
         path = properties["PathPart"]
 
-        backend = apigateway_backends[region_name]
+        backend = apigateway_backends[account_id][region_name]
         if parent == api_id:
             # A Root path (/) is automatically created. Any new paths should use this as their parent
             resources = backend.get_resources(function_id=api_id)
@@ -315,7 +322,7 @@ class Resource(CloudFormationModel):
 
     def get_parent_path(self):
         if self.parent_id:
-            backend = apigateway_backends[self.region_name]
+            backend = apigateway_backends[self.account_id][self.region_name]
             parent = backend.get_resource(self.api_id, self.parent_id)
             parent_path = parent.get_path()
             if parent_path != "/":  # Root parent
@@ -339,6 +346,7 @@ class Resource(CloudFormationModel):
         method_type,
         authorization_type,
         api_key_required,
+        request_parameters=None,
         request_models=None,
         operation_name=None,
         authorizer_id=None,
@@ -351,6 +359,7 @@ class Resource(CloudFormationModel):
             method_type=method_type,
             authorization_type=authorization_type,
             api_key_required=api_key_required,
+            request_parameters=request_parameters,
             request_models=request_models,
             operation_name=operation_name,
             authorizer_id=authorizer_id,
@@ -780,9 +789,10 @@ class RestAPI(CloudFormationModel):
     OPERATION_VALUE = "value"
     OPERATION_OP = "op"
 
-    def __init__(self, api_id, region_name, name, description, **kwargs):
+    def __init__(self, api_id, account_id, region_name, name, description, **kwargs):
         super().__init__()
         self.id = api_id
+        self.account_id = account_id
         self.region_name = region_name
         self.name = name
         self.description = description
@@ -883,13 +893,13 @@ class RestAPI(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         name = properties["Name"]
         desc = properties.get("Description", "")
         config = properties.get("EndpointConfiguration", None)
-        backend = apigateway_backends[region_name]
+        backend = apigateway_backends[account_id][region_name]
         return backend.create_rest_api(
             name=name, description=desc, endpoint_configuration=config
         )
@@ -898,6 +908,7 @@ class RestAPI(CloudFormationModel):
         child_id = create_id()
         child = Resource(
             resource_id=child_id,
+            account_id=self.account_id,
             region_name=self.region_name,
             api_id=self.id,
             path_part=path,
@@ -1267,6 +1278,7 @@ class APIGatewayBackend(BaseBackend):
         api_id = create_id()
         rest_api = RestAPI(
             api_id,
+            self.account_id,
             self.region_name,
             name,
             description,
@@ -1375,8 +1387,7 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(function_id)
         if resource_id not in api.resources:
             raise ResourceIdNotFoundException
-        resource = api.resources[resource_id]
-        return resource
+        return api.resources[resource_id]
 
     def create_resource(self, function_id, parent_resource_id, path_part):
         api = self.get_rest_api(function_id)
@@ -1404,6 +1415,7 @@ class APIGatewayBackend(BaseBackend):
         method_type,
         authorization_type,
         api_key_required=None,
+        request_parameters=None,
         request_models=None,
         operation_name=None,
         authorizer_id=None,
@@ -1415,6 +1427,7 @@ class APIGatewayBackend(BaseBackend):
             method_type,
             authorization_type,
             api_key_required=api_key_required,
+            request_parameters=request_parameters,
             request_models=request_models,
             operation_name=operation_name,
             authorizer_id=authorizer_id,
@@ -1576,7 +1589,7 @@ class APIGatewayBackend(BaseBackend):
     ):
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
-            "^arn:aws:iam::" + str(get_account_id()), credentials
+            "^arn:aws:iam::" + str(self.account_id), credentials
         ):
             raise CrossAccountNotAllowed()
         if not integration_method and integration_type in [
@@ -1601,7 +1614,7 @@ class APIGatewayBackend(BaseBackend):
         if integration_type in ["AWS", "AWS_PROXY"] and not re.match("^arn:aws:", uri):
             raise InvalidArn()
         if integration_type in ["AWS", "AWS_PROXY"] and not re.match(
-            "^arn:aws:apigateway:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+:(path|action)/", uri
+            "^arn:aws:apigateway:[a-zA-Z0-9-]+:[a-zA-Z0-9-.]+:(path|action)/", uri
         ):
             raise InvalidIntegrationArn()
         integration = resource.add_integration(
@@ -1637,10 +1650,11 @@ class APIGatewayBackend(BaseBackend):
         content_handling,
     ):
         integration = self.get_integration(function_id, resource_id, method_type)
-        integration_response = integration.create_integration_response(
-            status_code, selection_pattern, response_templates, content_handling
-        )
-        return integration_response
+        if integration:
+            return integration.create_integration_response(
+                status_code, selection_pattern, response_templates, content_handling
+            )
+        raise NoIntegrationResponseDefined()
 
     def get_integration_response(
         self, function_id, resource_id, method_type, status_code

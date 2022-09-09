@@ -8,10 +8,13 @@ from .models import ebs_backends
 class EBSResponse(BaseResponse):
     """Handler for EBS requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="ebs")
+
     @property
     def ebs_backend(self):
         """Return backend instance specific for this region."""
-        return ebs_backends[self.region]
+        return ebs_backends[self.current_account][self.region]
 
     def snapshots(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

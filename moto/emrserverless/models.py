@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 import inspect
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, iso_8601_datetime_without_milliseconds
 from .utils import (
     default_auto_start_configuration,
@@ -16,17 +16,7 @@ from .utils import (
 
 from .exceptions import ResourceNotFoundException, ValidationException
 
-APPLICATION_ARN_TEMPLATE = (
-    "arn:{partition}:emr-containers:{region}:"
-    + str(ACCOUNT_ID)
-    + ":/applications/{application_id}"
-)
-
-JOB_ARN_TEMPLATE = (
-    "arn:{partition}:emr-containers:{region}:"
-    + str(ACCOUNT_ID)
-    + ":/applications/{application_id}/jobruns/{job_id}"
-)
+APPLICATION_ARN_TEMPLATE = "arn:{partition}:emr-containers:{region}:{account_id}:/applications/{application_id}"
 
 # Defaults used for creating an EMR Serverless application
 APPLICATION_STATUS = "STARTED"
@@ -40,6 +30,7 @@ class FakeApplication(BaseModel):
         release_label,
         application_type,
         client_token,
+        account_id,
         region_name,
         initial_capacity,
         maximum_capacity,
@@ -67,7 +58,10 @@ class FakeApplication(BaseModel):
         # Service-generated-parameters
         self.id = random_appplication_id()
         self.arn = APPLICATION_ARN_TEMPLATE.format(
-            partition="aws", region=region_name, application_id=self.id
+            partition="aws",
+            region=region_name,
+            account_id=account_id,
+            application_id=self.id,
         )
         self.state = APPLICATION_STATUS
         self.state_details = ""
@@ -166,6 +160,7 @@ class EMRServerlessBackend(BaseBackend):
             name=name,
             release_label=release_label,
             application_type=application_type,
+            account_id=self.account_id,
             region_name=self.region_name,
             client_token=client_token,
             initial_capacity=initial_capacity,

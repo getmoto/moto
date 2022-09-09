@@ -14,7 +14,7 @@ def backend():
 @pytest.fixture
 def key(backend):
     return backend.create_key(
-        None, "ENCRYPT_DECRYPT", "SYMMETRIC_DEFAULT", "Test key", None, REGION
+        None, "ENCRYPT_DECRYPT", "SYMMETRIC_DEFAULT", "Test key", None
     )
 
 

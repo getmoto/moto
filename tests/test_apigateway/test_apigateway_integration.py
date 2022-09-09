@@ -166,6 +166,23 @@ def test_aws_integration_dynamodb_multiple_resources():
     )
 
 
+@mock_apigateway
+def test_aws_integration_sagemaker():
+    region = "us-west-2"
+    client = boto3.client("apigateway", region_name=region)
+    sagemaker_endpoint = "non-existing"
+    integration_action = f"arn:aws:apigateway:{region}:runtime.sagemaker:path//endpoints/{sagemaker_endpoint}/invocations"
+
+    api_id, resource_id = create_integration_test_api(client, integration_action)
+
+    # We can't invoke Sagemaker
+    # Just verify that the integration action was successful
+    response = client.get_integration(
+        restApiId=api_id, resourceId=resource_id, httpMethod="PUT"
+    )
+    response.should.have.key("uri").equals(integration_action)
+
+
 def create_table(dynamodb, table_name):
     # Create DynamoDB table
     dynamodb.create_table(

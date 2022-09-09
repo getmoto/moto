@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from uuid import uuid4
 
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.mediaconnect.exceptions import NotFoundException
 
@@ -80,7 +80,7 @@ class MediaConnectBackend(BaseBackend):
     def _add_source_details(self, source, flow_id, ingest_ip="127.0.0.1"):
         if source:
             source["sourceArn"] = (
-                f"arn:aws:mediaconnect:{self.region_name}:{get_account_id()}:source"
+                f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:source"
                 f":{flow_id}:{source['name']}"
             )
             if not source.get("entitlementArn"):
@@ -91,7 +91,7 @@ class MediaConnectBackend(BaseBackend):
 
         flow.description = "A Moto test flow"
         flow.egress_ip = "127.0.0.1"
-        flow.flow_arn = f"arn:aws:mediaconnect:{self.region_name}:{get_account_id()}:flow:{flow_id}:{flow.name}"
+        flow.flow_arn = f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:flow:{flow_id}:{flow.name}"
 
         for index, _source in enumerate(flow.sources):
             self._add_source_details(_source, flow_id, f"127.0.0.{index}")
@@ -240,6 +240,71 @@ class MediaConnectBackend(BaseBackend):
                 message="flow with arn={} not found".format(flow_arn)
             )
         return flow_arn, output_name
+
+    def add_flow_sources(self, flow_arn, sources):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        for source in sources:
+            source_id = uuid4().hex
+            name = source["name"]
+            arn = f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:source:{source_id}:{name}"
+            source["sourceArn"] = arn
+        flow.sources = sources
+        return flow_arn, sources
+
+    def update_flow_source(
+        self,
+        flow_arn,
+        source_arn,
+        decryption,
+        description,
+        entitlement_arn,
+        ingest_port,
+        max_bitrate,
+        max_latency,
+        max_sync_buffer,
+        media_stream_source_configurations,
+        min_latency,
+        protocol,
+        sender_control_port,
+        sender_ip_address,
+        stream_id,
+        vpc_interface_name,
+        whitelist_cidr,
+    ):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        source = next(
+            iter(
+                [source for source in flow.sources if source["sourceArn"] == source_arn]
+            ),
+            {},
+        )
+        if source:
+            source["decryption"] = decryption
+            source["description"] = description
+            source["entitlementArn"] = entitlement_arn
+            source["ingestPort"] = ingest_port
+            source["maxBitrate"] = max_bitrate
+            source["maxLatency"] = max_latency
+            source["maxSyncBuffer"] = max_sync_buffer
+            source[
+                "mediaStreamSourceConfigurations"
+            ] = media_stream_source_configurations
+            source["minLatency"] = min_latency
+            source["protocol"] = protocol
+            source["senderControlPort"] = sender_control_port
+            source["senderIpAddress"] = sender_ip_address
+            source["streamId"] = stream_id
+            source["vpcInterfaceName"] = vpc_interface_name
+            source["whitelistCidr"] = whitelist_cidr
+        return flow_arn, source
 
     # add methods from here
 

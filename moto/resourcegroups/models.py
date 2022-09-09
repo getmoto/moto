@@ -3,14 +3,20 @@ from builtins import str
 import json
 import re
 
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from .exceptions import BadRequestException
 
 
 class FakeResourceGroup(BaseModel):
     def __init__(
-        self, name, resource_query, description=None, tags=None, configuration=None
+        self,
+        account_id,
+        name,
+        resource_query,
+        description=None,
+        tags=None,
+        configuration=None,
     ):
         self.errors = []
         description = description or ""
@@ -24,9 +30,7 @@ class FakeResourceGroup(BaseModel):
         if self._validate_tags(value=tags):
             self._tags = tags
         self._raise_errors()
-        self.arn = "arn:aws:resource-groups:us-west-1:{AccountId}:{name}".format(
-            name=name, AccountId=get_account_id()
-        )
+        self.arn = f"arn:aws:resource-groups:us-west-1:{account_id}:{name}"
         self.configuration = configuration
 
     @staticmethod
@@ -305,6 +309,7 @@ class ResourceGroupsBackend(BaseBackend):
     ):
         tags = tags or {}
         group = FakeResourceGroup(
+            account_id=self.account_id,
             name=name,
             resource_query=resource_query,
             description=description,

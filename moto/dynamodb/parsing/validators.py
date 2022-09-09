@@ -115,8 +115,6 @@ class ExpressionPathResolver(object):
                     raise NotImplementedError(
                         "Path resolution for {t}".format(t=type(child))
                     )
-        if not isinstance(target, DynamoType):
-            print(target)
         return DDBTypedValue(target)
 
     def resolve_expression_path_nodes_to_dynamo_type(

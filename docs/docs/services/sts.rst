@@ -26,6 +26,10 @@ sts
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] assume_role
+  
+        Assume an IAM Role. Note that the role does not need to exist. The ARN can point to another account, providing an opportunity to switch accounts.
+        
+
 - [X] assume_role_with_saml
 - [X] assume_role_with_web_identity
 - [ ] decode_authorization_message

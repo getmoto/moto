@@ -9,10 +9,13 @@ from .models import mq_backends
 class MQResponse(BaseResponse):
     """Handler for MQ requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="mq")
+
     @property
     def mq_backend(self):
         """Return backend instance specific for this region."""
-        return mq_backends[self.region]
+        return mq_backends[self.current_account][self.region]
 
     def broker(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

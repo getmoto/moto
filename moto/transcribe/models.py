@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from moto.core import BaseBackend, BaseModel, get_account_id
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -31,6 +31,7 @@ class BaseObject(BaseModel):
 class FakeTranscriptionJob(BaseObject, ManagedState):
     def __init__(
         self,
+        account_id,
         region_name,
         transcription_job_name,
         language_code,
@@ -56,6 +57,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 ("IN_PROGRESS", "COMPLETED"),
             ],
         )
+        self._account_id = account_id
         self._region_name = region_name
         self.transcription_job_name = transcription_job_name
         self.language_code = language_code
@@ -200,7 +202,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
             else:
                 transcript_file_uri = "https://s3.{0}.amazonaws.com/aws-transcribe-{0}-prod/{1}/{2}/{3}/asrOutput.json".format(  # noqa: E501
                     self._region_name,
-                    get_account_id(),
+                    self._account_id,
                     self.transcription_job_name,
                     uuid.uuid4(),
                 )
@@ -210,7 +212,13 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
 
 class FakeVocabulary(BaseObject, ManagedState):
     def __init__(
-        self, region_name, vocabulary_name, language_code, phrases, vocabulary_file_uri
+        self,
+        account_id,
+        region_name,
+        vocabulary_name,
+        language_code,
+        phrases,
+        vocabulary_file_uri,
     ):
         # Configured ManagedState
         super().__init__(
@@ -226,7 +234,7 @@ class FakeVocabulary(BaseObject, ManagedState):
         self.last_modified_time = None
         self.failure_reason = None
         self.download_uri = "https://s3.{0}.amazonaws.com/aws-transcribe-dictionary-model-{0}-prod/{1}/{2}/{3}/input.txt".format(  # noqa: E501
-            region_name, get_account_id(), vocabulary_name, uuid
+            region_name, account_id, vocabulary_name, uuid
         )
 
     def response_object(self, response_type):
@@ -406,9 +414,15 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
 
 class FakeMedicalVocabulary(FakeVocabulary):
     def __init__(
-        self, region_name, vocabulary_name, language_code, vocabulary_file_uri
+        self,
+        account_id,
+        region_name,
+        vocabulary_name,
+        language_code,
+        vocabulary_file_uri,
     ):
         super().__init__(
+            account_id,
             region_name,
             vocabulary_name,
             language_code=language_code,
@@ -423,7 +437,7 @@ class FakeMedicalVocabulary(FakeVocabulary):
         self.last_modified_time = None
         self.failure_reason = None
         self.download_uri = "https://s3.us-east-1.amazonaws.com/aws-transcribe-dictionary-model-{}-prod/{}/medical/{}/{}/input.txt".format(  # noqa: E501
-            region_name, get_account_id(), self.vocabulary_name, uuid.uuid4()
+            region_name, account_id, self.vocabulary_name, uuid.uuid4()
         )
 
 
@@ -477,6 +491,7 @@ class TranscribeBackend(BaseBackend):
             )
 
         transcription_job_object = FakeTranscriptionJob(
+            account_id=self.account_id,
             region_name=self.region_name,
             transcription_job_name=name,
             language_code=kwargs.get("language_code"),
@@ -662,6 +677,7 @@ class TranscribeBackend(BaseBackend):
             )
 
         vocabulary_object = FakeVocabulary(
+            account_id=self.account_id,
             region_name=self.region_name,
             vocabulary_name=vocabulary_name,
             language_code=language_code,
@@ -686,6 +702,7 @@ class TranscribeBackend(BaseBackend):
             )
 
         medical_vocabulary_object = FakeMedicalVocabulary(
+            account_id=self.account_id,
             region_name=self.region_name,
             vocabulary_name=vocabulary_name,
             language_code=language_code,

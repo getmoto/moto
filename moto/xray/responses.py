@@ -10,12 +10,15 @@ from .exceptions import BadSegmentException
 
 
 class XRayResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="xray")
+
     def _error(self, code, message):
         return json.dumps({"__type": code, "message": message}), dict(status=400)
 
     @property
     def xray_backend(self):
-        return xray_backends[self.region]
+        return xray_backends[self.current_account][self.region]
 
     @property
     def request_params(self):

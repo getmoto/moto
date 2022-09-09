@@ -30,9 +30,12 @@ def _validate_filters(filters):
 
 
 class SecretsManagerResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="secretsmanager")
+
     @property
     def backend(self):
-        return secretsmanager_backends[self.region]
+        return secretsmanager_backends[self.current_account][self.region]
 
     def get_secret_value(self):
         secret_id = self._get_param("SecretId")

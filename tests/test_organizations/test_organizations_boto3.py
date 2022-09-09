@@ -17,7 +17,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_organizations
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.organizations import utils
 from .organizations_test_utils import (
     validate_organization,
@@ -40,7 +40,7 @@ def test_create_organization():
     response = client.list_accounts()
     len(response["Accounts"]).should.equal(1)
     response["Accounts"][0]["Name"].should.equal("master")
-    response["Accounts"][0]["Id"].should.equal(utils.MASTER_ACCOUNT_ID)
+    response["Accounts"][0]["Id"].should.equal(ACCOUNT_ID)
     response["Accounts"][0]["Email"].should.equal(utils.MASTER_ACCOUNT_EMAIL)
 
     response = client.list_policies(Filter="SERVICE_CONTROL_POLICY")
@@ -433,7 +433,7 @@ def test_list_children():
     response02 = client.list_children(ParentId=root_id, ChildType="ORGANIZATIONAL_UNIT")
     response03 = client.list_children(ParentId=ou01_id, ChildType="ACCOUNT")
     response04 = client.list_children(ParentId=ou01_id, ChildType="ORGANIZATIONAL_UNIT")
-    response01["Children"][0]["Id"].should.equal(utils.MASTER_ACCOUNT_ID)
+    response01["Children"][0]["Id"].should.equal(ACCOUNT_ID)
     response01["Children"][0]["Type"].should.equal("ACCOUNT")
     response01["Children"][1]["Id"].should.equal(account01_id)
     response01["Children"][1]["Type"].should.equal("ACCOUNT")
@@ -1240,7 +1240,7 @@ def test_tag_resource_errors():
 
 
 def test__get_resource_for_tagging_existing_root():
-    org = FakeOrganization("ALL")
+    org = FakeOrganization(ACCOUNT_ID, "ALL")
     root = FakeRoot(org)
 
     org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
@@ -1260,7 +1260,7 @@ def test__get_resource_for_tagging_existing_non_root():
 
 
 def test__get_resource_for_tagging_existing_ou():
-    org = FakeOrganization("ALL")
+    org = FakeOrganization(ACCOUNT_ID, "ALL")
     ou = FakeOrganizationalUnit(org)
     org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
 
@@ -1280,7 +1280,7 @@ def test__get_resource_for_tagging_non_existing_ou():
 
 
 def test__get_resource_for_tagging_existing_account():
-    org = FakeOrganization("ALL")
+    org = FakeOrganization(ACCOUNT_ID, "ALL")
     org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     account = FakeAccount(org, AccountName="test", Email="test@test.test")
 
@@ -1300,7 +1300,7 @@ def test__get_resource_for_tagging_non_existing_account():
 
 
 def test__get_resource_for_tagging_existing_policy():
-    org = FakeOrganization("ALL")
+    org = FakeOrganization(ACCOUNT_ID, "ALL")
     org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     policy = FakePolicy(org, Type="SERVICE_CONTROL_POLICY")
 

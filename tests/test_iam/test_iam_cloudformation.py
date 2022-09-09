@@ -6,7 +6,7 @@ import sure  # noqa # pylint: disable=unused-import
 import pytest
 from botocore.exceptions import ClientError
 
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto import mock_autoscaling, mock_iam, mock_cloudformation, mock_s3, mock_sts
 from tests import EXAMPLE_AMI_ID
 

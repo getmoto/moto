@@ -35,6 +35,7 @@ Additional Resources
    docs/faq
    docs/iam
    docs/aws_config
+   docs/multi_account
 
 .. toctree::
   :hidden:

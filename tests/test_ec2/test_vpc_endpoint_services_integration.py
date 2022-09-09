@@ -5,6 +5,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, settings
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest import SkipTest
 
 
@@ -147,7 +148,7 @@ def test_describe_vpc_endpoint_services_filters():
     """Verify that different type of filters return the expected results."""
     from moto.ec2.models import ec2_backends  # pylint: disable=import-outside-toplevel
 
-    ec2_backend = ec2_backends["us-west-1"]
+    ec2_backend = ec2_backends[ACCOUNT_ID]["us-west-1"]
     test_data = fake_endpoint_services()
 
     # Allow access to _filter_endpoint_services as it provides the best

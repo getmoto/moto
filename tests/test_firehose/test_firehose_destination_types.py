@@ -4,7 +4,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_firehose
 from moto import settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import get_random_hex
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"

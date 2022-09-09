@@ -8,10 +8,13 @@ from .models import quicksight_backends
 class QuickSightResponse(BaseResponse):
     """Handler for QuickSight requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="quicksight")
+
     @property
     def quicksight_backend(self):
         """Return backend instance specific for this region."""
-        return quicksight_backends[self.region]
+        return quicksight_backends[self.current_account][self.region]
 
     def dataset(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

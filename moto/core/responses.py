@@ -4,6 +4,7 @@ import functools
 import importlib
 import json
 import logging
+import os
 import random
 import re
 from collections import OrderedDict, defaultdict
@@ -24,6 +25,8 @@ import random
 
 
 log = logging.getLogger(__name__)
+
+JINJA_ENVS = {}
 
 
 def _decode_dict(d):
@@ -58,18 +61,6 @@ def _decode_dict(d):
 
 
 class DynamicDictLoader(DictLoader):
-    """
-    Note: There's a bug in jinja2 pre-2.7.3 DictLoader where caching does not work.
-      Including the fixed (current) method version here to ensure performance benefit
-      even for those using older jinja versions.
-    """
-
-    def get_source(self, environment, template):
-        if template in self.mapping:
-            source = self.mapping[template]
-            return source, None, lambda: source == self.mapping.get(template)
-        raise TemplateNotFound(template)
-
     def update(self, mapping):
         self.mapping.update(mapping)
 
@@ -81,34 +72,47 @@ class _TemplateEnvironmentMixin(object):
     LEFT_PATTERN = re.compile(r"[\s\n]+<")
     RIGHT_PATTERN = re.compile(r">[\s\n]+")
 
-    def __init__(self):
-        super().__init__()
-        self.loader = DynamicDictLoader({})
-        self.environment = Environment(
-            loader=self.loader, autoescape=self.should_autoescape
-        )
-
     @property
     def should_autoescape(self):
         # Allow for subclass to overwrite
         return False
 
-    def contains_template(self, template_id):
-        return self.loader.contains(template_id)
-
-    def response_template(self, source):
-        template_id = id(source)
-        if not self.contains_template(template_id):
-            collapsed = re.sub(
-                self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
-            )
-            self.loader.update({template_id: collapsed})
-            self.environment = Environment(
-                loader=self.loader,
+    @property
+    def environment(self):
+        key = type(self)
+        try:
+            environment = JINJA_ENVS[key]
+        except KeyError:
+            loader = DynamicDictLoader({})
+            environment = Environment(
+                loader=loader,
                 autoescape=self.should_autoescape,
                 trim_blocks=True,
                 lstrip_blocks=True,
             )
+            JINJA_ENVS[key] = environment
+
+        return environment
+
+    def contains_template(self, template_id):
+        return self.environment.loader.contains(template_id)
+
+    @classmethod
+    def _make_template_id(cls, source):
+        """
+        Return a numeric string that's unique for the lifetime of the source.
+
+        Jinja2 expects to template IDs to be strings.
+        """
+        return str(id(source))
+
+    def response_template(self, source):
+        template_id = self._make_template_id(source)
+        if not self.contains_template(template_id):
+            collapsed = re.sub(
+                self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
+            )
+            self.environment.loader.update({template_id: collapsed})
         return self.environment.get_template(template_id)
 
 
@@ -122,7 +126,11 @@ class ActionAuthenticatorMixin(object):
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
         ):
             iam_request = iam_request_cls(
-                method=self.method, path=self.path, data=self.data, headers=self.headers
+                account_id=self.current_account,
+                method=self.method,
+                path=self.path,
+                data=self.data,
+                headers=self.headers,
             )
             iam_request.check_signature()
             iam_request.check_action_permitted()
@@ -199,6 +207,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
     aws_service_spec = None
+
+    def __init__(self, service_name=None):
+        super().__init__()
+        self.service_name = service_name
 
     @classmethod
     def dispatch(cls, *args, **kwargs):
@@ -280,6 +292,18 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.headers["host"] = urlparse(full_url).netloc
         self.response_headers = {"server": "amazon.com"}
 
+        # Register visit with IAM
+        from moto.iam.models import mark_account_as_visited
+
+        self.access_key = self.get_access_key()
+        self.current_account = self.get_current_account()
+        mark_account_as_visited(
+            account_id=self.current_account,
+            access_key=self.access_key,
+            service=self.service_name,
+            region=self.region,
+        )
+
     def get_region_from_url(self, request, full_url):
         url_match = self.region_regex.search(full_url)
         user_agent_match = self.region_from_useragent_regex.search(
@@ -298,7 +322,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             region = self.default_region
         return region
 
-    def get_current_user(self):
+    def get_access_key(self):
         """
         Returns the access key id used in this request as the current user id
         """
@@ -308,10 +332,24 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return match.group(1)
 
         if self.querystring.get("AWSAccessKeyId"):
-            return self.querystring.get("AWSAccessKeyId")
+            return self.querystring.get("AWSAccessKeyId")[0]
         else:
-            # Should we raise an unauthorized exception instead?
-            return "111122223333"
+            return "AKIAEXAMPLE"
+
+    def get_current_account(self):
+        # PRIO 1: Check if we have a Environment Variable set
+        if "MOTO_ACCOUNT_ID" in os.environ:
+            return os.environ["MOTO_ACCOUNT_ID"]
+
+        # PRIO 2: Check if we have a specific request header that specifies the Account ID
+        if "x-moto-account-id" in self.headers:
+            return self.headers["x-moto-account-id"]
+
+        # PRIO 3: Use the access key to get the Account ID
+        # PRIO 4: This method will return the default Account ID as a last resort
+        from moto.iam.models import get_account_id_from
+
+        return get_account_id_from(self.get_access_key())
 
     def _dispatch(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -357,10 +395,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         # service response class should have 'SERVICE_NAME' class member,
         # if you want to get action from method and url
-        if not hasattr(self, "SERVICE_NAME"):
-            return None
-        service = self.SERVICE_NAME
-        conn = boto3.client(service, region_name=self.region)
+        conn = boto3.client(self.service_name, region_name=self.region)
 
         # make cache if it does not exist yet
         if not hasattr(self, "method_urls"):
@@ -381,15 +416,15 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _get_action(self):
         action = self.querystring.get("Action", [""])[0]
-        if not action:  # Some services use a header for the action
-            # Headers are case-insensitive. Probably a better way to do this.
-            match = self.headers.get("x-amz-target") or self.headers.get("X-Amz-Target")
-            if match:
-                action = match.split(".")[-1]
+        if action:
+            return action
+        # Some services use a header for the action
+        # Headers are case-insensitive. Probably a better way to do this.
+        match = self.headers.get("x-amz-target") or self.headers.get("X-Amz-Target")
+        if match:
+            return match.split(".")[-1]
         # get action from method and uri
-        if not action:
-            return self._get_action_from_method_and_request_uri(self.method, self.path)
-        return action
+        return self._get_action_from_method_and_request_uri(self.method, self.path)
 
     def set_seed(self, request, full_url, headers):  # pylint: disable=unused-argument
         random.seed(request.args["seed"])

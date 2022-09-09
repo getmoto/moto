@@ -7,11 +7,12 @@ from .models import resourcegroups_backends
 
 
 class ResourceGroupsResponse(BaseResponse):
-    SERVICE_NAME = "resource-groups"
+    def __init__(self):
+        super().__init__(service_name="resource-groups")
 
     @property
     def resourcegroups_backend(self):
-        return resourcegroups_backends[self.region]
+        return resourcegroups_backends[self.current_account][self.region]
 
     def create_group(self):
         name = self._get_param("Name")

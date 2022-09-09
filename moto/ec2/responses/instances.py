@@ -4,7 +4,6 @@ from moto.ec2.exceptions import (
     InvalidParameterCombination,
     InvalidRequest,
 )
-from moto.core import get_account_id
 
 from copy import deepcopy
 
@@ -36,7 +35,11 @@ class InstanceResponse(EC2BaseResponse):
             next_token = reservations_resp[-1].id
         template = self.response_template(EC2_DESCRIBE_INSTANCES)
         return (
-            template.render(reservations=reservations_resp, next_token=next_token)
+            template.render(
+                account_id=self.current_account,
+                reservations=reservations_resp,
+                next_token=next_token,
+            )
             .replace("True", "true")
             .replace("False", "false")
         )
@@ -69,6 +72,7 @@ class InstanceResponse(EC2BaseResponse):
                 "InstanceInitiatedShutdownBehavior"
             ),
             "launch_template": self._get_multi_param_dict("LaunchTemplate"),
+            "hibernation_options": self._get_multi_param_dict("HibernationOptions"),
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(
@@ -85,7 +89,9 @@ class InstanceResponse(EC2BaseResponse):
             )
 
             template = self.response_template(EC2_RUN_INSTANCES)
-            return template.render(reservation=new_reservation)
+            return template.render(
+                account_id=self.current_account, reservation=new_reservation
+            )
 
     def terminate_instances(self):
         instance_ids = self._get_multi_param("InstanceId")
@@ -94,8 +100,12 @@ class InstanceResponse(EC2BaseResponse):
             from moto.autoscaling import autoscaling_backends
             from moto.elbv2 import elbv2_backends
 
-            autoscaling_backends[self.region].notify_terminate_instances(instance_ids)
-            elbv2_backends[self.region].notify_terminate_instances(instance_ids)
+            autoscaling_backends[self.current_account][
+                self.region
+            ].notify_terminate_instances(instance_ids)
+            elbv2_backends[self.current_account][
+                self.region
+            ].notify_terminate_instances(instance_ids)
             template = self.response_template(EC2_TERMINATE_INSTANCES)
             return template.render(instances=instances)
 
@@ -149,7 +159,10 @@ class InstanceResponse(EC2BaseResponse):
 
     def describe_instance_types(self):
         instance_type_filters = self._get_multi_param("InstanceType")
-        instance_types = self.ec2_backend.describe_instance_types(instance_type_filters)
+        filter_dict = self._filters_from_querystring()
+        instance_types = self.ec2_backend.describe_instance_types(
+            instance_type_filters, filter_dict
+        )
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPES)
         return template.render(instance_types=instance_types)
 
@@ -380,13 +393,10 @@ BLOCK_DEVICE_MAPPING_TEMPLATE = {
     },
 }
 
-EC2_RUN_INSTANCES = (
-    """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <reservationId>{{ reservation.id }}</reservationId>
-  <ownerId>"""
-    + get_account_id()
-    + """</ownerId>
+  <ownerId>{{ account_id }}</ownerId>
   <groupSet>
     <item>
       <groupId>sg-245f6a01</groupId>
@@ -406,7 +416,9 @@ EC2_RUN_INSTANCES = (
           <publicDnsName>{{ instance.public_dns }}</publicDnsName>
           <dnsName>{{ instance.public_dns }}</dnsName>
           <reason/>
-          <keyName>{{ instance.key_name }}</keyName>
+          {% if instance.key_name is not none %}
+             <keyName>{{ instance.key_name }}</keyName>
+          {% endif %}
           <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
@@ -454,6 +466,11 @@ EC2_RUN_INSTANCES = (
           <clientToken/>
           <hypervisor>xen</hypervisor>
           <ebsOptimized>false</ebsOptimized>
+          {% if instance.hibernation_options %}
+          <hibernationOptions>
+            <configured>{{ instance.hibernation_options.get("Configured") }}</configured>
+          </hibernationOptions>
+          {% endif %}
           <tagSet>
             {% for tag in instance.get_tags() %}
               <item>
@@ -471,9 +488,7 @@ EC2_RUN_INSTANCES = (
                   <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
                 {% endif %}
                 <description>Primary network interface</description>
-                <ownerId>"""
-    + get_account_id()
-    + """</ownerId>
+                <ownerId>{{ account_id }}</ownerId>
                 <status>in-use</status>
                 <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
                 <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
@@ -496,9 +511,7 @@ EC2_RUN_INSTANCES = (
                 {% if nic.public_ip %}
                   <association>
                     <publicIp>{{ nic.public_ip }}</publicIp>
-                    <ipOwnerId>"""
-    + get_account_id()
-    + """</ipOwnerId>
+                    <ipOwnerId>{{ account_id }}</ipOwnerId>
                   </association>
                 {% endif %}
                 <privateIpAddressesSet>
@@ -508,9 +521,7 @@ EC2_RUN_INSTANCES = (
                     {% if nic.public_ip %}
                       <association>
                         <publicIp>{{ nic.public_ip }}</publicIp>
-                        <ipOwnerId>"""
-    + get_account_id()
-    + """</ipOwnerId>
+                        <ipOwnerId>{{ account_id }}</ipOwnerId>
                       </association>
                     {% endif %}
                   </item>
@@ -522,18 +533,14 @@ EC2_RUN_INSTANCES = (
     {% endfor %}
   </instancesSet>
   </RunInstancesResponse>"""
-)
 
-EC2_DESCRIBE_INSTANCES = (
-    """<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>fdcdcab1-ae5c-489e-9c33-4637c5dda355</requestId>
       <reservationSet>
         {% for reservation in reservations %}
           <item>
             <reservationId>{{ reservation.id }}</reservationId>
-            <ownerId>"""
-    + get_account_id()
-    + """</ownerId>
+            <ownerId>{{ account_id }}</ownerId>
             <groupSet>
               {% for group in reservation.dynamic_group_list %}
               <item>
@@ -559,7 +566,9 @@ EC2_DESCRIBE_INSTANCES = (
                     <publicDnsName>{{ instance.public_dns }}</publicDnsName>
                     <dnsName>{{ instance.public_dns }}</dnsName>
                     <reason>{{ instance._reason }}</reason>
-                    <keyName>{{ instance.key_name }}</keyName>
+                    {% if instance.key_name is not none %}
+                        <keyName>{{ instance.key_name }}</keyName>
+                    {% endif %}
                     <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
                     <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
                     <productCodes/>
@@ -629,9 +638,7 @@ EC2_DESCRIBE_INSTANCES = (
                      {% endfor %}
                     </blockDeviceMapping>
                     <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
-                    <clientToken>ABCDE"""
-    + get_account_id()
-    + """3</clientToken>
+                    <clientToken>ABCDE{{ account_id }}3</clientToken>
                     {% if instance.get_tags() %}
                     <tagSet>
                       {% for tag in instance.get_tags() %}
@@ -654,9 +661,7 @@ EC2_DESCRIBE_INSTANCES = (
                             <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
                           {% endif %}
                           <description>Primary network interface</description>
-                          <ownerId>"""
-    + get_account_id()
-    + """</ownerId>
+                          <ownerId>{{ account_id }}</ownerId>
                           <status>in-use</status>
                           <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
                           <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
@@ -683,9 +688,7 @@ EC2_DESCRIBE_INSTANCES = (
                           {% if nic.public_ip %}
                             <association>
                               <publicIp>{{ nic.public_ip }}</publicIp>
-                              <ipOwnerId>"""
-    + get_account_id()
-    + """</ipOwnerId>
+                              <ipOwnerId>{{ account_id }}</ipOwnerId>
                             </association>
                           {% endif %}
                           <privateIpAddressesSet>
@@ -695,9 +698,7 @@ EC2_DESCRIBE_INSTANCES = (
                               {% if nic.public_ip %}
                                 <association>
                                   <publicIp>{{ nic.public_ip }}</publicIp>
-                                  <ipOwnerId>"""
-    + get_account_id()
-    + """</ipOwnerId>
+                                  <ipOwnerId>{{ account_id }}</ipOwnerId>
                                 </association>
                               {% endif %}
                             </item>
@@ -715,7 +716,6 @@ EC2_DESCRIBE_INSTANCES = (
       <nextToken>{{ next_token }}</nextToken>
       {% endif %}
 </DescribeInstancesResponse>"""
-)
 
 EC2_TERMINATE_INSTANCES = """
 <TerminateInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

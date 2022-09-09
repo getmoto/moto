@@ -143,6 +143,10 @@ class IoTDataPlaneBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.published_payloads = list()
 
+    @property
+    def iot_backend(self):
+        return iot_backends[self.account_id][self.region_name]
+
     def update_thing_shadow(self, thing_name, payload):
         """
         spec of payload:
@@ -150,7 +154,7 @@ class IoTDataPlaneBackend(BaseBackend):
           - state node must be an Object
           - State contains an invalid node: 'foo'
         """
-        thing = iot_backends[self.region_name].describe_thing(thing_name)
+        thing = self.iot_backend.describe_thing(thing_name)
 
         # validate
         try:
@@ -173,14 +177,14 @@ class IoTDataPlaneBackend(BaseBackend):
         return thing.thing_shadow
 
     def get_thing_shadow(self, thing_name):
-        thing = iot_backends[self.region_name].describe_thing(thing_name)
+        thing = self.iot_backend.describe_thing(thing_name)
 
         if thing.thing_shadow is None or thing.thing_shadow.deleted:
             raise ResourceNotFoundException()
         return thing.thing_shadow
 
     def delete_thing_shadow(self, thing_name):
-        thing = iot_backends[self.region_name].describe_thing(thing_name)
+        thing = self.iot_backend.describe_thing(thing_name)
         if thing.thing_shadow is None:
             raise ResourceNotFoundException()
         payload = None

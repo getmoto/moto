@@ -49,6 +49,15 @@ class UnknownFunctionException(LambdaClientError):
         super().__init__("ResourceNotFoundException", f"Function not found: {arn}")
 
 
+class FunctionUrlConfigNotFound(LambdaClientError):
+    code = 404
+
+    def __init__(self):
+        super().__init__(
+            "ResourceNotFoundException", "The resource you requested does not exist."
+        )
+
+
 class UnknownLayerException(LambdaClientError):
     code = 404
 

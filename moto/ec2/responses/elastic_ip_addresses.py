@@ -145,6 +145,8 @@ DESCRIBE_ADDRESS_RESPONSE = """<DescribeAddressesResponse xmlns="http://ec2.amaz
           {% endif %}
           {% if address.eni %}
             <networkInterfaceId>{{ address.eni.id }}</networkInterfaceId>
+            <privateIpAddress>{{ address.eni.private_ip_address }}</privateIpAddress>
+            <networkInterfaceOwnerId>{{ address.eni.owner_id }}</networkInterfaceOwnerId>
           {% else %}
             <networkInterfaceId/>
           {% endif %}

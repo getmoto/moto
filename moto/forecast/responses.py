@@ -6,9 +6,12 @@ from .models import forecast_backends
 
 
 class ForecastResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="forecast")
+
     @property
     def forecast_backend(self):
-        return forecast_backends[self.region]
+        return forecast_backends[self.current_account][self.region]
 
     @amzn_request_id
     def create_dataset_group(self):

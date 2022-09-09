@@ -2,7 +2,7 @@
 import re
 from datetime import datetime
 
-from moto.core import BaseBackend, BaseModel, get_account_id
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 
 from .utils import random_cluster_id, random_job_id, get_partition, paginated_list
@@ -10,17 +10,9 @@ from .exceptions import ResourceNotFoundException
 
 from ..config.exceptions import ValidationException
 
-VIRTUAL_CLUSTER_ARN_TEMPLATE = (
-    "arn:{partition}:emr-containers:{region}:"
-    + str(get_account_id())
-    + ":/virtualclusters/{virtual_cluster_id}"
-)
+VIRTUAL_CLUSTER_ARN_TEMPLATE = "arn:{partition}:emr-containers:{region}:{account_id}:/virtualclusters/{virtual_cluster_id}"
 
-JOB_ARN_TEMPLATE = (
-    "arn:{partition}:emr-containers:{region}:"
-    + str(get_account_id())
-    + ":/virtualclusters/{virtual_cluster_id}/jobruns/{job_id}"
-)
+JOB_ARN_TEMPLATE = "arn:{partition}:emr-containers:{region}:{account_id}:/virtualclusters/{virtual_cluster_id}/jobruns/{job_id}"
 
 # Defaults used for creating a Virtual cluster
 VIRTUAL_CLUSTER_STATUS = "RUNNING"
@@ -33,6 +25,7 @@ class FakeCluster(BaseModel):
         name,
         container_provider,
         client_token,
+        account_id,
         region_name,
         aws_partition,
         tags=None,
@@ -43,7 +36,10 @@ class FakeCluster(BaseModel):
         self.name = name
         self.client_token = client_token
         self.arn = VIRTUAL_CLUSTER_ARN_TEMPLATE.format(
-            partition=aws_partition, region=region_name, virtual_cluster_id=self.id
+            partition=aws_partition,
+            region=region_name,
+            account_id=account_id,
+            virtual_cluster_id=self.id,
         )
         self.state = VIRTUAL_CLUSTER_STATUS
         self.container_provider = container_provider
@@ -87,6 +83,7 @@ class FakeJob(BaseModel):
         release_label,
         job_driver,
         configuration_overrides,
+        account_id,
         region_name,
         aws_partition,
         tags,
@@ -97,6 +94,7 @@ class FakeJob(BaseModel):
         self.arn = JOB_ARN_TEMPLATE.format(
             partition=aws_partition,
             region=region_name,
+            account_id=account_id,
             virtual_cluster_id=self.virtual_cluster_id,
             job_id=self.id,
         )
@@ -183,6 +181,7 @@ class EMRContainersBackend(BaseBackend):
             container_provider=container_provider,
             client_token=client_token,
             tags=tags,
+            account_id=self.account_id,
             region_name=self.region_name,
             aws_partition=self.partition,
         )
@@ -288,6 +287,7 @@ class EMRContainersBackend(BaseBackend):
             job_driver=job_driver,
             configuration_overrides=configuration_overrides,
             tags=tags,
+            account_id=self.account_id,
             region_name=self.region_name,
             aws_partition=self.partition,
         )

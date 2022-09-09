@@ -4,14 +4,17 @@ import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_s3
 from moto.core.exceptions import InvalidNextTokenException
+from moto.s3.config import s3_config_query
+from tests import DEFAULT_ACCOUNT_ID
+
+s3_config_query_backend = s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
 
 
 @mock_s3
 def test_s3_public_access_block_to_config_dict():
-    from moto.s3.config import s3_config_query
 
     # With 1 bucket in us-west-2:
-    s3_config_query.backends["global"].create_bucket("bucket1", "us-west-2")
+    s3_config_query_backend.create_bucket("bucket1", "us-west-2")
 
     public_access_block = {
         "BlockPublicAcls": "True",
@@ -21,22 +24,20 @@ def test_s3_public_access_block_to_config_dict():
     }
 
     # Add a public access block:
-    s3_config_query.backends["global"].put_bucket_public_access_block(
+    s3_config_query_backend.put_bucket_public_access_block(
         "bucket1", public_access_block
     )
 
-    result = (
-        s3_config_query.backends["global"]
-        .buckets["bucket1"]
-        .public_access_block.to_config_dict()
-    )
+    result = s3_config_query_backend.buckets[
+        "bucket1"
+    ].public_access_block.to_config_dict()
 
     for key, value in public_access_block.items():
         k = "{lowercase}{rest}".format(lowercase=key[0].lower(), rest=key[1:])
         assert result[k] is (value == "True")
 
     # Verify that this resides in the full bucket's to_config_dict:
-    full_result = s3_config_query.backends["global"].buckets["bucket1"].to_config_dict()
+    full_result = s3_config_query_backend.buckets["bucket1"].to_config_dict()
     assert (
         json.loads(
             full_result["supplementaryConfiguration"]["PublicAccessBlockConfiguration"]
@@ -47,7 +48,6 @@ def test_s3_public_access_block_to_config_dict():
 
 @mock_s3
 def test_list_config_discovered_resources():
-    from moto.s3.config import s3_config_query
 
     # Without any buckets:
     assert s3_config_query.list_config_service_resources(
@@ -56,18 +56,14 @@ def test_list_config_discovered_resources():
 
     # With 10 buckets in us-west-2:
     for x in range(0, 10):
-        s3_config_query.backends["global"].create_bucket(
-            "bucket{}".format(x), "us-west-2"
-        )
+        s3_config_query_backend.create_bucket(f"bucket{x}", "us-west-2")
 
     # With 2 buckets in eu-west-1:
     for x in range(10, 12):
-        s3_config_query.backends["global"].create_bucket(
-            "eu-bucket{}".format(x), "eu-west-1"
-        )
+        s3_config_query_backend.create_bucket(f"eu-bucket{x}", "eu-west-1")
 
     result, next_token = s3_config_query.list_config_service_resources(
-        None, None, 100, None
+        DEFAULT_ACCOUNT_ID, None, None, 100, None
     )
     assert not next_token
     assert len(result) == 12
@@ -88,19 +84,19 @@ def test_list_config_discovered_resources():
 
     # With a name:
     result, next_token = s3_config_query.list_config_service_resources(
-        None, "bucket0", 100, None
+        DEFAULT_ACCOUNT_ID, None, "bucket0", 100, None
     )
     assert len(result) == 1 and result[0]["name"] == "bucket0" and not next_token
 
     # With a region:
     result, next_token = s3_config_query.list_config_service_resources(
-        None, None, 100, None, resource_region="eu-west-1"
+        DEFAULT_ACCOUNT_ID, None, None, 100, None, resource_region="eu-west-1"
     )
     assert len(result) == 2 and not next_token and result[1]["name"] == "eu-bucket11"
 
     # With resource ids:
     result, next_token = s3_config_query.list_config_service_resources(
-        ["bucket0", "bucket1"], None, 100, None
+        DEFAULT_ACCOUNT_ID, ["bucket0", "bucket1"], None, 100, None
     )
     assert (
         len(result) == 2
@@ -111,13 +107,13 @@ def test_list_config_discovered_resources():
 
     # With duplicated resource ids:
     result, next_token = s3_config_query.list_config_service_resources(
-        ["bucket0", "bucket0"], None, 100, None
+        DEFAULT_ACCOUNT_ID, ["bucket0", "bucket0"], None, 100, None
     )
     assert len(result) == 1 and result[0]["name"] == "bucket0" and not next_token
 
     # Pagination:
     result, next_token = s3_config_query.list_config_service_resources(
-        None, None, 1, None
+        DEFAULT_ACCOUNT_ID, None, None, 1, None
     )
     assert (
         len(result) == 1 and result[0]["name"] == "bucket0" and next_token == "bucket1"
@@ -125,13 +121,13 @@ def test_list_config_discovered_resources():
 
     # Last Page:
     result, next_token = s3_config_query.list_config_service_resources(
-        None, None, 1, "eu-bucket11", resource_region="eu-west-1"
+        DEFAULT_ACCOUNT_ID, None, None, 1, "eu-bucket11", resource_region="eu-west-1"
     )
     assert len(result) == 1 and result[0]["name"] == "eu-bucket11" and not next_token
 
     # With a list of buckets:
     result, next_token = s3_config_query.list_config_service_resources(
-        ["bucket0", "bucket1"], None, 1, None
+        DEFAULT_ACCOUNT_ID, ["bucket0", "bucket1"], None, 1, None
     )
     assert (
         len(result) == 1 and result[0]["name"] == "bucket0" and next_token == "bucket1"
@@ -139,17 +135,17 @@ def test_list_config_discovered_resources():
 
     # With an invalid page:
     with pytest.raises(InvalidNextTokenException) as inte:
-        s3_config_query.list_config_service_resources(None, None, 1, "notabucket")
+        s3_config_query.list_config_service_resources(
+            DEFAULT_ACCOUNT_ID, None, None, 1, "notabucket"
+        )
 
     assert "The nextToken provided is invalid" in inte.value.message
 
 
 @mock_s3
 def test_s3_lifecycle_config_dict():
-    from moto.s3.config import s3_config_query
-
     # With 1 bucket in us-west-2:
-    s3_config_query.backends["global"].create_bucket("bucket1", "us-west-2")
+    s3_config_query_backend.create_bucket("bucket1", "us-west-2")
 
     # And a lifecycle policy
     lifecycle = [
@@ -178,12 +174,12 @@ def test_s3_lifecycle_config_dict():
             "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1},
         },
     ]
-    s3_config_query.backends["global"].put_bucket_lifecycle("bucket1", lifecycle)
+    s3_config_query_backend.put_bucket_lifecycle("bucket1", lifecycle)
 
     # Get the rules for this:
     lifecycles = [
         rule.to_config_dict()
-        for rule in s3_config_query.backends["global"].buckets["bucket1"].rules
+        for rule in s3_config_query_backend.buckets["bucket1"].rules
     ]
 
     # Verify the first:
@@ -260,10 +256,8 @@ def test_s3_lifecycle_config_dict():
 
 @mock_s3
 def test_s3_notification_config_dict():
-    from moto.s3.config import s3_config_query
-
     # With 1 bucket in us-west-2:
-    s3_config_query.backends["global"].create_bucket("bucket1", "us-west-2")
+    s3_config_query_backend.create_bucket("bucket1", "us-west-2")
 
     # And some notifications:
     notifications = {
@@ -305,16 +299,14 @@ def test_s3_notification_config_dict():
         ],
     }
 
-    s3_config_query.backends["global"].put_bucket_notification_configuration(
-        "bucket1", notifications
-    )
+    s3_config_query.backends[DEFAULT_ACCOUNT_ID][
+        "global"
+    ].put_bucket_notification_configuration("bucket1", notifications)
 
     # Get the notifications for this:
-    notifications = (
-        s3_config_query.backends["global"]
-        .buckets["bucket1"]
-        .notification_configuration.to_config_dict()
-    )
+    notifications = s3_config_query_backend.buckets[
+        "bucket1"
+    ].notification_configuration.to_config_dict()
 
     # Verify it all:
     assert notifications == {
@@ -361,14 +353,13 @@ def test_s3_notification_config_dict():
 
 @mock_s3
 def test_s3_acl_to_config_dict():
-    from moto.s3.config import s3_config_query
     from moto.s3.models import FakeAcl, FakeGrant, FakeGrantee, OWNER
 
     # With 1 bucket in us-west-2:
-    s3_config_query.backends["global"].create_bucket("logbucket", "us-west-2")
+    s3_config_query_backend.create_bucket("logbucket", "us-west-2")
 
     # Get the config dict with nothing other than the owner details:
-    acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
+    acls = s3_config_query_backend.buckets["logbucket"].acl.to_config_dict()
     owner_acl = {
         "grantee": {"id": OWNER, "displayName": None},
         "permission": "FullControl",
@@ -393,9 +384,9 @@ def test_s3_acl_to_config_dict():
             FakeGrant([FakeGrantee(grantee_id=OWNER)], "FULL_CONTROL"),
         ]
     )
-    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
+    s3_config_query_backend.put_bucket_acl("logbucket", log_acls)
 
-    acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
+    acls = s3_config_query_backend.buckets["logbucket"].acl.to_config_dict()
     assert acls == {
         "grantSet": None,
         "grantList": [
@@ -419,8 +410,8 @@ def test_s3_acl_to_config_dict():
             FakeGrant([FakeGrantee(grantee_id=OWNER)], "WRITE_ACP"),
         ]
     )
-    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
-    acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
+    s3_config_query_backend.put_bucket_acl("logbucket", log_acls)
+    acls = s3_config_query_backend.buckets["logbucket"].acl.to_config_dict()
     assert acls == {
         "grantSet": None,
         "grantList": [
@@ -433,20 +424,19 @@ def test_s3_acl_to_config_dict():
 
 @mock_s3
 def test_s3_config_dict():
-    from moto.s3.config import s3_config_query
     from moto.s3.models import FakeAcl, FakeGrant, FakeGrantee, OWNER
 
     # Without any buckets:
-    assert not s3_config_query.get_config_resource("some_bucket")
+    assert not s3_config_query.get_config_resource(DEFAULT_ACCOUNT_ID, "some_bucket")
 
     tags = {"someTag": "someValue", "someOtherTag": "someOtherValue"}
 
     # With 1 bucket in us-west-2:
-    s3_config_query.backends["global"].create_bucket("bucket1", "us-west-2")
-    s3_config_query.backends["global"].put_bucket_tagging("bucket1", tags)
+    s3_config_query_backend.create_bucket("bucket1", "us-west-2")
+    s3_config_query_backend.put_bucket_tagging("bucket1", tags)
 
     # With a log bucket:
-    s3_config_query.backends["global"].create_bucket("logbucket", "us-west-2")
+    s3_config_query_backend.create_bucket("logbucket", "us-west-2")
     log_acls = FakeAcl(
         [
             FakeGrant(
@@ -461,8 +451,8 @@ def test_s3_config_dict():
         ]
     )
 
-    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
-    s3_config_query.backends["global"].put_bucket_logging(
+    s3_config_query_backend.put_bucket_acl("logbucket", log_acls)
+    s3_config_query_backend.put_bucket_logging(
         "bucket1", {"TargetBucket": "logbucket", "TargetPrefix": ""}
     )
 
@@ -481,10 +471,10 @@ def test_s3_config_dict():
 
     # The policy is a byte array -- need to encode in Python 3
     pass_policy = bytes(policy, "utf-8")
-    s3_config_query.backends["global"].put_bucket_policy("bucket1", pass_policy)
+    s3_config_query_backend.put_bucket_policy("bucket1", pass_policy)
 
     # Get the us-west-2 bucket and verify that it works properly:
-    bucket1_result = s3_config_query.get_config_resource("bucket1")
+    bucket1_result = s3_config_query.get_config_resource(DEFAULT_ACCOUNT_ID, "bucket1")
 
     # Just verify a few things:
     assert bucket1_result["arn"] == "arn:aws:s3:::bucket1"
@@ -541,26 +531,33 @@ def test_s3_config_dict():
 
     # Filter by correct region:
     assert bucket1_result == s3_config_query.get_config_resource(
-        "bucket1", resource_region="us-west-2"
+        DEFAULT_ACCOUNT_ID, "bucket1", resource_region="us-west-2"
     )
 
     # By incorrect region:
     assert not s3_config_query.get_config_resource(
-        "bucket1", resource_region="eu-west-1"
+        DEFAULT_ACCOUNT_ID, "bucket1", resource_region="eu-west-1"
     )
 
     # With correct resource ID and name:
     assert bucket1_result == s3_config_query.get_config_resource(
-        "bucket1", resource_name="bucket1"
+        DEFAULT_ACCOUNT_ID, "bucket1", resource_name="bucket1"
     )
 
     # With an incorrect resource name:
     assert not s3_config_query.get_config_resource(
-        "bucket1", resource_name="eu-bucket-1"
+        DEFAULT_ACCOUNT_ID, "bucket1", resource_name="eu-bucket-1"
+    )
+
+    # With an incorrect account:
+    assert not s3_config_query.get_config_resource(
+        "unknown-accountid", "bucket1", resource_name="bucket-1"
     )
 
     # Verify that no bucket policy returns the proper value:
-    logging_bucket = s3_config_query.get_config_resource("logbucket")
+    logging_bucket = s3_config_query.get_config_resource(
+        DEFAULT_ACCOUNT_ID, "logbucket"
+    )
     assert json.loads(logging_bucket["supplementaryConfiguration"]["BucketPolicy"]) == {
         "policyText": None
     }

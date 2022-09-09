@@ -2,7 +2,7 @@ import boto3
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudwatch
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_cloudwatch
@@ -50,6 +50,8 @@ def test_create_alarm():
     alarm.should.have.key("AlarmArn").equal(
         "arn:aws:cloudwatch:{}:{}:alarm:{}".format(region, ACCOUNT_ID, name)
     )
+    # default value should be True
+    alarm.should.have.key("ActionsEnabled").equal(True)
 
 
 @mock_cloudwatch
@@ -111,8 +113,9 @@ def test_describe_alarms_for_metric():
     )
     alarms = conn.describe_alarms_for_metric(MetricName="cpu", Namespace="blah")
     alarms.get("MetricAlarms").should.have.length_of(1)
-
-    assert "testalarm1" in alarms.get("MetricAlarms")[0].get("AlarmArn")
+    alarm = alarms.get("MetricAlarms")[0]
+    assert "testalarm1" in alarm.get("AlarmArn")
+    alarm.should.have.key("ActionsEnabled").equal(True)
 
 
 @mock_cloudwatch
@@ -127,7 +130,7 @@ def test_describe_alarms():
         Statistic="Average",
         Threshold=2,
         ComparisonOperator="GreaterThanThreshold",
-        ActionsEnabled=True,
+        ActionsEnabled=False,
     )
     metric_data_queries = [
         {
@@ -190,6 +193,7 @@ def test_describe_alarms():
     single_metric_alarm["Statistic"].should.equal("Average")
     single_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
     single_metric_alarm["Threshold"].should.equal(2)
+    single_metric_alarm["ActionsEnabled"].should.equal(False)
 
     multiple_metric_alarm.shouldnt.have.property("MetricName")
     multiple_metric_alarm["EvaluationPeriods"].should.equal(1)
@@ -197,6 +201,7 @@ def test_describe_alarms():
     multiple_metric_alarm["Metrics"].should.equal(metric_data_queries)
     multiple_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
     multiple_metric_alarm["Threshold"].should.equal(1.0)
+    multiple_metric_alarm["ActionsEnabled"].should.equal(True)
 
 
 @mock_cloudwatch
@@ -243,7 +248,7 @@ def test_alarm_state():
     len(resp["MetricAlarms"]).should.equal(1)
     resp["MetricAlarms"][0]["AlarmName"].should.equal("testalarm2")
     resp["MetricAlarms"][0]["StateValue"].should.equal("OK")
-    resp["MetricAlarms"][0]["ActionsEnabled"].should.equal(False)
+    resp["MetricAlarms"][0]["ActionsEnabled"].should.equal(True)
 
     # Just for sanity
     resp = client.describe_alarms()

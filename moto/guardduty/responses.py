@@ -6,11 +6,12 @@ from urllib.parse import unquote
 
 
 class GuardDutyResponse(BaseResponse):
-    SERVICE_NAME = "guardduty"
+    def __init__(self):
+        super().__init__(service_name="guardduty")
 
     @property
     def guardduty_backend(self):
-        return guardduty_backends[self.region]
+        return guardduty_backends[self.current_account][self.region]
 
     def filter(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
