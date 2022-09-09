@@ -12,7 +12,11 @@ import time
 from urllib.parse import urlparse
 import responses
 
-from openapi_spec_validator.exceptions import OpenAPIValidationError
+try:
+    from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
+except ImportError:
+    # OpenAPI Spec Validator < 0.5.0
+    from openapi_spec_validator.exceptions import OpenAPIValidationError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url, BackendDict
