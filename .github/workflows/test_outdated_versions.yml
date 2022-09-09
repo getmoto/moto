@@ -17,6 +17,7 @@ jobs:
         responses-version: ["0.13.0", "0.15.0", "0.17.0", "0.19.0", "0.20.0" ]
         mock-version: [ "3.0.5", "4.0.0", "4.0.3" ]
         werkzeug-version: ["2.0.1", "2.1.1"]
+        openapi-spec-validator-version: ["0.4.0", "0.5.0"]
 
     steps:
     - name: Checkout repository
@@ -37,6 +38,7 @@ jobs:
         pip install responses==${{ matrix.responses-version }}
         pip install mock==${{ matrix.mock-version }}
         pip install werkzeug==${{ matrix.werkzeug-version }}
+        pip install openapi-spec-validator==${{ matrix.openapi-spec-validator-version }}
 
     - name: Run tests
       run: |
