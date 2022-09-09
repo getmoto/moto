@@ -1,4 +1,3 @@
-import copy
 import datetime
 import functools
 import importlib
@@ -14,14 +13,12 @@ import boto3
 import pytz
 import requests
 import xmltodict
-from jinja2 import DictLoader, Environment, TemplateNotFound
+from jinja2 import DictLoader, Environment
 from moto import settings
 from moto.core.exceptions import DryRunClientError
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
 from werkzeug.exceptions import HTTPException
-import importlib
-import random
 
 
 log = logging.getLogger(__name__)
