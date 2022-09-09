@@ -4,7 +4,22 @@ amp:
   - TestAccAMPWorkspace
   - TestAccAMPRuleGroupNamespace
 apigateway:
+  - TestAccAPIGatewayAPIKeyDataSource_basic
+  - TestAccAPIGatewayAPIKey_disappears
+  - TestAccAPIGatewayAPIKey_enabled
+  - TestAccAPIGatewayAPIKey_value
   - TestAccAPIGatewayGatewayResponse
+  - TestAccAPIGatewayRestAPI_apiKeySource
+  - TestAccAPIGatewayRestAPI_basic
+  - TestAccAPIGatewayRestAPI_description
+  - TestAccAPIGatewayRestAPI_disappears
+  - TestAccAPIGatewayRestAPI_Endpoint_private
+  - TestAccAPIGatewayStage_basic
+  - TestAccAPIGatewayStage_Disappears_restAPI
+  - TestAccAPIGatewayStage_disappears
+  - TestAccAPIGatewayStage_Disappears_referencingDeployment
+  - TestAccAPIGatewayStage_tags
+  - TestAccAPIGatewayStage_accessLogSettings
 apigatewayv2:
   - TestAccAPIGatewayV2IntegrationResponse
   - TestAccAPIGatewayV2Model
@@ -242,3 +257,10 @@ sqs:
 timestreamwrite:
   - TestAccTimestreamWriteDatabase
   - TestAccTimestreamWriteTable
+wafv2:
+  - TestAccWAFV2WebACL_basic
+  - TestAccWAFV2WebACL_disappears
+  - TestAccWAFV2WebACL_minimal
+  - TestAccWAFV2WebACL_tags
+  - TestAccWAFV2WebACL_Update_rule
+  - TestAccWAFV2WebACL_RuleLabels

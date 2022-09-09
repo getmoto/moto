@@ -372,7 +372,7 @@ class Resource(CloudFormationModel):
         return method
 
     def delete_method(self, method_type):
-        self.resource_methods.pop(method_type)
+        self.resource_methods.pop(method_type, None)
 
     def add_integration(
         self,
@@ -1481,7 +1481,7 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(restapi_id)
         del api.authorizers[authorizer_id]
 
-    def get_stage(self, function_id, stage_name):
+    def get_stage(self, function_id, stage_name) -> Stage:
         api = self.get_rest_api(function_id)
         stage = api.stages.get(stage_name)
         if stage is None:
