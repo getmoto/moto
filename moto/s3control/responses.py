@@ -9,16 +9,14 @@ from .models import s3control_backends
 
 
 class S3ControlResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="s3control")
-
     @property
     def backend(self):
-        return s3control_backends[self.current_account]["global"]
+        return s3control_backends["global"]
 
     @amzn_request_id
-    def public_access_block(self, request, full_url, headers):
-        self.setup_class(request, full_url, headers)
+    def public_access_block(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         try:
             if request.method == "GET":
                 return self.get_public_access_block(request)

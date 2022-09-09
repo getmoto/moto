@@ -126,7 +126,6 @@ def test_only_return_consumed_capacity_when_required(
 
     # QUERY_INDEX
     args["IndexName"] = "job_name-index"
-    args["KeyConditionExpression"] = "job_name = :id"
     response = client.query(**args)
     validate_response(response, should_have_capacity, should_have_table, is_index=True)
 

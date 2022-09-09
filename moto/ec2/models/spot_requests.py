@@ -306,12 +306,12 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]["SpotFleetRequestConfigData"]
-        ec2_backend = ec2_backends[account_id][region_name]
+        ec2_backend = ec2_backends[region_name]
 
         spot_price = properties.get("SpotPrice")
         target_capacity = properties["TargetCapacity"]
@@ -441,12 +441,10 @@ class SpotFleetBackend:
         return request
 
     def get_spot_fleet_request(self, spot_fleet_request_id):
-        return self.spot_fleet_requests.get(spot_fleet_request_id)
+        return self.spot_fleet_requests[spot_fleet_request_id]
 
     def describe_spot_fleet_instances(self, spot_fleet_request_id):
         spot_fleet = self.get_spot_fleet_request(spot_fleet_request_id)
-        if not spot_fleet:
-            return []
         return spot_fleet.spot_requests
 
     def describe_spot_fleet_requests(self, spot_fleet_request_ids):

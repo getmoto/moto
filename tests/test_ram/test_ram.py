@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_ram, mock_organizations
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_ram

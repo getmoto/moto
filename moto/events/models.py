@@ -12,7 +12,7 @@ from operator import lt, le, eq, ge, gt
 
 from collections import OrderedDict
 from moto.core.exceptions import JsonRESTError
-from moto.core import BaseBackend, CloudFormationModel, BaseModel
+from moto.core import get_account_id, BaseBackend, CloudFormationModel, BaseModel
 from moto.core.utils import (
     unix_time,
     unix_time_millis,
@@ -43,7 +43,6 @@ class Rule(CloudFormationModel):
     def __init__(
         self,
         name,
-        account_id,
         region_name,
         description,
         event_pattern,
@@ -55,7 +54,6 @@ class Rule(CloudFormationModel):
         targets=None,
     ):
         self.name = name
-        self.account_id = account_id
         self.region_name = region_name
         self.description = description
         self.event_pattern = EventPattern.load(event_pattern)
@@ -64,7 +62,7 @@ class Rule(CloudFormationModel):
         self.event_bus_name = event_bus_name
         self.state = state or "ENABLED"
         self.managed_by = managed_by  # can only be set by AWS services
-        self.created_by = account_id
+        self.created_by = get_account_id()
         self.targets = targets or []
 
     @property
@@ -78,7 +76,7 @@ class Rule(CloudFormationModel):
         return (
             "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
                 region=self.region_name,
-                account_id=self.account_id,
+                account_id=get_account_id(),
                 event_bus_name=event_bus_name,
                 name=self.name,
             )
@@ -102,8 +100,8 @@ class Rule(CloudFormationModel):
     def disable(self):
         self.state = "DISABLED"
 
-    def delete(self, account_id, region_name):
-        event_backend = events_backends[account_id][region_name]
+    def delete(self, region_name):
+        event_backend = events_backends[region_name]
         event_backend.delete_rule(name=self.name)
 
     def put_targets(self, targets):
@@ -191,15 +189,14 @@ class Rule(CloudFormationModel):
             }
         ]
 
-        log_backend = logs_backends[self.account_id][self.region_name]
-        log_backend.create_log_stream(name, log_stream_name)
-        log_backend.put_log_events(name, log_stream_name, log_events)
+        logs_backends[self.region_name].create_log_stream(name, log_stream_name)
+        logs_backends[self.region_name].put_log_events(
+            name, log_stream_name, log_events
+        )
 
     def _send_to_events_archive(self, resource_id, event):
         archive_name, archive_uuid = resource_id.split(":")
-        archive = events_backends[self.account_id][self.region_name].archives.get(
-            archive_name
-        )
+        archive = events_backends[self.region_name].archives.get(archive_name)
         if archive.uuid == archive_uuid:
             archive.events.append(event)
 
@@ -212,9 +209,7 @@ class Rule(CloudFormationModel):
         )
 
         if group_id:
-            queue_attr = sqs_backends[self.account_id][
-                self.region_name
-            ].get_queue_attributes(
+            queue_attr = sqs_backends[self.region_name].get_queue_attributes(
                 queue_name=resource_id, attribute_names=["ContentBasedDeduplication"]
             )
             if queue_attr["ContentBasedDeduplication"] == "false":
@@ -224,7 +219,7 @@ class Rule(CloudFormationModel):
                 )
                 return
 
-        sqs_backends[self.account_id][self.region_name].send_message(
+        sqs_backends[self.region_name].send_message(
             queue_name=resource_id,
             message_body=json.dumps(event_copy),
             group_id=group_id,
@@ -253,7 +248,7 @@ class Rule(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         properties.setdefault("EventBusName", "default")
@@ -271,7 +266,7 @@ class Rule(CloudFormationModel):
         event_bus_name = properties.get("EventBusName")
         tags = properties.get("Tags")
 
-        backend = events_backends[account_id][region_name]
+        backend = events_backends[region_name]
         return backend.put_rule(
             event_name,
             scheduled_expression=scheduled_expression,
@@ -285,23 +280,18 @@ class Rule(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
-        original_resource.delete(account_id, region_name)
+        original_resource.delete(region_name)
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, account_id, region_name
+            new_resource_name, cloudformation_json, region_name
         )
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
-        event_backend = events_backends[account_id][region_name]
+        event_backend = events_backends[region_name]
         event_backend.delete_rule(resource_name)
 
     def describe(self):
@@ -324,14 +314,18 @@ class Rule(CloudFormationModel):
 
 
 class EventBus(CloudFormationModel):
-    def __init__(self, account_id, region_name, name, tags=None):
-        self.account_id = account_id
+    def __init__(self, region_name, name, tags=None):
         self.region = region_name
         self.name = name
-        self.arn = f"arn:aws:events:{self.region}:{account_id}:event-bus/{name}"
         self.tags = tags or []
 
         self._statements = {}
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{region}:{account_id}:event-bus/{name}".format(
+            region=self.region, account_id=get_account_id(), name=self.name
+        )
 
     @property
     def policy(self):
@@ -346,8 +340,8 @@ class EventBus(CloudFormationModel):
     def has_permissions(self):
         return len(self._statements) > 0
 
-    def delete(self, account_id, region_name):
-        event_backend = events_backends[account_id][region_name]
+    def delete(self, region_name):
+        event_backend = events_backends[region_name]
         event_backend.delete_event_bus(name=self.name)
 
     @classmethod
@@ -377,10 +371,10 @@ class EventBus(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
-        event_backend = events_backends[account_id][region_name]
+        event_backend = events_backends[region_name]
         event_name = resource_name
         event_source_name = properties.get("EventSourceName")
         return event_backend.create_event_bus(
@@ -389,23 +383,18 @@ class EventBus(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
-        original_resource.delete(account_id, region_name)
+        original_resource.delete(region_name)
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, account_id, region_name
+            new_resource_name, cloudformation_json, region_name
         )
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
-        event_backend = events_backends[account_id][region_name]
+        event_backend = events_backends[region_name]
         event_bus_name = resource_name
         event_backend.delete_event_bus(event_bus_name)
 
@@ -502,14 +491,7 @@ class Archive(CloudFormationModel):
     ]
 
     def __init__(
-        self,
-        account_id,
-        region_name,
-        name,
-        source_arn,
-        description,
-        event_pattern,
-        retention,
+        self, region_name, name, source_arn, description, event_pattern, retention
     ):
         self.region = region_name
         self.name = name
@@ -518,13 +500,18 @@ class Archive(CloudFormationModel):
         self.event_pattern = EventPattern.load(event_pattern)
         self.retention = retention if retention else 0
 
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:archive/{name}"
         self.creation_time = unix_time(datetime.utcnow())
         self.state = "ENABLED"
         self.uuid = str(uuid4())
 
         self.events = []
         self.event_bus_name = source_arn.split("/")[-1]
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{region}:{account_id}:archive/{name}".format(
+            region=self.region, account_id=get_account_id(), name=self.name
+        )
 
     def describe_short(self):
         return {
@@ -555,8 +542,8 @@ class Archive(CloudFormationModel):
         if retention:
             self.retention = retention
 
-    def delete(self, account_id, region_name):
-        event_backend = events_backends[account_id][region_name]
+    def delete(self, region_name):
+        event_backend = events_backends[region_name]
         event_backend.archives.pop(self.name)
 
     @classmethod
@@ -584,10 +571,10 @@ class Archive(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
-        event_backend = events_backends[account_id][region_name]
+        event_backend = events_backends[region_name]
 
         source_arn = properties.get("SourceArn")
         description = properties.get("Description")
@@ -600,12 +587,7 @@ class Archive(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         if new_resource_name == original_resource.name:
             properties = cloudformation_json["Properties"]
@@ -618,9 +600,9 @@ class Archive(CloudFormationModel):
 
             return original_resource
         else:
-            original_resource.delete(account_id, region_name)
+            original_resource.delete(region_name)
             return cls.create_from_cloudformation_json(
-                new_resource_name, cloudformation_json, account_id, region_name
+                new_resource_name, cloudformation_json, region_name
             )
 
 
@@ -638,7 +620,6 @@ class ReplayState(Enum):
 class Replay(BaseModel):
     def __init__(
         self,
-        account_id,
         region_name,
         name,
         description,
@@ -647,7 +628,6 @@ class Replay(BaseModel):
         end_time,
         destination,
     ):
-        self.account_id = account_id
         self.region = region_name
         self.name = name
         self.description = description
@@ -656,10 +636,15 @@ class Replay(BaseModel):
         self.event_end_time = end_time
         self.destination = destination
 
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:replay/{name}"
         self.state = ReplayState.STARTING
         self.start_time = unix_time(datetime.utcnow())
         self.end_time = None
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{region}:{account_id}:replay/{name}".format(
+            region=self.region, account_id=get_account_id(), name=self.name
+        )
 
     def describe_short(self):
         return {
@@ -687,8 +672,7 @@ class Replay(BaseModel):
         event_bus_name = self.destination["Arn"].split("/")[-1]
 
         for event in archive.events:
-            event_backend = events_backends[self.account_id][self.region]
-            for rule in event_backend.rules.values():
+            for rule in events_backends[self.region].rules.values():
                 rule.send_to_targets(
                     event_bus_name,
                     dict(event, **{"id": str(uuid4()), "replay-name": self.name}),
@@ -700,13 +684,7 @@ class Replay(BaseModel):
 
 class Connection(BaseModel):
     def __init__(
-        self,
-        name,
-        account_id,
-        region_name,
-        description,
-        authorization_type,
-        auth_parameters,
+        self, name, region_name, description, authorization_type, auth_parameters
     ):
         self.uuid = uuid4()
         self.name = name
@@ -717,7 +695,11 @@ class Connection(BaseModel):
         self.creation_time = unix_time(datetime.utcnow())
         self.state = "AUTHORIZED"
 
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:connection/{self.name}/{self.uuid}"
+    @property
+    def arn(self):
+        return "arn:aws:events:{0}:{1}:connection/{2}/{3}".format(
+            self.region, get_account_id(), self.name, self.uuid
+        )
 
     def describe_short(self):
         """
@@ -776,7 +758,6 @@ class Destination(BaseModel):
     def __init__(
         self,
         name,
-        account_id,
         region_name,
         description,
         connection_arn,
@@ -794,7 +775,12 @@ class Destination(BaseModel):
         self.creation_time = unix_time(datetime.utcnow())
         self.http_method = http_method
         self.state = "ACTIVE"
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:api-destination/{name}/{self.uuid}"
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{0}:{1}:api-destination/{2}/{3}".format(
+            self.region, get_account_id(), self.name, self.uuid
+        )
 
     def describe(self):
         """
@@ -973,9 +959,7 @@ class EventsBackend(BaseBackend):
         )
 
     def _add_default_event_bus(self):
-        self.event_buses["default"] = EventBus(
-            self.account_id, self.region_name, "default"
-        )
+        self.event_buses["default"] = EventBus(self.region_name, "default")
 
     def _gen_next_token(self, index):
         token = os.urandom(128).encode("base64")
@@ -1053,7 +1037,6 @@ class EventsBackend(BaseBackend):
         targets = existing_rule.targets if existing_rule else list()
         rule = Rule(
             name,
-            self.account_id,
             self.region_name,
             description,
             event_pattern,
@@ -1248,7 +1231,7 @@ class EventsBackend(BaseBackend):
                             "id": event_id,
                             "detail-type": event["DetailType"],
                             "source": event["Source"],
-                            "account": self.account_id,
+                            "account": get_account_id(),
                             "time": event.get("Time", unix_time(datetime.utcnow())),
                             "region": self.region_name,
                             "resources": event.get("Resources", []),
@@ -1388,7 +1371,7 @@ class EventsBackend(BaseBackend):
                 "Event source {} does not exist.".format(event_source_name),
             )
 
-        event_bus = EventBus(self.account_id, self.region_name, name, tags=tags)
+        event_bus = EventBus(self.region_name, name, tags=tags)
         self.event_buses[name] = event_bus
         if tags:
             self.tagger.tag_resource(event_bus.arn, tags)
@@ -1462,13 +1445,7 @@ class EventsBackend(BaseBackend):
             )
 
         archive = Archive(
-            self.account_id,
-            self.region_name,
-            name,
-            source_arn,
-            description,
-            event_pattern,
-            retention,
+            self.region_name, name, source_arn, description, event_pattern, retention
         )
 
         rule_event_pattern = json.loads(event_pattern or "{}")
@@ -1566,7 +1543,7 @@ class EventsBackend(BaseBackend):
         if not archive:
             raise ResourceNotFoundException("Archive {} does not exist.".format(name))
 
-        archive.delete(self.account_id, self.region_name)
+        archive.delete(self.region_name)
 
     def start_replay(
         self, name, description, source_arn, start_time, end_time, destination
@@ -1607,7 +1584,6 @@ class EventsBackend(BaseBackend):
             )
 
         replay = Replay(
-            self.account_id,
             self.region_name,
             name,
             description,
@@ -1684,12 +1660,7 @@ class EventsBackend(BaseBackend):
 
     def create_connection(self, name, description, authorization_type, auth_parameters):
         connection = Connection(
-            name,
-            self.account_id,
-            self.region_name,
-            description,
-            authorization_type,
-            auth_parameters,
+            name, self.region_name, description, authorization_type, auth_parameters
         )
         self.connections[name] = connection
         return connection
@@ -1777,7 +1748,6 @@ class EventsBackend(BaseBackend):
         """
         destination = Destination(
             name=name,
-            account_id=self.account_id,
             region_name=self.region_name,
             description=description,
             connection_arn=connection_arn,

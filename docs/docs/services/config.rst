@@ -138,7 +138,6 @@ config
         :return:
         
 
-- [ ] list_conformance_pack_compliance_scores
 - [X] list_discovered_resources
   Queries against AWS Config (non-aggregated) listing function.
 

@@ -53,7 +53,6 @@ class SecretsManager(BaseModel):
 class FakeSecret:
     def __init__(
         self,
-        account_id,
         region_name,
         secret_id,
         secret_string=None,
@@ -68,7 +67,7 @@ class FakeSecret:
     ):
         self.secret_id = secret_id
         self.name = secret_id
-        self.arn = secret_arn(account_id, region_name, secret_id)
+        self.arn = secret_arn(region_name, secret_id)
         self.secret_string = secret_string
         self.secret_binary = secret_binary
         self.description = description
@@ -392,7 +391,6 @@ class SecretsManagerBackend(BaseBackend):
                 secret.versions[version_id] = secret_version
         else:
             secret = FakeSecret(
-                account_id=self.account_id,
                 region_name=self.region_name,
                 secret_id=secret_id,
                 secret_string=secret_string,
@@ -535,7 +533,7 @@ class SecretsManagerBackend(BaseBackend):
         if secret.rotation_lambda_arn:
             from moto.awslambda.models import lambda_backends
 
-            lambda_backend = lambda_backends[self.account_id][self.region_name]
+            lambda_backend = lambda_backends[self.region_name]
 
             request_headers = {}
             response_headers = {}
@@ -675,7 +673,7 @@ class SecretsManagerBackend(BaseBackend):
             if not force_delete_without_recovery:
                 raise SecretNotFoundException()
             else:
-                secret = FakeSecret(self.account_id, self.region_name, secret_id)
+                secret = FakeSecret(self.region_name, secret_id)
                 arn = secret.arn
                 name = secret.name
                 deletion_date = datetime.datetime.utcnow()

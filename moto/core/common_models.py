@@ -37,10 +37,10 @@ class CloudFormationModel(BaseModel):
     @classmethod
     @abstractmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         # This must be implemented as a classmethod with parameters:
-        # cls, resource_name, cloudformation_json, account_id, region_name
+        # cls, resource_name, cloudformation_json, region_name
         # Extract the resource parameters from the cloudformation json
         # and return an instance of the resource class
         pass
@@ -48,15 +48,10 @@ class CloudFormationModel(BaseModel):
     @classmethod
     @abstractmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         # This must be implemented as a classmethod with parameters:
-        # cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        # cls, original_resource, new_resource_name, cloudformation_json, region_name
         # Extract the resource parameters from the cloudformation json,
         # delete the old resource and return the new one. Optionally inspect
         # the change in parameters and no-op when nothing has changed.
@@ -65,10 +60,10 @@ class CloudFormationModel(BaseModel):
     @classmethod
     @abstractmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
         # This must be implemented as a classmethod with parameters:
-        # cls, resource_name, cloudformation_json, account_id, region_name
+        # cls, resource_name, cloudformation_json, region_name
         # Extract the resource parameters from the cloudformation json
         # and delete the resource. Do not include a return statement.
         pass
@@ -88,7 +83,6 @@ class ConfigQueryModel:
 
     def list_config_service_resources(
         self,
-        account_id,
         resource_ids,
         resource_name,
         limit,
@@ -120,7 +114,6 @@ class ConfigQueryModel:
         As such, the proper way to implement is to first obtain a full list of results from all the region backends, and then filter
         from there. It may be valuable to make this a concatenation of the region and resource name.
 
-        :param account_id: The account number
         :param resource_ids:  A list of resource IDs
         :param resource_name: The individual name of a resource
         :param limit: How many per page
@@ -147,12 +140,7 @@ class ConfigQueryModel:
         raise NotImplementedError()
 
     def get_config_resource(
-        self,
-        account_id,
-        resource_id,
-        resource_name=None,
-        backend_region=None,
-        resource_region=None,
+        self, resource_id, resource_name=None, backend_region=None, resource_region=None
     ):
         """For AWS Config. This will query the backend for the specific resource type configuration.
 
@@ -172,7 +160,6 @@ class ConfigQueryModel:
         from all resources in all regions for a given resource type*.
 
         ...
-        :param account_id:
         :param resource_id:
         :param resource_name:
         :param backend_region:
@@ -185,5 +172,5 @@ class ConfigQueryModel:
 class CloudWatchMetricProvider(object):
     @staticmethod
     @abstractmethod
-    def get_cloudwatch_metrics(account_id):
+    def get_cloudwatch_metrics():
         pass

@@ -7,7 +7,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudwatch
 from moto.cloudwatch.utils import make_arn_for_alarm
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_cloudwatch

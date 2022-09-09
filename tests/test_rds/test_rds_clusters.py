@@ -4,7 +4,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_rds
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_rds
@@ -13,19 +13,6 @@ def test_describe_db_cluster_initial():
 
     resp = client.describe_db_clusters()
     resp.should.have.key("DBClusters").should.have.length_of(0)
-
-
-@mock_rds
-def test_describe_db_cluster_fails_for_non_existent_cluster():
-    client = boto3.client("rds", region_name="eu-north-1")
-
-    resp = client.describe_db_clusters()
-    resp.should.have.key("DBClusters").should.have.length_of(0)
-    with pytest.raises(ClientError) as ex:
-        client.describe_db_clusters(DBClusterIdentifier="cluster-id")
-    err = ex.value.response["Error"]
-    err["Code"].should.equal("DBClusterNotFoundFault")
-    err["Message"].should.equal("DBCluster cluster-id not found.")
 
 
 @mock_rds

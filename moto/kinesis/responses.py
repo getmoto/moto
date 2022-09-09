@@ -5,23 +5,20 @@ from .models import kinesis_backends
 
 
 class KinesisResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="kinesis")
-
     @property
     def parameters(self):
         return json.loads(self.body)
 
     @property
     def kinesis_backend(self):
-        return kinesis_backends[self.current_account][self.region]
+        return kinesis_backends[self.region]
 
     def create_stream(self):
         stream_name = self.parameters.get("StreamName")
         shard_count = self.parameters.get("ShardCount")
-        stream_mode = self.parameters.get("StreamModeDetails")
+        retention_period_hours = self.parameters.get("RetentionPeriodHours")
         self.kinesis_backend.create_stream(
-            stream_name, shard_count, stream_mode=stream_mode
+            stream_name, shard_count, retention_period_hours
         )
         return ""
 
@@ -279,9 +276,3 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         self.kinesis_backend.stop_stream_encryption(stream_name=stream_name)
         return json.dumps(dict())
-
-    def update_stream_mode(self):
-        stream_arn = self.parameters.get("StreamARN")
-        stream_mode = self.parameters.get("StreamModeDetails")
-        self.kinesis_backend.update_stream_mode(stream_arn, stream_mode)
-        return "{}"

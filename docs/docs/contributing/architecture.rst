@@ -18,7 +18,7 @@ This has multiple benefits:
 
 Botocore utilizes an event-based architecture. Events such as `creating-client-class` and `before-send` are emitted for all boto3-requests.
 
-When the decorator starts, Moto registers a hook into the `before-send`-event that allows us to intercept the HTTP-request that was about to be sent.
+When the decorator starts, Moto registers a hook into the `before-send`-event that allows us to intercept the HTTP-request that was about to be send.
 For every intercepted request, Moto figures out which service/feature is called based on the HTTP request prepared by `boto3`, and calls our own stub instead.
 
 

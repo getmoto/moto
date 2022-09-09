@@ -3395,21 +3395,3 @@ def test_prefix_encoding():
         map(lambda common_prefix: common_prefix["Prefix"], data["CommonPrefixes"])
     )
     assert ["foo%2Fbar/", "foo/"] == folders
-
-
-@mock_s3
-@pytest.mark.parametrize("algorithm", ["CRC32", "CRC32C", "SHA1", "SHA256"])
-def test_checksum_response(algorithm):
-    bucket_name = "checksum-bucket"
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket=bucket_name)
-    if (
-        algorithm != "CRC32C"
-    ):  # awscrt is required to allow botocore checksum with CRC32C
-        response = client.put_object(
-            Bucket=bucket_name,
-            Key="test-key",
-            Body=b"data",
-            ChecksumAlgorithm=algorithm,
-        )
-        assert f"Checksum{algorithm}" in response

@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_eks, settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.eks.exceptions import (
     InvalidParameterException,

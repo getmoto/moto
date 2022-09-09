@@ -1,7 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 from moto import mock_cloudfront
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from . import cloudfront_test_scaffolding as scaffold
 import pytest
 import sure  # noqa # pylint: disable=unused-import

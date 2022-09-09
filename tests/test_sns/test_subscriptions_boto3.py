@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_sns, mock_sqs
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from moto.sns.models import (
     DEFAULT_PAGE_SIZE,
     DEFAULT_EFFECTIVE_DELIVERY_POLICY,
@@ -258,8 +258,6 @@ def test_creating_subscription_with_attributes():
         }
     )
 
-    subscription_role_arn = "arn:aws:iam:000000000:role/test-role"
-
     conn.subscribe(
         TopicArn=topic_arn,
         Protocol="http",
@@ -268,7 +266,6 @@ def test_creating_subscription_with_attributes():
             "RawMessageDelivery": "true",
             "DeliveryPolicy": delivery_policy,
             "FilterPolicy": filter_policy,
-            "SubscriptionRoleArn": subscription_role_arn,
         },
     )
 
@@ -287,7 +284,6 @@ def test_creating_subscription_with_attributes():
     attrs["Attributes"]["RawMessageDelivery"].should.equal("true")
     attrs["Attributes"]["DeliveryPolicy"].should.equal(delivery_policy)
     attrs["Attributes"]["FilterPolicy"].should.equal(filter_policy)
-    attrs["Attributes"]["SubscriptionRoleArn"].should.equal(subscription_role_arn)
 
     # Now unsubscribe the subscription
     conn.unsubscribe(SubscriptionArn=subscription["SubscriptionArn"])

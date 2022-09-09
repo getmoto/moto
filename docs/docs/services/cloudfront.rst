@@ -42,7 +42,6 @@ cloudfront
 - [X] create_invalidation
 - [ ] create_key_group
 - [ ] create_monitoring_subscription
-- [ ] create_origin_access_control
 - [ ] create_origin_request_policy
 - [ ] create_public_key
 - [ ] create_realtime_log_config
@@ -62,7 +61,6 @@ cloudfront
 - [ ] delete_function
 - [ ] delete_key_group
 - [ ] delete_monitoring_subscription
-- [ ] delete_origin_access_control
 - [ ] delete_origin_request_policy
 - [ ] delete_public_key
 - [ ] delete_realtime_log_config
@@ -84,8 +82,6 @@ cloudfront
 - [ ] get_key_group
 - [ ] get_key_group_config
 - [ ] get_monitoring_subscription
-- [ ] get_origin_access_control
-- [ ] get_origin_access_control_config
 - [ ] get_origin_request_policy
 - [ ] get_origin_request_policy_config
 - [ ] get_public_key
@@ -114,7 +110,6 @@ cloudfront
 - [ ] list_functions
 - [ ] list_invalidations
 - [ ] list_key_groups
-- [ ] list_origin_access_controls
 - [ ] list_origin_request_policies
 - [ ] list_public_keys
 - [ ] list_realtime_log_configs
@@ -137,7 +132,6 @@ cloudfront
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
 - [ ] update_key_group
-- [ ] update_origin_access_control
 - [ ] update_origin_request_policy
 - [ ] update_public_key
 - [ ] update_realtime_log_config

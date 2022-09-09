@@ -6,7 +6,7 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_apigateway, mock_cognitoidp
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 import pytest
 
 
@@ -354,11 +354,7 @@ def test_create_method():
     ]["id"]
 
     client.put_method(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod="GET",
-        authorizationType="none",
-        requestParameters={"method.request.header.InvocationType": True},
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="none"
     )
 
     response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
@@ -372,7 +368,6 @@ def test_create_method():
             "authorizationType": "none",
             "apiKeyRequired": False,
             "methodResponses": {},
-            "requestParameters": {"method.request.header.InvocationType": True},
             "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )
@@ -437,7 +432,7 @@ def test_create_method_response():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal(
-        {"ResponseMetadata": {"HTTPStatusCode": 201}, "statusCode": "200"}
+        {"ResponseMetadata": {"HTTPStatusCode": 200}, "statusCode": "200"}
     )
 
     response = client.get_method_response(
@@ -456,7 +451,7 @@ def test_create_method_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal({"ResponseMetadata": {"HTTPStatusCode": 204}})
+    response.should.equal({"ResponseMetadata": {"HTTPStatusCode": 200}})
 
 
 @mock_apigateway
@@ -532,7 +527,7 @@ def test_integrations():
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal(
         {
-            "ResponseMetadata": {"HTTPStatusCode": 201},
+            "ResponseMetadata": {"HTTPStatusCode": 200},
             "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
@@ -662,7 +657,7 @@ def test_integration_response():
         {
             "statusCode": "200",
             "selectionPattern": "foobar",
-            "ResponseMetadata": {"HTTPStatusCode": 201},
+            "ResponseMetadata": {"HTTPStatusCode": 200},
             "responseTemplates": {},  # Note: TF compatibility
         }
     )
@@ -738,7 +733,7 @@ def test_integration_response():
         {
             "statusCode": "200",
             "selectionPattern": "foobar",
-            "ResponseMetadata": {"HTTPStatusCode": 201},
+            "ResponseMetadata": {"HTTPStatusCode": 200},
             "responseTemplates": {},  # Note: TF compatibility
             "contentHandling": "CONVERT_TO_BINARY",
         }
@@ -932,7 +927,7 @@ def test_create_authorizer():
             "providerARNs": [user_pool_arn],
             "identitySource": "method.request.header.Authorization",
             "authorizerResultTtlInSeconds": 300,
-            "ResponseMetadata": {"HTTPStatusCode": 201},
+            "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )
 
@@ -1058,36 +1053,6 @@ def test_put_integration_response_with_response_template():
             "responseTemplates": {"application/json": json.dumps({"data": "test"})},
         }
     )
-
-
-@mock_apigateway
-def test_put_integration_response_but_integration_not_found():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-    resources = client.get_resources(restApiId=api_id)
-    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
-        0
-    ]["id"]
-
-    client.put_method(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
-    )
-    client.put_method_response(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-    )
-
-    with pytest.raises(ClientError) as ex:
-        client.put_integration_response(
-            restApiId=api_id,
-            resourceId=root_id,
-            httpMethod="GET",
-            statusCode="200",
-            selectionPattern="foobar",
-            responseTemplates={"application/json": json.dumps({"data": "test"})},
-        )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
 
 
 @mock_apigateway

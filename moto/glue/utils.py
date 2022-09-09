@@ -23,10 +23,7 @@ from pyparsing import (
     pyparsing_common,
 )
 
-from .exceptions import (
-    InvalidInputException,
-    InvalidStateException,
-)
+from .exceptions import InvalidInputException, InvalidStateException
 
 
 def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:

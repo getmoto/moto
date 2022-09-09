@@ -29,7 +29,6 @@ quicksight
 
 - [ ] cancel_ingestion
 - [ ] create_account_customization
-- [ ] create_account_subscription
 - [ ] create_analysis
 - [ ] create_dashboard
 - [X] create_data_set
@@ -64,7 +63,6 @@ quicksight
 - [ ] delete_user_by_principal_id
 - [ ] describe_account_customization
 - [ ] describe_account_settings
-- [ ] describe_account_subscription
 - [ ] describe_analysis
 - [ ] describe_analysis_permissions
 - [ ] describe_dashboard

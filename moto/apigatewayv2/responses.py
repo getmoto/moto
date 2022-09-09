@@ -11,13 +11,10 @@ from .models import apigatewayv2_backends
 class ApiGatewayV2Response(BaseResponse):
     """Handler for ApiGatewayV2 requests and responses."""
 
-    def __init__(self):
-        super().__init__(service_name="apigatewayv2")
-
     @property
     def apigatewayv2_backend(self):
         """Return backend instance specific for this region."""
-        return apigatewayv2_backends[self.current_account][self.region]
+        return apigatewayv2_backends[self.region]
 
     def apis(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

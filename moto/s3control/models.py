@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from moto.core import BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import get_random_hex, BackendDict
 from moto.s3.exceptions import (
     WrongPublicAccessBlockAccountIdError,
@@ -14,18 +14,13 @@ from .exceptions import AccessPointNotFound, AccessPointPolicyNotFound
 
 class AccessPoint(BaseModel):
     def __init__(
-        self,
-        account_id,
-        name,
-        bucket,
-        vpc_configuration,
-        public_access_block_configuration,
+        self, name, bucket, vpc_configuration, public_access_block_configuration
     ):
         self.name = name
         self.alias = f"{name}-{get_random_hex(34)}-s3alias"
         self.bucket = bucket
         self.created = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        self.arn = f"arn:aws:s3:us-east-1:{account_id}:accesspoint/{name}"
+        self.arn = f"arn:aws:s3:us-east-1:{get_account_id()}:accesspoint/{name}"
         self.policy = None
         self.network_origin = "VPC" if vpc_configuration else "Internet"
         self.vpc_id = (vpc_configuration or {}).get("VpcId")
@@ -55,7 +50,7 @@ class S3ControlBackend(BaseBackend):
 
     def get_public_access_block(self, account_id):
         # The account ID should equal the account id that is set for Moto:
-        if account_id != self.account_id:
+        if account_id != get_account_id():
             raise WrongPublicAccessBlockAccountIdError()
 
         if not self.public_access_block:
@@ -65,14 +60,14 @@ class S3ControlBackend(BaseBackend):
 
     def delete_public_access_block(self, account_id):
         # The account ID should equal the account id that is set for Moto:
-        if account_id != self.account_id:
+        if account_id != get_account_id():
             raise WrongPublicAccessBlockAccountIdError()
 
         self.public_access_block = None
 
     def put_public_access_block(self, account_id, pub_block_config):
         # The account ID should equal the account id that is set for Moto:
-        if account_id != self.account_id:
+        if account_id != get_account_id():
             raise WrongPublicAccessBlockAccountIdError()
 
         if not pub_block_config:
@@ -94,11 +89,7 @@ class S3ControlBackend(BaseBackend):
         public_access_block_configuration,
     ):
         access_point = AccessPoint(
-            account_id,
-            name,
-            bucket,
-            vpc_configuration,
-            public_access_block_configuration,
+            name, bucket, vpc_configuration, public_access_block_configuration
         )
         self.access_points[account_id][name] = access_point
         return access_point

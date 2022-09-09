@@ -15,7 +15,6 @@ from moto.cloudformation.parsing import (
     Output,
 )
 from moto import mock_cloudformation, mock_sqs, mock_ssm, settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
@@ -184,7 +183,6 @@ def test_parse_stack_resources():
         name="test_stack",
         template=dummy_template_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
 
@@ -211,7 +209,6 @@ def test_parse_stack_with_name_type_resource():
         name="test_stack",
         template=name_type_template_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
 
@@ -227,7 +224,6 @@ def test_parse_stack_with_tabbed_json_template():
         name="test_stack",
         template=name_type_template_with_tabs_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
 
@@ -243,7 +239,6 @@ def test_parse_stack_with_yaml_template():
         name="test_stack",
         template=yaml.dump(name_type_template),
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
 
@@ -259,7 +254,6 @@ def test_parse_stack_with_outputs():
         name="test_stack",
         template=output_type_template_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
 
@@ -276,7 +270,6 @@ def test_parse_stack_with_get_attribute_outputs():
         name="test_stack",
         template=get_attribute_outputs_template_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
 
@@ -296,7 +289,6 @@ def test_parse_stack_with_get_attribute_kms():
         name="test_stack",
         template=template_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
 
@@ -312,7 +304,6 @@ def test_parse_stack_with_get_availability_zones():
         name="test_stack",
         template=get_availability_zones_template_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-east-1",
     )
 
@@ -337,17 +328,11 @@ def test_parse_stack_with_bad_get_attribute_outputs_using_boto3():
 
 
 def test_parse_stack_with_null_outputs_section():
-    with pytest.raises(ValidationError) as exc:
-        FakeStack(
-            "test_id",
-            "test_stack",
-            null_output_template_json,
-            {},
-            account_id=ACCOUNT_ID,
-            region_name="us-west-1",
-        )
-    err = str(exc.value)
-    err.should.contain("[/Outputs] 'null' values are not allowed in templates")
+    FakeStack.when.called_with(
+        "test_id", "test_stack", null_output_template_json, {}, "us-west-1"
+    ).should.throw(
+        ValidationError, "[/Outputs] 'null' values are not allowed in templates"
+    )
 
 
 def test_parse_stack_with_parameters():
@@ -361,7 +346,6 @@ def test_parse_stack_with_parameters():
             "NumberListParam": "42,3.14159",
             "NoEchoParam": "hidden value",
         },
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
 
@@ -465,7 +449,6 @@ def test_parse_split_and_select():
         name="test_stack",
         template=split_select_template_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
 
@@ -480,7 +463,6 @@ def test_sub():
         name="test_stack",
         template=sub_template_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
 
@@ -495,7 +477,6 @@ def test_import():
         name="test_stack",
         template=export_value_template_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
     import_stack = FakeStack(
@@ -503,7 +484,6 @@ def test_import():
         name="test_stack",
         template=import_value_template_json,
         parameters={},
-        account_id=ACCOUNT_ID,
         region_name="us-west-1",
         cross_stack_resources={export_stack.exports[0].value: export_stack.exports[0]},
     )
@@ -572,7 +552,6 @@ def test_ssm_parameter_parsing():
                 "SingleParamCfn": "/path/to/single/param",
                 "ListParamCfn": "/path/to/list/param",
             },
-            account_id=ACCOUNT_ID,
             region_name="us-west-1",
         )
 
@@ -588,7 +567,6 @@ def test_ssm_parameter_parsing():
             name="test_stack",
             template=ssm_parameter_template_json,
             parameters={"SingleParamCfn": "/path/to/single/param"},
-            account_id=ACCOUNT_ID,
             region_name="us-west-1",
         )
 

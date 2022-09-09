@@ -4,12 +4,9 @@ from .utils import get_random_identity_id
 
 
 class CognitoIdentityResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="cognito-identity")
-
     @property
     def backend(self):
-        return cognitoidentity_backends[self.current_account][self.region]
+        return cognitoidentity_backends[self.region]
 
     def create_identity_pool(self):
         identity_pool_name = self._get_param("IdentityPoolName")
@@ -67,7 +64,9 @@ class CognitoIdentityResponse(BaseResponse):
         return self.backend.get_credentials_for_identity(self._get_param("IdentityId"))
 
     def get_open_id_token_for_developer_identity(self):
-        return self.backend.get_open_id_token_for_developer_identity(
+        return cognitoidentity_backends[
+            self.region
+        ].get_open_id_token_for_developer_identity(
             self._get_param("IdentityId") or get_random_identity_id(self.region)
         )
 

@@ -2,7 +2,7 @@ import datetime
 import re
 import json
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time, BackendDict
 from moto.organizations import utils
@@ -25,11 +25,11 @@ from .utils import PAGINATION_MODEL
 
 
 class FakeOrganization(BaseModel):
-    def __init__(self, account_id, feature_set):
+    def __init__(self, feature_set):
         self.id = utils.make_random_org_id()
         self.root_id = utils.make_random_root_id()
         self.feature_set = feature_set
-        self.master_account_id = account_id
+        self.master_account_id = utils.MASTER_ACCOUNT_ID
         self.master_account_email = utils.MASTER_ACCOUNT_EMAIL
         self.available_policy_types = [
             # This policy is available, but not applied
@@ -355,7 +355,7 @@ class OrganizationsBackend(BaseBackend):
         return root
 
     def create_organization(self, **kwargs):
-        self.org = FakeOrganization(self.account_id, kwargs["FeatureSet"])
+        self.org = FakeOrganization(kwargs["FeatureSet"])
         root_ou = FakeRoot(self.org)
         self.ou.append(root_ou)
         master_account = FakeAccount(
@@ -775,7 +775,7 @@ class OrganizationsBackend(BaseBackend):
     def register_delegated_administrator(self, **kwargs):
         account_id = kwargs["AccountId"]
 
-        if account_id == self.account_id:
+        if account_id == get_account_id():
             raise ConstraintViolationException(
                 "You cannot register master account/yourself as delegated administrator for your organization."
             )
@@ -834,7 +834,7 @@ class OrganizationsBackend(BaseBackend):
         account_id = kwargs["AccountId"]
         service = kwargs["ServicePrincipal"]
 
-        if account_id == self.account_id:
+        if account_id == get_account_id():
             raise ConstraintViolationException(
                 "You cannot register master account/yourself as delegated administrator for your organization."
             )
@@ -920,3 +920,4 @@ organizations_backends = BackendDict(
     use_boto3_regions=False,
     additional_regions=["global"],
 )
+organizations_backend = organizations_backends["global"]

@@ -58,7 +58,7 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
@@ -74,7 +74,7 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
         log_format = properties.get("LogFormat")
         max_aggregation_interval = properties.get("MaxAggregationInterval")
 
-        ec2_backend = ec2_backends[account_id][region_name]
+        ec2_backend = ec2_backends[region_name]
         flow_log, _ = ec2_backend.create_flow_logs(
             resource_type,
             resource_id,
@@ -219,7 +219,7 @@ class FlowLogsBackend:
 
                 arn = log_destination.split(":", 5)[5]
                 try:
-                    s3_backends[self.account_id]["global"].get_bucket(arn)
+                    s3_backends["global"].get_bucket(arn)
                 except MissingBucket:
                     # Instead of creating FlowLog report
                     # the unsuccessful status for the
@@ -242,9 +242,7 @@ class FlowLogsBackend:
                 try:
                     # Need something easy to check the group exists.
                     # The list_tags_log_group seems to do the trick.
-                    logs_backends[self.account_id][
-                        self.region_name
-                    ].list_tags_log_group(log_group_name)
+                    logs_backends[self.region_name].list_tags_log_group(log_group_name)
                 except ResourceNotFoundException:
                     deliver_logs_status = "FAILED"
                     deliver_logs_error_message = "Access error"

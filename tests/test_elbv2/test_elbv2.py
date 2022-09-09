@@ -7,7 +7,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_elbv2, mock_ec2, mock_acm
 from moto.elbv2 import elbv2_backends
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
 
@@ -1377,7 +1377,7 @@ def test_modify_listener_http_to_https():
     # Check default cert, can't do this in server mode
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "false":
         listener = (
-            elbv2_backends[ACCOUNT_ID]["eu-central-1"]
+            elbv2_backends["eu-central-1"]
             .load_balancers[load_balancer_arn]
             .listeners[listener_arn]
         )

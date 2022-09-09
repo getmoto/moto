@@ -297,7 +297,6 @@ def test_get_all_spot_instance_requests_filtering():
 
 
 @mock_ec2
-@pytest.mark.filterwarnings("ignore")
 def test_request_spot_instances_instance_lifecycle():
     if settings.TEST_SERVER_MODE:
         # Currently no easy way to check which instance was created by request_spot_instance
@@ -313,7 +312,6 @@ def test_request_spot_instances_instance_lifecycle():
 
 
 @mock_ec2
-@pytest.mark.filterwarnings("ignore")
 def test_request_spot_instances_with_tags():
     client = boto3.client("ec2", region_name="us-east-1")
     request = client.request_spot_instances(

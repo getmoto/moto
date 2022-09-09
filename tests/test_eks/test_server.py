@@ -6,7 +6,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_eks
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from moto.eks.exceptions import ResourceInUseException, ResourceNotFoundException
 from moto.eks.models import (
     CLUSTER_EXISTS_MSG,
@@ -81,7 +81,7 @@ class TestNodegroup:
 
 @pytest.fixture(autouse=True)
 def test_client():
-    backend = server.create_backend_app(service=SERVICE)
+    backend = server.create_backend_app(SERVICE)
     yield backend.test_client()
 
 

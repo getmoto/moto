@@ -1,7 +1,7 @@
 import uuid
 
 from moto.wafv2.utils import make_arn_for_wacl
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 def test_make_arn_for_wacl():
@@ -9,13 +9,13 @@ def test_make_arn_for_wacl():
     region = "us-east-1"
     name = "testName"
     scope = "REGIONAL"
-    arn = make_arn_for_wacl(name, ACCOUNT_ID, region, uniqueID, scope)
+    arn = make_arn_for_wacl(name, region, uniqueID, scope)
     assert arn == "arn:aws:wafv2:{}:{}:regional/webacl/{}/{}".format(
         region, ACCOUNT_ID, name, uniqueID
     )
 
     scope = "CLOUDFRONT"
-    arn = make_arn_for_wacl(name, ACCOUNT_ID, region, uniqueID, scope)
+    arn = make_arn_for_wacl(name, region, uniqueID, scope)
     assert arn == "arn:aws:wafv2:{}:{}:global/webacl/{}/{}".format(
         region, ACCOUNT_ID, name, uniqueID
     )

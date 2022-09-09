@@ -55,9 +55,6 @@ class ElasticMapReduceResponse(BaseResponse):
 
     aws_service_spec = AWSServiceSpec("data/emr/2009-03-31/service-2.json")
 
-    def __init__(self):
-        super().__init__(service_name="emr")
-
     def get_region_from_url(self, request, full_url):
         parsed = urlparse(full_url)
         for regex in self.region_regex:
@@ -68,7 +65,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
     @property
     def backend(self):
-        return emr_backends[self.current_account][self.region]
+        return emr_backends[self.region]
 
     @generate_boto3_response("AddInstanceGroups")
     def add_instance_groups(self):

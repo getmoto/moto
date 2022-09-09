@@ -14,12 +14,9 @@ from .utils import (
 
 
 class ManagedBlockchainResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="managedblockchain")
-
     @property
     def backend(self):
-        return managedblockchain_backends[self.current_account][self.region]
+        return managedblockchain_backends[self.region]
 
     @exception_handler
     def network_response(self, request, full_url, headers):

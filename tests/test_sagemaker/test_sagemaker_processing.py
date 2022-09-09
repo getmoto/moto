@@ -4,7 +4,7 @@ import datetime
 import pytest
 
 from moto import mock_sagemaker
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
 FAKE_PROCESSING_JOB_NAME = "MyProcessingJob"

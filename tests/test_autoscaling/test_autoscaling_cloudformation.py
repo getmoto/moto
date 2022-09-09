@@ -302,18 +302,6 @@ def test_autoscaling_group_with_elb():
                     ],
                 },
             },
-            "ScheduledAction": {
-                "Type": "AWS::AutoScaling::ScheduledAction",
-                "Properties": {
-                    "AutoScalingGroupName": "test-scaling-group",
-                    "DesiredCapacity": 10,
-                    "EndTime": "2022-08-01T00:00:00Z",
-                    "MaxSize": 15,
-                    "MinSize": 5,
-                    "Recurrence": "* * * * *",
-                    "StartTime": "2022-07-01T00:00:00Z",
-                },
-            },
             "my-launch-config": {
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
                 "Properties": {
@@ -398,12 +386,6 @@ def test_autoscaling_group_with_elb():
         tag_keys = [t["Key"] for t in instance["Tags"]]
         tag_keys.should.contain("propagated-test-tag")
         tag_keys.should_not.contain("not-propagated-test-tag")
-
-    # confirm scheduled scaling action was created
-    response = client.describe_scheduled_actions(
-        AutoScalingGroupName="test-scaling-group"
-    )["ScheduledUpdateGroupActions"]
-    response.should.have.length_of(1)
 
 
 @mock_autoscaling

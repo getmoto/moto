@@ -5,7 +5,7 @@ import pytest
 
 from botocore.exceptions import ClientError
 from moto import mock_lambda, mock_s3
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from uuid import uuid4
 from .utilities import get_role_name, get_test_zip_file1
 

@@ -8,7 +8,7 @@ import pytest
 
 from moto import mock_iam, mock_ec2, mock_s3, mock_sts, mock_elbv2, mock_rds
 from moto.core import set_initial_no_auth_action_count
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from uuid import uuid4
 
 

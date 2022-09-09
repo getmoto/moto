@@ -4,12 +4,11 @@ import json
 
 
 class SupportResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="support")
+    SERVICE_NAME = "support"
 
     @property
     def support_backend(self):
-        return support_backends[self.current_account][self.region]
+        return support_backends[self.region]
 
     def describe_trusted_advisor_checks(self):
         checks = self.support_backend.describe_trusted_advisor_checks()

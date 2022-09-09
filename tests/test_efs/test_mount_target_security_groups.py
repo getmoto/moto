@@ -84,6 +84,7 @@ def test_modify_mount_target_security_groups(efs, ec2, file_system, subnet):
     file_system_id = file_system["FileSystemId"]
 
     desc_sg_resp = ec2.describe_security_groups()["SecurityGroups"]
+    print(desc_sg_resp)
     security_group_id = desc_sg_resp[0]["GroupId"]
 
     # Create Mount Target

@@ -8,6 +8,13 @@ from .werkzeug_app import DomainDispatcherApplication, create_backend_app
 class ThreadedMotoServer:
     def __init__(self, ip_address="0.0.0.0", port=5000, verbose=True):
 
+        if verbose:
+            print(
+                "The ThreadedMotoServer is considered in beta for now, and the exact interface and behaviour may still change."
+            )
+            print("Please let us know if you’d like to see any changes.")
+            print("========")
+
         self._port = port
 
         self._thread = None

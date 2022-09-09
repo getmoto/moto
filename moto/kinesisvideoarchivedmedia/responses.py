@@ -4,12 +4,11 @@ import json
 
 
 class KinesisVideoArchivedMediaResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="kinesis-video-archived-media")
+    SERVICE_NAME = "kinesis-video-archived-media"
 
     @property
     def kinesisvideoarchivedmedia_backend(self):
-        return kinesisvideoarchivedmedia_backends[self.current_account][self.region]
+        return kinesisvideoarchivedmedia_backends[self.region]
 
     def get_hls_streaming_session_url(self):
         stream_name = self._get_param("StreamName")

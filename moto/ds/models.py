@@ -46,7 +46,6 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
-        account_id,
         region,
         name,
         password,
@@ -58,7 +57,6 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         description=None,
         edition=None,
     ):  # pylint: disable=too-many-arguments
-        self.account_id = account_id
         self.region = region
         self.name = name
         self.password = password
@@ -103,9 +101,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
 
     def create_security_group(self, vpc_id):
         """Create security group for the network interface."""
-        security_group_info = ec2_backends[self.account_id][
-            self.region
-        ].create_security_group(
+        security_group_info = ec2_backends[self.region].create_security_group(
             name=f"{self.directory_id}_controllers",
             description=(
                 f"AWS created security group for {self.directory_id} "
@@ -117,18 +113,14 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
 
     def delete_security_group(self):
         """Delete the given security group."""
-        ec2_backends[self.account_id][self.region].delete_security_group(
-            group_id=self.security_group_id
-        )
+        ec2_backends[self.region].delete_security_group(group_id=self.security_group_id)
 
     def create_eni(self, security_group_id, subnet_ids):
         """Return ENI ids and primary addresses created for each subnet."""
         eni_ids = []
         subnet_ips = []
         for subnet_id in subnet_ids:
-            eni_info = ec2_backends[self.account_id][
-                self.region
-            ].create_network_interface(
+            eni_info = ec2_backends[self.region].create_network_interface(
                 subnet=subnet_id,
                 private_ip_address=None,
                 group_ids=[security_group_id],
@@ -141,7 +133,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
     def delete_eni(self):
         """Delete ENI for each subnet and the security group."""
         for eni_id in self.eni_ids:
-            ec2_backends[self.account_id][self.region].delete_network_interface(eni_id)
+            ec2_backends[self.region].delete_network_interface(eni_id)
 
     def update_alias(self, alias):
         """Change default alias to given alias."""
@@ -200,7 +192,8 @@ class DirectoryServiceBackend(BaseBackend):
             service_region, zones, "ds"
         )
 
-    def _verify_subnets(self, region, vpc_settings):
+    @staticmethod
+    def _verify_subnets(region, vpc_settings):
         """Verify subnets are valid, else raise an exception.
 
         If settings are valid, add AvailabilityZones to vpc_settings.
@@ -214,7 +207,7 @@ class DirectoryServiceBackend(BaseBackend):
         # Subnet IDs are checked before the VPC ID.  The Subnet IDs must
         # be valid and in different availability zones.
         try:
-            subnets = ec2_backends[self.account_id][region].get_all_subnets(
+            subnets = ec2_backends[region].get_all_subnets(
                 subnet_ids=vpc_settings["SubnetIds"]
             )
         except InvalidSubnetIdError as exc:
@@ -230,7 +223,7 @@ class DirectoryServiceBackend(BaseBackend):
                 "different Availability Zones."
             )
 
-        vpcs = ec2_backends[self.account_id][region].describe_vpcs()
+        vpcs = ec2_backends[region].describe_vpcs()
         if vpc_settings["VpcId"] not in [x.id for x in vpcs]:
             raise ClientException("Invalid VPC ID.")
         vpc_settings["AvailabilityZones"] = regions
@@ -281,7 +274,6 @@ class DirectoryServiceBackend(BaseBackend):
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
-            self.account_id,
             region,
             name,
             password,
@@ -327,7 +319,6 @@ class DirectoryServiceBackend(BaseBackend):
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
-            self.account_id,
             region,
             name,
             password,
@@ -409,7 +400,6 @@ class DirectoryServiceBackend(BaseBackend):
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
-            self.account_id,
             region,
             name,
             password,

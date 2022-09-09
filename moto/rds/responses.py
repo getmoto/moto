@@ -7,12 +7,9 @@ from .exceptions import DBParameterGroupNotFoundError
 
 
 class RDSResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="rds")
-
     @property
     def backend(self):
-        return rds_backends[self.current_account][self.region]
+        return rds_backends[self.region]
 
     def _get_db_kwargs(self):
         args = {
@@ -47,7 +44,6 @@ class RDSResponse(BaseResponse):
             # PreferredBackupWindow
             # PreferredMaintenanceWindow
             "publicly_accessible": self._get_param("PubliclyAccessible"),
-            "account_id": self.current_account,
             "region": self.region,
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
@@ -348,8 +344,7 @@ class RDSResponse(BaseResponse):
         subnet_ids = self._get_multi_param("SubnetIds.SubnetIdentifier")
         tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
         subnets = [
-            ec2_backends[self.current_account][self.region].get_subnet(subnet_id)
-            for subnet_id in subnet_ids
+            ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids
         ]
         subnet_group = self.backend.create_subnet_group(
             subnet_name, description, subnets, tags
@@ -368,8 +363,7 @@ class RDSResponse(BaseResponse):
         description = self._get_param("DBSubnetGroupDescription")
         subnet_ids = self._get_multi_param("SubnetIds.SubnetIdentifier")
         subnets = [
-            ec2_backends[self.current_account][self.region].get_subnet(subnet_id)
-            for subnet_id in subnet_ids
+            ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids
         ]
         subnet_group = self.backend.modify_db_subnet_group(
             subnet_name, description, subnets

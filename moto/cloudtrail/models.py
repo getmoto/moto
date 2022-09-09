@@ -2,7 +2,7 @@ import re
 import time
 
 from datetime import datetime
-from moto.core import BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
@@ -74,7 +74,6 @@ class TrailStatus(object):
 class Trail(BaseModel):
     def __init__(
         self,
-        account_id,
         region_name,
         trail_name,
         bucket_name,
@@ -88,7 +87,6 @@ class Trail(BaseModel):
         cw_role_arn,
         kms_key_id,
     ):
-        self.account_id = account_id
         self.region_name = region_name
         self.trail_name = trail_name
         self.bucket_name = bucket_name
@@ -111,12 +109,12 @@ class Trail(BaseModel):
 
     @property
     def arn(self):
-        return f"arn:aws:cloudtrail:{self.region_name}:{self.account_id}:trail/{self.trail_name}"
+        return f"arn:aws:cloudtrail:{self.region_name}:{get_account_id()}:trail/{self.trail_name}"
 
     @property
     def topic_arn(self):
         if self.sns_topic_name:
-            return f"arn:aws:sns:{self.region_name}:{self.account_id}:{self.sns_topic_name}"
+            return f"arn:aws:sns:{self.region_name}:{get_account_id()}:{self.sns_topic_name}"
         return None
 
     def check_name(self):
@@ -135,7 +133,7 @@ class Trail(BaseModel):
         from moto.s3.models import s3_backends
 
         try:
-            s3_backends[self.account_id]["global"].get_bucket(self.bucket_name)
+            s3_backends["global"].get_bucket(self.bucket_name)
         except Exception:
             raise S3BucketDoesNotExistException(
                 f"S3 bucket {self.bucket_name} does not exist!"
@@ -145,7 +143,7 @@ class Trail(BaseModel):
         if self.sns_topic_name:
             from moto.sns import sns_backends
 
-            sns_backend = sns_backends[self.account_id][self.region_name]
+            sns_backend = sns_backends[self.region_name]
             try:
                 sns_backend.get_topic(self.topic_arn)
             except Exception:
@@ -265,7 +263,6 @@ class CloudTrailBackend(BaseBackend):
         tags_list,
     ):
         trail = Trail(
-            self.account_id,
             self.region_name,
             name,
             bucket_name,
@@ -291,7 +288,7 @@ class CloudTrailBackend(BaseBackend):
         for trail in self.trails.values():
             if trail.arn == name_or_arn:
                 return trail
-        raise TrailNotFoundException(account_id=self.account_id, name=name_or_arn)
+        raise TrailNotFoundException(name_or_arn)
 
     def get_trail_status(self, name):
         if len(name) < 3:
@@ -307,9 +304,9 @@ class CloudTrailBackend(BaseBackend):
         if not trail_name:
             # This particular method returns the ARN as part of the error message
             arn = (
-                f"arn:aws:cloudtrail:{self.region_name}:{self.account_id}:trail/{name}"
+                f"arn:aws:cloudtrail:{self.region_name}:{get_account_id()}:trail/{name}"
             )
-            raise TrailNotFoundException(account_id=self.account_id, name=arn)
+            raise TrailNotFoundException(name=arn)
         trail = self.trails[trail_name]
         return trail.status
 

@@ -6,7 +6,7 @@ import json
 from botocore.exceptions import ClientError
 from moto import mock_sns
 from moto.sns.models import DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_sns

@@ -99,9 +99,25 @@ def not_implemented_callback(request):  # pylint: disable=unused-argument
 #  - First request matches on the appropriate S3 URL
 #  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
 # Fix: Always return the first match
-#
-# Note that, due to an outdated API we no longer support Responses <= 0.12.1
-# This method should be used for Responses 0.12.1 < .. < 0.17.0
+def _find_first_match_legacy(self, request):
+    all_possibles = self._matches + responses._default_mock._matches
+    matches = [match for match in all_possibles if match.matches(request)]
+
+    # Look for implemented callbacks first
+    implemented_matches = [
+        m
+        for m in matches
+        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
+    ]
+    if implemented_matches:
+        return implemented_matches[0]
+    elif matches:
+        # We had matches, but all were of type not_implemented_callback
+        return matches[0]
+    return None
+
+
+# Internal API changed: this method should be used for Responses 0.12.1 < .. < 0.17.0
 def _find_first_match(self, request):
     matches = []
     match_failed_reasons = []
@@ -140,7 +156,12 @@ def get_response_mock():
     """
     responses_mock = None
 
-    if LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
+    if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
+        responses_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
+        responses_mock._find_match = types.MethodType(
+            _find_first_match_legacy, responses_mock
+        )
+    elif LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
         from .responses_custom_registry import CustomRegistry
 
         responses_mock = responses.RequestsMock(
@@ -155,7 +176,9 @@ def get_response_mock():
 
 
 def reset_responses_mock(responses_mock):
-    if LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
+    if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
+        responses_mock.reset()
+    elif LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
         from .responses_custom_registry import CustomRegistry
 
         responses_mock.reset()

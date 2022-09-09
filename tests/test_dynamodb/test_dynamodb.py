@@ -7,7 +7,6 @@ from boto3.dynamodb.conditions import Attr, Key
 import re
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_dynamodb, settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.dynamodb import dynamodb_backends
 from botocore.exceptions import ClientError
 
@@ -200,7 +199,7 @@ def test_item_add_empty_string_hash_key_exception():
 
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.match(
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
     )
 
@@ -241,7 +240,7 @@ def test_item_add_empty_string_range_key_exception():
 
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.match(
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
     )
 
@@ -402,7 +401,7 @@ def test_put_item_with_streams():
     )
 
     if not settings.TEST_SERVER_MODE:
-        table = dynamodb_backends[ACCOUNT_ID]["us-west-2"].get_table(name)
+        table = dynamodb_backends["us-west-2"].get_table(name)
         len(table.stream_shard.items).should.be.equal(1)
         stream_record = table.stream_shard.items[0].record
         stream_record["eventName"].should.be.equal("INSERT")
@@ -412,7 +411,6 @@ def test_put_item_with_streams():
 @mock_dynamodb
 def test_basic_projection_expression_using_get_item():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    client = boto3.client("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
     table = dynamodb.create_table(
@@ -453,17 +451,6 @@ def test_basic_projection_expression_using_get_item():
     result["Item"].should.be.equal(
         {"forum_name": "the-key", "subject": "123", "body": "some test message"}
     )
-
-    # Running this against AWS DDB gives an exception so make sure it also fails.:
-    with pytest.raises(client.exceptions.ClientError):
-        # botocore.exceptions.ClientError: An error occurred (ValidationException) when calling the GetItem
-        # operation: "Can not use both expression and non-expression parameters in the same request:
-        #  Non-expression parameters: {AttributesToGet} Expression parameters: {ProjectionExpression}"
-        table.get_item(
-            Key={"forum_name": "the-key", "subject": "123"},
-            ProjectionExpression="body",
-            AttributesToGet=["body"],
-        )
 
 
 @mock_dynamodb
@@ -5793,63 +5780,3 @@ def test_projection_expression_execution_order():
         ProjectionExpression="#a",
         ExpressionAttributeNames={"#a": "hashKey"},
     )
-
-
-@mock_dynamodb
-def test_invalid_projection_expressions():
-    table_name = "test-projection-expressions-table"
-    client = boto3.client("dynamodb", region_name="us-east-1")
-    client.create_table(
-        TableName=table_name,
-        KeySchema=[{"AttributeName": "customer", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "customer", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-
-    with pytest.raises(
-        ClientError,
-        match="ProjectionExpression: Attribute name is a reserved keyword; reserved keyword: name",
-    ):
-        client.scan(TableName=table_name, ProjectionExpression="name")
-    with pytest.raises(
-        ClientError, match="ProjectionExpression: Attribute name starts with a number"
-    ):
-        client.scan(TableName=table_name, ProjectionExpression="3ame")
-    with pytest.raises(
-        ClientError, match="ProjectionExpression: Attribute name contains white space"
-    ):
-        client.scan(TableName=table_name, ProjectionExpression="na me")
-
-    with pytest.raises(
-        ClientError,
-        match="ProjectionExpression: Attribute name is a reserved keyword; reserved keyword: name",
-    ):
-        client.get_item(
-            TableName=table_name,
-            Key={"customer": {"S": "a"}},
-            ProjectionExpression="name",
-        )
-
-    with pytest.raises(
-        ClientError,
-        match="ProjectionExpression: Attribute name is a reserved keyword; reserved keyword: name",
-    ):
-        client.query(
-            TableName=table_name,
-            KeyConditionExpression="a",
-            ProjectionExpression="name",
-        )
-
-    with pytest.raises(
-        ClientError,
-        match="ProjectionExpression: Attribute name is a reserved keyword; reserved keyword: name",
-    ):
-        client.scan(TableName=table_name, ProjectionExpression="not_a_keyword, name")
-    with pytest.raises(
-        ClientError, match="ProjectionExpression: Attribute name starts with a number"
-    ):
-        client.scan(TableName=table_name, ProjectionExpression="not_a_keyword, 3ame")
-    with pytest.raises(
-        ClientError, match="ProjectionExpression: Attribute name contains white space"
-    ):
-        client.scan(TableName=table_name, ProjectionExpression="not_a_keyword, na me")

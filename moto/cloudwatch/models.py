@@ -20,6 +20,7 @@ from .exceptions import (
 from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
 
+from moto.core import get_account_id
 from ..utilities.tagging_service import TaggingService
 
 _EMPTY_LIST = tuple()
@@ -102,7 +103,6 @@ def daterange(start, stop, step=timedelta(days=1), inclusive=False):
 class FakeAlarm(BaseModel):
     def __init__(
         self,
-        account_id,
         region_name,
         name,
         namespace,
@@ -129,7 +129,7 @@ class FakeAlarm(BaseModel):
     ):
         self.region_name = region_name
         self.name = name
-        self.alarm_arn = make_arn_for_alarm(region_name, account_id, name)
+        self.alarm_arn = make_arn_for_alarm(region_name, get_account_id(), name)
         self.namespace = namespace
         self.metric_name = metric_name
         self.metric_data_queries = metric_data_queries
@@ -238,9 +238,9 @@ class MetricDatum(BaseModel):
 
 
 class Dashboard(BaseModel):
-    def __init__(self, account_id, name, body):
+    def __init__(self, name, body):
         # Guaranteed to be unique for now as the name is also the key of a dictionary where they are stored
-        self.arn = make_arn_for_dashboard(account_id, name)
+        self.arn = make_arn_for_dashboard(get_account_id(), name)
         self.name = name
         self.body = body
         self.last_modified = datetime.now()
@@ -327,7 +327,7 @@ class CloudWatchBackend(BaseBackend):
         providers = CloudWatchMetricProvider.__subclasses__()
         md = []
         for provider in providers:
-            md.extend(provider.get_cloudwatch_metrics(self.account_id))
+            md.extend(provider.get_cloudwatch_metrics())
         return md
 
     def put_metric_alarm(
@@ -370,7 +370,6 @@ class CloudWatchBackend(BaseBackend):
             )
 
         alarm = FakeAlarm(
-            account_id=self.account_id,
             region_name=self.region_name,
             name=name,
             namespace=namespace,
@@ -591,7 +590,7 @@ class CloudWatchBackend(BaseBackend):
         return self.metric_data + self.aws_metric_data
 
     def put_dashboard(self, name, body):
-        self.dashboards[name] = Dashboard(self.account_id, name, body)
+        self.dashboards[name] = Dashboard(name, body)
 
     def list_dashboards(self, prefix=""):
         for key, value in self.dashboards.items():

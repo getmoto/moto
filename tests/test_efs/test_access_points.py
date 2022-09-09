@@ -3,7 +3,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_efs
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @pytest.fixture(scope="function")

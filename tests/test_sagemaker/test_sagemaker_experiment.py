@@ -2,7 +2,7 @@ import boto3
 import pytest
 
 from moto import mock_sagemaker
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 TEST_REGION_NAME = "us-east-1"
 TEST_EXPERIMENT_NAME = "MyExperimentName"

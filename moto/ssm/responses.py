@@ -6,12 +6,9 @@ from .models import ssm_backends
 
 
 class SimpleSystemManagerResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="ssm")
-
     @property
     def ssm_backend(self):
-        return ssm_backends[self.current_account][self.region]
+        return ssm_backends[self.region]
 
     @property
     def request_params(self):

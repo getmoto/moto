@@ -45,15 +45,8 @@ RESERVED_ALIASES = [
 ]
 
 
-def generate_key_id(multi_region=False):
-    key = str(uuid.uuid4())
-    # https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html
-    # "Notice that multi-Region keys have a distinctive key ID that begins with mrk-. You can use the mrk- prefix to
-    # identify MRKs programmatically."
-    if multi_region:
-        key = "mrk-" + key
-
-    return key
+def generate_key_id():
+    return str(uuid.uuid4())
 
 
 def generate_data_key(number_of_bytes):

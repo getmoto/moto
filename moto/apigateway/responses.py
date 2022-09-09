@@ -13,9 +13,6 @@ ENDPOINT_CONFIGURATION_TYPES = ["PRIVATE", "EDGE", "REGIONAL"]
 
 
 class APIGatewayResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="apigateway")
-
     def error(self, type_, message, status=400):
         headers = self.response_headers or {}
         headers["X-Amzn-Errortype"] = type_
@@ -23,7 +20,7 @@ class APIGatewayResponse(BaseResponse):
 
     @property
     def backend(self):
-        return apigateway_backends[self.current_account][self.region]
+        return apigateway_backends[self.region]
 
     def __validate_api_key_source(self, api_key_source):
         if api_key_source and api_key_source not in API_KEY_SOURCES:
@@ -163,14 +160,12 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == "GET":
             resource = self.backend.get_resource(function_id, resource_id)
-            return 200, {}, json.dumps(resource.to_dict())
         elif self.method == "POST":
             path_part = self._get_param("pathPart")
             resource = self.backend.create_resource(function_id, resource_id, path_part)
-            return 201, {}, json.dumps(resource.to_dict())
         elif self.method == "DELETE":
             resource = self.backend.delete_resource(function_id, resource_id)
-            return 202, {}, json.dumps(resource.to_dict())
+        return 200, {}, json.dumps(resource.to_dict())
 
     def resource_methods(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -190,7 +185,6 @@ class APIGatewayResponse(BaseResponse):
             authorizer_id = self._get_param("authorizerId")
             authorization_scopes = self._get_param("authorizationScopes")
             request_validator_id = self._get_param("requestValidatorId")
-            request_parameters = self._get_param("requestParameters")
             method = self.backend.put_method(
                 function_id,
                 resource_id,
@@ -198,17 +192,16 @@ class APIGatewayResponse(BaseResponse):
                 authorization_type,
                 api_key_required,
                 request_models=request_models,
-                request_parameters=request_parameters,
                 operation_name=operation_name,
                 authorizer_id=authorizer_id,
                 authorization_scopes=authorization_scopes,
                 request_validator_id=request_validator_id,
             )
-            return 201, {}, json.dumps(method)
+            return 200, {}, json.dumps(method)
 
         elif self.method == "DELETE":
             self.backend.delete_method(function_id, resource_id, method_type)
-            return 204, {}, ""
+            return 200, {}, ""
 
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
@@ -230,7 +223,6 @@ class APIGatewayResponse(BaseResponse):
             method_response = self.backend.get_method_response(
                 function_id, resource_id, method_type, response_code
             )
-            return 200, {}, json.dumps(method_response)
         elif self.method == "PUT":
             response_models = self._get_param("responseModels")
             response_parameters = self._get_param("responseParameters")
@@ -242,19 +234,18 @@ class APIGatewayResponse(BaseResponse):
                 response_models,
                 response_parameters,
             )
-            return 201, {}, json.dumps(method_response)
         elif self.method == "DELETE":
             method_response = self.backend.delete_method_response(
                 function_id, resource_id, method_type, response_code
             )
-            return 204, {}, json.dumps(method_response)
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
             method_response = self.backend.update_method_response(
                 function_id, resource_id, method_type, response_code, patch_operations
             )
-            return 201, {}, json.dumps(method_response)
-        raise Exception('Unexpected HTTP method "%s"' % self.method)
+        else:
+            raise Exception('Unexpected HTTP method "%s"' % self.method)
+        return 200, {}, json.dumps(method_response)
 
     def restapis_authorizers(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -301,10 +292,11 @@ class APIGatewayResponse(BaseResponse):
                 identiy_validation_expression=identiy_validation_expression,
                 authorizer_result_ttl=authorizer_result_ttl,
             )
-            return 201, {}, json.dumps(authorizer_response)
         elif self.method == "GET":
             authorizers = self.backend.get_authorizers(restapi_id)
             return 200, {}, json.dumps({"item": authorizers})
+
+        return 200, {}, json.dumps(authorizer_response)
 
     def request_validators(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -324,7 +316,7 @@ class APIGatewayResponse(BaseResponse):
             validator = self.backend.create_request_validator(
                 restapi_id, name, body, params
             )
-            return 201, {}, json.dumps(validator)
+            return 200, {}, json.dumps(validator)
 
     def request_validator_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -353,16 +345,15 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == "GET":
             authorizer_response = self.backend.get_authorizer(restapi_id, authorizer_id)
-            return 200, {}, json.dumps(authorizer_response)
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
             authorizer_response = self.backend.update_authorizer(
                 restapi_id, authorizer_id, patch_operations
             )
-            return 200, {}, json.dumps(authorizer_response)
         elif self.method == "DELETE":
             self.backend.delete_authorizer(restapi_id, authorizer_id)
             return 202, {}, "{}"
+        return 200, {}, json.dumps(authorizer_response)
 
     def restapis_stages(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -390,10 +381,11 @@ class APIGatewayResponse(BaseResponse):
                 tags=tags,
                 tracing_enabled=tracing_enabled,
             )
-            return 201, {}, json.dumps(stage_response)
         elif self.method == "GET":
             stages = self.backend.get_stages(function_id)
             return 200, {}, json.dumps({"item": stages})
+
+        return 200, {}, json.dumps(stage_response)
 
     def restapis_stages_tags(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -421,16 +413,16 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == "GET":
             stage_response = self.backend.get_stage(function_id, stage_name)
-            return 200, {}, json.dumps(stage_response)
+
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
             stage_response = self.backend.update_stage(
                 function_id, stage_name, patch_operations
             )
-            return 200, {}, json.dumps(stage_response)
         elif self.method == "DELETE":
             self.backend.delete_stage(function_id, stage_name)
             return 202, {}, "{}"
+        return 200, {}, json.dumps(stage_response)
 
     def integrations(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -445,7 +437,6 @@ class APIGatewayResponse(BaseResponse):
             integration_response = self.backend.get_integration(
                 function_id, resource_id, method_type
             )
-            return 200, {}, json.dumps(integration_response)
         elif self.method == "PUT":
             integration_type = self._get_param("type")
             uri = self._get_param("uri")
@@ -477,12 +468,12 @@ class APIGatewayResponse(BaseResponse):
                 timeout_in_millis=timeout_in_millis,
                 request_parameters=request_parameters,
             )
-            return 201, {}, json.dumps(integration_response)
         elif self.method == "DELETE":
             integration_response = self.backend.delete_integration(
                 function_id, resource_id, method_type
             )
-            return 204, {}, json.dumps(integration_response)
+
+        return 200, {}, json.dumps(integration_response)
 
     def integration_responses(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -496,7 +487,6 @@ class APIGatewayResponse(BaseResponse):
             integration_response = self.backend.get_integration_response(
                 function_id, resource_id, method_type, status_code
             )
-            return 200, {}, json.dumps(integration_response)
         elif self.method == "PUT":
             if not self.body:
                 raise InvalidRequestInput()
@@ -513,12 +503,11 @@ class APIGatewayResponse(BaseResponse):
                 response_templates,
                 content_handling,
             )
-            return 201, {}, json.dumps(integration_response)
         elif self.method == "DELETE":
             integration_response = self.backend.delete_integration_response(
                 function_id, resource_id, method_type, status_code
             )
-            return 204, {}, json.dumps(integration_response)
+        return 200, {}, json.dumps(integration_response)
 
     def deployments(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -534,7 +523,7 @@ class APIGatewayResponse(BaseResponse):
             deployment = self.backend.create_deployment(
                 function_id, name, description, stage_variables
             )
-            return 201, {}, json.dumps(deployment)
+            return 200, {}, json.dumps(deployment)
 
     def individual_deployment(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -586,11 +575,11 @@ class APIGatewayResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         if self.method == "POST":
             usage_plan_response = self.backend.create_usage_plan(json.loads(self.body))
-            return 201, {}, json.dumps(usage_plan_response)
         elif self.method == "GET":
             api_key_id = self.querystring.get("keyId", [None])[0]
             usage_plans_response = self.backend.get_usage_plans(api_key_id=api_key_id)
             return 200, {}, json.dumps({"item": usage_plans_response})
+        return 200, {}, json.dumps(usage_plan_response)
 
     def usage_plan_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -600,16 +589,14 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == "GET":
             usage_plan_response = self.backend.get_usage_plan(usage_plan)
-            return 200, {}, json.dumps(usage_plan_response)
         elif self.method == "DELETE":
             usage_plan_response = self.backend.delete_usage_plan(usage_plan)
-            return 202, {}, json.dumps(usage_plan_response)
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
             usage_plan_response = self.backend.update_usage_plan(
                 usage_plan, patch_operations
             )
-            return 200, {}, json.dumps(usage_plan_response)
+        return 200, {}, json.dumps(usage_plan_response)
 
     def usage_plan_keys(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -635,12 +622,11 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == "GET":
             usage_plan_response = self.backend.get_usage_plan_key(usage_plan_id, key_id)
-            return 200, {}, json.dumps(usage_plan_response)
         elif self.method == "DELETE":
             usage_plan_response = self.backend.delete_usage_plan_key(
                 usage_plan_id, key_id
             )
-            return 202, {}, json.dumps(usage_plan_response)
+        return 200, {}, json.dumps(usage_plan_response)
 
     def domain_names(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -676,7 +662,7 @@ class APIGatewayResponse(BaseResponse):
                 security_policy,
                 generate_cli_skeleton,
             )
-            return 201, {}, json.dumps(domain_name_resp)
+            return 200, {}, json.dumps(domain_name_resp)
 
     def domain_name_induvidual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -688,19 +674,17 @@ class APIGatewayResponse(BaseResponse):
         if self.method == "GET":
             if domain_name is not None:
                 domain_names = self.backend.get_domain_name(domain_name)
-            return 200, {}, json.dumps(domain_names)
         elif self.method == "DELETE":
             if domain_name is not None:
                 self.backend.delete_domain_name(domain_name)
-            return 202, {}, json.dumps({})
         elif self.method == "PATCH":
             if domain_name is not None:
                 patch_operations = self._get_param("patchOperations")
                 self.backend.update_domain_name(domain_name, patch_operations)
-            return 200, {}, json.dumps(domain_name)
         else:
             msg = 'Method "%s" for API GW domain names not implemented' % self.method
             return 404, {}, json.dumps({"error": msg})
+        return 200, {}, json.dumps(domain_names)
 
     def models(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -726,7 +710,8 @@ class APIGatewayResponse(BaseResponse):
                 cli_input_json,
                 generate_cli_skeleton,
             )
-            return 201, {}, json.dumps(model)
+
+            return 200, {}, json.dumps(model)
 
     def model_induvidual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -778,7 +763,7 @@ class APIGatewayResponse(BaseResponse):
             base_path_mapping = self.backend.update_base_path_mapping(
                 domain_name, base_path, patch_operations
             )
-            return 200, {}, json.dumps(base_path_mapping)
+        return 200, {}, json.dumps(base_path_mapping)
 
     def vpc_link(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -787,7 +772,7 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == "DELETE":
             self.backend.delete_vpc_link(vpc_link_id=vpc_link_id)
-            return 202, {}, "{}"
+            return 200, {}, "{}"
         if self.method == "GET":
             vpc_link = self.backend.get_vpc_link(vpc_link_id=vpc_link_id)
             return 200, {}, json.dumps(vpc_link)
@@ -806,7 +791,7 @@ class APIGatewayResponse(BaseResponse):
             vpc_link = self.backend.create_vpc_link(
                 name=name, description=description, target_arns=target_arns, tags=tags
             )
-            return 202, {}, json.dumps(vpc_link)
+            return 200, {}, json.dumps(vpc_link)
 
     def put_gateway_response(self):
         rest_api_id = self.path.split("/")[-3]
@@ -822,7 +807,7 @@ class APIGatewayResponse(BaseResponse):
             response_parameters=response_parameters,
             response_templates=response_templates,
         )
-        return 201, {}, json.dumps(response)
+        return 200, {}, json.dumps(response)
 
     def get_gateway_response(self):
         rest_api_id = self.path.split("/")[-3]

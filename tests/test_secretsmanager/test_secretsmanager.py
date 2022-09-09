@@ -5,7 +5,7 @@ from dateutil.tz import tzlocal
 import re
 
 from moto import mock_secretsmanager, mock_lambda, settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError, ParamValidationError
 import string
 import pytz

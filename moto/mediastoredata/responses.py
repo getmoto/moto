@@ -5,12 +5,11 @@ from .models import mediastoredata_backends
 
 
 class MediaStoreDataResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="mediastore-data")
+    SERVICE_NAME = "mediastore-data"
 
     @property
     def mediastoredata_backend(self):
-        return mediastoredata_backends[self.current_account][self.region]
+        return mediastoredata_backends[self.region]
 
     def get_object(self):
         path = self._get_param("Path")

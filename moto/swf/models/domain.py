@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from moto.core import BaseModel
+from moto.core import get_account_id, BaseModel
 from ..exceptions import (
     SWFUnknownResourceFault,
     SWFWorkflowExecutionAlreadyStartedFault,
@@ -8,10 +8,9 @@ from ..exceptions import (
 
 
 class Domain(BaseModel):
-    def __init__(self, name, retention, account_id, region_name, description=None):
+    def __init__(self, name, retention, region_name, description=None):
         self.name = name
         self.retention = retention
-        self.account_id = account_id
         self.region_name = region_name
         self.description = description
         self.status = "REGISTERED"
@@ -32,9 +31,9 @@ class Domain(BaseModel):
         hsh = {"name": self.name, "status": self.status}
         if self.description:
             hsh["description"] = self.description
-        hsh[
-            "arn"
-        ] = f"arn:aws:swf:{self.region_name}:{self.account_id}:/domain/{self.name}"
+        hsh["arn"] = "arn:aws:swf:{0}:{1}:/domain/{2}".format(
+            self.region_name, get_account_id(), self.name
+        )
         return hsh
 
     def to_full_dict(self):

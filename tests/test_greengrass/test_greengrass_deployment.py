@@ -6,8 +6,10 @@ import freezegun
 import pytest
 
 from moto import mock_greengrass
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import get_account_id
 from moto.settings import TEST_SERVER_MODE
+
+ACCOUNT_ID = get_account_id()
 
 
 @mock_greengrass

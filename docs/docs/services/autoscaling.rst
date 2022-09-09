@@ -40,7 +40,7 @@ autoscaling
 - [X] delete_lifecycle_hook
 - [ ] delete_notification_configuration
 - [X] delete_policy
-- [X] delete_scheduled_action
+- [ ] delete_scheduled_action
 - [X] delete_tags
 - [ ] delete_warm_pool
 - [ ] describe_account_limits
@@ -59,7 +59,7 @@ autoscaling
 - [X] describe_policies
 - [ ] describe_scaling_activities
 - [ ] describe_scaling_process_types
-- [X] describe_scheduled_actions
+- [ ] describe_scheduled_actions
 - [X] describe_tags
   
         Pagination is not yet implemented.
@@ -72,7 +72,7 @@ autoscaling
 - [X] detach_load_balancer_target_groups
 - [X] detach_load_balancers
 - [ ] disable_metrics_collection
-- [X] enable_metrics_collection
+- [ ] enable_metrics_collection
 - [ ] enter_standby
 - [X] execute_policy
 - [ ] exit_standby
@@ -80,7 +80,7 @@ autoscaling
 - [ ] put_lifecycle_hook
 - [ ] put_notification_configuration
 - [X] put_scaling_policy
-- [X] put_scheduled_update_group_action
+- [ ] put_scheduled_update_group_action
 - [ ] put_warm_pool
 - [ ] record_lifecycle_action_heartbeat
 - [X] resume_processes

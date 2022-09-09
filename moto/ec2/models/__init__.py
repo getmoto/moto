@@ -1,3 +1,4 @@
+from moto.core import get_account_id
 from moto.core import BaseBackend
 from moto.core.utils import BackendDict
 from ..exceptions import (
@@ -13,7 +14,6 @@ from .dhcp_options import DHCPOptionsSetBackend
 from .elastic_block_store import EBSBackend
 from .elastic_ip_addresses import ElasticAddressBackend
 from .elastic_network_interfaces import NetworkInterfaceBackend
-from .fleets import FleetsBackend
 from .flow_logs import FlowLogsBackend
 from .key_pairs import KeyPairBackend
 from .launch_templates import LaunchTemplateBackend
@@ -54,6 +54,8 @@ from ..utils import (
     get_prefix,
 )
 
+OWNER_ID = get_account_id()
+
 
 def validate_resource_ids(resource_ids):
     if not resource_ids:
@@ -69,15 +71,15 @@ class SettingsBackend:
         self.ebs_encryption_by_default = False
 
     def disable_ebs_encryption_by_default(self):
-        ec2_backend = ec2_backends[self.account_id][self.region_name]
+        ec2_backend = ec2_backends[self.region_name]
         ec2_backend.ebs_encryption_by_default = False
 
     def enable_ebs_encryption_by_default(self):
-        ec2_backend = ec2_backends[self.account_id][self.region_name]
+        ec2_backend = ec2_backends[self.region_name]
         ec2_backend.ebs_encryption_by_default = True
 
     def get_ebs_encryption_by_default(self):
-        ec2_backend = ec2_backends[self.account_id][self.region_name]
+        ec2_backend = ec2_backends[self.region_name]
         return ec2_backend.ebs_encryption_by_default
 
 
@@ -122,7 +124,6 @@ class EC2Backend(
     LaunchTemplateBackend,
     IamInstanceProfileAssociationBackend,
     CarrierGatewayBackend,
-    FleetsBackend,
 ):
     """
     Implementation of the AWS EC2 endpoint.

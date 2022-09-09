@@ -8,7 +8,7 @@ import json
 import time
 from copy import deepcopy
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     get_random_hex,
@@ -34,9 +34,9 @@ from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import md5_hash
 
 
-def _lookup_az_id(account_id, az_name):
+def _lookup_az_id(az_name):
     """Find the Availability zone ID given the AZ name."""
-    ec2 = ec2_backends[account_id][az_name[:-1]]
+    ec2 = ec2_backends[az_name[:-1]]
     for zone in ec2.describe_availability_zones():
         if zone.name == az_name:
             return zone.zone_id
@@ -45,7 +45,6 @@ def _lookup_az_id(account_id, az_name):
 class AccessPoint(BaseModel):
     def __init__(
         self,
-        account_id,
         region_name,
         client_token,
         file_system_id,
@@ -55,12 +54,15 @@ class AccessPoint(BaseModel):
         context,
     ):
         self.access_point_id = get_random_hex(8)
-        self.access_point_arn = f"arn:aws:elasticfilesystem:{region_name}:{account_id}:access-point/fsap-{self.access_point_id}"
+        self.access_point_arn = "arn:aws:elasticfilesystem:{region}:{user_id}:access-point/fsap-{file_system_id}".format(
+            region=region_name,
+            user_id=get_account_id(),
+            file_system_id=self.access_point_id,
+        )
         self.client_token = client_token
         self.file_system_id = file_system_id
         self.name = name
         self.posix_user = posix_user
-        self.account_id = account_id
 
         if not root_directory:
             root_directory = {"Path": "/"}
@@ -79,7 +81,7 @@ class AccessPoint(BaseModel):
             "FileSystemId": self.file_system_id,
             "PosixUser": self.posix_user,
             "RootDirectory": self.root_directory,
-            "OwnerId": self.account_id,
+            "OwnerId": get_account_id(),
             "LifeCycleState": "available",
         }
 
@@ -89,7 +91,6 @@ class FileSystem(CloudFormationModel):
 
     def __init__(
         self,
-        account_id,
         region_name,
         creation_token,
         file_system_id,
@@ -119,9 +120,7 @@ class FileSystem(CloudFormationModel):
         self.availability_zone_name = availability_zone_name
         self.availability_zone_id = None
         if self.availability_zone_name:
-            self.availability_zone_id = _lookup_az_id(
-                account_id, self.availability_zone_name
-            )
+            self.availability_zone_id = _lookup_az_id(self.availability_zone_name)
         self._backup = backup
         self.lifecycle_policies = lifecycle_policies or []
         self.file_system_policy = file_system_policy
@@ -130,9 +129,13 @@ class FileSystem(CloudFormationModel):
 
         # Generate AWS-assigned parameters
         self.file_system_id = file_system_id
-        self.file_system_arn = f"arn:aws:elasticfilesystem:{region_name}:{account_id}:file-system/{self.file_system_id}"
+        self.file_system_arn = "arn:aws:elasticfilesystem:{region}:{user_id}:file-system/{file_system_id}".format(
+            region=region_name,
+            user_id=get_account_id(),
+            file_system_id=self.file_system_id,
+        )
         self.creation_time = time.time()
-        self.owner_id = account_id
+        self.owner_id = get_account_id()
 
         # Initialize some state parameters
         self.life_cycle_state = "available"
@@ -217,7 +220,7 @@ class FileSystem(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-efs-filesystem.html
         props = deepcopy(cloudformation_json["Properties"])
@@ -237,18 +240,11 @@ class FileSystem(CloudFormationModel):
                 "supported by AWS Cloudformation."
             )
 
-        return efs_backends[account_id][region_name].create_file_system(
-            resource_name, **props
-        )
+        return efs_backends[region_name].create_file_system(resource_name, **props)
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         raise NotImplementedError(
             "Update of EFS File System via cloudformation is not yet implemented."
@@ -256,15 +252,15 @@ class FileSystem(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
-        return efs_backends[account_id][region_name].delete_file_system(resource_name)
+        return efs_backends[region_name].delete_file_system(resource_name)
 
 
 class MountTarget(CloudFormationModel):
     """A model for an EFS Mount Target."""
 
-    def __init__(self, account_id, file_system, subnet, ip_address, security_groups):
+    def __init__(self, file_system, subnet, ip_address, security_groups):
         # Set the simple given parameters.
         self.file_system_id = file_system.file_system_id
         self._file_system = file_system
@@ -296,7 +292,7 @@ class MountTarget(CloudFormationModel):
         self.ip_address = ip_address
 
         # Init non-user-assigned values.
-        self.owner_id = account_id
+        self.owner_id = get_account_id()
         self.mount_target_id = "fsmt-{}".format(get_random_hex())
         self.life_cycle_state = "available"
         self.network_interface_id = None
@@ -336,21 +332,16 @@ class MountTarget(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-efs-mounttarget.html
         props = deepcopy(cloudformation_json["Properties"])
         props = {camelcase_to_underscores(k): v for k, v in props.items()}
-        return efs_backends[account_id][region_name].create_mount_target(**props)
+        return efs_backends[region_name].create_mount_target(**props)
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         raise NotImplementedError(
             "Updates of EFS Mount Target via cloudformation are not yet implemented."
@@ -358,9 +349,9 @@ class MountTarget(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
-        return efs_backends[account_id][region_name].delete_mount_target(resource_name)
+        return efs_backends[region_name].delete_mount_target(resource_name)
 
 
 class EFSBackend(BaseBackend):
@@ -393,7 +384,7 @@ class EFSBackend(BaseBackend):
 
     @property
     def ec2_backend(self):
-        return ec2_backends[self.account_id][self.region_name]
+        return ec2_backends[self.region_name]
 
     def create_file_system(
         self,
@@ -424,7 +415,6 @@ class EFSBackend(BaseBackend):
         while fsid in self.file_systems_by_id:
             fsid = make_id()
         self.file_systems_by_id[fsid] = FileSystem(
-            self.account_id,
             self.region_name,
             creation_token,
             fsid,
@@ -505,9 +495,7 @@ class EFSBackend(BaseBackend):
                     raise SecurityGroupNotFound(sg_id)
 
         # Create the new mount target
-        mount_target = MountTarget(
-            self.account_id, file_system, subnet, ip_address, security_groups
-        )
+        mount_target = MountTarget(file_system, subnet, ip_address, security_groups)
 
         # Establish the network interface.
         network_interface = self.ec2_backend.create_network_interface(
@@ -637,7 +625,6 @@ class EFSBackend(BaseBackend):
     ):
         name = next((tag["Value"] for tag in tags if tag["Key"] == "Name"), None)
         access_point = AccessPoint(
-            self.account_id,
             self.region_name,
             client_token,
             file_system_id,

@@ -12,13 +12,12 @@ DEFAULT_CONTAINER_PROVIDER_TYPE = "EKS"
 class EMRContainersResponse(BaseResponse):
     """Handler for EMRContainers requests and responses."""
 
-    def __init__(self):
-        super().__init__(service_name="emr-containers")
+    SERVICE_NAME = "emr-containers"
 
     @property
     def emrcontainers_backend(self):
         """Return backend instance specific for this region."""
-        return emrcontainers_backends[self.current_account][self.region]
+        return emrcontainers_backends[self.region]
 
     def create_virtual_cluster(self):
         name = self._get_param("name")

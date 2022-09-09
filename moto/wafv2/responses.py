@@ -6,12 +6,9 @@ from .models import GLOBAL_REGION, wafv2_backends
 
 
 class WAFV2Response(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="wafv2")
-
     @property
     def wafv2_backend(self):
-        return wafv2_backends[self.current_account][self.region]
+        return wafv2_backends[self.region]  # default region is "us-east-1"
 
     @amzn_request_id
     def create_web_acl(self):

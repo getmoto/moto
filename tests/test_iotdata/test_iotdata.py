@@ -6,7 +6,6 @@ from botocore.exceptions import ClientError
 
 import moto.iotdata.models
 from moto import mock_iotdata, mock_iot, settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_iot
@@ -113,7 +112,7 @@ def test_publish():
     client.publish(topic="test/topic", qos=1, payload=b"pl")
 
     if not settings.TEST_SERVER_MODE:
-        mock_backend = moto.iotdata.models.iotdata_backends[ACCOUNT_ID][region_name]
+        mock_backend = moto.iotdata.models.iotdata_backends[region_name]
         mock_backend.published_payloads.should.have.length_of(1)
         mock_backend.published_payloads.should.contain(("test/topic", "pl"))
 

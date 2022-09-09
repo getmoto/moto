@@ -9,13 +9,10 @@ from .models import ssoadmin_backends
 class SSOAdminResponse(BaseResponse):
     """Handler for SSOAdmin requests and responses."""
 
-    def __init__(self):
-        super().__init__(service_name="sso-admin")
-
     @property
     def ssoadmin_backend(self):
         """Return backend instance specific for this region."""
-        return ssoadmin_backends[self.current_account][self.region]
+        return ssoadmin_backends[self.region]
 
     def create_account_assignment(self):
         params = json.loads(self.body)

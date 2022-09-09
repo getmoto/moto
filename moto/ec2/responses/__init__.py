@@ -7,7 +7,6 @@ from .dhcp_options import DHCPOptions
 from .elastic_block_store import ElasticBlockStore
 from .elastic_ip_addresses import ElasticIPAddresses
 from .elastic_network_interfaces import ElasticNetworkInterfaces
-from .fleets import Fleets
 from .general import General
 from .instances import InstanceResponse
 from .internet_gateways import InternetGateways
@@ -53,7 +52,6 @@ class EC2Response(
     ElasticBlockStore,
     ElasticIPAddresses,
     ElasticNetworkInterfaces,
-    Fleets,
     General,
     InstanceResponse,
     InternetGateways,
@@ -88,14 +86,11 @@ class EC2Response(
     IamInstanceProfiles,
     CarrierGateway,
 ):
-    def __init__(self):
-        super().__init__(service_name="ec2")
-
     @property
     def ec2_backend(self):
         from moto.ec2.models import ec2_backends
 
-        return ec2_backends[self.current_account][self.region]
+        return ec2_backends[self.region]
 
     @property
     def should_autoescape(self):

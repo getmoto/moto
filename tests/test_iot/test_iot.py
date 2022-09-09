@@ -2,7 +2,7 @@ import sure  # noqa # pylint: disable=unused-import
 import boto3
 
 from moto import mock_iot
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError
 import pytest
 

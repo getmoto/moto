@@ -2,6 +2,7 @@ import ipaddress
 import itertools
 from collections import defaultdict
 
+from moto.core import get_account_id
 from moto.core import CloudFormationModel
 from ..exceptions import (
     GenericInvalidParameterValueError,
@@ -63,7 +64,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return self.ec2_backend.account_id
+        return get_account_id()
 
     @staticmethod
     def cloudformation_name_type():
@@ -76,7 +77,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
@@ -85,7 +86,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         vpc_id = properties["VpcId"]
         cidr_block = properties["CidrBlock"]
         availability_zone = properties.get("AvailabilityZone")
-        ec2_backend = ec2_backends[account_id][region_name]
+        ec2_backend = ec2_backends[region_name]
         subnet = ec2_backend.create_subnet(
             vpc_id=vpc_id, cidr_block=cidr_block, availability_zone=availability_zone
         )
@@ -414,7 +415,7 @@ class SubnetRouteTableAssociation(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
@@ -423,7 +424,7 @@ class SubnetRouteTableAssociation(CloudFormationModel):
         route_table_id = properties["RouteTableId"]
         subnet_id = properties["SubnetId"]
 
-        ec2_backend = ec2_backends[account_id][region_name]
+        ec2_backend = ec2_backends[region_name]
         subnet_association = ec2_backend.create_subnet_association(
             route_table_id=route_table_id, subnet_id=subnet_id
         )

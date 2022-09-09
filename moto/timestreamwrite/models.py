@@ -1,4 +1,4 @@
-from moto.core import BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import ResourceNotFound
@@ -7,7 +7,6 @@ from .exceptions import ResourceNotFound
 class TimestreamTable(BaseModel):
     def __init__(
         self,
-        account_id,
         region_name,
         table_name,
         db_name,
@@ -23,7 +22,6 @@ class TimestreamTable(BaseModel):
         }
         self.magnetic_store_write_properties = magnetic_store_write_properties or {}
         self.records = []
-        self.arn = f"arn:aws:timestream:{self.region_name}:{account_id}:database/{self.db_name}/table/{self.name}"
 
     def update(self, retention_properties, magnetic_store_write_properties):
         self.retention_properties = retention_properties
@@ -32,6 +30,10 @@ class TimestreamTable(BaseModel):
 
     def write_records(self, records):
         self.records.extend(records)
+
+    @property
+    def arn(self):
+        return f"arn:aws:timestream:{self.region_name}:{get_account_id()}:database/{self.db_name}/table/{self.name}"
 
     def description(self):
         return {
@@ -45,15 +47,12 @@ class TimestreamTable(BaseModel):
 
 
 class TimestreamDatabase(BaseModel):
-    def __init__(self, account_id, region_name, database_name, kms_key_id):
-        self.account_id = account_id
+    def __init__(self, region_name, database_name, kms_key_id):
         self.region_name = region_name
         self.name = database_name
         self.kms_key_id = (
-            kms_key_id or f"arn:aws:kms:{region_name}:{account_id}:key/default_key"
-        )
-        self.arn = (
-            f"arn:aws:timestream:{self.region_name}:{account_id}:database/{self.name}"
+            kms_key_id
+            or f"arn:aws:kms:{region_name}:{get_account_id()}:key/default_key"
         )
         self.tables = dict()
 
@@ -64,7 +63,6 @@ class TimestreamDatabase(BaseModel):
         self, table_name, retention_properties, magnetic_store_write_properties
     ):
         table = TimestreamTable(
-            account_id=self.account_id,
             region_name=self.region_name,
             table_name=table_name,
             db_name=self.name,
@@ -95,6 +93,10 @@ class TimestreamDatabase(BaseModel):
     def list_tables(self):
         return self.tables.values()
 
+    @property
+    def arn(self):
+        return f"arn:aws:timestream:{self.region_name}:{get_account_id()}:database/{self.name}"
+
     def description(self):
         return {
             "Arn": self.arn,
@@ -111,9 +113,7 @@ class TimestreamWriteBackend(BaseBackend):
         self.tagging_service = TaggingService()
 
     def create_database(self, database_name, kms_key_id, tags):
-        database = TimestreamDatabase(
-            self.account_id, self.region_name, database_name, kms_key_id
-        )
+        database = TimestreamDatabase(self.region_name, database_name, kms_key_id)
         self.databases[database_name] = database
         self.tagging_service.tag_resource(database.arn, tags)
         return database

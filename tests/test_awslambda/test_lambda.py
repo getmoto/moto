@@ -8,7 +8,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_lambda, mock_s3
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.models import ACCOUNT_ID
 from uuid import uuid4
 from .utilities import (
     get_role_name,

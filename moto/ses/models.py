@@ -25,7 +25,6 @@ from .exceptions import (
     RuleSetDoesNotExist,
     RuleAlreadyExists,
     MissingRenderingAttributeException,
-    ConfigurationSetAlreadyExists,
 )
 from .utils import get_random_message_id, is_valid_address
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
@@ -50,9 +49,8 @@ class SESFeedback(BaseModel):
     FORWARDING_ENABLED = "feedback_forwarding_enabled"
 
     @staticmethod
-    def generate_message(account_id, msg_type):
+    def generate_message(msg_type):
         msg = dict(COMMON_MAIL)
-        msg["mail"]["sendingAccountId"] = account_id
         if msg_type == SESFeedback.BOUNCE:
             msg["bounce"] = BOUNCE
         elif msg_type == SESFeedback.COMPLAINT:
@@ -75,15 +73,6 @@ class Message(BaseModel):
 class TemplateMessage(BaseModel):
     def __init__(self, message_id, source, template, template_data, destinations):
         self.id = message_id
-        self.source = source
-        self.template = template
-        self.template_data = template_data
-        self.destinations = destinations
-
-
-class BulkTemplateMessage(BaseModel):
-    def __init__(self, message_ids, source, template, template_data, destinations):
-        self.ids = message_ids
         self.source = source
         self.template = template
         self.template_data = template_data
@@ -192,38 +181,6 @@ class SESBackend(BaseBackend):
         self.sent_message_count += recipient_count
         return message
 
-    def send_bulk_templated_email(
-        self, source, template, template_data, destinations, region
-    ):
-        recipient_count = len(destinations)
-        if recipient_count > RECIPIENT_LIMIT:
-            raise MessageRejectedError("Too many destinations.")
-
-        total_recipient_count = sum(
-            map(lambda d: sum(map(len, d["Destination"].values())), destinations)
-        )
-        if total_recipient_count > RECIPIENT_LIMIT:
-            raise MessageRejectedError("Too many destinations.")
-
-        if not self._is_verified_address(source):
-            self.rejected_messages_count += 1
-            raise MessageRejectedError("Email address not verified %s" % source)
-
-        if not self.templates.get(template[0]):
-            raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
-
-        self.__process_sns_feedback__(source, destinations, region)
-
-        message_id = get_random_message_id()
-        message = TemplateMessage(
-            message_id, source, template, template_data, destinations
-        )
-        self.sent_messages.append(message)
-        self.sent_message_count += total_recipient_count
-
-        ids = list(map(lambda x: get_random_message_id(), range(len(destinations))))
-        return BulkTemplateMessage(ids, source, template, template_data, destinations)
-
     def send_templated_email(
         self, source, template, template_data, destinations, region
     ):
@@ -278,7 +235,7 @@ class SESBackend(BaseBackend):
 
     def __generate_feedback__(self, msg_type):
         """Generates the SNS message for the feedback"""
-        return SESFeedback.generate_message(self.account_id, msg_type)
+        return SESFeedback.generate_message(msg_type)
 
     def __process_sns_feedback__(self, source, destinations, region):
         domain = str(source)
@@ -291,9 +248,7 @@ class SESBackend(BaseBackend):
                 if sns_topic is not None:
                     message = self.__generate_feedback__(msg_type)
                     if message:
-                        sns_backends[self.account_id][region].publish(
-                            message, arn=sns_topic
-                        )
+                        sns_backends[region].publish(message, arn=sns_topic)
 
     def send_raw_email(self, source, destinations, raw_data, region):
         if source is not None:
@@ -362,18 +317,7 @@ class SESBackend(BaseBackend):
         return {}
 
     def create_configuration_set(self, configuration_set_name):
-        if configuration_set_name in self.config_set:
-            raise ConfigurationSetAlreadyExists(
-                f"Configuration set <{configuration_set_name}> already exists"
-            )
         self.config_set[configuration_set_name] = 1
-        return {}
-
-    def describe_configuration_set(self, configuration_set_name):
-        if configuration_set_name not in self.config_set:
-            raise ConfigurationSetDoesNotExist(
-                f"Configuration set <{configuration_set_name}> does not exist"
-            )
         return {}
 
     def create_configuration_set_event_destination(

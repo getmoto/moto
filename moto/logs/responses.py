@@ -33,12 +33,9 @@ def validate_param(
 
 
 class LogsResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="logs")
-
     @property
     def logs_backend(self):
-        return logs_backends[self.current_account][self.region]
+        return logs_backends[self.region]
 
     @property
     def request_params(self):

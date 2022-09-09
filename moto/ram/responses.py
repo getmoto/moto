@@ -4,12 +4,11 @@ import json
 
 
 class ResourceAccessManagerResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="ram")
+    SERVICE_NAME = "ram"
 
     @property
     def ram_backend(self):
-        return ram_backends[self.current_account][self.region]
+        return ram_backends[self.region]
 
     @property
     def request_params(self):

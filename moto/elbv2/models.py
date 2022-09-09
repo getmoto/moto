@@ -4,7 +4,7 @@ from jinja2 import Template
 from botocore.exceptions import ParamValidationError
 from collections import OrderedDict
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     get_random_hex,
@@ -172,11 +172,11 @@ class FakeTargetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
-        elbv2_backend = elbv2_backends[account_id][region_name]
+        elbv2_backend = elbv2_backends[region_name]
 
         vpc_id = properties.get("VpcId")
         protocol = properties.get("Protocol")
@@ -268,11 +268,11 @@ class FakeListener(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
-        elbv2_backend = elbv2_backends[account_id][region_name]
+        elbv2_backend = elbv2_backends[region_name]
         load_balancer_arn = properties.get("LoadBalancerArn")
         protocol = properties.get("Protocol")
         port = properties.get("Port")
@@ -288,16 +288,11 @@ class FakeListener(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
 
-        elbv2_backend = elbv2_backends[account_id][region_name]
+        elbv2_backend = elbv2_backends[region_name]
         protocol = properties.get("Protocol")
         port = properties.get("Port")
         ssl_policy = properties.get("SslPolicy")
@@ -335,10 +330,10 @@ class FakeListenerRule(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
-        elbv2_backend = elbv2_backends[account_id][region_name]
+        elbv2_backend = elbv2_backends[region_name]
         listener_arn = properties.get("ListenerArn")
         priority = properties.get("Priority")
         conditions = properties.get("Conditions")
@@ -351,17 +346,12 @@ class FakeListenerRule(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
 
         properties = cloudformation_json["Properties"]
 
-        elbv2_backend = elbv2_backends[account_id][region_name]
+        elbv2_backend = elbv2_backends[region_name]
         conditions = properties.get("Conditions")
 
         actions = elbv2_backend.convert_and_validate_action_properties(properties)
@@ -573,9 +563,9 @@ class FakeLoadBalancer(CloudFormationModel):
         if self.state == "provisioning":
             self.state = "active"
 
-    def delete(self, account_id, region):
+    def delete(self, region):
         """Not exposed as part of the ELB API - used for CloudFormation."""
-        elbv2_backends[account_id][region].delete_load_balancer(self.arn)
+        elbv2_backends[region].delete_load_balancer(self.arn)
 
     @staticmethod
     def cloudformation_name_type():
@@ -588,11 +578,11 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
-        elbv2_backend = elbv2_backends[account_id][region_name]
+        elbv2_backend = elbv2_backends[region_name]
 
         security_groups = properties.get("SecurityGroups")
         subnet_ids = properties.get("Subnets")
@@ -667,7 +657,7 @@ class ELBv2Backend(BaseBackend):
         :return: EC2 Backend
         :rtype: moto.ec2.models.EC2Backend
         """
-        return ec2_backends[self.account_id][self.region_name]
+        return ec2_backends[self.region_name]
 
     def create_load_balancer(
         self,
@@ -699,7 +689,7 @@ class ELBv2Backend(BaseBackend):
 
         vpc_id = subnets[0].vpc_id
         arn = make_arn_for_load_balancer(
-            account_id=self.account_id, name=name, region_name=self.region_name
+            account_id=get_account_id(), name=name, region_name=self.region_name
         )
         dns_name = "%s-1.%s.elb.amazonaws.com" % (name, self.region_name)
 
@@ -1027,7 +1017,7 @@ Member must satisfy regular expression pattern: {}".format(
             )
 
         arn = make_arn_for_target_group(
-            account_id=self.account_id, name=name, region_name=self.region_name
+            account_id=get_account_id(), name=name, region_name=self.region_name
         )
         tags = kwargs.pop("tags", None)
         target_group = FakeTargetGroup(name, arn, **kwargs)
@@ -1551,7 +1541,7 @@ Member must satisfy regular expression pattern: {}".format(
         from moto.acm.models import AWSResourceNotFoundException
 
         try:
-            acm_backend = acm_backends[self.account_id][self.region_name]
+            acm_backend = acm_backends[self.region_name]
             acm_backend.get_certificate(certificate_arn)
             return True
         except AWSResourceNotFoundException:
@@ -1559,9 +1549,7 @@ Member must satisfy regular expression pattern: {}".format(
 
         from moto.iam import iam_backends
 
-        cert = iam_backends[self.account_id]["global"].get_certificate_by_arn(
-            certificate_arn
-        )
+        cert = iam_backends["global"].get_certificate_by_arn(certificate_arn)
         if cert is not None:
             return True
 

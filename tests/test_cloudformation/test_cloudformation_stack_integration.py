@@ -23,7 +23,7 @@ from moto import (
     mock_sqs,
     mock_elbv2,
 )
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.test_cloudformation.fixtures import fn_join, single_instance_with_ebs_volume
@@ -1433,18 +1433,6 @@ def test_autoscaling_propagate_tags():
                     "LaunchConfigurationName": "test-launch-config",
                     "ImageId": EXAMPLE_AMI_ID,
                     "InstanceType": "t2.medium",
-                },
-            },
-            "ScheduledAction": {
-                "Type": "AWS::AutoScaling::ScheduledAction",
-                "Properties": {
-                    "AutoScalingGroupName": "test-scaling-group",
-                    "DesiredCapacity": 10,
-                    "EndTime": "2022-08-01T00:00:00Z",
-                    "MaxSize": 15,
-                    "MinSize": 5,
-                    "Recurrence": "* * * * *",
-                    "StartTime": "2022-07-01T00:00:00Z",
                 },
             },
         },

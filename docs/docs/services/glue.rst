@@ -55,11 +55,7 @@ glue
 - [ ] create_partition
 - [ ] create_partition_index
 - [X] create_registry
-- [X] create_schema
-  
-        The following parameters/features are not yet implemented: Glue Schema Registry: compatibility checks NONE | BACKWARD | BACKWARD_ALL | FORWARD | FORWARD_ALL | FULL | FULL_ALL and  Data format parsing and syntax validation.
-        
-
+- [ ] create_schema
 - [ ] create_script
 - [ ] create_security_configuration
 - [ ] create_session
@@ -82,7 +78,7 @@ glue
 - [ ] delete_partition_index
 - [ ] delete_registry
 - [ ] delete_resource_policy
-- [X] delete_schema
+- [ ] delete_schema
 - [ ] delete_schema_versions
 - [ ] delete_security_configuration
 - [ ] delete_session
@@ -123,27 +119,14 @@ glue
 - [ ] get_ml_transforms
 - [ ] get_partition
 - [ ] get_partition_indexes
-- [X] get_partitions
-  
-        See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
-        for supported expressions.
-
-        Expression caveats:
-
-        - Column names must consist of UPPERCASE, lowercase, dots and underscores only.
-        - Nanosecond expressions on timestamp columns are rounded to microseconds.
-        - Literal dates and timestamps must be valid, i.e. no support for February 31st.
-        - LIKE expressions are converted to Python regexes, escaping special characters.
-          Only % and _ wildcards are supported, and SQL escaping using [] does not work.
-        
-
+- [ ] get_partitions
 - [ ] get_plan
 - [ ] get_registry
 - [ ] get_resource_policies
 - [ ] get_resource_policy
 - [ ] get_schema
-- [X] get_schema_by_definition
-- [X] get_schema_version
+- [ ] get_schema_by_definition
+- [ ] get_schema_version
 - [ ] get_schema_versions_diff
 - [ ] get_security_configuration
 - [ ] get_security_configurations
@@ -182,10 +165,10 @@ glue
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
 - [ ] put_resource_policy
-- [X] put_schema_version_metadata
+- [ ] put_schema_version_metadata
 - [ ] put_workflow_run_properties
 - [ ] query_schema_version_metadata
-- [X] register_schema_version
+- [ ] register_schema_version
 - [ ] remove_schema_version_metadata
 - [ ] reset_job_bookmark
 - [ ] resume_workflow_run
@@ -215,7 +198,7 @@ glue
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule
-- [X] update_database
+- [ ] update_database
 - [ ] update_dev_endpoint
 - [ ] update_job
 - [ ] update_ml_transform

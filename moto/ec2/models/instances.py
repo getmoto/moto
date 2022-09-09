@@ -4,9 +4,9 @@ from collections import OrderedDict
 from datetime import datetime
 from moto import settings
 
+from moto.core import get_account_id
 from moto.core import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.models.fleets import Fleet
 from moto.ec2.models.instance_types import (
     INSTANCE_TYPE_OFFERINGS,
     InstanceTypeOfferingBackend,
@@ -69,7 +69,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         super().__init__()
         self.ec2_backend = ec2_backend
         self.id = random_instance_id()
-        self.owner_id = ec2_backend.account_id
+        self.owner_id = get_account_id()
         self.lifecycle = kwargs.get("lifecycle")
 
         nics = kwargs.get("nics", {})
@@ -112,10 +112,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.instance_initiated_shutdown_behavior = (
             kwargs.get("instance_initiated_shutdown_behavior") or "stop"
         )
-        self.hibernation_options = kwargs.get("hibernation_options")
         self.sriov_net_support = "simple"
         self._spot_fleet_id = kwargs.get("spot_fleet_id", None)
-        self._fleet_id = kwargs.get("fleet_id", None)
         self.associate_public_ip = kwargs.get("associate_public_ip", False)
         if in_ec2_classic:
             # If we are in EC2-Classic, autoassign a public IP
@@ -265,13 +263,13 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
 
-        ec2_backend = ec2_backends[account_id][region_name]
+        ec2_backend = ec2_backends[region_name]
         security_group_ids = properties.get("SecurityGroups", [])
         group_names = [
             ec2_backend.get_security_group_from_id(group_id).name
@@ -307,11 +305,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
         from ..models import ec2_backends
 
-        ec2_backend = ec2_backends[account_id][region_name]
+        ec2_backend = ec2_backends[region_name]
         all_instances = ec2_backend.all_instances()
 
         # the resource_name for instances is the stack name, logical id, and random suffix separated
@@ -326,7 +324,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     tag["key"] == "aws:cloudformation:logical-id"
                     and tag["value"] == logical_id
                 ):
-                    instance.delete(account_id, region_name)
+                    instance.delete(region_name)
 
     @property
     def physical_resource_id(self):
@@ -360,7 +358,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def is_running(self):
         return self._state.name == "running"
 
-    def delete(self, account_id, region):  # pylint: disable=unused-argument
+    def delete(self, region):  # pylint: disable=unused-argument
         self.terminate()
 
     def terminate(self):
@@ -369,28 +367,18 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         self.teardown_defaults()
 
-        if self._spot_fleet_id or self._fleet_id:
-            fleet = self.ec2_backend.get_spot_fleet_request(self._spot_fleet_id)
-            if not fleet:
-                fleet = self.ec2_backend.get_fleet(
-                    self._spot_fleet_id
-                ) or self.ec2_backend.get_fleet(self._fleet_id)
-            for spec in fleet.launch_specs:
+        if self._spot_fleet_id:
+            spot_fleet = self.ec2_backend.get_spot_fleet_request(self._spot_fleet_id)
+            for spec in spot_fleet.launch_specs:
                 if (
                     spec.instance_type == self.instance_type
                     and spec.subnet_id == self.subnet_id
                 ):
                     break
-            fleet.fulfilled_capacity -= spec.weighted_capacity
-            fleet.spot_requests = [
-                req for req in fleet.spot_requests if req.instance != self
+            spot_fleet.fulfilled_capacity -= spec.weighted_capacity
+            spot_fleet.spot_requests = [
+                req for req in spot_fleet.spot_requests if req.instance != self
             ]
-            if isinstance(fleet, Fleet):
-                fleet.on_demand_instances = [
-                    inst
-                    for inst in fleet.on_demand_instances
-                    if inst["instance"] != self
-                ]
 
         self._state.name = "terminated"
         self._state.code = 48

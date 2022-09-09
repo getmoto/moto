@@ -49,7 +49,6 @@ ec2
 - [X] associate_route_table
 - [X] associate_subnet_cidr_block
 - [ ] associate_transit_gateway_multicast_domain
-- [ ] associate_transit_gateway_policy_table
 - [X] associate_transit_gateway_route_table
 - [ ] associate_trunk_interface
 - [X] associate_vpc_cidr_block
@@ -85,7 +84,7 @@ ec2
 - [X] create_default_vpc
 - [X] create_dhcp_options
 - [X] create_egress_only_internet_gateway
-- [X] create_fleet
+- [ ] create_fleet
 - [X] create_flow_logs
 - [ ] create_fpga_image
 - [X] create_image
@@ -136,11 +135,9 @@ ec2
 - [ ] create_transit_gateway_connect_peer
 - [ ] create_transit_gateway_multicast_domain
 - [X] create_transit_gateway_peering_attachment
-- [ ] create_transit_gateway_policy_table
 - [ ] create_transit_gateway_prefix_list_reference
 - [X] create_transit_gateway_route
 - [X] create_transit_gateway_route_table
-- [ ] create_transit_gateway_route_table_announcement
 - [X] create_transit_gateway_vpc_attachment
 - [X] create_volume
 - [X] create_vpc
@@ -157,7 +154,7 @@ ec2
 - [X] delete_customer_gateway
 - [ ] delete_dhcp_options
 - [X] delete_egress_only_internet_gateway
-- [X] delete_fleets
+- [ ] delete_fleets
 - [X] delete_flow_logs
 - [ ] delete_fpga_image
 - [ ] delete_instance_event_window
@@ -200,11 +197,9 @@ ec2
 - [ ] delete_transit_gateway_connect_peer
 - [ ] delete_transit_gateway_multicast_domain
 - [X] delete_transit_gateway_peering_attachment
-- [ ] delete_transit_gateway_policy_table
 - [ ] delete_transit_gateway_prefix_list_reference
 - [X] delete_transit_gateway_route
 - [X] delete_transit_gateway_route_table
-- [ ] delete_transit_gateway_route_table_announcement
 - [X] delete_transit_gateway_vpc_attachment
 - [X] delete_volume
 - [X] delete_vpc
@@ -253,8 +248,8 @@ ec2
 - [ ] describe_fast_launch_images
 - [ ] describe_fast_snapshot_restores
 - [ ] describe_fleet_history
-- [X] describe_fleet_instances
-- [X] describe_fleets
+- [ ] describe_fleet_instances
+- [ ] describe_fleets
 - [X] describe_flow_logs
 - [ ] describe_fpga_image_attribute
 - [ ] describe_fpga_images
@@ -338,8 +333,6 @@ ec2
 - [ ] describe_transit_gateway_connects
 - [ ] describe_transit_gateway_multicast_domains
 - [X] describe_transit_gateway_peering_attachments
-- [ ] describe_transit_gateway_policy_tables
-- [ ] describe_transit_gateway_route_table_announcements
 - [ ] describe_transit_gateway_route_tables
 - [X] describe_transit_gateway_vpc_attachments
 - [X] describe_transit_gateways
@@ -347,7 +340,7 @@ ec2
 - [ ] describe_volume_attribute
 - [ ] describe_volume_status
 - [X] describe_volumes
-- [X] describe_volumes_modifications
+- [ ] describe_volumes_modifications
 - [X] describe_vpc_attribute
 - [ ] describe_vpc_classic_link
 - [ ] describe_vpc_classic_link_dns_support
@@ -403,7 +396,6 @@ ec2
 - [X] disassociate_route_table
 - [X] disassociate_subnet_cidr_block
 - [ ] disassociate_transit_gateway_multicast_domain
-- [ ] disassociate_transit_gateway_policy_table
 - [X] disassociate_transit_gateway_route_table
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
@@ -452,8 +444,6 @@ ec2
 - [ ] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
 - [ ] get_transit_gateway_multicast_domain_associations
-- [ ] get_transit_gateway_policy_table_associations
-- [ ] get_transit_gateway_policy_table_entries
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations
@@ -508,7 +498,7 @@ ec2
 - [X] modify_transit_gateway
 - [ ] modify_transit_gateway_prefix_list_reference
 - [X] modify_transit_gateway_vpc_attachment
-- [X] modify_volume
+- [ ] modify_volume
 - [ ] modify_volume_attribute
 - [X] modify_vpc_attribute
 - [ ] modify_vpc_endpoint

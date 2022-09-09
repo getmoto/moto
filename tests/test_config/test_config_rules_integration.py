@@ -1,7 +1,7 @@
 from .test_config_rules import managed_config_rule, TEST_REGION
 from botocore.exceptions import ClientError
 from moto import mock_config, mock_iam, mock_lambda
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from io import BytesIO
 from uuid import uuid4
 from zipfile import ZipFile, ZIP_DEFLATED

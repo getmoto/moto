@@ -4,7 +4,7 @@ import json
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ses, mock_sns, mock_sqs
 from moto.ses.models import SESFeedback
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_ses
@@ -88,7 +88,7 @@ def __test_sns_feedback__(addr, expected_msg, raw_email=False):
     if expected_msg is not None:
         msg = messages[0].body
         msg = json.loads(msg)
-        assert msg["Message"] == SESFeedback.generate_message(ACCOUNT_ID, expected_msg)
+        assert msg["Message"] == SESFeedback.generate_message(expected_msg)
     else:
         assert len(messages) == 0
 

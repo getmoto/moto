@@ -7,12 +7,9 @@ from .models import swf_backends
 
 
 class SWFResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="swf")
-
     @property
     def swf_backend(self):
-        return swf_backends[self.current_account][self.region]
+        return swf_backends[self.region]
 
     # SWF parameters are passed through a JSON body, so let's ease retrieval
     @property

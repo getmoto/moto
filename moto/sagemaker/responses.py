@@ -12,12 +12,9 @@ def format_enum_error(value, attribute, allowed):
 
 
 class SageMakerResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="sagemaker")
-
     @property
     def sagemaker_backend(self):
-        return sagemaker_backends[self.current_account][self.region]
+        return sagemaker_backends[self.region]
 
     @property
     def request_params(self):

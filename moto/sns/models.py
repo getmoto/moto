@@ -30,6 +30,7 @@ from .exceptions import (
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription, is_e164
 
+from moto.core import get_account_id
 
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
@@ -40,7 +41,7 @@ class Topic(CloudFormationModel):
     def __init__(self, name, sns_backend):
         self.name = name
         self.sns_backend = sns_backend
-        self.account_id = sns_backend.account_id
+        self.account_id = get_account_id()
         self.display_name = ""
         self.delivery_policy = ""
         self.kms_master_key_id = ""
@@ -109,9 +110,9 @@ class Topic(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
-        sns_backend = sns_backends[account_id][region_name]
+        sns_backend = sns_backends[region_name]
         properties = cloudformation_json["Properties"]
 
         topic = sns_backend.create_topic(resource_name)
@@ -123,29 +124,26 @@ class Topic(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         cls.delete_from_cloudformation_json(
-            original_resource.name, cloudformation_json, account_id, region_name
+            original_resource.name, cloudformation_json, region_name
         )
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, account_id, region_name
+            new_resource_name, cloudformation_json, region_name
         )
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
-        sns_backend = sns_backends[account_id][region_name]
+        sns_backend = sns_backends[region_name]
         properties = cloudformation_json["Properties"]
 
         topic_name = properties.get(cls.cloudformation_name_type()) or resource_name
-        topic_arn = make_arn_for_topic(account_id, topic_name, sns_backend.region_name)
+        topic_arn = make_arn_for_topic(
+            get_account_id(), topic_name, sns_backend.region_name
+        )
         subscriptions, _ = sns_backend.list_subscriptions(topic_arn)
         for subscription in subscriptions:
             sns_backend.unsubscribe(subscription.arn)
@@ -179,8 +177,7 @@ class Topic(CloudFormationModel):
 
 
 class Subscription(BaseModel):
-    def __init__(self, account_id, topic, endpoint, protocol):
-        self.account_id = account_id
+    def __init__(self, topic, endpoint, protocol):
         self.topic = topic
         self.endpoint = endpoint
         self.protocol = protocol
@@ -199,7 +196,7 @@ class Subscription(BaseModel):
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
             if self.attributes.get("RawMessageDelivery") != "true":
-                sqs_backends[self.account_id][region].send_message(
+                sqs_backends[region].send_message(
                     queue_name,
                     json.dumps(
                         self.get_post_data(
@@ -229,7 +226,7 @@ class Subscription(BaseModel):
                         attr_type: type_value,
                     }
 
-                sqs_backends[self.account_id][region].send_message(
+                sqs_backends[region].send_message(
                     queue_name,
                     message,
                     message_attributes=raw_message_attributes,
@@ -260,11 +257,13 @@ class Subscription(BaseModel):
 
             from moto.awslambda import lambda_backends
 
-            lambda_backends[self.account_id][region].send_sns_message(
+            lambda_backends[region].send_sns_message(
                 function_name, message, subject=subject, qualifier=qualifier
             )
 
     def _matches_filter_policy(self, message_attributes):
+        # TODO: support Anything-but matching, prefix matching and
+        #       numeric value matching.
         if not self._filter_policy:
             return True
 
@@ -309,75 +308,12 @@ class Subscription(BaseModel):
                             return True
                 if isinstance(rule, dict):
                     keyword = list(rule.keys())[0]
-                    value = list(rule.values())[0]
+                    attributes = list(rule.values())[0]
                     if keyword == "exists":
-                        if value and field in message_attributes:
+                        if attributes and field in message_attributes:
                             return True
-                        elif not value and field not in message_attributes:
+                        elif not attributes and field not in message_attributes:
                             return True
-                    elif keyword == "prefix" and isinstance(value, str):
-                        if field in message_attributes:
-                            attr = message_attributes[field]
-                            if attr["Type"] == "String" and attr["Value"].startswith(
-                                value
-                            ):
-                                return True
-                    elif keyword == "anything-but":
-                        if field not in message_attributes:
-                            continue
-                        attr = message_attributes[field]
-                        if isinstance(value, dict):
-                            # We can combine anything-but with the prefix-filter
-                            anything_but_key = list(value.keys())[0]
-                            anything_but_val = list(value.values())[0]
-                            if anything_but_key != "prefix":
-                                return False
-                            if attr["Type"] == "String":
-                                actual_values = [attr["Value"]]
-                            else:
-                                actual_values = [v for v in attr["Value"]]
-                            if all(
-                                [
-                                    not v.startswith(anything_but_val)
-                                    for v in actual_values
-                                ]
-                            ):
-                                return True
-                        else:
-                            undesired_values = (
-                                [value] if isinstance(value, str) else value
-                            )
-                            if attr["Type"] == "Number":
-                                actual_values = [str(attr["Value"])]
-                            elif attr["Type"] == "String":
-                                actual_values = [attr["Value"]]
-                            else:
-                                actual_values = [v for v in attr["Value"]]
-                            if all([v not in undesired_values for v in actual_values]):
-                                return True
-                    elif keyword == "numeric" and isinstance(value, list):
-                        # [(< x), (=, y), (>=, z)]
-                        numeric_ranges = zip(value[0::2], value[1::2])
-                        if (
-                            message_attributes.get(field, {}).get("Type", "")
-                            == "Number"
-                        ):
-                            msg_value = message_attributes[field]["Value"]
-                            matches = []
-                            for operator, test_value in numeric_ranges:
-                                test_value = int(test_value)
-                                if operator == ">":
-                                    matches.append((msg_value > test_value))
-                                if operator == ">=":
-                                    matches.append((msg_value >= test_value))
-                                if operator == "=":
-                                    matches.append((msg_value == test_value))
-                                if operator == "<":
-                                    matches.append((msg_value < test_value))
-                                if operator == "<=":
-                                    matches.append((msg_value <= test_value))
-                            return all(matches)
-                        attr = message_attributes[field]
             return False
 
         return all(
@@ -397,7 +333,9 @@ class Subscription(BaseModel):
             "SignatureVersion": "1",
             "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",
             "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",
-            "UnsubscribeURL": f"https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:{self.account_id}:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55",
+            "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:{}:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55".format(
+                get_account_id()
+            ),
         }
         if subject:
             post_data["Subject"] = subject
@@ -407,25 +345,30 @@ class Subscription(BaseModel):
 
 
 class PlatformApplication(BaseModel):
-    def __init__(self, account_id, region, name, platform, attributes):
+    def __init__(self, region, name, platform, attributes):
         self.region = region
         self.name = name
         self.platform = platform
         self.attributes = attributes
-        self.arn = f"arn:aws:sns:{region}:{account_id}:app/{platform}/{name}"
+
+    @property
+    def arn(self):
+        return "arn:aws:sns:{region}:{AccountId}:app/{platform}/{name}".format(
+            region=self.region,
+            platform=self.platform,
+            name=self.name,
+            AccountId=get_account_id(),
+        )
 
 
 class PlatformEndpoint(BaseModel):
-    def __init__(
-        self, account_id, region, application, custom_user_data, token, attributes
-    ):
+    def __init__(self, region, application, custom_user_data, token, attributes):
         self.region = region
         self.application = application
         self.custom_user_data = custom_user_data
         self.token = token
         self.attributes = attributes
         self.id = uuid.uuid4()
-        self.arn = f"arn:aws:sns:{region}:{account_id}:endpoint/{self.application.platform}/{self.application.name}/{self.id}"
         self.messages = OrderedDict()
         self.__fixup_attributes()
 
@@ -443,6 +386,18 @@ class PlatformEndpoint(BaseModel):
     @property
     def enabled(self):
         return json.loads(self.attributes.get("Enabled", "true").lower())
+
+    @property
+    def arn(self):
+        return (
+            "arn:aws:sns:{region}:{AccountId}:endpoint/{platform}/{name}/{id}".format(
+                region=self.region,
+                AccountId=get_account_id(),
+                platform=self.application.platform,
+                name=self.application.name,
+                id=self.id,
+            )
+        )
 
     def publish(self, message):
         if not self.enabled:
@@ -462,9 +417,8 @@ class SNSBackend(BaseBackend):
 
     .. sourcecode:: python
 
-        from moto.core import DEFAULT_ACCOUNT_ID
         from moto.sns import sns_backends
-        sns_backend = sns_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]  # Use the appropriate account/region
+        sns_backend = sns_backends["us-east-1"]  # Use the appropriate region
         all_send_notifications = sns_backend.topics[topic_arn].sent_notifications
 
     Note that, as this is an internal API, the exact format may differ per versions.
@@ -591,7 +545,7 @@ class SNSBackend(BaseBackend):
         if old_subscription:
             return old_subscription
         topic = self.get_topic(topic_arn)
-        subscription = Subscription(self.account_id, topic, endpoint, protocol)
+        subscription = Subscription(topic, endpoint, protocol)
         attributes = {
             "PendingConfirmation": "false",
             "ConfirmationWasAuthenticated": "true",
@@ -599,7 +553,7 @@ class SNSBackend(BaseBackend):
             "TopicArn": topic_arn,
             "Protocol": protocol,
             "SubscriptionArn": subscription.arn,
-            "Owner": self.account_id,
+            "Owner": get_account_id(),
             "RawMessageDelivery": "false",
         }
 
@@ -687,10 +641,8 @@ class SNSBackend(BaseBackend):
             message_id = endpoint.publish(message)
         return message_id
 
-    def create_platform_application(self, name, platform, attributes):
-        application = PlatformApplication(
-            self.account_id, self.region_name, name, platform, attributes
-        )
+    def create_platform_application(self, region, name, platform, attributes):
+        application = PlatformApplication(region, name, platform, attributes)
         self.applications[application.arn] = application
         return application
 
@@ -715,7 +667,7 @@ class SNSBackend(BaseBackend):
             self.platform_endpoints.pop(endpoint.arn)
 
     def create_platform_endpoint(
-        self, application, custom_user_data, token, attributes
+        self, region, application, custom_user_data, token, attributes
     ):
         for endpoint in self.platform_endpoints.values():
             if token == endpoint.token:
@@ -728,12 +680,7 @@ class SNSBackend(BaseBackend):
                     "Duplicate endpoint token with different attributes: %s" % token
                 )
         platform_endpoint = PlatformEndpoint(
-            self.account_id,
-            self.region_name,
-            application,
-            custom_user_data,
-            token,
-            attributes,
+            region, application, custom_user_data, token, attributes
         )
         self.platform_endpoints[platform_endpoint.arn] = platform_endpoint
         return platform_endpoint
@@ -780,7 +727,6 @@ class SNSBackend(BaseBackend):
             "DeliveryPolicy",
             "FilterPolicy",
             "RedrivePolicy",
-            "SubscriptionRoleArn",
         ]:
             raise SNSInvalidParameter("AttributeName")
 

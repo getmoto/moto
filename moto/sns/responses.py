@@ -15,12 +15,9 @@ class SNSResponse(BaseResponse):
     )
     OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r"^\+?\d+$")
 
-    def __init__(self):
-        super().__init__(service_name="sns")
-
     @property
     def backend(self):
-        return sns_backends[self.current_account][self.region]
+        return sns_backends[self.region]
 
     def _error(self, code, message, sender="Sender"):
         template = self.response_template(ERROR_RESPONSE)
@@ -413,7 +410,7 @@ class SNSResponse(BaseResponse):
         platform = self._get_param("Platform")
         attributes = self._get_attributes()
         platform_application = self.backend.create_platform_application(
-            name, platform, attributes
+            self.region, name, platform, attributes
         )
 
         if self.request_json:
@@ -528,7 +525,7 @@ class SNSResponse(BaseResponse):
         attributes = self._get_attributes()
 
         platform_endpoint = self.backend.create_platform_endpoint(
-            application, custom_user_data, token, attributes
+            self.region, application, custom_user_data, token, attributes
         )
 
         if self.request_json:

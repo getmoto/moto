@@ -32,10 +32,10 @@ install_requires = [
     "cryptography>=3.3.1",
     "requests>=2.5",
     "xmltodict",
-    "werkzeug>=0.5,<2.2.0",
+    "werkzeug>=0.5",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
-    "responses>=0.13.0",
+    "responses>=0.9.0",
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
     "Jinja2>=2.10.1",
     "importlib_metadata ; python_version < '3.8'",
@@ -73,7 +73,7 @@ all_extra_deps = [
     _dep_openapi,
     _setuptools,
 ]
-all_server_deps = all_extra_deps + ["flask<2.2.0", "flask-cors"]
+all_server_deps = all_extra_deps + ["flask", "flask-cors"]
 
 extras_per_service = {}
 for service_name in [

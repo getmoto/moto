@@ -1,7 +1,7 @@
 import random
 import string
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
 from moto.utilities.tagging_service import TaggingService
 
@@ -22,7 +22,6 @@ def random_id(size):
 class Namespace(BaseModel):
     def __init__(
         self,
-        account_id,
         region,
         name,
         ns_type,
@@ -34,7 +33,9 @@ class Namespace(BaseModel):
     ):
         super().__init__()
         self.id = f"ns-{random_id(20)}"
-        self.arn = f"arn:aws:servicediscovery:{region}:{account_id}:namespace/{self.id}"
+        self.arn = (
+            f"arn:aws:servicediscovery:{region}:{get_account_id()}:namespace/{self.id}"
+        )
         self.name = name
         self.type = ns_type
         self.creator_request_id = creator_request_id
@@ -65,7 +66,6 @@ class Namespace(BaseModel):
 class Service(BaseModel):
     def __init__(
         self,
-        account_id,
         region,
         name,
         namespace_id,
@@ -78,7 +78,9 @@ class Service(BaseModel):
     ):
         super().__init__()
         self.id = f"srv-{random_id(8)}"
-        self.arn = f"arn:aws:servicediscovery:{region}:{account_id}:service/{self.id}"
+        self.arn = (
+            f"arn:aws:servicediscovery:{region}:{get_account_id()}:service/{self.id}"
+        )
         self.name = name
         self.namespace_id = namespace_id
         self.description = description
@@ -162,7 +164,6 @@ class ServiceDiscoveryBackend(BaseBackend):
 
     def create_http_namespace(self, name, creator_request_id, description, tags):
         namespace = Namespace(
-            account_id=self.account_id,
             region=self.region_name,
             name=name,
             ns_type="HTTP",
@@ -234,7 +235,6 @@ class ServiceDiscoveryBackend(BaseBackend):
         dns_properties = (properties or {}).get("DnsProperties", {})
         dns_properties["HostedZoneId"] = "hzi"
         namespace = Namespace(
-            account_id=self.account_id,
             region=self.region_name,
             name=name,
             ns_type="DNS_PRIVATE",
@@ -258,7 +258,6 @@ class ServiceDiscoveryBackend(BaseBackend):
         dns_properties = (properties or {}).get("DnsProperties", {})
         dns_properties["HostedZoneId"] = "hzi"
         namespace = Namespace(
-            account_id=self.account_id,
             region=self.region_name,
             name=name,
             ns_type="DNS_PUBLIC",
@@ -288,7 +287,6 @@ class ServiceDiscoveryBackend(BaseBackend):
         service_type,
     ):
         service = Service(
-            account_id=self.account_id,
             region=self.region_name,
             name=name,
             namespace_id=namespace_id,

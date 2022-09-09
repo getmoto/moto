@@ -33,7 +33,7 @@ class CustomModel(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         logical_id = kwargs["LogicalId"]
         stack_id = kwargs["StackId"]
@@ -41,7 +41,7 @@ class CustomModel(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         service_token = properties["ServiceToken"]
 
-        backend = lambda_backends[account_id][region_name]
+        backend = lambda_backends[region_name]
         fn = backend.get_function(service_token)
 
         request_id = str(uuid4())
@@ -52,7 +52,7 @@ class CustomModel(CloudFormationModel):
 
         from moto.cloudformation import cloudformation_backends
 
-        stack = cloudformation_backends[account_id][region_name].get_stack(stack_id)
+        stack = cloudformation_backends[region_name].get_stack(stack_id)
         stack.add_custom_resource(custom_resource)
 
         # A request will be send to this URL to indicate success/failure

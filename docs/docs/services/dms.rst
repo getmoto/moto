@@ -103,5 +103,4 @@ dms
 - [ ] start_replication_task_assessment_run
 - [X] stop_replication_task
 - [ ] test_connection
-- [ ] update_subscriptions_to_event_bridge
 

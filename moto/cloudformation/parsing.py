@@ -46,7 +46,7 @@ from moto.ssm import models  # noqa  # pylint: disable=all
 
 # End ugly list of imports
 
-from moto.core import CloudFormationModel
+from moto.core import get_account_id, CloudFormationModel
 from moto.s3.models import s3_backends
 from moto.s3.utils import bucket_and_name_from_url
 from moto.ssm import ssm_backends
@@ -317,9 +317,7 @@ def parse_resource_and_generate_name(logical_id, resource_json, resources_map):
     return resource_class, resource_json, resource_name
 
 
-def parse_and_create_resource(
-    logical_id, resource_json, resources_map, account_id, region_name
-):
+def parse_and_create_resource(logical_id, resource_json, resources_map, region_name):
     condition = resource_json.get("Condition")
     if condition and not resources_map.lazy_condition_map[condition]:
         # If this has a False condition, don't create the resource
@@ -338,16 +336,14 @@ def parse_and_create_resource(
         "ResourceType": resource_type,
     }
     resource = resource_class.create_from_cloudformation_json(
-        resource_physical_name, resource_json, account_id, region_name, **kwargs
+        resource_physical_name, resource_json, region_name, **kwargs
     )
     resource.type = resource_type
     resource.logical_resource_id = logical_id
     return resource
 
 
-def parse_and_update_resource(
-    logical_id, resource_json, resources_map, account_id, region_name
-):
+def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
     resource_tuple = parse_resource_and_generate_name(
         logical_id, resource_json, resources_map
     )
@@ -362,7 +358,6 @@ def parse_and_update_resource(
             original_resource=original_resource,
             new_resource_name=new_resource_name,
             cloudformation_json=resource_json,
-            account_id=account_id,
             region_name=region_name,
         )
         new_resource.type = resource_json["Type"]
@@ -372,14 +367,14 @@ def parse_and_update_resource(
         return None
 
 
-def parse_and_delete_resource(resource_name, resource_json, account_id, region_name):
+def parse_and_delete_resource(resource_name, resource_json, region_name):
     resource_type = resource_json["Type"]
     resource_class = resource_class_from_type(resource_type)
     if not hasattr(
         resource_class.delete_from_cloudformation_json, "__isabstractmethod__"
     ):
         resource_class.delete_from_cloudformation_json(
-            resource_name, resource_json, account_id, region_name
+            resource_name, resource_json, region_name
         )
 
 
@@ -444,13 +439,11 @@ class ResourceMap(collections_abc.Mapping):
         parameters,
         tags,
         region_name,
-        account_id,
         template,
         cross_stack_resources,
     ):
         self._template = template
         self._resource_json_map = template["Resources"] if template != {} else {}
-        self._account_id = account_id
         self._region_name = region_name
         self.input_parameters = parameters
         self.tags = copy.deepcopy(tags)
@@ -460,7 +453,7 @@ class ResourceMap(collections_abc.Mapping):
 
         # Create the default resources
         self._parsed_resources = {
-            "AWS::AccountId": account_id,
+            "AWS::AccountId": get_account_id(),
             "AWS::Region": self._region_name,
             "AWS::StackId": stack_id,
             "AWS::StackName": stack_name,
@@ -480,11 +473,7 @@ class ResourceMap(collections_abc.Mapping):
             if not resource_json:
                 raise KeyError(resource_logical_id)
             new_resource = parse_and_create_resource(
-                resource_logical_id,
-                resource_json,
-                self,
-                account_id=self._account_id,
-                region_name=self._region_name,
+                resource_logical_id, resource_json, self, self._region_name
             )
             if new_resource is not None:
                 self._parsed_resources[resource_logical_id] = new_resource
@@ -539,18 +528,14 @@ class ResourceMap(collections_abc.Mapping):
                 if name == "AWS::Include":
                     location = params["Location"]
                     bucket_name, name = bucket_and_name_from_url(location)
-                    key = s3_backends[self._account_id]["global"].get_object(
-                        bucket_name, name
-                    )
+                    key = s3_backends["global"].get_object(bucket_name, name)
                     self._parsed_resources.update(json.loads(key.value))
 
     def parse_ssm_parameter(self, value, value_type):
         # The Value in SSM parameters is the SSM parameter path
         # we need to use ssm_backend to retrieve the
         # actual value from parameter store
-        parameter = ssm_backends[self._account_id][self._region_name].get_parameter(
-            value
-        )
+        parameter = ssm_backends[self._region_name].get_parameter(value)
         actual_value = parameter.value
         if value_type.find("List") > 0:
             return actual_value.split(",")
@@ -661,9 +646,9 @@ class ResourceMap(collections_abc.Mapping):
             instance = self[resource]
             if isinstance(instance, TaggedEC2Resource):
                 self.tags["aws:cloudformation:logical-id"] = resource
-                ec2_models.ec2_backends[self._account_id][
-                    self._region_name
-                ].create_tags([instance.physical_resource_id], self.tags)
+                ec2_models.ec2_backends[self._region_name].create_tags(
+                    [instance.physical_resource_id], self.tags
+                )
             if instance and not instance.is_created():
                 all_resources_ready = False
         return all_resources_ready
@@ -731,9 +716,7 @@ class ResourceMap(collections_abc.Mapping):
                 ].physical_resource_id
             else:
                 resource_name = None
-            parse_and_delete_resource(
-                resource_name, resource_json, self._account_id, self._region_name
-            )
+            parse_and_delete_resource(resource_name, resource_json, self._region_name)
             self._parsed_resources.pop(logical_name)
 
         self._template = template
@@ -757,11 +740,7 @@ class ResourceMap(collections_abc.Mapping):
                 resource_json = self._resource_json_map[logical_name]
                 try:
                     changed_resource = parse_and_update_resource(
-                        logical_name,
-                        resource_json,
-                        self,
-                        account_id=self._account_id,
-                        region_name=self._region_name,
+                        logical_name, resource_json, self, self._region_name
                     )
                 except Exception as e:
                     # skip over dependency violations, and try again in a
@@ -786,7 +765,7 @@ class ResourceMap(collections_abc.Mapping):
                         and parsed_resource is not None
                     ):
                         if parsed_resource and hasattr(parsed_resource, "delete"):
-                            parsed_resource.delete(self._account_id, self._region_name)
+                            parsed_resource.delete(self._region_name)
                         else:
                             if hasattr(parsed_resource, "physical_resource_id"):
                                 resource_name = parsed_resource.physical_resource_id
@@ -798,10 +777,7 @@ class ResourceMap(collections_abc.Mapping):
                             ]
 
                             parse_and_delete_resource(
-                                resource_name,
-                                resource_json,
-                                self._account_id,
-                                self._region_name,
+                                resource_name, resource_json, self._region_name
                             )
 
                         self._parsed_resources.pop(parsed_resource.logical_resource_id)

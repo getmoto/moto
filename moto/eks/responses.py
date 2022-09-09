@@ -9,12 +9,11 @@ DEFAULT_NEXT_TOKEN = ""
 
 
 class EKSResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="eks")
+    SERVICE_NAME = "eks"
 
     @property
     def eks_backend(self):
-        return eks_backends[self.current_account][self.region]
+        return eks_backends[self.region]
 
     def create_cluster(self):
         name = self._get_param("name")

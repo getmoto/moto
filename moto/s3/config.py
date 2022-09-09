@@ -8,7 +8,6 @@ from moto.s3 import s3_backends
 class S3ConfigQuery(ConfigQueryModel):
     def list_config_service_resources(
         self,
-        account_id,
         resource_ids,
         resource_name,
         limit,
@@ -29,14 +28,14 @@ class S3ConfigQuery(ConfigQueryModel):
 
         # If no filter was passed in for resource names/ids then return them all:
         if not resource_ids and not resource_name:
-            bucket_list = list(self.backends[account_id]["global"].buckets.keys())
+            bucket_list = list(self.backends["global"].buckets.keys())
 
         else:
             # Match the resource name / ID:
             bucket_list = []
             filter_buckets = [resource_name] if resource_name else resource_ids
 
-            for bucket in self.backends[account_id]["global"].buckets.keys():
+            for bucket in self.backends["global"].buckets.keys():
                 if bucket in filter_buckets:
                     bucket_list.append(bucket)
 
@@ -46,10 +45,7 @@ class S3ConfigQuery(ConfigQueryModel):
             region_buckets = []
 
             for bucket in bucket_list:
-                if (
-                    self.backends[account_id]["global"].buckets[bucket].region_name
-                    == region_filter
-                ):
+                if self.backends["global"].buckets[bucket].region_name == region_filter:
                     region_buckets.append(bucket)
 
             bucket_list = region_buckets
@@ -84,9 +80,7 @@ class S3ConfigQuery(ConfigQueryModel):
                     "type": "AWS::S3::Bucket",
                     "id": bucket,
                     "name": bucket,
-                    "region": self.backends[account_id]["global"]
-                    .buckets[bucket]
-                    .region_name,
+                    "region": self.backends["global"].buckets[bucket].region_name,
                 }
                 for bucket in bucket_list
             ],
@@ -94,15 +88,10 @@ class S3ConfigQuery(ConfigQueryModel):
         )
 
     def get_config_resource(
-        self,
-        account_id,
-        resource_id,
-        resource_name=None,
-        backend_region=None,
-        resource_region=None,
+        self, resource_id, resource_name=None, backend_region=None, resource_region=None
     ):
         # Get the bucket:
-        bucket = self.backends[account_id]["global"].buckets.get(resource_id, {})
+        bucket = self.backends["global"].buckets.get(resource_id, {})
 
         if not bucket:
             return

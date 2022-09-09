@@ -1,21 +1,19 @@
 """CostExplorerBackend class with methods for supported APIs."""
 
 from .exceptions import CostCategoryNotFound
-from moto.core import BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from uuid import uuid4
 
 
 class CostCategoryDefinition(BaseModel):
-    def __init__(
-        self, account_id, name, rule_version, rules, default_value, split_charge_rules
-    ):
+    def __init__(self, name, rule_version, rules, default_value, split_charge_rules):
         self.name = name
         self.rule_version = rule_version
         self.rules = rules
         self.default_value = default_value
         self.split_charge_rules = split_charge_rules
-        self.arn = f"arn:aws:ce::{account_id}:costcategory/{str(uuid4())}"
+        self.arn = f"arn:aws:ce::{ACCOUNT_ID}:costcategory/{str(uuid4())}"
 
     def update(self, rule_version, rules, default_value, split_charge_rules):
         self.rule_version = rule_version
@@ -53,12 +51,7 @@ class CostExplorerBackend(BaseBackend):
         The EffectiveOn and ResourceTags-parameters are not yet implemented
         """
         ccd = CostCategoryDefinition(
-            self.account_id,
-            name,
-            rule_version,
-            rules,
-            default_value,
-            split_charge_rules,
+            name, rule_version, rules, default_value, split_charge_rules
         )
         self.cost_categories[ccd.arn] = ccd
         return ccd.arn, ""

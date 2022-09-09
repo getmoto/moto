@@ -3,7 +3,7 @@ import sure  # noqa # pylint: disable=unused-import
 from moto import mock_medialive
 from uuid import uuid4
 
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 region = "eu-west-1"
 

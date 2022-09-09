@@ -138,11 +138,11 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
-        elb_backend = elb_backends[account_id][region_name]
+        elb_backend = elb_backends[region_name]
         new_elb = elb_backend.create_load_balancer(
             name=properties.get("LoadBalancerName", resource_name),
             zones=properties.get("AvailabilityZones", []),
@@ -186,25 +186,20 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         cls.delete_from_cloudformation_json(
-            original_resource.name, cloudformation_json, account_id, region_name
+            original_resource.name, cloudformation_json, region_name
         )
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, account_id, region_name
+            new_resource_name, cloudformation_json, region_name
         )
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
-        elb_backend = elb_backends[account_id][region_name]
+        elb_backend = elb_backends[region_name]
         try:
             elb_backend.delete_load_balancer(resource_name)
         except KeyError:
@@ -269,9 +264,9 @@ class FakeLoadBalancer(CloudFormationModel):
         if key in self.tags:
             del self.tags[key]
 
-    def delete(self, account_id, region):
+    def delete(self, region):
         """Not exposed as part of the ELB API - used for CloudFormation."""
-        elb_backends[account_id][region].delete_load_balancer(self.name)
+        elb_backends[region].delete_load_balancer(self.name)
 
 
 class ELBBackend(BaseBackend):
@@ -289,7 +284,7 @@ class ELBBackend(BaseBackend):
         security_groups=None,
     ):
         vpc_id = None
-        ec2_backend = ec2_backends[self.account_id][self.region_name]
+        ec2_backend = ec2_backends[self.region_name]
         if subnets:
             subnet = ec2_backend.get_subnet(subnets[0])
             vpc_id = subnet.vpc_id
@@ -384,7 +379,7 @@ class ELBBackend(BaseBackend):
     def describe_instance_health(self, lb_name, instances):
         provided_ids = [i["InstanceId"] for i in instances]
         registered_ids = self.get_load_balancer(lb_name).instance_ids
-        ec2_backend = ec2_backends[self.account_id][self.region_name]
+        ec2_backend = ec2_backends[self.region_name]
         if len(provided_ids) == 0:
             provided_ids = registered_ids
         instances = []
@@ -428,7 +423,7 @@ class ELBBackend(BaseBackend):
         self, load_balancer_name, security_group_ids
     ):
         load_balancer = self.load_balancers.get(load_balancer_name)
-        ec2_backend = ec2_backends[self.account_id][self.region_name]
+        ec2_backend = ec2_backends[self.region_name]
         for security_group_id in security_group_ids:
             if ec2_backend.get_security_group_from_id(security_group_id) is None:
                 raise InvalidSecurityGroupError()
@@ -577,7 +572,7 @@ class ELBBackend(BaseBackend):
     def _register_certificate(self, ssl_certificate_id, dns_name):
         from moto.acm.models import acm_backends, AWSResourceNotFoundException
 
-        acm_backend = acm_backends[self.account_id][self.region_name]
+        acm_backend = acm_backends[self.region_name]
         try:
             acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
         except AWSResourceNotFoundException:

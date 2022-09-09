@@ -2,7 +2,7 @@ import boto3
 from moto import mock_cloudformation, mock_ecs, mock_autoscaling, mock_s3
 import json
 
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
 depends_on_template_list = {

@@ -4,7 +4,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_elbv2, mock_ec2
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 from .test_elbv2 import create_load_balancer
 

@@ -7,13 +7,12 @@ from .models import databrew_backends
 
 
 class DataBrewResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="databrew")
+    SERVICE_NAME = "databrew"
 
     @property
     def databrew_backend(self):
         """Return backend instance specific for this region."""
-        return databrew_backends[self.current_account][self.region]
+        return databrew_backends[self.region]
 
     # region Recipes
     @property

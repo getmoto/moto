@@ -9,6 +9,14 @@ SESSION_TOKEN_PREFIX = "FQoGZXIvYXdzEBYaD"
 DEFAULT_STS_SESSION_DURATION = 3600
 
 
+def random_access_key_id():
+    return ACCOUNT_SPECIFIC_ACCESS_KEY_PREFIX + _random_uppercase_or_digit_sequence(8)
+
+
+def random_secret_access_key():
+    return base64.b64encode(os.urandom(30)).decode()
+
+
 def random_session_token():
     return (
         SESSION_TOKEN_PREFIX

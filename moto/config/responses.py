@@ -4,12 +4,9 @@ from .models import config_backends
 
 
 class ConfigResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="config")
-
     @property
     def config_backend(self):
-        return config_backends[self.current_account][self.region]
+        return config_backends[self.region]
 
     def put_configuration_recorder(self):
         self.config_backend.put_configuration_recorder(

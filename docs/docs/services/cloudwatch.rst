@@ -46,7 +46,6 @@ cloudwatch
 - [ ] get_metric_stream
 - [ ] get_metric_widget_image
 - [X] list_dashboards
-- [ ] list_managed_insight_rules
 - [ ] list_metric_streams
 - [X] list_metrics
 - [X] list_tags_for_resource
@@ -54,7 +53,6 @@ cloudwatch
 - [ ] put_composite_alarm
 - [X] put_dashboard
 - [ ] put_insight_rule
-- [ ] put_managed_insight_rules
 - [X] put_metric_alarm
 - [X] put_metric_data
 - [ ] put_metric_stream

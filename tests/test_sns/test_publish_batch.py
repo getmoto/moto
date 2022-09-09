@@ -5,7 +5,7 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 from moto import mock_sns, mock_sqs
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_sns

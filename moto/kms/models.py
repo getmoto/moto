@@ -1,14 +1,13 @@
 import json
 import os
 from collections import defaultdict
-from copy import copy
 from datetime import datetime, timedelta
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import get_random_hex, unix_time, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
@@ -56,26 +55,16 @@ class Grant(BaseModel):
 
 
 class Key(CloudFormationModel):
-    def __init__(
-        self,
-        policy,
-        key_usage,
-        key_spec,
-        description,
-        account_id,
-        region,
-        multi_region=False,
-    ):
-        self.id = generate_key_id(multi_region)
+    def __init__(self, policy, key_usage, key_spec, description, region):
+        self.id = generate_key_id()
         self.creation_date = unix_time()
-        self.account_id = account_id
         self.policy = policy or self.generate_default_policy()
         self.key_usage = key_usage
         self.key_state = "Enabled"
         self.description = description or ""
         self.enabled = True
         self.region = region
-        self.multi_region = multi_region
+        self.account_id = get_account_id()
         self.key_rotation_status = False
         self.deletion_date = None
         self.key_material = generate_master_key()
@@ -83,7 +72,6 @@ class Key(CloudFormationModel):
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
-        self.arn = f"arn:aws:kms:{region}:{account_id}:key/{self.id}"
 
         self.grants = dict()
 
@@ -113,8 +101,7 @@ class Key(CloudFormationModel):
         ]
 
     def revoke_grant(self, grant_id) -> None:
-        if not self.grants.pop(grant_id, None):
-            raise JsonRESTError("NotFoundException", f"Grant ID {grant_id} not found")
+        self.grants.pop(grant_id, None)
 
     def retire_grant(self, grant_id) -> None:
         self.grants.pop(grant_id, None)
@@ -135,7 +122,7 @@ class Key(CloudFormationModel):
                     {
                         "Sid": "Enable IAM User Permissions",
                         "Effect": "Allow",
-                        "Principal": {"AWS": f"arn:aws:iam::{self.account_id}:root"},
+                        "Principal": {"AWS": f"arn:aws:iam::{get_account_id()}:root"},
                         "Action": "kms:*",
                         "Resource": "*",
                     }
@@ -146,6 +133,12 @@ class Key(CloudFormationModel):
     @property
     def physical_resource_id(self):
         return self.id
+
+    @property
+    def arn(self):
+        return "arn:aws:kms:{0}:{1}:key/{2}".format(
+            self.region, self.account_id, self.id
+        )
 
     @property
     def encryption_algorithms(self):
@@ -191,7 +184,6 @@ class Key(CloudFormationModel):
                 "KeyManager": self.key_manager,
                 "KeyUsage": self.key_usage,
                 "KeyState": self.key_state,
-                "MultiRegion": self.multi_region,
                 "Origin": self.origin,
                 "SigningAlgorithms": self.signing_algorithms,
             }
@@ -200,8 +192,8 @@ class Key(CloudFormationModel):
             key_dict["KeyMetadata"]["DeletionDate"] = unix_time(self.deletion_date)
         return key_dict
 
-    def delete(self, account_id, region_name):
-        kms_backends[account_id][region_name].delete_key(self.id)
+    def delete(self, region_name):
+        kms_backends[region_name].delete_key(self.id)
 
     @staticmethod
     def cloudformation_name_type():
@@ -214,9 +206,9 @@ class Key(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
-        kms_backend = kms_backends[account_id][region_name]
+        kms_backend = kms_backends[region_name]
         properties = cloudformation_json["Properties"]
 
         key = kms_backend.create_key(
@@ -225,6 +217,7 @@ class Key(CloudFormationModel):
             key_spec="SYMMETRIC_DEFAULT",
             description=properties["Description"],
             tags=properties.get("Tags", []),
+            region=region_name,
         )
         key.key_rotation_status = properties["EnableKeyRotation"]
         key.enabled = properties["Enabled"]
@@ -266,42 +259,17 @@ class KmsBackend(BaseBackend):
                 "SYMMETRIC_DEFAULT",
                 "Default key",
                 None,
+                self.region_name,
             )
             self.add_alias(key.id, alias_name)
             return key.id
 
-    def create_key(
-        self, policy, key_usage, key_spec, description, tags, multi_region=False
-    ):
-        key = Key(
-            policy,
-            key_usage,
-            key_spec,
-            description,
-            self.account_id,
-            self.region_name,
-            multi_region,
-        )
+    def create_key(self, policy, key_usage, key_spec, description, tags, region):
+        key = Key(policy, key_usage, key_spec, description, region)
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
             self.tag_resource(key.id, tags)
         return key
-
-    # https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html#mrk-sync-properties
-    # In AWS replicas of a key only share some properties with the original key. Some of those properties get updated
-    # in all replicas automatically if those properties change in the original key. Also, such properties can not be
-    # changed for replicas directly.
-    #
-    # In our implementation with just create a copy of all the properties once without any protection from change,
-    # as the exact implementation is currently infeasible.
-    def replicate_key(self, key_id, replica_region):
-        # Using copy() instead of deepcopy(), as the latter results in exception:
-        #    TypeError: cannot pickle '_cffi_backend.FFI' object
-        # Since we only update top level properties, copy() should suffice.
-        replica_key = copy(self.keys[key_id])
-        replica_key.region = replica_region
-        to_region_backend = kms_backends[self.account_id][replica_region]
-        to_region_backend.keys[replica_key.id] = replica_key
 
     def update_key_description(self, key_id, description):
         key = self.keys[self.get_key_id(key_id)]

@@ -50,6 +50,7 @@ from moto.config.exceptions import (
 )
 
 from moto.core import BaseBackend, BaseModel
+from moto.core import get_account_id
 from moto.core.responses import AWSServiceSpec
 from moto.core.utils import BackendDict
 from moto.iam.config import role_config_query, policy_config_query
@@ -353,13 +354,13 @@ class OrganizationAggregationSource(ConfigEmptyDictable):
 
 
 class ConfigAggregator(ConfigEmptyDictable):
-    def __init__(
-        self, name, account_id, region, account_sources=None, org_source=None, tags=None
-    ):
+    def __init__(self, name, region, account_sources=None, org_source=None, tags=None):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
         self.configuration_aggregator_name = name
-        self.configuration_aggregator_arn = f"arn:aws:config:{region}:{account_id}:config-aggregator/config-aggregator-{random_string()}"
+        self.configuration_aggregator_arn = "arn:aws:config:{region}:{id}:config-aggregator/config-aggregator-{random}".format(
+            region=region, id=get_account_id(), random=random_string()
+        )
         self.account_aggregation_sources = account_sources
         self.organization_aggregation_source = org_source
         self.creation_time = datetime2int(datetime.utcnow())
@@ -388,12 +389,7 @@ class ConfigAggregator(ConfigEmptyDictable):
 
 class ConfigAggregationAuthorization(ConfigEmptyDictable):
     def __init__(
-        self,
-        account_id,
-        current_region,
-        authorized_account_id,
-        authorized_aws_region,
-        tags=None,
+        self, current_region, authorized_account_id, authorized_aws_region, tags=None
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
@@ -401,7 +397,7 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
             "arn:aws:config:{region}:{id}:aggregation-authorization/"
             "{auth_account}/{auth_region}".format(
                 region=current_region,
-                id=account_id,
+                id=get_account_id(),
                 auth_account=authorized_account_id,
                 auth_region=authorized_aws_region,
             )
@@ -417,7 +413,6 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
 class OrganizationConformancePack(ConfigEmptyDictable):
     def __init__(
         self,
-        account_id,
         region,
         name,
         delivery_s3_bucket,
@@ -435,7 +430,11 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         self.delivery_s3_key_prefix = delivery_s3_key_prefix
         self.excluded_accounts = excluded_accounts or []
         self.last_update_time = datetime2int(datetime.utcnow())
-        self.organization_conformance_pack_arn = f"arn:aws:config:{region}:{account_id}:organization-conformance-pack/{self._unique_pack_name}"
+        self.organization_conformance_pack_arn = (
+            "arn:aws:config:{0}:{1}:organization-conformance-pack/{2}".format(
+                region, get_account_id(), self._unique_pack_name
+            )
+        )
         self.organization_conformance_pack_name = name
 
     def update(
@@ -603,9 +602,7 @@ class Source(ConfigEmptyDictable):
 
     OWNERS = {"AWS", "CUSTOM_LAMBDA"}
 
-    def __init__(
-        self, account_id, region, owner, source_identifier, source_details=None
-    ):
+    def __init__(self, region, owner, source_identifier, source_details=None):
         super().__init__(capitalize_start=True, capitalize_arn=False)
         if owner not in Source.OWNERS:
             raise ValidationException(
@@ -647,7 +644,7 @@ class Source(ConfigEmptyDictable):
         from moto.awslambda import lambda_backends
 
         try:
-            lambda_backends[account_id][region].get_function(source_identifier)
+            lambda_backends[region].get_function(source_identifier)
         except Exception:
             raise InsufficientPermissionsException(
                 f"The AWS Lambda function {source_identifier} cannot be "
@@ -683,9 +680,8 @@ class ConfigRule(ConfigEmptyDictable):
     MAX_RULES = 150
     RULE_STATES = {"ACTIVE", "DELETING", "DELETING_RESULTS", "EVALUATING"}
 
-    def __init__(self, account_id, region, config_rule, tags):
+    def __init__(self, region, config_rule, tags):
         super().__init__(capitalize_start=True, capitalize_arn=False)
-        self.account_id = account_id
         self.config_rule_name = config_rule.get("ConfigRuleName")
         if config_rule.get("ConfigRuleArn") or config_rule.get("ConfigRuleId"):
             raise InvalidParameterValueException(
@@ -698,9 +694,7 @@ class ConfigRule(ConfigEmptyDictable):
         self.maximum_execution_frequency = None  # keeps pylint happy
         self.modify_fields(region, config_rule, tags)
         self.config_rule_id = f"config-rule-{random_string():.6}"
-        self.config_rule_arn = (
-            f"arn:aws:config:{region}:{account_id}:config-rule/{self.config_rule_id}"
-        )
+        self.config_rule_arn = f"arn:aws:config:{region}:{get_account_id()}:config-rule/{self.config_rule_id}"
 
     def modify_fields(self, region, config_rule, tags):
         """Initialize or update ConfigRule fields."""
@@ -727,7 +721,7 @@ class ConfigRule(ConfigEmptyDictable):
             self.scope = Scope(**scope_dict)
 
         source_dict = convert_to_class_args(config_rule["Source"])
-        self.source = Source(self.account_id, region, **source_dict)
+        self.source = Source(region, **source_dict)
 
         self.input_parameters = config_rule.get("InputParameters")
         self.input_parameters_dict = {}
@@ -975,8 +969,7 @@ class ConfigBackend(BaseBackend):
         ):
             aggregator = ConfigAggregator(
                 config_aggregator["ConfigurationAggregatorName"],
-                account_id=self.account_id,
-                region=self.region_name,
+                self.region_name,
                 account_sources=account_sources,
                 org_source=org_source,
                 tags=tags,
@@ -1056,11 +1049,7 @@ class ConfigBackend(BaseBackend):
         agg_auth = self.aggregation_authorizations.get(key)
         if not agg_auth:
             agg_auth = ConfigAggregationAuthorization(
-                self.account_id,
-                self.region_name,
-                authorized_account,
-                authorized_region,
-                tags=tags,
+                self.region_name, authorized_account, authorized_region, tags=tags
             )
             self.aggregation_authorizations[
                 "{}/{}".format(authorized_account, authorized_region)
@@ -1356,22 +1345,17 @@ class ConfigBackend(BaseBackend):
             backend_query_region = (
                 backend_region  # Always provide the backend this request arrived from.
             )
-            if RESOURCE_MAP[resource_type].backends[self.account_id].get("global"):
+            if RESOURCE_MAP[resource_type].backends.get("global"):
                 backend_region = "global"
 
             # For non-aggregated queries, the we only care about the
             # backend_region. Need to verify that moto has implemented
             # the region for the given backend:
-            if (
-                RESOURCE_MAP[resource_type]
-                .backends[self.account_id]
-                .get(backend_region)
-            ):
+            if RESOURCE_MAP[resource_type].backends.get(backend_region):
                 # Fetch the resources for the backend's region:
                 identifiers, new_token = RESOURCE_MAP[
                     resource_type
                 ].list_config_service_resources(
-                    self.account_id,
                     resource_ids,
                     resource_name,
                     limit,
@@ -1436,7 +1420,6 @@ class ConfigBackend(BaseBackend):
             identifiers, new_token = RESOURCE_MAP[
                 resource_type
             ].list_config_service_resources(
-                self.account_id,
                 resource_id,
                 resource_name,
                 limit,
@@ -1448,7 +1431,7 @@ class ConfigBackend(BaseBackend):
         resource_identifiers = []
         for identifier in identifiers:
             item = {
-                "SourceAccountId": self.account_id,
+                "SourceAccountId": get_account_id(),
                 "SourceRegion": identifier["region"],
                 "ResourceType": identifier["type"],
                 "ResourceId": identifier["id"],
@@ -1485,25 +1468,21 @@ class ConfigBackend(BaseBackend):
         backend_query_region = (
             backend_region  # Always provide the backend this request arrived from.
         )
-        if RESOURCE_MAP[resource_type].backends[self.account_id].get("global"):
+        if RESOURCE_MAP[resource_type].backends.get("global"):
             backend_region = "global"
 
         # If the backend region isn't implemented then we won't find the item:
-        if (
-            not RESOURCE_MAP[resource_type]
-            .backends[self.account_id]
-            .get(backend_region)
-        ):
+        if not RESOURCE_MAP[resource_type].backends.get(backend_region):
             raise ResourceNotDiscoveredException(resource_type, resource_id)
 
         # Get the item:
         item = RESOURCE_MAP[resource_type].get_config_resource(
-            self.account_id, resource_id, backend_region=backend_query_region
+            resource_id, backend_region=backend_query_region
         )
         if not item:
             raise ResourceNotDiscoveredException(resource_type, resource_id)
 
-        item["accountId"] = self.account_id
+        item["accountId"] = get_account_id()
 
         return {"configurationItems": [item]}
 
@@ -1533,31 +1512,23 @@ class ConfigBackend(BaseBackend):
             backend_query_region = (
                 backend_region  # Always provide the backend this request arrived from.
             )
-            if (
-                RESOURCE_MAP[resource["resourceType"]]
-                .backends[self.account_id]
-                .get("global")
-            ):
+            if RESOURCE_MAP[resource["resourceType"]].backends.get("global"):
                 config_backend_region = "global"
 
             # If the backend region isn't implemented then we won't find the item:
-            if (
-                not RESOURCE_MAP[resource["resourceType"]]
-                .backends[self.account_id]
-                .get(config_backend_region)
+            if not RESOURCE_MAP[resource["resourceType"]].backends.get(
+                config_backend_region
             ):
                 continue
 
             # Get the item:
             item = RESOURCE_MAP[resource["resourceType"]].get_config_resource(
-                self.account_id,
-                resource["resourceId"],
-                backend_region=backend_query_region,
+                resource["resourceId"], backend_region=backend_query_region
             )
             if not item:
                 continue
 
-            item["accountId"] = self.account_id
+            item["accountId"] = get_account_id()
 
             results.append(item)
 
@@ -1605,7 +1576,6 @@ class ConfigBackend(BaseBackend):
 
             # Get the item:
             item = RESOURCE_MAP[resource_type].get_config_resource(
-                self.account_id,
                 resource_id,
                 resource_name=resource_name,
                 resource_region=resource_region,
@@ -1614,7 +1584,7 @@ class ConfigBackend(BaseBackend):
                 not_found.append(identifier)
                 continue
 
-            item["accountId"] = self.account_id
+            item["accountId"] = get_account_id()
 
             # The 'tags' field is not included in aggregate results for some reason...
             item.pop("tags", None)
@@ -1680,7 +1650,6 @@ class ConfigBackend(BaseBackend):
             )
         else:
             pack = OrganizationConformancePack(
-                account_id=self.account_id,
                 region=self.region_name,
                 name=name,
                 delivery_s3_bucket=delivery_s3_bucket,
@@ -1754,7 +1723,7 @@ class ConfigBackend(BaseBackend):
         # actually here would be a list of all accounts in the organization
         statuses = [
             {
-                "AccountId": self.account_id,
+                "AccountId": get_account_id(),
                 "ConformancePackName": "OrgConformsPack-{0}".format(
                     pack._unique_pack_name
                 ),
@@ -1908,7 +1877,7 @@ class ConfigBackend(BaseBackend):
                 raise MaxNumberOfConfigRulesExceededException(
                     rule_name, ConfigRule.MAX_RULES
                 )
-            rule = ConfigRule(self.account_id, self.region_name, config_rule, tags)
+            rule = ConfigRule(self.region_name, config_rule, tags)
             self.config_rules[rule_name] = rule
         return ""
 

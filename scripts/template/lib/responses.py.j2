@@ -8,13 +8,10 @@ from .models import {{ escaped_service }}_backends
 class {{ service_class }}Response(BaseResponse):
     """Handler for {{ service_class }} requests and responses."""
 
-    def __init__(self):
-        super().__init__(service_name="{{ escaped_service }}")
-
     @property
     def {{ escaped_service }}_backend(self):
         """Return backend instance specific for this region."""
-        return {{ escaped_service }}_backends[self.current_account][self.region]
+        return {{ escaped_service }}_backends[self.region]
 
     # add methods from here
 

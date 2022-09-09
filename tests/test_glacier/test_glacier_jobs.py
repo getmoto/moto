@@ -3,7 +3,7 @@ import sure  # noqa # pylint: disable=unused-import
 import time
 
 from moto import mock_glacier
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_glacier

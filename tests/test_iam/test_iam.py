@@ -1,5 +1,4 @@
 import json
-import sys
 
 import boto3
 import csv
@@ -7,18 +6,14 @@ import sure  # noqa  # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_config, mock_iam, settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.iam import iam_backends
+from moto.core import ACCOUNT_ID
+from moto.iam.models import aws_managed_policies
 from moto.backends import get_backend
-from tests import DEFAULT_ACCOUNT_ID
 import pytest
 
 from datetime import datetime
 from uuid import uuid4
 from urllib import parse
-from unittest import SkipTest
-
-from moto.s3.responses import DEFAULT_REGION_NAME
 
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
@@ -80,28 +75,6 @@ def test_get_role__should_throw__when_role_does_not_exist():
     err = ex.value.response["Error"]
     err["Code"].should.equal("NoSuchEntity")
     err["Message"].should.contain("not found")
-
-
-@mock_iam
-def test_get_role__should_contain_last_used():
-    conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/"
-    )
-    role = conn.get_role(RoleName="my-role")["Role"]
-    role["RoleLastUsed"].should.equal({})
-
-    if not settings.TEST_SERVER_MODE:
-        iam_backend = get_backend("iam")[ACCOUNT_ID]["global"]
-        last_used = datetime.strptime(
-            "2022-07-18T10:30:00+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
-        )
-        region = "us-west-1"
-        iam_backend.roles[role["RoleId"]].last_used = last_used
-        iam_backend.roles[role["RoleId"]].last_used_region = region
-        roleLastUsed = conn.get_role(RoleName="my-role")["Role"]["RoleLastUsed"]
-        roleLastUsed["LastUsedDate"].replace(tzinfo=None).should.equal(last_used)
-        roleLastUsed["Region"].should.equal(region)
 
 
 @mock_iam
@@ -404,107 +377,14 @@ def test_get_role_policy():
 
 
 @mock_iam
-def test_update_assume_role_invalid_policy():
+def test_update_assume_role_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
         RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
     )
-    with pytest.raises(ClientError) as ex:
-        conn.update_assume_role_policy(RoleName="my-role", PolicyDocument="new policy")
-    err = ex.value.response["Error"]
-    err["Code"].should.equal("MalformedPolicyDocument")
-    err["Message"].should.contain("Syntax errors in policy.")
-
-
-@mock_iam
-def test_update_assume_role_valid_policy():
-    conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
-    )
-    policy_document = """
-    {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Principal": {
-                    "Service": ["ec2.amazonaws.com"]
-                },
-                "Action": ["sts:AssumeRole"]
-            }
-        ]
-    }
-"""
-    conn.update_assume_role_policy(RoleName="my-role", PolicyDocument=policy_document)
+    conn.update_assume_role_policy(RoleName="my-role", PolicyDocument="new policy")
     role = conn.get_role(RoleName="my-role")["Role"]
-    role["AssumeRolePolicyDocument"]["Statement"][0]["Action"][0].should.equal(
-        "sts:AssumeRole"
-    )
-
-
-@mock_iam
-def test_update_assume_role_invalid_policy_bad_action():
-    conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
-    )
-    policy_document = """
-    {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Principal": {
-                    "Service": ["ec2.amazonaws.com"]
-                },
-                "Action": ["sts:BadAssumeRole"]
-            }
-        ]
-    }
-"""
-
-    with pytest.raises(ClientError) as ex:
-        conn.update_assume_role_policy(
-            RoleName="my-role", PolicyDocument=policy_document
-        )
-    err = ex.value.response["Error"]
-    err["Code"].should.equal("MalformedPolicyDocument")
-    err["Message"].should.contain(
-        "Trust Policy statement actions can only be sts:AssumeRole, "
-        "sts:AssumeRoleWithSAML,  and sts:AssumeRoleWithWebIdentity"
-    )
-
-
-@mock_iam
-def test_update_assume_role_invalid_policy_with_resource():
-    conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
-    )
-    policy_document = """
-    {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Principal": {
-                    "Service": ["ec2.amazonaws.com"]
-                },
-                "Action": ["sts:AssumeRole"],
-                "Resource" : "arn:aws:s3:::example_bucket"
-            }
-        ]
-    }
-    """
-
-    with pytest.raises(ClientError) as ex:
-        conn.update_assume_role_policy(
-            RoleName="my-role", PolicyDocument=policy_document
-        )
-    err = ex.value.response["Error"]
-    err["Code"].should.equal("MalformedPolicyDocument")
-    err["Message"].should.contain("Has prohibited field Resource.")
+    role["AssumeRolePolicyDocument"].should.equal("new policy")
 
 
 @mock_iam
@@ -1543,22 +1423,6 @@ def test_create_access_key():
 
 
 @mock_iam
-def test_limit_access_key_per_user():
-    conn = boto3.client("iam", region_name=DEFAULT_REGION_NAME)
-    user_name = "test-user"
-    conn.create_user(UserName=user_name)
-
-    conn.create_access_key(UserName=user_name)
-    conn.create_access_key(UserName=user_name)
-    with pytest.raises(ClientError) as ex:
-        conn.create_access_key(UserName=user_name)
-
-    err = ex.value.response["Error"]
-    err["Code"].should.equal("LimitExceeded")
-    err["Message"].should.equal("Cannot exceed quota for AccessKeysPerUser: 2")
-
-
-@mock_iam
 def test_list_access_keys():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
@@ -1892,7 +1756,7 @@ def test_get_credential_report_content():
     key1 = conn.create_access_key(UserName=username)["AccessKey"]
     timestamp = datetime.utcnow()
     if not settings.TEST_SERVER_MODE:
-        iam_backend = get_backend("iam")[ACCOUNT_ID]["global"]
+        iam_backend = get_backend("iam")["global"]
         iam_backend.users[username].access_keys[1].last_used = timestamp
         iam_backend.users[username].password_last_used = timestamp
     with pytest.raises(ClientError):
@@ -1930,21 +1794,20 @@ def test_get_access_key_last_used_when_used():
     with pytest.raises(ClientError):
         client.get_access_key_last_used(AccessKeyId="non-existent-key-id")
     create_key_response = client.create_access_key(UserName=username)["AccessKey"]
-
-    access_key_client = boto3.client(
-        "iam",
-        region_name="us-east-1",
-        aws_access_key_id=create_key_response["AccessKeyId"],
-        aws_secret_access_key=create_key_response["SecretAccessKey"],
-    )
-    access_key_client.list_users()
-
+    # Set last used date using the IAM backend. Moto currently does not have a mechanism for tracking usage of access keys
+    if not settings.TEST_SERVER_MODE:
+        timestamp = datetime.utcnow()
+        iam_backend = get_backend("iam")["global"]
+        iam_backend.users[username].access_keys[0].last_used = timestamp
     resp = client.get_access_key_last_used(
         AccessKeyId=create_key_response["AccessKeyId"]
     )
-    resp["AccessKeyLastUsed"].should.have.key("LastUsedDate")
-    resp["AccessKeyLastUsed"].should.have.key("ServiceName").equals("iam")
-    resp["AccessKeyLastUsed"].should.have.key("Region").equals("us-east-1")
+    if not settings.TEST_SERVER_MODE:
+        datetime.strftime(
+            resp["AccessKeyLastUsed"]["LastUsedDate"], "%Y-%m-%d"
+        ).should.equal(timestamp.strftime("%Y-%m-%d"))
+    else:
+        resp["AccessKeyLastUsed"].should_not.contain("LastUsedDate")
 
 
 @mock_iam
@@ -1965,7 +1828,6 @@ def test_managed_policy():
         for policy in response["Policies"]:
             aws_policies.append(policy)
         marker = response.get("Marker")
-    aws_managed_policies = iam_backends[ACCOUNT_ID]["global"].aws_managed_policies
     set(p.name for p in aws_managed_policies).should.equal(
         set(p["PolicyName"] for p in aws_policies)
     )
@@ -3378,9 +3240,7 @@ def test_role_list_config_discovered_resources():
     from moto.iam.config import role_config_query
 
     # Without any roles
-    assert role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
-    ) == (
+    assert role_config_query.list_config_service_resources(None, None, 100, None) == (
         [],
         None,
     )
@@ -3389,9 +3249,7 @@ def test_role_list_config_discovered_resources():
     roles = []
     num_roles = 3
     for ix in range(1, num_roles + 1):
-        this_role = role_config_query.backends[DEFAULT_ACCOUNT_ID][
-            "global"
-        ].create_role(
+        this_role = role_config_query.backends["global"].create_role(
             role_name="role{}".format(ix),
             assume_role_policy_document=None,
             path="/",
@@ -3404,9 +3262,7 @@ def test_role_list_config_discovered_resources():
 
     assert len(roles) == num_roles
 
-    result = role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
-    )[0]
+    result = role_config_query.list_config_service_resources(None, None, 100, None)[0]
     assert len(result) == num_roles
 
     # The roles gets a random ID, so we can't directly test it
@@ -3418,13 +3274,13 @@ def test_role_list_config_discovered_resources():
 
     # test passing list of resource ids
     resource_ids = role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, [roles[0]["id"], roles[1]["id"]], None, 100, None
+        [roles[0]["id"], roles[1]["id"]], None, 100, None
     )[0]
     assert len(resource_ids) == 2
 
     # test passing a single resource name
     resource_name = role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, roles[0]["name"], 100, None
+        None, roles[0]["name"], 100, None
     )[0]
     assert len(resource_name) == 1
     assert resource_name[0]["id"] == roles[0]["id"]
@@ -3432,22 +3288,14 @@ def test_role_list_config_discovered_resources():
 
     # test passing a single resource name AND some resource id's
     both_filter_good = role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID,
-        [roles[0]["id"], roles[1]["id"]],
-        roles[0]["name"],
-        100,
-        None,
+        [roles[0]["id"], roles[1]["id"]], roles[0]["name"], 100, None
     )[0]
     assert len(both_filter_good) == 1
     assert both_filter_good[0]["id"] == roles[0]["id"]
     assert both_filter_good[0]["name"] == roles[0]["name"]
 
     both_filter_bad = role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID,
-        [roles[0]["id"], roles[1]["id"]],
-        roles[2]["name"],
-        100,
-        None,
+        [roles[0]["id"], roles[1]["id"]], roles[2]["name"], 100, None
     )[0]
     assert len(both_filter_bad) == 0
 
@@ -3458,10 +3306,8 @@ def test_role_config_dict():
     from moto.iam.utils import random_resource_id, random_policy_id
 
     # Without any roles
-    assert not role_config_query.get_config_resource(DEFAULT_ACCOUNT_ID, "something")
-    assert role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
-    ) == (
+    assert not role_config_query.get_config_resource("something")
+    assert role_config_query.list_config_service_resources(None, None, 100, None) == (
         [],
         None,
     )
@@ -3480,7 +3326,7 @@ def test_role_config_dict():
 
     # Create a policy for use in role permissions boundary
     policy_arn = (
-        policy_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+        policy_config_query.backends["global"]
         .create_policy(
             description="basic_policy",
             path="/",
@@ -3492,12 +3338,12 @@ def test_role_config_dict():
     )
 
     policy_id = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        None, None, 100, None
     )[0][0]["id"]
     assert len(policy_id) == len(random_policy_id())
 
     # Create some roles (and grab them repeatedly since they create with random names)
-    role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_role(
+    role_config_query.backends["global"].create_role(
         role_name="plain_role",
         assume_role_policy_document=None,
         path="/",
@@ -3507,13 +3353,13 @@ def test_role_config_dict():
         max_session_duration=3600,
     )
 
-    plain_role = role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
-    )[0][0]
+    plain_role = role_config_query.list_config_service_resources(None, None, 100, None)[
+        0
+    ][0]
     assert plain_role is not None
     assert len(plain_role["id"]) == len(random_resource_id())
 
-    role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_role(
+    role_config_query.backends["global"].create_role(
         role_name="assume_role",
         assume_role_policy_document=json.dumps(basic_assume_role),
         path="/",
@@ -3526,7 +3372,7 @@ def test_role_config_dict():
     assume_role = next(
         role
         for role in role_config_query.list_config_service_resources(
-            DEFAULT_ACCOUNT_ID, None, None, 100, None
+            None, None, 100, None
         )[0]
         if role["id"] not in [plain_role["id"]]
     )
@@ -3534,7 +3380,7 @@ def test_role_config_dict():
     assert len(assume_role["id"]) == len(random_resource_id())
     assert assume_role["id"] is not plain_role["id"]
 
-    role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_role(
+    role_config_query.backends["global"].create_role(
         role_name="assume_and_permission_boundary_role",
         assume_role_policy_document=json.dumps(basic_assume_role),
         path="/",
@@ -3547,7 +3393,7 @@ def test_role_config_dict():
     assume_and_permission_boundary_role = next(
         role
         for role in role_config_query.list_config_service_resources(
-            DEFAULT_ACCOUNT_ID, None, None, 100, None
+            None, None, 100, None
         )[0]
         if role["id"] not in [plain_role["id"], assume_role["id"]]
     )
@@ -3556,7 +3402,7 @@ def test_role_config_dict():
     assert assume_and_permission_boundary_role["id"] is not plain_role["id"]
     assert assume_and_permission_boundary_role["id"] is not assume_role["id"]
 
-    role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_role(
+    role_config_query.backends["global"].create_role(
         role_name="role_with_attached_policy",
         assume_role_policy_document=json.dumps(basic_assume_role),
         path="/",
@@ -3565,13 +3411,13 @@ def test_role_config_dict():
         tags=[],
         max_session_duration=3600,
     )
-    role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].attach_role_policy(
+    role_config_query.backends["global"].attach_role_policy(
         policy_arn, "role_with_attached_policy"
     )
     role_with_attached_policy = next(
         role
         for role in role_config_query.list_config_service_resources(
-            DEFAULT_ACCOUNT_ID, None, None, 100, None
+            None, None, 100, None
         )[0]
         if role["id"]
         not in [
@@ -3588,7 +3434,7 @@ def test_role_config_dict():
         role_with_attached_policy["id"] is not assume_and_permission_boundary_role["id"]
     )
 
-    role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_role(
+    role_config_query.backends["global"].create_role(
         role_name="role_with_inline_policy",
         assume_role_policy_document=json.dumps(basic_assume_role),
         path="/",
@@ -3597,14 +3443,14 @@ def test_role_config_dict():
         tags=[],
         max_session_duration=3600,
     )
-    role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].put_role_policy(
+    role_config_query.backends["global"].put_role_policy(
         "role_with_inline_policy", "inline_policy", json.dumps(basic_policy)
     )
 
     role_with_inline_policy = next(
         role
         for role in role_config_query.list_config_service_resources(
-            DEFAULT_ACCOUNT_ID, None, None, 100, None
+            None, None, 100, None
         )[0]
         if role["id"]
         not in [
@@ -3625,9 +3471,7 @@ def test_role_config_dict():
 
     # plain role
     plain_role_config = (
-        role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
-        .roles[plain_role["id"]]
-        .to_config_dict()
+        role_config_query.backends["global"].roles[plain_role["id"]].to_config_dict()
     )
     assert plain_role_config["version"] == "1.3"
     assert plain_role_config["configurationItemStatus"] == "ResourceDiscovered"
@@ -3656,9 +3500,7 @@ def test_role_config_dict():
 
     # assume_role
     assume_role_config = (
-        role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
-        .roles[assume_role["id"]]
-        .to_config_dict()
+        role_config_query.backends["global"].roles[assume_role["id"]].to_config_dict()
     )
     assert assume_role_config["arn"] == "arn:aws:iam::123456789012:role/assume_role"
     assert assume_role_config["resourceId"] == "assume_role"
@@ -3669,7 +3511,7 @@ def test_role_config_dict():
 
     # assume_and_permission_boundary_role
     assume_and_permission_boundary_role_config = (
-        role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+        role_config_query.backends["global"]
         .roles[assume_and_permission_boundary_role["id"]]
         .to_config_dict()
     )
@@ -3697,7 +3539,7 @@ def test_role_config_dict():
 
     # role_with_attached_policy
     role_with_attached_policy_config = (
-        role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+        role_config_query.backends["global"]
         .roles[role_with_attached_policy["id"]]
         .to_config_dict()
     )
@@ -3711,7 +3553,7 @@ def test_role_config_dict():
 
     # role_with_inline_policy
     role_with_inline_policy_config = (
-        role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+        role_config_query.backends["global"]
         .roles[role_with_inline_policy["id"]]
         .to_config_dict()
     )
@@ -3730,10 +3572,6 @@ def test_role_config_dict():
 @mock_iam
 @mock_config
 def test_role_config_client():
-    if sys.version_info < (3, 7):
-        raise SkipTest(
-            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
-        )
     from moto.iam.utils import random_resource_id
 
     CONFIG_REGIONS = boto3.Session().get_available_regions("config")
@@ -3975,9 +3813,7 @@ def test_policy_list_config_discovered_resources():
     from moto.iam.config import policy_config_query
 
     # Without any policies
-    assert policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
-    ) == (
+    assert policy_config_query.list_config_service_resources(None, None, 100, None) == (
         [],
         None,
     )
@@ -3993,9 +3829,7 @@ def test_policy_list_config_discovered_resources():
     policies = []
     num_policies = 3
     for ix in range(1, num_policies + 1):
-        this_policy = policy_config_query.backends[DEFAULT_ACCOUNT_ID][
-            "global"
-        ].create_policy(
+        this_policy = policy_config_query.backends["global"].create_policy(
             description="policy{}".format(ix),
             path="",
             policy_document=json.dumps(basic_policy),
@@ -4008,15 +3842,11 @@ def test_policy_list_config_discovered_resources():
 
     # We expect the backend to have arns as their keys
     for backend_key in list(
-        policy_config_query.backends[DEFAULT_ACCOUNT_ID][
-            "global"
-        ].managed_policies.keys()
+        policy_config_query.backends["global"].managed_policies.keys()
     ):
         assert backend_key.startswith("arn:aws:iam::")
 
-    result = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
-    )[0]
+    result = policy_config_query.list_config_service_resources(None, None, 100, None)[0]
     assert len(result) == num_policies
 
     policy = result[0]
@@ -4027,13 +3857,13 @@ def test_policy_list_config_discovered_resources():
 
     # test passing list of resource ids
     resource_ids = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, [policies[0]["id"], policies[1]["id"]], None, 100, None
+        [policies[0]["id"], policies[1]["id"]], None, 100, None
     )[0]
     assert len(resource_ids) == 2
 
     # test passing a single resource name
     resource_name = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, policies[0]["name"], 100, None
+        None, policies[0]["name"], 100, None
     )[0]
     assert len(resource_name) == 1
     assert resource_name[0]["id"] == policies[0]["id"]
@@ -4041,22 +3871,14 @@ def test_policy_list_config_discovered_resources():
 
     # test passing a single resource name AND some resource id's
     both_filter_good = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID,
-        [policies[0]["id"], policies[1]["id"]],
-        policies[0]["name"],
-        100,
-        None,
+        [policies[0]["id"], policies[1]["id"]], policies[0]["name"], 100, None
     )[0]
     assert len(both_filter_good) == 1
     assert both_filter_good[0]["id"] == policies[0]["id"]
     assert both_filter_good[0]["name"] == policies[0]["name"]
 
     both_filter_bad = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID,
-        [policies[0]["id"], policies[1]["id"]],
-        policies[2]["name"],
-        100,
-        None,
+        [policies[0]["id"], policies[1]["id"]], policies[2]["name"], 100, None
     )[0]
     assert len(both_filter_bad) == 0
 
@@ -4068,11 +3890,9 @@ def test_policy_config_dict():
 
     # Without any roles
     assert not policy_config_query.get_config_resource(
-        DEFAULT_ACCOUNT_ID, "arn:aws:iam::123456789012:policy/basic_policy"
+        "arn:aws:iam::123456789012:policy/basic_policy"
     )
-    assert policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
-    ) == (
+    assert policy_config_query.list_config_service_resources(None, None, 100, None) == (
         [],
         None,
     )
@@ -4090,7 +3910,7 @@ def test_policy_config_dict():
     }
 
     policy_arn = (
-        policy_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+        policy_config_query.backends["global"]
         .create_policy(
             description="basic_policy",
             path="/",
@@ -4102,23 +3922,20 @@ def test_policy_config_dict():
     )
 
     policy_id = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        None, None, 100, None
     )[0][0]["id"]
     assert len(policy_id) == len(random_policy_id())
 
     assert policy_arn == "arn:aws:iam::123456789012:policy/basic_policy"
-    assert (
-        policy_config_query.get_config_resource(DEFAULT_ACCOUNT_ID, policy_id)
-        is not None
-    )
+    assert policy_config_query.get_config_resource(policy_id) is not None
 
     # Create a new version
-    policy_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_policy_version(
+    policy_config_query.backends["global"].create_policy_version(
         policy_arn, json.dumps(basic_policy_v2), "true"
     )
 
     # Create role to trigger attachment
-    role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].create_role(
+    role_config_query.backends["global"].create_role(
         role_name="role_with_attached_policy",
         assume_role_policy_document=None,
         path="/",
@@ -4127,12 +3944,12 @@ def test_policy_config_dict():
         tags=[],
         max_session_duration=3600,
     )
-    role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"].attach_role_policy(
+    role_config_query.backends["global"].attach_role_policy(
         policy_arn, "role_with_attached_policy"
     )
 
     policy = (
-        role_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+        role_config_query.backends["global"]
         .managed_policies["arn:aws:iam::123456789012:policy/basic_policy"]
         .to_config_dict()
     )
@@ -4178,10 +3995,6 @@ def test_policy_config_dict():
 @mock_iam
 @mock_config
 def test_policy_config_client():
-    if sys.version_info < (3, 7):
-        raise SkipTest(
-            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
-        )
     from moto.iam.utils import random_policy_id
 
     CONFIG_REGIONS = boto3.Session().get_available_regions("config")

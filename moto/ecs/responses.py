@@ -5,9 +5,6 @@ from .models import ecs_backends
 
 
 class EC2ContainerServiceResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="ecs")
-
     @property
     def ecs_backend(self):
         """
@@ -16,7 +13,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         :return: ECS Backend object
         :rtype: moto.ecs.models.EC2ContainerServiceBackend
         """
-        return ecs_backends[self.current_account][self.region]
+        return ecs_backends[self.region]
 
     @property
     def request_params(self):

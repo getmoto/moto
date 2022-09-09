@@ -1,6 +1,6 @@
 import time
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import BackendDict
 
 from uuid import uuid4
@@ -10,11 +10,18 @@ class TaggableResourceMixin(object):
     # This mixing was copied from Redshift when initially implementing
     # Athena. TBD if it's worth the overhead.
 
-    def __init__(self, account_id, region_name, resource_name, tags):
+    def __init__(self, region_name, resource_name, tags):
         self.region = region_name
         self.resource_name = resource_name
         self.tags = tags or []
-        self.arn = f"arn:aws:athena:{region_name}:{account_id}:{resource_name}"
+
+    @property
+    def arn(self):
+        return "arn:aws:athena:{region}:{account_id}:{resource_name}".format(
+            region=self.region,
+            account_id=get_account_id(),
+            resource_name=self.resource_name,
+        )
 
     def create_tags(self, tags):
         new_keys = [tag_set["Key"] for tag_set in tags]
@@ -34,12 +41,7 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
 
     def __init__(self, athena_backend, name, configuration, description, tags):
         self.region_name = athena_backend.region_name
-        super().__init__(
-            athena_backend.account_id,
-            self.region_name,
-            "workgroup/{}".format(name),
-            tags,
-        )
+        super().__init__(self.region_name, "workgroup/{}".format(name), tags)
         self.athena_backend = athena_backend
         self.name = name
         self.description = description
@@ -51,12 +53,7 @@ class DataCatalog(TaggableResourceMixin, BaseModel):
         self, athena_backend, name, catalog_type, description, parameters, tags
     ):
         self.region_name = athena_backend.region_name
-        super().__init__(
-            athena_backend.account_id,
-            self.region_name,
-            "datacatalog/{}".format(name),
-            tags,
-        )
+        super().__init__(self.region_name, "datacatalog/{}".format(name), tags)
         self.athena_backend = athena_backend
         self.name = name
         self.type = catalog_type

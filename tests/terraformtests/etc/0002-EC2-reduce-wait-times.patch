@@ -70,8 +70,8 @@ index 38ecbd73ea..576203732e 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(10 * time.Minute),
-+			Create: schema.DefaultTimeout(1 * time.Minute),
-+			Delete: schema.DefaultTimeout(1 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
  		},
 
  		Schema: map[string]*schema.Schema{
@@ -85,8 +85,8 @@ index a1fccab1b9..0894e9f87b 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(10 * time.Minute),
-+			Create: schema.DefaultTimeout(1 * time.Minute),
-+			Delete: schema.DefaultTimeout(1 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
  		},
 
  		Schema: map[string]*schema.Schema{
@@ -100,8 +100,8 @@ index f5e205f7b7..ffd26a66b5 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(20 * time.Minute),
 -			Delete: schema.DefaultTimeout(5 * time.Minute),
-+			Create: schema.DefaultTimeout(2 * time.Minute),
-+			Delete: schema.DefaultTimeout(1 * time.Minute),
++			Create: schema.DefaultTimeout(20 * time.Second),
++			Delete: schema.DefaultTimeout(5 * time.Second),
  		},
 
  		Schema: map[string]*schema.Schema{
@@ -115,8 +115,8 @@ index e2f487a7bc..eca3c7be12 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(60 * time.Minute),
 -			Delete: schema.DefaultTimeout(10 * time.Minute),
-+			Create: schema.DefaultTimeout(6 * time.Minute),
-+			Delete: schema.DefaultTimeout(1 * time.Minute),
++			Create: schema.DefaultTimeout(60 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
  		},
 
  		Schema: map[string]*schema.Schema{
@@ -131,9 +131,9 @@ index 4fbdfb3ba7..e284717ee6 100644
 -			Create: schema.DefaultTimeout(5 * time.Minute),
 -			Update: schema.DefaultTimeout(5 * time.Minute),
 -			Delete: schema.DefaultTimeout(5 * time.Minute),
-+			Create: schema.DefaultTimeout(1 * time.Minute),
-+			Update: schema.DefaultTimeout(1 * time.Minute),
-+			Delete: schema.DefaultTimeout(1 * time.Minute),
++			Create: schema.DefaultTimeout(5 * time.Second),
++			Update: schema.DefaultTimeout(5 * time.Second),
++			Delete: schema.DefaultTimeout(5 * time.Second),
  		},
 
  		CustomizeDiff: customdiff.Sequence(
@@ -147,8 +147,8 @@ index 410c3b5107..0b31e4e618 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(5 * time.Minute),
 -			Delete: schema.DefaultTimeout(5 * time.Minute),
-+			Create: schema.DefaultTimeout(1 * time.Minute),
-+			Delete: schema.DefaultTimeout(1 * time.Minute),
++			Create: schema.DefaultTimeout(5 * time.Second),
++			Delete: schema.DefaultTimeout(5 * time.Second),
  		},
 
  		Schema: map[string]*schema.Schema{
@@ -162,8 +162,8 @@ index f2d401ce3d..ef399c8ce6 100644
  const (
 -	amiRetryTimeout    = 40 * time.Minute
 -	amiDeleteTimeout   = 90 * time.Minute
-+	amiRetryTimeout    = 4 * time.Minute
-+	amiDeleteTimeout   = 9 * time.Minute
++	amiRetryTimeout    = 40 * time.Second
++	amiDeleteTimeout   = 90 * time.Second
  	amiRetryDelay      = 5 * time.Second
  	amiRetryMinTimeout = 3 * time.Second
  )
@@ -176,7 +176,7 @@ index aac7e3119c..300c97092e 100644
  const (
  	// Maximum amount of time to wait for EIP association with EC2-Classic instances
 -	addressAssociationClassicTimeout = 2 * time.Minute
-+	addressAssociationClassicTimeout = 1 * time.Minute
++	addressAssociationClassicTimeout = 2 * time.Second
  )
 
  func ResourceEIP() *schema.Resource {
@@ -187,9 +187,9 @@ index aac7e3119c..300c97092e 100644
 -			Read:   schema.DefaultTimeout(15 * time.Minute),
 -			Update: schema.DefaultTimeout(5 * time.Minute),
 -			Delete: schema.DefaultTimeout(3 * time.Minute),
-+			Read:   schema.DefaultTimeout(3 * time.Minute),
-+			Update: schema.DefaultTimeout(2 * time.Minute),
-+			Delete: schema.DefaultTimeout(1 * time.Minute),
++			Read:   schema.DefaultTimeout(15 * time.Second),
++			Update: schema.DefaultTimeout(5 * time.Second),
++			Delete: schema.DefaultTimeout(3 * time.Second),
  		},
 
  		Schema: map[string]*schema.Schema{
@@ -204,9 +204,9 @@ index b4c4e161d3..c7cc4b394d 100644
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(10 * time.Minute),
 -			Update: schema.DefaultTimeout(10 * time.Minute),
-+			Create: schema.DefaultTimeout(1 * time.Minute),
-+			Delete: schema.DefaultTimeout(1 * time.Minute),
-+			Update: schema.DefaultTimeout(1 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
++			Update: schema.DefaultTimeout(10 * time.Second),
  		},
 
  		CustomizeDiff: customdiff.All(
@@ -221,9 +221,9 @@ index 268e49d0ef..097d80dcb2 100644
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Update: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(20 * time.Minute),
-+			Create: schema.DefaultTimeout(1 * time.Minute),
-+			Update: schema.DefaultTimeout(1 * time.Minute),
-+			Delete: schema.DefaultTimeout(2 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Update: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(20 * time.Second),
  		},
 
  		Schema: map[string]*schema.Schema{
@@ -238,9 +238,9 @@ index d47742a790..5db732e457 100644
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Update: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(15 * time.Minute),
-+			Create: schema.DefaultTimeout(1 * time.Minute),
-+			Update: schema.DefaultTimeout(1 * time.Minute),
-+			Delete: schema.DefaultTimeout(2 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Update: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(15 * time.Second),
  		},
 
  		SchemaVersion: 1,
@@ -267,8 +267,8 @@ index 1cee62f547..2798d62577 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(20 * time.Minute),
-+			Create: schema.DefaultTimeout(1 * time.Minute),
-+			Delete: schema.DefaultTimeout(2 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(20 * time.Second),
  		},
 
  		Schema: func() map[string]*schema.Schema {
@@ -294,10 +294,10 @@ index 5bcdcbcefa..7e61d28cb0 100644
  const (
  	invalidIPAMIDNotFound = "InvalidIpamId.NotFound"
 -	ipamCreateTimeout     = 3 * time.Minute
-+	ipamCreateTimeout     = 1 * time.Minute
++	ipamCreateTimeout     = 3 * time.Second
  	ipamCreateDelay       = 5 * time.Second
 -	IPAMDeleteTimeout     = 3 * time.Minute
-+	IPAMDeleteTimeout     = 1 * time.Minute
++	IPAMDeleteTimeout     = 3 * time.Second
  	ipamDeleteDelay       = 5 * time.Second
  )
 
@@ -310,12 +310,12 @@ index 74b54d6c32..d7f4c2b8a1 100644
 
  const (
 -	ipamPoolCreateTimeout     = 3 * time.Minute
-+	ipamPoolCreateTimeout     = 1 * time.Minute
++	ipamPoolCreateTimeout     = 3 * time.Second
  	InvalidIPAMPoolIDNotFound = "InvalidIpamPoolId.NotFound"
 -	ipamPoolUpdateTimeout     = 3 * time.Minute
 -	IPAMPoolDeleteTimeout     = 3 * time.Minute
-+	ipamPoolUpdateTimeout     = 1 * time.Minute
-+	IPAMPoolDeleteTimeout     = 1 * time.Minute
++	ipamPoolUpdateTimeout     = 3 * time.Second
++	IPAMPoolDeleteTimeout     = 3 * time.Second
  	ipamPoolAvailableDelay    = 5 * time.Second
  	ipamPoolDeleteDelay       = 5 * time.Second
  )
@@ -344,10 +344,10 @@ index c8121239c4..5f75fdee82 100644
 
  const (
 -	ipamScopeCreateTimeout = 3 * time.Minute
-+	ipamScopeCreateTimeout = 1 * time.Minute
++	ipamScopeCreateTimeout = 3 * time.Second
  	ipamScopeCreateDeley   = 5 * time.Second
 -	IPAMScopeDeleteTimeout = 3 * time.Minute
-+	IPAMScopeDeleteTimeout = 1 * time.Minute
++	IPAMScopeDeleteTimeout = 3 * time.Second
  	ipamScopeDeleteDelay   = 5 * time.Second
 
  	invalidIPAMScopeIDNotFound = "InvalidIpamScopeId.NotFound"
@@ -620,7 +620,7 @@ index 5e38bebaca..cf4e397598 100644
  		Target:     []string{ec2.ServiceStateAvailable},
  		Refresh:    vpcEndpointServiceStateRefresh(conn, d.Id()),
 -		Timeout:    10 * time.Minute,
-+		Timeout:    30 * time.Second,
++		Timeout:    20 * time.Second,
  		Delay:      5 * time.Second,
  		MinTimeout: 5 * time.Second,
  	}
@@ -629,7 +629,7 @@ index 5e38bebaca..cf4e397598 100644
  		Target:     []string{ec2.ServiceStateDeleted},
  		Refresh:    vpcEndpointServiceStateRefresh(conn, serviceID),
 -		Timeout:    10 * time.Minute,
-+		Timeout:    30 * time.Second,
++		Timeout:    20 * time.Second,
  		Delay:      5 * time.Second,
  		MinTimeout: 5 * time.Second,
  	}
@@ -655,7 +655,7 @@ index 793eea6ef2..b9b5b062d1 100644
 -		Delay:   1 * time.Minute,
 -		Timeout: 3 * time.Minute,
 +		Delay:   1 * time.Second,
-+		Timeout: 1 * time.Minute,
++		Timeout: 10 * time.Second,
  		Target:  []string{"ok"},
  		Refresh: func() (interface{}, string, error) {
  			output, err := conn.ModifyVpcEndpoint(input)
@@ -1009,9 +1009,9 @@ index 5ad62e86c0..68209e7fb8 100644
 -	vpcAttributePropagationTimeout = 5 * time.Minute
 -	vpcCreatedTimeout              = 10 * time.Minute
 -	vpcDeletedTimeout              = 5 * time.Minute
-+	vpcAttributePropagationTimeout = 1 * time.Minute
-+	vpcCreatedTimeout              = 1 * time.Minute
-+	vpcDeletedTimeout              = 1 * time.Minute
++	vpcAttributePropagationTimeout = 10 * time.Second
++	vpcCreatedTimeout              = 10 * time.Second
++	vpcDeletedTimeout              = 5 * time.Second
  )
 
  func WaitVPCCreated(conn *ec2.EC2, id string) (*ec2.Vpc, error) {
@@ -1021,8 +1021,8 @@ index 5ad62e86c0..68209e7fb8 100644
  const (
 -	vpcIPv6CIDRBlockAssociationCreatedTimeout = 10 * time.Minute
 -	vpcIPv6CIDRBlockAssociationDeletedTimeout = 5 * time.Minute
-+	vpcIPv6CIDRBlockAssociationCreatedTimeout = 15 * time.Second
-+	vpcIPv6CIDRBlockAssociationDeletedTimeout = 15 * time.Second
++	vpcIPv6CIDRBlockAssociationCreatedTimeout = 10 * time.Second
++	vpcIPv6CIDRBlockAssociationDeletedTimeout = 5 * time.Second
  )
 
  func WaitVPCIPv6CIDRBlockAssociationCreated(conn *ec2.EC2, id string, timeout time.Duration) (*ec2.VpcCidrBlockState, error) {
@@ -1078,9 +1078,9 @@ index 5ad62e86c0..68209e7fb8 100644
 -	vpnConnectionCreatedTimeout = 40 * time.Minute
 -	vpnConnectionDeletedTimeout = 30 * time.Minute
 -	vpnConnectionUpdatedTimeout = 30 * time.Minute
-+	vpnConnectionCreatedTimeout = 4 * time.Second
-+	vpnConnectionDeletedTimeout = 3 * time.Second
-+	vpnConnectionUpdatedTimeout = 3 * time.Second
++	vpnConnectionCreatedTimeout = 40 * time.Second
++	vpnConnectionDeletedTimeout = 30 * time.Second
++	vpnConnectionUpdatedTimeout = 30 * time.Second
  )
 
  func WaitVPNConnectionCreated(conn *ec2.EC2, id string) (*ec2.VpnConnection, error) {

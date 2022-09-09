@@ -1,6 +1,7 @@
 import json
 import re
 from os import environ
+from moto.core import get_account_id
 from moto.utilities.utils import load_resource
 from ..exceptions import (
     InvalidAMIIdError,
@@ -33,7 +34,7 @@ class Ami(TaggedEC2Resource):
         source_ami=None,
         name=None,
         description=None,
-        owner_id=None,
+        owner_id=get_account_id(),
         owner_alias=None,
         public=False,
         virtualization_type=None,
@@ -56,7 +57,7 @@ class Ami(TaggedEC2Resource):
         self.name = name
         self.image_type = image_type
         self.image_location = image_location
-        self.owner_id = owner_id or ec2_backend.account_id
+        self.owner_id = owner_id
         self.owner_alias = owner_alias
         self.description = description
         self.virtualization_type = virtualization_type
@@ -67,7 +68,9 @@ class Ami(TaggedEC2Resource):
         self.root_device_name = root_device_name
         self.root_device_type = root_device_type
         self.sriov = sriov
-        self.creation_date = creation_date or utc_date_and_time()
+        self.creation_date = (
+            utc_date_and_time() if creation_date is None else creation_date
+        )
 
         if instance:
             self.instance = instance
@@ -104,7 +107,7 @@ class Ami(TaggedEC2Resource):
             snapshot_description or "Auto-created snapshot for AMI %s" % self.id
         )
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
-            volume.id, snapshot_description, self.owner_id, from_ami=ami_id
+            volume.id, snapshot_description, owner_id, from_ami=ami_id
         )
         self.ec2_backend.delete_volume(volume.id)
 
@@ -154,17 +157,6 @@ class AmiBackend:
             # owner_alias is required for terraform owner filters
             ami["owner_alias"] = "amazon"
             self.amis[ami_id] = Ami(self, **ami)
-        try:
-            latest_amis = load_resource(
-                __name__, f"../resources/latest_amis/{self.region_name}.json"
-            )
-            for ami in latest_amis:
-                ami_id = ami["ami_id"]
-                ami["owner_alias"] = "amazon"
-                self.amis[ami_id] = Ami(self, **ami)
-        except FileNotFoundError:
-            # Will error on unknown (new) regions - just return an empty list here
-            pass
 
     def create_image(
         self,
@@ -193,7 +185,7 @@ class AmiBackend:
             source_ami=None,
             name=name,
             description=description,
-            owner_id=None,
+            owner_id=get_account_id(),
             snapshot_description=f"Created by CreateImage({instance_id}) for {ami_id}",
         )
         for tag in tags:
@@ -204,7 +196,7 @@ class AmiBackend:
     def copy_image(self, source_image_id, source_region, name=None, description=None):
         from ..models import ec2_backends
 
-        source_ami = ec2_backends[self.account_id][source_region].describe_images(
+        source_ami = ec2_backends[source_region].describe_images(
             ami_ids=[source_image_id]
         )[0]
         ami_id = random_ami_id()
@@ -253,7 +245,7 @@ class AmiBackend:
                 # support filtering by Owners=['self']
                 if "self" in owners:
                     owners = list(
-                        map(lambda o: self.account_id if o == "self" else o, owners)
+                        map(lambda o: get_account_id() if o == "self" else o, owners)
                     )
                 images = [
                     ami

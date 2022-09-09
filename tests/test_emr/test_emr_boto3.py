@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_emr
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 run_job_flow_args = dict(
@@ -74,7 +74,6 @@ input_instance_groups = [
 
 
 @mock_emr
-@pytest.mark.filterwarnings("ignore")
 def test_describe_cluster():
     region_name = "us-east-1"
     client = boto3.client("emr", region_name=region_name)
@@ -252,7 +251,6 @@ def test_describe_job_flows():
 
 
 @mock_emr
-@pytest.mark.filterwarnings("ignore")
 def test_describe_job_flow():
     client = boto3.client("emr", region_name="us-east-1")
 

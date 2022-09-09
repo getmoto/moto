@@ -28,7 +28,6 @@ rekognition
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] compare_faces
-- [ ] copy_project_version
 - [ ] create_collection
 - [ ] create_dataset
 - [ ] create_project
@@ -38,7 +37,6 @@ rekognition
 - [ ] delete_dataset
 - [ ] delete_faces
 - [ ] delete_project
-- [ ] delete_project_policy
 - [ ] delete_project_version
 - [ ] delete_stream_processor
 - [ ] describe_collection
@@ -75,10 +73,8 @@ rekognition
 - [ ] list_dataset_entries
 - [ ] list_dataset_labels
 - [ ] list_faces
-- [ ] list_project_policies
 - [ ] list_stream_processors
 - [ ] list_tags_for_resource
-- [ ] put_project_policy
 - [ ] recognize_celebrities
 - [ ] search_faces
 - [ ] search_faces_by_image

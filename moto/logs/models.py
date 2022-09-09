@@ -2,7 +2,7 @@ import uuid
 
 from datetime import datetime, timedelta
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core import CloudFormationModel
 from moto.core.utils import unix_time_millis, BackendDict
 from moto.utilities.paginator import paginate
@@ -14,7 +14,7 @@ from moto.logs.exceptions import (
     LimitExceededException,
 )
 from moto.s3.models import s3_backends
-from .utils import PAGINATION_MODEL, EventMessageFilter
+from .utils import PAGINATION_MODEL
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
 
@@ -58,10 +58,9 @@ class LogEvent(BaseModel):
 class LogStream(BaseModel):
     _log_ids = 0
 
-    def __init__(self, account_id, region, log_group, name):
-        self.account_id = account_id
+    def __init__(self, region, log_group, name):
         self.region = region
-        self.arn = f"arn:aws:logs:{region}:{account_id}:log-group:{log_group}:log-stream:{name}"
+        self.arn = f"arn:aws:logs:{region}:{get_account_id()}:log-group:{log_group}:log-stream:{name}"
         self.creation_time = int(unix_time_millis())
         self.first_event_timestamp = None
         self.last_event_timestamp = None
@@ -135,7 +134,7 @@ class LogStream(BaseModel):
         if service == "lambda":
             from moto.awslambda import lambda_backends  # due to circular dependency
 
-            lambda_backends[self.account_id][self.region].send_log_event(
+            lambda_backends[self.region].send_log_event(
                 self.destination_arn,
                 self.filter_name,
                 log_group_name,
@@ -143,9 +142,11 @@ class LogStream(BaseModel):
                 formatted_log_events,
             )
         elif service == "firehose":
-            from moto.firehose import firehose_backends
+            from moto.firehose import (  # pylint: disable=import-outside-toplevel
+                firehose_backends,
+            )
 
-            firehose_backends[self.account_id][self.region].send_log_event(
+            firehose_backends[self.region].send_log_event(
                 self.destination_arn,
                 self.filter_name,
                 log_group_name,
@@ -234,14 +235,14 @@ class LogStream(BaseModel):
         )
 
     def filter_log_events(self, start_time, end_time, filter_pattern):
+        if filter_pattern:
+            raise NotImplementedError("filter_pattern is not yet implemented")
+
         def filter_func(event):
             if start_time and event.timestamp < start_time:
                 return False
 
             if end_time and event.timestamp > end_time:
-                return False
-
-            if not EventMessageFilter(filter_pattern).matches(event.message):
                 return False
 
             return True
@@ -257,11 +258,10 @@ class LogStream(BaseModel):
 
 
 class LogGroup(CloudFormationModel):
-    def __init__(self, account_id, region, name, tags, **kwargs):
+    def __init__(self, region, name, tags, **kwargs):
         self.name = name
-        self.account_id = account_id
         self.region = region
-        self.arn = f"arn:aws:logs:{region}:{account_id}:log-group:{name}"
+        self.arn = f"arn:aws:logs:{region}:{get_account_id()}:log-group:{name}"
         self.creation_time = int(unix_time_millis())
         self.tags = tags
         self.streams = dict()  # {name: LogStream}
@@ -286,18 +286,18 @@ class LogGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         tags = properties.get("Tags", {})
-        return logs_backends[account_id][region_name].create_log_group(
+        return logs_backends[region_name].create_log_group(
             resource_name, tags, **properties
         )
 
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
             raise ResourceAlreadyExistsException()
-        stream = LogStream(self.account_id, self.region, self.name, log_stream_name)
+        stream = LogStream(self.region, self.name, log_stream_name)
         filters = self.describe_subscription_filters()
 
         if filters:
@@ -561,42 +561,38 @@ class LogResourcePolicy(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         policy_name = properties["PolicyName"]
         policy_document = properties["PolicyDocument"]
-        return logs_backends[account_id][region_name].put_resource_policy(
+        return logs_backends[region_name].put_resource_policy(
             policy_name, policy_document
         )
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
         policy_name = properties["PolicyName"]
         policy_document = properties["PolicyDocument"]
 
-        backend = logs_backends[account_id][region_name]
-        updated = backend.put_resource_policy(policy_name, policy_document)
+        updated = logs_backends[region_name].put_resource_policy(
+            policy_name, policy_document
+        )
         # TODO: move `update by replacement logic` to cloudformation. this is required for implementing rollbacks
         if original_resource.policy_name != policy_name:
-            backend.delete_resource_policy(original_resource.policy_name)
+            logs_backends[region_name].delete_resource_policy(
+                original_resource.policy_name
+            )
         return updated
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
-        return logs_backends[account_id][region_name].delete_resource_policy(
-            resource_name
-        )
+        return logs_backends[region_name].delete_resource_policy(resource_name)
 
 
 class LogsBackend(BaseBackend):
@@ -624,16 +620,14 @@ class LogsBackend(BaseBackend):
                 value=log_group_name,
             )
         self.groups[log_group_name] = LogGroup(
-            self.account_id, self.region_name, log_group_name, tags, **kwargs
+            self.region_name, log_group_name, tags, **kwargs
         )
         return self.groups[log_group_name]
 
     def ensure_log_group(self, log_group_name, tags):
         if log_group_name in self.groups:
             return
-        self.groups[log_group_name] = LogGroup(
-            self.account_id, self.region_name, log_group_name, tags
-        )
+        self.groups[log_group_name] = LogGroup(self.region_name, log_group_name, tags)
 
     def delete_log_group(self, log_group_name):
         if log_group_name not in self.groups:
@@ -769,10 +763,6 @@ class LogsBackend(BaseBackend):
         filter_pattern,
         interleaved,
     ):
-        """
-        The following filter patterns are currently supported: Single Terms, Multiple Terms, Exact Phrases.
-        If the pattern is not supported, all events are returned.
-        """
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         if limit and limit > 1000:
@@ -893,12 +883,12 @@ class LogsBackend(BaseBackend):
 
         service = destination_arn.split(":")[2]
         if service == "lambda":
-            from moto.awslambda import lambda_backends
+            from moto.awslambda import (  # pylint: disable=import-outside-toplevel
+                lambda_backends,
+            )
 
             try:
-                lambda_backends[self.account_id][self.region_name].get_function(
-                    destination_arn
-                )
+                lambda_backends[self.region_name].get_function(destination_arn)
             # no specific permission check implemented
             except Exception:
                 raise InvalidParameterException(
@@ -907,11 +897,13 @@ class LogsBackend(BaseBackend):
                     "function."
                 )
         elif service == "firehose":
-            from moto.firehose import firehose_backends
+            from moto.firehose import (  # pylint: disable=import-outside-toplevel
+                firehose_backends,
+            )
 
-            firehose = firehose_backends[self.account_id][
-                self.region_name
-            ].lookup_name_from_arn(destination_arn)
+            firehose = firehose_backends[self.region_name].lookup_name_from_arn(
+                destination_arn
+            )
             if not firehose:
                 raise InvalidParameterException(
                     "Could not deliver test message to specified Firehose "
@@ -948,7 +940,7 @@ class LogsBackend(BaseBackend):
         return query_id
 
     def create_export_task(self, log_group_name, destination):
-        s3_backends[self.account_id]["global"].get_bucket(destination)
+        s3_backends["global"].get_bucket(destination)
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         task_id = uuid.uuid4()

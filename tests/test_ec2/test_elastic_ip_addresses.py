@@ -672,33 +672,3 @@ def test_describe_addresses_tags():
     assert addresses_with_tags.get("Addresses")[0].get("Tags") == [
         {"Key": "ManagedBy", "Value": "MyCode"}
     ]
-
-
-@mock_ec2
-def test_describe_addresses_with_vpc_associated_eni():
-    """Extra attributes for EIP associated with a ENI inside a VPC"""
-    client = boto3.client("ec2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
-    eni = ec2.create_network_interface(SubnetId=subnet.id)
-
-    eip = client.allocate_address(Domain="vpc")
-    association_id = client.associate_address(
-        NetworkInterfaceId=eni.id, PublicIp=eip["PublicIp"]
-    )["AssociationId"]
-
-    result = client.describe_addresses(
-        Filters=[{"Name": "association-id", "Values": [association_id]}]
-    )
-
-    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    result["Addresses"].should.have.length_of(1)
-
-    address = result["Addresses"][0]
-
-    address["NetworkInterfaceId"].should.be.equal(eni.id)
-    address["PrivateIpAddress"].should.be.equal(eni.private_ip_address)
-    address["AssociationId"].should.be.equal(association_id)
-    address["NetworkInterfaceOwnerId"].should.be.equal(eni.owner_id)

@@ -14,18 +14,20 @@ from moto.codepipeline.exceptions import (
     InvalidTagsException,
     TooManyTagsException,
 )
-from moto.core import BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 
 
 class CodePipeline(BaseModel):
-    def __init__(self, account_id, region, pipeline):
+    def __init__(self, region, pipeline):
         # the version number for a new pipeline is always 1
         pipeline["version"] = 1
 
         self.pipeline = self.add_default_values(pipeline)
         self.tags = {}
 
-        self._arn = f"arn:aws:codepipeline:{region}:{account_id}:{pipeline['name']}"
+        self._arn = "arn:aws:codepipeline:{0}:{1}:{2}".format(
+            region, get_account_id(), pipeline["name"]
+        )
         self._created = datetime.utcnow()
         self._updated = datetime.utcnow()
 
@@ -78,24 +80,22 @@ class CodePipelineBackend(BaseBackend):
 
     @property
     def iam_backend(self):
-        return iam_backends[self.account_id]["global"]
+        return iam_backends["global"]
 
     def create_pipeline(self, pipeline, tags):
-        name = pipeline["name"]
-        if name in self.pipelines:
+        if pipeline["name"] in self.pipelines:
             raise InvalidStructureException(
-                f"A pipeline with the name '{name}' already exists in account '{self.account_id}'"
+                "A pipeline with the name '{0}' already exists in account '{1}'".format(
+                    pipeline["name"], get_account_id()
+                )
             )
 
         try:
             role = self.iam_backend.get_role_by_arn(pipeline["roleArn"])
-            trust_policy_statements = json.loads(role.assume_role_policy_document)[
+            service_principal = json.loads(role.assume_role_policy_document)[
                 "Statement"
-            ]
-            trusted_service_principals = [
-                i["Principal"]["Service"] for i in trust_policy_statements
-            ]
-            if "codepipeline.amazonaws.com" not in trusted_service_principals:
+            ][0]["Principal"]["Service"]
+            if "codepipeline.amazonaws.com" not in service_principal:
                 raise IAMNotFoundException("")
         except IAMNotFoundException:
             raise InvalidStructureException(
@@ -109,17 +109,13 @@ class CodePipelineBackend(BaseBackend):
                 "Pipeline has only 1 stage(s). There should be a minimum of 2 stages in a pipeline"
             )
 
-        self.pipelines[pipeline["name"]] = CodePipeline(
-            self.account_id, self.region_name, pipeline
-        )
+        self.pipelines[pipeline["name"]] = CodePipeline(self.region_name, pipeline)
 
-        if tags is not None:
+        if tags:
             self.pipelines[pipeline["name"]].validate_tags(tags)
 
             new_tags = {tag["key"]: tag["value"] for tag in tags}
             self.pipelines[pipeline["name"]].tags.update(new_tags)
-        else:
-            tags = []
 
         return pipeline, sorted(tags, key=lambda i: i["key"])
 
@@ -128,7 +124,9 @@ class CodePipelineBackend(BaseBackend):
 
         if not codepipeline:
             raise PipelineNotFoundException(
-                f"Account '{self.account_id}' does not have a pipeline with name '{name}'"
+                "Account '{0}' does not have a pipeline with name '{1}'".format(
+                    get_account_id(), name
+                )
             )
 
         return codepipeline.pipeline, codepipeline.metadata
@@ -138,7 +136,9 @@ class CodePipelineBackend(BaseBackend):
 
         if not codepipeline:
             raise ResourceNotFoundException(
-                f"The account with id '{self.account_id}' does not include a pipeline with the name '{pipeline['name']}'"
+                "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
+                    get_account_id(), pipeline["name"]
+                )
             )
 
         # version number is auto incremented
@@ -172,7 +172,9 @@ class CodePipelineBackend(BaseBackend):
 
         if not pipeline:
             raise ResourceNotFoundException(
-                f"The account with id '{self.account_id}' does not include a pipeline with the name '{name}'"
+                "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
+                    get_account_id(), name
+                )
             )
 
         tags = [{"key": key, "value": value} for key, value in pipeline.tags.items()]
@@ -185,7 +187,9 @@ class CodePipelineBackend(BaseBackend):
 
         if not pipeline:
             raise ResourceNotFoundException(
-                f"The account with id '{self.account_id}' does not include a pipeline with the name '{name}'"
+                "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
+                    get_account_id(), name
+                )
             )
 
         pipeline.validate_tags(tags)
@@ -199,7 +203,9 @@ class CodePipelineBackend(BaseBackend):
 
         if not pipeline:
             raise ResourceNotFoundException(
-                f"The account with id '{self.account_id}' does not include a pipeline with the name '{name}'"
+                "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
+                    get_account_id(), name
+                )
             )
 
         for key in tag_keys:

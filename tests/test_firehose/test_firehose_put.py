@@ -4,7 +4,7 @@ import sure  # noqa pylint: disable=unused-import
 
 from moto import mock_firehose
 from moto import mock_s3
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from moto.core.utils import get_random_hex
 from tests.test_firehose.test_firehose import TEST_REGION
 from tests.test_firehose.test_firehose import sample_s3_dest_config

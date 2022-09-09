@@ -1,10 +1,7 @@
 from collections import OrderedDict
 from .core import TaggedEC2Resource
 from ..utils import generic_filter, random_launch_template_id, utc_date_and_time
-from ..exceptions import (
-    InvalidLaunchTemplateNameAlreadyExistsError,
-    InvalidLaunchTemplateNameNotFoundError,
-)
+from ..exceptions import InvalidLaunchTemplateNameError
 
 
 class LaunchTemplateVersion(object):
@@ -33,14 +30,11 @@ class LaunchTemplateVersion(object):
 
 
 class LaunchTemplate(TaggedEC2Resource):
-    def __init__(self, backend, name, template_data, version_description, tag_spec):
+    def __init__(self, backend, name, template_data, version_description):
         self.ec2_backend = backend
         self.name = name
         self.id = random_launch_template_id()
         self.create_time = utc_date_and_time()
-        tag_map = tag_spec.get("launch-template", {})
-        self.add_tags(tag_map)
-        self.tags = self.get_tags()
 
         self.versions = []
         self.create_version(template_data, version_description)
@@ -85,10 +79,10 @@ class LaunchTemplateBackend:
         self.launch_templates = OrderedDict()
         self.launch_template_insert_order = []
 
-    def create_launch_template(self, name, description, template_data, tag_spec):
+    def create_launch_template(self, name, description, template_data):
         if name in self.launch_template_name_to_ids:
-            raise InvalidLaunchTemplateNameAlreadyExistsError()
-        template = LaunchTemplate(self, name, template_data, description, tag_spec)
+            raise InvalidLaunchTemplateNameError()
+        template = LaunchTemplate(self, name, template_data, description)
         self.launch_templates[template.id] = template
         self.launch_template_name_to_ids[template.name] = template.id
         self.launch_template_insert_order.append(template.id)
@@ -111,8 +105,6 @@ class LaunchTemplateBackend:
         if template_names and not template_ids:
             template_ids = []
             for name in template_names:
-                if name not in self.launch_template_name_to_ids:
-                    raise InvalidLaunchTemplateNameNotFoundError()
                 template_ids.append(self.launch_template_name_to_ids[name])
 
         if template_ids:

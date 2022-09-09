@@ -1,14 +1,17 @@
+from moto.core import get_account_id
 from moto.core.utils import pascal_to_camelcase, camelcase_to_underscores
 
 
-def make_arn_for_wacl(name, account_id, region_name, wacl_id, scope):
+def make_arn_for_wacl(name, region_name, wacl_id, scope):
     """https://docs.aws.amazon.com/waf/latest/developerguide/how-aws-waf-works.html - explains --scope (cloudfront vs regional)"""
 
     if scope == "REGIONAL":
         scope = "regional"
     elif scope == "CLOUDFRONT":
         scope = "global"
-    return f"arn:aws:wafv2:{region_name}:{account_id}:{scope}/webacl/{name}/{wacl_id}"
+    return "arn:aws:wafv2:{}:{}:{}/webacl/{}/{}".format(
+        region_name, get_account_id(), scope, name, wacl_id
+    )
 
 
 def pascal_to_underscores_dict(original_dict):

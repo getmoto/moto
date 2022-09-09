@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from moto.core import BaseBackend
+from moto.core import get_account_id, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 
 from ..utilities.utils import random_string
@@ -14,9 +14,19 @@ from .exceptions import (
 from .utils import get_partition, validate_role_arn
 
 # String Templates
-CLUSTER_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:cluster/{name}"
-FARGATE_PROFILE_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:fargateprofile/{cluster_name}/{fargate_profile_name}/{uuid}"
-NODEGROUP_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:nodegroup/{cluster_name}/{nodegroup_name}/{uuid}"
+CLUSTER_ARN_TEMPLATE = (
+    "arn:{partition}:eks:{region}:" + str(get_account_id()) + ":cluster/{name}"
+)
+FARGATE_PROFILE_ARN_TEMPLATE = (
+    "arn:{partition}:eks:{region}:"
+    + str(get_account_id())
+    + ":fargateprofile/{cluster_name}/{fargate_profile_name}/{uuid}"
+)
+NODEGROUP_ARN_TEMPLATE = (
+    "arn:{partition}:eks:{region}:"
+    + str(get_account_id())
+    + ":nodegroup/{cluster_name}/{nodegroup_name}/{uuid}"
+)
 ISSUER_TEMPLATE = "https://oidc.eks.{region}.amazonaws.com/id/" + random_string(10)
 ENDPOINT_TEMPLATE = (
     "https://"
@@ -93,7 +103,6 @@ class Cluster:
         name,
         role_arn,
         resources_vpc_config,
-        account_id,
         region_name,
         aws_partition,
         version=None,
@@ -115,10 +124,7 @@ class Cluster:
         self.fargate_profile_count = 0
 
         self.arn = CLUSTER_ARN_TEMPLATE.format(
-            partition=aws_partition,
-            account_id=account_id,
-            region=region_name,
-            name=name,
+            partition=aws_partition, region=region_name, name=name
         )
         self.certificateAuthority = {"data": random_string(1400)}
         self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
@@ -169,7 +175,6 @@ class FargateProfile:
         fargate_profile_name,
         pod_execution_role_arn,
         selectors,
-        account_id,
         region_name,
         aws_partition,
         client_request_token=None,
@@ -185,7 +190,6 @@ class FargateProfile:
         self.uuid = str(uuid4())
         self.fargate_profile_arn = FARGATE_PROFILE_ARN_TEMPLATE.format(
             partition=aws_partition,
-            account_id=account_id,
             region=region_name,
             cluster_name=cluster_name,
             fargate_profile_name=fargate_profile_name,
@@ -220,7 +224,6 @@ class ManagedNodegroup:
         node_role,
         nodegroup_name,
         subnets,
-        account_id,
         region_name,
         aws_partition,
         scaling_config=None,
@@ -247,7 +250,6 @@ class ManagedNodegroup:
         self.uuid = str(uuid4())
         self.arn = NODEGROUP_ARN_TEMPLATE.format(
             partition=aws_partition,
-            account_id=account_id,
             region=region_name,
             cluster_name=cluster_name,
             nodegroup_name=nodegroup_name,
@@ -347,7 +349,6 @@ class EKSBackend(BaseBackend):
             client_request_token=client_request_token,
             tags=tags,
             encryption_config=encryption_config,
-            account_id=self.account_id,
             region_name=self.region_name,
             aws_partition=self.partition,
         )
@@ -400,7 +401,6 @@ class EKSBackend(BaseBackend):
             selectors=selectors,
             subnets=subnets,
             tags=tags,
-            account_id=self.account_id,
             region_name=self.region_name,
             aws_partition=self.partition,
         )
@@ -477,7 +477,6 @@ class EKSBackend(BaseBackend):
             capacity_type=capacity_type,
             version=version,
             release_version=release_version,
-            account_id=self.account_id,
             region_name=self.region_name,
             aws_partition=self.partition,
         )

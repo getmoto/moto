@@ -4,7 +4,7 @@ import boto3
 from botocore.exceptions import ClientError, ParamValidationError
 from moto import mock_cloudfront
 import sure  # noqa # pylint: disable=unused-import
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from . import cloudfront_test_scaffolding as scaffold
 
 # See our Development Tips on writing tests for hints on how to write good tests:

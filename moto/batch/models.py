@@ -9,7 +9,7 @@ import threading
 import dateutil.parser
 from sys import platform
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
 from moto.iam import iam_backends
 from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
@@ -60,7 +60,6 @@ class ComputeEnvironment(CloudFormationModel):
         state,
         compute_resources,
         service_role,
-        account_id,
         region_name,
     ):
         self.name = compute_environment_name
@@ -69,7 +68,7 @@ class ComputeEnvironment(CloudFormationModel):
         self.compute_resources = compute_resources
         self.service_role = service_role
         self.arn = make_arn_for_compute_env(
-            account_id, compute_environment_name, region_name
+            get_account_id(), compute_environment_name, region_name
         )
 
         self.instances = []
@@ -98,9 +97,9 @@ class ComputeEnvironment(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
-        backend = batch_backends[account_id][region_name]
+        backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
 
         env = backend.create_compute_environment(
@@ -123,6 +122,7 @@ class JobQueue(CloudFormationModel):
         state,
         environments,
         env_order_json,
+        region_name,
         backend,
         tags=None,
     ):
@@ -137,13 +137,15 @@ class JobQueue(CloudFormationModel):
         :type environments: list of ComputeEnvironment
         :param env_order_json: Compute Environments JSON for use when describing
         :type env_order_json: list of dict
+        :param region_name: Region name
+        :type region_name: str
         """
         self.name = name
         self.priority = priority
         self.state = state
         self.environments = environments
         self.env_order_json = env_order_json
-        self.arn = make_arn_for_job_queue(backend.account_id, name, backend.region_name)
+        self.arn = make_arn_for_job_queue(get_account_id(), name, region_name)
         self.status = "VALID"
         self.backend = backend
 
@@ -180,9 +182,9 @@ class JobQueue(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
-        backend = batch_backends[account_id][region_name]
+        backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
 
         # Need to deal with difference case from cloudformation compute_resources, e.g. instanceRole vs InstanceRole
@@ -210,6 +212,7 @@ class JobDefinition(CloudFormationModel):
         parameters,
         _type,
         container_properties,
+        region_name,
         tags=None,
         revision=0,
         retry_strategy=0,
@@ -222,7 +225,7 @@ class JobDefinition(CloudFormationModel):
         self.retry_strategy = retry_strategy
         self.type = _type
         self.revision = revision
-        self._region = backend.region_name
+        self._region = region_name
         self.container_properties = container_properties
         self.arn = None
         self.status = "ACTIVE"
@@ -254,7 +257,7 @@ class JobDefinition(CloudFormationModel):
     def _update_arn(self):
         self.revision += 1
         self.arn = make_arn_for_task_def(
-            self.backend.account_id, self.name, self.revision, self._region
+            get_account_id(), self.name, self.revision, self._region
         )
 
     def _get_resource_requirement(self, req_type, default=None):
@@ -344,6 +347,7 @@ class JobDefinition(CloudFormationModel):
             parameters,
             _type,
             container_properties,
+            region_name=self._region,
             revision=self.revision,
             retry_strategy=retry_strategy,
             tags=tags,
@@ -388,9 +392,9 @@ class JobDefinition(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
-        backend = batch_backends[account_id][region_name]
+        backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
         res = backend.register_job_definition(
             def_name=resource_name,
@@ -840,7 +844,7 @@ class BatchBackend(BaseBackend):
         :return: IAM Backend
         :rtype: moto.iam.models.IAMBackend
         """
-        return iam_backends[self.account_id]["global"]
+        return iam_backends["global"]
 
     @property
     def ec2_backend(self):
@@ -848,7 +852,7 @@ class BatchBackend(BaseBackend):
         :return: EC2 Backend
         :rtype: moto.ec2.models.EC2Backend
         """
-        return ec2_backends[self.account_id][self.region_name]
+        return ec2_backends[self.region_name]
 
     @property
     def ecs_backend(self):
@@ -856,7 +860,7 @@ class BatchBackend(BaseBackend):
         :return: ECS Backend
         :rtype: moto.ecs.models.EC2ContainerServiceBackend
         """
-        return ecs_backends[self.account_id][self.region_name]
+        return ecs_backends[self.region_name]
 
     @property
     def logs_backend(self):
@@ -864,7 +868,7 @@ class BatchBackend(BaseBackend):
         :return: ECS Backend
         :rtype: moto.logs.models.LogsBackend
         """
-        return logs_backends[self.account_id][self.region_name]
+        return logs_backends[self.region_name]
 
     def reset(self):
         for job in self._jobs.values():
@@ -1073,7 +1077,6 @@ class BatchBackend(BaseBackend):
             state,
             compute_resources,
             service_role,
-            account_id=self.account_id,
             region_name=self.region_name,
         )
         self._compute_environments[new_comp_env.arn] = new_comp_env
@@ -1341,6 +1344,7 @@ class BatchBackend(BaseBackend):
             state,
             env_objects,
             compute_env_order,
+            self.region_name,
             backend=self,
             tags=tags,
         )
@@ -1446,6 +1450,7 @@ class BatchBackend(BaseBackend):
                 _type,
                 container_properties,
                 tags=tags,
+                region_name=self.region_name,
                 retry_strategy=retry_strategy,
                 timeout=timeout,
                 backend=self,
@@ -1585,34 +1590,22 @@ class BatchBackend(BaseBackend):
         return jobs
 
     def cancel_job(self, job_id, reason):
-        if job_id == "":
-            raise ClientException(
-                "'reason' is a required field (cannot be an empty string)"
-            )
-        if reason == "":
-            raise ClientException(
-                "'jobId' is a required field (cannot be an empty string)"
-            )
-
         job = self.get_job_by_id(job_id)
-        if job is not None:
-            if job.status in ["SUBMITTED", "PENDING", "RUNNABLE"]:
-                job.terminate(reason)
-            # No-Op for jobs that have already started - user has to explicitly terminate those
+        if job.status in ["SUBMITTED", "PENDING", "RUNNABLE"]:
+            job.terminate(reason)
+        # No-Op for jobs that have already started - user has to explicitly terminate those
 
     def terminate_job(self, job_id, reason):
-        if job_id == "":
-            raise ClientException(
-                "'reason' is a required field (cannot be a empty string)"
-            )
-        if reason == "":
-            raise ClientException(
-                "'jobId' is a required field (cannot be a empty string)"
-            )
+        if job_id is None:
+            raise ClientException("Job ID does not exist")
+        if reason is None:
+            raise ClientException("Reason does not exist")
 
         job = self.get_job_by_id(job_id)
-        if job is not None:
-            job.terminate(reason)
+        if job is None:
+            raise ClientException("Job not found")
+
+        job.terminate(reason)
 
     def tag_resource(self, resource_arn, tags):
         tags = self.tagger.convert_dict_to_tags_input(tags or {})

@@ -9,7 +9,7 @@ from typing import Dict, List
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from moto.ecr.exceptions import (
     ImageNotFoundException,
@@ -29,6 +29,7 @@ from moto.iam.exceptions import MalformedPolicyDocument
 from moto.iam.policy_validation import IAMPolicyDocumentValidator
 from moto.utilities.tagging_service import TaggingService
 
+DEFAULT_REGISTRY_ID = get_account_id()
 ECR_REPOSITORY_ARN_PATTERN = "^arn:(?P<partition>[^:]+):ecr:(?P<region>[^:]+):(?P<account_id>[^:]+):repository/(?P<repo_name>.*)$"
 
 EcrRepositoryArn = namedtuple(
@@ -63,7 +64,6 @@ class BaseObject(BaseModel):
 class Repository(BaseObject, CloudFormationModel):
     def __init__(
         self,
-        account_id,
         region_name,
         repository_name,
         registry_id,
@@ -71,9 +71,8 @@ class Repository(BaseObject, CloudFormationModel):
         image_scan_config,
         image_tag_mutablility,
     ):
-        self.account_id = account_id
         self.region_name = region_name
-        self.registry_id = registry_id or account_id
+        self.registry_id = registry_id or DEFAULT_REGISTRY_ID
         self.arn = (
             f"arn:aws:ecr:{region_name}:{self.registry_id}:repository/{repository_name}"
         )
@@ -97,7 +96,7 @@ class Repository(BaseObject, CloudFormationModel):
         if encryption_config == {"encryptionType": "KMS"}:
             encryption_config[
                 "kmsKey"
-            ] = f"arn:aws:kms:{self.region_name}:{self.account_id}:key/{uuid.uuid4()}"
+            ] = f"arn:aws:kms:{self.region_name}:{get_account_id()}:key/{uuid.uuid4()}"
         return encryption_config
 
     def _get_image(self, image_tag, image_digest):
@@ -149,8 +148,8 @@ class Repository(BaseObject, CloudFormationModel):
         if image_tag_mutability:
             self.image_tag_mutability = image_tag_mutability
 
-    def delete(self, account_id, region_name):
-        ecr_backend = ecr_backends[account_id][region_name]
+    def delete(self, region_name):
+        ecr_backend = ecr_backends[region_name]
         ecr_backend.delete_repository(self.name)
 
     @classmethod
@@ -178,9 +177,9 @@ class Repository(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
-        ecr_backend = ecr_backends[account_id][region_name]
+        ecr_backend = ecr_backends[region_name]
         properties = cloudformation_json["Properties"]
 
         encryption_config = properties.get("EncryptionConfiguration")
@@ -201,14 +200,9 @@ class Repository(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
-        ecr_backend = ecr_backends[account_id][region_name]
+        ecr_backend = ecr_backends[region_name]
         properties = cloudformation_json["Properties"]
         encryption_configuration = properties.get(
             "EncryptionConfiguration", {"encryptionType": "AES256"}
@@ -229,22 +223,22 @@ class Repository(BaseObject, CloudFormationModel):
 
             return original_resource
         else:
-            original_resource.delete(account_id, region_name)
+            original_resource.delete(region_name)
             return cls.create_from_cloudformation_json(
-                new_resource_name, cloudformation_json, account_id, region_name
+                new_resource_name, cloudformation_json, region_name
             )
 
 
 class Image(BaseObject):
     def __init__(
-        self, account_id, tag, manifest, repository, digest=None, registry_id=None
+        self, tag, manifest, repository, digest=None, registry_id=DEFAULT_REGISTRY_ID
     ):
         self.image_tag = tag
         self.image_tags = [tag] if tag is not None else []
         self.image_manifest = manifest
         self.image_size_in_bytes = 50 * 1024 * 1024
         self.repository = repository
-        self.registry_id = registry_id or account_id
+        self.registry_id = registry_id
         self.image_digest = digest
         self.image_pushed_at = str(datetime.now(timezone.utc).isoformat())
         self.last_scan = None
@@ -365,7 +359,7 @@ class ECRBackend(BaseBackend):
 
     def _get_repository(self, name, registry_id=None) -> Repository:
         repo = self.repositories.get(name)
-        reg_id = registry_id or self.account_id
+        reg_id = registry_id or DEFAULT_REGISTRY_ID
 
         if not repo or repo.registry_id != reg_id:
             raise RepositoryNotFoundException(name, reg_id)
@@ -389,7 +383,7 @@ class ECRBackend(BaseBackend):
             for repository_name in repository_names:
                 if repository_name not in self.repositories:
                     raise RepositoryNotFoundException(
-                        repository_name, registry_id or self.account_id
+                        repository_name, registry_id or DEFAULT_REGISTRY_ID
                     )
 
         repositories = []
@@ -416,10 +410,9 @@ class ECRBackend(BaseBackend):
         tags,
     ):
         if self.repositories.get(repository_name):
-            raise RepositoryAlreadyExistsException(repository_name, self.account_id)
+            raise RepositoryAlreadyExistsException(repository_name, DEFAULT_REGISTRY_ID)
 
         repository = Repository(
-            account_id=self.account_id,
             region_name=self.region_name,
             repository_name=repository_name,
             registry_id=registry_id,
@@ -437,7 +430,7 @@ class ECRBackend(BaseBackend):
 
         if repo.images and not force:
             raise RepositoryNotEmptyException(
-                repository_name, registry_id or self.account_id
+                repository_name, registry_id or DEFAULT_REGISTRY_ID
             )
 
         self.tagger.delete_all_tags_for_resource(repo.arn)
@@ -459,7 +452,7 @@ class ECRBackend(BaseBackend):
 
         if not found:
             raise RepositoryNotFoundException(
-                repository_name, registry_id or self.account_id
+                repository_name, registry_id or DEFAULT_REGISTRY_ID
             )
 
         images = []
@@ -499,7 +492,7 @@ class ECRBackend(BaseBackend):
         )
         if not existing_images:
             # this image is not in ECR yet
-            image = Image(self.account_id, image_tag, image_manifest, repository_name)
+            image = Image(image_tag, image_manifest, repository_name)
             repository.images.append(image)
             return image
         else:
@@ -515,7 +508,7 @@ class ECRBackend(BaseBackend):
             repository = self.repositories[repository_name]
         else:
             raise RepositoryNotFoundException(
-                repository_name, registry_id or self.account_id
+                repository_name, registry_id or DEFAULT_REGISTRY_ID
             )
 
         if not image_ids:
@@ -553,7 +546,7 @@ class ECRBackend(BaseBackend):
             repository = self.repositories[repository_name]
         else:
             raise RepositoryNotFoundException(
-                repository_name, registry_id or self.account_id
+                repository_name, registry_id or DEFAULT_REGISTRY_ID
             )
 
         if not image_ids:
@@ -829,28 +822,28 @@ class ECRBackend(BaseBackend):
         self.registry_policy = policy_text
 
         return {
-            "registryId": self.account_id,
+            "registryId": get_account_id(),
             "policyText": policy_text,
         }
 
     def get_registry_policy(self):
         if not self.registry_policy:
-            raise RegistryPolicyNotFoundException(self.account_id)
+            raise RegistryPolicyNotFoundException(get_account_id())
 
         return {
-            "registryId": self.account_id,
+            "registryId": get_account_id(),
             "policyText": self.registry_policy,
         }
 
     def delete_registry_policy(self):
         policy = self.registry_policy
         if not policy:
-            raise RegistryPolicyNotFoundException(self.account_id)
+            raise RegistryPolicyNotFoundException(get_account_id())
 
         self.registry_policy = None
 
         return {
-            "registryId": self.account_id,
+            "registryId": get_account_id(),
             "policyText": policy,
         }
 
@@ -938,7 +931,7 @@ class ECRBackend(BaseBackend):
             for dest in rules[0]["destinations"]:
                 if (
                     dest["region"] == self.region_name
-                    and dest["registryId"] == self.account_id
+                    and dest["registryId"] == DEFAULT_REGISTRY_ID
                 ):
                     raise InvalidParameterException(
                         "Invalid parameter at 'replicationConfiguration' failed to satisfy constraint: "
@@ -951,7 +944,7 @@ class ECRBackend(BaseBackend):
 
     def describe_registry(self):
         return {
-            "registryId": self.account_id,
+            "registryId": DEFAULT_REGISTRY_ID,
             "replicationConfiguration": self.replication_config,
         }
 

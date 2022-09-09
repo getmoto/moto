@@ -5,12 +5,11 @@ from urllib.parse import unquote
 
 
 class IoTDataPlaneResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="iot-data")
+    SERVICE_NAME = "iot-data"
 
     @property
     def iotdata_backend(self):
-        return iotdata_backends[self.current_account][self.region]
+        return iotdata_backends[self.region]
 
     def update_thing_shadow(self):
         thing_name = self._get_param("thingName")

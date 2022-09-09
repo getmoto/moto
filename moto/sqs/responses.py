@@ -28,12 +28,9 @@ class SQSResponse(BaseResponse):
 
     region_regex = re.compile(r"://(.+?)\.queue\.amazonaws\.com")
 
-    def __init__(self):
-        super().__init__(service_name="sqs")
-
     @property
     def sqs_backend(self):
-        return sqs_backends[self.current_account][self.region]
+        return sqs_backends[self.region]
 
     @property
     def attribute(self):

@@ -1,5 +1,4 @@
 import json
-from copy import deepcopy
 from datetime import datetime
 
 import boto3
@@ -10,65 +9,64 @@ import pytest
 from moto import mock_codepipeline, mock_iam
 
 
-expected_pipeline_details = {
-    "name": "test-pipeline",
-    "roleArn": "arn:aws:iam::123456789012:role/test-role",
-    "artifactStore": {
-        "type": "S3",
-        "location": "codepipeline-us-east-1-123456789012",
-    },
-    "stages": [
-        {
-            "name": "Stage-1",
-            "actions": [
-                {
-                    "name": "Action-1",
-                    "actionTypeId": {
-                        "category": "Source",
-                        "owner": "AWS",
-                        "provider": "S3",
-                        "version": "1",
-                    },
-                    "runOrder": 1,
-                    "configuration": {
-                        "S3Bucket": "test-bucket",
-                        "S3ObjectKey": "test-object",
-                    },
-                    "outputArtifacts": [{"name": "artifact"}],
-                    "inputArtifacts": [],
-                }
-            ],
-        },
-        {
-            "name": "Stage-2",
-            "actions": [
-                {
-                    "name": "Action-1",
-                    "actionTypeId": {
-                        "category": "Approval",
-                        "owner": "AWS",
-                        "provider": "Manual",
-                        "version": "1",
-                    },
-                    "runOrder": 1,
-                    "configuration": {},
-                    "outputArtifacts": [],
-                    "inputArtifacts": [],
-                }
-            ],
-        },
-    ],
-    "version": 1,
-}
-
-
 @mock_codepipeline
 def test_create_pipeline():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
     response = create_basic_codepipeline(client, "test-pipeline")
 
-    response["pipeline"].should.equal(expected_pipeline_details)
+    response["pipeline"].should.equal(
+        {
+            "name": "test-pipeline",
+            "roleArn": "arn:aws:iam::123456789012:role/test-role",
+            "artifactStore": {
+                "type": "S3",
+                "location": "codepipeline-us-east-1-123456789012",
+            },
+            "stages": [
+                {
+                    "name": "Stage-1",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Source",
+                                "owner": "AWS",
+                                "provider": "S3",
+                                "version": "1",
+                            },
+                            "runOrder": 1,
+                            "configuration": {
+                                "S3Bucket": "test-bucket",
+                                "S3ObjectKey": "test-object",
+                            },
+                            "outputArtifacts": [{"name": "artifact"}],
+                            "inputArtifacts": [],
+                        }
+                    ],
+                },
+                {
+                    "name": "Stage-2",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Approval",
+                                "owner": "AWS",
+                                "provider": "Manual",
+                                "version": "1",
+                            },
+                            "runOrder": 1,
+                            "configuration": {},
+                            "outputArtifacts": [],
+                            "inputArtifacts": [],
+                        }
+                    ],
+                },
+            ],
+            "version": 1,
+        }
+    )
     response["tags"].should.equal([{"key": "key", "value": "value"}])
 
 
@@ -221,7 +219,58 @@ def test_get_pipeline():
 
     response = client.get_pipeline(name="test-pipeline")
 
-    response["pipeline"].should.equal(expected_pipeline_details)
+    response["pipeline"].should.equal(
+        {
+            "name": "test-pipeline",
+            "roleArn": "arn:aws:iam::123456789012:role/test-role",
+            "artifactStore": {
+                "type": "S3",
+                "location": "codepipeline-us-east-1-123456789012",
+            },
+            "stages": [
+                {
+                    "name": "Stage-1",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Source",
+                                "owner": "AWS",
+                                "provider": "S3",
+                                "version": "1",
+                            },
+                            "runOrder": 1,
+                            "configuration": {
+                                "S3Bucket": "test-bucket",
+                                "S3ObjectKey": "test-object",
+                            },
+                            "outputArtifacts": [{"name": "artifact"}],
+                            "inputArtifacts": [],
+                        }
+                    ],
+                },
+                {
+                    "name": "Stage-2",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Approval",
+                                "owner": "AWS",
+                                "provider": "Manual",
+                                "version": "1",
+                            },
+                            "runOrder": 1,
+                            "configuration": {},
+                            "outputArtifacts": [],
+                            "inputArtifacts": [],
+                        }
+                    ],
+                },
+            ],
+            "version": 1,
+        }
+    )
     response["metadata"]["pipelineArn"].should.equal(
         "arn:aws:codepipeline:us-east-1:123456789012:test-pipeline"
     )
@@ -599,41 +648,34 @@ def test_untag_resource_errors():
     )
 
 
-simple_trust_policy = {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {"Service": "codepipeline.amazonaws.com"},
-            "Action": "sts:AssumeRole",
-        }
-    ],
-}
-
-
 @mock_iam
-def get_role_arn(name="test-role", trust_policy=None):
+def get_role_arn():
     client = boto3.client("iam", region_name="us-east-1")
     try:
-        return client.get_role(RoleName=name)["Role"]["Arn"]
+        return client.get_role(RoleName="test-role")["Role"]["Arn"]
     except ClientError:
-        if trust_policy is None:
-            trust_policy = simple_trust_policy
         return client.create_role(
-            RoleName=name,
-            AssumeRolePolicyDocument=json.dumps(trust_policy),
+            RoleName="test-role",
+            AssumeRolePolicyDocument=json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"Service": "codepipeline.amazonaws.com"},
+                            "Action": "sts:AssumeRole",
+                        }
+                    ],
+                }
+            ),
         )["Role"]["Arn"]
 
 
-def create_basic_codepipeline(client, name, role_arn=None, tags=None):
-    if role_arn is None:
-        role_arn = get_role_arn()
-    if tags is None:
-        tags = [{"key": "key", "value": "value"}]
+def create_basic_codepipeline(client, name):
     return client.create_pipeline(
         pipeline={
             "name": name,
-            "roleArn": role_arn,
+            "roleArn": get_role_arn(),
             "artifactStore": {
                 "type": "S3",
                 "location": "codepipeline-us-east-1-123456789012",
@@ -674,48 +716,5 @@ def create_basic_codepipeline(client, name, role_arn=None, tags=None):
                 },
             ],
         },
-        tags=tags,
+        tags=[{"key": "key", "value": "value"}],
     )
-
-
-extended_trust_policy = {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {"Service": "codebuild.amazonaws.com"},
-            "Action": "sts:AssumeRole",
-        },
-        {
-            "Effect": "Allow",
-            "Principal": {"Service": "codepipeline.amazonaws.com"},
-            "Action": "sts:AssumeRole",
-        },
-    ],
-}
-
-
-@mock_codepipeline
-def test_create_pipeline_with_extended_trust_policy():
-    client = boto3.client("codepipeline", region_name="us-east-1")
-
-    role_arn = get_role_arn(
-        name="test-role-extended", trust_policy=extended_trust_policy
-    )
-    response = create_basic_codepipeline(client, "test-pipeline", role_arn=role_arn)
-
-    extended_pipeline_details = deepcopy(expected_pipeline_details)
-    extended_pipeline_details["roleArn"] = role_arn
-
-    response["pipeline"].should.equal(extended_pipeline_details)
-    response["tags"].should.equal([{"key": "key", "value": "value"}])
-
-
-@mock_codepipeline
-def test_create_pipeline_without_tags():
-    client = boto3.client("codepipeline", region_name="us-east-1")
-
-    response = create_basic_codepipeline(client, "test-pipeline", tags=[])
-
-    response["pipeline"].should.equal(expected_pipeline_details)
-    response["tags"].should.equal([])

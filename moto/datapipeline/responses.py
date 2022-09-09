@@ -5,12 +5,9 @@ from .models import datapipeline_backends
 
 
 class DataPipelineResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="datapipeline")
-
     @property
     def datapipeline_backend(self):
-        return datapipeline_backends[self.current_account][self.region]
+        return datapipeline_backends[self.region]
 
     def create_pipeline(self):
         name = self._get_param("name")

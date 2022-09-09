@@ -29,7 +29,6 @@ datasync
 - [ ] create_agent
 - [ ] create_location_efs
 - [ ] create_location_fsx_lustre
-- [ ] create_location_fsx_ontap
 - [ ] create_location_fsx_open_zfs
 - [ ] create_location_fsx_windows
 - [ ] create_location_hdfs
@@ -44,7 +43,6 @@ datasync
 - [ ] describe_agent
 - [ ] describe_location_efs
 - [ ] describe_location_fsx_lustre
-- [ ] describe_location_fsx_ontap
 - [ ] describe_location_fsx_open_zfs
 - [ ] describe_location_fsx_windows
 - [ ] describe_location_hdfs

@@ -6,12 +6,9 @@ from datetime import datetime
 
 
 class EmailResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="ses")
-
     @property
     def backend(self):
-        return ses_backends[self.current_account]["global"]
+        return ses_backends["global"]
 
     def verify_email_identity(self):
         address = self.querystring.get("EmailAddress")[0]
@@ -97,40 +94,6 @@ class EmailResponse(BaseResponse):
         template = self.response_template(SEND_TEMPLATED_EMAIL_RESPONSE)
         return template.render(message=message)
 
-    def send_bulk_templated_email(self):
-        source = self.querystring.get("Source")[0]
-        template = self.querystring.get("Template")
-        template_data = self.querystring.get("DefaultTemplateData")
-
-        destinations = []
-        for i in range(1, 52):
-            destination_field = (
-                "Destinations.member.%s.Destination.ToAddresses.member.1" % (i)
-            )
-            if self.querystring.get(destination_field) is None:
-                break
-            destination = {"ToAddresses": [], "CcAddresses": [], "BccAddresses": []}
-            for dest_type in destination:
-                # consume up to 51 to allow exception
-                for j in range(1, 52):
-                    field = "Destinations.member.%s.Destination.%s.member.%s" % (
-                        i,
-                        dest_type,
-                        j,
-                    )
-                    address = self.querystring.get(field)
-                    if address is None:
-                        break
-                    destination[dest_type].append(address[0])
-            destinations.append({"Destination": destination})
-
-        message = self.backend.send_bulk_templated_email(
-            source, template, template_data, destinations, self.region
-        )
-        template = self.response_template(SEND_BULK_TEMPLATED_EMAIL_RESPONSE)
-        result = template.render(message=message)
-        return result
-
     def send_raw_email(self):
         source = self.querystring.get("Source")
         if source is not None:
@@ -196,12 +159,6 @@ class EmailResponse(BaseResponse):
         )
         template = self.response_template(CREATE_CONFIGURATION_SET)
         return template.render()
-
-    def describe_configuration_set(self):
-        configuration_set_name = self.querystring.get("ConfigurationSetName")[0]
-        self.backend.describe_configuration_set(configuration_set_name)
-        template = self.response_template(DESCRIBE_CONFIGURATION_SET)
-        return template.render(name=configuration_set_name)
 
     def create_configuration_set_event_destination(self):
 
@@ -444,19 +401,6 @@ SEND_TEMPLATED_EMAIL_RESPONSE = """<SendTemplatedEmailResponse xmlns="http://ses
   </ResponseMetadata>
 </SendTemplatedEmailResponse>"""
 
-SEND_BULK_TEMPLATED_EMAIL_RESPONSE = """<SendBulkTemplatedEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SendBulkTemplatedEmailResult>
-    {% for id in message.ids %}
-        <BulkEmailDestinationStatus>
-            <MessageId>{{ id }}</MessageId>
-        </BulkEmailDestinationStatus>
-    {% endfor %}
-  </SendBulkTemplatedEmailResult>
-  <ResponseMetadata>
-    <RequestId>d5964849-c866-11e0-9beb-01a62d68c57f</RequestId>
-  </ResponseMetadata>
-</SendBulkTemplatedEmailResponse>"""
-
 SEND_RAW_EMAIL_RESPONSE = """<SendRawEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <SendRawEmailResult>
     <MessageId>{{ message.id }}</MessageId>
@@ -542,16 +486,6 @@ CREATE_CONFIGURATION_SET = """<CreateConfigurationSetResponse xmlns="http://ses.
   </ResponseMetadata>
 </CreateConfigurationSetResponse>"""
 
-DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <DescribeConfigurationSetResult>
-    <ConfigurationSet>
-      <Name>{{ name }}</Name>
-    </ConfigurationSet>
-  </DescribeConfigurationSetResult>
-  <ResponseMetadata>
-    <RequestId>8e410745-c1bd-4450-82e0-f968cf2105f2</RequestId>
-  </ResponseMetadata>
-</DescribeConfigurationSetResponse>"""
 
 CREATE_CONFIGURATION_SET_EVENT_DESTINATION = """<CreateConfigurationSetEventDestinationResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <CreateConfigurationSetEventDestinationResult/>
@@ -587,6 +521,7 @@ GET_TEMPLATE = """<GetTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-
         <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
     </ResponseMetadata>
 </GetTemplateResponse>"""
+
 
 LIST_TEMPLATES = """<ListTemplatesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
     <ListTemplatesResult>

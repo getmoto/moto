@@ -15,13 +15,6 @@ class ConfigurationSetDoesNotExist(RESTError):
         super().__init__("ConfigurationSetDoesNotExist", message)
 
 
-class ConfigurationSetAlreadyExists(RESTError):
-    code = 400
-
-    def __init__(self, message):
-        super().__init__("ConfigurationSetAlreadyExists", message)
-
-
 class EventDestinationAlreadyExists(RESTError):
     code = 400
 

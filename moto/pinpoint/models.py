@@ -1,5 +1,5 @@
 from datetime import datetime
-from moto.core import BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
 from moto.utilities.tagging_service import TaggingService
 from uuid import uuid4
@@ -8,11 +8,9 @@ from .exceptions import ApplicationNotFound, EventStreamNotFound
 
 
 class App(BaseModel):
-    def __init__(self, account_id, name):
+    def __init__(self, name):
         self.application_id = str(uuid4()).replace("-", "")
-        self.arn = (
-            f"arn:aws:mobiletargeting:us-east-1:{account_id}:apps/{self.application_id}"
-        )
+        self.arn = f"arn:aws:mobiletargeting:us-east-1:{get_account_id()}:apps/{self.application_id}"
         self.name = name
         self.created = unix_time()
         self.settings = AppSettings()
@@ -92,7 +90,7 @@ class PinpointBackend(BaseBackend):
         self.tagger = TaggingService()
 
     def create_app(self, name, tags):
-        app = App(self.account_id, name)
+        app = App(name)
         self.apps[app.application_id] = app
         tags = self.tagger.convert_dict_to_tags_input(tags)
         self.tagger.tag_resource(app.arn, tags)

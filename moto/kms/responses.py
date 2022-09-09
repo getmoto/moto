@@ -4,6 +4,7 @@ import os
 import re
 import warnings
 
+from moto.core import get_account_id
 from moto.core.responses import BaseResponse
 from moto.kms.utils import RESERVED_ALIASES
 from .models import kms_backends
@@ -16,9 +17,6 @@ from .exceptions import (
 
 
 class KmsResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="kms")
-
     @property
     def parameters(self):
         params = json.loads(self.body)
@@ -31,7 +29,7 @@ class KmsResponse(BaseResponse):
 
     @property
     def kms_backend(self):
-        return kms_backends[self.current_account][self.region]
+        return kms_backends[self.region]
 
     def _display_arn(self, key_id):
         if key_id.startswith("arn:"):
@@ -42,7 +40,9 @@ class KmsResponse(BaseResponse):
         else:
             id_type = "key/"
 
-        return f"arn:aws:kms:{self.region}:{self.current_account}:{id_type}{key_id}"
+        return "arn:aws:kms:{region}:{account}:{id_type}{key_id}".format(
+            region=self.region, account=get_account_id(), id_type=id_type, key_id=key_id
+        )
 
     def _validate_cmk_id(self, key_id):
         """Determine whether a CMK ID exists.
@@ -51,11 +51,8 @@ class KmsResponse(BaseResponse):
         - key ARN
         """
         is_arn = key_id.startswith("arn:") and ":key/" in key_id
-        # https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html
-        # "Notice that multi-Region keys have a distinctive key ID that begins with mrk-. You can use the mrk- prefix to
-        # identify MRKs programmatically."
         is_raw_key_id = re.match(
-            r"^(mrk-)?[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$",
+            r"^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$",
             key_id,
             re.IGNORECASE,
         )
@@ -117,18 +114,11 @@ class KmsResponse(BaseResponse):
         )
         description = self.parameters.get("Description")
         tags = self.parameters.get("Tags")
-        multi_region = self.parameters.get("MultiRegion")
 
         key = self.kms_backend.create_key(
-            policy, key_usage, key_spec, description, tags, multi_region
+            policy, key_usage, key_spec, description, tags, self.region
         )
         return json.dumps(key.to_dict())
-
-    def replicate_key(self):
-        key_id = self.parameters.get("KeyId")
-        self._validate_key_id(key_id)
-        replica_region = self.parameters.get("ReplicaRegion")
-        self.kms_backend.replicate_key(key_id, replica_region)
 
     def update_key_description(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_UpdateKeyDescription.html"""
@@ -235,7 +225,7 @@ class KmsResponse(BaseResponse):
                 "An alias with the name arn:aws:kms:{region}:{account_id}:{alias_name} "
                 "already exists".format(
                     region=self.region,
-                    account_id=self.current_account,
+                    account_id=get_account_id(),
                     alias_name=alias_name,
                 )
             )
@@ -270,7 +260,11 @@ class KmsResponse(BaseResponse):
                 # TODO: add creation date and last updated in response_aliases
                 response_aliases.append(
                     {
-                        "AliasArn": f"arn:aws:kms:{region}:{self.current_account}:{alias_name}",
+                        "AliasArn": "arn:aws:kms:{region}:{account_id}:{alias_name}".format(
+                            region=region,
+                            account_id=get_account_id(),
+                            alias_name=alias_name,
+                        ),
                         "AliasName": alias_name,
                         "TargetKeyId": target_key_id,
                     }
@@ -282,7 +276,11 @@ class KmsResponse(BaseResponse):
             if not exsisting:
                 response_aliases.append(
                     {
-                        "AliasArn": f"arn:aws:kms:{region}:{self.current_account}:{reserved_alias}",
+                        "AliasArn": "arn:aws:kms:{region}:{account_id}:{reserved_alias}".format(
+                            region=region,
+                            account_id=get_account_id(),
+                            reserved_alias=reserved_alias,
+                        ),
                         "AliasName": reserved_alias,
                     }
                 )

@@ -1,5 +1,6 @@
 import json
 from werkzeug.exceptions import BadRequest
+from moto.core import get_account_id
 
 
 class ResourceNotFoundError(BadRequest):
@@ -19,29 +20,24 @@ class ResourceInUseError(BadRequest):
 
 
 class StreamNotFoundError(ResourceNotFoundError):
-    def __init__(self, stream_name, account_id):
-        super().__init__(f"Stream {stream_name} under account {account_id} not found.")
-
-
-class StreamCannotBeUpdatedError(BadRequest):
-    def __init__(self, stream_name, account_id):
-        super().__init__()
-        message = f"Request is invalid. Stream {stream_name} under account {account_id} is in On-Demand mode."
-        self.description = json.dumps(
-            {"message": message, "__type": "ValidationException"}
+    def __init__(self, stream_name):
+        super().__init__(
+            "Stream {0} under account {1} not found.".format(
+                stream_name, get_account_id()
+            )
         )
 
 
 class ShardNotFoundError(ResourceNotFoundError):
-    def __init__(self, shard_id, stream, account_id):
+    def __init__(self, shard_id, stream):
         super().__init__(
-            f"Could not find shard {shard_id} in stream {stream} under account {account_id}."
+            f"Could not find shard {shard_id} in stream {stream} under account {get_account_id()}."
         )
 
 
 class ConsumerNotFound(ResourceNotFoundError):
-    def __init__(self, consumer, account_id):
-        super().__init__(f"Consumer {consumer}, account {account_id} not found.")
+    def __init__(self, consumer):
+        super().__init__(f"Consumer {consumer}, account {get_account_id()} not found.")
 
 
 class InvalidArgumentError(BadRequest):
@@ -79,39 +75,6 @@ class ValidationException(BadRequest):
         self.description = json.dumps(
             {
                 "message": f"1 validation error detected: Value '{value}' at '{position}' failed to satisfy constraint: Member must satisfy regular expression pattern: {regex_to_match}",
-                "__type": "ValidationException",
-            }
-        )
-
-
-class RecordSizeExceedsLimit(BadRequest):
-    def __init__(self, position):
-        super().__init__()
-        self.description = json.dumps(
-            {
-                "message": f"1 validation error detected: Value at 'records.{position}.member.data' failed to satisfy constraint: Member must have length less than or equal to 1048576",
-                "__type": "ValidationException",
-            }
-        )
-
-
-class TotalRecordsSizeExceedsLimit(BadRequest):
-    def __init__(self):
-        super().__init__()
-        self.description = json.dumps(
-            {
-                "message": "Records size exceeds 5 MB limit",
-                "__type": "InvalidArgumentException",
-            }
-        )
-
-
-class TooManyRecords(BadRequest):
-    def __init__(self):
-        super().__init__()
-        self.description = json.dumps(
-            {
-                "message": "1 validation error detected: Value at 'records' failed to satisfy constraint: Member must have length less than or equal to 500",
                 "__type": "ValidationException",
             }
         )

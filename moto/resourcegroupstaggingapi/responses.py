@@ -4,8 +4,7 @@ import json
 
 
 class ResourceGroupsTaggingAPIResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="resourcegroupstaggingapi")
+    SERVICE_NAME = "resourcegroupstaggingapi"
 
     @property
     def backend(self):
@@ -14,7 +13,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         :returns: Resource tagging api backend
         :rtype: moto.resourcegroupstaggingapi.models.ResourceGroupsTaggingAPIBackend
         """
-        return resourcegroupstaggingapi_backends[self.current_account][self.region]
+        return resourcegroupstaggingapi_backends[self.region]
 
     def get_resources(self):
         pagination_token = self._get_param("PaginationToken")

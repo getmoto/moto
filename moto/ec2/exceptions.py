@@ -702,19 +702,11 @@ class OperationNotPermitted4(EC2ClientError):
         )
 
 
-class InvalidLaunchTemplateNameAlreadyExistsError(EC2ClientError):
+class InvalidLaunchTemplateNameError(EC2ClientError):
     def __init__(self):
         super().__init__(
             "InvalidLaunchTemplateName.AlreadyExistsException",
             "Launch template name already in use.",
-        )
-
-
-class InvalidLaunchTemplateNameNotFoundError(EC2ClientError):
-    def __init__(self):
-        super().__init__(
-            "InvalidLaunchTemplateName.NotFoundException",
-            "At least one of the launch templates specified in the request does not exist.",
         )
 
 

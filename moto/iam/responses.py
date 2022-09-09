@@ -4,12 +4,9 @@ from .models import iam_backends, User
 
 
 class IamResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="iam")
-
     @property
     def backend(self):
-        return iam_backends[self.current_account]["global"]
+        return iam_backends["global"]
 
     def attach_role_policy(self):
         policy_arn = self._get_param("PolicyArn")
@@ -258,8 +255,8 @@ class IamResponse(BaseResponse):
 
     def update_assume_role_policy(self):
         role_name = self._get_param("RoleName")
-        policy_document = self._get_param("PolicyDocument")
-        self.backend.update_assume_role_policy(role_name, policy_document)
+        role = self.backend.get_role(role_name)
+        role.assume_role_policy_document = self._get_param("PolicyDocument")
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateAssumeRolePolicy")
 
@@ -527,10 +524,10 @@ class IamResponse(BaseResponse):
     def get_user(self):
         user_name = self._get_param("UserName")
         if not user_name:
-            access_key_id = self.get_access_key()
+            access_key_id = self.get_current_user()
             user = self.backend.get_user_from_access_key_id(access_key_id)
             if user is None:
-                user = User(self.current_account, "default_user")
+                user = User("default_user")
         else:
             user = self.backend.get_user(user_name)
         tags = self.backend.tagger.list_tags_for_resource(user.arn).get("Tags", [])
@@ -643,7 +640,7 @@ class IamResponse(BaseResponse):
     def create_access_key(self):
         user_name = self._get_param("UserName")
         if not user_name:
-            access_key_id = self.get_access_key()
+            access_key_id = self.get_current_user()
             access_key = self.backend.get_access_key_last_used(access_key_id)
             user_name = access_key["user_name"]
 
@@ -675,7 +672,7 @@ class IamResponse(BaseResponse):
     def list_access_keys(self):
         user_name = self._get_param("UserName")
         if not user_name:
-            access_key_id = self.get_access_key()
+            access_key_id = self.get_current_user()
             access_key = self.backend.get_access_key_last_used(access_key_id)
             user_name = access_key["user_name"]
 
@@ -1963,13 +1960,10 @@ GET_ACCESS_KEY_LAST_USED_TEMPLATE = """
         <UserName>{{ user_name }}</UserName>
         <AccessKeyLastUsed>
         {% if last_used %}
-          <LastUsedDate>{{ last_used.timestamp }}</LastUsedDate>
-          <ServiceName>{{ last_used.service }}</ServiceName>
-          <Region>{{ last_used.region }}</Region>
-        {% else %}
+          <LastUsedDate>{{ last_used }}</LastUsedDate>
+        {% endif %}
           <ServiceName>N/A</ServiceName>
           <Region>N/A</Region>
-        {% endif %}
         </AccessKeyLastUsed>
     </GetAccessKeyLastUsedResult>
 </GetAccessKeyLastUsedResponse>
@@ -2116,9 +2110,6 @@ LIST_MFA_DEVICES_TEMPLATE = """<ListMFADevicesResponse>
          <member>
             <UserName>{{ user_name }}</UserName>
             <SerialNumber>{{ device.serial_number }}</SerialNumber>
-            {% if device.enable_date %}
-            <EnableDate>{{ device.enabled_iso_8601 }}</EnableDate>
-            {% endif %}
          </member>
         {% endfor %}
       </MFADevices>

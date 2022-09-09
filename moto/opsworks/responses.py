@@ -5,16 +5,13 @@ from .models import opsworks_backends
 
 
 class OpsWorksResponse(BaseResponse):
-    def __init__(self):
-        super().__init__(service_name="opsworks")
-
     @property
     def parameters(self):
         return json.loads(self.body)
 
     @property
     def opsworks_backend(self):
-        return opsworks_backends[self.current_account][self.region]
+        return opsworks_backends[self.region]
 
     def create_stack(self):
         kwargs = dict(

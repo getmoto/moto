@@ -1,4 +1,4 @@
-from moto.core import BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.ecs import ecs_backends
 from .exceptions import AWSValidationException
@@ -65,7 +65,7 @@ class ScalableDimensionValueSet(Enum):
 class ApplicationAutoscalingBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
-        self.ecs_backend = ecs_backends[account_id][region_name]
+        self.ecs_backend = ecs_backends[region_name]
         self.targets = OrderedDict()
         self.policies = {}
         self.scheduled_actions = list()
@@ -76,6 +76,10 @@ class ApplicationAutoscalingBackend(BaseBackend):
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "application-autoscaling"
         )
+
+    @property
+    def applicationautoscaling_backend(self):
+        return applicationautoscaling_backends[self.region_name]
 
     def describe_scalable_targets(self, namespace, r_ids=None, dimension=None):
         """Describe scalable targets."""
@@ -301,7 +305,6 @@ class ApplicationAutoscalingBackend(BaseBackend):
                 start_time,
                 end_time,
                 scalable_target_action,
-                self.account_id,
                 self.region_name,
             )
             self.scheduled_actions.append(action)
@@ -447,10 +450,9 @@ class FakeScheduledAction(BaseModel):
         start_time,
         end_time,
         scalable_target_action,
-        account_id,
         region,
     ):
-        self.arn = f"arn:aws:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}:scheduledActionName/{scheduled_action_name}"
+        self.arn = f"arn:aws:autoscaling:{region}:{get_account_id()}:scheduledAction:{service_namespace}:scheduledActionName/{scheduled_action_name}"
         self.service_namespace = service_namespace
         self.schedule = schedule
         self.timezone = timezone

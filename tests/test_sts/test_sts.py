@@ -9,7 +9,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sts, mock_iam, settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
 
 

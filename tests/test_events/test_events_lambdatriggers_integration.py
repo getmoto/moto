@@ -2,7 +2,7 @@ import boto3
 import json
 
 from moto import mock_events, mock_iam, mock_lambda, mock_logs, mock_s3
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from ..test_awslambda.utilities import get_test_zip_file1, wait_for_log_msg
 
 
