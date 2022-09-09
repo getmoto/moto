@@ -278,6 +278,8 @@ def test_start_stop_recording(m_record):
 @mock_ec2
 @mock.patch("moto.core.responses.open", return_value=mock.MagicMock(spec=io.IOBase))
 def test_replay_recording(m_open):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("mock patch does not work in server mode")
     boto3.resource("ec2", "us-east-1")
     BASE_URL = (
         "http://localhost:5000"
