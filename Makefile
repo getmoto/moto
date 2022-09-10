@@ -6,12 +6,12 @@ TEST_NAMES = "*"
 ifeq ($(TEST_SERVER_MODE), true)
 	# exclude test_kinesisvideoarchivedmedia
 	# because testing with moto_server is difficult with data-endpoint
-	TEST_EXCLUDE := -k 'not (test_kinesisvideoarchivedmedia or test_awslambda or test_batch or test_ec2 or test_sqs)'
+	TEST_EXCLUDE := --ignore tests/test_kinesisvideoarchivedmedia --ignore tests/test_awslambda --ignore tests/test_batch --ignore tests/test_ec2 --ignore tests/test_sqs
 	# Parallel tests will be run separate
 	PARALLEL_TESTS := ./tests/test_awslambda ./tests/test_batch ./tests/test_ec2 ./tests/test_sqs
 else
-	TEST_EXCLUDE := -k 'not (test_ec2 or test_sqs)'
-	PARALLEL_TESTS := ./tests/test_ec2 ./tests/test_sqs
+	TEST_EXCLUDE := --ignore tests/test_batch --ignore tests/test_ec2 --ignore tests/test_sqs
+	PARALLEL_TESTS := ./tests/test_batch ./tests/test_ec2 ./tests/test_sqs
 endif
 
 init:
