@@ -10,8 +10,8 @@ ifeq ($(TEST_SERVER_MODE), true)
 	# Parallel tests will be run separate
 	PARALLEL_TESTS := ./tests/test_awslambda ./tests/test_batch ./tests/test_ec2 ./tests/test_sqs
 else
-	TEST_EXCLUDE :=
-	PARALLEL_TESTS := ./tests/test_core
+	TEST_EXCLUDE := -k 'not (test_ec2 or test_sqs)'
+	PARALLEL_TESTS := ./tests/test_ec2 ./tests/test_sqs
 endif
 
 init:
@@ -35,7 +35,7 @@ test-only:
 	rm -f .coverage
 	rm -rf cover
 	pytest -sv --cov=moto --cov-report xml ./tests/ $(TEST_EXCLUDE)
-	MOTO_CALL_RESET_API=false pytest -n 4 $(PARALLEL_TESTS)
+	MOTO_CALL_RESET_API=false pytest --cov=moto --cov-report xml --cov-append -n 4 $(PARALLEL_TESTS)
 
 test: lint test-only
 
