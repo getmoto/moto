@@ -789,7 +789,7 @@ index e52c0c58eb..9a43020008 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(20 * time.Minute),
-+			Create: schema.DefaultTimeout(10 * time.Second),
++			Create: schema.DefaultTimeout(20 * time.Second),
 +			Delete: schema.DefaultTimeout(20 * time.Second),
  		},
 

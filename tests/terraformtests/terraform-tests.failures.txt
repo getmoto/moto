@@ -47,12 +47,7 @@ TestAccPartition
 TestAccPinpointApp
 TestAccPinpointEventStream
 TestAccProvider
-TestAccQuickSightGroup
-TestAccSQSQueuePolicy
-TestAccSSMDocument
-TestAccSsmDocumentDataSource
 TestAccSsmParameterDataSource
 TestAccDataSourceLambdaLayerVersion
 TestAccDataSourceLambdaInvocation
 TestAccDataSourceNetworkInterface_
-TestAccSQSQueueDataSource

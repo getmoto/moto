@@ -41,6 +41,12 @@ autoscaling:
   - TestAccAutoScalingLaunchConfiguration_
 batch:
   - TestAccBatchJobDefinition
+  - TestAccBatchJobQueue_basic
+  - TestAccBatchJobQueue_tags
+  - TestAccBatchJobQueue_disappears
+  - TestAccBatchJobQueue_priority
+  - TestAccBatchJobQueue_state
+  - TestAccBatchJobQueue_ComputeEnvironments_externalOrderUpdate
 ce:
   - TestAccCECostCategory
 cloudfront:
@@ -179,6 +185,7 @@ mq:
   - TestAccMQBroker_
 quicksight:
   - TestAccQuickSightUser
+  - TestAccQuickSightGroup_
 redshift:
   - TestAccRedshiftServiceAccountDataSource
 route53|1:
@@ -250,6 +257,9 @@ sns:
   - TestAccSNSTopicPolicy
   - TestAccSNSTopicDataSource
   - TestAccSNSSMSPreferences
+ssm:
+  - TestAccSSMDocumentDataSource_basic
+  - TestAccSSMDocument_
 sts:
   - TestAccSTSCallerIdentityDataSource
 sqs:
