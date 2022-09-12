@@ -92,7 +92,7 @@ class Deployment(CloudFormationModel, dict):
     ):
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
-        name = properties["StageName"]
+        name = properties.get("StageName")
         desc = properties.get("Description", "")
         backend = apigateway_backends[account_id][region_name]
         return backend.create_deployment(
@@ -220,7 +220,7 @@ class Method(CloudFormationModel, dict):
         resource_id = properties["ResourceId"]
         method_type = properties["HttpMethod"]
         auth_type = properties["AuthorizationType"]
-        key_req = properties["ApiKeyRequired"]
+        key_req = properties.get("ApiKeyRequired")
         backend = apigateway_backends[account_id][region_name]
         m = backend.put_method(
             function_id=rest_api_id,
