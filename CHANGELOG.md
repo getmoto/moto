@@ -1,6 +1,33 @@
 Moto Changelog
 ==============
 
+4.0.3
+-----
+Docker Digest for 4.0.3: <autopopulateddigest>
+
+    General:
+        * Compatible with openapi-spec-validator 0.5.x
+
+    New Methods:
+        * Kinesis:
+            * update_stream_mode()
+        * WAFv2:
+            * associate_web_acl()
+            * delete_web_acl()
+            * disassociate_web_acl()
+            * get_web_acl()
+            * get_web_acl_for_resource()
+            * list_rule_groups()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_web_acl()
+
+    Miscellaneous:
+        * DynamoDB:query() now has improved support for KeyConditionExpression
+        * Kinesis:put_records() now validates the size/number of records, following AWS' behaviour
+
+
 4.0.2
 -----
 Docker Digest for 4.0.2: _sha256:32b30fef5d54d30eb7beca263dcb0ba08bd3718adb8b5d95f9f4b6e9cfc854f1_

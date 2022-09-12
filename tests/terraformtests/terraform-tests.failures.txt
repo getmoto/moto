@@ -1,7 +1,6 @@
 # The Tests in this file worked against an older version of Terraform
 # Either they do not work anymore, or have not been verified to work yet
 
-TestAccAPIGatewayStage
 TestAccAPIGatewayV2Authorizer
 TestAccAPIGatewayV2Route
 TestAccAppsyncApiKey
@@ -43,18 +42,12 @@ TestAccEksClusterDataSource
 TestAccIAMRole
 TestAccIotThing
 TestAccIPRanges
-TestAccKinesisStream
 TestAccELBPolicy
 TestAccPartition
 TestAccPinpointApp
 TestAccPinpointEventStream
 TestAccProvider
-TestAccQuickSightGroup
-TestAccSQSQueuePolicy
-TestAccSSMDocument
-TestAccSsmDocumentDataSource
 TestAccSsmParameterDataSource
 TestAccDataSourceLambdaLayerVersion
 TestAccDataSourceLambdaInvocation
 TestAccDataSourceNetworkInterface_
-TestAccSQSQueueDataSource
