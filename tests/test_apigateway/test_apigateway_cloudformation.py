@@ -290,6 +290,28 @@ template = """{
   }
 }"""
 
+template_with_missing_sub = """{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS CloudFormation template",
+  "Resources": {
+    "UnknownResource": {"Type": "AWS::Cloud9::EnvironmentEC2", "Properties": {}},
+    "ApiGatewayRestApi": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": "test-api",
+        "Description": {"Fn::Sub": "${UnknownResource}"},
+        "EndpointConfiguration": {
+          "Types": [
+            "EDGE"
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+  }
+}"""
+
 
 @mock_cloudformation
 @mock_lambda
@@ -347,3 +369,15 @@ def test_simple_apigateway_with_lambda_proxy():
     statement["Condition"]["ArnLike"]["AWS:SourceArn"].should.equal(
         "arn:aws:execute-api:us-east-1:123456789012:{}/*/*".format(api_id)
     )
+
+
+@mock_apigateway
+@mock_cloudformation
+def test_apigateway_with_unknown_description():
+    region = "us-east-1"
+    apigw = boto3.client("apigateway", region_name=region)
+    cf = boto3.client("cloudformation", region_name=region)
+    cf.create_stack(StackName="teststack", TemplateBody=template_with_missing_sub)
+
+    api = apigw.get_rest_apis()["items"][0]
+    api.should.have.key("description").equals("${UnknownResource}")

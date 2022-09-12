@@ -185,7 +185,11 @@ def clean_json(resource_json, resources_map):
                             {"Ref": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[0]},
                             resources_map,
                         )
-                    fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)
+                    if cleaned_ref is not None:
+                        fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)
+                    else:
+                        # The ref was not found in the template - either it didn't exist, or we couldn't parse it
+                        pass
                 for literal in literals:
                     fn_sub_value = fn_sub_value.replace(
                         literal, literal.replace("!", "")
