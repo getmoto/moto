@@ -20,6 +20,7 @@ def test_create_distribution_with_tags():
     resp["Tags"]["Items"].should.contain({"Key": "k1", "Value": "v1"})
     resp["Tags"]["Items"].should.contain({"Key": "k2", "Value": "v2"})
 
+
 @mock_cloudfront
 def test_create_distribution_with_tags_only_one_tag():
     client = boto3.client("cloudfront", region_name="us-west-1")
