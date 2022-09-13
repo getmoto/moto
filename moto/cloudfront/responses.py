@@ -41,6 +41,8 @@ class CloudFrontResponse(BaseResponse):
         if "DistributionConfigWithTags" in params:
             config = params.get("DistributionConfigWithTags")
             tags = (config.get("Tags", {}).get("Items") or {}).get("Tag", [])
+            if not isinstance(tags,list):
+                tags = [tags]
         else:
             config = params
             tags = []
