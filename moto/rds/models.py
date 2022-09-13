@@ -114,6 +114,17 @@ class Cluster:
         self.enabled_cloudwatch_logs_exports = (
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
+        self.enable_http_endpoint = False
+        # instead of raising an error on aws rds create-db-cluster commands with
+        # incompatible configurations with enable_http_endpoint 
+        # (e.g. engine_mode is not set to "serverless"), the API
+        # automatically sets the enable_http_endpoint parameter to False
+        if kwargs.get("enable_http_endpoint"):
+            if self.engine_mode == "serverless":
+                if self.engine == "aurora-sql" and self.engine_version in ["5.6.10a", "5.6.1", "2.07.1", "5.7.2"]:
+                    self.enable_http_endpoint = kwargs.get("enable_http_endpoint", False)
+                elif self.engine == "aurora-postgresql" and self.engine_version in ["10.12", "10.14", "10.18", "11.13"]:
+                    self.enable_http_endpoint = kwargs.get("enable_http_endpoint", False)
 
     @property
     def db_cluster_arn(self):
@@ -170,7 +181,7 @@ class Cluster:
               <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
-              <HttpEndpointEnabled>false</HttpEndpointEnabled>
+              <HttpEndpointEnabled>{{ cluster.enable_http_endpoint }}</HttpEndpointEnabled>
               <CopyTagsToSnapshot>{{ cluster.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <CrossAccountClone>false</CrossAccountClone>
               <DomainMemberships></DomainMemberships>
