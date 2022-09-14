@@ -34,6 +34,7 @@ class BotocoreStubber:
             return None
 
         from moto.moto_api import recorder
+
         response = None
         response_callback = None
         found_index = None

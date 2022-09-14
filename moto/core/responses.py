@@ -22,10 +22,7 @@ import boto3
 from collections import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
-from moto.moto_api import utilities as moto_utilities
 from moto import settings
-import importlib
-import random
 
 
 log = logging.getLogger(__name__)
@@ -431,6 +428,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return self._get_action_from_method_and_request_uri(self.method, self.path)
 
     def set_seed(self, request, full_url, headers):  # pylint: disable=unused-argument
+        from moto.moto_api import utilities as moto_utilities
+
         moto_utilities.set_seed(request.args["seed"])
         return 200, {}, "Rand seed is {0}".format(request.args["seed"])
 

@@ -9,9 +9,10 @@ from urllib.parse import urlparse
 
 
 class Recorder:
-
     def __init__(self):
-        self._location = str(os.environ.get("MOTO_RECORDING_FILEPATH", "moto_recording"))
+        self._location = str(
+            os.environ.get("MOTO_RECORDING_FILEPATH", "moto_recording")
+        )
         self._os_enabled = bool(os.environ.get("MOTO_ENABLE_RECORDING", False))
         self._user_enabled = self._os_enabled
 
@@ -28,7 +29,7 @@ class Recorder:
         entry = {
             "headers": dict(request.headers),
             "method": request.method,
-            "url": request.url
+            "url": request.url,
         }
 
         if body is None:
@@ -40,7 +41,7 @@ class Recorder:
                     request_body_size = int(request.headers["Content-Length"])
                     request_body = request.environ["wsgi.input"].read(request_body_size)
                     body, body_encoded = self._encode_body(body=request_body)
-                except (AttributeError, KeyError) as x:
+                except (AttributeError, KeyError):
                     body = ""
                     body_encoded = False
                 finally:
@@ -63,7 +64,7 @@ class Recorder:
             if isinstance(body, io.BytesIO):
                 body = body.getvalue()
             if isinstance(body, bytes):
-                body = base64.b64encode(body).decode('ascii')
+                body = base64.b64encode(body).decode("ascii")
                 body_encoded = True
         except AttributeError:
             body = None
