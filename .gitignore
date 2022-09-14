@@ -28,3 +28,4 @@ htmlcov/
 .~c9_*
 .coverage*
 docs/_build
+moto_recording

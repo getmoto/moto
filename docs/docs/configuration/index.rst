@@ -11,6 +11,7 @@ Moto has a variety of ways to configure the mock behaviour.
   :maxdepth: 1
 
   environment_variables
+  recorder/index
   state_transition/index
   state_transition/models
 

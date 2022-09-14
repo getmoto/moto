@@ -33,7 +33,7 @@ class BotocoreStubber:
         if not self.enabled:
             return None
 
-        from moto.moto_api._internal.record_replay import record_replay_api
+        from moto.moto_api import recorder
         response = None
         response_callback = None
         found_index = None
@@ -59,11 +59,15 @@ class BotocoreStubber:
                 )
 
                 # TODO:
-                # record manual HTTP requests
-                # test boto requests with body
-                # test manual requests with body
+                # [x] record manual HTTP requests
+                # [x] test boto requests with body
+                # [x] test manual requests with body
                 # technical approach: Unified pre-process method that we call before calling `response_callback` or the werkzeug equivalent?
-                record_replay_api.record_request(request)
+                # maybe send all incoming requests to the same place, so that the response_callback is only computed in one place
+                # [x] test with treadedmotoserver
+                # docs
+                # [x] replay_recording(target_host) should replace all urls (with a note explaining that it should only work in ServerMode)
+                recorder.record_request(request)
             except HTTPException as e:
                 status = e.code
                 headers = e.get_headers()
