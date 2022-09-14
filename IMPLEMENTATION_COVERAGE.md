@@ -613,7 +613,7 @@
 - [ ] create_cache_policy
 - [ ] create_cloud_front_origin_access_identity
 - [X] create_distribution
-- [ ] create_distribution_with_tags
+- [X] create_distribution_with_tags
 - [ ] create_field_level_encryption_config
 - [ ] create_field_level_encryption_profile
 - [ ] create_function
