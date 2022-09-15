@@ -1,9 +1,10 @@
 from ..test_batch import _get_clients, _setup
 
 import sure  # noqa # pylint: disable=unused-import
-from moto import mock_iam, mock_ec2, mock_ecs, mock_logs
+from moto import mock_iam, mock_ec2, mock_ecs, mock_logs, settings
 from moto import mock_batch_simple
 from uuid import uuid4
+from unittest import SkipTest
 
 
 # Copy of test_batch/test_batch_jobs
@@ -16,6 +17,9 @@ from uuid import uuid4
 @mock_iam
 @mock_batch_simple
 def test_submit_job_by_name():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("No point in testing batch_simple in ServerMode")
+
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
