@@ -87,25 +87,18 @@ def test_describe_launch_template_versions():
 
 
 @mock_ec2
-def test_describe_launch_template_versions_when_absent():
+def test_describe_launch_template_versions_by_name_when_absent():
     cli = boto3.client("ec2", region_name="us-east-1")
 
-    template_name = str(uuid4())
+    template_name = "foo"
 
     # test using name
-    resp = cli.describe_launch_template_versions(
-        LaunchTemplateName=template_name, Versions=["1"]
-    )
+    with pytest.raises(
+        ClientError,
+        match=f"The specified launch template, with template name {template_name}, does not exist",
+    ) as ex:
 
-    resp["LaunchTemplateVersions"].should.have.length_of(0)
-
-    # test using id
-    resp = cli.describe_launch_template_versions(
-        LaunchTemplateId='foo',
-        Versions=["1"],
-    )
-
-    resp["LaunchTemplateVersions"].should.have.length_of(0)
+        cli.describe_launch_template_versions(LaunchTemplateName=template_name)
 
 
 @mock_ec2
