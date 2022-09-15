@@ -117,6 +117,7 @@ class RDSResponse(BaseResponse):
             "parameter_group": self._get_param("DBClusterParameterGroup"),
             "region": self.region,
             "db_cluster_instance_class": self._get_param("DBClusterInstanceClass"),
+            "enable_http_endpoint": self._get_param("EnableHttpEndpoint"),
             "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
             "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
         }
