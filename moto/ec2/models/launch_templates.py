@@ -111,7 +111,9 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         name = properties.get("LaunchTemplateName")
         data = properties.get("LaunchTemplateData")
         description = properties.get("VersionDescription")
-        tag_spec = convert_tag_spec(properties.get("TagSpecifications", {}), tag_key="Tags")
+        tag_spec = convert_tag_spec(
+            properties.get("TagSpecifications", {}), tag_key="Tags"
+        )
 
         launch_template = backend.create_launch_template(
             name, description, data, tag_spec
@@ -177,9 +179,13 @@ class LaunchTemplateBackend:
         return template
 
     def get_launch_template(self, template_id):
+        if template_id not in self.launch_templates:
+            raise InvalidLaunchTemplateNameNotFoundError()
         return self.launch_templates[template_id]
 
     def get_launch_template_by_name(self, name):
+        if name not in self.launch_template_name_to_ids:
+            raise InvalidLaunchTemplateNameNotFoundError()
         return self.get_launch_template(self.launch_template_name_to_ids[name])
 
     def delete_launch_template(self, name, tid):
