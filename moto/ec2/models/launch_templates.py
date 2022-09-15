@@ -111,7 +111,7 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         name = properties.get("LaunchTemplateName")
         data = properties.get("LaunchTemplateData")
         description = properties.get("VersionDescription")
-        tag_spec = convert_tag_spec(properties.get("TagSpecifications"), tag_key="Tags")
+        tag_spec = convert_tag_spec(properties.get("TagSpecifications", {}), tag_key="Tags")
 
         launch_template = backend.create_launch_template(
             name, description, data, tag_spec
@@ -139,9 +139,11 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         data = properties.get("LaunchTemplateData")
         description = properties.get("VersionDescription")
 
-        launch_template = backend.get_launch_template(name, None)
+        launch_template = backend.get_launch_template_by_name(name)
 
         launch_template.create_version(data, description)
+
+        return launch_template
 
     @classmethod
     def delete_from_cloudformation_json(
