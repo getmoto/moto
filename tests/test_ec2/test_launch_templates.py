@@ -87,6 +87,28 @@ def test_describe_launch_template_versions():
 
 
 @mock_ec2
+def test_describe_launch_template_versions_when_absent():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+
+    # test using name
+    resp = cli.describe_launch_template_versions(
+        LaunchTemplateName=template_name, Versions=["1"]
+    )
+
+    resp["LaunchTemplateVersions"].should.have.length_of(0)
+
+    # test using id
+    resp = cli.describe_launch_template_versions(
+        LaunchTemplateId='foo',
+        Versions=["1"],
+    )
+
+    resp["LaunchTemplateVersions"].should.have.length_of(0)
+
+
+@mock_ec2
 def test_create_launch_template_version():
     cli = boto3.client("ec2", region_name="us-east-1")
 
