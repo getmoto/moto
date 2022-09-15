@@ -21,9 +21,10 @@ apigateway:
   - TestAccAPIGatewayStage_tags
   - TestAccAPIGatewayStage_accessLogSettings
 apigatewayv2:
+  - TestAccAPIGatewayV2Authorizer
   - TestAccAPIGatewayV2IntegrationResponse
   - TestAccAPIGatewayV2Model
-  - TestAccAPIGatewayV2RouteResponse
+  - TestAccAPIGatewayV2Route
   - TestAccAPIGatewayV2VPCLink
 autoscaling:
   - TestAccAutoScalingAttachment
