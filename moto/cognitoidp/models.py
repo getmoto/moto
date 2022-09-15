@@ -579,6 +579,8 @@ class CognitoIdpUserPool(BaseModel):
         return access_token, expires_in
 
     def create_tokens_from_refresh_token(self, refresh_token):
+        if self.refresh_tokens.get(refresh_token) is None:
+            raise NotAuthorizedError(refresh_token)
         client_id, username = self.refresh_tokens.get(refresh_token)
         if not username:
             raise NotAuthorizedError(refresh_token)
