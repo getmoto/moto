@@ -27,6 +27,7 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.cloudwatch.models import MetricDatum
+from moto.iam.access_control import IAMPolicy, PermissionResult
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
@@ -907,6 +908,13 @@ class FakeBucket(CloudFormationModel):
     def is_versioned(self):
         return self.versioning_status == "Enabled"
 
+    def allow_action(self, action, resource):
+        if self.policy is None:
+            return False
+        iam_policy = IAMPolicy(self.policy.decode())
+        result = iam_policy.is_action_permitted(action, resource)
+        return result == PermissionResult.PERMITTED
+
     def set_lifecycle(self, rules):
         self.rules = []
         for rule in rules:
@@ -1531,7 +1539,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def list_buckets(self):
         return self.buckets.values()
 
-    def get_bucket(self, bucket_name):
+    def get_bucket(self, bucket_name) -> FakeBucket:
         try:
             return self.buckets[bucket_name]
         except KeyError:
