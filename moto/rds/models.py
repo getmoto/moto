@@ -121,7 +121,7 @@ class Cluster:
         # automatically sets the enable_http_endpoint parameter to False
         if kwargs.get("enable_http_endpoint"):
             if self.engine_mode == "serverless":
-                if self.engine == "aurora-sql" and self.engine_version in ["5.6.10a", "5.6.1", "2.07.1", "5.7.2"]:
+                if self.engine == "aurora-mysql" and self.engine_version in ["5.6.10a", "5.6.1", "2.07.1", "5.7.2"]:
                     self.enable_http_endpoint = kwargs.get("enable_http_endpoint", False)
                 elif self.engine == "aurora-postgresql" and self.engine_version in ["10.12", "10.14", "10.18", "11.13"]:
                     self.enable_http_endpoint = kwargs.get("enable_http_endpoint", False)
@@ -1751,6 +1751,7 @@ class RDSBackend(BaseBackend):
     def create_db_cluster(self, kwargs):
         cluster_id = kwargs["db_cluster_identifier"]
         kwargs["account_id"] = self.account_id
+        print(kwargs)
         cluster = Cluster(**kwargs)
         self.clusters[cluster_id] = cluster
         initial_state = copy.deepcopy(cluster)  # Return status=creating
