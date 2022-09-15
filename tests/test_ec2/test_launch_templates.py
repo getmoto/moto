@@ -96,7 +96,7 @@ def test_describe_launch_template_versions_by_name_when_absent():
     with pytest.raises(
         ClientError,
         match=f"The specified launch template, with template name {template_name}, does not exist",
-    ) as ex:
+    ):
 
         cli.describe_launch_template_versions(LaunchTemplateName=template_name)
 
