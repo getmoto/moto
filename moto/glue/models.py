@@ -6,6 +6,8 @@ from uuid import uuid4
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 from .exceptions import (
     JsonRESTError,
     CrawlerRunningException,
@@ -77,6 +79,10 @@ class GlueBackend(BaseBackend):
         self.registries = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
+
+        state_manager.register_default_transition(
+            model_name="glue::job_run", transition={"progression": "immediate"}
+        )
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -901,7 +907,7 @@ class FakeJob:
 
     def start_job_run(self):
         running_jobs = len(
-            [jr for jr in self.job_runs if jr.job_run_state in ["STARTING", "RUNNING"]]
+            [jr for jr in self.job_runs if jr.status in ["STARTING", "RUNNING"]]
         )
         if running_jobs >= self.execution_property.get("MaxConcurrentRuns", 1):
             raise ConcurrentRunsExceededException(
@@ -914,11 +920,12 @@ class FakeJob:
     def get_job_run(self, run_id):
         for job_run in self.job_runs:
             if job_run.job_run_id == run_id:
+                job_run.advance()
                 return job_run
         raise JobRunNotFoundException(run_id)
 
 
-class FakeJobRun:
+class FakeJobRun(ManagedState):
     def __init__(
         self,
         job_name: int,
@@ -928,13 +935,17 @@ class FakeJobRun:
         timeout: int = None,
         worker_type: str = "Standard",
     ):
+        ManagedState.__init__(
+            self,
+            model_name="glue::job_run",
+            transitions=[("STARTING", "RUNNING"), ("RUNNING", "SUCCEEDED")],
+        )
         self.job_name = job_name
         self.job_run_id = job_run_id
         self.arguments = arguments
         self.allocated_capacity = allocated_capacity
         self.timeout = timeout
         self.worker_type = worker_type
-        self.job_run_state = "RUNNING"
         self.started_on = datetime.utcnow()
         self.modified_on = datetime.utcnow()
         self.completed_on = datetime.utcnow()
@@ -952,7 +963,7 @@ class FakeJobRun:
             "StartedOn": self.started_on.isoformat(),
             "LastModifiedOn": self.modified_on.isoformat(),
             "CompletedOn": self.completed_on.isoformat(),
-            "JobRunState": self.job_run_state,
+            "JobRunState": self.status,
             "Arguments": self.arguments or {"runSpark": "spark -f test_file.py"},
             "ErrorMessage": "",
             "PredecessorRuns": [
