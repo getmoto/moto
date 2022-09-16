@@ -60,6 +60,11 @@ class JobNotFoundException(EntityNotFoundException):
         super().__init__("Job %s not found." % job)
 
 
+class JobRunNotFoundException(EntityNotFoundException):
+    def __init__(self, job_run):
+        super().__init__("Job run %s not found." % job_run)
+
+
 class VersionNotFoundException(EntityNotFoundException):
     def __init__(self):
         super().__init__("Version not found.")

@@ -27,7 +27,6 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.cloudwatch.models import MetricDatum
-from moto.iam.access_control import IAMPolicy, PermissionResult
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
@@ -911,6 +910,8 @@ class FakeBucket(CloudFormationModel):
     def allow_action(self, action, resource):
         if self.policy is None:
             return False
+        from moto.iam.access_control import IAMPolicy, PermissionResult
+
         iam_policy = IAMPolicy(self.policy.decode())
         result = iam_policy.is_action_permitted(action, resource)
         return result == PermissionResult.PERMITTED

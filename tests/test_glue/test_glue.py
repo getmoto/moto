@@ -85,27 +85,28 @@ def test_get_job_exists():
         "GlueVersion": "string",
     }
     job_name = create_test_job_w_all_attributes(client, **job_attributes)
-    response = client.get_job(JobName=job_name)
-    assert response["Job"]["Name"] == job_name
-    assert response["Job"]["Description"]
-    assert response["Job"]["LogUri"]
-    assert response["Job"]["Role"]
-    assert response["Job"]["CreatedOn"]
-    assert response["Job"]["LastModifiedOn"]
-    assert response["Job"]["ExecutionProperty"]
-    assert response["Job"]["Command"]
-    assert response["Job"]["DefaultArguments"]
-    assert response["Job"]["NonOverridableArguments"]
-    assert response["Job"]["Connections"]
-    assert response["Job"]["MaxRetries"]
-    assert response["Job"]["AllocatedCapacity"]
-    assert response["Job"]["Timeout"]
-    assert response["Job"]["MaxCapacity"]
-    assert response["Job"]["WorkerType"]
-    assert response["Job"]["NumberOfWorkers"]
-    assert response["Job"]["SecurityConfiguration"]
-    assert response["Job"]["NotificationProperty"]
-    assert response["Job"]["GlueVersion"]
+    job = client.get_job(JobName=job_name)["Job"]
+    job.should.have.key("Name").equals(job_name)
+    job.should.have.key("Description")
+    job.should.have.key("LogUri")
+    job.should.have.key("Role")
+    job.should.have.key("ExecutionProperty").equals({"MaxConcurrentRuns": 123})
+    job.should.have.key("CreatedOn")
+    job.should.have.key("LastModifiedOn")
+    job.should.have.key("ExecutionProperty")
+    job.should.have.key("Command")
+    job.should.have.key("DefaultArguments")
+    job.should.have.key("NonOverridableArguments")
+    job.should.have.key("Connections")
+    job.should.have.key("MaxRetries")
+    job.should.have.key("AllocatedCapacity")
+    job.should.have.key("Timeout")
+    job.should.have.key("MaxCapacity")
+    job.should.have.key("WorkerType")
+    job.should.have.key("NumberOfWorkers")
+    job.should.have.key("SecurityConfiguration")
+    job.should.have.key("NotificationProperty")
+    job.should.have.key("GlueVersion")
 
 
 @mock_glue
@@ -117,7 +118,32 @@ def test_start_job_run():
 
 
 @mock_glue
-def test_start_job_run_already_running():
+def test_start_job_run__multiple_runs_allowed():
+    glue = boto3.client("glue")
+    glue.create_job(
+        Name="somejobname",
+        Role="some-role",
+        ExecutionProperty={"MaxConcurrentRuns": 5},
+        Command={
+            "Name": "some-name",
+            "ScriptLocation": "some-location",
+            "PythonVersion": "some-version",
+        },
+    )
+    for _ in range(5):
+        glue.start_job_run(JobName="somejobname")
+
+    # The 6th should fail
+    with pytest.raises(ClientError) as exc:
+        glue.start_job_run(JobName="somejobname")
+    exc.value.response["Error"]["Code"].should.equal("ConcurrentRunsExceededException")
+    exc.value.response["Error"]["Message"].should.match(
+        "Job with name somejobname already running"
+    )
+
+
+@mock_glue
+def test_start_job_run__single_run_allowed():
     client = create_glue_client()
     job_name = create_test_job(client)
     client.start_job_run(JobName=job_name)
@@ -133,8 +159,10 @@ def test_start_job_run_already_running():
 def test_get_job_run():
     client = create_glue_client()
     job_name = create_test_job(client)
-    response = client.get_job_run(JobName=job_name, RunId="01")
-    assert response["JobRun"]["Id"]
+    job_run_id = client.start_job_run(JobName=job_name)["JobRunId"]
+
+    response = client.get_job_run(JobName=job_name, RunId=job_run_id)
+    response["JobRun"].should.have.key("Id").equals(job_run_id)
     assert response["JobRun"]["Attempt"]
     assert response["JobRun"]["PreviousRunId"]
     assert response["JobRun"]["TriggerName"]
@@ -155,6 +183,16 @@ def test_get_job_run():
     assert response["JobRun"]["LogGroupName"]
     assert response["JobRun"]["NotificationProperty"]
     assert response["JobRun"]["GlueVersion"]
+
+
+@mock_glue
+def test_get_job_run_that_doesnt_exist():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    with pytest.raises(ClientError) as exc:
+        client.get_job_run(JobName=job_name, RunId="unknown")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
 
 
 @mock_glue

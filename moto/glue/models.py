@@ -1,20 +1,15 @@
 import time
 from collections import OrderedDict
 from datetime import datetime
+from typing import List
 from uuid import uuid4
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-from moto.glue.exceptions import (
-    CrawlerRunningException,
-    CrawlerNotRunningException,
-    SchemaVersionNotFoundFromSchemaVersionIdException,
-    SchemaVersionNotFoundFromSchemaIdException,
-    SchemaNotFoundException,
-    SchemaVersionMetadataAlreadyExistsException,
-)
 from .exceptions import (
     JsonRESTError,
+    CrawlerRunningException,
+    CrawlerNotRunningException,
     CrawlerAlreadyExistsException,
     CrawlerNotFoundException,
     DatabaseAlreadyExistsException,
@@ -25,7 +20,12 @@ from .exceptions import (
     PartitionNotFoundException,
     VersionNotFoundException,
     JobNotFoundException,
+    JobRunNotFoundException,
     ConcurrentRunsExceededException,
+    SchemaVersionNotFoundFromSchemaVersionIdException,
+    SchemaVersionNotFoundFromSchemaIdException,
+    SchemaNotFoundException,
+    SchemaVersionMetadataAlreadyExistsException,
 )
 from .utils import PartitionFilter
 from .glue_schema_registry_utils import (
@@ -850,7 +850,7 @@ class FakeJob:
         self.description = description
         self.log_uri = log_uri
         self.role = role
-        self.execution_property = execution_property
+        self.execution_property = execution_property or {}
         self.command = command
         self.default_arguments = default_arguments
         self.non_overridable_arguments = non_overridable_arguments
@@ -858,7 +858,6 @@ class FakeJob:
         self.max_retries = max_retries
         self.allocated_capacity = allocated_capacity
         self.timeout = timeout
-        self.state = "READY"
         self.max_capacity = max_capacity
         self.security_configuration = security_configuration
         self.notification_property = notification_property
@@ -870,6 +869,8 @@ class FakeJob:
         self.arn = f"arn:aws:glue:us-east-1:{backend.account_id}:job/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
+
+        self.job_runs: List[FakeJobRun] = []
 
     def get_name(self):
         return self.name
@@ -899,17 +900,22 @@ class FakeJob:
         }
 
     def start_job_run(self):
-        if self.state == "RUNNING":
+        running_jobs = len(
+            [jr for jr in self.job_runs if jr.job_run_state in ["STARTING", "RUNNING"]]
+        )
+        if running_jobs >= self.execution_property.get("MaxConcurrentRuns", 1):
             raise ConcurrentRunsExceededException(
                 f"Job with name {self.name} already running"
             )
         fake_job_run = FakeJobRun(job_name=self.name)
-        self.state = "RUNNING"
+        self.job_runs.append(fake_job_run)
         return fake_job_run.job_run_id
 
     def get_job_run(self, run_id):
-        fake_job_run = FakeJobRun(job_name=self.name, job_run_id=run_id)
-        return fake_job_run
+        for job_run in self.job_runs:
+            if job_run.job_run_id == run_id:
+                return job_run
+        raise JobRunNotFoundException(run_id)
 
 
 class FakeJobRun:
@@ -928,6 +934,7 @@ class FakeJobRun:
         self.allocated_capacity = allocated_capacity
         self.timeout = timeout
         self.worker_type = worker_type
+        self.job_run_state = "RUNNING"
         self.started_on = datetime.utcnow()
         self.modified_on = datetime.utcnow()
         self.completed_on = datetime.utcnow()
@@ -945,7 +952,7 @@ class FakeJobRun:
             "StartedOn": self.started_on.isoformat(),
             "LastModifiedOn": self.modified_on.isoformat(),
             "CompletedOn": self.completed_on.isoformat(),
-            "JobRunState": "SUCCEEDED",
+            "JobRunState": self.job_run_state,
             "Arguments": self.arguments or {"runSpark": "spark -f test_file.py"},
             "ErrorMessage": "",
             "PredecessorRuns": [
