@@ -1172,6 +1172,8 @@ class SubnetGroup(CloudFormationModel):
                 </Subnet>
                 {% endfor %}
               </Subnets>
+            # <DBSubnetGroupArn>arn:aws:rds:us-west-1:123456789012:subgrp:mydbsubnetgroup</DBSubnetGroupArn>
+              <DBSubnetGroupArn>arn:aws:rds:{{subnet_group.region}}:123456789012:subgrp:mydbsubnetgroup</DBSubnetGroupArn>
             </DBSubnetGroup>"""
         )
         return template.render(subnet_group=self)
