@@ -42,6 +42,8 @@ def test_create_database():
     db_instance["VpcSecurityGroups"][0]["VpcSecurityGroupId"].should.equal("sg-123456")
     db_instance["DeletionProtection"].should.equal(False)
     db_instance["EnabledCloudwatchLogsExports"].should.equal(["audit", "error"])
+    db_instance["Endpoint"]["Port"].should.equal(1234)
+    db_instance["DbInstancePort"].should.equal(1234)
 
 
 @mock_rds
@@ -336,6 +338,8 @@ def test_get_databases():
 
     instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-2")
     instances["DBInstances"][0]["DeletionProtection"].should.equal(True)
+    instances["DBInstances"][0]["Endpoint"]["Port"].should.equal(1234)
+    instances["DBInstances"][0]["DbInstancePort"].should.equal(1234)
 
 
 @mock_rds
