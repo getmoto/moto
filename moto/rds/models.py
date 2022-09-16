@@ -1492,8 +1492,12 @@ class RDSBackend(BaseBackend):
         security_group.authorize_cidr(cidr_ip)
         return security_group
 
-    def create_subnet_group(self, subnet_name, description, subnets, tags, region, account_id):
-        subnet_group = SubnetGroup(subnet_name, description, subnets, tags, region, account_id)
+    def create_subnet_group(
+        self, subnet_name, description, subnets, tags, region, account_id
+    ):
+        subnet_group = SubnetGroup(
+            subnet_name, description, subnets, tags, region, account_id
+        )
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
 
