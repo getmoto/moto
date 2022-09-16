@@ -10,6 +10,16 @@ The following software is assumed to be present:
 
  - Python 3.x
  - Docker
+ - Git
+
+
+Checking out the code
+======================
+Contributing to Moto involves forking the project.
+GitHub has a handy guide explaining how to do this: https://docs.github.com/en/get-started/quickstart/contributing-to-projects
+
+Installing Moto
+=================
 
 It is recommended to work from some kind of virtual environment, i.e. `virtualenv`, to prevent cross-contamination with other projects.
 From within such a virtualenv, run the following command to install all required dependencies:

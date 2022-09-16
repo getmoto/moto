@@ -1023,7 +1023,7 @@ class ApiGatewayV2Backend(BaseBackend):
     def delete_api(self, api_id):
         self.apis.pop(api_id, None)
 
-    def get_api(self, api_id):
+    def get_api(self, api_id) -> Api:
         if api_id not in self.apis:
             raise ApiNotFound(api_id)
         return self.apis[api_id]
@@ -1089,6 +1089,16 @@ class ApiGatewayV2Backend(BaseBackend):
         name,
     ):
         api = self.get_api(api_id)
+
+        if (
+            api.protocol_type == "HTTP"
+            and authorizer_type == "REQUEST"
+            and not auth_payload_format_version
+        ):
+            raise BadRequestException(
+                "AuthorizerPayloadFormatVersion is a required parameter for REQUEST authorizer"
+            )
+
         authorizer = api.create_authorizer(
             auth_creds_arn=auth_creds_arn,
             auth_payload_format_version=auth_payload_format_version,

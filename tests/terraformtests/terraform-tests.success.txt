@@ -4,11 +4,27 @@ amp:
   - TestAccAMPWorkspace
   - TestAccAMPRuleGroupNamespace
 apigateway:
+  - TestAccAPIGatewayAPIKeyDataSource_basic
+  - TestAccAPIGatewayAPIKey_disappears
+  - TestAccAPIGatewayAPIKey_enabled
+  - TestAccAPIGatewayAPIKey_value
   - TestAccAPIGatewayGatewayResponse
+  - TestAccAPIGatewayRestAPI_apiKeySource
+  - TestAccAPIGatewayRestAPI_basic
+  - TestAccAPIGatewayRestAPI_description
+  - TestAccAPIGatewayRestAPI_disappears
+  - TestAccAPIGatewayRestAPI_Endpoint_private
+  - TestAccAPIGatewayStage_basic
+  - TestAccAPIGatewayStage_Disappears_restAPI
+  - TestAccAPIGatewayStage_disappears
+  - TestAccAPIGatewayStage_Disappears_referencingDeployment
+  - TestAccAPIGatewayStage_tags
+  - TestAccAPIGatewayStage_accessLogSettings
 apigatewayv2:
+  - TestAccAPIGatewayV2Authorizer
   - TestAccAPIGatewayV2IntegrationResponse
   - TestAccAPIGatewayV2Model
-  - TestAccAPIGatewayV2RouteResponse
+  - TestAccAPIGatewayV2Route
   - TestAccAPIGatewayV2VPCLink
 autoscaling:
   - TestAccAutoScalingAttachment
@@ -26,6 +42,12 @@ autoscaling:
   - TestAccAutoScalingLaunchConfiguration_
 batch:
   - TestAccBatchJobDefinition
+  - TestAccBatchJobQueue_basic
+  - TestAccBatchJobQueue_tags
+  - TestAccBatchJobQueue_disappears
+  - TestAccBatchJobQueue_priority
+  - TestAccBatchJobQueue_state
+  - TestAccBatchJobQueue_ComputeEnvironments_externalOrderUpdate
 ce:
   - TestAccCECostCategory
 cloudfront:
@@ -135,8 +157,10 @@ iam:
 iot:
   - TestAccIoTEndpointDataSource
 kinesis:
-  - TestAccKinesisStream_basic
-  - TestAccKinesisStream_disappear
+  - TestAccKinesisStreamConsumerDataSource_
+  - TestAccKinesisStreamConsumer_
+  - TestAccKinesisStreamDataSource_
+  - TestAccKinesisStream_
 kms:
   - TestAccKMSAlias
   - TestAccKMSGrant_arn
@@ -162,6 +186,7 @@ mq:
   - TestAccMQBroker_
 quicksight:
   - TestAccQuickSightUser
+  - TestAccQuickSightGroup_
 redshift:
   - TestAccRedshiftServiceAccountDataSource
 route53|1:
@@ -233,6 +258,9 @@ sns:
   - TestAccSNSTopicPolicy
   - TestAccSNSTopicDataSource
   - TestAccSNSSMSPreferences
+ssm:
+  - TestAccSSMDocumentDataSource_basic
+  - TestAccSSMDocument_
 sts:
   - TestAccSTSCallerIdentityDataSource
 sqs:
@@ -242,3 +270,10 @@ sqs:
 timestreamwrite:
   - TestAccTimestreamWriteDatabase
   - TestAccTimestreamWriteTable
+wafv2:
+  - TestAccWAFV2WebACL_basic
+  - TestAccWAFV2WebACL_disappears
+  - TestAccWAFV2WebACL_minimal
+  - TestAccWAFV2WebACL_tags
+  - TestAccWAFV2WebACL_Update_rule
+  - TestAccWAFV2WebACL_RuleLabels

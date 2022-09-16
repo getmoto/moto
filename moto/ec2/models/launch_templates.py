@@ -1,9 +1,17 @@
 from collections import OrderedDict
+
+from moto.core import CloudFormationModel
 from .core import TaggedEC2Resource
-from ..utils import generic_filter, random_launch_template_id, utc_date_and_time
+from ..utils import (
+    generic_filter,
+    random_launch_template_id,
+    utc_date_and_time,
+    convert_tag_spec,
+)
 from ..exceptions import (
     InvalidLaunchTemplateNameAlreadyExistsError,
     InvalidLaunchTemplateNameNotFoundError,
+    InvalidLaunchTemplateNameNotFoundWithNameError,
 )
 
 
@@ -32,7 +40,7 @@ class LaunchTemplateVersion(object):
         return self.data.get("UserData", "")
 
 
-class LaunchTemplate(TaggedEC2Resource):
+class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
     def __init__(self, backend, name, template_data, version_description, tag_spec):
         self.ec2_backend = backend
         self.name = name
@@ -72,11 +80,88 @@ class LaunchTemplate(TaggedEC2Resource):
     def latest_version_number(self):
         return self.latest_version().number
 
+    @property
+    def physical_resource_id(self):
+        return self.id
+
     def get_filter_value(self, filter_name):
         if filter_name == "launch-template-name":
             return self.name
         else:
             return super().get_filter_value(filter_name, "DescribeLaunchTemplates")
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "LaunchTemplateName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-launchtemplate.html
+        return "AWS::EC2::LaunchTemplate"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+    ):
+
+        from ..models import ec2_backends
+
+        backend = ec2_backends[account_id][region_name]
+
+        properties = cloudformation_json["Properties"]
+        name = properties.get("LaunchTemplateName")
+        data = properties.get("LaunchTemplateData")
+        description = properties.get("VersionDescription")
+        tag_spec = convert_tag_spec(
+            properties.get("TagSpecifications", {}), tag_key="Tags"
+        )
+
+        launch_template = backend.create_launch_template(
+            name, description, data, tag_spec
+        )
+
+        return launch_template
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
+    ):
+
+        from ..models import ec2_backends
+
+        backend = ec2_backends[account_id][region_name]
+
+        properties = cloudformation_json["Properties"]
+
+        name = properties.get("LaunchTemplateName")
+        data = properties.get("LaunchTemplateData")
+        description = properties.get("VersionDescription")
+
+        launch_template = backend.get_launch_template_by_name(name)
+
+        launch_template.create_version(data, description)
+
+        return launch_template
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, account_id, region_name
+    ):
+
+        from ..models import ec2_backends
+
+        backend = ec2_backends[account_id][region_name]
+
+        properties = cloudformation_json["Properties"]
+
+        name = properties.get("LaunchTemplateName")
+
+        backend.delete_launch_template(name, None)
 
 
 class LaunchTemplateBackend:
@@ -98,6 +183,8 @@ class LaunchTemplateBackend:
         return self.launch_templates[template_id]
 
     def get_launch_template_by_name(self, name):
+        if name not in self.launch_template_name_to_ids:
+            raise InvalidLaunchTemplateNameNotFoundWithNameError(name)
         return self.get_launch_template(self.launch_template_name_to_ids[name])
 
     def delete_launch_template(self, name, tid):

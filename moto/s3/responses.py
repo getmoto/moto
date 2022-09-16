@@ -1155,10 +1155,13 @@ class S3Response(BaseResponse):
                 signed_url = "Signature=" in request.path
             key = self.backend.get_object(bucket_name, key_name)
 
-            if key:
-                if (key.acl and not key.acl.public_read) and not signed_url:
+            if key and not signed_url:
+                bucket = self.backend.get_bucket(bucket_name)
+                resource = f"arn:aws:s3:::{bucket_name}/{key_name}"
+                bucket_policy_allows = bucket.allow_action("s3:GetObject", resource)
+                if not bucket_policy_allows and (key.acl and not key.acl.public_read):
                     return 403, {}, ""
-            elif signed_url:
+            elif signed_url and not key:
                 # coming in from requests.get(s3.generate_presigned_url())
                 if self._invalid_headers(request.url, dict(request.headers)):
                     return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS

@@ -39,6 +39,8 @@ install_requires = [
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
     "Jinja2>=2.10.1",
     "importlib_metadata ; python_version < '3.8'",
+    "flask<2.2.0",  # Required for the ThreadedMotoServer
+    "flask-cors"
 ]
 
 _dep_PyYAML = "PyYAML>=5.1"
@@ -73,7 +75,7 @@ all_extra_deps = [
     _dep_openapi,
     _setuptools,
 ]
-all_server_deps = all_extra_deps + ["flask<2.2.0", "flask-cors"]
+all_server_deps = all_extra_deps
 
 extras_per_service = {}
 for service_name in [

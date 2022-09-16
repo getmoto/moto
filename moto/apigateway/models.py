@@ -12,7 +12,11 @@ import time
 from urllib.parse import urlparse
 import responses
 
-from openapi_spec_validator.exceptions import OpenAPIValidationError
+try:
+    from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
+except ImportError:
+    # OpenAPI Spec Validator < 0.5.0
+    from openapi_spec_validator.exceptions import OpenAPIValidationError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url, BackendDict
@@ -88,7 +92,7 @@ class Deployment(CloudFormationModel, dict):
     ):
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
-        name = properties["StageName"]
+        name = properties.get("StageName")
         desc = properties.get("Description", "")
         backend = apigateway_backends[account_id][region_name]
         return backend.create_deployment(
@@ -216,7 +220,7 @@ class Method(CloudFormationModel, dict):
         resource_id = properties["ResourceId"]
         method_type = properties["HttpMethod"]
         auth_type = properties["AuthorizationType"]
-        key_req = properties["ApiKeyRequired"]
+        key_req = properties.get("ApiKeyRequired")
         backend = apigateway_backends[account_id][region_name]
         m = backend.put_method(
             function_id=rest_api_id,
@@ -372,7 +376,7 @@ class Resource(CloudFormationModel):
         return method
 
     def delete_method(self, method_type):
-        self.resource_methods.pop(method_type)
+        self.resource_methods.pop(method_type, None)
 
     def add_integration(
         self,
@@ -1481,7 +1485,7 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(restapi_id)
         del api.authorizers[authorizer_id]
 
-    def get_stage(self, function_id, stage_name):
+    def get_stage(self, function_id, stage_name) -> Stage:
         api = self.get_rest_api(function_id)
         stage = api.stages.get(stage_name)
         if stage is None:

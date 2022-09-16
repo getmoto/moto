@@ -787,14 +787,15 @@ def gen_moto_amis(described_images, drop_images_missing_keys=True):
     return result
 
 
-def convert_tag_spec(tag_spec_set):
-    # IN:  [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
-    # OUT: {_type: {k: v, ..}}
+def convert_tag_spec(tag_spec_set, tag_key="Tag"):
+    # IN:   [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
+    #  (or) [{"ResourceType": _type, "Tags": [{"Key": k, "Value": v}, ..]}] <-- special cfn case
+    # OUT:  {_type: {k: v, ..}}
     tags = {}
     for tag_spec in tag_spec_set:
         if tag_spec["ResourceType"] not in tags:
             tags[tag_spec["ResourceType"]] = {}
         tags[tag_spec["ResourceType"]].update(
-            {tag["Key"]: tag["Value"] for tag in tag_spec["Tag"]}
+            {tag["Key"]: tag["Value"] for tag in tag_spec[tag_key]}
         )
     return tags

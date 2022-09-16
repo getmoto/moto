@@ -6,12 +6,12 @@ TEST_NAMES = "*"
 ifeq ($(TEST_SERVER_MODE), true)
 	# exclude test_kinesisvideoarchivedmedia
 	# because testing with moto_server is difficult with data-endpoint
-	TEST_EXCLUDE := -k 'not (test_kinesisvideoarchivedmedia or test_awslambda or test_batch or test_ec2 or test_sqs)'
+	TEST_EXCLUDE := --ignore tests/test_kinesisvideoarchivedmedia --ignore tests/test_awslambda --ignore tests/test_batch --ignore tests/test_ec2 --ignore tests/test_sqs
 	# Parallel tests will be run separate
 	PARALLEL_TESTS := ./tests/test_awslambda ./tests/test_batch ./tests/test_ec2 ./tests/test_sqs
 else
-	TEST_EXCLUDE :=
-	PARALLEL_TESTS := ./tests/test_core
+	TEST_EXCLUDE := --ignore tests/test_batch --ignore tests/test_ec2 --ignore tests/test_sqs
+	PARALLEL_TESTS := ./tests/test_batch ./tests/test_ec2 ./tests/test_sqs
 endif
 
 init:
@@ -35,7 +35,7 @@ test-only:
 	rm -f .coverage
 	rm -rf cover
 	pytest -sv --cov=moto --cov-report xml ./tests/ $(TEST_EXCLUDE)
-	MOTO_CALL_RESET_API=false pytest -n 4 $(PARALLEL_TESTS)
+	MOTO_CALL_RESET_API=false pytest --cov=moto --cov-report xml --cov-append -n 4 $(PARALLEL_TESTS)
 
 test: lint test-only
 

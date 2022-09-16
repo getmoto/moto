@@ -718,6 +718,14 @@ class InvalidLaunchTemplateNameNotFoundError(EC2ClientError):
         )
 
 
+class InvalidLaunchTemplateNameNotFoundWithNameError(EC2ClientError):
+    def __init__(self, name):
+        super().__init__(
+            "InvalidLaunchTemplateName.NotFoundException",
+            f"The specified launch template, with template name {name}, does not exist",
+        )
+
+
 class InvalidParameterDependency(EC2ClientError):
     def __init__(self, param, param_needed):
         super().__init__(

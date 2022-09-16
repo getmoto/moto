@@ -21,6 +21,9 @@ from .exceptions import (
     InvalidDecreaseRetention,
     InvalidIncreaseRetention,
     ValidationException,
+    RecordSizeExceedsLimit,
+    TotalRecordsSizeExceedsLimit,
+    TooManyRecords,
 )
 from .utils import (
     compose_shard_iterator,
@@ -411,6 +414,7 @@ class Stream(CloudFormationModel):
                 "EnhancedMonitoring": [{"ShardLevelMetrics": self.shard_level_metrics}],
                 "OpenShardCount": self.shard_count,
                 "EncryptionType": self.encryption_type,
+                "KeyId": self.key_id,
             }
         }
 
@@ -542,7 +546,7 @@ class KinesisBackend(BaseBackend):
         self.streams[stream_name] = stream
         return stream
 
-    def describe_stream(self, stream_name):
+    def describe_stream(self, stream_name) -> Stream:
         if stream_name in self.streams:
             return self.streams[stream_name]
         else:
@@ -621,6 +625,17 @@ class KinesisBackend(BaseBackend):
         stream = self.describe_stream(stream_name)
 
         response = {"FailedRecordCount": 0, "Records": []}
+
+        if len(records) > 500:
+            raise TooManyRecords
+        data_sizes = [len(r.get("Data", "")) for r in records]
+        if sum(data_sizes) >= 5000000:
+            raise TotalRecordsSizeExceedsLimit
+        idx_over_limit = next(
+            (idx for idx, x in enumerate(data_sizes) if x >= 1048576), None
+        )
+        if idx_over_limit is not None:
+            raise RecordSizeExceedsLimit(position=idx_over_limit + 1)
 
         for record in records:
             partition_key = record.get("PartitionKey")
@@ -820,6 +835,10 @@ class KinesisBackend(BaseBackend):
         stream = self.describe_stream(stream_name)
         stream.encryption_type = "NONE"
         stream.key_id = None
+
+    def update_stream_mode(self, stream_arn, stream_mode):
+        stream = self._find_stream_by_arn(stream_arn)
+        stream.stream_mode = stream_mode
 
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")

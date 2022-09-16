@@ -279,3 +279,9 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         self.kinesis_backend.stop_stream_encryption(stream_name=stream_name)
         return json.dumps(dict())
+
+    def update_stream_mode(self):
+        stream_arn = self.parameters.get("StreamARN")
+        stream_mode = self.parameters.get("StreamModeDetails")
+        self.kinesis_backend.update_stream_mode(stream_arn, stream_mode)
+        return "{}"

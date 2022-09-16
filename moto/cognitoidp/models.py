@@ -579,6 +579,8 @@ class CognitoIdpUserPool(BaseModel):
         return access_token, expires_in
 
     def create_tokens_from_refresh_token(self, refresh_token):
+        if self.refresh_tokens.get(refresh_token) is None:
+            raise NotAuthorizedError(refresh_token)
         client_id, username = self.refresh_tokens.get(refresh_token)
         if not username:
             raise NotAuthorizedError(refresh_token)
@@ -1608,13 +1610,13 @@ class CognitoIdpBackend(BaseBackend):
         )
 
         user_pool = None
+        client = None
         for p in self.user_pools.values():
             if client_id in p.clients:
                 user_pool = p
+                client = p.clients.get(client_id)
         if user_pool is None:
             raise ResourceNotFoundError(client_id)
-
-        client = p.clients.get(client_id)
 
         if auth_flow is AuthFlow.USER_SRP_AUTH:
             username = auth_parameters.get("USERNAME")

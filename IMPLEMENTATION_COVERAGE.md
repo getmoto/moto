@@ -613,7 +613,7 @@
 - [ ] create_cache_policy
 - [ ] create_cloud_front_origin_access_identity
 - [X] create_distribution
-- [ ] create_distribution_with_tags
+- [X] create_distribution_with_tags
 - [ ] create_field_level_encryption_config
 - [ ] create_field_level_encryption_profile
 - [ ] create_function
@@ -3638,7 +3638,7 @@
 
 ## kinesis
 <details>
-<summary>89% implemented</summary>
+<summary>93% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -3668,7 +3668,7 @@
 - [X] stop_stream_encryption
 - [ ] subscribe_to_shard
 - [X] update_shard_count
-- [ ] update_stream_mode
+- [X] update_stream_mode
 </details>
 
 ## kinesis-video-archived-media
@@ -6198,9 +6198,9 @@
 
 ## wafv2
 <details>
-<summary>4% implemented</summary>
+<summary>25% implemented</summary>
 
-- [ ] associate_web_acl
+- [X] associate_web_acl
 - [ ] check_capacity
 - [ ] create_ip_set
 - [ ] create_regex_pattern_set
@@ -6212,9 +6212,9 @@
 - [ ] delete_permission_policy
 - [ ] delete_regex_pattern_set
 - [ ] delete_rule_group
-- [ ] delete_web_acl
+- [X] delete_web_acl
 - [ ] describe_managed_rule_group
-- [ ] disassociate_web_acl
+- [X] disassociate_web_acl
 - [ ] generate_mobile_sdk_release_url
 - [ ] get_ip_set
 - [ ] get_logging_configuration
@@ -6225,8 +6225,8 @@
 - [ ] get_regex_pattern_set
 - [ ] get_rule_group
 - [ ] get_sampled_requests
-- [ ] get_web_acl
-- [ ] get_web_acl_for_resource
+- [X] get_web_acl
+- [X] get_web_acl_for_resource
 - [ ] list_available_managed_rule_group_versions
 - [ ] list_available_managed_rule_groups
 - [ ] list_ip_sets
@@ -6235,19 +6235,19 @@
 - [ ] list_mobile_sdk_releases
 - [ ] list_regex_pattern_sets
 - [ ] list_resources_for_web_acl
-- [ ] list_rule_groups
-- [ ] list_tags_for_resource
+- [X] list_rule_groups
+- [X] list_tags_for_resource
 - [X] list_web_acls
 - [ ] put_logging_configuration
 - [ ] put_managed_rule_set_versions
 - [ ] put_permission_policy
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_ip_set
 - [ ] update_managed_rule_set_version_expiry_date
 - [ ] update_regex_pattern_set
 - [ ] update_rule_group
-- [ ] update_web_acl
+- [X] update_web_acl
 </details>
 
 ## Unimplemented:
