@@ -353,12 +353,14 @@ class IAMPolicy(object):
 
         self._policy_json = json.loads(policy_document)
 
-    def is_action_permitted(self, action):
+    def is_action_permitted(self, action, resource="*"):
         permitted = False
         if isinstance(self._policy_json["Statement"], list):
             for policy_statement in self._policy_json["Statement"]:
                 iam_policy_statement = IAMPolicyStatement(policy_statement)
-                permission_result = iam_policy_statement.is_action_permitted(action)
+                permission_result = iam_policy_statement.is_action_permitted(
+                    action, resource
+                )
                 if permission_result == PermissionResult.DENIED:
                     return permission_result
                 elif permission_result == PermissionResult.PERMITTED:
@@ -377,7 +379,7 @@ class IAMPolicyStatement(object):
     def __init__(self, statement):
         self._statement = statement
 
-    def is_action_permitted(self, action):
+    def is_action_permitted(self, action, resource="*"):
         is_action_concerned = False
 
         if "NotAction" in self._statement:
@@ -388,7 +390,8 @@ class IAMPolicyStatement(object):
                 is_action_concerned = True
 
         if is_action_concerned:
-            if self._statement["Effect"] == "Allow":
+            same_resource = self._match(self._statement["Resource"], resource)
+            if self._statement["Effect"] == "Allow" and same_resource:
                 return PermissionResult.PERMITTED
             else:  # Deny
                 return PermissionResult.DENIED

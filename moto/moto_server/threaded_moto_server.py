@@ -31,7 +31,7 @@ class ThreadedMotoServer:
         self._thread = Thread(target=self._server_entry, daemon=True)
         self._thread.start()
         while not self._server_ready:
-            time.sleep(0.5)
+            time.sleep(0.1)
 
     def stop(self):
         self._server_ready = False
