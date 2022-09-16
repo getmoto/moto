@@ -427,12 +427,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # get action from method and uri
         return self._get_action_from_method_and_request_uri(self.method, self.path)
 
-    def set_seed(self, request, full_url, headers):  # pylint: disable=unused-argument
-        from moto.moto_api import utilities as moto_utilities
-
-        moto_utilities.set_seed(request.args["seed"])
-        return 200, {}, "Rand seed is {0}".format(request.args["seed"])
-
     def call_action(self):
         headers = self.response_headers
 

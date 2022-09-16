@@ -11,8 +11,3 @@ state_manager = _internal.state_manager.StateManager()
 Recorder, used to record calls to Moto and replay them later
 """
 recorder = _internal.Recorder()
-
-"""
-Various Moto Utilities
-"""
-utilities = _internal.MotoUtilities()
