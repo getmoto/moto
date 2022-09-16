@@ -598,6 +598,7 @@ class Database(CloudFormationModel):
                 <Address>{{ database.address }}</Address>
                 <Port>{{ database.port }}</Port>
               </Endpoint>
+              <DbInstancePort>{{ database.port }}</DbInstancePort>
               <DBInstanceArn>{{ database.db_instance_arn }}</DBInstanceArn>
               <TagList>
               {%- for tag in database.tags -%}
