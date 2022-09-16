@@ -55,20 +55,12 @@ class BotocoreStubber:
                 if isinstance(value, bytes):
                     request.headers[header] = value.decode("utf-8")
             try:
+                recorder._record_request(request)
+
                 status, headers, body = response_callback(
                     request, request.url, request.headers
                 )
 
-                # TODO:
-                # [x] record manual HTTP requests
-                # [x] test boto requests with body
-                # [x] test manual requests with body
-                # technical approach: Unified pre-process method that we call before calling `response_callback` or the werkzeug equivalent?
-                # maybe send all incoming requests to the same place, so that the response_callback is only computed in one place
-                # [x] test with treadedmotoserver
-                # docs
-                # [x] replay_recording(target_host) should replace all urls (with a note explaining that it should only work in ServerMode)
-                recorder.record_request(request)
             except HTTPException as e:
                 status = e.code
                 headers = e.get_headers()

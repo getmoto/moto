@@ -16,7 +16,7 @@ class Recorder:
         self._os_enabled = bool(os.environ.get("MOTO_ENABLE_RECORDING", False))
         self._user_enabled = self._os_enabled
 
-    def record_request(self, request, body=None):
+    def _record_request(self, request, body=None):
         """
         Record the current request
         """

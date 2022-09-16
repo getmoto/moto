@@ -51,7 +51,7 @@ class CallbackResponse(responses.CallbackResponse):
 
         from moto.moto_api import recorder
 
-        recorder.record_request(request, body)
+        recorder._record_request(request, body)
 
         result = self.callback(request)
         if isinstance(result, Exception):

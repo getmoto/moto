@@ -127,7 +127,7 @@ class convert_to_flask_response(object):
         from moto.moto_api import recorder
 
         try:
-            recorder.record_request(request)
+            recorder._record_request(request)
             result = self.callback(request, request.url, dict(request.headers))
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]

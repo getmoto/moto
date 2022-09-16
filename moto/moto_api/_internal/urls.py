@@ -14,7 +14,6 @@ url_paths = {
     "{0}/moto-api/state-manager/get-transition": response_instance.get_transition,
     "{0}/moto-api/state-manager/set-transition": response_instance.set_transition,
     "{0}/moto-api/state-manager/unset-transition": response_instance.unset_transition,
-    "{0}/moto-api/set-seed": response_instance.set_seed,
     "{0}/moto-api/record-replay/reset-recording": record_replay.reset_recording,
     "{0}/moto-api/record-replay/start-recording": record_replay.start_recording,
     "{0}/moto-api/record-replay/stop-recording": record_replay.stop_recording,

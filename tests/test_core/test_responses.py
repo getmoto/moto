@@ -1,6 +1,4 @@
-import io
-
-# import sure  # noqa # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 
 from collections import OrderedDict
 
@@ -8,13 +6,6 @@ from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.responses import AWSServiceSpec, BaseResponse
 from moto.core.responses import flatten_json_request_body
-
-from moto import settings, mock_ec2
-from tests import EXAMPLE_AMI_ID
-from unittest import SkipTest, mock
-import boto3
-import requests
-import json
 
 
 def test_flatten_json_request_body():

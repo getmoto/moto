@@ -24,7 +24,6 @@ from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
 from moto import settings
 
-
 log = logging.getLogger(__name__)
 
 JINJA_ENVS = {}
