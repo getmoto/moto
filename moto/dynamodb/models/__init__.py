@@ -1654,7 +1654,7 @@ class DynamoDBBackend(BaseBackend):
                 raise MultipleTransactionsException()
             target_items.add(item)
 
-        errors = []
+        errors = []  # [(Code, Message, Item), ..]
         for item in transact_items:
             try:
                 if "ConditionCheck" in item:
@@ -1738,14 +1738,14 @@ class DynamoDBBackend(BaseBackend):
                     )
                 else:
                     raise ValueError
-                errors.append((None, None))
+                errors.append((None, None, None))
             except MultipleTransactionsException:
                 # Rollback to the original state, and reraise the error
                 self.tables = original_table_state
                 raise MultipleTransactionsException()
             except Exception as e:  # noqa: E722 Do not use bare except
-                errors.append((type(e).__name__, e.message))
-        if set(errors) != set([(None, None)]):
+                errors.append((type(e).__name__, e.message, item))
+        if any([code is not None for code, _, _ in errors]):
             # Rollback to the original state, and reraise the errors
             self.tables = original_table_state
             raise TransactionCanceledException(errors)

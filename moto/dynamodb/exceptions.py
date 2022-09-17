@@ -207,14 +207,14 @@ class TransactionCanceledException(DynamodbException):
 
     def __init__(self, errors):
         msg = self.cancel_reason_msg.format(
-            ", ".join([str(code) for code, _ in errors])
+            ", ".join([str(code) for code, _, _ in errors])
         )
         super().__init__(
             error_type=TransactionCanceledException.error_type, message=msg
         )
         reasons = [
-            {"Code": code, "Message": message} if code else {"Code": "None"}
-            for code, message in errors
+            {"Code": code, "Message": message, **item} if code else {"Code": "None"}
+            for code, message, item in errors
         ]
         self.description = json.dumps(
             {
