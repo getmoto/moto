@@ -85,76 +85,28 @@ def test_get_job_exists():
         "GlueVersion": "string",
     }
     job_name = create_test_job_w_all_attributes(client, **job_attributes)
-    response = client.get_job(JobName=job_name)
-    assert response["Job"]["Name"] == job_name
-    assert response["Job"]["Description"]
-    assert response["Job"]["LogUri"]
-    assert response["Job"]["Role"]
-    assert response["Job"]["CreatedOn"]
-    assert response["Job"]["LastModifiedOn"]
-    assert response["Job"]["ExecutionProperty"]
-    assert response["Job"]["Command"]
-    assert response["Job"]["DefaultArguments"]
-    assert response["Job"]["NonOverridableArguments"]
-    assert response["Job"]["Connections"]
-    assert response["Job"]["MaxRetries"]
-    assert response["Job"]["AllocatedCapacity"]
-    assert response["Job"]["Timeout"]
-    assert response["Job"]["MaxCapacity"]
-    assert response["Job"]["WorkerType"]
-    assert response["Job"]["NumberOfWorkers"]
-    assert response["Job"]["SecurityConfiguration"]
-    assert response["Job"]["NotificationProperty"]
-    assert response["Job"]["GlueVersion"]
-
-
-@mock_glue
-def test_start_job_run():
-    client = create_glue_client()
-    job_name = create_test_job(client)
-    response = client.start_job_run(JobName=job_name)
-    assert response["JobRunId"]
-
-
-@mock_glue
-def test_start_job_run_already_running():
-    client = create_glue_client()
-    job_name = create_test_job(client)
-    client.start_job_run(JobName=job_name)
-    with pytest.raises(ClientError) as exc:
-        client.start_job_run(JobName=job_name)
-    exc.value.response["Error"]["Code"].should.equal("ConcurrentRunsExceededException")
-    exc.value.response["Error"]["Message"].should.match(
-        f"Job with name {job_name} already running"
-    )
-
-
-@mock_glue
-def test_get_job_run():
-    client = create_glue_client()
-    job_name = create_test_job(client)
-    response = client.get_job_run(JobName=job_name, RunId="01")
-    assert response["JobRun"]["Id"]
-    assert response["JobRun"]["Attempt"]
-    assert response["JobRun"]["PreviousRunId"]
-    assert response["JobRun"]["TriggerName"]
-    assert response["JobRun"]["StartedOn"]
-    assert response["JobRun"]["LastModifiedOn"]
-    assert response["JobRun"]["CompletedOn"]
-    assert response["JobRun"]["JobRunState"]
-    assert response["JobRun"]["Arguments"]
-    assert response["JobRun"]["ErrorMessage"] == ""
-    assert response["JobRun"]["PredecessorRuns"]
-    assert response["JobRun"]["AllocatedCapacity"]
-    assert response["JobRun"]["ExecutionTime"]
-    assert response["JobRun"]["Timeout"]
-    assert response["JobRun"]["MaxCapacity"]
-    assert response["JobRun"]["WorkerType"]
-    assert response["JobRun"]["NumberOfWorkers"]
-    assert response["JobRun"]["SecurityConfiguration"]
-    assert response["JobRun"]["LogGroupName"]
-    assert response["JobRun"]["NotificationProperty"]
-    assert response["JobRun"]["GlueVersion"]
+    job = client.get_job(JobName=job_name)["Job"]
+    job.should.have.key("Name").equals(job_name)
+    job.should.have.key("Description")
+    job.should.have.key("LogUri")
+    job.should.have.key("Role")
+    job.should.have.key("ExecutionProperty").equals({"MaxConcurrentRuns": 123})
+    job.should.have.key("CreatedOn")
+    job.should.have.key("LastModifiedOn")
+    job.should.have.key("ExecutionProperty")
+    job.should.have.key("Command")
+    job.should.have.key("DefaultArguments")
+    job.should.have.key("NonOverridableArguments")
+    job.should.have.key("Connections")
+    job.should.have.key("MaxRetries")
+    job.should.have.key("AllocatedCapacity")
+    job.should.have.key("Timeout")
+    job.should.have.key("MaxCapacity")
+    job.should.have.key("WorkerType")
+    job.should.have.key("NumberOfWorkers")
+    job.should.have.key("SecurityConfiguration")
+    job.should.have.key("NotificationProperty")
+    job.should.have.key("GlueVersion")
 
 
 @mock_glue

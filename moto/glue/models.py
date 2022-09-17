@@ -1,20 +1,17 @@
 import time
 from collections import OrderedDict
 from datetime import datetime
+from typing import List
 from uuid import uuid4
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-from moto.glue.exceptions import (
-    CrawlerRunningException,
-    CrawlerNotRunningException,
-    SchemaVersionNotFoundFromSchemaVersionIdException,
-    SchemaVersionNotFoundFromSchemaIdException,
-    SchemaNotFoundException,
-    SchemaVersionMetadataAlreadyExistsException,
-)
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 from .exceptions import (
     JsonRESTError,
+    CrawlerRunningException,
+    CrawlerNotRunningException,
     CrawlerAlreadyExistsException,
     CrawlerNotFoundException,
     DatabaseAlreadyExistsException,
@@ -25,7 +22,12 @@ from .exceptions import (
     PartitionNotFoundException,
     VersionNotFoundException,
     JobNotFoundException,
+    JobRunNotFoundException,
     ConcurrentRunsExceededException,
+    SchemaVersionNotFoundFromSchemaVersionIdException,
+    SchemaVersionNotFoundFromSchemaIdException,
+    SchemaNotFoundException,
+    SchemaVersionMetadataAlreadyExistsException,
 )
 from .utils import PartitionFilter
 from .glue_schema_registry_utils import (
@@ -77,6 +79,10 @@ class GlueBackend(BaseBackend):
         self.registries = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
+
+        state_manager.register_default_transition(
+            model_name="glue::job_run", transition={"progression": "immediate"}
+        )
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -850,7 +856,7 @@ class FakeJob:
         self.description = description
         self.log_uri = log_uri
         self.role = role
-        self.execution_property = execution_property
+        self.execution_property = execution_property or {}
         self.command = command
         self.default_arguments = default_arguments
         self.non_overridable_arguments = non_overridable_arguments
@@ -858,7 +864,6 @@ class FakeJob:
         self.max_retries = max_retries
         self.allocated_capacity = allocated_capacity
         self.timeout = timeout
-        self.state = "READY"
         self.max_capacity = max_capacity
         self.security_configuration = security_configuration
         self.notification_property = notification_property
@@ -870,6 +875,8 @@ class FakeJob:
         self.arn = f"arn:aws:glue:us-east-1:{backend.account_id}:job/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
+
+        self.job_runs: List[FakeJobRun] = []
 
     def get_name(self):
         return self.name
@@ -899,20 +906,26 @@ class FakeJob:
         }
 
     def start_job_run(self):
-        if self.state == "RUNNING":
+        running_jobs = len(
+            [jr for jr in self.job_runs if jr.status in ["STARTING", "RUNNING"]]
+        )
+        if running_jobs >= self.execution_property.get("MaxConcurrentRuns", 1):
             raise ConcurrentRunsExceededException(
                 f"Job with name {self.name} already running"
             )
         fake_job_run = FakeJobRun(job_name=self.name)
-        self.state = "RUNNING"
+        self.job_runs.append(fake_job_run)
         return fake_job_run.job_run_id
 
     def get_job_run(self, run_id):
-        fake_job_run = FakeJobRun(job_name=self.name, job_run_id=run_id)
-        return fake_job_run
+        for job_run in self.job_runs:
+            if job_run.job_run_id == run_id:
+                job_run.advance()
+                return job_run
+        raise JobRunNotFoundException(run_id)
 
 
-class FakeJobRun:
+class FakeJobRun(ManagedState):
     def __init__(
         self,
         job_name: int,
@@ -922,6 +935,11 @@ class FakeJobRun:
         timeout: int = None,
         worker_type: str = "Standard",
     ):
+        ManagedState.__init__(
+            self,
+            model_name="glue::job_run",
+            transitions=[("STARTING", "RUNNING"), ("RUNNING", "SUCCEEDED")],
+        )
         self.job_name = job_name
         self.job_run_id = job_run_id
         self.arguments = arguments
@@ -945,7 +963,7 @@ class FakeJobRun:
             "StartedOn": self.started_on.isoformat(),
             "LastModifiedOn": self.modified_on.isoformat(),
             "CompletedOn": self.completed_on.isoformat(),
-            "JobRunState": "SUCCEEDED",
+            "JobRunState": self.status,
             "Arguments": self.arguments or {"runSpark": "spark -f test_file.py"},
             "ErrorMessage": "",
             "PredecessorRuns": [
