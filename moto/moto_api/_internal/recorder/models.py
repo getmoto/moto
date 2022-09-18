@@ -10,9 +10,7 @@ from urllib.parse import urlparse
 
 class Recorder:
     def __init__(self):
-        self._location = str(
-            os.environ.get("MOTO_RECORDER_FILEPATH", "moto_recording")
-        )
+        self._location = str(os.environ.get("MOTO_RECORDER_FILEPATH", "moto_recording"))
         self._os_enabled = bool(os.environ.get("MOTO_ENABLE_RECORDING", False))
         self._user_enabled = self._os_enabled
 

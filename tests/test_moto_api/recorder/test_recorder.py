@@ -25,17 +25,13 @@ from unittest import SkipTest, TestCase
 class TestRecorder(TestCase):
     def _reset_recording(self):
         if settings.TEST_SERVER_MODE:
-            requests.post(
-                "http://localhost:5000/moto-api/recorder/reset-recording"
-            )
+            requests.post("http://localhost:5000/moto-api/recorder/reset-recording")
         else:
             recorder.reset_recording()
 
     def _start_recording(self):
         if settings.TEST_SERVER_MODE:
-            requests.post(
-                "http://localhost:5000/moto-api/recorder/start-recording"
-            )
+            requests.post("http://localhost:5000/moto-api/recorder/start-recording")
         else:
             recorder.start_recording()
 
@@ -57,9 +53,7 @@ class TestRecorder(TestCase):
 
     def _replay_recording(self):
         if settings.TEST_SERVER_MODE:
-            requests.post(
-                "http://localhost:5000/moto-api/recorder/replay-recording"
-            )
+            requests.post("http://localhost:5000/moto-api/recorder/replay-recording")
         else:
             recorder.replay_recording()
 
