@@ -1751,7 +1751,6 @@ class RDSBackend(BaseBackend):
     def create_db_cluster(self, kwargs):
         cluster_id = kwargs["db_cluster_identifier"]
         kwargs["account_id"] = self.account_id
-        print(kwargs)
         cluster = Cluster(**kwargs)
         self.clusters[cluster_id] = cluster
         initial_state = copy.deepcopy(cluster)  # Return status=creating
