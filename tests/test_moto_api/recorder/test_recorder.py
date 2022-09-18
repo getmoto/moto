@@ -22,11 +22,11 @@ from unittest import SkipTest, TestCase
 @mock_ec2
 @mock_s3
 @mock_timestreamwrite
-class TestRecordReplay(TestCase):
+class TestRecorder(TestCase):
     def _reset_recording(self):
         if settings.TEST_SERVER_MODE:
             requests.post(
-                "http://localhost:5000/moto-api/record-replay/reset-recording"
+                "http://localhost:5000/moto-api/recorder/reset-recording"
             )
         else:
             recorder.reset_recording()
@@ -34,21 +34,21 @@ class TestRecordReplay(TestCase):
     def _start_recording(self):
         if settings.TEST_SERVER_MODE:
             requests.post(
-                "http://localhost:5000/moto-api/record-replay/start-recording"
+                "http://localhost:5000/moto-api/recorder/start-recording"
             )
         else:
             recorder.start_recording()
 
     def _stop_recording(self):
         if settings.TEST_SERVER_MODE:
-            requests.post("http://localhost:5000/moto-api/record-replay/stop-recording")
+            requests.post("http://localhost:5000/moto-api/recorder/stop-recording")
         else:
             recorder.stop_recording()
 
     def _download_recording(self):
         if settings.TEST_SERVER_MODE:
             resp = requests.get(
-                "http://localhost:5000/moto-api/record-replay/download-recording"
+                "http://localhost:5000/moto-api/recorder/download-recording"
             )
             resp.status_code.should.equal(200)
             return resp.content
@@ -58,7 +58,7 @@ class TestRecordReplay(TestCase):
     def _replay_recording(self):
         if settings.TEST_SERVER_MODE:
             requests.post(
-                "http://localhost:5000/moto-api/record-replay/replay-recording"
+                "http://localhost:5000/moto-api/recorder/replay-recording"
             )
         else:
             recorder.replay_recording()
@@ -217,10 +217,10 @@ class TestThreadedMotoServer(TestCase):
         )
         server.start()
         requests.post(
-            f"http://localhost:{self.port_1}/moto-api/record-replay/reset-recording"
+            f"http://localhost:{self.port_1}/moto-api/recorder/reset-recording"
         )
         requests.post(
-            f"http://localhost:{self.port_1}/moto-api/record-replay/start-recording"
+            f"http://localhost:{self.port_1}/moto-api/recorder/start-recording"
         )
 
         # create s3 file
@@ -234,10 +234,10 @@ class TestThreadedMotoServer(TestCase):
 
         # store content
         requests.post(
-            f"http://localhost:{self.port_1}/moto-api/record-replay/stop-recording"
+            f"http://localhost:{self.port_1}/moto-api/recorder/stop-recording"
         )
         self.content = requests.post(
-            f"http://localhost:{self.port_1}/moto-api/record-replay/download-recording"
+            f"http://localhost:{self.port_1}/moto-api/recorder/download-recording"
         ).content
         server.stop()
 
@@ -250,12 +250,12 @@ class TestThreadedMotoServer(TestCase):
         requests.post(f"http://localhost:{self.port_2}/moto-api/reset")
         # upload content
         requests.post(
-            f"http://localhost:{self.port_2}/moto-api/record-replay/upload-recording",
+            f"http://localhost:{self.port_2}/moto-api/recorder/upload-recording",
             data=self.content,
         )
         # replay
         requests.post(
-            f"http://localhost:{self.port_2}/moto-api/record-replay/replay-recording"
+            f"http://localhost:{self.port_2}/moto-api/recorder/replay-recording"
         )
         # assert the file exists
         s3 = boto3.client(

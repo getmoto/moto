@@ -1,10 +1,10 @@
 from .responses import MotoAPIResponse
-from .record_replay.responses import RecordReplayResponse
+from .recorder.responses import RecorderResponse
 
 url_bases = ["https?://motoapi.amazonaws.com"]
 
 response_instance = MotoAPIResponse()
-record_replay = RecordReplayResponse()
+recorder_response = RecorderResponse()
 
 url_paths = {
     "{0}/moto-api/$": response_instance.dashboard,
@@ -14,10 +14,10 @@ url_paths = {
     "{0}/moto-api/state-manager/get-transition": response_instance.get_transition,
     "{0}/moto-api/state-manager/set-transition": response_instance.set_transition,
     "{0}/moto-api/state-manager/unset-transition": response_instance.unset_transition,
-    "{0}/moto-api/record-replay/reset-recording": record_replay.reset_recording,
-    "{0}/moto-api/record-replay/start-recording": record_replay.start_recording,
-    "{0}/moto-api/record-replay/stop-recording": record_replay.stop_recording,
-    "{0}/moto-api/record-replay/upload-recording": record_replay.upload_recording,
-    "{0}/moto-api/record-replay/download-recording": record_replay.download_recording,
-    "{0}/moto-api/record-replay/replay-recording": record_replay.replay_recording,
+    "{0}/moto-api/recorder/reset-recording": recorder_response.reset_recording,
+    "{0}/moto-api/recorder/start-recording": recorder_response.start_recording,
+    "{0}/moto-api/recorder/stop-recording": recorder_response.stop_recording,
+    "{0}/moto-api/recorder/upload-recording": recorder_response.upload_recording,
+    "{0}/moto-api/recorder/download-recording": recorder_response.download_recording,
+    "{0}/moto-api/recorder/replay-recording": recorder_response.replay_recording,
 }

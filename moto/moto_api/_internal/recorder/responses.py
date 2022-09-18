@@ -2,7 +2,7 @@ from ... import recorder
 from moto.core.responses import BaseResponse
 
 
-class RecordReplayResponse(BaseResponse):
+class RecorderResponse(BaseResponse):
     def reset_recording(self, req, url, headers):  # pylint: disable=unused-argument
         recorder.reset_recording()
         return 200, {}, ""

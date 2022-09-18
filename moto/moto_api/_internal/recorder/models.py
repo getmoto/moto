@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 class Recorder:
     def __init__(self):
         self._location = str(
-            os.environ.get("MOTO_RECORDING_FILEPATH", "moto_recording")
+            os.environ.get("MOTO_RECORDER_FILEPATH", "moto_recording")
         )
         self._os_enabled = bool(os.environ.get("MOTO_ENABLE_RECORDING", False))
         self._user_enabled = self._os_enabled
@@ -23,7 +23,7 @@ class Recorder:
         if not self._user_enabled:
             return
 
-        if "moto-api/record-replay" in request.url:
+        if urlparse(request.url).path.startswith("/moto-api/recorder/"):
             return
 
         entry = {
