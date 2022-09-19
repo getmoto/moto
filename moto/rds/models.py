@@ -1493,10 +1493,10 @@ class RDSBackend(BaseBackend):
         return security_group
 
     def create_subnet_group(
-        self, subnet_name, description, subnets, tags, region, account_id
+        self, subnet_name, description, subnets, tags,
     ):
         subnet_group = SubnetGroup(
-            subnet_name, description, subnets, tags, region, account_id
+            subnet_name, description, subnets, tags, self.region_name, self.account_id
         )
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
