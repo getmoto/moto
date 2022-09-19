@@ -352,7 +352,7 @@ class RDSResponse(BaseResponse):
             for subnet_id in subnet_ids
         ]
         subnet_group = self.backend.create_subnet_group(
-            subnet_name, description, subnets, tags, self.region, self.current_account
+            subnet_name, description, subnets, tags
         )
         template = self.response_template(CREATE_SUBNET_GROUP_TEMPLATE)
         return template.render(subnet_group=subnet_group)
