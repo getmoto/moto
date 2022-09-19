@@ -3,7 +3,7 @@ Moto Changelog
 
 4.0.5
 -----
-Docker Digest for 4.0.5: <autopopulateddigest>
+Docker Digest for 4.0.5: _sha256:d18f760f3498b212b0c8c205c9c28c2b41e8c7a108f44e1bd1d7ee86dfc37c03_
 
     General:
         * Moto now has a Recorder, to easily record and replay a given set of requests.
