@@ -121,10 +121,24 @@ class Cluster:
         # automatically sets the enable_http_endpoint parameter to False
         if kwargs.get("enable_http_endpoint"):
             if self.engine_mode == "serverless":
-                if self.engine == "aurora-mysql" and self.engine_version in ["5.6.10a", "5.6.1", "2.07.1", "5.7.2"]:
-                    self.enable_http_endpoint = kwargs.get("enable_http_endpoint", False)
-                elif self.engine == "aurora-postgresql" and self.engine_version in ["10.12", "10.14", "10.18", "11.13"]:
-                    self.enable_http_endpoint = kwargs.get("enable_http_endpoint", False)
+                if self.engine == "aurora-mysql" and self.engine_version in [
+                    "5.6.10a",
+                    "5.6.1",
+                    "2.07.1",
+                    "5.7.2",
+                ]:
+                    self.enable_http_endpoint = kwargs.get(
+                        "enable_http_endpoint", False
+                    )
+                elif self.engine == "aurora-postgresql" and self.engine_version in [
+                    "10.12",
+                    "10.14",
+                    "10.18",
+                    "11.13",
+                ]:
+                    self.enable_http_endpoint = kwargs.get(
+                        "enable_http_endpoint", False
+                    )
 
     @property
     def db_cluster_arn(self):
