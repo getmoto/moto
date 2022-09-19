@@ -116,7 +116,7 @@ class Cluster:
         )
         self.enable_http_endpoint = False
         # instead of raising an error on aws rds create-db-cluster commands with
-        # incompatible configurations with enable_http_endpoint 
+        # incompatible configurations with enable_http_endpoint
         # (e.g. engine_mode is not set to "serverless"), the API
         # automatically sets the enable_http_endpoint parameter to False
         if kwargs.get("enable_http_endpoint"):
