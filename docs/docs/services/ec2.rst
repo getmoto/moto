@@ -80,6 +80,8 @@ ec2
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
 - [ ] create_client_vpn_route
+- [ ] create_coip_cidr
+- [ ] create_coip_pool
 - [X] create_customer_gateway
 - [ ] create_default_subnet
 - [X] create_default_vpc
@@ -99,6 +101,8 @@ ec2
 - [X] create_launch_template
 - [ ] create_launch_template_version
 - [ ] create_local_gateway_route
+- [ ] create_local_gateway_route_table
+- [ ] create_local_gateway_route_table_virtual_interface_group_association
 - [ ] create_local_gateway_route_table_vpc_association
 - [X] create_managed_prefix_list
 - [X] create_nat_gateway
@@ -154,6 +158,8 @@ ec2
 - [X] delete_carrier_gateway
 - [ ] delete_client_vpn_endpoint
 - [ ] delete_client_vpn_route
+- [ ] delete_coip_cidr
+- [ ] delete_coip_pool
 - [X] delete_customer_gateway
 - [ ] delete_dhcp_options
 - [X] delete_egress_only_internet_gateway
@@ -169,6 +175,8 @@ ec2
 - [X] delete_launch_template
 - [ ] delete_launch_template_versions
 - [ ] delete_local_gateway_route
+- [ ] delete_local_gateway_route_table
+- [ ] delete_local_gateway_route_table_virtual_interface_group_association
 - [ ] delete_local_gateway_route_table_vpc_association
 - [X] delete_managed_prefix_list
 - [X] delete_nat_gateway
@@ -493,6 +501,7 @@ ec2
 - [ ] modify_ipam_resource_cidr
 - [ ] modify_ipam_scope
 - [ ] modify_launch_template
+- [ ] modify_local_gateway_route
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
