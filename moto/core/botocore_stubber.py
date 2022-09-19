@@ -32,6 +32,9 @@ class BotocoreStubber:
     def __call__(self, event_name, request, **kwargs):
         if not self.enabled:
             return None
+
+        from moto.moto_api import recorder
+
         response = None
         response_callback = None
         found_index = None
@@ -52,9 +55,12 @@ class BotocoreStubber:
                 if isinstance(value, bytes):
                     request.headers[header] = value.decode("utf-8")
             try:
+                recorder._record_request(request)
+
                 status, headers, body = response_callback(
                     request, request.url, request.headers
                 )
+
             except HTTPException as e:
                 status = e.code
                 headers = e.get_headers()

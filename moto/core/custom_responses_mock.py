@@ -30,14 +30,14 @@ class CallbackResponse(responses.CallbackResponse):
             if request.body is None:
                 body = None
             elif isinstance(request.body, str):
-                body = BytesIO(request.body.encode("UTF-8"))
+                body = request.body.encode("UTF-8")
             elif hasattr(request.body, "read"):
-                body = BytesIO(request.body.read())
+                body = request.body.read()
             else:
-                body = BytesIO(request.body)
+                body = request.body
             req = Request.from_values(
                 path="?".join([url.path, url.query]),
-                input_stream=body,
+                input_stream=BytesIO(body) if body else None,
                 content_length=request.headers.get("Content-Length"),
                 content_type=request.headers.get("Content-Type"),
                 method=request.method,
@@ -48,6 +48,10 @@ class CallbackResponse(responses.CallbackResponse):
             )
             request = req
         headers = self.get_headers()
+
+        from moto.moto_api import recorder
+
+        recorder._record_request(request, body)
 
         result = self.callback(request)
         if isinstance(result, Exception):
