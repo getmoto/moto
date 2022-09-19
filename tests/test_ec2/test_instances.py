@@ -689,6 +689,19 @@ def test_get_instances_filtering_by_ni_private_dns():
 
 
 @mock_ec2
+def test_run_instances_with_unknown_security_group():
+    client = boto3.client("ec2", region_name="us-east-1")
+    sg_id = f"sg-{str(uuid4())[0:6]}"
+    with pytest.raises(ClientError) as exc:
+        client.run_instances(
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroupIds=[sg_id]
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidGroup.NotFound")
+    err["Message"].should.equal(f"The security group '{sg_id}' does not exist")
+
+
+@mock_ec2
 def test_get_instances_filtering_by_instance_group_name():
     client = boto3.client("ec2", region_name="us-east-1")
     sec_group_name = str(uuid4())[0:6]
