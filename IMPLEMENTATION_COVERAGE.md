@@ -607,7 +607,7 @@
 
 ## cloudfront
 <details>
-<summary>7% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] associate_alias
 - [ ] create_cache_policy
@@ -711,7 +711,7 @@
 
 ## cloudtrail
 <details>
-<summary>55% implemented</summary>
+<summary>44% implemented</summary>
 
 - [X] add_tags
 - [ ] cancel_query
@@ -721,13 +721,18 @@
 - [X] delete_trail
 - [ ] describe_query
 - [X] describe_trails
+- [ ] get_channel
 - [ ] get_event_data_store
 - [X] get_event_selectors
+- [ ] get_import
 - [X] get_insight_selectors
 - [ ] get_query_results
 - [X] get_trail
 - [X] get_trail_status
+- [ ] list_channels
 - [ ] list_event_data_stores
+- [ ] list_import_failures
+- [ ] list_imports
 - [ ] list_public_keys
 - [ ] list_queries
 - [X] list_tags
@@ -737,8 +742,10 @@
 - [X] put_insight_selectors
 - [X] remove_tags
 - [ ] restore_event_data_store
+- [ ] start_import
 - [X] start_logging
 - [ ] start_query
+- [ ] stop_import
 - [X] stop_logging
 - [ ] update_event_data_store
 - [X] update_trail
@@ -1575,7 +1582,7 @@
 
 ## ec2
 <details>
-<summary>36% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -1630,6 +1637,8 @@
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
 - [ ] create_client_vpn_route
+- [ ] create_coip_cidr
+- [ ] create_coip_pool
 - [X] create_customer_gateway
 - [ ] create_default_subnet
 - [X] create_default_vpc
@@ -1649,6 +1658,8 @@
 - [X] create_launch_template
 - [ ] create_launch_template_version
 - [ ] create_local_gateway_route
+- [ ] create_local_gateway_route_table
+- [ ] create_local_gateway_route_table_virtual_interface_group_association
 - [ ] create_local_gateway_route_table_vpc_association
 - [X] create_managed_prefix_list
 - [X] create_nat_gateway
@@ -1700,6 +1711,8 @@
 - [X] delete_carrier_gateway
 - [ ] delete_client_vpn_endpoint
 - [ ] delete_client_vpn_route
+- [ ] delete_coip_cidr
+- [ ] delete_coip_pool
 - [X] delete_customer_gateway
 - [ ] delete_dhcp_options
 - [X] delete_egress_only_internet_gateway
@@ -1715,6 +1728,8 @@
 - [X] delete_launch_template
 - [ ] delete_launch_template_versions
 - [ ] delete_local_gateway_route
+- [ ] delete_local_gateway_route_table
+- [ ] delete_local_gateway_route_table_virtual_interface_group_association
 - [ ] delete_local_gateway_route_table_vpc_association
 - [X] delete_managed_prefix_list
 - [X] delete_nat_gateway
@@ -2016,6 +2031,7 @@
 - [ ] modify_ipam_resource_cidr
 - [ ] modify_ipam_scope
 - [ ] modify_launch_template
+- [ ] modify_local_gateway_route
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
@@ -5754,7 +5770,7 @@
 
 ## sns
 <details>
-<summary>55% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] add_permission
 - [ ] check_if_phone_number_is_opted_out
@@ -5767,6 +5783,7 @@
 - [X] delete_platform_application
 - [ ] delete_sms_sandbox_phone_number
 - [X] delete_topic
+- [ ] get_data_protection_policy
 - [ ] get_endpoint_attributes
 - [ ] get_platform_application_attributes
 - [ ] get_sms_attributes
@@ -5785,6 +5802,7 @@
 - [ ] opt_in_phone_number
 - [X] publish
 - [X] publish_batch
+- [ ] put_data_protection_policy
 - [X] remove_permission
 - [X] set_endpoint_attributes
 - [ ] set_platform_application_attributes

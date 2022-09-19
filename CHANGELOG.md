@@ -1,6 +1,21 @@
 Moto Changelog
 ==============
 
+4.0.5
+-----
+Docker Digest for 4.0.5: <autopopulateddigest>
+
+    General:
+        * Moto now has a Recorder, to easily record and replay a given set of requests.
+          See http://docs.getmoto.org/en/latest/docs/configuration/recorder/index.html
+
+    Miscellaneous:
+        * CloudFormation now supports the creation/update/deletion of AWS::EC2::LaunchTemplate
+        * Glue:start_job_run() now respects the MaxConcurrentRuns-parameter
+        * S3:get_object() now performs rudimentary BucketPolicy validation
+        * StateManager now supports `glue::job_run`, managing how long it takes to for a Glue job to become 'SUCCEEDED'
+
+
 4.0.3
 -----
 Docker Digest for 4.0.3: <autopopulateddigest>

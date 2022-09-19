@@ -35,7 +35,7 @@ cloudfront
         use-case.
         
 
-- [ ] create_distribution_with_tags
+- [X] create_distribution_with_tags
 - [ ] create_field_level_encryption_config
 - [ ] create_field_level_encryption_profile
 - [ ] create_function

@@ -247,6 +247,10 @@ class CloudFrontBackend(BaseBackend):
         we're not persisting/returning the correct attributes for your
         use-case.
         """
+        # We'll always call dist_with_tags, as the incoming request is the same
+        return self.create_distribution_with_tags(distribution_config, tags)
+
+    def create_distribution_with_tags(self, distribution_config, tags):
         dist = Distribution(self.account_id, distribution_config)
         caller_reference = dist.distribution_config.caller_reference
         existing_dist = self._distribution_with_caller_reference(caller_reference)
