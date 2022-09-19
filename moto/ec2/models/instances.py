@@ -21,6 +21,7 @@ from ..exceptions import (
     InvalidInstanceIdError,
     InvalidInstanceTypeError,
     InvalidParameterValueErrorUnknownAttribute,
+    InvalidSecurityGroupNotFoundError,
     OperationNotPermitted4,
 )
 from ..utils import (
@@ -596,8 +597,6 @@ class InstanceBackend:
         ):
             if settings.EC2_ENABLE_INSTANCE_TYPE_VALIDATION:
                 raise InvalidInstanceTypeError(kwargs["instance_type"])
-        new_reservation = Reservation()
-        new_reservation.id = random_reservation_id()
 
         security_groups = [
             self.get_security_group_by_name_or_id(name) for name in security_group_names
@@ -605,9 +604,15 @@ class InstanceBackend:
 
         for sg_id in kwargs.pop("security_group_ids", []):
             if isinstance(sg_id, str):
-                security_groups.append(self.get_security_group_from_id(sg_id))
+                sg = self.get_security_group_from_id(sg_id)
+                if sg is None:
+                    raise InvalidSecurityGroupNotFoundError(sg_id)
+                security_groups.append(sg)
             else:
                 security_groups.append(sg_id)
+
+        new_reservation = Reservation()
+        new_reservation.id = random_reservation_id()
 
         self.reservations[new_reservation.id] = new_reservation
 
