@@ -159,8 +159,6 @@ class _DockerDataVolumeContext:
 
 
 def _zipfile_content(zipfile):
-    # more hackery to handle unicode/bytes/str in python3 and python2 -
-    # argh!
     try:
         to_unzip_code = base64.b64decode(bytes(zipfile, "utf-8"))
     except Exception:

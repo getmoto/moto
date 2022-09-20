@@ -11,7 +11,6 @@ import tempfile
 import threading
 import pytz
 import sys
-import time
 import uuid
 import urllib.parse
 
@@ -23,6 +22,7 @@ from moto.core import CloudWatchMetricProvider
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
+    unix_time,
     unix_time_millis,
     BackendDict,
 )
@@ -1309,9 +1309,7 @@ class FakeBucket(CloudFormationModel):
             "version": "1.3",
             "configurationItemCaptureTime": str(self.creation_date),
             "configurationItemStatus": "ResourceDiscovered",
-            "configurationStateId": str(
-                int(time.mktime(self.creation_date.timetuple()))
-            ),  # PY2 and 3 compatible
+            "configurationStateId": str(int(unix_time())),
             "configurationItemMD5Hash": "",
             "arn": self.arn,
             "resourceType": "AWS::S3::Bucket",

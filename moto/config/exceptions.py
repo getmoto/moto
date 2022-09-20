@@ -51,8 +51,6 @@ class InvalidResourceTypeException(JsonRESTError):
             "'configurationRecorder.recordingGroup.resourceTypes' failed to satisfy constraint: "
             f"Member must satisfy constraint: [Member must satisfy enum value set: {good_list}]"
         )
-        # For PY2:
-        message = str(message)
 
         super().__init__("ValidationException", message)
 
