@@ -1229,7 +1229,10 @@ class SubnetGroup(CloudFormationModel):
         subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
         rds_backend = rds_backends[account_id][region_name]
         subnet_group = rds_backend.create_subnet_group(
-            resource_name, description, subnets, tags, region_name, account_id
+            resource_name,
+            description,
+            subnets,
+            tags,
         )
         return subnet_group
 
