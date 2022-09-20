@@ -248,11 +248,7 @@ def amz_crc32(f):
             if "status" in headers:
                 headers["status"] = str(headers["status"])
 
-        try:
-            # Doesnt work on python2 for some odd unicode strings
-            gen_amz_crc32(body, headers)
-        except Exception:
-            pass
+        gen_amz_crc32(body, headers)
 
         return status, headers, body
 
@@ -282,7 +278,7 @@ def amzn_request_id(f):
         # Update request ID in XML
         try:
             body = re.sub(r"(?<=<RequestId>).*(?=<\/RequestId>)", request_id, body)
-        except Exception:  # Will just ignore if it cant work on bytes (which are str's on python2)
+        except Exception:  # Will just ignore if it cant work
             pass
 
         return status, headers, body

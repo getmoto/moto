@@ -482,11 +482,6 @@ class Document(BaseModel):
         if document_format == "JSON":
             try:
                 content_json = json.loads(content)
-            except ValueError:
-                # Python2
-                raise InvalidDocumentContent(
-                    "The content for the document is not valid."
-                )
             except json.decoder.JSONDecodeError:
                 raise InvalidDocumentContent(
                     "The content for the document is not valid."

@@ -7,7 +7,6 @@ import uuid
 from datetime import datetime
 import json
 import re
-import time
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -21,6 +20,7 @@ from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
     BackendDict,
+    unix_time,
 )
 from moto.iam.policy_validation import (
     IAMPolicyDocumentValidator,
@@ -329,9 +329,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
             "version": "1.3",
             "configurationItemCaptureTime": str(self.create_date),
             "configurationItemStatus": "OK",
-            "configurationStateId": str(
-                int(time.mktime(self.create_date.timetuple()))
-            ),  # PY2 and 3 compatible
+            "configurationStateId": str(int(unix_time())),
             "arn": "arn:aws:iam::{}:policy/{}".format(self.account_id, self.name),
             "resourceType": "AWS::IAM::Policy",
             "resourceId": self.id,
@@ -720,9 +718,7 @@ class Role(CloudFormationModel):
             "version": "1.3",
             "configurationItemCaptureTime": str(self.create_date),
             "configurationItemStatus": "ResourceDiscovered",
-            "configurationStateId": str(
-                int(time.mktime(self.create_date.timetuple()))
-            ),  # PY2 and 3 compatible
+            "configurationStateId": str(int(unix_time())),
             "arn": f"arn:aws:iam::{self.account_id}:role/{self.name}",
             "resourceType": "AWS::IAM::Role",
             "resourceId": self.name,

@@ -44,8 +44,7 @@ RnGfN8j8KLDVmWyTYMk8V+6j0LI4+4zFh2upqGMQHL3VFVFWBek6vCDWhB/b
 
 
 def datetime_to_epoch(date):
-    # As only Py3 has datetime.timestamp()
-    return int((date - datetime.datetime(1970, 1, 1)).total_seconds())
+    return date.timestamp()
 
 
 class AWSValidationException(AWSError):
@@ -295,14 +294,11 @@ class CertBundle(BaseModel):
             self._chain = []
 
             for cert_armored in self.chain.split(b"-\n-"):
-                # Would leave encoded but Py2 does not have raw binary strings
-                cert_armored = cert_armored.decode()
-
                 # Fix missing -'s on split
-                cert_armored = re.sub(r"^----B", "-----B", cert_armored)
-                cert_armored = re.sub(r"E----$", "E-----", cert_armored)
+                cert_armored = re.sub(b"^----B", b"-----B", cert_armored)
+                cert_armored = re.sub(b"E----$", b"E-----", cert_armored)
                 cert = cryptography.x509.load_pem_x509_certificate(
-                    cert_armored.encode(), default_backend()
+                    cert_armored, default_backend()
                 )
                 self._chain.append(cert)
 

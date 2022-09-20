@@ -37,9 +37,6 @@ class Dimension(object):
             )
         return False
 
-    def __ne__(self, item):  # Only needed on Py2; Py3 defines it implicitly
-        return self != item
-
     def __lt__(self, other):
         return self.name < other.name and self.value < other.name
 
