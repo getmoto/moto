@@ -1171,13 +1171,19 @@ class SecurityGroup(CloudFormationModel):
 
 
 class SubnetGroup(CloudFormationModel):
-    def __init__(self, subnet_name, description, subnets, tags):
+    def __init__(self, subnet_name, description, subnets, tags, region, account_id):
         self.subnet_name = subnet_name
         self.description = description
         self.subnets = subnets
         self.status = "Complete"
         self.tags = tags
         self.vpc_id = self.subnets[0].vpc_id
+        self.region = region
+        self.account_id = account_id
+
+    @property
+    def sg_arn(self):
+        return f"arn:aws:rds:{self.region}:{self.account_id}:subgrp:{self.subnet_name}"
 
     def to_xml(self):
         template = Template(
@@ -1186,6 +1192,7 @@ class SubnetGroup(CloudFormationModel):
               <SubnetGroupStatus>{{ subnet_group.status }}</SubnetGroupStatus>
               <DBSubnetGroupDescription>{{ subnet_group.description }}</DBSubnetGroupDescription>
               <DBSubnetGroupName>{{ subnet_group.subnet_name }}</DBSubnetGroupName>
+              <DBSubnetGroupArn>{{ subnet_group.sg_arn }}</DBSubnetGroupArn>
               <Subnets>
                 {% for subnet in subnet_group.subnets %}
                 <Subnet>
@@ -1248,7 +1255,10 @@ class SubnetGroup(CloudFormationModel):
         subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
         rds_backend = rds_backends[account_id][region_name]
         subnet_group = rds_backend.create_subnet_group(
-            resource_name, description, subnets, tags
+            resource_name,
+            description,
+            subnets,
+            tags,
         )
         return subnet_group
 
@@ -1511,8 +1521,16 @@ class RDSBackend(BaseBackend):
         security_group.authorize_cidr(cidr_ip)
         return security_group
 
-    def create_subnet_group(self, subnet_name, description, subnets, tags):
-        subnet_group = SubnetGroup(subnet_name, description, subnets, tags)
+    def create_subnet_group(
+        self,
+        subnet_name,
+        description,
+        subnets,
+        tags,
+    ):
+        subnet_group = SubnetGroup(
+            subnet_name, description, subnets, tags, self.region_name, self.account_id
+        )
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
 
