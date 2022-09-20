@@ -1,7 +1,6 @@
 import json
-from moto.core.utils import amzn_request_id
-
 from moto.core.responses import BaseResponse
+from moto.utilities.aws_headers import amzn_request_id
 from .models import GLOBAL_REGION, wafv2_backends
 
 

@@ -3,7 +3,8 @@ import sys
 
 from urllib.parse import unquote
 
-from moto.core.utils import amz_crc32, amzn_request_id, path_url
+from moto.core.utils import path_url
+from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 from moto.core.responses import BaseResponse
 from .models import lambda_backends
 

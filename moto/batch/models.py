@@ -3,7 +3,6 @@ from itertools import cycle
 from time import sleep
 import datetime
 import time
-import uuid
 import logging
 import threading
 import dateutil.parser
@@ -28,7 +27,7 @@ from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis, BackendDict
-from moto.moto_api import state_manager
+from moto.moto_api import mock_random, state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.docker_utilities import DockerModel
 from moto import settings
@@ -444,7 +443,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         )
 
         self.job_name = name
-        self.job_id = str(uuid.uuid4())
+        self.job_id = str(mock_random.uuid4())
         self.job_definition = job_def
         self.container_overrides = container_overrides or {}
         self.job_queue = job_queue
@@ -1110,7 +1109,7 @@ class BatchBackend(BaseBackend):
 
         # Create ECS cluster
         # Should be of format P2OnDemand_Batch_UUID
-        cluster_name = "OnDemand_Batch_" + str(uuid.uuid4())
+        cluster_name = "OnDemand_Batch_" + str(mock_random.uuid4())
         ecs_cluster = self.ecs_backend.create_cluster(cluster_name)
         new_comp_env.set_ecs(ecs_cluster.arn, cluster_name)
 

@@ -7,7 +7,6 @@ import urllib.parse
 
 from moto import settings
 from moto.core.utils import (
-    amzn_request_id,
     extract_region_from_aws_authorization,
     str_to_rfc_1123_datetime,
 )
@@ -23,6 +22,7 @@ from moto.s3bucket_path.utils import (
     parse_key_name as bucketpath_parse_key_name,
     is_delete_keys as bucketpath_is_delete_keys,
 )
+from moto.utilities.aws_headers import amzn_request_id
 
 from .exceptions import (
     BucketAlreadyExists,

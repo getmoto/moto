@@ -1,9 +1,7 @@
 import base64
 import os
-import random
 import string
 import sys
-import uuid
 from datetime import datetime
 import json
 import re
@@ -26,6 +24,7 @@ from moto.iam.policy_validation import (
     IAMPolicyDocumentValidator,
     IAMTrustPolicyDocumentValidator,
 )
+from moto.moto_api import mock_random as random
 from moto.utilities.utils import md5_hash
 
 from .aws_managed_policies import aws_managed_policies_data
@@ -3029,7 +3028,7 @@ class IAMBackend(BaseBackend):
 
     def delete_service_linked_role(self, role_name):
         self.delete_role(role_name)
-        deletion_task_id = str(uuid.uuid4())
+        deletion_task_id = str(random.uuid4())
         return deletion_task_id
 
     def get_service_linked_role_deletion_status(self):

@@ -14,12 +14,10 @@ from moto.utilities.utils import load_resource
 
 import datetime
 import time
-import uuid
 import json
 import yaml
 import hashlib
-import random
-
+from moto.moto_api import mock_random as random
 from .utils import parameter_arn, convert_to_params
 from .exceptions import (
     ValidationException,
@@ -576,7 +574,7 @@ class Command(BaseModel):
         if targets is None:
             targets = []
 
-        self.command_id = str(uuid.uuid4())
+        self.command_id = str(random.uuid4())
         self.status = "Success"
         self.status_details = "Details placeholder"
         self.account_id = account_id

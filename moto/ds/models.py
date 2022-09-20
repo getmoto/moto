@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex, BackendDict
+from moto.core.utils import BackendDict
 from moto.ds.exceptions import (
     ClientException,
     DirectoryLimitExceededException,
@@ -16,6 +16,7 @@ from moto.ds.utils import PAGINATION_MODEL
 from moto.ds.validations import validate_args
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2 import ec2_backends
+from moto.moto_api import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
@@ -71,7 +72,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.edition = edition
 
         # Calculated or default values for the directory attributes.
-        self.directory_id = f"d-{get_random_hex(10)}"
+        self.directory_id = f"d-{mock_random.get_random_hex(10)}"
         self.access_url = f"{self.directory_id}.awsapps.com"
         self.alias = self.directory_id
         self.desired_number_of_domain_controllers = 0

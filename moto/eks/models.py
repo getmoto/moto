@@ -1,10 +1,9 @@
 from datetime import datetime
-from uuid import uuid4
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
+from moto.moto_api import mock_random as random
 
-from ..utilities.utils import random_string
 from .exceptions import (
     InvalidParameterException,
     InvalidRequestException,
@@ -17,12 +16,14 @@ from .utils import get_partition, validate_role_arn
 CLUSTER_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:cluster/{name}"
 FARGATE_PROFILE_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:fargateprofile/{cluster_name}/{fargate_profile_name}/{uuid}"
 NODEGROUP_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:nodegroup/{cluster_name}/{nodegroup_name}/{uuid}"
-ISSUER_TEMPLATE = "https://oidc.eks.{region}.amazonaws.com/id/" + random_string(10)
+ISSUER_TEMPLATE = (
+    "https://oidc.eks.{region}.amazonaws.com/id/" + random.get_random_string(length=10)
+)
 ENDPOINT_TEMPLATE = (
     "https://"
-    + random_string()
+    + random.get_random_string()
     + "."
-    + random_string(3)
+    + random.get_random_string(3)
     + ".{region}.eks.amazonaws.com/"
 )
 
@@ -120,7 +121,7 @@ class Cluster:
             region=region_name,
             name=name,
         )
-        self.certificateAuthority = {"data": random_string(1400)}
+        self.certificateAuthority = {"data": random.get_random_string(1400)}
         self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
         self.identity = {"oidc": {"issuer": ISSUER_TEMPLATE.format(region=region_name)}}
         self.endpoint = ENDPOINT_TEMPLATE.format(region=region_name)
@@ -182,7 +183,7 @@ class FargateProfile:
             tags = dict()
 
         self.created_at = iso_8601_datetime_without_milliseconds(datetime.now())
-        self.uuid = str(uuid4())
+        self.uuid = str(random.uuid4())
         self.fargate_profile_arn = FARGATE_PROFILE_ARN_TEMPLATE.format(
             partition=aws_partition,
             account_id=account_id,
@@ -244,7 +245,7 @@ class ManagedNodegroup:
         if taints is None:
             taints = dict()
 
-        self.uuid = str(uuid4())
+        self.uuid = str(random.uuid4())
         self.arn = NODEGROUP_ARN_TEMPLATE.format(
             partition=aws_partition,
             account_id=account_id,
@@ -258,7 +259,7 @@ class ManagedNodegroup:
         self.health = DEFAULT_NODEGROUP_HEALTH
         self.resources = {
             "autoScalingGroups": [{"name": "eks-" + self.uuid}],
-            "remoteAccessSecurityGroup": "sg-" + random_string(17).lower(),
+            "remoteAccessSecurityGroup": "sg-" + random.get_random_string(17).lower(),
         }
 
         self.ami_type = ami_type or DEFAULT_AMI_TYPE

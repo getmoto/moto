@@ -2,8 +2,7 @@ import time
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-
-from uuid import uuid4
+from moto.moto_api import mock_random
 
 
 class TaggableResourceMixin(object):
@@ -66,7 +65,7 @@ class DataCatalog(TaggableResourceMixin, BaseModel):
 
 class Execution(BaseModel):
     def __init__(self, query, context, config, workgroup):
-        self.id = str(uuid4())
+        self.id = str(mock_random.uuid4())
         self.query = query
         self.context = context
         self.config = config
@@ -77,7 +76,7 @@ class Execution(BaseModel):
 
 class NamedQuery(BaseModel):
     def __init__(self, name, description, database, query_string, workgroup):
-        self.id = str(uuid4())
+        self.id = str(mock_random.uuid4())
         self.name = name
         self.description = description
         self.database = database

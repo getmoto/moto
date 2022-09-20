@@ -1,21 +1,14 @@
-from functools import lru_cache, wraps
+from functools import lru_cache
 
-import binascii
 import datetime
 import inspect
-import random
 import re
-import string
 from botocore.exceptions import ClientError
 from boto3 import Session
 from moto.settings import allow_unknown_region
 from threading import RLock
 from urllib.parse import urlparse
 from uuid import uuid4
-
-
-REQUEST_ID_LONG = string.digits + string.ascii_uppercase
-HEX_CHARS = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
 
 
 def camelcase_to_underscores(argument):
@@ -73,20 +66,6 @@ def camelcase_to_pascal(argument):
 def method_names_from_class(clazz):
     predicate = inspect.isfunction
     return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
-
-
-def get_random_hex(length=8):
-    return "".join(str(random.choice(HEX_CHARS)) for _ in range(length))
-
-
-def get_random_message_id():
-    return "{0}-{1}-{2}-{3}-{4}".format(
-        get_random_hex(8),
-        get_random_hex(4),
-        get_random_hex(4),
-        get_random_hex(4),
-        get_random_hex(12),
-    )
 
 
 def convert_regex_to_flask_path(url_path):
@@ -204,86 +183,6 @@ def unix_time(dt=None):
 
 def unix_time_millis(dt=None):
     return unix_time(dt) * 1000.0
-
-
-def gen_amz_crc32(response, headerdict=None):
-    if not isinstance(response, bytes):
-        response = response.encode("utf-8")
-
-    crc = binascii.crc32(response)
-
-    if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({"x-amz-crc32": str(crc)})
-
-    return crc
-
-
-def gen_amzn_requestid_long(headerdict=None):
-    req_id = "".join([random.choice(REQUEST_ID_LONG) for _ in range(0, 52)])
-
-    if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({"x-amzn-requestid": req_id})
-
-    return req_id
-
-
-def amz_crc32(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        response = f(*args, **kwargs)
-
-        headers = {}
-        status = 200
-
-        if isinstance(response, str):
-            body = response
-        else:
-            if len(response) == 2:
-                body, new_headers = response
-                status = new_headers.get("status", 200)
-            else:
-                status, new_headers, body = response
-            headers.update(new_headers)
-            # Cast status to string
-            if "status" in headers:
-                headers["status"] = str(headers["status"])
-
-        gen_amz_crc32(body, headers)
-
-        return status, headers, body
-
-    return _wrapper
-
-
-def amzn_request_id(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        response = f(*args, **kwargs)
-
-        headers = {}
-        status = 200
-
-        if isinstance(response, str):
-            body = response
-        else:
-            if len(response) == 2:
-                body, new_headers = response
-                status = new_headers.get("status", 200)
-            else:
-                status, new_headers, body = response
-            headers.update(new_headers)
-
-        request_id = gen_amzn_requestid_long(headers)
-
-        # Update request ID in XML
-        try:
-            body = re.sub(r"(?<=<RequestId>).*(?=<\/RequestId>)", request_id, body)
-        except Exception:  # Will just ignore if it cant work
-            pass
-
-        return status, headers, body
-
-    return _wrapper
 
 
 def path_url(url):

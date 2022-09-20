@@ -5,7 +5,7 @@ import sure  # noqa # pylint: disable=unused-import
 from moto import mock_firehose
 from moto import settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.core.utils import get_random_hex
+from moto.moto_api import mock_random
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -118,7 +118,7 @@ def test_create_redshift_delivery_stream():
     """Verify fields of a Redshift delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
 
-    stream_name = f"stream_{get_random_hex(6)}"
+    stream_name = f"stream_{mock_random.get_random_hex(6)}"
     response = create_redshift_delivery_stream(client, stream_name)
     stream_arn = response["DeliveryStreamARN"]
 
@@ -174,7 +174,7 @@ def test_create_extended_s3_delivery_stream():
     """Verify fields of a S3 delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
 
-    stream_name = f"stream_{get_random_hex(6)}"
+    stream_name = f"stream_{mock_random.get_random_hex(6)}"
     response = create_extended_s3_delivery_stream(client, stream_name)
     stream_arn = response["DeliveryStreamARN"]
 
@@ -241,7 +241,7 @@ def test_create_elasticsearch_delivery_stream():
     """Verify fields of an Elasticsearch delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
 
-    stream_name = f"stream_{get_random_hex(6)}"
+    stream_name = f"stream_{mock_random.get_random_hex(6)}"
     response = create_elasticsearch_delivery_stream(client, stream_name)
     stream_arn = response["DeliveryStreamARN"]
 
@@ -297,7 +297,7 @@ def test_create_s3_delivery_stream():
     """Verify fields of an S3 delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
 
-    stream_name = f"stream_{get_random_hex(6)}"
+    stream_name = f"stream_{mock_random.get_random_hex(6)}"
     response = client.create_delivery_stream(
         DeliveryStreamName=stream_name,
         S3DestinationConfiguration={
@@ -348,7 +348,7 @@ def test_create_http_stream():
     """Verify fields of a HTTP delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
 
-    stream_name = f"stream_{get_random_hex(6)}"
+    stream_name = f"stream_{mock_random.get_random_hex(6)}"
     response = create_http_delivery_stream(client, stream_name)
     stream_arn = response["DeliveryStreamARN"]
 

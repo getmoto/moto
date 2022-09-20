@@ -4,7 +4,6 @@ import datetime
 import decimal
 import json
 import re
-import uuid
 
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
@@ -40,6 +39,7 @@ from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
+from moto.moto_api import mock_random
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -222,7 +222,7 @@ class StreamRecord(BaseModel):
             keys[table.range_key_attr] = rec.range_key.to_json()
 
         self.record = {
-            "eventID": uuid.uuid4().hex,
+            "eventID": mock_random.uuid4().hex,
             "eventName": event_name,
             "eventSource": "aws:dynamodb",
             "eventVersion": "1.0",
@@ -1125,7 +1125,7 @@ class Backup(object):
     def _make_identifier(self):
         timestamp = int(unix_time_millis(self.creation_date_time))
         timestamp_padded = str("0" + str(timestamp))[-16:16]
-        guid = str(uuid.uuid4())
+        guid = str(mock_random.uuid4())
         guid_shortened = guid[:8]
         return "{}-{}".format(timestamp_padded, guid_shortened)
 

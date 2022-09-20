@@ -1,9 +1,8 @@
 from moto.core import BaseBackend, BaseModel
 from datetime import datetime
 from .exceptions import ResourceNotFoundException, ResourceInUseException
-import random
-import string
-from moto.core.utils import get_random_hex, BackendDict
+from moto.core.utils import BackendDict
+from moto.moto_api import mock_random as random
 
 
 class Stream(BaseModel):
@@ -26,16 +25,11 @@ class Stream(BaseModel):
         self.data_retention_in_hours = data_retention_in_hours
         self.tags = tags
         self.status = "ACTIVE"
-        self.version = self._get_random_string()
+        self.version = random.get_random_string(include_digits=False, lower_case=True)
         self.creation_time = datetime.utcnow()
         stream_arn = f"arn:aws:kinesisvideo:{region_name}:{account_id}:stream/{stream_name}/1598784211076"
-        self.data_endpoint_number = get_random_hex()
+        self.data_endpoint_number = random.get_random_hex()
         self.arn = stream_arn
-
-    def _get_random_string(self, length=20):
-        letters = string.ascii_lowercase
-        result_str = "".join([random.choice(letters) for _ in range(length)])
-        return result_str
 
     def get_data_endpoint(self, api_name):
         data_endpoint_prefix = "s-" if api_name in ("PUT_MEDIA", "GET_MEDIA") else "b-"

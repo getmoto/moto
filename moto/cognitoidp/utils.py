@@ -1,10 +1,9 @@
-import random
 import string
 import hashlib
 import hmac
 import base64
 import re
-import uuid
+from moto.moto_api import mock_random as random
 
 FORMATS = {
     "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
@@ -92,7 +91,7 @@ def generate_id(strategy, *args):
 
 
 def _generate_id_uuid():
-    return uuid.uuid4().hex
+    return random.uuid4().hex
 
 
 def _generate_id_hash(args):

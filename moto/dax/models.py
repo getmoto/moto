@@ -1,7 +1,7 @@
 """DAXBackend class with methods for supported APIs."""
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, get_random_hex, unix_time
-from moto.moto_api import state_manager
+from moto.core.utils import BackendDict, unix_time
+from moto.moto_api import mock_random as random, state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.paginator import paginate
@@ -89,7 +89,7 @@ class DaxCluster(BaseModel, ManagedState):
         self.arn = f"arn:aws:dax:{region}:{account_id}:cache/{self.name}"
         self.node_type = node_type
         self.replication_factor = replication_factor
-        self.cluster_hex = get_random_hex(6)
+        self.cluster_hex = random.get_random_hex(6)
         self.endpoint = DaxEndpoint(
             name=name, cluster_hex=self.cluster_hex, region=region
         )
@@ -99,7 +99,10 @@ class DaxCluster(BaseModel, ManagedState):
         self.iam_role_arn = iam_role_arn
         self.parameter_group = DaxParameterGroup()
         self.security_groups = [
-            {"SecurityGroupIdentifier": f"sg-{get_random_hex(10)}", "Status": "active"}
+            {
+                "SecurityGroupIdentifier": f"sg-{random.get_random_hex(10)}",
+                "Status": "active",
+            }
         ]
         self.sse_specification = sse_specification
         self.encryption_type = encryption_type

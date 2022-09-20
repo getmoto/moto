@@ -1,6 +1,4 @@
 import itertools
-import random
-from uuid import uuid4
 
 from moto.packages.boto.ec2.blockdevicemapping import (
     BlockDeviceType,
@@ -15,6 +13,7 @@ from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
 from moto.elb.exceptions import LoadBalancerNotFoundError
+from moto.moto_api import mock_random as random
 from .exceptions import (
     AutoscalingClientError,
     ResourceContentionError,
@@ -375,7 +374,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.autoscaling_backend = autoscaling_backend
         self.ec2_backend = ec2_backend
         self.name = name
-        self._id = str(uuid4())
+        self._id = str(random.uuid4())
         self.region = self.autoscaling_backend.region_name
         self.account_id = self.autoscaling_backend.account_id
         self.service_linked_role = f"arn:aws:iam::{self.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"

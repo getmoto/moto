@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, get_random_hex
+from moto.core.utils import BackendDict
+from moto.moto_api import mock_random
 from datetime import datetime
 
 from .exceptions import DetectorNotFoundException, FilterNotFoundException
@@ -129,7 +130,7 @@ class Detector(BaseModel):
         datasources,
         tags,
     ):
-        self.id = get_random_hex(length=32)
+        self.id = mock_random.get_random_hex(length=32)
         self.created_at = created_at
         self.finding_publish_freq = finding_publish_freq
         self.service_role = f"arn:aws:iam::{account_id}:role/aws-service-role/guardduty.amazonaws.com/AWSServiceRoleForAmazonGuardDuty"

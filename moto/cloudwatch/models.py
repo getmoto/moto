@@ -6,9 +6,9 @@ from moto.core.utils import (
     iso_8601_datetime_with_nanoseconds,
     BackendDict,
 )
+from moto.moto_api import mock_random
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
-from uuid import uuid4
 
 from .exceptions import (
     InvalidFormat,
@@ -678,7 +678,7 @@ class CloudWatchBackend(BaseBackend):
 
     def _get_paginated(self, metrics):
         if len(metrics) > 500:
-            next_token = str(uuid4())
+            next_token = str(mock_random.uuid4())
             self.paged_metric_data[next_token] = metrics[500:]
             return next_token, metrics[0:500]
         else:

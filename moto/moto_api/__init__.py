@@ -11,3 +11,9 @@ state_manager = _internal.state_manager.StateManager()
 Recorder, used to record calls to Moto and replay them later
 """
 recorder = _internal.Recorder()
+
+
+"""
+Random-object used throughout Moto. Can be seeded to un-randomize identifiers.
+"""
+mock_random = _internal.MotoRandom()

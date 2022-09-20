@@ -1,9 +1,9 @@
 from collections import OrderedDict
-from uuid import uuid4
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.mediaconnect.exceptions import NotFoundException
+from moto.moto_api import mock_random as random
 
 
 class Flow(BaseModel):
@@ -87,7 +87,7 @@ class MediaConnectBackend(BaseBackend):
                 source["ingestIp"] = ingest_ip
 
     def _create_flow_add_details(self, flow):
-        flow_id = uuid4().hex
+        flow_id = random.uuid4().hex
 
         flow.description = "A Moto test flow"
         flow.egress_ip = "127.0.0.1"
@@ -248,7 +248,7 @@ class MediaConnectBackend(BaseBackend):
             )
         flow = self._flows[flow_arn]
         for source in sources:
-            source_id = uuid4().hex
+            source_id = random.uuid4().hex
             name = source["name"]
             arn = f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:source:{source_id}:{name}"
             source["sourceArn"] = arn

@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import json
 import yaml
-import uuid
 
 from collections import OrderedDict
 from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
@@ -13,6 +12,7 @@ from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     BackendDict,
 )
+from moto.moto_api import mock_random
 from moto.sns.models import sns_backends
 
 from .parsing import ResourceMap, OutputMap
@@ -103,7 +103,7 @@ class FakeStackSet(BaseModel):
         operation_id=None,
     ):
         if not operation_id:
-            operation_id = uuid.uuid4()
+            operation_id = mock_random.uuid4()
 
         self.template = template if template else self.template
         self.description = description if description is not None else self.description
@@ -126,7 +126,7 @@ class FakeStackSet(BaseModel):
 
     def create_stack_instances(self, accounts, regions, parameters, operation_id=None):
         if not operation_id:
-            operation_id = uuid.uuid4()
+            operation_id = mock_random.uuid4()
         if not parameters:
             parameters = self.parameters
 
@@ -141,7 +141,7 @@ class FakeStackSet(BaseModel):
 
     def delete_stack_instances(self, accounts, regions, operation_id=None):
         if not operation_id:
-            operation_id = uuid.uuid4()
+            operation_id = mock_random.uuid4()
 
         self.instances.delete(accounts, regions)
 
@@ -156,7 +156,7 @@ class FakeStackSet(BaseModel):
 
     def update_instances(self, accounts, regions, parameters, operation_id=None):
         if not operation_id:
-            operation_id = uuid.uuid4()
+            operation_id = mock_random.uuid4()
 
         self.instances.update(accounts, regions, parameters)
         operation = self._create_operation(
@@ -488,7 +488,7 @@ class FakeEvent(BaseModel):
         self.resource_status_reason = resource_status_reason
         self.resource_properties = resource_properties
         self.timestamp = datetime.utcnow()
-        self.event_id = uuid.uuid4()
+        self.event_id = mock_random.uuid4()
         self.client_request_token = client_request_token
 
     def sendToSns(self, account_id, region, sns_topic_arns):

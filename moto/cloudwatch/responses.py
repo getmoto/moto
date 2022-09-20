@@ -3,7 +3,7 @@ import json
 from dateutil.parser import parse as dtparse
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amzn_request_id
+from moto.utilities.aws_headers import amzn_request_id
 from .models import cloudwatch_backends, MetricDataQuery, MetricStat, Metric, Dimension
 from .exceptions import InvalidParameterCombination
 

@@ -5,7 +5,7 @@ import itertools
 from functools import wraps
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
+from moto.core.utils import camelcase_to_underscores
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 from .exceptions import (
@@ -14,6 +14,7 @@ from .exceptions import (
     ConditionalCheckFailed,
 )
 from moto.dynamodb.models import dynamodb_backends, dynamo_json_dump
+from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 
 
 TRANSACTION_MAX_ITEMS = 25

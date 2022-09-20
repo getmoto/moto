@@ -1,22 +1,21 @@
-import uuid
-import random
 import yaml
 import os
 import string
+from moto.moto_api import mock_random as random
 
 
 def generate_stack_id(stack_name, region, account):
-    random_id = uuid.uuid4()
+    random_id = random.uuid4()
     return f"arn:aws:cloudformation:{region}:{account}:stack/{stack_name}/{random_id}"
 
 
 def generate_changeset_id(changeset_name, region_name, account_id):
-    random_id = uuid.uuid4()
+    random_id = random.uuid4()
     return f"arn:aws:cloudformation:{region_name}:{account_id}:changeSet/{changeset_name}/{random_id}"
 
 
 def generate_stackset_id(stackset_name):
-    random_id = uuid.uuid4()
+    random_id = random.uuid4()
     return "{}:{}".format(stackset_name, random_id)
 
 

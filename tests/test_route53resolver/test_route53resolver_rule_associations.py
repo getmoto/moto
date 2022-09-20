@@ -5,8 +5,8 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_route53resolver
-from moto.core.utils import get_random_hex
 from moto.ec2 import mock_ec2
+from moto.moto_api import mock_random
 
 from .test_route53resolver_endpoint import TEST_REGION, create_vpc
 from .test_route53resolver_rule import create_test_rule
@@ -18,7 +18,7 @@ def create_test_rule_association(
     """Create a Resolver Rule Association for testing purposes."""
     if not resolver_rule_id:
         resolver_rule_id = create_test_rule(client)["Id"]
-    name = name if name else "R" + get_random_hex(10)
+    name = name if name else "R" + mock_random.get_random_hex(10)
     if not vpc_id:
         vpc_id = create_vpc(ec2_client)
     return client.associate_resolver_rule(
@@ -30,7 +30,7 @@ def create_test_rule_association(
 def test_route53resolver_invalid_associate_resolver_rule_args():
     """Test invalid arguments to the associate_resolver_rule API."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Verify ValidationException error messages are accumulated properly:
     #  - resolver rule ID that exceeds the allowed length of 64.
@@ -68,7 +68,7 @@ def test_route53resolver_associate_resolver_rule():
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
 
     resolver_rule_id = create_test_rule(client)["Id"]
-    name = "X" + get_random_hex(10)
+    name = "X" + mock_random.get_random_hex(10)
     vpc_id = create_vpc(ec2_client)
     rule_association = client.associate_resolver_rule(
         ResolverRuleId=resolver_rule_id, Name=name, VPCId=vpc_id
@@ -151,7 +151,7 @@ def test_route53resolver_bad_disassociate_resolver_rule():
     """Test disassociate_resolver_rule API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Use a resolver rule id and vpc id that is too long.
     long_id = "0123456789" * 6 + "xxxxx"
@@ -234,7 +234,7 @@ def test_route53resolver_get_resolver_rule_association():
 def test_route53resolver_bad_get_resolver_rule_association():
     """Test get_resolver_rule_association API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Use a resolver rule association id that is too long.
     long_id = "0123456789" * 6 + "xxxxx"
@@ -262,7 +262,7 @@ def test_route53resolver_list_resolver_rule_associations():
     """Test good list_resolver_rule_associations API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # List rule associations when there are none.
     response = client.list_resolver_rule_associations()
@@ -304,7 +304,7 @@ def test_route53resolver_list_resolver_rule_associations_filters():
     """Test good list_resolver_rule_associations API calls that use filters."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Create some rule associations for testing purposes
     vpc_id1 = create_vpc(ec2_client)

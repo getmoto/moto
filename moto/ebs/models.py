@@ -4,7 +4,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
 from moto.ec2 import ec2_backends
 from moto.ec2.models.elastic_block_store import Snapshot
-from uuid import uuid4
+from moto.moto_api import mock_random
 
 
 class Block(BaseModel):
@@ -13,7 +13,7 @@ class Block(BaseModel):
         self.checksum = checksum
         self.checksum_algorithm = checksum_algorithm
         self.data_length = data_length
-        self.block_token = str(uuid4())
+        self.block_token = str(mock_random.uuid4())
 
 
 class EBSSnapshot(BaseModel):

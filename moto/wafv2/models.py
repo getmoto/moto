@@ -1,12 +1,12 @@
 import datetime
 import re
 from typing import Dict
-from uuid import uuid4
 from moto.core import BaseBackend, BaseModel
 
 from .utils import make_arn_for_wacl
 from .exceptions import WAFV2DuplicateItemException, WAFNonexistentItemException
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
+from moto.moto_api import mock_random
 from moto.utilities.tagging_service import TaggingService
 from collections import OrderedDict
 
@@ -36,7 +36,7 @@ class FakeWebACL(BaseModel):
         self.rules = rules
         self.visibility_config = visibility_config
         self.default_action = default_action
-        self.lock_token = str(uuid4())[0:6]
+        self.lock_token = str(mock_random.uuid4())[0:6]
 
     def update(self, default_action, rules, description, visibility_config):
         if default_action is not None:
@@ -47,7 +47,7 @@ class FakeWebACL(BaseModel):
             self.description = description
         if visibility_config is not None:
             self.visibility_config = visibility_config
-        self.lock_token = str(uuid4())[0:6]
+        self.lock_token = str(mock_random.uuid4())[0:6]
 
     def to_dict(self):
         # Format for summary https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html (response syntax section)
@@ -115,7 +115,7 @@ class WAFV2Backend(BaseBackend):
         """
         The following parameters are not yet implemented: CustomResponseBodies, CaptchaConfig
         """
-        wacl_id = str(uuid4())
+        wacl_id = str(mock_random.uuid4())
         arn = make_arn_for_wacl(
             name=name,
             account_id=self.account_id,

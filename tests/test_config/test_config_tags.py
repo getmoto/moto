@@ -13,8 +13,8 @@ import pytest
 
 from moto.config import mock_config
 from moto.config.models import MAX_TAGS_IN_ARG
-from moto.config.models import random_string
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.moto_api import mock_random
 
 TEST_REGION = "us-east-1"
 
@@ -31,7 +31,7 @@ def config_aggregators_info(client):
             {"Key": f"{x}", "Value": f"{x}"} for x in range(idx * 10, idx * 10 + 10)
         ]
         response = client.put_configuration_aggregator(
-            ConfigurationAggregatorName=f"testing_{idx}_{random_string()}",
+            ConfigurationAggregatorName=f"testing_{idx}_{mock_random.get_random_string()}",
             AccountAggregationSources=[
                 {"AccountIds": [ACCOUNT_ID], "AllAwsRegions": True}
             ],
@@ -126,7 +126,7 @@ def test_tag_resource():
     assert tags == updated_rsp["Tags"]
 
     # Verify keys added to ConfigRule.
-    config_rule_name = f"config-rule-test-{random_string()}"
+    config_rule_name = f"config-rule-test-{mock_random.get_random_string()}"
     client.put_config_rule(
         ConfigRule={
             "ConfigRuleName": config_rule_name,
@@ -248,7 +248,7 @@ def test_untag_resource():
 
     # Verify keys removed from ConfigRule.  Add a new tag to the current set
     # of tags, then delete the new tag.  The original set of tags should remain.
-    rule_name = f"config-rule-delete-tags-test-{random_string()}"
+    rule_name = f"config-rule-delete-tags-test-{mock_random.get_random_string()}"
     client.put_config_rule(
         ConfigRule={
             "ConfigRuleName": rule_name,

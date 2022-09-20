@@ -5,10 +5,11 @@ from ipaddress import ip_address, ip_network, IPv4Address
 import re
 
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex, BackendDict
+from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError
+from moto.moto_api import mock_random
 from moto.route53resolver.exceptions import (
     InvalidParameterException,
     InvalidRequestException,
@@ -114,7 +115,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
         # of X-Amzn-Trace-Id.  We don't have that info, so a random number
         # of similar format and length will be used.
         self.status_message = (
-            f"[Trace id: 1-{get_random_hex(8)}-{get_random_hex(24)}] "
+            f"[Trace id: 1-{mock_random.get_random_hex(8)}-{mock_random.get_random_hex(24)}] "
             f"Successfully created Resolver Rule"
         )
         self.share_status = "SHARED_WITH_ME"
@@ -199,7 +200,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         # of X-Amzn-Trace-Id.  We don't have that info, so a random number
         # of similar format and length will be used.
         self.status_message = (
-            f"[Trace id: 1-{get_random_hex(8)}-{get_random_hex(24)}] "
+            f"[Trace id: 1-{mock_random.get_random_hex(8)}-{mock_random.get_random_hex(24)}] "
             f"Successfully created Resolver Endpoint"
         )
         self.creation_time = datetime.now(timezone.utc).isoformat()
@@ -228,7 +229,9 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         """
         subnets = defaultdict(dict)
         for entry in self.ip_addresses:
-            subnets[entry["SubnetId"]][entry["Ip"]] = f"rni-{get_random_hex(17)}"
+            subnets[entry["SubnetId"]][
+                entry["Ip"]
+            ] = f"rni-{mock_random.get_random_hex(17)}"
         return subnets
 
     def create_eni(self):
@@ -298,7 +301,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         self.ip_addresses.append(ip_address)
         self.ip_address_count = len(self.ip_addresses)
 
-        eni_id = f"rni-{get_random_hex(17)}"
+        eni_id = f"rni-{mock_random.get_random_hex(17)}"
         self.subnets[ip_address["SubnetId"]][ip_address["Ip"]] = eni_id
 
         eni_info = self.ec2_backend.create_network_interface(
@@ -390,7 +393,7 @@ class Route53ResolverBackend(BaseBackend):
                     f"VPC. Conflict with resolver rule '{resolver_rule_id}'"
                 )
 
-        rule_association_id = f"rslvr-rrassoc-{get_random_hex(17)}"
+        rule_association_id = f"rslvr-rrassoc-{mock_random.get_random_hex(17)}"
         rule_association = ResolverRuleAssociation(
             self.region_name, rule_association_id, resolver_rule_id, vpc_id, name
         )
@@ -509,9 +512,7 @@ class Route53ResolverBackend(BaseBackend):
                 f"'{creator_request_id}' already exists"
             )
 
-        endpoint_id = (
-            f"rslvr-{'in' if direction == 'INBOUND' else 'out'}-{get_random_hex(17)}"
-        )
+        endpoint_id = f"rslvr-{'in' if direction == 'INBOUND' else 'out'}-{mock_random.get_random_hex(17)}"
         resolver_endpoint = ResolverEndpoint(
             self.account_id,
             region,
@@ -605,7 +606,7 @@ class Route53ResolverBackend(BaseBackend):
                 f"'{creator_request_id}' already exists"
             )
 
-        rule_id = f"rslvr-rr-{get_random_hex(17)}"
+        rule_id = f"rslvr-rr-{mock_random.get_random_hex(17)}"
         resolver_rule = ResolverRule(
             self.account_id,
             region,

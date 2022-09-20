@@ -5,8 +5,8 @@ import pytest
 
 from moto import mock_ds
 from moto import settings
-from moto.core.utils import get_random_hex
 from moto.ec2 import mock_ec2
+from moto.moto_api import mock_random
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -41,7 +41,7 @@ def create_test_directory(ds_client, ec2_client, vpc_settings=None, tags=None):
         tags = []
 
     result = ds_client.create_directory(
-        Name=f"test-{get_random_hex(6)}.test",
+        Name=f"test-{mock_random.get_random_hex(6)}.test",
         Password="Password4TheAges",
         Size="Large",
         VpcSettings=vpc_settings,
@@ -54,7 +54,7 @@ def create_test_directory(ds_client, ec2_client, vpc_settings=None, tags=None):
 def test_ds_create_directory_validations():
     """Test validation errs that aren't caught by botocore."""
     client = boto3.client("ds", region_name=TEST_REGION)
-    random_num = get_random_hex(6)
+    random_num = mock_random.get_random_hex(6)
 
     # Verify ValidationException error messages are accumulated properly.
     bad_name = f"bad_name_{random_num}"
@@ -148,7 +148,9 @@ def test_ds_create_directory_bad_vpc_settings():
     # Error if no VpcSettings argument.
     with pytest.raises(ClientError) as exc:
         client.create_directory(
-            Name=f"test-{get_random_hex(6)}.test", Password="TESTfoobar1", Size="Small"
+            Name=f"test-{mock_random.get_random_hex(6)}.test",
+            Password="TESTfoobar1",
+            Size="Small",
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterException"

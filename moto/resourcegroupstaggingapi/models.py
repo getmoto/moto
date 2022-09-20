@@ -1,8 +1,7 @@
-import uuid
-
 from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
+from moto.moto_api import mock_random
 
 from moto.s3 import s3_backends
 from moto.ec2 import ec2_backends
@@ -612,7 +611,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             return None, result
 
         # Didn't hit StopIteration so there's stuff left in generator
-        new_token = str(uuid.uuid4())
+        new_token = str(mock_random.uuid4())
         self._pages[new_token] = {"gen": generator, "misc": next_item}
 
         # Token used up, might as well bin now, if you call it again your an idiot
@@ -658,7 +657,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             return None, result
 
         # Didn't hit StopIteration so there's stuff left in generator
-        new_token = str(uuid.uuid4())
+        new_token = str(mock_random.uuid4())
         self._pages[new_token] = {"gen": generator, "misc": next_item}
 
         # Token used up, might as well bin now, if you call it again your an idiot
@@ -704,7 +703,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             return None, result
 
         # Didn't hit StopIteration so there's stuff left in generator
-        new_token = str(uuid.uuid4())
+        new_token = str(mock_random.uuid4())
         self._pages[new_token] = {"gen": generator, "misc": next_item}
 
         # Token used up, might as well bin now, if you call it again your an idiot

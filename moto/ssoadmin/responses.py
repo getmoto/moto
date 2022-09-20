@@ -1,7 +1,7 @@
 import json
 
 from moto.core.responses import BaseResponse
-from uuid import uuid4
+from moto.moto_api import mock_random
 
 from .models import ssoadmin_backends
 
@@ -34,7 +34,7 @@ class SSOAdminResponse(BaseResponse):
             principal_id=principal_id,
         )
         summary["Status"] = "SUCCEEDED"
-        summary["RequestId"] = str(uuid4())
+        summary["RequestId"] = str(mock_random.uuid4())
         return json.dumps({"AccountAssignmentCreationStatus": summary})
 
     def delete_account_assignment(self):
@@ -54,7 +54,7 @@ class SSOAdminResponse(BaseResponse):
             principal_id=principal_id,
         )
         summary["Status"] = "SUCCEEDED"
-        summary["RequestId"] = str(uuid4())
+        summary["RequestId"] = str(mock_random.uuid4())
         return json.dumps({"AccountAssignmentDeletionStatus": summary})
 
     def list_account_assignments(self):

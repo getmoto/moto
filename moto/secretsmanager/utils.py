@@ -1,6 +1,6 @@
-import random
 import string
 import re
+from moto.moto_api import mock_random as random
 
 
 def random_password(

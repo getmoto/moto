@@ -1,11 +1,10 @@
 import re
 import string
 from datetime import datetime
-import random
-from uuid import uuid4
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time, BackendDict
+from moto.moto_api import mock_random as random
 from moto.organizations import organizations_backends
 from moto.ram.exceptions import (
     MalformedArnException,
@@ -43,7 +42,9 @@ class ResourceShare(BaseModel):
         self.region = region
 
         self.allow_external_principals = kwargs.get("allowExternalPrincipals", True)
-        self.arn = f"arn:aws:ram:{self.region}:{account_id}:resource-share/{uuid4()}"
+        self.arn = (
+            f"arn:aws:ram:{self.region}:{account_id}:resource-share/{random.uuid4()}"
+        )
         self.creation_time = datetime.utcnow()
         self.feature_set = "STANDARD"
         self.last_updated_time = datetime.utcnow()

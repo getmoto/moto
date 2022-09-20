@@ -5,20 +5,17 @@ import datetime
 import copy
 import itertools
 import codecs
-import random
 import string
 import tempfile
 import threading
 import pytz
 import sys
-import uuid
 import urllib.parse
 
 from bisect import insort
 from importlib import reload
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core import CloudWatchMetricProvider
-
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
@@ -27,7 +24,7 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.cloudwatch.models import MetricDatum
-from moto.moto_api import state_manager
+from moto.moto_api import mock_random as random, state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import LowercaseDict, md5_hash
@@ -80,7 +77,7 @@ class FakeDeleteMarker(BaseModel):
         self.key = key
         self.name = key.name
         self.last_modified = datetime.datetime.utcnow()
-        self._version_id = str(uuid.uuid4())
+        self._version_id = str(random.uuid4())
 
     @property
     def last_modified_ISO8601(self):
@@ -1728,7 +1725,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,
-            version_id=str(uuid.uuid4()) if bucket.is_versioned else "null",
+            version_id=str(random.uuid4()) if bucket.is_versioned else "null",
             multipart=multipart,
             encryption=encryption,
             kms_key_id=kms_key_id,

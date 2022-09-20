@@ -1,8 +1,6 @@
 import re
-import uuid
 from copy import copy
 from datetime import datetime
-from random import random, randint
 
 import pytz
 
@@ -16,6 +14,7 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.ec2 import ec2_backends
+from moto.moto_api import mock_random
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
     EcsClientException,
@@ -243,7 +242,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         family = properties.get(
-            "Family", "task-definition-{0}".format(int(random() * 10**6))
+            "Family", "task-definition-{0}".format(int(mock_random.random() * 10**6))
         )
         container_definitions = remap_nested_keys(
             properties.get("ContainerDefinitions", []), pascal_to_camelcase
@@ -266,7 +265,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
         family = properties.get(
-            "Family", "task-definition-{0}".format(int(random() * 10**6))
+            "Family", "task-definition-{0}".format(int(mock_random.random() * 10**6))
         )
         container_definitions = properties["ContainerDefinitions"]
         volumes = properties.get("Volumes")
@@ -302,7 +301,7 @@ class Task(BaseObject):
         started_by="",
         tags=None,
     ):
-        self.id = str(uuid.uuid4())
+        self.id = str(mock_random.uuid4())
         self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
         self.container_instance_arn = container_instance_arn
@@ -335,7 +334,7 @@ class Task(BaseObject):
 
 class CapacityProvider(BaseObject):
     def __init__(self, account_id, region_name, name, asg_details, tags):
-        self._id = str(uuid.uuid4())
+        self._id = str(mock_random.uuid4())
         self.capacity_provider_arn = f"arn:aws:ecs:{region_name}:{account_id}:capacity_provider/{name}/{self._id}"
         self.name = name
         self.status = "ACTIVE"
@@ -391,7 +390,7 @@ class Service(BaseObject, CloudFormationModel):
                 {
                     "createdAt": datetime.now(pytz.utc),
                     "desiredCount": self.desired_count,
-                    "id": "ecs-svc/{}".format(randint(0, 32**12)),
+                    "id": "ecs-svc/{}".format(mock_random.randint(0, 32**12)),
                     "launchType": self.launch_type,
                     "pendingCount": self.desired_count,
                     "runningCount": 0,
@@ -620,7 +619,7 @@ class ContainerInstance(BaseObject):
         }
         self.registered_at = datetime.now(pytz.utc)
         self.region_name = region_name
-        self.id = str(uuid.uuid4())
+        self.id = str(mock_random.uuid4())
         self.cluster_name = cluster_name
         self._account_id = backend.account_id
         self._backend = backend
@@ -718,7 +717,7 @@ class TaskSet(BaseObject):
         self.createdAt = datetime.now(pytz.utc)
         self.updatedAt = datetime.now(pytz.utc)
         self.stabilityStatusAt = datetime.now(pytz.utc)
-        self.id = "ecs-svc/{}".format(randint(0, 32**12))
+        self.id = "ecs-svc/{}".format(mock_random.randint(0, 32**12))
         self.service_arn = ""
         self.cluster_arn = ""
 

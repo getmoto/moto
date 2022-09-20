@@ -1,11 +1,11 @@
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.ecs import ecs_backends
+from moto.moto_api import mock_random
 from .exceptions import AWSValidationException
 from collections import OrderedDict
 from enum import Enum, unique
 import time
-import uuid
 
 
 @unique
@@ -418,7 +418,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self.scalable_dimension = scalable_dimension
         self.policy_name = policy_name
         self.policy_type = policy_type
-        self._guid = uuid.uuid4()
+        self._guid = mock_random.uuid4()
         self.policy_arn = "arn:aws:autoscaling:{}:scalingPolicy:{}:resource/{}/{}:policyName/{}".format(
             region_name,
             self._guid,

@@ -1,11 +1,8 @@
 """Route53Backend class with methods for supported APIs."""
 import itertools
-from collections import defaultdict
 import re
-
 import string
-import random
-import uuid
+from collections import defaultdict
 from jinja2 import Template
 
 from moto.route53.exceptions import (
@@ -23,6 +20,7 @@ from moto.route53.exceptions import (
 )
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
+from moto.moto_api import mock_random as random
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL
 
@@ -645,7 +643,7 @@ class Route53Backend(BaseBackend):
         return zone
 
     def create_health_check(self, caller_reference, health_check_args):
-        health_check_id = str(uuid.uuid4())
+        health_check_id = str(random.uuid4())
         health_check = HealthCheck(health_check_id, caller_reference, health_check_args)
         health_check.set_children(health_check_args.get("children"))
         health_check.set_regions(health_check_args.get("regions"))
@@ -749,7 +747,7 @@ class Route53Backend(BaseBackend):
                 raise QueryLoggingConfigAlreadyExists()
 
         # Create an instance of the query logging config.
-        query_logging_config_id = str(uuid.uuid4())
+        query_logging_config_id = str(random.uuid4())
         query_logging_config = QueryLoggingConfig(
             query_logging_config_id, hosted_zone_id, log_group_arn
         )

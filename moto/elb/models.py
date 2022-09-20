@@ -7,7 +7,7 @@ from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
 from moto.ec2.models import ec2_backends
 from moto.ec2.exceptions import InvalidInstanceIdError
-from uuid import uuid4
+from moto.moto_api import mock_random
 from .exceptions import (
     BadHealthCheckDefinition,
     DuplicateLoadBalancerName,
@@ -306,7 +306,7 @@ class ELBBackend(BaseBackend):
             raise EmptyListenersError()
         if not security_groups:
             sg = ec2_backend.create_security_group(
-                name=f"default_elb_{uuid4()}",
+                name=f"default_elb_{mock_random.uuid4()}",
                 description="ELB created security group used when no security group is specified during ELB creation - modifications could impact traffic to future ELBs",
                 vpc_id=vpc_id,
             )

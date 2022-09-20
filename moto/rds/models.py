@@ -1,7 +1,6 @@
 import copy
 import datetime
 import os
-import random
 import string
 
 from collections import defaultdict
@@ -9,9 +8,9 @@ from jinja2 import Template
 from re import compile as re_compile
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.ec2.models import ec2_backends
+from moto.moto_api import mock_random as random
 from .exceptions import (
     RDSClientError,
     DBClusterNotFoundError,

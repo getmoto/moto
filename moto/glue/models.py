@@ -2,11 +2,10 @@ import time
 from collections import OrderedDict
 from datetime import datetime
 from typing import List
-from uuid import uuid4
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-from moto.moto_api import state_manager
+from moto.moto_api import mock_random, state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from .exceptions import (
     JsonRESTError,
@@ -1072,7 +1071,7 @@ class FakeSchemaVersion(BaseModel):
         self.schema_definition = schema_definition
         self.schema_version_status = AVAILABLE_STATUS
         self.version_number = version_number
-        self.schema_version_id = str(uuid4())
+        self.schema_version_id = str(mock_random.uuid4())
         self.created_time = datetime.utcnow()
         self.updated_time = datetime.utcnow()
         self.metadata = OrderedDict()

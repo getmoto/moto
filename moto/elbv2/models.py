@@ -7,10 +7,10 @@ from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
-    get_random_hex,
     BackendDict,
 )
 from moto.ec2.models import ec2_backends
+from moto.moto_api import mock_random
 from moto.utilities.tagging_service import TaggingService
 from .utils import make_arn_for_target_group
 from .utils import make_arn_for_load_balancer
@@ -757,7 +757,7 @@ class ELBv2Backend(BaseBackend):
 
         self._validate_actions(actions)
         arn = listener_arn.replace(":listener/", ":listener-rule/")
-        arn += "/%s" % (get_random_hex(16))
+        arn += f"/{mock_random.get_random_hex(16)}"
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'

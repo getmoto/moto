@@ -1,4 +1,3 @@
-import random
 import string
 
 from datetime import datetime
@@ -6,8 +5,8 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
+from moto.moto_api import mock_random as random
 from moto.utilities.tagging_service import TaggingService
-from uuid import uuid4
 
 from .exceptions import (
     OriginDoesNotExist,
@@ -153,7 +152,7 @@ class DistributionConfig:
         self.enabled = config.get("Enabled") or False
         self.viewer_certificate = ViewerCertificate()
         self.geo_restriction = GeoRestrictions(config.get("Restrictions") or {})
-        self.caller_reference = config.get("CallerReference", str(uuid4()))
+        self.caller_reference = config.get("CallerReference", str(random.uuid4()))
         self.origins = config["Origins"]["Items"]["Origin"]
         if not isinstance(self.origins, list):
             self.origins = [self.origins]

@@ -9,7 +9,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import get_random_hex, unix_time, BackendDict
+from moto.core.utils import unix_time, BackendDict
+from moto.moto_api import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 
@@ -40,8 +41,8 @@ class Grant(BaseModel):
         self.retiring_principal = retiring_principal
         self.operations = operations
         self.constraints = constraints
-        self.id = get_random_hex()
-        self.token = get_random_hex()
+        self.id = mock_random.get_random_hex()
+        self.token = mock_random.get_random_hex()
 
     def to_json(self):
         return {

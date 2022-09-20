@@ -9,8 +9,8 @@ import pytest
 from moto import mock_route53resolver
 from moto import settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.core.utils import get_random_hex
 from moto.ec2 import mock_ec2
+from moto.moto_api import mock_random
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -58,7 +58,7 @@ def create_test_endpoint(client, ec2_client, name=None, tags=None):
     """
     if not tags:
         tags = []
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
     subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
     resolver_endpoint = client.create_resolver_endpoint(
         CreatorRequestId=random_num,
@@ -78,7 +78,7 @@ def create_test_endpoint(client, ec2_client, name=None, tags=None):
 def test_route53resolver_invalid_create_endpoint_args():
     """Test invalid arguments to the create_resolver_endpoint API."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Verify ValidationException error messages are accumulated properly:
     #  - creator requestor ID that exceeds the allowed length of 255.
@@ -88,7 +88,7 @@ def test_route53resolver_invalid_create_endpoint_args():
     #  - too many security group IDs.
     long_id = random_num * 25 + "123456"
     long_name = random_num * 6 + "abcde"
-    too_many_security_groups = ["sg-" + get_random_hex(63)]
+    too_many_security_groups = ["sg-" + mock_random.get_random_hex(63)]
     bad_direction = "foo"
     too_many_ip_addresses = [{"SubnetId": f"{x}", "Ip": f"{x}" * 7} for x in range(11)]
     with pytest.raises(ClientError) as exc:
@@ -168,7 +168,7 @@ def test_route53resolver_bad_create_endpoint_subnets():
     """Test bad subnet scenarios for create_resolver_endpoint API."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Need 2 IP addresses at the minimum.
     subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
@@ -246,7 +246,7 @@ def test_route53resolver_bad_create_endpoint_security_groups():
     """Test bad security group scenarios for create_resolver_endpoint API."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
     ip_addrs = [
@@ -302,7 +302,7 @@ def test_route53resolver_create_resolver_endpoint():  # pylint: disable=too-many
     """Test good create_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     vpc_id = create_vpc(ec2_client)
     subnet_ids = create_subnets(ec2_client, vpc_id)
@@ -365,7 +365,7 @@ def test_route53resolver_other_create_resolver_endpoint_errors():
     with pytest.raises(ClientError) as exc:
         client.create_resolver_endpoint(
             CreatorRequestId=created_endpoint["CreatorRequestId"],
-            Name="X" + get_random_hex(10),
+            Name="X" + mock_random.get_random_hex(10),
             SecurityGroupIds=created_endpoint["SecurityGroupIds"],
             Direction="INBOUND",
             IpAddresses=[
@@ -380,7 +380,7 @@ def test_route53resolver_other_create_resolver_endpoint_errors():
     ) in err["Message"]
 
     # Too many endpoints.
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
     for idx in range(4):
         create_test_endpoint(client, ec2_client, name=f"A{idx}-{random_num}")
     with pytest.raises(ClientError) as exc:
@@ -428,7 +428,7 @@ def test_route53resolver_bad_delete_resolver_endpoint():
     """Test delete_resolver_endpoint API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Use a resolver endpoint id that is too long.
     long_id = "0123456789" * 6 + "xxxxx"
@@ -498,7 +498,7 @@ def test_route53resolver_get_resolver_endpoint():
 def test_route53resolver_bad_get_resolver_endpoint():
     """Test get_resolver_endpoint API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Use a resolver endpoint id that is too long.
     long_id = "0123456789" * 6 + "xxxxx"
@@ -529,7 +529,7 @@ def test_route53resolver_update_resolver_endpoint():
     created_endpoint = create_test_endpoint(client, ec2_client)
 
     # Now update the resolver endpoint name and verify the response.
-    new_name = "NewName" + get_random_hex(6)
+    new_name = "NewName" + mock_random.get_random_hex(6)
     response = client.update_resolver_endpoint(
         ResolverEndpointId=created_endpoint["Id"], Name=new_name
     )
@@ -552,8 +552,8 @@ def test_route53resolver_update_resolver_endpoint():
 def test_route53resolver_bad_update_resolver_endpoint():
     """Test update_resolver_endpoint API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
-    random_name = "Z" + get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
+    random_name = "Z" + mock_random.get_random_hex(10)
 
     # Use a resolver endpoint id that is too long.
     long_id = "0123456789" * 6 + "xxxxx"
@@ -581,7 +581,7 @@ def test_route53resolver_list_resolver_endpoint_ip_addresses():
     """Test good list_resolver_endpoint_ip_addresses API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
     response = client.create_resolver_endpoint(
@@ -641,7 +641,7 @@ def test_route53resolver_bad_list_resolver_endpoint_ip_addresses():
     assert "Resolver endpoint with ID 'foo' does not exist" in err["Message"]
 
     # Good endpoint id, but bad max_results.
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
     response = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
     with pytest.raises(ClientError) as exc:
         client.list_resolver_endpoint_ip_addresses(
@@ -662,7 +662,7 @@ def test_route53resolver_list_resolver_endpoints():
     """Test good list_resolver_endpoints API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # List endpoints when there are none.
     response = client.list_resolver_endpoints()
@@ -703,7 +703,7 @@ def test_route53resolver_list_resolver_endpoints_filters():
     """Test good list_resolver_endpoints API calls that use filters."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Create some endpoints for testing purposes
     security_group_id = create_security_group(ec2_client)
@@ -832,7 +832,7 @@ def test_route53resolver_bad_list_resolver_endpoints():
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
 
     # Bad max_results.
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
     create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
     with pytest.raises(ClientError) as exc:
         client.list_resolver_endpoints(MaxResults=250)
@@ -856,7 +856,7 @@ def test_associate_resolver_endpoint_ip_address():
         VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=f"{TEST_REGION}a"
     )["Subnet"]
     # create resolver
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
     resolver = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
     resolver.should.have.key("IpAddressCount").equals(2)
     # associate
@@ -897,7 +897,7 @@ def test_disassociate_resolver_endpoint_ip_address__using_ip():
         VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=f"{TEST_REGION}a"
     )["Subnet"]["SubnetId"]
     # create resolver
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
     resolver = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
     # associate
     client.associate_resolver_endpoint_ip_address(
@@ -926,7 +926,7 @@ def test_disassociate_resolver_endpoint_ip_address__using_ipid_and_subnet():
         VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=f"{TEST_REGION}a"
     )["Subnet"]["SubnetId"]
     # create resolver
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
     resolver = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
     # associate
     client.associate_resolver_endpoint_ip_address(
@@ -957,7 +957,7 @@ def test_disassociate_resolver_endpoint_ip_address__using_subnet_alone():
         VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=f"{TEST_REGION}a"
     )["Subnet"]["SubnetId"]
     # create resolver
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
     resolver = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
     # associate
     client.associate_resolver_endpoint_ip_address(

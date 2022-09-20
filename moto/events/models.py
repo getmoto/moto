@@ -26,10 +26,9 @@ from moto.events.exceptions import (
     InvalidEventPatternException,
     IllegalStatusException,
 )
+from moto.moto_api import mock_random as random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
-
-from uuid import uuid4
 
 from .utils import PAGINATION_MODEL
 
@@ -183,12 +182,9 @@ class Rule(CloudFormationModel):
             datetime.utcfromtimestamp(event_copy["time"])
         )
 
-        log_stream_name = str(uuid4())
+        log_stream_name = str(random.uuid4())
         log_events = [
-            {
-                "timestamp": unix_time_millis(datetime.utcnow()),
-                "message": json.dumps(event_copy),
-            }
+            {"timestamp": unix_time_millis(), "message": json.dumps(event_copy)}
         ]
 
         log_backend = logs_backends[self.account_id][self.region_name]
@@ -521,7 +517,7 @@ class Archive(CloudFormationModel):
         self.arn = f"arn:aws:events:{region_name}:{account_id}:archive/{name}"
         self.creation_time = unix_time(datetime.utcnow())
         self.state = "ENABLED"
-        self.uuid = str(uuid4())
+        self.uuid = str(random.uuid4())
 
         self.events = []
         self.event_bus_name = source_arn.split("/")[-1]
@@ -691,7 +687,9 @@ class Replay(BaseModel):
             for rule in event_backend.rules.values():
                 rule.send_to_targets(
                     event_bus_name,
-                    dict(event, **{"id": str(uuid4()), "replay-name": self.name}),
+                    dict(
+                        event, **{"id": str(random.uuid4()), "replay-name": self.name}
+                    ),
                 )
 
         self.state = ReplayState.COMPLETED
@@ -708,7 +706,7 @@ class Connection(BaseModel):
         authorization_type,
         auth_parameters,
     ):
-        self.uuid = uuid4()
+        self.uuid = random.uuid4()
         self.name = name
         self.region = region_name
         self.description = description
@@ -784,7 +782,7 @@ class Destination(BaseModel):
         invocation_rate_limit_per_second,
         http_method,
     ):
-        self.uuid = uuid4()
+        self.uuid = random.uuid4()
         self.name = name
         self.region = region_name
         self.description = description
@@ -1234,7 +1232,7 @@ class EventsBackend(BaseBackend):
                     )
                     continue
 
-                event_id = str(uuid4())
+                event_id = str(random.uuid4())
                 entries.append({"EventId": event_id})
 
                 # if 'EventBusName' is not especially set, it will be sent to the default one

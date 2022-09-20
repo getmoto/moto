@@ -2,8 +2,6 @@
 import json
 import re
 import time
-import random
-import string
 
 from datetime import datetime
 
@@ -53,6 +51,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.responses import AWSServiceSpec
 from moto.core.utils import BackendDict
 from moto.iam.config import role_config_query, policy_config_query
+from moto.moto_api import mock_random as random
 from moto.s3.config import s3_config_query
 from moto.s3control.config import s3_account_public_access_block_query
 from moto.utilities.utils import load_resource
@@ -107,11 +106,7 @@ def snake_to_camels(original, cap_start, cap_arn):
 
 def random_string():
     """Returns a random set of 8 lowercase letters for the Config Aggregator ARN"""
-    chars = []
-    for _ in range(0, 8):
-        chars.append(random.choice(string.ascii_lowercase))
-
-    return "".join(chars)
+    return random.get_random_string(length=8, include_digits=False, lower_case=True)
 
 
 def validate_tag_key(tag_key, exception_param="tags.X.member.key"):

@@ -2,7 +2,8 @@ import base64
 import xmltodict
 
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, get_random_hex, unix_time
+from moto.core.utils import BackendDict, unix_time
+from moto.moto_api import mock_random
 from moto.utilities.tagging_service import TaggingService
 
 from .configuration import DEFAULT_CONFIGURATION_DATA
@@ -58,7 +59,7 @@ class ConfigurationRevision(BaseModel):
 
 class Configuration(BaseModel):
     def __init__(self, account_id, region, name, engine_type, engine_version):
-        self.id = f"c-{get_random_hex(6)}"
+        self.id = f"c-{mock_random.get_random_hex(6)}"
         self.arn = f"arn:aws:mq:{region}:{account_id}:configuration:{self.id}"
         self.created = unix_time()
 
@@ -160,7 +161,7 @@ class Broker(BaseModel):
         users,
     ):
         self.name = name
-        self.id = get_random_hex(6)
+        self.id = mock_random.get_random_hex(6)
         self.arn = f"arn:aws:mq:{region}:{account_id}:broker:{self.id}"
         self.state = "RUNNING"
         self.created = unix_time()
@@ -217,7 +218,7 @@ class Broker(BaseModel):
             self.configurations = None
         else:
             current_config = configuration or {
-                "id": f"c-{get_random_hex(6)}",
+                "id": f"c-{mock_random.get_random_hex(6)}",
                 "revision": 1,
             }
             self.configurations = {

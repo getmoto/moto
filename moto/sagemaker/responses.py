@@ -3,7 +3,7 @@ import json
 from moto.sagemaker.exceptions import AWSValidationException
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amzn_request_id
+from moto.utilities.aws_headers import amzn_request_id
 from .models import sagemaker_backends
 
 

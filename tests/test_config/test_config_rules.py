@@ -13,9 +13,9 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto.config import mock_config
-from moto.config.models import random_string
 from moto.config.models import ConfigRule, CONFIG_RULE_PAGE_SIZE
 from moto import settings
+from moto.moto_api import mock_random
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -23,7 +23,7 @@ TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 def managed_config_rule():
     """Return a valid managed AWS Config Rule."""
     return {
-        "ConfigRuleName": f"managed_rule_{random_string()}",
+        "ConfigRuleName": f"managed_rule_{mock_random.get_random_string()}",
         "Description": "Managed S3 Public Read Prohibited Bucket Rule",
         "Scope": {"ComplianceResourceTypes": ["AWS::S3::Bucket", "AWS::IAM::Group"]},
         "Source": {
@@ -220,7 +220,7 @@ def test_aws_managed_rule_errors():
     )
 
     # If no MaxExecutionFrequency specified, set it to the default.
-    # rule_name = f"managed_rule_{random_string()}"
+    # rule_name = f"managed_rule_{mock_random.get_random_string()}"
     # managed_rule = {
     #     "ConfigRuleName": rule_name,
     #     "Description": "Managed S3 Public Read Prohibited Bucket Rule",
@@ -348,7 +348,7 @@ def test_valid_put_config_managed_rule():
 
     # Valid InputParameters.
     managed_rule = {
-        "ConfigRuleName": f"input_param_test_{random_string()}",
+        "ConfigRuleName": f"input_param_test_{mock_random.get_random_string()}",
         "Description": "Provide subset of allowed input parameters",
         "InputParameters": '{"blockedPort1":"22","blockedPort2":"3389"}',
         "Scope": {"ComplianceResourceTypes": ["AWS::IAM::SecurityGroup"]},
