@@ -68,3 +68,34 @@ The requests are stored in a file called `moto_recording`, in the directory that
 
 The recorder is disabled by default. If you want to enable it, use the following environment variable:
 `MOTO_ENABLE_RECORDING=True`
+
+
+Deterministic Identifiers
+##############################
+
+Moto creates random identifiers, just like AWS, for most resources. The Recorder will recreate the same resources every time, but the identifiers will always be different.
+
+You can seed Moto to get around this problem, ensuring that the 'random' identifiers are always the same for subsequent requests.
+
+Example invocation:
+
+.. sourcecode:: python
+
+    from moto.moto_api import mock_random
+
+    mock_random.seed(42)
+
+    # To try this out, generate a EC2 instance
+    client = boto3.client("ec2", region_name="us-east-1")
+    resp = client.run_instances(ImageId="ami-12c6146b", MinCount=1, MaxCount=1)
+
+    # The resulting InstanceId will always be the same
+    instance_id = resp["Instances"][0]["InstanceId"]
+    assert instance_id == "i-b57056d5352b3f0b3"
+
+To seed Moto in ServerMode:
+
+.. sourcecode:: python
+
+    requests.post(f"http://localhost:5000/moto-api/seed?a=42")
+

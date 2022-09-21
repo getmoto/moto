@@ -23,6 +23,8 @@ class Recorder:
 
         if urlparse(request.url).path.startswith("/moto-api/recorder/"):
             return
+        if urlparse(request.url).path.startswith("/moto-api/seed"):
+            return
 
         entry = {
             "headers": dict(request.headers),
