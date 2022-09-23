@@ -6,7 +6,7 @@ import pytest
 from moto import mock_firehose
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.firehose.models import MAX_TAGS_PER_DELIVERY_STREAM
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from tests.test_firehose.test_firehose import TEST_REGION
 from tests.test_firehose.test_firehose import sample_s3_dest_config
 

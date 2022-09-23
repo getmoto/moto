@@ -23,8 +23,6 @@ class Recorder:
 
         if urlparse(request.url).path.startswith("/moto-api/recorder/"):
             return
-        if urlparse(request.url).path.startswith("/moto-api/seed"):
-            return
 
         entry = {
             "headers": dict(request.headers),
@@ -46,9 +44,9 @@ class Recorder:
                     body_encoded = False
                 finally:
                     if request_body is not None:
-                        if isinstance(request_body, bytes):
-                            request_body = request_body.decode("utf-8")
-                        request.environ["wsgi.input"] = io.StringIO(request_body)
+                        if isinstance(request_body, str):
+                            request_body = request_body.encode("utf-8")
+                        request.environ["wsgi.input"] = io.BytesIO(request_body)
         else:
             body, body_encoded = self._encode_body(body)
         entry.update({"body": body, "body_encoded": body_encoded})
@@ -89,9 +87,11 @@ class Recorder:
 
     def upload_recording(self, data):
         """
-        Replace the current log. Remember to replay the recording afterwards.
+        Replaces the current log. Remember to replay the recording afterwards.
         """
         filepath = self._location
+        if isinstance(data, str):
+            data = data.encode("utf-8")
         with open(filepath, "bw") as file:
             file.write(data)
 

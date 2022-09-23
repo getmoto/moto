@@ -11,7 +11,7 @@ from moto.core.utils import (
     camelcase_to_underscores,
     BackendDict,
 )
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from moto.sqs import sqs_backends
 from moto.sqs.exceptions import MissingParameter
 

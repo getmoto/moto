@@ -24,7 +24,8 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.cloudwatch.models import MetricDatum
-from moto.moto_api import mock_random as random, state_manager
+from moto.moto_api import state_manager
+from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import LowercaseDict, md5_hash

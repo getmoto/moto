@@ -12,7 +12,7 @@ from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     BackendDict,
 )
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from moto.sns.models import sns_backends
 
 from .parsing import ResourceMap, OutputMap

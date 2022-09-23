@@ -6,7 +6,7 @@ try:
 except ImportError:
     from urlparse import urlparse
 
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from tests.test_eks.test_eks_constants import (
     ClusterAttributes,
     ClusterInputs,

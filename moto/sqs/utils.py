@@ -1,5 +1,5 @@
 import string
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from .exceptions import MessageAttributesInvalid
 
 

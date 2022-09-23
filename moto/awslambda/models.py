@@ -29,7 +29,7 @@ from moto.core.utils import unix_time_millis, BackendDict
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.logs.models import logs_backends
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from moto.s3.models import s3_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings

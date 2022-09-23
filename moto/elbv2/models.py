@@ -10,7 +10,7 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.ec2.models import ec2_backends
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from .utils import make_arn_for_target_group
 from .utils import make_arn_for_load_balancer

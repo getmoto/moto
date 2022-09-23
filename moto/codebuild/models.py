@@ -1,6 +1,6 @@
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from collections import defaultdict
 from dateutil import parser
 import datetime

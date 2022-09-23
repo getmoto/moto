@@ -39,7 +39,7 @@ from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 
 class DynamoJsonEncoder(json.JSONEncoder):

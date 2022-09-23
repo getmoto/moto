@@ -9,7 +9,7 @@ import pytest
 from moto import mock_route53resolver
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2 import mock_ec2
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 from .test_route53resolver_endpoint import TEST_REGION, create_test_endpoint, create_vpc
 

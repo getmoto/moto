@@ -4,7 +4,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
 from moto.ec2 import ec2_backends
 from moto.ec2.models.elastic_block_store import Snapshot
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 
 class Block(BaseModel):

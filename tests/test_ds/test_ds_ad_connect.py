@@ -11,7 +11,7 @@ import pytest
 
 from moto import mock_ds
 from moto.ec2 import mock_ec2
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 from .test_ds_simple_ad_directory import TEST_REGION, create_vpc, create_subnets
 

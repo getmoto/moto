@@ -112,7 +112,7 @@ class BaseBackend:
 
     @staticmethod
     def vpce_random_number():
-        from moto.moto_api import mock_random as random
+        from moto.moto_api._internal import mock_random as random
 
         """Return random number for a VPC endpoint service ID."""
         return "".join([random.choice(string.hexdigits.lower()) for i in range(17)])

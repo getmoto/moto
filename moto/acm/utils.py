@@ -1,4 +1,4 @@
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 
 def make_arn_for_certificate(account_id, region_name):

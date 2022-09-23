@@ -13,7 +13,7 @@ from .utils import PAGINATION_MODEL
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from .exceptions import (
     CertificateStateException,

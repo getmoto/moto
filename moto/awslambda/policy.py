@@ -4,7 +4,7 @@ from moto.awslambda.exceptions import (
     PreconditionFailedException,
     UnknownPolicyException,
 )
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 
 class Policy:

@@ -1,7 +1,7 @@
 import json
 
 from moto.core.responses import BaseResponse
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 from .models import ssoadmin_backends
 

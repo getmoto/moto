@@ -33,7 +33,7 @@ from moto.eks.models import (
     NODEGROUP_NOT_FOUND_MSG,
 )
 from moto.eks.responses import DEFAULT_MAX_RESULTS
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 from .test_eks_constants import (
     BatchCountSize,

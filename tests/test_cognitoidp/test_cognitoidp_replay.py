@@ -7,13 +7,12 @@ import pytest
 import requests
 
 from botocore.exceptions import ClientError
-from moto import mock_cognitoidp, mock_iam, settings
-from moto.moto_api import mock_random, recorder
+from moto import mock_cognitoidp, settings
+from moto.moto_api import recorder
 from unittest import TestCase
 
 
 @mock_cognitoidp
-@mock_iam
 class TestCreateUserPoolWithPredeterminedID(TestCase):
     def _reset_recording(self):
         if settings.TEST_SERVER_MODE:
@@ -39,9 +38,17 @@ class TestCreateUserPoolWithPredeterminedID(TestCase):
                 "http://localhost:5000/moto-api/recorder/download-recording"
             )
             resp.status_code.should.equal(200)
-            return resp.content
+            return resp.content.decode("utf-8")
         else:
             return recorder.download_recording()
+
+    def _upload_recording(self, logs):
+        if settings.TEST_SERVER_MODE:
+            requests.post(
+                "http://localhost:5000/moto-api/recorder/upload-recording", data=logs
+            )
+        else:
+            recorder.upload_recording(logs)
 
     def _replay_recording(self):
         if settings.TEST_SERVER_MODE:
@@ -51,9 +58,9 @@ class TestCreateUserPoolWithPredeterminedID(TestCase):
 
     def _set_seed(self, a):
         if settings.TEST_SERVER_MODE:
-            a = requests.post(f"http://localhost:5000/moto-api/seed?a={a}")
+            requests.post(f"http://localhost:5000/moto-api/seed?a={a}")
         else:
-            mock_random.seed(a)
+            requests.post(f"http://motoapi.amazonaws.com/moto-api/seed?a={a}")
 
     def setUp(self) -> None:
         self.client = boto3.client("cognito-idp", "us-west-2")
@@ -84,8 +91,6 @@ class TestCreateUserPoolWithPredeterminedID(TestCase):
             pass
 
     def test_same_seed(self):
-        # set seed to same number
-        self._set_seed(self.random_seed)
         # replay recording
         self._replay_recording()
         # assert userpool is is the same - it will throw an error if it doesn't exist
@@ -93,7 +98,9 @@ class TestCreateUserPoolWithPredeterminedID(TestCase):
 
     def test_different_seed(self):
         # set seed to different number
-        self._set_seed(self.random_seed + 1)
+        logs = self._download_recording()
+        logs = logs.replace("/seed?a=42", "/seed?a=43")
+        self._upload_recording(logs)
         # replay recording, and recreate a userpool
         self._replay_recording()
         # assert the ID of this userpool is now different

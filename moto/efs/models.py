@@ -29,7 +29,7 @@ from moto.efs.exceptions import (
     SecurityGroupNotFound,
     SecurityGroupLimitExceeded,
 )
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import md5_hash
 

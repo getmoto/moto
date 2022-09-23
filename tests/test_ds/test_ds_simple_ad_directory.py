@@ -6,7 +6,7 @@ import pytest
 from moto import mock_ds
 from moto import settings
 from moto.ec2 import mock_ec2
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 

@@ -6,7 +6,7 @@ from moto.core.utils import (
     camelcase_to_underscores,
     iso_8601_datetime_with_milliseconds,
 )
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 
 
 def random_id(size=13):

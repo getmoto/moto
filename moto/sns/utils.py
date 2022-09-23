@@ -1,5 +1,5 @@
 import re
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 E164_REGEX = re.compile(r"^\+?[1-9]\d{1,14}$")
 

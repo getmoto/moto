@@ -1,7 +1,7 @@
 import base64
 import os
 import string
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 
 ACCOUNT_SPECIFIC_ACCESS_KEY_PREFIX = "8NWMTLYQ"
 ACCOUNT_SPECIFIC_ASSUMED_ROLE_ID_PREFIX = "3X42LBCD"

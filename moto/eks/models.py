@@ -2,7 +2,7 @@ from datetime import datetime
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 
 from .exceptions import (
     InvalidParameterException,

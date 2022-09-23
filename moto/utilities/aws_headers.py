@@ -2,7 +2,7 @@ from functools import wraps
 
 import binascii
 import re
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 
 
 def gen_amz_crc32(response, headerdict=None):

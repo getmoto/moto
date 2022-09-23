@@ -10,7 +10,7 @@ from moto.logs.exceptions import (
     InvalidParameterException,
     LimitExceededException,
 )
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL, EventMessageFilter

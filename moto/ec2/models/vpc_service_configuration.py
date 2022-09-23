@@ -1,5 +1,5 @@
 from moto.core import CloudFormationModel
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from .core import TaggedEC2Resource
 from ..exceptions import UnknownVpcEndpointService
 

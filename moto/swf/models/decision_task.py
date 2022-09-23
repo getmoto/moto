@@ -2,7 +2,7 @@ from datetime import datetime
 
 from moto.core import BaseModel
 from moto.core.utils import unix_time
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from ..exceptions import SWFWorkflowExecutionClosedError
 
 from .timeout import Timeout

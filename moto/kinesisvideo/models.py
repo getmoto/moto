@@ -2,7 +2,7 @@ from moto.core import BaseBackend, BaseModel
 from datetime import datetime
 from .exceptions import ResourceNotFoundException, ResourceInUseException
 from moto.core.utils import BackendDict
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 
 
 class Stream(BaseModel):

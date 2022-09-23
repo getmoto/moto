@@ -1,7 +1,7 @@
 import string
 import json
 import yaml
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 
 
 def create_id():

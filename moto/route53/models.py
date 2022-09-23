@@ -20,7 +20,7 @@ from moto.route53.exceptions import (
 )
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL
 

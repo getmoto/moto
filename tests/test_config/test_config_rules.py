@@ -15,7 +15,7 @@ import pytest
 from moto.config import mock_config
 from moto.config.models import ConfigRule, CONFIG_RULE_PAGE_SIZE
 from moto import settings
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 

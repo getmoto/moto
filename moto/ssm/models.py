@@ -17,7 +17,7 @@ import time
 import json
 import yaml
 import hashlib
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from .utils import parameter_arn, convert_to_params
 from .exceptions import (
     ValidationException,

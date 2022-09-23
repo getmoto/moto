@@ -9,7 +9,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from moto.iam import iam_backends
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 
 EC2_RESOURCE_TO_PREFIX = {

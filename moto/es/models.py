@@ -1,6 +1,6 @@
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from .exceptions import DomainNotFound
 
 

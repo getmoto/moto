@@ -4,7 +4,7 @@ from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time, BackendDict
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from moto.organizations import organizations_backends
 from moto.ram.exceptions import (
     MalformedArnException,

@@ -4,7 +4,7 @@ import threading
 from moto import settings
 from moto.core import CloudFormationModel
 from moto.awslambda import lambda_backends
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 
 class CustomModel(CloudFormationModel):

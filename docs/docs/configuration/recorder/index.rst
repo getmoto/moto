@@ -73,17 +73,16 @@ The recorder is disabled by default. If you want to enable it, use the following
 Deterministic Identifiers
 ##############################
 
-Moto creates random identifiers, just like AWS, for most resources. The Recorder will recreate the same resources every time, but the identifiers will always be different.
+Moto creates random identifiers for most resources, just like AWS. The Recorder will recreate the same resources every time, but with different identifiers.
 
-You can seed Moto to get around this problem, ensuring that the 'random' identifiers are always the same for subsequent requests.
+It is possible to seed Moto and ensure that the 'random' identifiers are always the same for subsequent requests.
 
 Example invocation:
 
 .. sourcecode:: python
 
-    from moto.moto_api import mock_random
-
-    mock_random.seed(42)
+    # Ensure the provided parameter `a` is an integer
+    requests.post("http://motoapi.amazonaws.com/moto-api/seed?a=42")
 
     # To try this out, generate a EC2 instance
     client = boto3.client("ec2", region_name="us-east-1")
@@ -91,7 +90,7 @@ Example invocation:
 
     # The resulting InstanceId will always be the same
     instance_id = resp["Instances"][0]["InstanceId"]
-    assert instance_id == "i-b57056d5352b3f0b3"
+    assert instance_id == "i-d1026706d7e805da8"
 
 To seed Moto in ServerMode:
 
@@ -99,3 +98,16 @@ To seed Moto in ServerMode:
 
     requests.post(f"http://localhost:5000/moto-api/seed?a=42")
 
+
+Because the seeding API is only exposed as a request, it will be recorded just like any other request.  :raw-html:`<br />`
+Seed Moto at the beginning of a recording to ensure the resulting state will always be the same:
+
+.. sourcecode:: python
+
+    requests.post("http://localhost:5000/moto-api/recorder/start-recording")
+    requests.post("http://localhost:5000/moto-api/seed?a=42")
+
+    client = boto3.client("ec2", region_name="us-east-1")
+    resp = client.run_instances(ImageId="ami-12c6146b", MinCount=1, MaxCount=1)
+
+    requests.post("http://localhost:5000/moto-api/recorder/stop-recording")

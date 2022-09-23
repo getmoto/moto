@@ -2,7 +2,7 @@ from collections import namedtuple
 import io
 import os
 import struct
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes

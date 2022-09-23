@@ -3,7 +3,7 @@ import hashlib
 import hmac
 import base64
 import re
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 
 FORMATS = {
     "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",

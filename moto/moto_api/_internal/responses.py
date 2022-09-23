@@ -107,9 +107,9 @@ class MotoAPIResponse(BaseResponse):
         moto_api_backend.unset_transition(model_name)
         return 201, {}, ""
 
-    def seed(self, req, full_url, headers):  # pylint: disable=unused-argument
+    def seed(self, req, full_url, headers):
         self.setup_class(req, full_url, headers)
-        from .. import mock_random
+        from . import mock_random
 
         a = self._get_param("a")
         mock_random.seed(int(a))

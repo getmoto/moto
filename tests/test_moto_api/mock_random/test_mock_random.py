@@ -1,5 +1,5 @@
 import sure  # noqa # pylint: disable=unused-import
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 
 def test_semi_random_uuids():

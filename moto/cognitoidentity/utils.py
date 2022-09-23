@@ -1,4 +1,4 @@
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 
 def get_random_identity_id(region):

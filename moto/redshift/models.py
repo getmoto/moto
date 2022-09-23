@@ -5,7 +5,7 @@ from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.ec2 import ec2_backends
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from .exceptions import (
     ClusterAlreadyExistsFaultError,
     ClusterNotFoundError,

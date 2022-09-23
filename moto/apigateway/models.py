@@ -65,7 +65,7 @@ from .exceptions import (
 )
 from ..core.models import responses_mock
 from moto.apigateway.exceptions import MethodNotFoundException
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 

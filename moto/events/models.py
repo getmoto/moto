@@ -26,7 +26,7 @@ from moto.events.exceptions import (
     InvalidEventPatternException,
     IllegalStatusException,
 )
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 

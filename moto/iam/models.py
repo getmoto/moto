@@ -24,7 +24,7 @@ from moto.iam.policy_validation import (
     IAMPolicyDocumentValidator,
     IAMTrustPolicyDocumentValidator,
 )
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 
 from .aws_managed_policies import aws_managed_policies_data

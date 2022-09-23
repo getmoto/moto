@@ -1,5 +1,5 @@
 from moto.core.utils import camelcase_to_underscores
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 
 from ._base_response import EC2BaseResponse
 

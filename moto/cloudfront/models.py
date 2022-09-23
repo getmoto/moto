@@ -5,7 +5,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import (

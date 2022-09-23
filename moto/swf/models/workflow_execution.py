@@ -2,7 +2,7 @@ from threading import Timer as ThreadingTimer, Lock
 
 from moto.core import BaseModel
 from moto.core.utils import camelcase_to_underscores, unix_time
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 from ..constants import DECISIONS_FIELDS
 from ..exceptions import (

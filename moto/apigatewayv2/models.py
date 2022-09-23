@@ -4,7 +4,7 @@ import yaml
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import (

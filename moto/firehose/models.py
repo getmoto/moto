@@ -35,7 +35,7 @@ from moto.firehose.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.utilities.tagging_service import TaggingService
 

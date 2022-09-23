@@ -9,7 +9,7 @@ from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from moto.route53resolver.exceptions import (
     InvalidParameterException,
     InvalidRequestException,

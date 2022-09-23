@@ -4,7 +4,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2, mock_elbv2
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html

@@ -13,7 +13,7 @@ from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
 from moto.elb.exceptions import LoadBalancerNotFoundError
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from .exceptions import (
     AutoscalingClientError,
     ResourceContentionError,

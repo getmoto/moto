@@ -1,5 +1,5 @@
 from moto.ec2.exceptions import FilterNotImplementedError
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from ._base_response import EC2BaseResponse
 
 from xml.etree import ElementTree

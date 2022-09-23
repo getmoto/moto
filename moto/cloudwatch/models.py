@@ -6,7 +6,7 @@ from moto.core.utils import (
     iso_8601_datetime_with_nanoseconds,
     BackendDict,
 )
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 

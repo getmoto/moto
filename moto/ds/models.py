@@ -16,7 +16,7 @@ from moto.ds.utils import PAGINATION_MODEL
 from moto.ds.validations import validate_args
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2 import ec2_backends
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 

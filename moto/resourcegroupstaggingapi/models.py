@@ -1,7 +1,7 @@
 from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 from moto.s3 import s3_backends
 from moto.ec2 import ec2_backends

@@ -14,7 +14,7 @@ import pytest
 from moto.config import mock_config
 from moto.config.models import MAX_TAGS_IN_ARG
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.moto_api import mock_random
+from moto.moto_api._internal import mock_random
 
 TEST_REGION = "us-east-1"
 

@@ -1,7 +1,7 @@
 import yaml
 import os
 import string
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 
 
 def generate_stack_id(stack_name, region, account):

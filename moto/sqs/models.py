@@ -18,7 +18,7 @@ from moto.core.utils import (
     tags_from_cloudformation_tags_list,
     BackendDict,
 )
-from moto.moto_api import mock_random as random
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 from .utils import generate_receipt_handle
 from .exceptions import (
