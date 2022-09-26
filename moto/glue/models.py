@@ -1,6 +1,7 @@
 import time
 from collections import OrderedDict
 from datetime import datetime
+import re
 from typing import List
 from uuid import uuid4
 
@@ -136,9 +137,13 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise TableNotFoundException(table_name)
 
-    def get_tables(self, database_name):
+    def get_tables(self, database_name, expression=""):
         database = self.get_database(database_name)
-        return [table for table_name, table in database.tables.items()]
+        return [
+            table
+            for table_name, table in database.tables.items()
+            if bool(re.match(expression, table_name))
+        ]
 
     def delete_table(self, database_name, table_name):
         database = self.get_database(database_name)

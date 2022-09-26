@@ -199,7 +199,7 @@ def test_create_table_already_exists():
 
 
 @mock_glue
-def test_get_tables():
+def test_get_tables_no_expression():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
     helpers.create_database(client, database_name)
@@ -225,6 +225,44 @@ def test_get_tables():
             table_inputs[table_name]["StorageDescriptor"]
         )
         table["PartitionKeys"].should.equal(table_inputs[table_name]["PartitionKeys"])
+
+
+@mock_glue
+def test_get_tables_expression():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    helpers.create_database(client, database_name)
+
+    table_names = [
+        "mytableprefix_123",
+        "mytableprefix_something_test",
+        "something_mytablepostfix",
+        "test_catchthis123_test",
+        "asduas6781catchthisasdas",
+        "fakecatchthisfake",
+    ]
+    table_inputs = {}
+
+    for table_name in table_names:
+        table_input = helpers.create_table_input(database_name, table_name)
+        table_inputs[table_name] = table_input
+        helpers.create_table(client, database_name, table_name, table_input)
+
+    prefix_expression = "mytableprefix_\\w+"
+    postfix_expression = "\\w+_mytablepostfix"
+    string_expression = "\\w+catchthis\\w+"
+
+    response_prefix = helpers.get_tables(client, database_name, prefix_expression)
+    response_postfix = helpers.get_tables(client, database_name, postfix_expression)
+    response_string_match = helpers.get_tables(client, database_name, string_expression)
+
+    tables_prefix = response_prefix["TableList"]
+    tables_postfix = response_postfix["TableList"]
+    tables_string_match = response_string_match["TableList"]
+
+    tables_prefix.should.have.length_of(2)
+    tables_postfix.should.have.length_of(1)
+    tables_string_match.should.have.length_of(3)
 
 
 @mock_glue
