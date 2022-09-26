@@ -1104,6 +1104,15 @@ class S3Response(BaseResponse):
             line = body_io.readline()
         return bytes(new_body)
 
+    def _handle_encoded_body(self, body, content_length):
+        body_io = io.BytesIO(body)
+        # first line should equal '{content_length}\r\n
+        body_io.readline()
+        # Body contains actual data next
+        return body_io.read(content_length)
+        # last line should equal
+        # amz-checksum-sha256:<..>\r\n
+
     @amzn_request_id
     def key_response(self, request, full_url, headers):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
@@ -1384,11 +1393,21 @@ class S3Response(BaseResponse):
         checksum_header = f"x-amz-checksum-{checksum_algorithm.lower()}"
         checksum_value = request.headers.get(checksum_header)
         if not checksum_value and checksum_algorithm:
-            search = re.search(r"x-amz-checksum-\w+:(\w+={1,2})", body.decode())
+            # Extract the checksum-value from the body first
+            search = re.search(b"x-amz-checksum-\w+:(\w+={1,2})", body)
             checksum_value = search.group(1) if search else None
 
         if checksum_value:
             response_headers.update({checksum_header: checksum_value})
+
+        # Extract the actual data from the body second
+        if (
+            request.headers.get("x-amz-content-sha256", None)
+            == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
+        ):
+            body = self._handle_encoded_body(
+                body, int(request.headers["x-amz-decoded-content-length"])
+            )
 
         bucket_key_enabled = request.headers.get(
             "x-amz-server-side-encryption-bucket-key-enabled", None
