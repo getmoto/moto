@@ -199,7 +199,7 @@ def test_create_table_already_exists():
 
 
 @mock_glue
-def test_get_tables_no_expression():
+def test_get_tables():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
     helpers.create_database(client, database_name)
