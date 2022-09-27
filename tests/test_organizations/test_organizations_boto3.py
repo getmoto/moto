@@ -58,6 +58,15 @@ def test_create_organization():
 
 
 @mock_organizations
+def test_create_organization_without_feature_set():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization()
+    response = client.describe_organization()
+    validate_organization(response)
+    response["Organization"]["FeatureSet"].should.equal("ALL")
+
+
+@mock_organizations
 def test_describe_organization():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
