@@ -139,11 +139,14 @@ class GlueBackend(BaseBackend):
 
     def get_tables(self, database_name, expression):
         database = self.get_database(database_name)
-        return [
-            table
-            for table_name, table in database.tables.items()
-            if bool(re.match(expression, table_name))
-        ]
+        if expression:
+            return [
+                table
+                for table_name, table in database.tables.items()
+                if re.match(expression, table_name)
+            ]
+        else:
+            return [table for table_name, table in database.tables.items()]
 
     def delete_table(self, database_name, table_name):
         database = self.get_database(database_name)
