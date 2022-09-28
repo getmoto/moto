@@ -1,5 +1,6 @@
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, get_random_hex
+from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random
 
 
 class SigningProfile(BaseModel):
@@ -16,7 +17,7 @@ class SigningProfile(BaseModel):
 
         self.status = "Active"
         self.arn = f"arn:aws:signer:{region}:{account_id}:/signing-profiles/{name}"
-        self.profile_version = get_random_hex(10)
+        self.profile_version = mock_random.get_random_hex(10)
         self.profile_version_arn = f"{self.arn}/{self.profile_version}"
 
     def cancel(self):

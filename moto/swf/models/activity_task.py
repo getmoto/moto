@@ -1,8 +1,8 @@
 from datetime import datetime
-import uuid
 
 from moto.core import BaseModel
 from moto.core.utils import unix_time
+from moto.moto_api._internal import mock_random
 from ..exceptions import SWFWorkflowExecutionClosedError
 
 from .timeout import Timeout
@@ -26,7 +26,7 @@ class ActivityTask(BaseModel):
         self.scheduled_event_id = scheduled_event_id
         self.started_event_id = None
         self.state = "SCHEDULED"
-        self.task_token = str(uuid.uuid4())
+        self.task_token = str(mock_random.uuid4())
         self.timeouts = timeouts
         self.timeout_type = None
         self.workflow_execution = workflow_execution

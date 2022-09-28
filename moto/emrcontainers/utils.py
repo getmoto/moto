@@ -1,6 +1,6 @@
 # import json
 import string
-import random
+from moto.moto_api._internal import mock_random as random
 
 
 def get_partition(region):

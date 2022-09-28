@@ -1,9 +1,6 @@
 import hashlib
-import random
 import re
-import string
 import time
-import uuid
 from collections import OrderedDict
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -16,7 +13,7 @@ from .utils import PAGINATION_MODEL
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-from moto.utilities.utils import random_string
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from .exceptions import (
     CertificateStateException,
@@ -74,7 +71,7 @@ class FakeThingType(BaseModel):
         self.region_name = region_name
         self.thing_type_name = thing_type_name
         self.thing_type_properties = thing_type_properties
-        self.thing_type_id = str(uuid.uuid4())  # I don't know the rule of id
+        self.thing_type_id = str(random.uuid4())  # I don't know the rule of id
         t = time.time()
         self.metadata = {"deprecated": False, "creationDate": int(t * 1000) / 1000.0}
         self.arn = "arn:aws:iot:%s:1:thingtype/%s" % (self.region_name, thing_type_name)
@@ -100,7 +97,7 @@ class FakeThingGroup(BaseModel):
     ):
         self.region_name = region_name
         self.thing_group_name = thing_group_name
-        self.thing_group_id = str(uuid.uuid4())  # I don't know the rule of id
+        self.thing_group_id = str(random.uuid4())  # I don't know the rule of id
         self.version = 1  # TODO: tmp
         self.parent_group_name = parent_group_name
         self.thing_group_properties = thing_group_properties or {}
@@ -434,7 +431,7 @@ class FakeEndpoint(BaseModel):
                 "operation: Endpoint type %s not recognized." % endpoint_type
             )
         self.region_name = region_name
-        identifier = random_string(14).lower()
+        identifier = random.get_random_string(length=14, lower_case=True)
         if endpoint_type == "iot:Data":
             self.endpoint = "{i}.iot.{r}.amazonaws.com".format(
                 i=identifier, r=self.region_name
@@ -540,7 +537,7 @@ class FakeDomainConfiguration(BaseModel):
         self.domain_configuration_arn = "arn:aws:iot:%s:1:domainconfiguration/%s/%s" % (
             region_name,
             domain_configuration_name,
-            random_string(5),
+            random.get_random_string(length=5),
         )
         self.domain_name = domain_name
         self.server_certificates = []
@@ -836,21 +833,14 @@ class IoTBackend(BaseBackend):
             else:
                 thing.attributes.update(attributes)
 
-    def _random_string(self):
-        n = 20
-        random_str = "".join(
-            [random.choice(string.ascii_letters + string.digits) for i in range(n)]
-        )
-        return random_str
-
     def create_keys_and_certificate(self, set_as_active):
         # implement here
         # caCertificate can be blank
         key_pair = {
-            "PublicKey": self._random_string(),
-            "PrivateKey": self._random_string(),
+            "PublicKey": random.get_random_string(),
+            "PrivateKey": random.get_random_string(),
         }
-        certificate_pem = self._random_string()
+        certificate_pem = random.get_random_string()
         status = "ACTIVE" if set_as_active else "INACTIVE"
         certificate = FakeCertificate(
             certificate_pem, status, self.account_id, self.region_name
@@ -910,7 +900,7 @@ class IoTBackend(BaseBackend):
         return certs[0]
 
     def get_registration_code(self):
-        return str(uuid.uuid4())
+        return str(random.uuid4())
 
     def list_certificates(self):
         """

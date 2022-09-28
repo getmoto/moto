@@ -2,7 +2,7 @@ import json
 from urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amzn_request_id
+from moto.utilities.aws_headers import amzn_request_id
 from .models import databrew_backends
 
 

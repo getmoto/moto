@@ -2,9 +2,8 @@ import base64
 from datetime import timedelta, datetime, timezone
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
+from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
-
-from uuid import uuid4
 
 from .exceptions import GraphqlAPINotFound
 
@@ -66,7 +65,7 @@ class GraphqlAPI(BaseModel):
     ):
         self.region = region
         self.name = name
-        self.api_id = str(uuid4())
+        self.api_id = str(mock_random.uuid4())
         self.authentication_type = authentication_type
         self.additional_authentication_providers = additional_authentication_providers
         self.lambda_authorizer_config = lambda_authorizer_config
@@ -157,7 +156,7 @@ class GraphqlAPI(BaseModel):
 
 class GraphqlAPIKey(BaseModel):
     def __init__(self, description, expires):
-        self.key_id = str(uuid4())[0:6]
+        self.key_id = str(mock_random.uuid4())[0:6]
         self.description = description
         self.expires = expires
         if not self.expires:

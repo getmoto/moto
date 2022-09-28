@@ -21,7 +21,6 @@ from .custom_responses_mock import (
     not_implemented_callback,
     reset_responses_mock,
 )
-from .utils import convert_flask_to_responses_response
 
 DEFAULT_ACCOUNT_ID = "123456789012"
 
@@ -272,6 +271,9 @@ class BotocoreEventMockAWS(BaseMockAWS):
         reset_responses_mock(responses_mock)
 
     def enable_patching(self, reset=True):  # pylint: disable=unused-argument
+        # Circumvent circular imports
+        from .utils import convert_flask_to_responses_response
+
         botocore_stubber.enabled = True
         for method in BOTOCORE_HTTP_METHODS:
             for backend in self.backends_for_urls:

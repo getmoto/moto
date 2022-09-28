@@ -1,7 +1,6 @@
 import base64
 import hashlib
 import json
-import random
 import re
 import string
 
@@ -14,12 +13,12 @@ from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
-    get_random_message_id,
     unix_time,
     unix_time_millis,
     tags_from_cloudformation_tags_list,
     BackendDict,
 )
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 from .utils import generate_receipt_handle
 from .exceptions import (
@@ -763,7 +762,7 @@ class SQSBackend(BaseBackend):
         else:
             delay_seconds = queue.delay_seconds
 
-        message_id = get_random_message_id()
+        message_id = str(random.uuid4())
         message = Message(message_id, message_body, system_attributes)
 
         # if content based deduplication is set then set sha256 hash of the message

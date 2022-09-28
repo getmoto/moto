@@ -11,7 +11,6 @@ from copy import deepcopy
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
-    get_random_hex,
     underscores_to_camelcase,
     BackendDict,
 )
@@ -30,6 +29,7 @@ from moto.efs.exceptions import (
     SecurityGroupNotFound,
     SecurityGroupLimitExceeded,
 )
+from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import md5_hash
 
@@ -54,7 +54,7 @@ class AccessPoint(BaseModel):
         root_directory,
         context,
     ):
-        self.access_point_id = get_random_hex(8)
+        self.access_point_id = mock_random.get_random_hex(8)
         self.access_point_arn = f"arn:aws:elasticfilesystem:{region_name}:{account_id}:access-point/fsap-{self.access_point_id}"
         self.client_token = client_token
         self.file_system_id = file_system_id
@@ -297,7 +297,7 @@ class MountTarget(CloudFormationModel):
 
         # Init non-user-assigned values.
         self.owner_id = account_id
-        self.mount_target_id = "fsmt-{}".format(get_random_hex())
+        self.mount_target_id = "fsmt-{}".format(mock_random.get_random_hex())
         self.life_cycle_state = "available"
         self.network_interface_id = None
         self.availability_zone_id = subnet.availability_zone_id
@@ -418,7 +418,7 @@ class EFSBackend(BaseBackend):
 
         # Create a new file system ID:
         def make_id():
-            return "fs-{}".format(get_random_hex())
+            return "fs-{}".format(mock_random.get_random_hex())
 
         fsid = make_id()
         while fsid in self.file_systems_by_id:

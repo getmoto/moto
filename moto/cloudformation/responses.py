@@ -5,9 +5,9 @@ from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
 from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amzn_request_id
 from moto.s3.models import s3_backends
 from moto.s3.exceptions import S3ClientError
+from moto.utilities.aws_headers import amzn_request_id
 from .models import cloudformation_backends
 from .exceptions import ValidationError, MissingParameterError
 from .utils import yaml_tag_constructor

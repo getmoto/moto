@@ -3,7 +3,7 @@
 from .exceptions import CostCategoryNotFound
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-from uuid import uuid4
+from moto.moto_api._internal import mock_random
 
 
 class CostCategoryDefinition(BaseModel):
@@ -15,7 +15,7 @@ class CostCategoryDefinition(BaseModel):
         self.rules = rules
         self.default_value = default_value
         self.split_charge_rules = split_charge_rules
-        self.arn = f"arn:aws:ce::{account_id}:costcategory/{str(uuid4())}"
+        self.arn = f"arn:aws:ce::{account_id}:costcategory/{str(mock_random.uuid4())}"
 
     def update(self, rule_version, rules, default_value, split_charge_rules):
         self.rule_version = rule_version

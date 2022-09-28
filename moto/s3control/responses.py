@@ -2,9 +2,9 @@ import json
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amzn_request_id
 from moto.s3.exceptions import S3ClientError
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
+from moto.utilities.aws_headers import amzn_request_id
 from .models import s3control_backends
 
 

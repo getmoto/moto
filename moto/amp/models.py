@@ -2,10 +2,10 @@
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
+from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from typing import Dict
-from uuid import uuid4
 from .exceptions import RuleGroupNamespaceNotFound, WorkspaceNotFound
 from .utils import PAGINATION_MODEL
 
@@ -38,7 +38,7 @@ class RuleGroupNamespace(BaseModel):
 class Workspace(BaseModel):
     def __init__(self, account_id, region, alias, tag_fn):
         self.alias = alias
-        self.workspace_id = f"ws-{uuid4()}"
+        self.workspace_id = f"ws-{mock_random.uuid4()}"
         self.arn = f"arn:aws:aps:{region}:{account_id}:workspace/{self.workspace_id}"
         self.endpoint = f"https://aps-workspaces.{region}.amazonaws.com/workspaces/{self.workspace_id}/"
         self.status = {"statusCode": "ACTIVE"}

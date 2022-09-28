@@ -1,7 +1,5 @@
 import json
 import hashlib
-import random
-import string
 import pkgutil
 
 
@@ -13,14 +11,6 @@ def str2bool(v):
         return True
     elif v in ("no", False, "false", "False", "FALSE", "f", "0"):
         return False
-
-
-def random_string(length=None):
-    n = length or 20
-    random_str = "".join(
-        [random.choice(string.ascii_letters + string.digits) for i in range(n)]
-    )
-    return random_str
 
 
 def load_resource(package, resource, as_json=True):

@@ -2,7 +2,7 @@ from collections import namedtuple
 import io
 import os
 import struct
-import uuid
+from moto.moto_api._internal import mock_random
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
@@ -46,7 +46,7 @@ RESERVED_ALIASES = [
 
 
 def generate_key_id(multi_region=False):
-    key = str(uuid.uuid4())
+    key = str(mock_random.uuid4())
     # https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html
     # "Notice that multi-Region keys have a distinctive key ID that begins with mrk-. You can use the mrk- prefix to
     # identify MRKs programmatically."

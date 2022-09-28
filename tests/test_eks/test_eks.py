@@ -33,7 +33,7 @@ from moto.eks.models import (
     NODEGROUP_NOT_FOUND_MSG,
 )
 from moto.eks.responses import DEFAULT_MAX_RESULTS
-from moto.utilities.utils import random_string
+from moto.moto_api._internal import mock_random
 
 from .test_eks_constants import (
     BatchCountSize,
@@ -516,14 +516,14 @@ def test_list_nodegroups_returns_custom_second_page_results(NodegroupBuilder):
 @mock_eks
 def test_create_nodegroup_throws_exception_when_cluster_not_found():
     client = boto3.client(SERVICE, region_name=REGION)
-    non_existent_cluster_name = random_string()
+    non_existent_cluster_name = mock_random.get_random_string()
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=non_existent_cluster_name)
 
     with pytest.raises(ClientError) as raised_exception:
         client.create_nodegroup(
             clusterName=non_existent_cluster_name,
-            nodegroupName=random_string(),
+            nodegroupName=mock_random.get_random_string(),
             **dict(NodegroupInputs.REQUIRED)
         )
 
@@ -571,7 +571,7 @@ def test_create_nodegroup_throws_exception_when_cluster_not_active(NodegroupBuil
         with pytest.raises(ClientError) as raised_exception:
             client.create_nodegroup(
                 clusterName=generated_test_data.cluster_name,
-                nodegroupName=random_string(),
+                nodegroupName=mock_random.get_random_string(),
                 **dict(NodegroupInputs.REQUIRED)
             )
     count_nodegroups_after_test = len(
@@ -827,7 +827,7 @@ def test_create_nodegroup_handles_launch_template_combinations(
     expected_result,
 ):
     client, generated_test_data = ClusterBuilder()
-    nodegroup_name = random_string()
+    nodegroup_name = mock_random.get_random_string()
     expected_exception = InvalidParameterException
     expected_msg = None
 
@@ -966,14 +966,14 @@ def test_list_fargate_profile_returns_custom_second_page_results(FargateProfileB
 @mock_eks
 def test_create_fargate_profile_throws_exception_when_cluster_not_found():
     client = boto3.client(SERVICE, region_name=REGION)
-    non_existent_cluster_name = random_string()
+    non_existent_cluster_name = mock_random.get_random_string()
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=non_existent_cluster_name)
 
     with pytest.raises(ClientError) as raised_exception:
         client.create_fargate_profile(
             clusterName=non_existent_cluster_name,
-            fargateProfileName=random_string(),
+            fargateProfileName=mock_random.get_random_string(),
             **dict(FargateProfileInputs.REQUIRED)
         )
 
@@ -1020,7 +1020,7 @@ def test_create_fargate_profile_throws_exception_when_cluster_not_active(
         with pytest.raises(ClientError) as raised_exception:
             client.create_fargate_profile(
                 clusterName=generated_test_data.cluster_name,
-                fargateProfileName=random_string(),
+                fargateProfileName=mock_random.get_random_string(),
                 **dict(FargateProfileInputs.REQUIRED)
             )
     count_fargate_profiles_after_test = len(
@@ -1188,7 +1188,7 @@ def test_delete_fargate_profile_throws_exception_when_fargate_profile_not_found(
 def test_create_fargate_throws_exception_when_no_selectors_provided(ClusterBuilder):
     client, generated_test_data = ClusterBuilder()
     cluster_name = generated_test_data.existing_cluster_name
-    fargate_profile_name = random_string()
+    fargate_profile_name = mock_random.get_random_string()
     expected_exception = InvalidParameterException
     expected_msg = FARGATE_PROFILE_NEEDS_SELECTOR_MSG
 
@@ -1327,7 +1327,7 @@ def test_create_fargate_selectors(
 ):
     client, generated_test_data = ClusterBuilder()
     cluster_name = generated_test_data.existing_cluster_name
-    fargate_profile_name = random_string()
+    fargate_profile_name = mock_random.get_random_string()
     expected_exception = InvalidParameterException
 
     test_inputs = dict(
@@ -1392,7 +1392,7 @@ def assert_result_matches_expected_list(result, expected_result, expected_len):
 def assert_valid_selectors(ClusterBuilder, expected_msg, expected_result, selectors):
     client, generated_test_data = ClusterBuilder()
     cluster_name = generated_test_data.existing_cluster_name
-    fargate_profile_name = random_string()
+    fargate_profile_name = mock_random.get_random_string()
     expected_exception = InvalidParameterException
 
     test_inputs = dict(

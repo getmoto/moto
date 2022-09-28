@@ -1,8 +1,8 @@
 from collections import OrderedDict
-from uuid import uuid4
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random
 
 
 class Input(BaseModel):
@@ -134,7 +134,7 @@ class MediaLiveBackend(BaseBackend):
         """
         The RequestID and Reserved parameters are not yet implemented
         """
-        channel_id = uuid4().hex
+        channel_id = mock_random.uuid4().hex
         arn = "arn:aws:medialive:channel:{}".format(channel_id)
         channel = Channel(
             arn=arn,
@@ -228,7 +228,7 @@ class MediaLiveBackend(BaseBackend):
         """
         The VPC and RequestId parameters are not yet implemented
         """
-        input_id = uuid4().hex
+        input_id = mock_random.uuid4().hex
         arn = "arn:aws:medialive:input:{}".format(input_id)
         a_input = Input(
             arn=arn,

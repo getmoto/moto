@@ -1,7 +1,7 @@
 import json
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amzn_request_id
+from moto.utilities.aws_headers import amzn_request_id
 from .models import forecast_backends
 
 

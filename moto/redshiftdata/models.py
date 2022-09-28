@@ -1,10 +1,9 @@
 import re
-import uuid
 from datetime import datetime
-import random
 
 from moto.core import BaseBackend
 from moto.core.utils import BackendDict, iso_8601_datetime_without_milliseconds
+from moto.moto_api._internal import mock_random as random
 from moto.redshiftdata.exceptions import ValidationException, ResourceNotFoundException
 
 
@@ -20,7 +19,7 @@ class Statement:
     ):
         now = iso_8601_datetime_without_milliseconds(datetime.now())
 
-        self.id = str(uuid.uuid4())
+        self.id = str(random.uuid4())
         self.cluster_identifier = cluster_identifier
         self.created_at = now
         self.database = database

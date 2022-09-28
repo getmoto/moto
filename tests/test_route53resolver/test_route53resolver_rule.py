@@ -8,8 +8,8 @@ import pytest
 
 from moto import mock_route53resolver
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.core.utils import get_random_hex
 from moto.ec2 import mock_ec2
+from moto.moto_api._internal import mock_random
 
 from .test_route53resolver_endpoint import TEST_REGION, create_test_endpoint, create_vpc
 
@@ -21,7 +21,7 @@ def create_test_rule(client, name=None, tags=None):
     """
     if not tags:
         tags = []
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     resolver_rule = client.create_resolver_rule(
         CreatorRequestId=random_num,
@@ -42,7 +42,7 @@ def create_test_rule(client, name=None, tags=None):
 def test_route53resolver_invalid_create_rule_args():
     """Test invalid arguments to the create_resolver_rule API."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Verify ValidationException error messages are accumulated properly:
     #  - creator requestor ID that exceeds the allowed length of 255.
@@ -128,7 +128,7 @@ def test_route53resolver_create_resolver_rule():  # pylint: disable=too-many-loc
     """Test good create_resolver_rule API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Create a good endpoint that we can use to test.
     created_endpoint = create_test_endpoint(client, ec2_client)
@@ -183,7 +183,7 @@ def test_route53resolver_bad_create_resolver_rule():
     """Test error scenarios for create_resolver_rule API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Create a good endpoint and rule that we can use to test.
     created_endpoint = create_test_endpoint(client, ec2_client)
@@ -210,7 +210,7 @@ def test_route53resolver_bad_create_resolver_rule():
     # Attempt to create a rule with a IPv6 address.
     with pytest.raises(ClientError) as exc:
         client.create_resolver_rule(
-            CreatorRequestId=get_random_hex(10),
+            CreatorRequestId=mock_random.get_random_hex(10),
             Name="B" + random_num,
             RuleType="FORWARD",
             DomainName=f"{random_num}.test",
@@ -224,7 +224,7 @@ def test_route53resolver_bad_create_resolver_rule():
     # Attempt to create a rule with an invalid IPv4 address.
     with pytest.raises(ClientError) as exc:
         client.create_resolver_rule(
-            CreatorRequestId=get_random_hex(10),
+            CreatorRequestId=mock_random.get_random_hex(10),
             Name="B" + random_num,
             RuleType="FORWARD",
             DomainName=f"{random_num}.test",
@@ -238,7 +238,7 @@ def test_route53resolver_bad_create_resolver_rule():
     # Attempt to create a rule with a non-existent resolver endpoint id.
     with pytest.raises(ClientError) as exc:
         client.create_resolver_rule(
-            CreatorRequestId=get_random_hex(10),
+            CreatorRequestId=mock_random.get_random_hex(10),
             Name="B" + random_num,
             RuleType="FORWARD",
             DomainName=f"{random_num}.test",
@@ -252,7 +252,7 @@ def test_route53resolver_bad_create_resolver_rule():
     # Create a rule with a resolver endpoint id and a rule type of SYSTEM.
     with pytest.raises(ClientError) as exc:
         client.create_resolver_rule(
-            CreatorRequestId=get_random_hex(10),
+            CreatorRequestId=mock_random.get_random_hex(10),
             Name="B" + random_num,
             RuleType="SYSTEM",
             DomainName=f"{random_num}.test",
@@ -305,7 +305,7 @@ def test_route53resolver_bad_delete_resolver_rule():
     """Test delete_resolver_rule API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Use a resolver rule id that is too long.
     long_id = "0123456789" * 6 + "xxxxx"
@@ -367,7 +367,7 @@ def test_route53resolver_get_resolver_rule():
 def test_route53resolver_bad_get_resolver_rule():
     """Test get_resolver_rule API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Use a resolver rule id that is too long.
     long_id = "0123456789" * 6 + "xxxxx"
@@ -393,7 +393,7 @@ def test_route53resolver_bad_get_resolver_rule():
 def test_route53resolver_list_resolver_rules():
     """Test good list_resolver_rules API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # List rules when there are none.
     response = client.list_resolver_rules()
@@ -434,7 +434,7 @@ def test_route53resolver_list_resolver_rules_filters():
     """Test good list_resolver_rules API calls that use filters."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
 
     # Create some endpoints and rules for testing purposes.
     endpoint1 = create_test_endpoint(client, ec2_client)["Id"]
@@ -533,7 +533,7 @@ def test_route53resolver_bad_list_resolver_rules():
     client = boto3.client("route53resolver", region_name=TEST_REGION)
 
     # Bad max_results.
-    random_num = get_random_hex(10)
+    random_num = mock_random.get_random_hex(10)
     create_test_rule(client, name=f"A-{random_num}")
     with pytest.raises(ClientError) as exc:
         client.list_resolver_rules(MaxResults=250)

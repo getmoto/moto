@@ -1,8 +1,8 @@
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
+from moto.moto_api._internal import mock_random
 from datetime import datetime
 from .exceptions import RepositoryDoesNotExistException, RepositoryNameExistsException
-import uuid
 
 
 class CodeCommit(BaseModel):
@@ -23,7 +23,7 @@ class CodeCommit(BaseModel):
         self.repository_metadata["creationDate"] = current_date
         self.repository_metadata["lastModifiedDate"] = current_date
         self.repository_metadata["repositoryDescription"] = repository_description
-        self.repository_metadata["repositoryId"] = str(uuid.uuid4())
+        self.repository_metadata["repositoryId"] = str(mock_random.uuid4())
         self.repository_metadata[
             "Arn"
         ] = f"arn:aws:codecommit:{region}:{account_id}:{repository_name}"

@@ -4,7 +4,7 @@ import threading
 from moto import settings
 from moto.core import CloudFormationModel
 from moto.awslambda import lambda_backends
-from uuid import uuid4
+from moto.moto_api._internal import mock_random
 
 
 class CustomModel(CloudFormationModel):
@@ -44,7 +44,7 @@ class CustomModel(CloudFormationModel):
         backend = lambda_backends[account_id][region_name]
         fn = backend.get_function(service_token)
 
-        request_id = str(uuid4())
+        request_id = str(mock_random.uuid4())
 
         custom_resource = CustomModel(
             region_name, request_id, logical_id, resource_name

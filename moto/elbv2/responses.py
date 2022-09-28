@@ -1,6 +1,6 @@
 from moto.core.exceptions import RESTError
-from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
+from moto.utilities.aws_headers import amzn_request_id
 from .models import elbv2_backends
 from .exceptions import TargetGroupNotFoundError
 from .exceptions import ListenerOrBalancerMissingError

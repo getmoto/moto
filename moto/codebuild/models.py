@@ -1,10 +1,9 @@
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
+from moto.moto_api._internal import mock_random
 from collections import defaultdict
-from random import randint
 from dateutil import parser
 import datetime
-import uuid
 
 
 class CodeBuildProjectMetadata(BaseModel):
@@ -26,7 +25,7 @@ class CodeBuildProjectMetadata(BaseModel):
             "arn"
         ] = f"arn:aws:codebuild:{region_name}:{account_id}:build/{build_id}"
 
-        self.build_metadata["buildNumber"] = randint(1, 100)
+        self.build_metadata["buildNumber"] = mock_random.randint(1, 100)
         self.build_metadata["startTime"] = current_date
         self.build_metadata["currentPhase"] = "QUEUED"
         self.build_metadata["buildStatus"] = "IN_PROGRESS"
@@ -168,7 +167,7 @@ class CodeBuildBackend(BaseBackend):
 
     def start_build(self, project_name, source_version=None, artifact_override=None):
 
-        build_id = "{0}:{1}".format(project_name, uuid.uuid4())
+        build_id = "{0}:{1}".format(project_name, mock_random.uuid4())
 
         # construct a new build
         self.build_metadata[project_name] = CodeBuildProjectMetadata(
@@ -215,7 +214,7 @@ class CodeBuildBackend(BaseBackend):
             phase["phaseStatus"] = "SUCCEEDED"
             phase["startTime"] = current_date
             phase["endTime"] = current_date
-            phase["durationInSeconds"] = randint(10, 100)
+            phase["durationInSeconds"] = mock_random.randint(10, 100)
             phases.append(phase)
 
         return phases
@@ -229,7 +228,7 @@ class CodeBuildBackend(BaseBackend):
                     build["phases"] = self._set_phases(build["phases"])
                     build["endTime"] = iso_8601_datetime_with_milliseconds(
                         parser.parse(build["startTime"])
-                        + datetime.timedelta(minutes=randint(1, 5))
+                        + datetime.timedelta(minutes=mock_random.randint(1, 5))
                     )
                     build["currentPhase"] = "COMPLETED"
                     build["buildStatus"] = "SUCCEEDED"
@@ -264,7 +263,7 @@ class CodeBuildBackend(BaseBackend):
                     build["phases"] = self._set_phases(build["phases"])
                     build["endTime"] = iso_8601_datetime_with_milliseconds(
                         parser.parse(build["startTime"])
-                        + datetime.timedelta(minutes=randint(1, 5))
+                        + datetime.timedelta(minutes=mock_random.randint(1, 5))
                     )
                     build["currentPhase"] = "COMPLETED"
                     build["buildStatus"] = "STOPPED"

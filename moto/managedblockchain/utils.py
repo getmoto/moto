@@ -1,8 +1,7 @@
 import json
-import random
 import re
 import string
-
+from moto.moto_api._internal import mock_random as random
 from urllib.parse import parse_qs, urlparse
 
 

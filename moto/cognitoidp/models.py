@@ -3,13 +3,12 @@ import json
 import os
 import time
 import typing
-import uuid
 import enum
-import random
 from jose import jws
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random as random
 from .exceptions import (
     GroupExistsException,
     NotAuthorizedError,
@@ -562,7 +561,7 @@ class CognitoIdpUserPool(BaseModel):
         return id_token, expires_in
 
     def create_refresh_token(self, client_id, username):
-        refresh_token = str(uuid.uuid4())
+        refresh_token = str(random.uuid4())
         self.refresh_tokens[refresh_token] = (client_id, username)
         return refresh_token
 
@@ -633,7 +632,7 @@ class CognitoIdpUserPoolDomain(BaseModel):
         if extended:
             return {
                 "UserPoolId": self.user_pool_id,
-                "AWSAccountId": str(uuid.uuid4()),
+                "AWSAccountId": str(random.uuid4()),
                 "CloudFrontDistribution": distribution,
                 "Domain": self.domain,
                 "S3Bucket": None,
@@ -649,7 +648,7 @@ class CognitoIdpUserPoolClient(BaseModel):
     def __init__(self, user_pool_id, generate_secret, extended_config):
         self.user_pool_id = user_pool_id
         self.id = create_id()
-        self.secret = str(uuid.uuid4())
+        self.secret = str(random.uuid4())
         self.generate_secret = generate_secret or False
         self.extended_config = extended_config or {}
 
@@ -736,7 +735,7 @@ class CognitoIdpGroup(BaseModel):
 
 class CognitoIdpUser(BaseModel):
     def __init__(self, user_pool_id, username, password, status, attributes):
-        self.id = str(uuid.uuid4())
+        self.id = str(random.uuid4())
         self.user_pool_id = user_pool_id
         # Username is None when users sign up with an email or phone_number,
         # and should be given the value of the internal id generate (sub)
@@ -1289,7 +1288,7 @@ class CognitoIdpBackend(BaseBackend):
                 UserStatus.FORCE_CHANGE_PASSWORD,
                 UserStatus.RESET_REQUIRED,
             ]:
-                session = str(uuid.uuid4())
+                session = str(random.uuid4())
                 self.sessions[session] = user_pool
 
                 return {
@@ -1635,15 +1634,15 @@ class CognitoIdpBackend(BaseBackend):
             if user.status is UserStatus.UNCONFIRMED:
                 raise UserNotConfirmedException("User is not confirmed.")
 
-            session = str(uuid.uuid4())
+            session = str(random.uuid4())
             self.sessions[session] = user_pool
 
             return {
                 "ChallengeName": "PASSWORD_VERIFIER",
                 "Session": session,
                 "ChallengeParameters": {
-                    "SALT": uuid.uuid4().hex,
-                    "SRP_B": uuid.uuid4().hex,
+                    "SALT": random.uuid4().hex,
+                    "SRP_B": random.uuid4().hex,
                     "USERNAME": user.username,
                     "USER_ID_FOR_SRP": user.id,
                     "SECRET_BLOCK": session,
@@ -1664,7 +1663,7 @@ class CognitoIdpBackend(BaseBackend):
             if user.status is UserStatus.UNCONFIRMED:
                 raise UserNotConfirmedException("User is not confirmed.")
 
-            session = str(uuid.uuid4())
+            session = str(random.uuid4())
             self.sessions[session] = user_pool
 
             if user.status is UserStatus.FORCE_CHANGE_PASSWORD:
@@ -1732,7 +1731,7 @@ class CognitoIdpBackend(BaseBackend):
                 _, username = user_pool.access_tokens[access_token]
                 self.admin_get_user(user_pool.id, username)
 
-                return {"SecretCode": str(uuid.uuid4())}
+                return {"SecretCode": str(random.uuid4())}
 
         raise NotAuthorizedError(access_token)
 

@@ -16,7 +16,6 @@ import os
 import json
 import re
 import zipfile
-import uuid
 import tarfile
 import calendar
 import threading
@@ -26,11 +25,12 @@ import requests.exceptions
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
+from moto.core.utils import unix_time_millis, BackendDict
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
-from moto.core.utils import unix_time_millis, BackendDict
-from moto.s3.models import s3_backends
 from moto.logs.models import logs_backends
+from moto.moto_api._internal import mock_random as random
+from moto.s3.models import s3_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
 from .exceptions import (
@@ -54,7 +54,6 @@ from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.utilities.docker_utilities import DockerModel, parse_image_ref
 from tempfile import TemporaryDirectory
-from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
@@ -335,7 +334,7 @@ class LambdaAlias(BaseModel):
         self.function_version = function_version
         self.description = description
         self.routing_config = routing_config
-        self.revision_id = str(uuid4())
+        self.revision_id = str(random.uuid4())
 
     def update(self, description, function_version, routing_config):
         if description is not None:
@@ -439,7 +438,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             ) = _zipfile_content(self.code["ZipFile"])
 
             # TODO: we should be putting this in a lambda bucket
-            self.code["UUID"] = str(uuid.uuid4())
+            self.code["UUID"] = str(random.uuid4())
             self.code["S3Key"] = "{}-{}".format(self.function_name, self.code["UUID"])
         elif "S3Bucket" in self.code:
             key = _validate_s3_bucket_and_key(self.account_id, data=self.code)
@@ -610,7 +609,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             ) = _zipfile_content(updated_spec["ZipFile"])
 
             # TODO: we should be putting this in a lambda bucket
-            self.code["UUID"] = str(uuid.uuid4())
+            self.code["UUID"] = str(random.uuid4())
             self.code["S3Key"] = "{}-{}".format(self.function_name, self.code["UUID"])
         elif "S3Bucket" in updated_spec and "S3Key" in updated_spec:
             key = None
@@ -757,7 +756,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def save_logs(self, output):
         # Send output to "logs" backend
-        invoke_id = uuid.uuid4().hex
+        invoke_id = random.uuid4().hex
         log_stream_name = (
             "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
                 date=datetime.datetime.utcnow(),
@@ -935,7 +934,7 @@ class FunctionUrlConfig:
     def __init__(self, function: LambdaFunction, config):
         self.function = function
         self.config = config
-        self.url = f"https://{uuid.uuid4().hex}.lambda-url.{function.region}.on.aws"
+        self.url = f"https://{random.uuid4().hex}.lambda-url.{function.region}.on.aws"
         self.created = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
         self.last_modified = self.created
 
@@ -970,7 +969,7 @@ class EventSourceMapping(CloudFormationModel):
         self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
 
         self.function_arn = spec["FunctionArn"]
-        self.uuid = str(uuid.uuid4())
+        self.uuid = str(random.uuid4())
         self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
 
     def _get_service_source_from_arn(self, event_source_arn):

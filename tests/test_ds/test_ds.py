@@ -10,8 +10,8 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_ds
-from moto.core.utils import get_random_hex
 from moto.ec2 import mock_ec2
+from moto.moto_api._internal import mock_random
 
 from .test_ds_simple_ad_directory import create_test_directory, TEST_REGION
 
@@ -23,7 +23,7 @@ def test_ds_delete_directory():
     client = boto3.client("ds", region_name=TEST_REGION)
 
     # Delete a directory when there are none.
-    random_directory_id = f"d-{get_random_hex(10)}"
+    random_directory_id = f"d-{mock_random.get_random_hex(10)}"
     with pytest.raises(ClientError) as exc:
         client.delete_directory(DirectoryId=random_directory_id)
     err = exc.value.response["Error"]
@@ -47,7 +47,7 @@ def test_ds_delete_directory():
         assert "directory controllers" not in group["Description"]
 
     # Attempt to delete a non-existent directory.
-    nonexistent_id = f"d-{get_random_hex(10)}"
+    nonexistent_id = f"d-{mock_random.get_random_hex(10)}"
     with pytest.raises(ClientError) as exc:
         client.delete_directory(DirectoryId=nonexistent_id)
     err = exc.value.response["Error"]
@@ -55,7 +55,7 @@ def test_ds_delete_directory():
     assert f"Directory {nonexistent_id} does not exist" in err["Message"]
 
     # Attempt to use an invalid directory ID.
-    bad_id = get_random_hex(3)
+    bad_id = mock_random.get_random_hex(3)
     with pytest.raises(ClientError) as exc:
         client.delete_directory(DirectoryId=bad_id)
     err = exc.value.response["Error"]
@@ -136,7 +136,7 @@ def test_ds_describe_directories():
     assert result["DirectoryDescriptions"][0]["DirectoryId"] == directory_ids[5]
 
     # Test with a bad directory ID.
-    bad_id = get_random_hex(3)
+    bad_id = mock_random.get_random_hex(3)
     with pytest.raises(ClientError) as exc:
         client.describe_directories(DirectoryIds=[bad_id])
     err = exc.value.response["Error"]
@@ -177,7 +177,7 @@ def test_ds_create_alias():
     directory_id = create_test_directory(client, ec2_client)
 
     # Bad format.
-    bad_alias = f"d-{get_random_hex(10)}"
+    bad_alias = f"d-{mock_random.get_random_hex(10)}"
     with pytest.raises(ClientError) as exc:
         client.create_alias(DirectoryId=directory_id, Alias=bad_alias)
     err = exc.value.response["Error"]
@@ -189,7 +189,7 @@ def test_ds_create_alias():
     ) in err["Message"]
 
     # Too long.
-    bad_alias = f"d-{get_random_hex(62)}"
+    bad_alias = f"d-{mock_random.get_random_hex(62)}"
     with pytest.raises(ClientError) as exc:
         client.create_alias(DirectoryId=directory_id, Alias=bad_alias)
     err = exc.value.response["Error"]
@@ -200,7 +200,7 @@ def test_ds_create_alias():
     ) in err["Message"]
 
     # Just right.
-    good_alias = f"{get_random_hex(10)}"
+    good_alias = f"{mock_random.get_random_hex(10)}"
     result = client.create_alias(DirectoryId=directory_id, Alias=good_alias)
     assert result["DirectoryId"] == directory_id
     assert result["Alias"] == good_alias
@@ -210,7 +210,7 @@ def test_ds_create_alias():
     assert directory["AccessUrl"] == f"{good_alias}.awsapps.com"
 
     # Attempt to create another alias for the same directory.
-    another_good_alias = f"{get_random_hex(10)}"
+    another_good_alias = f"{mock_random.get_random_hex(10)}"
     with pytest.raises(ClientError) as exc:
         client.create_alias(DirectoryId=directory_id, Alias=another_good_alias)
     err = exc.value.response["Error"]
@@ -253,7 +253,7 @@ def test_ds_enable_sso():
 
     # Password must be less than 128 chars in length.
     good_username = "test"
-    bad_password = f"bad_password{get_random_hex(128)}"
+    bad_password = f"bad_password{mock_random.get_random_hex(128)}"
     with pytest.raises(ClientError) as exc:
         client.enable_sso(
             DirectoryId=directory_id, UserName=good_username, Password=bad_password
@@ -298,7 +298,7 @@ def test_ds_disable_sso():
 
     # Password must be less than 128 chars in length.
     good_username = "test"
-    bad_password = f"bad_password{get_random_hex(128)}"
+    bad_password = f"bad_password{mock_random.get_random_hex(128)}"
     with pytest.raises(ClientError) as exc:
         client.disable_sso(
             DirectoryId=directory_id, UserName=good_username, Password=bad_password

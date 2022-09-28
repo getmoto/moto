@@ -1,5 +1,5 @@
 import re
-import uuid
+from moto.moto_api._internal import mock_random
 
 E164_REGEX = re.compile(r"^\+?[1-9]\d{1,14}$")
 
@@ -9,7 +9,7 @@ def make_arn_for_topic(account_id, name, region_name):
 
 
 def make_arn_for_subscription(topic_arn):
-    subscription_id = uuid.uuid4()
+    subscription_id = mock_random.uuid4()
     return "{0}:{1}".format(topic_arn, subscription_id)
 
 
