@@ -3,8 +3,16 @@ import os
 import os.path
 from threading import Lock
 
-from flask import Flask
-from flask_cors import CORS
+try:
+    from flask import Flask
+    from flask_cors import CORS
+except ImportError:
+    import warnings
+
+    warnings.warn(
+        "When using MotoServer, ensure that you install moto[server] to have all dependencies!\n"
+    )
+    raise
 
 import moto.backends as backends
 import moto.backend_index as backend_index
