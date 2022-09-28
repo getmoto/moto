@@ -137,7 +137,7 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise TableNotFoundException(table_name)
 
-    def get_tables(self, database_name, expression=""):
+    def get_tables(self, database_name, expression):
         database = self.get_database(database_name)
         return [
             table
