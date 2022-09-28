@@ -1713,6 +1713,7 @@ def test_send_command():
     cmd["OutputS3KeyPrefix"].should.equal("pref")
 
     cmd["ExpiresAfter"].should.be.greater_than(before)
+    cmd["DeliveryTimedOutCount"].should.equal(0)
 
     # test sending a command without any optional parameters
     response = client.send_command(DocumentName=ssm_document)
@@ -1760,6 +1761,7 @@ def test_list_commands():
 
     for cmd in cmds:
         cmd["InstanceIds"].should.contain("i-123456")
+        cmd.should.have.key("DeliveryTimedOutCount").equals(0)
 
     # test the error case for an invalid command id
     with pytest.raises(ClientError):

@@ -635,6 +635,7 @@ class Command(BaseModel):
             "CommandId": self.command_id,
             "Comment": self.comment,
             "CompletedCount": self.completed_count,
+            "DeliveryTimedOutCount": 0,
             "DocumentName": self.document_name,
             "ErrorCount": self.error_count,
             "ExpiresAfter": self.expires_after,
