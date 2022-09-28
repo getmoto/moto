@@ -106,7 +106,8 @@ class GlueResponse(BaseResponse):
 
     def get_tables(self):
         database_name = self.parameters.get("DatabaseName")
-        tables = self.glue_backend.get_tables(database_name)
+        expression = self.parameters.get("Expression")
+        tables = self.glue_backend.get_tables(database_name, expression)
         return json.dumps({"TableList": [table.as_dict() for table in tables]})
 
     def delete_table(self):

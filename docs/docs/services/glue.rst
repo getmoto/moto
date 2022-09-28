@@ -25,11 +25,11 @@ glue
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] batch_create_partition
-- [ ] batch_delete_connection
-- [ ] batch_delete_partition
-- [ ] batch_delete_table
-- [ ] batch_delete_table_version
+- [X] batch_create_partition
+- [X] batch_delete_connection
+- [X] batch_delete_partition
+- [X] batch_delete_table
+- [X] batch_delete_table_version
 - [ ] batch_get_blueprints
 - [ ] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
