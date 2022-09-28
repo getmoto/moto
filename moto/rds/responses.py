@@ -176,7 +176,7 @@ class RDSResponse(BaseResponse):
     def create_db_instance_read_replica(self):
         db_kwargs = self._get_db_replica_kwargs()
 
-        database = self.backend.create_database_replica(db_kwargs)
+        database = self.backend.create_db_instance_read_replica(db_kwargs)
         template = self.response_template(CREATE_DATABASE_REPLICA_TEMPLATE)
         return template.render(database=database)
 

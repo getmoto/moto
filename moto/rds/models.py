@@ -644,7 +644,11 @@ class Database(CloudFormationModel):
         )
 
     def add_replica(self, replica):
-        self.replicas.append(replica.db_instance_identifier)
+        if self.region_name != replica.region_name:
+            # Cross Region replica
+            self.replicas.append(replica.db_instance_arn)
+        else:
+            self.replicas.append(replica.db_instance_identifier)
 
     def remove_replica(self, replica):
         self.replicas.remove(replica.db_instance_identifier)
@@ -772,7 +776,7 @@ class Database(CloudFormationModel):
         if source_db_identifier:
             # Replica
             db_kwargs["source_db_identifier"] = source_db_identifier
-            database = rds_backend.create_database_replica(db_kwargs)
+            database = rds_backend.create_db_instance_read_replica(db_kwargs)
         else:
             database = rds_backend.create_db_instance(db_kwargs)
         return database
@@ -1360,7 +1364,7 @@ class RDSBackend(BaseBackend):
 
         return self.database_snapshots.pop(db_snapshot_identifier)
 
-    def create_database_replica(self, db_kwargs):
+    def create_db_instance_read_replica(self, db_kwargs):
         database_id = db_kwargs["db_instance_identifier"]
         source_database_id = db_kwargs["source_db_identifier"]
         primary = self.find_db_from_id(source_database_id)
@@ -1370,6 +1374,7 @@ class RDSBackend(BaseBackend):
         # Shouldn't really copy here as the instance is duplicated. RDS replicas have different instances.
         replica = copy.copy(primary)
         replica.update(db_kwargs)
+        replica.region_name = self.region_name
         replica.set_as_replica()
         self.databases[database_id] = replica
         primary.add_replica(replica)
