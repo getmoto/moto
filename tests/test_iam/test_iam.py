@@ -2525,7 +2525,7 @@ def test_create_role_defaults():
 
     # Get role:
     role = conn.get_role(RoleName="my-role")["Role"]
-
+    assert role["RoleId"].startswith("AROA")
     assert role["MaxSessionDuration"] == 3600
     assert role.get("Description") is None
 
