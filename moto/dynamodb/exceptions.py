@@ -262,6 +262,13 @@ class InvalidAttributeTypeError(MockValidationException):
         super().__init__(self.msg.format(name, expected_type, actual_type))
 
 
+class DuplicateUpdateExpression(InvalidUpdateExpression):
+    def __init__(self, names):
+        super().__init__(
+            f"Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{names[0]}], path two: [{names[1]}]"
+        )
+
+
 class TooManyAddClauses(InvalidUpdateExpression):
     msg = 'The "ADD" section can only be used once in an update expression;'
 
