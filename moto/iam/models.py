@@ -49,6 +49,8 @@ from .utils import (
     random_alphanumeric,
     random_resource_id,
     random_policy_id,
+    random_role_id,
+    generate_access_key_id_from_account_id,
 )
 from ..utilities.tagging_service import TaggingService
 
@@ -983,9 +985,11 @@ class AccessKeyLastUsed:
 
 
 class AccessKey(CloudFormationModel):
-    def __init__(self, user_name, prefix, status="Active"):
+    def __init__(self, user_name, prefix, account_id, status="Active"):
         self.user_name = user_name
-        self.access_key_id = prefix + random_access_key()
+        self.access_key_id = generate_access_key_id_from_account_id(
+            account_id, prefix=prefix, total_length=20
+        )
         self.secret_access_key = random_alphanumeric(40)
         self.status = status
         self.create_date = datetime.utcnow()
@@ -1202,7 +1206,9 @@ class User(CloudFormationModel):
         del self.policies[policy_name]
 
     def create_access_key(self, prefix, status="Active") -> AccessKey:
-        access_key = AccessKey(self.name, prefix=prefix, status=status)
+        access_key = AccessKey(
+            self.name, prefix=prefix, status=status, account_id=self.account_id
+        )
         self.access_keys.append(access_key)
         return access_key
 
@@ -1865,7 +1871,7 @@ class IAMBackend(BaseBackend):
         max_session_duration,
         linked_service=None,
     ):
-        role_id = random_resource_id()
+        role_id = random_role_id(self.account_id)
         if permissions_boundary and not self.policy_arn_regex.match(
             permissions_boundary
         ):
@@ -2531,7 +2537,7 @@ class IAMBackend(BaseBackend):
 
     def create_temp_access_key(self):
         # Temporary access keys such as the ones returned by STS when assuming a role temporarily
-        key = AccessKey(user_name=None, prefix="ASIA")
+        key = AccessKey(user_name=None, prefix="ASIA", account_id=self.account_id)
 
         self.access_keys[key.physical_resource_id] = key
         return key

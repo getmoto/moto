@@ -7,8 +7,8 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.iam import iam_backends
 from moto.sts.utils import (
     random_session_token,
-    random_assumed_role_id,
     DEFAULT_STS_SESSION_DURATION,
+    random_assumed_role_id,
 )
 from typing import Mapping
 
@@ -47,7 +47,6 @@ class AssumedRole(BaseModel):
         self.access_key_id = access_key.access_key_id
         self.secret_access_key = access_key.secret_access_key
         self.session_token = random_session_token()
-        self.assumed_role_id = "AROA" + random_assumed_role_id()
 
     @property
     def expiration_ISO8601(self):
@@ -55,7 +54,12 @@ class AssumedRole(BaseModel):
 
     @property
     def user_id(self):
-        return self.assumed_role_id + ":" + self.session_name
+        iam_backend = iam_backends[self.account_id]["global"]
+        try:
+            role_id = iam_backend.get_role_by_arn(arn=self.role_arn).id
+        except Exception:
+            role_id = "AROA" + random_assumed_role_id()
+        return role_id + ":" + self.session_name
 
     @property
     def arn(self):
