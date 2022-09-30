@@ -3,7 +3,7 @@ from abc import abstractmethod
 from collections import deque
 
 from moto.dynamodb.models import DynamoType
-from ..exceptions import TooManyAddClauses
+from ..exceptions import DuplicateUpdateExpression, TooManyAddClauses
 
 
 class Node(metaclass=abc.ABCMeta):
@@ -26,6 +26,14 @@ class Node(metaclass=abc.ABCMeta):
             nr_of_clauses = len(self.find_clauses(UpdateExpressionAddClause))
             if nr_of_clauses > 1:
                 raise TooManyAddClauses()
+            set_actions = self.find_clauses(UpdateExpressionSetAction)
+            set_attributes = [
+                c.children[0].children[0].children[0] for c in set_actions
+            ]
+            # We currently only check for duplicates
+            # We should also check for partial duplicates, i.e. [attr, attr.sub] is also invalid
+            if len(set_attributes) != len(set(set_attributes)):
+                raise DuplicateUpdateExpression(set_attributes)
 
     def find_clauses(self, clause_type):
         clauses = []

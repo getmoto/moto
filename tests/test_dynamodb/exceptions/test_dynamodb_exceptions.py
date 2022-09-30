@@ -579,6 +579,45 @@ def test_update_item_non_existent_table():
 
 
 @mock_dynamodb
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "set example_column = :example_column, example_column = :example_column",
+        "set example_column = :example_column ADD x :y set example_column = :example_column",
+    ],
+)
+def test_update_item_with_duplicate_expressions(expression):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="example_table",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    record = {
+        "pk": "example_id",
+        "example_column": "example",
+    }
+    table = dynamodb.Table("example_table")
+    table.put_item(Item=record)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "example_id"},
+            UpdateExpression=expression,
+            ExpressionAttributeValues={":example_column": "test"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [example_column], path two: [example_column]"
+    )
+
+    # The item is not updated
+    item = table.get_item(Key={"pk": "example_id"})["Item"]
+    item.should.equal({"pk": "example_id", "example_column": "example"})
+
+
+@mock_dynamodb
 def test_put_item_wrong_datatype():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to mock a session with Config in ServerMode")
