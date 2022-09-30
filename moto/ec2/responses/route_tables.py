@@ -251,14 +251,16 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
             {% endfor %}
           </routeSet>
           <associationSet>
+            {% if route_table.main_association_id is not none %}
               <item>
-                <routeTableAssociationId>{{ route_table.main_association }}</routeTableAssociationId>
+                <routeTableAssociationId>{{ route_table.main_association_id }}</routeTableAssociationId>
                 <routeTableId>{{ route_table.id }}</routeTableId>
                 <main>true</main>
                 <associationState>
                   <state>associated</state>
                 </associationState>
               </item>
+            {% endif %}
             {% for association_id,subnet_id in route_table.associations.items() %}
               <item>
                 <routeTableAssociationId>{{ association_id }}</routeTableAssociationId>
@@ -324,5 +326,8 @@ REPLACE_ROUTE_TABLE_ASSOCIATION_RESPONSE = """
 <ReplaceRouteTableAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <newAssociationId>{{ association_id }}</newAssociationId>
+   <associationState>
+     <state>associated</state>
+   </associationState>
 </ReplaceRouteTableAssociationResponse>
 """
