@@ -251,7 +251,7 @@ def test_describe_vpc_default_endpoint_services():
     )
     details = config_service["ServiceDetails"][0]
     assert details["AcceptanceRequired"] is False
-    assert details["AvailabilityZones"] == ["us-west-1a", "us-west-1b"]
+    assert details["AvailabilityZones"] == ["us-west-1b", "us-west-1c"]
     assert details["BaseEndpointDnsNames"] == ["config.us-west-1.vpce.amazonaws.com"]
     assert details["ManagesVpcEndpoints"] is False
     assert details["Owner"] == "amazon"
