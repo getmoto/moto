@@ -238,8 +238,8 @@ class RegionsAndZonesBackend:
             Zone(region_name="us-east-2", name="us-east-2c", zone_id="use2-az3"),
         ],
         "us-west-1": [
-            Zone(region_name="us-west-1", name="us-west-1a", zone_id="usw1-az3"),
-            Zone(region_name="us-west-1", name="us-west-1b", zone_id="usw1-az1"),
+            Zone(region_name="us-west-1", name="us-west-1b", zone_id="usw1-az3"),
+            Zone(region_name="us-west-1", name="us-west-1c", zone_id="usw1-az1"),
         ],
         "us-west-2": [
             Zone(region_name="us-west-2", name="us-west-2a", zone_id="usw2-az2"),
