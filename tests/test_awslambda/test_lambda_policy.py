@@ -41,6 +41,45 @@ def test_add_function_permission(key):
     assert "Statement" in response
     res = json.loads(response["Statement"])
     assert res["Action"] == "lambda:InvokeFunction"
+    res["Condition"].should.equal(
+        {
+            "ArnLike": {
+                "AWS:SourceArn": "arn:aws:lambda:us-west-2:account-id:function:helloworld"
+            }
+        }
+    )
+
+
+@mock_lambda
+def test_add_permission_with_principalorgid():
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    fn_arn = conn.create_function(
+        FunctionName=function_name,
+        Runtime="python2.7",
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile": zip_content},
+    )["FunctionArn"]
+
+    source_arn = "arn:aws:lambda:us-west-2:account-id:function:helloworld"
+    response = conn.add_permission(
+        FunctionName=fn_arn,
+        StatementId="1",
+        Action="lambda:InvokeFunction",
+        Principal="432143214321",
+        PrincipalOrgID="o-a1b2c3d4e5",
+        SourceArn=source_arn,
+    )
+    assert "Statement" in response
+    res = json.loads(response["Statement"])
+
+    res["Condition"].should.have.key("StringEquals").equals(
+        {"aws:PrincipalOrgID": "o-a1b2c3d4e5"}
+    )
+    res["Condition"].should.have.key("ArnLike").equals({"AWS:SourceArn": source_arn})
+    res.shouldnt.have.key("PrincipalOrgID")
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
