@@ -207,8 +207,8 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(path.split("/")[-2])
         qualifier = self.querystring.get("Qualifier", [None])[0]
         statement = self.body
-        self.backend.add_permission(function_name, qualifier, statement)
-        return 200, {}, json.dumps({"Statement": statement})
+        statement = self.backend.add_permission(function_name, qualifier, statement)
+        return 200, {}, json.dumps({"Statement": json.dumps(statement)})
 
     def _get_policy(self, request):
         path = request.path if hasattr(request, "path") else path_url(request.url)
