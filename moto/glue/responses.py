@@ -1,11 +1,6 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .exceptions import (
-    PartitionAlreadyExistsException,
-    PartitionNotFoundException,
-    TableNotFoundException,
-)
 from .models import glue_backends
 
 
@@ -119,20 +114,8 @@ class GlueResponse(BaseResponse):
     def batch_delete_table(self):
         database_name = self.parameters.get("DatabaseName")
 
-        errors = []
-        for table_name in self.parameters.get("TablesToDelete"):
-            try:
-                self.glue_backend.delete_table(database_name, table_name)
-            except TableNotFoundException:
-                errors.append(
-                    {
-                        "TableName": table_name,
-                        "ErrorDetail": {
-                            "ErrorCode": "EntityNotFoundException",
-                            "ErrorMessage": "Table not found",
-                        },
-                    }
-                )
+        tables = self.parameters.get("TablesToDelete")
+        errors = self.glue_backend.batch_delete_table(database_name, tables)
 
         out = {}
         if errors:
@@ -166,15 +149,9 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         partitions_to_get = self.parameters.get("PartitionsToGet")
 
-        table = self.glue_backend.get_table(database_name, table_name)
-
-        partitions = []
-        for values in partitions_to_get:
-            try:
-                p = table.get_partition(values=values["Values"])
-                partitions.append(p.as_dict())
-            except PartitionNotFoundException:
-                continue
+        partitions = self.glue_backend.batch_get_partition(
+            database_name, table_name, partitions_to_get
+        )
 
         return json.dumps({"Partitions": partitions})
 
@@ -191,22 +168,10 @@ class GlueResponse(BaseResponse):
     def batch_create_partition(self):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
-        table = self.glue_backend.get_table(database_name, table_name)
-
-        errors_output = []
-        for part_input in self.parameters.get("PartitionInputList"):
-            try:
-                table.create_partition(part_input)
-            except PartitionAlreadyExistsException:
-                errors_output.append(
-                    {
-                        "PartitionValues": part_input["Values"],
-                        "ErrorDetail": {
-                            "ErrorCode": "AlreadyExistsException",
-                            "ErrorMessage": "Partition already exists.",
-                        },
-                    }
-                )
+        partition_input = self.parameters.get("PartitionInputList")
+        errors_output = self.glue_backend.batch_create_partition(
+            database_name, table_name, partition_input
+        )
 
         out = {}
         if errors_output:
@@ -228,25 +193,11 @@ class GlueResponse(BaseResponse):
     def batch_update_partition(self):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
-        table = self.glue_backend.get_table(database_name, table_name)
+        entries = self.parameters.get("Entries")
 
-        errors_output = []
-        for entry in self.parameters.get("Entries"):
-            part_to_update = entry["PartitionValueList"]
-            part_input = entry["PartitionInput"]
-
-            try:
-                table.update_partition(part_to_update, part_input)
-            except PartitionNotFoundException:
-                errors_output.append(
-                    {
-                        "PartitionValueList": part_to_update,
-                        "ErrorDetail": {
-                            "ErrorCode": "EntityNotFoundException",
-                            "ErrorMessage": "Partition not found.",
-                        },
-                    }
-                )
+        errors_output = self.glue_backend.batch_update_partition(
+            database_name, table_name, entries
+        )
 
         out = {}
         if errors_output:
@@ -267,23 +218,11 @@ class GlueResponse(BaseResponse):
     def batch_delete_partition(self):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
-        table = self.glue_backend.get_table(database_name, table_name)
+        parts = self.parameters.get("PartitionsToDelete")
 
-        errors_output = []
-        for part_input in self.parameters.get("PartitionsToDelete"):
-            values = part_input.get("Values")
-            try:
-                table.delete_partition(values)
-            except PartitionNotFoundException:
-                errors_output.append(
-                    {
-                        "PartitionValues": values,
-                        "ErrorDetail": {
-                            "ErrorCode": "EntityNotFoundException",
-                            "ErrorMessage": "Partition not found",
-                        },
-                    }
-                )
+        errors_output = self.glue_backend.batch_delete_partition(
+            database_name, table_name, parts
+        )
 
         out = {}
         if errors_output:

@@ -1,6 +1,27 @@
 Moto Changelog
 ==============
 
+4.0.6
+-----
+Docker Digest for 4.0.6: <autopopulateddigest>
+
+    General:
+        * Moto can now be seeded, which will make identifiers deterministic.
+          See http://docs.getmoto.org/en/latest/docs/configuration/recorder/index.html
+        * The format for access-key and role ids has been changed, and is now generated using the same algorithm that AWS uses
+
+    Miscellaneous:
+        * AWSLambda:add_permission() now properly handles the PrincipalOrgID-param
+        * DynamoDB:update_item() now validates duplicate UpdateExpressions
+        * EC2 now returns consistent availability zones for us-west-1 (us-west-1b and us-west-1c)
+        * EC2 has various improvements around the handling of RouteTableAssociations
+        * Glue:get_tables() now supports the Expression-parameter
+        * Organizations:create_organization() now uses a default value for FeatureSet=ALL
+        * RDS:describe_db_subnet_groups() now returns the DBSubnetGroupArn-attribute
+        * S3:upload_file() now supports the ExtraArgs: ChecksumAlgorithm-parameter
+        * SSM:list_commands() now returns the DeliveryTimedOutCount-attribute
+
+
 4.0.5
 -----
 Docker Digest for 4.0.5: _sha256:d18f760f3498b212b0c8c205c9c28c2b41e8c7a108f44e1bd1d7ee86dfc37c03_
