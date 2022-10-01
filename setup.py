@@ -142,7 +142,7 @@ setup(
     install_requires=install_requires,
     extras_require=extras_require,
     include_package_data=True,
-    license="Apache",
+    license="Apache License 2.0",
     test_suite="tests",
     classifiers=[
         "Programming Language :: Python :: 3",
