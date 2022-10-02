@@ -2878,20 +2878,20 @@
 <summary>20% implemented</summary>
 
 - [X] batch_create_partition
-- [X] batch_delete_connection
+- [ ] batch_delete_connection
 - [X] batch_delete_partition
 - [X] batch_delete_table
-- [X] batch_delete_table_version
+- [ ] batch_delete_table_version
 - [ ] batch_get_blueprints
 - [ ] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
 - [ ] batch_get_dev_endpoints
 - [ ] batch_get_jobs
-- [ ] batch_get_partition
+- [X] batch_get_partition
 - [ ] batch_get_triggers
 - [ ] batch_get_workflows
 - [ ] batch_stop_job_run
-- [ ] batch_update_partition
+- [X] batch_update_partition
 - [ ] cancel_ml_task_run
 - [ ] cancel_statement
 - [ ] check_schema_version_validity
@@ -4625,7 +4625,7 @@
 
 ## rds
 <details>
-<summary>28% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -4646,7 +4646,7 @@
 - [ ] create_db_cluster_parameter_group
 - [X] create_db_cluster_snapshot
 - [X] create_db_instance
-- [ ] create_db_instance_read_replica
+- [X] create_db_instance_read_replica
 - [X] create_db_parameter_group
 - [ ] create_db_proxy
 - [ ] create_db_proxy_endpoint

@@ -44,7 +44,7 @@ rds
 - [ ] create_db_cluster_parameter_group
 - [X] create_db_cluster_snapshot
 - [X] create_db_instance
-- [ ] create_db_instance_read_replica
+- [X] create_db_instance_read_replica
 - [X] create_db_parameter_group
 - [ ] create_db_proxy
 - [ ] create_db_proxy_endpoint
