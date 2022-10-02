@@ -13,7 +13,7 @@ Docker Digest for 4.0.6: <autopopulateddigest>
     Miscellaneous:
         * AWSLambda:add_permission() now properly handles the PrincipalOrgID-param
         * DynamoDB:update_item() now validates duplicate UpdateExpressions
-        * EC2 now returns consistent availability zones for us-west-1 (us-west-1b and us-west-1c)
+        * EC2 now exposes instance types in the correct availability zones for us-west-1 (us-west-1a and us-west-1b)
         * EC2 has various improvements around the handling of RouteTableAssociations
         * Glue:get_tables() now supports the Expression-parameter
         * Organizations:create_organization() now uses a default value for FeatureSet=ALL
