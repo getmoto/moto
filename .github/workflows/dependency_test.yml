@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 0 * * *'  # every day at midnight
 
+permissions:  # added using https://github.com/step-security/secure-workflows
+  contents: read
+
 jobs:
   runtest:
     name: Run Dependency Test
@@ -14,10 +17,15 @@ jobs:
         python-version: [ 3.8 ]
 
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
+      with:
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
     - name: Checkout repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Run test
@@ -28,7 +36,7 @@ jobs:
         scripts/dependency_test.sh
     - name: Archive logs
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
         name: buildfolder-${{ matrix.python-version }}
         path: |
