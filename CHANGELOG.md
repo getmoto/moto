@@ -3,7 +3,7 @@ Moto Changelog
 
 4.0.6
 -----
-Docker Digest for 4.0.6: <autopopulateddigest>
+Docker Digest for 4.0.6: _sha256:01582a705be7c50bc15993acc2271cd190db9c08c5fc09d85c59c8ddae6bb260_
 
     General:
         * Moto can now be seeded, which will make identifiers deterministic.
