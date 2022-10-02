@@ -11,9 +11,14 @@ jobs:
         python-version: [ 3.6, 3.7, 3.8, 3.9, "3.10" ]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Harden Runner
+        uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get pip cache dir
@@ -22,7 +27,7 @@ jobs:
           echo "::set-output name=dir::$(pip cache dir)"
       - name: pip cache
         id: pip-cache
-        uses: actions/cache@v3
+        uses: actions/cache@ac8075791e805656e71b4ba23325ace9e3421120
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
@@ -43,9 +48,14 @@ jobs:
       matrix:
         python-version: [3.7]
     steps:
-    - uses: actions/checkout@v3
+    - name: Harden Runner
+      uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
+      with:
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5
       with:
         python-version: ${{ matrix.python-version }}
     # Retrieve the previously cached dependencies
@@ -54,7 +64,7 @@ jobs:
       run: |
         echo "::set-output name=dir::$(pip cache dir)"
     - name: pip cache
-      uses: actions/cache@v3
+      uses: actions/cache@ac8075791e805656e71b4ba23325ace9e3421120
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
@@ -80,11 +90,16 @@ jobs:
         python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Harden Runner
+      uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
+      with:
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Get pip cache dir
@@ -92,7 +107,7 @@ jobs:
       run: |
         echo "::set-output name=dir::$(pip cache dir)"
     - name: pip cache
-      uses: actions/cache@v3
+      uses: actions/cache@ac8075791e805656e71b4ba23325ace9e3421120
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
@@ -111,7 +126,7 @@ jobs:
         make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@29386c70ef20e286228c72b668a06fd0e8399192
       with:
         fail_ci_if_error: false
         flags: unittests
@@ -126,11 +141,16 @@ jobs:
         python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Harden Runner
+      uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
+      with:
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Start MotoServer
@@ -143,7 +163,7 @@ jobs:
       run: |
         echo "::set-output name=dir::$(pip cache dir)"
     - name: pip cache
-      uses: actions/cache@v3
+      uses: actions/cache@ac8075791e805656e71b4ba23325ace9e3421120
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
@@ -161,7 +181,7 @@ jobs:
         make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@29386c70ef20e286228c72b668a06fd0e8399192
       with:
         fail_ci_if_error: false
         flags: servertests
@@ -175,7 +195,7 @@ jobs:
         docker stop motoserver
     - name: Archive TF logs
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
         name: motoserver-${{ matrix.python-version }}
         path: |
@@ -190,11 +210,16 @@ jobs:
       matrix:
         python-version: [3.8]
     steps:
-      - uses: actions/checkout@v3
+      - name: Harden Runner
+        uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
         with:
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Update & Build
@@ -203,7 +228,7 @@ jobs:
           python update_version_from_git.py
           python setup.py sdist bdist_wheel
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@37f50c210e3d2f9450da2cd423303d6a14a6e29f
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Build Docker release
@@ -212,14 +237,14 @@ jobs:
       # Required to get the correct Digest
       # See https://github.com/docker/build-push-action/issues/461
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@dc7b9719a96d48369863986a06765841d7ea23f6
       - name: Login to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@ac9327eae2b366085ac7f6a2d02df8aa8ead720a
         with:
           push: true
           tags: motoserver/moto:latest
@@ -227,7 +252,7 @@ jobs:
         run: |
           version=$(grep -oP '(?<=__version__ = ")[0-9.a-z]+(?=")' moto/__init__.py)
           echo "moto_version=$version" >> $GITHUB_ENV
-      - uses: octokit/graphql-action@v2.x
+      - uses: octokit/graphql-action@ce518c60b399c6560174f3089b46566932f76e3f
         name: Get PR info
         id: get_pr
         with:
@@ -271,7 +296,7 @@ jobs:
             echo "pr_found=true" >> $GITHUB_ENV
           fi
       - name: Leave PR comment with Moto version
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@a35cf36e5301d70b76f316e867e7788a55a31dae
         if: env.pr_found == 'true' && env.pr_repo == 'spulec/moto'
         with:
           issue-number: ${{ env.pr_nr }}
