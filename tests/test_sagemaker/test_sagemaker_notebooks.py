@@ -26,9 +26,10 @@ FAKE_NAME_PARAM = "MyNotebookInstance"
 FAKE_INSTANCE_TYPE_PARAM = "ml.t2.medium"
 
 
-@pytest.fixture
-def sagemaker_client():
-    return boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+@pytest.fixture(name="sagemaker_client")
+def fixture_sagemaker_client():
+    with mock_sagemaker():
+        yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
 def _get_notebook_instance_arn(notebook_name):
@@ -39,7 +40,6 @@ def _get_notebook_instance_lifecycle_arn(lifecycle_name):
     return f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:notebook-instance-lifecycle-configuration/{lifecycle_name}"
 
 
-@mock_sagemaker
 def test_create_notebook_instance_minimal_params(sagemaker_client):
     args = {
         "NotebookInstanceName": FAKE_NAME_PARAM,
@@ -68,7 +68,6 @@ def test_create_notebook_instance_minimal_params(sagemaker_client):
 #    assert resp["RootAccess"] == True     # ToDo: Not sure if this defaults...
 
 
-@mock_sagemaker
 def test_create_notebook_instance_params(sagemaker_client):
     fake_direct_internet_access_param = "Enabled"
     volume_size_in_gb_param = 7
@@ -121,7 +120,6 @@ def test_create_notebook_instance_params(sagemaker_client):
     assert resp["Tags"] == GENERIC_TAGS_PARAM
 
 
-@mock_sagemaker
 def test_create_notebook_instance_invalid_instance_type(sagemaker_client):
     instance_type = "undefined_instance_type"
     args = {
@@ -139,7 +137,6 @@ def test_create_notebook_instance_invalid_instance_type(sagemaker_client):
     assert expected_message in ex.value.response["Error"]["Message"]
 
 
-@mock_sagemaker
 def test_notebook_instance_lifecycle(sagemaker_client):
     args = {
         "NotebookInstanceName": FAKE_NAME_PARAM,
@@ -193,14 +190,12 @@ def test_notebook_instance_lifecycle(sagemaker_client):
     assert ex.value.response["Error"]["Message"] == "RecordNotFound"
 
 
-@mock_sagemaker
 def test_describe_nonexistent_model(sagemaker_client):
     with pytest.raises(ClientError) as e:
         sagemaker_client.describe_model(ModelName="Nonexistent")
     assert e.value.response["Error"]["Message"].startswith("Could not find model")
 
 
-@mock_sagemaker
 def test_notebook_instance_lifecycle_config(sagemaker_client):
     name = "MyLifeCycleConfig"
     on_create = [{"Content": "Create Script Line 1"}]
@@ -252,7 +247,6 @@ def test_notebook_instance_lifecycle_config(sagemaker_client):
     )
 
 
-@mock_sagemaker
 def test_add_tags_to_notebook(sagemaker_client):
     args = {
         "NotebookInstanceName": FAKE_NAME_PARAM,
@@ -272,7 +266,6 @@ def test_add_tags_to_notebook(sagemaker_client):
     assert response["Tags"] == tags
 
 
-@mock_sagemaker
 def test_delete_tags_from_notebook(sagemaker_client):
     args = {
         "NotebookInstanceName": FAKE_NAME_PARAM,

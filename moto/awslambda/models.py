@@ -157,11 +157,11 @@ class _DockerDataVolumeContext:
                     raise  # multiple processes trying to use same volume?
 
 
-def _zipfile_content(zipfile):
+def _zipfile_content(zipfile_content):
     try:
-        to_unzip_code = base64.b64decode(bytes(zipfile, "utf-8"))
+        to_unzip_code = base64.b64decode(bytes(zipfile_content, "utf-8"))
     except Exception:
-        to_unzip_code = base64.b64decode(zipfile)
+        to_unzip_code = base64.b64decode(zipfile_content)
 
     sha_code = hashlib.sha256(to_unzip_code)
     base64ed_sha = base64.b64encode(sha_code.digest()).decode("utf-8")

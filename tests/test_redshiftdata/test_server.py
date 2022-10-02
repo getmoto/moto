@@ -18,8 +18,8 @@ def headers(action):
     }
 
 
-@pytest.fixture(autouse=True)
-def client():
+@pytest.fixture(autouse=True, name="client")
+def fixture_client():
     backend = server.create_backend_app("redshift-data")
     yield backend.test_client()
 

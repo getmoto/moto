@@ -12,9 +12,10 @@ FAKE_CONTAINER = "382416733822.dkr.ecr.us-east-1.amazonaws.com/linear-learner:1"
 TEST_REGION_NAME = "us-east-1"
 
 
-@pytest.fixture
-def sagemaker_client():
-    return boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+@pytest.fixture(name="sagemaker_client")
+def fixture_sagemaker_client():
+    with mock_sagemaker():
+        yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
 class MyProcessingJobModel(object):
@@ -103,7 +104,6 @@ class MyProcessingJobModel(object):
         return sagemaker_client.create_processing_job(**params)
 
 
-@mock_sagemaker
 def test_create_processing_job(sagemaker_client):
     bucket = "my-bucket"
     prefix = "my-prefix"
@@ -150,7 +150,6 @@ def test_create_processing_job(sagemaker_client):
     assert isinstance(resp["LastModifiedTime"], datetime.datetime)
 
 
-@mock_sagemaker
 def test_list_processing_jobs(sagemaker_client):
     test_processing_job = MyProcessingJobModel(
         processing_job_name=FAKE_PROCESSING_JOB_NAME, role_arn=FAKE_ROLE_ARN
@@ -170,7 +169,6 @@ def test_list_processing_jobs(sagemaker_client):
     assert processing_jobs.get("NextToken") is None
 
 
-@mock_sagemaker
 def test_list_processing_jobs_multiple(sagemaker_client):
     name_job_1 = "blah"
     arn_job_1 = "arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar"
@@ -193,13 +191,11 @@ def test_list_processing_jobs_multiple(sagemaker_client):
     assert processing_jobs.get("NextToken").should.be.none
 
 
-@mock_sagemaker
 def test_list_processing_jobs_none(sagemaker_client):
     processing_jobs = sagemaker_client.list_processing_jobs()
     assert len(processing_jobs["ProcessingJobSummaries"]).should.equal(0)
 
 
-@mock_sagemaker
 def test_list_processing_jobs_should_validate_input(sagemaker_client):
     junk_status_equals = "blah"
     with pytest.raises(ClientError) as ex:
@@ -218,7 +214,6 @@ def test_list_processing_jobs_should_validate_input(sagemaker_client):
     )
 
 
-@mock_sagemaker
 def test_list_processing_jobs_with_name_filters(sagemaker_client):
     for i in range(5):
         name = "xgboost-{}".format(i)
@@ -243,7 +238,6 @@ def test_list_processing_jobs_with_name_filters(sagemaker_client):
     assert len(processing_jobs_with_2["ProcessingJobSummaries"]).should.equal(2)
 
 
-@mock_sagemaker
 def test_list_processing_jobs_paginated(sagemaker_client):
     for i in range(5):
         name = "xgboost-{}".format(i)
@@ -273,7 +267,6 @@ def test_list_processing_jobs_paginated(sagemaker_client):
     assert xgboost_processing_job_next.get("NextToken").should_not.be.none
 
 
-@mock_sagemaker
 def test_list_processing_jobs_paginated_with_target_in_middle(sagemaker_client):
     for i in range(5):
         name = "xgboost-{}".format(i)
@@ -316,7 +309,6 @@ def test_list_processing_jobs_paginated_with_target_in_middle(sagemaker_client):
     assert vgg_processing_job_10.get("NextToken").should.be.none
 
 
-@mock_sagemaker
 def test_list_processing_jobs_paginated_with_fragmented_targets(sagemaker_client):
     for i in range(5):
         name = "xgboost-{}".format(i)
@@ -357,7 +349,6 @@ def test_list_processing_jobs_paginated_with_fragmented_targets(sagemaker_client
     assert processing_jobs_with_2_next_next.get("NextToken").should.be.none
 
 
-@mock_sagemaker
 def test_add_and_delete_tags_in_training_job(sagemaker_client):
     processing_job_name = "MyProcessingJob"
     role_arn = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)

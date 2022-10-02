@@ -1,23 +1,7 @@
-import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_efs
-
-
-@pytest.fixture(scope="function")
-def aws_credentials(monkeypatch):
-    """Mocked AWS Credentials for moto."""
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
-    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
-    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
-
-
-@pytest.fixture(scope="function")
-def efs(aws_credentials):  # pylint: disable=unused-argument
-    with mock_efs():
-        yield boto3.client("efs", region_name="us-east-1")
+from . import fixture_efs  # noqa # pylint: disable=unused-import
 
 
 def test_describe_filesystem_config__unknown(efs):

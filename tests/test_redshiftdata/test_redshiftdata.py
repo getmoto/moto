@@ -13,8 +13,8 @@ INVALID_ID_ERROR_MESSAGE = (
 RESOURCE_NOT_FOUND_ERROR_MESSAGE = "Query does not exist."
 
 
-@pytest.fixture(autouse=True)
-def client():
+@pytest.fixture(autouse=True, name="client")
+def fixture_client():
     yield boto3.client("redshift-data", region_name=REGION)
 
 

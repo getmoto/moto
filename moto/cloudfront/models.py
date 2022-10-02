@@ -292,23 +292,23 @@ class CloudFrontBackend(BaseBackend):
                 return dist
         return False
 
-    def update_distribution(self, DistributionConfig, Id, IfMatch):
+    def update_distribution(self, dist_config, _id, if_match):
         """
         The IfMatch-value is ignored - any value is considered valid.
         Calling this function without a value is invalid, per AWS' behaviour
         """
-        if Id not in self.distributions or Id is None:
+        if _id not in self.distributions or _id is None:
             raise NoSuchDistribution
-        if not IfMatch:
+        if not if_match:
             raise InvalidIfMatchVersion
-        if not DistributionConfig:
+        if not dist_config:
             raise NoSuchDistribution
-        dist = self.distributions[Id]
+        dist = self.distributions[_id]
 
-        aliases = DistributionConfig["Aliases"]["Items"]["CNAME"]
-        dist.distribution_config.config = DistributionConfig
+        aliases = dist_config["Aliases"]["Items"]["CNAME"]
+        dist.distribution_config.config = dist_config
         dist.distribution_config.aliases = aliases
-        self.distributions[Id] = dist
+        self.distributions[_id] = dist
         dist.advance()
         return dist, dist.location, dist.etag
 

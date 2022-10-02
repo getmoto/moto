@@ -610,10 +610,8 @@ def test_put_remove_auto_scaling_policy():
     ("AutoScalingPolicy" not in core_instance_group).should.equal(True)
 
 
-def _patch_cluster_id_placeholder_in_autoscaling_policy(
-    auto_scaling_policy, cluster_id
-):
-    policy_copy = deepcopy(auto_scaling_policy)
+def _patch_cluster_id_placeholder_in_autoscaling_policy(policy, cluster_id):
+    policy_copy = deepcopy(policy)
     for rule in policy_copy["Rules"]:
         for dimension in rule["Trigger"]["CloudWatchAlarmDefinition"]["Dimensions"]:
             dimension["Value"] = cluster_id

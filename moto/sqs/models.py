@@ -141,10 +141,10 @@ class Message(BaseModel):
             )
 
     @staticmethod
-    def utf8(string):
-        if isinstance(string, str):
-            return string.encode("utf-8")
-        return string
+    def utf8(value):
+        if isinstance(value, str):
+            return value.encode("utf-8")
+        return value
 
     @property
     def body(self):

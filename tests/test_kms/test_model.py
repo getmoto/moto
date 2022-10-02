@@ -6,13 +6,13 @@ PLAINTEXT = b"text"
 REGION = "us-east-1"
 
 
-@pytest.fixture
-def backend():
+@pytest.fixture(name="backend")
+def fixture_backend():
     return KmsBackend(REGION)
 
 
-@pytest.fixture
-def key(backend):
+@pytest.fixture(name="key")
+def fixture_key(backend):
     return backend.create_key(
         None, "ENCRYPT_DECRYPT", "SYMMETRIC_DEFAULT", "Test key", None
     )
