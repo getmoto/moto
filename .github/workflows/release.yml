@@ -7,21 +7,31 @@ on:
         description: 'Version'
         required: true
 
+permissions:  # added using https://github.com/step-security/secure-workflows
+  contents: read
+
 jobs:
   release-moto-job:
+    permissions:
+      contents: write  # for Git to git push
     runs-on: ubuntu-latest
     name: Release Moto
     env:
       VERSION: 0.0.0
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
+      with:
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
     - name: Set Env
       run: |
         echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       with:
         fetch-depth: 0
     - name: Set up Python 3.8
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5
       with:
         python-version: 3.8
     - name: Install dependencies
@@ -39,7 +49,7 @@ jobs:
     - name: Build
       run: python setup.py sdist bdist_wheel
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+      uses: pypa/gh-action-pypi-publish@37f50c210e3d2f9450da2cd423303d6a14a6e29f
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
     - name: Tag version on Github
@@ -52,15 +62,15 @@ jobs:
     # Required to get the correct Digest
     # See https://github.com/docker/build-push-action/issues/461
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@dc7b9719a96d48369863986a06765841d7ea23f6
     - name: Login to DockerHub
-      uses: docker/login-action@v2
+      uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - id: build_and_push
       name: Build and push
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@ac9327eae2b366085ac7f6a2d02df8aa8ead720a
       with:
         push: true
         tags: motoserver/moto:${{ env.VERSION }}
