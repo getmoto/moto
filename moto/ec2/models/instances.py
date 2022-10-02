@@ -96,7 +96,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.user_data = user_data
         self.security_groups = security_groups
         self.instance_type = kwargs.get("instance_type", "m1.small")
-        self.region_name = kwargs.get("region_name", ec2_backend.region_name)
+        self.region_name = kwargs.get("region_name", "us-east-1")
         placement = kwargs.get("placement", None)
         self.subnet_id = kwargs.get("subnet_id")
         if not self.subnet_id:
@@ -157,7 +157,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         elif placement:
             self._placement.zone = placement
         else:
-            self._placement.zone = ec2_backend.zones[self.region_name][0].name
+            self._placement.zone = ec2_backend.region_name + "a"
 
         self.block_device_mapping = BlockDeviceMapping()
 

@@ -416,7 +416,7 @@ def test_autoscaling_group_update():
             "my-as-group": {
                 "Type": "AWS::AutoScaling::AutoScalingGroup",
                 "Properties": {
-                    "AvailabilityZones": ["us-west-1b"],
+                    "AvailabilityZones": ["us-west-1a"],
                     "LaunchConfigurationName": {"Ref": "my-launch-config"},
                     "MinSize": "2",
                     "MaxSize": "2",
