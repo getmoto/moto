@@ -56,6 +56,21 @@ def main():
                 for i in instances:
                     del i["LocationType"]  # This can be reproduced, no need to persist it
                 instances = sorted(instances, key=lambda i: (i['Location'], i["InstanceType"]))
+
+                # Ensure we use the correct US-west availability zones
+                # There are only two - for some accounts they are called us-west-1b and us-west-1c
+                # As our EC2-module assumes us-west-1a and us-west-1b, we may have to rename the zones coming from AWS
+                # https://github.com/spulec/moto/issues/5494
+                if region == "us-west-1" and location_type == "availability-zone":
+                    zones = set([i["Location"] for i in instances])
+                    if zones == {"us-west-1b", "us-west-1c"}:
+                        for i in instances:
+                            if i["Location"] == "us-west-1b":
+                                i["Location"] = "us-west-1a"
+                        for i in instances:
+                            if i["Location"] == "us-west-1c":
+                                i["Location"] = "us-west-1b"
+
                 print("Writing data to {0}".format(dest))
                 with open(dest, "w+") as open_file:
                     json.dump(instances, open_file, indent=1)
