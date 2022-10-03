@@ -333,7 +333,7 @@ class Task(BaseObject):
 
             self.network_configuration = networking_configuration
             net_conf = networking_configuration["awsvpcConfiguration"]
-            ec2_backend = ec2_backends["123456789012"]["us-east-1"]
+            ec2_backend = ec2_backends[self._account_id][self.region_name]
 
             eni = ec2_backend.create_network_interface(
                 subnet=net_conf["subnets"][0],
@@ -346,7 +346,7 @@ class Task(BaseObject):
 
             self.attachments.append(
                 {
-                    "id": str(uuid.uuid4()),
+                    "id": str(mock_random.uuid4()),
                     "type": "ElasticNetworkInterface",
                     "status": "ATTACHED",
                     "details": [
