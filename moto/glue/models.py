@@ -605,6 +605,96 @@ class GlueBackend(BaseBackend):
 
         return response
 
+    def batch_delete_table(self, database_name, tables):
+        errors = []
+        for table_name in tables:
+            try:
+                self.delete_table(database_name, table_name)
+            except TableNotFoundException:
+                errors.append(
+                    {
+                        "TableName": table_name,
+                        "ErrorDetail": {
+                            "ErrorCode": "EntityNotFoundException",
+                            "ErrorMessage": "Table not found",
+                        },
+                    }
+                )
+        return errors
+
+    def batch_get_partition(self, database_name, table_name, partitions_to_get):
+        table = self.get_table(database_name, table_name)
+
+        partitions = []
+        for values in partitions_to_get:
+            try:
+                p = table.get_partition(values=values["Values"])
+                partitions.append(p.as_dict())
+            except PartitionNotFoundException:
+                continue
+        return partitions
+
+    def batch_create_partition(self, database_name, table_name, partition_input):
+        table = self.get_table(database_name, table_name)
+
+        errors_output = []
+        for part_input in partition_input:
+            try:
+                table.create_partition(part_input)
+            except PartitionAlreadyExistsException:
+                errors_output.append(
+                    {
+                        "PartitionValues": part_input["Values"],
+                        "ErrorDetail": {
+                            "ErrorCode": "AlreadyExistsException",
+                            "ErrorMessage": "Partition already exists.",
+                        },
+                    }
+                )
+        return errors_output
+
+    def batch_update_partition(self, database_name, table_name, entries):
+        table = self.get_table(database_name, table_name)
+
+        errors_output = []
+        for entry in entries:
+            part_to_update = entry["PartitionValueList"]
+            part_input = entry["PartitionInput"]
+
+            try:
+                table.update_partition(part_to_update, part_input)
+            except PartitionNotFoundException:
+                errors_output.append(
+                    {
+                        "PartitionValueList": part_to_update,
+                        "ErrorDetail": {
+                            "ErrorCode": "EntityNotFoundException",
+                            "ErrorMessage": "Partition not found.",
+                        },
+                    }
+                )
+        return errors_output
+
+    def batch_delete_partition(self, database_name, table_name, parts):
+        table = self.get_table(database_name, table_name)
+
+        errors_output = []
+        for part_input in parts:
+            values = part_input.get("Values")
+            try:
+                table.delete_partition(values)
+            except PartitionNotFoundException:
+                errors_output.append(
+                    {
+                        "PartitionValues": values,
+                        "ErrorDetail": {
+                            "ErrorCode": "EntityNotFoundException",
+                            "ErrorMessage": "Partition not found",
+                        },
+                    }
+                )
+        return errors_output
+
 
 class FakeDatabase(BaseModel):
     def __init__(self, database_name, database_input):

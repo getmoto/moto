@@ -1730,7 +1730,7 @@ class LambdaBackend(BaseBackend):
 
     def add_permission(self, function_name, qualifier, raw):
         fn = self.get_function(function_name, qualifier)
-        fn.policy.add_statement(raw, qualifier)
+        return fn.policy.add_statement(raw, qualifier)
 
     def remove_permission(self, function_name, sid, revision=""):
         fn = self.get_function(function_name)
