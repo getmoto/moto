@@ -1707,6 +1707,167 @@ def test_run_task():
 
 @mock_ec2
 @mock_ecs
+def test_run_task_awsvpc_network():
+
+    # Setup
+    client = boto3.client("ecs", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    # ECS setup
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    sg = ec2.create_security_group(VpcId=vpc.id, GroupName='test-ecs', Description='moto ecs')
+    test_cluster_name = "test_ecs_cluster"
+    client.create_cluster(clusterName=test_cluster_name)
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+    client.register_container_instance(
+        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
+    )
+    client.register_task_definition(
+        family="test_ecs_task",
+        networkMode="awsvpc",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+
+    # Execute
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        startedBy="moto",
+        launchType="FARGATE",
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": [subnet.id],
+                "securityGroups": [sg.id],
+            }
+        },
+    )
+
+    # Verify
+    len(response["tasks"]).should.equal(1)
+    response["tasks"][0]["lastStatus"].should.equal("RUNNING")
+    response["tasks"][0]["desiredStatus"].should.equal("RUNNING")
+    response["tasks"][0]["startedBy"].should.equal("moto")
+    response["tasks"][0]["stoppedReason"].should.equal("")
+
+    eni = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "addresses.private-ip-address", "Values": ["1.2.3.4"]}]
+    )["NetworkInterfaces"][0]
+    try:
+        # should be UUID
+        UUID(response["tasks"][0]["attachments"][0]["id"])
+    except ValueError:
+        assert False
+    response["tasks"][0]["attachments"][0]["status"].should.equal("ATTACHED")
+    response["tasks"][0]["attachments"][0]["type"].should.equal(
+        "ElasticNetworkInterface"
+    )
+    details = response["tasks"][0]["attachments"][0]["details"]
+
+    subnet_found = False
+    dns_found = False
+    ip_found = False
+    eni_id_found = False
+    mac_found = False
+    for detail in details:
+        if detail["name"] == "subnetId" and detail["value"] == subnet.id:
+            subnet_found = True
+        if (
+            detail["name"] == "privateDnsName"
+            and detail["value"] == "ip-1-2-3-4.ec2.internal"
+        ):
+            dns_found = True
+        if detail["name"] == "privateIPv4Address" and detail["value"] == "1.2.3.4":
+            ip_found = True
+        if (
+            detail["name"] == "networkInterfaceId"
+            and detail["value"] == eni["NetworkInterfaceId"]
+        ):
+            eni_id_found = True
+        if detail["name"] == "macAddress" and detail["value"] == eni["MacAddress"]:
+            mac_found = True
+
+    assert subnet_found
+    assert dns_found
+    assert ip_found
+    assert eni_id_found
+    assert mac_found
+
+
+@mock_ec2
+@mock_ecs
+def test_run_task_awsvpc_network_error():
+
+    # Setup
+    client = boto3.client("ecs", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    # ECS setup
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    sg = ec2.create_security_group(VpcId=vpc.id, GroupName='test-ecs', Description='moto ecs')
+    test_cluster_name = "test_ecs_cluster"
+    client.create_cluster(clusterName=test_cluster_name)
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+    client.register_container_instance(
+        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
+    )
+    client.register_task_definition(
+        family="test_ecs_task",
+        networkMode="awsvpc",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        client.run_task(
+            cluster="test_ecs_cluster",
+            overrides={},
+            taskDefinition="test_ecs_task",
+            startedBy="moto",
+            launchType="FARGATE",
+        )
+
+
+@mock_ec2
+@mock_ecs
 def test_run_task_default_cluster():
     client = boto3.client("ecs", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")

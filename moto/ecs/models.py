@@ -3,6 +3,7 @@ from copy import copy
 from datetime import datetime
 
 import pytz
+import uuid
 
 from moto import settings
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
@@ -13,6 +14,8 @@ from moto.core.utils import (
     remap_nested_keys,
     BackendDict,
 )
+
+from ..ec2.utils import random_eni_attach_id, random_resource_id
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
@@ -300,6 +303,7 @@ class Task(BaseObject):
         overrides=None,
         started_by="",
         tags=None,
+        networking_configuration=None,
     ):
         self.id = str(mock_random.uuid4())
         self.cluster_name = cluster.name
@@ -318,6 +322,41 @@ class Task(BaseObject):
         self.region_name = cluster.region_name
         self._account_id = backend.account_id
         self._backend = backend
+        self.attachments = []
+
+        if task_definition.network_mode == "awsvpc":
+            if not networking_configuration:
+
+                raise InvalidParameterException(
+                    "Network Configuration must be provided when networkMode 'awsvpc' is specified."
+                )
+
+            self.network_configuration = networking_configuration
+            net_conf = networking_configuration["awsvpcConfiguration"]
+            ec2_backend = ec2_backends["123456789012"]["us-east-1"]
+
+            eni = ec2_backend.create_network_interface(
+                subnet=net_conf["subnets"][0],
+                private_ip_address="1.2.3.4",
+                group_ids=net_conf["securityGroups"],
+            )
+            eni.status = "in-use"
+            eni.device_index = 0
+
+            self.attachments.append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "type": "ElasticNetworkInterface",
+                    "status": "ATTACHED",
+                    "details": [
+                        {"name": "subnetId", "value": net_conf["subnets"][0]},
+                        {"name": "networkInterfaceId", "value": eni.id},
+                        {"name": "macAddress", "value": eni.mac_address},
+                        {"name": "privateDnsName", "value": eni.private_dns_name},
+                        {"name": "privateIPv4Address", "value": eni.private_ip_address},
+                    ],
+                }
+            )
 
     @property
     def task_arn(self):
@@ -975,6 +1014,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         started_by,
         tags,
         launch_type,
+        networking_configuration=None,
     ):
         cluster = self._get_cluster(cluster_str)
 
@@ -1018,6 +1058,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         started_by=started_by or "",
                         tags=tags or [],
                         launch_type=launch_type or "",
+                        networking_configuration=networking_configuration,
                     )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
