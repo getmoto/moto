@@ -1715,37 +1715,7 @@ def test_run_task_awsvpc_network():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
     # ECS setup
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
-    sg = ec2.create_security_group(VpcId=vpc.id, GroupName='test-ecs', Description='moto ecs')
-    test_cluster_name = "test_ecs_cluster"
-    client.create_cluster(clusterName=test_cluster_name)
-    test_instance = ec2.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
-    )[0]
-    instance_id_document = json.dumps(
-        ec2_utils.generate_instance_identity_document(test_instance)
-    )
-    client.register_container_instance(
-        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
-    )
-    client.register_task_definition(
-        family="test_ecs_task",
-        networkMode="awsvpc",
-        containerDefinitions=[
-            {
-                "name": "hello_world",
-                "image": "docker/hello-world:latest",
-                "cpu": 1024,
-                "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
-            }
-        ],
-    )
+    setup_resources = setup_ecs(client, ec2)
 
     # Execute
     response = client.run_task(
@@ -1756,8 +1726,8 @@ def test_run_task_awsvpc_network():
         launchType="FARGATE",
         networkConfiguration={
             "awsvpcConfiguration": {
-                "subnets": [subnet.id],
-                "securityGroups": [sg.id],
+                "subnets": [setup_resources[0].id],
+                "securityGroups": [setup_resources[1].id],
             }
         },
     )
@@ -1789,14 +1759,17 @@ def test_run_task_awsvpc_network():
     eni_id_found = False
     mac_found = False
     for detail in details:
-        if detail["name"] == "subnetId" and detail["value"] == subnet.id:
+        if detail["name"] == "subnetId" and detail["value"] == setup_resources[0].id:
             subnet_found = True
         if (
             detail["name"] == "privateDnsName"
             and detail["value"] == eni["PrivateDnsName"]
         ):
             dns_found = True
-        if detail["name"] == "privateIPv4Address" and detail["value"] == eni["PrivateIpAddress"]:
+        if (
+            detail["name"] == "privateIPv4Address"
+            and detail["value"] == eni["PrivateIpAddress"]
+        ):
             ip_found = True
         if (
             detail["name"] == "networkInterfaceId"
@@ -1819,44 +1792,13 @@ def test_run_task_awsvpc_network_error():
 
     # Setup
     client = boto3.client("ecs", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
     # ECS setup
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
-    sg = ec2.create_security_group(VpcId=vpc.id, GroupName='test-ecs', Description='moto ecs')
-    test_cluster_name = "test_ecs_cluster"
-    client.create_cluster(clusterName=test_cluster_name)
-    test_instance = ec2.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
-    )[0]
-    instance_id_document = json.dumps(
-        ec2_utils.generate_instance_identity_document(test_instance)
-    )
-    client.register_container_instance(
-        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
-    )
-    client.register_task_definition(
-        family="test_ecs_task",
-        networkMode="awsvpc",
-        containerDefinitions=[
-            {
-                "name": "hello_world",
-                "image": "docker/hello-world:latest",
-                "cpu": 1024,
-                "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
-            }
-        ],
-    )
+    setup_ecs(client, ec2)
 
     # Execute
-    with pytest.raises(ClientError) as e:
+    with pytest.raises(ClientError):
         client.run_task(
             cluster="test_ecs_cluster",
             overrides={},
@@ -3801,3 +3743,42 @@ def test_list_tasks_with_filters():
         cluster="test_cluster_1", containerInstance=container_id_1, startedBy="bar"
     )
     len(resp["taskArns"]).should.equal(1)
+
+
+def setup_ecs(client, ec2):
+    """test helper"""
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    sg = ec2.create_security_group(
+        VpcId=vpc.id, GroupName="test-ecs", Description="moto ecs"
+    )
+    test_cluster_name = "test_ecs_cluster"
+    client.create_cluster(clusterName=test_cluster_name)
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+    client.register_container_instance(
+        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
+    )
+    client.register_task_definition(
+        family="test_ecs_task",
+        networkMode="awsvpc",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+
+    return subnet, sg
