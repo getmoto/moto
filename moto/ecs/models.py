@@ -339,7 +339,7 @@ class Task(BaseObject):
                 subnet=net_conf["subnets"][0],
                 private_ip_address=random_private_ip(),
                 group_ids=net_conf["securityGroups"],
-                description="moto ECS"
+                description="moto ECS",
             )
             eni.status = "in-use"
             eni.device_index = 0
