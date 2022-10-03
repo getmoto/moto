@@ -3,7 +3,6 @@ from copy import copy
 from datetime import datetime
 
 import pytz
-import uuid
 
 from moto import settings
 from moto.core import BaseBackend, BaseModel, CloudFormationModel

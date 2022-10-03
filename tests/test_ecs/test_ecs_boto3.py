@@ -1753,37 +1753,11 @@ def test_run_task_awsvpc_network():
     )
     details = response["tasks"][0]["attachments"][0]["details"]
 
-    subnet_found = False
-    dns_found = False
-    ip_found = False
-    eni_id_found = False
-    mac_found = False
-    for detail in details:
-        if detail["name"] == "subnetId" and detail["value"] == setup_resources[0].id:
-            subnet_found = True
-        if (
-            detail["name"] == "privateDnsName"
-            and detail["value"] == eni["PrivateDnsName"]
-        ):
-            dns_found = True
-        if (
-            detail["name"] == "privateIPv4Address"
-            and detail["value"] == eni["PrivateIpAddress"]
-        ):
-            ip_found = True
-        if (
-            detail["name"] == "networkInterfaceId"
-            and detail["value"] == eni["NetworkInterfaceId"]
-        ):
-            eni_id_found = True
-        if detail["name"] == "macAddress" and detail["value"] == eni["MacAddress"]:
-            mac_found = True
-
-    assert subnet_found
-    assert dns_found
-    assert ip_found
-    assert eni_id_found
-    assert mac_found
+    assert {"name": "subnetId", "value": setup_resources[0].id} in details
+    assert {"name": "privateDnsName", "value": eni["PrivateDnsName"]} in details
+    assert {"name": "privateIPv4Address", "value": eni["PrivateIpAddress"]} in details
+    assert {"name": "networkInterfaceId", "value": eni["NetworkInterfaceId"]} in details
+    assert {"name": "macAddress", "value": eni["MacAddress"]} in details
 
 
 @mock_ec2
@@ -1798,13 +1772,18 @@ def test_run_task_awsvpc_network_error():
     setup_ecs(client, ec2)
 
     # Execute
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exc:
         client.run_task(
             cluster="test_ecs_cluster",
             overrides={},
             taskDefinition="test_ecs_task",
             startedBy="moto",
             launchType="FARGATE",
+        )
+        err = exc.value.response["Error"]
+        assert err["Code"].equals("InvalidParameterException")
+        assert err["Message"].equals(
+            "Network Configuration must be provided when networkMode 'awsvpc' is specified."
         )
 
 
