@@ -15,6 +15,7 @@ from moto.core.utils import (
     BackendDict,
 )
 
+from ..ec2.utils import random_private_ip
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
@@ -336,8 +337,9 @@ class Task(BaseObject):
 
             eni = ec2_backend.create_network_interface(
                 subnet=net_conf["subnets"][0],
-                private_ip_address="1.2.3.4",
+                private_ip_address=random_private_ip(),
                 group_ids=net_conf["securityGroups"],
+                description="moto ECS"
             )
             eni.status = "in-use"
             eni.device_index = 0

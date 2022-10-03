@@ -1770,7 +1770,7 @@ def test_run_task_awsvpc_network():
     response["tasks"][0]["stoppedReason"].should.equal("")
 
     eni = ec2_client.describe_network_interfaces(
-        Filters=[{"Name": "addresses.private-ip-address", "Values": ["1.2.3.4"]}]
+        Filters=[{"Name": "description", "Values": ["moto ECS"]}]
     )["NetworkInterfaces"][0]
     try:
         # should be UUID
@@ -1793,10 +1793,10 @@ def test_run_task_awsvpc_network():
             subnet_found = True
         if (
             detail["name"] == "privateDnsName"
-            and detail["value"] == "ip-1-2-3-4.ec2.internal"
+            and detail["value"] == eni["PrivateDnsName"]
         ):
             dns_found = True
-        if detail["name"] == "privateIPv4Address" and detail["value"] == "1.2.3.4":
+        if detail["name"] == "privateIPv4Address" and detail["value"] == eni["PrivateIpAddress"]:
             ip_found = True
         if (
             detail["name"] == "networkInterfaceId"
