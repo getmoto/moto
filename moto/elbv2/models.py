@@ -525,6 +525,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "load_balancing.cross_zone.enabled",
         "routing.http.desync_mitigation_mode",
         "routing.http.drop_invalid_header_fields.enabled",
+        "routing.http.preserve_host_header.enabled",
         "routing.http.x_amzn_tls_version_and_cipher_suite.enabled",
         "routing.http.xff_client_port.enabled",
         "routing.http2.enabled",
