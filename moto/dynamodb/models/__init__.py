@@ -32,6 +32,7 @@ from moto.dynamodb.exceptions import (
     StreamAlreadyEnabledException,
     MockValidationException,
     InvalidConversion,
+    TransactWriteSingleOpException,
 )
 from moto.dynamodb.models.utilities import bytesize
 from moto.dynamodb.models.dynamo_type import DynamoType
@@ -1648,29 +1649,6 @@ class DynamoDBBackend(BaseBackend):
         original_table_state = copy.deepcopy(self.tables)
         target_items = set()
 
-        # check transact writes are not performing multiple operations on same
-        # item
-        for item in transact_items:
-            for sub_item in list(item.items()):
-                if "ConditionCheck" == sub_item[0]:
-                    continue
-                elif "Put" == sub_item[0]:
-                    contents = json.dumps(sub_item[1]["Item"], sort_keys=True)
-                    table_name = sub_item[1]["TableName"]
-                elif "Update" == sub_item[0]:
-                    contents = json.dumps(sub_item[1]["Key"], sort_keys=True)
-                    table_name = sub_item[1]["TableName"]
-                elif "Delete" == sub_item[0]:
-                    contents = json.dumps(sub_item[1]["Key"], sort_keys=True)
-                    table_name = sub_item[1]["TableName"]
-
-                unique_item = f"{contents}-{table_name}"
-                if unique_item in target_items:
-                    raise MockValidationException(
-                        "TransactItems can only contain one of Check, Put, Update or Delete"
-                    )
-                target_items.add(unique_item)
-
         def check_unicity(table_name, key):
             item = (str(table_name), str(key))
             if item in target_items:
@@ -1678,7 +1656,17 @@ class DynamoDBBackend(BaseBackend):
             target_items.add(item)
 
         errors = []  # [(Code, Message, Item), ..]
+        ddb_verbs = ["ConditionCheck", "Put", "Delete", "Update"]
         for item in transact_items:
+            # check transact writes are not performing multiple operations
+            # in the same item
+            for ddb_verb in ddb_verbs:
+                if ddb_verb in item:
+                    verb1 = ddb_verb
+                    for verb2 in ddb_verbs:
+                        if verb2 in item and verb2 != verb1:
+                            raise TransactWriteSingleOpException
+
             try:
                 if "ConditionCheck" in item:
                     item = item["ConditionCheck"]
@@ -1705,6 +1693,7 @@ class DynamoDBBackend(BaseBackend):
                     item = item["Put"]
                     attrs = item["Item"]
                     table_name = item["TableName"]
+                    check_unicity(table_name, item)
                     condition_expression = item.get("ConditionExpression", None)
                     expression_attribute_names = item.get(
                         "ExpressionAttributeNames", None
