@@ -466,8 +466,10 @@ class SpotFleetBackend:
             if terminate_instances:
                 spot_fleet.target_capacity = 0
                 spot_fleet.terminate_instances()
+                del self.spot_fleet_requests[spot_fleet_request_id]
+            else:
+                spot_fleet.state = "cancelled_running"
             spot_requests.append(spot_fleet)
-            del self.spot_fleet_requests[spot_fleet_request_id]
         return spot_requests
 
     def modify_spot_fleet_request(

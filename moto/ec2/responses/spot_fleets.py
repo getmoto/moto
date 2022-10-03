@@ -4,7 +4,7 @@ from moto.core.responses import BaseResponse
 class SpotFleets(BaseResponse):
     def cancel_spot_fleet_requests(self):
         spot_fleet_request_ids = self._get_multi_param("SpotFleetRequestId.")
-        terminate_instances = self._get_param("TerminateInstances")
+        terminate_instances = self._get_bool_param("TerminateInstances")
         spot_fleets = self.ec2_backend.cancel_spot_fleet_requests(
             spot_fleet_request_ids, terminate_instances
         )
