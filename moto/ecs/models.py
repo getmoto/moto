@@ -15,7 +15,6 @@ from moto.core.utils import (
     BackendDict,
 )
 
-from ..ec2.utils import random_eni_attach_id, random_resource_id
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
