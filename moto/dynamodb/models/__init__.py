@@ -1648,6 +1648,29 @@ class DynamoDBBackend(BaseBackend):
         original_table_state = copy.deepcopy(self.tables)
         target_items = set()
 
+        # check transact writes are not performing multiple operations on same
+        # item
+        for item in transact_items:
+            for sub_item in list(item.items()):
+                if "ConditionCheck" == sub_item[0]:
+                    continue
+                elif "Put" == sub_item[0]:
+                    contents = json.dumps(sub_item[1]["Item"], sort_keys=True)
+                    table_name = sub_item[1]["TableName"]
+                elif "Update" == sub_item[0]:
+                    contents = json.dumps(sub_item[1]["Key"], sort_keys=True)
+                    table_name = sub_item[1]["TableName"]
+                elif "Delete" == sub_item[0]:
+                    contents = json.dumps(sub_item[1]["Key"], sort_keys=True)
+                    table_name = sub_item[1]["TableName"]
+
+                unique_item = f"{contents}-{table_name}"
+                if unique_item in target_items:
+                    raise MockValidationException(
+                        "TransactItems can only contain one of Check, Put, Update or Delete"
+                    )
+                target_items.add(unique_item)
+
         def check_unicity(table_name, key):
             item = (str(table_name), str(key))
             if item in target_items:

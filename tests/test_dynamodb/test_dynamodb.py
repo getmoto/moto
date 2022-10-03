@@ -4110,6 +4110,47 @@ def test_transact_write_items_update():
 
 
 @mock_dynamodb
+def test_transact_write_items_mulitple_operations_fail():
+
+    # Setup
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = "test-table"
+    dynamodb.create_table(
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+
+    # Execute
+    try:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "Item": {"id": {"S": "test"}},
+                        "TableName": table_name,
+                    },
+                    "Delete": {
+                        "Key": {"id": {"S": "test"}},
+                        "TableName": table_name,
+                    },
+                }
+            ]
+        )
+        # this op should fail
+        assert False
+    except ClientError as exc:
+        # Verify
+        assert exc.response["Error"]["Code"] == "ValidationException"
+        assert (
+            exc.response["Error"]["Message"]
+            == "TransactItems can only contain one of Check, Put, Update or Delete"
+        )
+
+
+@mock_dynamodb
 def test_transact_write_items_update_with_failed_condition_expression():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
