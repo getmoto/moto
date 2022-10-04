@@ -424,10 +424,26 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def dynamic_group_list(self):
         return self.security_groups
 
+    def _get_private_ip_from_nic(self, nic):
+        private_ip = nic.get("PrivateIpAddress")
+        if private_ip:
+            return private_ip
+        for address in nic.get("PrivateIpAddresses", []):
+            if address.get("Primary") == "true":
+                return address.get("PrivateIpAddress")
+
     def prep_nics(
         self, nic_spec, private_ip=None, associate_public_ip=None, security_groups=None
     ):
         self.nics = {}
+        for nic in nic_spec:
+            if int(nic.get("DeviceIndex")) == 0:
+                nic_associate_public_ip = nic.get("AssociatePublicIpAddress")
+                if nic_associate_public_ip is not None:
+                    associate_public_ip = nic_associate_public_ip == "true"
+                if private_ip is None:
+                    private_ip = self._get_private_ip_from_nic(nic)
+                break
 
         if self.subnet_id:
             subnet = self.ec2_backend.get_subnet(self.subnet_id)
