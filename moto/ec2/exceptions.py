@@ -427,8 +427,8 @@ class InvalidServiceName(EC2ClientError):
 
 
 class InvalidFilter(EC2ClientError):
-    def __init__(self, filter_name):
-        super().__init__("InvalidFilter", f"The filter '{filter_name}' is invalid")
+    def __init__(self, filter_name, error_type="InvalidFilter"):
+        super().__init__(error_type, f"The filter '{filter_name}' is invalid")
 
 
 class InvalidNextToken(EC2ClientError):
