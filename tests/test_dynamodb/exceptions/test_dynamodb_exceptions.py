@@ -799,4 +799,4 @@ def test_transact_write_items_multiple_operations_fail():
     assert (
         err["Message"]
         == "TransactItems can only contain one of Check, Put, Update or Delete"
-)
+    )
