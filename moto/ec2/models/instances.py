@@ -440,7 +440,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             if int(nic.get("DeviceIndex")) == 0:
                 nic_associate_public_ip = nic.get("AssociatePublicIpAddress")
                 if nic_associate_public_ip is not None:
-                    associate_public_ip = nic_associate_public_ip
+                    associate_public_ip = nic_associate_public_ip == "true"
                 if private_ip is None:
                     private_ip = self._get_private_ip_from_nic(nic)
                 break
