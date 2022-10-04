@@ -793,10 +793,10 @@ def test_transact_write_items_multiple_operations_fail():
                 }
             ]
         )
-        # Verify
-        err = exc.value.response["Error"]
-        assert err["Code"] == "ValidationException"
-        assert (
-            err["Message"]
-            == "TransactItems can only contain one of Check, Put, Update or Delete"
-        )
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "TransactItems can only contain one of Check, Put, Update or Delete"
+)
