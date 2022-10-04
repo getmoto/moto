@@ -429,7 +429,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         if private_ip:
             return private_ip
         for address in nic.get("PrivateIpAddresses", []):
-            if address.get("Primary"):
+            if address.get("Primary") == "true":
                 return address.get("PrivateIpAddress")
 
     def prep_nics(

@@ -2448,7 +2448,8 @@ def test_run_instance_in_subnet_with_nic_private_ip():
 def test_run_instance_in_subnet_with_nic_private_ip_and_public_association():
     vpc_cidr_block = "10.26.0.0/16"
     subnet_cidr_block = "10.26.1.0/24"
-    private_ip = "10.26.1.3"
+    primary_private_ip = "10.26.1.3"
+    other_private_ip = "10.26.1.4"
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
     subnet = ec2.create_subnet(
@@ -2459,12 +2460,15 @@ def test_run_instance_in_subnet_with_nic_private_ip_and_public_association():
         "SubnetId": subnet.id,
         "DeviceIndex": 0,
         "AssociatePublicIpAddress": True,
-        "PrivateIpAddresses": [{"Primary": True, "PrivateIpAddress": private_ip}],
+        "PrivateIpAddresses": [
+            {"Primary": True, "PrivateIpAddress": primary_private_ip},
+            {"Primary": False, "PrivateIpAddress": other_private_ip},
+        ],
     }
     [instance] = ec2.create_instances(
         ImageId=EXAMPLE_AMI_ID, NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
     )
-    instance.private_ip_address.should.equal(private_ip)
+    instance.private_ip_address.should.equal(primary_private_ip)
 
     interfaces = instance.network_interfaces_attribute
     address = interfaces[0]["PrivateIpAddresses"][0]
