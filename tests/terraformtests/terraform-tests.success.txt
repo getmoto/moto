@@ -177,7 +177,12 @@ kms:
   - TestAccKMSSecretsDataSource
 lambda:
   - TestAccLambdaAlias_
-  - TestAccLambdaLayerVersion_
+  - TestAccLambdaLayerVersion_basic
+  - TestAccLambdaLayerVersion_compatibleArchitectures
+  - TestAccLambdaLayerVersion_compatibleRuntimes
+  - TestAccLambdaLayerVersion_licenseInfo
+  - TestAccLambdaLayerVersion_s3
+  - TestAccLambdaLayerVersion_update
   - TestAccLambdaFunctionURL
 meta:
   - TestAccMetaBillingServiceAccountDataSource

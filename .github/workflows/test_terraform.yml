@@ -47,9 +47,9 @@ jobs:
         path: |
           ~/go/pkg/mod
           ~/.cache/go-build
-        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ matrix.service }}-${{ hashFiles('**/tests/terraformtests/terraform-provider-aws/go.sum') }}
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/tests/terraformtests/terraform-provider-aws/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go-${{ matrix.go-version }}-${{ matrix.service }}-
+          ${{ runner.os }}-go-${{ matrix.go-version }}-
     - name: Get list of tests for  this service
       id: get-list
       run: echo "::set-output name=testlist::$(python tests/terraformtests/get_tf_tests.py '${{ matrix.service }}')"
