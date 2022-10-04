@@ -767,15 +767,13 @@ def test_query_begins_with_without_brackets():
 def test_transact_write_items_multiple_operations_fail():
 
     # Setup
-    table_schema = {
+    schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     table_name = "test-table"
-    dynamodb.create_table(
-        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
-    )
+    dynamodb.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
 
     # Execute
     with pytest.raises(ClientError) as exc:
