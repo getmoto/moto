@@ -88,7 +88,12 @@ def test_instance_launch_and_terminate():
         "An error occurred (DryRunOperation) when calling the TerminateInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    client.terminate_instances(InstanceIds=[instance_id])
+    response = client.terminate_instances(InstanceIds=[instance_id])
+    response["TerminatingInstances"].should.have.length_of(1)
+    instance = response["TerminatingInstances"][0]
+    instance["InstanceId"].should.equal(instance_id)
+    instance["PreviousState"].should.equal({"Code": 16, "Name": "running"})
+    instance["CurrentState"].should.equal({"Code": 32, "Name": "shutting-down"})
 
     reservations = client.describe_instances(InstanceIds=[instance_id])["Reservations"]
     instance = reservations[0]["Instances"][0]
@@ -947,8 +952,7 @@ def test_instance_start_and_stop():
         "StartingInstances"
     ]
     started_instances[0]["CurrentState"].should.equal({"Code": 0, "Name": "pending"})
-    # TODO: The PreviousState is hardcoded to 'running' atm
-    # started_instances[0]["PreviousState"].should.equal({'Code': 80, 'Name': 'stopped'})
+    started_instances[0]["PreviousState"].should.equal({"Code": 80, "Name": "stopped"})
 
 
 @mock_ec2

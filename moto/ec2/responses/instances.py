@@ -721,12 +721,12 @@ EC2_TERMINATE_INSTANCES = """
 <TerminateInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instancesSet>
-    {% for instance in instances %}
+    {% for instance, previous_state in instances %}
       <item>
         <instanceId>{{ instance.id }}</instanceId>
         <previousState>
-          <code>16</code>
-          <name>running</name>
+          <code>{{ previous_state.code }}</code>
+          <name>{{ previous_state.name }}</name>
         </previousState>
         <currentState>
           <code>32</code>
@@ -741,12 +741,12 @@ EC2_STOP_INSTANCES = """
 <StopInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instancesSet>
-    {% for instance in instances %}
+    {% for instance, previous_state in instances %}
       <item>
         <instanceId>{{ instance.id }}</instanceId>
         <previousState>
-          <code>16</code>
-          <name>running</name>
+          <code>{{ previous_state.code }}</code>
+          <name>{{ previous_state.name }}</name>
         </previousState>
         <currentState>
           <code>64</code>
@@ -761,12 +761,12 @@ EC2_START_INSTANCES = """
 <StartInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instancesSet>
-    {% for instance in instances %}
+    {% for instance, previous_state in instances %}
       <item>
         <instanceId>{{ instance.id }}</instanceId>
         <previousState>
-          <code>16</code>
-          <name>running</name>
+          <code>{{ previous_state.code }}</code>
+          <name>{{ previous_state.name }}</name>
         </previousState>
         <currentState>
           <code>0</code>

@@ -334,6 +334,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return self.id
 
     def start(self):
+        previous_state = copy.copy(self._state)
+
         for nic in self.nics.values():
             nic.start()
 
@@ -343,7 +345,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._reason = ""
         self._state_reason = StateReason()
 
+        return previous_state
+
     def stop(self):
+        previous_state = copy.copy(self._state)
+
         for nic in self.nics.values():
             nic.stop()
 
@@ -358,6 +364,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "Client.UserInitiatedShutdown",
         )
 
+        return previous_state
+
     def is_running(self):
         return self._state.name == "running"
 
@@ -365,6 +373,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.terminate()
 
     def terminate(self):
+        previous_state = copy.copy(self._state)
+
         for nic in self.nics.values():
             nic.stop()
 
@@ -412,6 +422,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     self.id
                 ].id
             )
+
+        return previous_state
 
     def reboot(self):
         self._state.name = "running"
@@ -693,16 +705,16 @@ class InstanceBackend:
     def start_instances(self, instance_ids):
         started_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
-            instance.start()
-            started_instances.append(instance)
+            previous_state = instance.start()
+            started_instances.append((instance, previous_state))
 
         return started_instances
 
     def stop_instances(self, instance_ids):
         stopped_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
-            instance.stop()
-            stopped_instances.append(instance)
+            previous_state = instance.stop()
+            stopped_instances.append((instance, previous_state))
 
         return stopped_instances
 
@@ -715,8 +727,8 @@ class InstanceBackend:
         for instance in self.get_multi_instances_by_id(instance_ids):
             if instance.disable_api_termination == "true":
                 raise OperationNotPermitted4(instance.id)
-            instance.terminate()
-            terminated_instances.append(instance)
+            previous_state = instance.terminate()
+            terminated_instances.append((instance, previous_state))
 
         return terminated_instances
 
