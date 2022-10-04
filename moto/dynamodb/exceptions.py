@@ -323,3 +323,12 @@ class InvalidConversion(JsonRESTError):
     def __init__(self):
         er = "SerializationException"
         super().__init__(er, "NUMBER_VALUE cannot be converted to String")
+
+
+class TransactWriteSingleOpException(MockValidationException):
+    there_can_be_only_one = (
+        "TransactItems can only contain one of Check, Put, Update or Delete"
+    )
+
+    def __init__(self):
+        super().__init__(self.there_can_be_only_one)
