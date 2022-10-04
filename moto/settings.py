@@ -29,6 +29,11 @@ ENABLE_KEYPAIR_VALIDATION = bool(
 ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False))
 
 
+PRETTIFY_RESPONSES = bool(
+    os.environ.get("MOTO_PRETTIFY_RESPONSES", False)
+)
+
+
 def get_sf_execution_history_type():
     """
     Determines which execution history events `get_execution_history` returns

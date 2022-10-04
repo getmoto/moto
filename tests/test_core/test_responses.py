@@ -1,3 +1,4 @@
+from unittest import mock
 import sure  # noqa # pylint: disable=unused-import
 
 from collections import OrderedDict
@@ -205,3 +206,18 @@ def test_response_environment_preserved_by_type():
     assert resp_a_new_instance.contains_template(
         BaseResponse._make_template_id(source_2)
     )
+
+
+@mock.patch(
+    "moto.prettify_jinja_render.settings.PRETTIFY_RESPONSES",
+    new_callable=mock.PropertyMock(return_value=True),
+)
+def test_jinja_render_prettify(m_env_var):
+
+    response = BaseResponse()
+    TEMPLATE = """<TestTemplate><ResponseText>Test text</ResponseText></TestTemplate>"""
+    expected_output = '<?xml version="1.0" ?>\n<TestTemplate>\n\t<ResponseText>Test text</ResponseText>\n</TestTemplate>\n'
+    template = response.response_template(TEMPLATE)
+    xml_string = template.render()
+    assert xml_string == expected_output
+    assert m_env_var
