@@ -27,6 +27,7 @@ backend_url_patterns = [
         re.compile("https?://cognito-identity\\.(.+)\\.amazonaws.com"),
     ),
     ("cognito-idp", re.compile("https?://cognito-idp\\.(.+)\\.amazonaws.com")),
+    ("comprehend", re.compile("https?://comprehend\\.(.+)\\.amazonaws\\.com")),
     ("config", re.compile("https?://config\\.(.+)\\.amazonaws\\.com")),
     ("databrew", re.compile("https?://databrew\\.(.+)\\.amazonaws.com")),
     ("datapipeline", re.compile("https?://datapipeline\\.(.+)\\.amazonaws\\.com")),

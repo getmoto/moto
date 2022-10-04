@@ -48,6 +48,7 @@ mock_cognitoidentity = lazy_load(
     ".cognitoidentity", "mock_cognitoidentity", boto3_name="cognito-identity"
 )
 mock_cognitoidp = lazy_load(".cognitoidp", "mock_cognitoidp", boto3_name="cognito-idp")
+mock_comprehend = lazy_load(".comprehend", "mock_comprehend")
 mock_config = lazy_load(".config", "mock_config")
 mock_databrew = lazy_load(".databrew", "mock_databrew")
 mock_datapipeline = lazy_load(".datapipeline", "mock_datapipeline")
