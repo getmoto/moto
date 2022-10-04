@@ -21,4 +21,4 @@ def pretty_render(*args, **kwargs):
 
 
 if MOTO_PRETTIFY_RESPONSES:
-    Template.render = render
+    Template.render = pretty_render
