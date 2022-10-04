@@ -520,7 +520,7 @@ ec2
 - [X] modify_volume
 - [ ] modify_volume_attribute
 - [X] modify_vpc_attribute
-- [ ] modify_vpc_endpoint
+- [X] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
 - [X] modify_vpc_endpoint_service_configuration
   

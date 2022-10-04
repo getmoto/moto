@@ -75,6 +75,8 @@ cognitoidp:
   - TestAccCognitoIDPUserPool_
   - TestAccCognitoIDPUser_
   - TestAccCognitoIDPUserPoolClients
+comprehend:
+  - TestAccComprehendEntityRecognizer
 dax:
   - TestAccDAXCluster_basic
   - TestAccDAXCluster_Encryption

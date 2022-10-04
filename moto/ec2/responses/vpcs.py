@@ -216,6 +216,22 @@ class VPCs(EC2BaseResponse):
         template = self.response_template(CREATE_VPC_END_POINT)
         return template.render(vpc_end_point=vpc_end_point)
 
+    def modify_vpc_endpoint(self):
+        vpc_id = self._get_param("VpcEndpointId")
+        add_subnets = self._get_multi_param("AddSubnetId")
+        add_route_tables = self._get_multi_param("AddRouteTableId")
+        remove_route_tables = self._get_multi_param("RemoveRouteTableId")
+        policy_doc = self._get_param("PolicyDocument")
+        self.ec2_backend.modify_vpc_endpoint(
+            vpc_id=vpc_id,
+            policy_doc=policy_doc,
+            add_subnets=add_subnets,
+            add_route_tables=add_route_tables,
+            remove_route_tables=remove_route_tables,
+        )
+        template = self.response_template(MODIFY_VPC_END_POINT)
+        return template.render()
+
     def describe_vpc_endpoint_services(self):
         vpc_end_point_services = self.ec2_backend.describe_vpc_endpoint_services(
             dry_run=self._get_bool_param("DryRun"),
@@ -608,6 +624,10 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
         <creationTimestamp>{{ vpc_end_point.created_at }}</creationTimestamp>
     </vpcEndpoint>
 </CreateVpcEndpointResponse>"""
+
+MODIFY_VPC_END_POINT = """<ModifyVpcEndpointResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <return>true</return>
+</ModifyVpcEndpointResponse>"""
 
 DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
