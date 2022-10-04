@@ -72,8 +72,8 @@ from .test_eks_utils import (
 )
 
 
-@pytest.fixture(scope="function")
-def ClusterBuilder():
+@pytest.fixture(scope="function", name="ClusterBuilder")
+def fixture_ClusterBuilder():
     class ClusterTestDataFactory:
         def __init__(self, client, count, minimal):
             # Generate 'count' number of random Cluster objects.
@@ -104,8 +104,8 @@ def ClusterBuilder():
     yield _execute
 
 
-@pytest.fixture(scope="function")
-def FargateProfileBuilder(ClusterBuilder):
+@pytest.fixture(scope="function", name="FargateProfileBuilder")
+def fixture_FargateProfileBuilder(ClusterBuilder):
     class FargateProfileTestDataFactory:
         def __init__(self, client, cluster, count, minimal):
             self.cluster_name = cluster.existing_cluster_name
@@ -142,8 +142,8 @@ def FargateProfileBuilder(ClusterBuilder):
     return _execute
 
 
-@pytest.fixture(scope="function")
-def NodegroupBuilder(ClusterBuilder):
+@pytest.fixture(scope="function", name="NodegroupBuilder")
+def fixture_NodegroupBuilder(ClusterBuilder):
     class NodegroupTestDataFactory:
         def __init__(self, client, cluster, count, minimal):
             self.cluster_name = cluster.existing_cluster_name

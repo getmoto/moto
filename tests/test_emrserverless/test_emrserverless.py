@@ -19,14 +19,14 @@ def does_not_raise():
     yield
 
 
-@pytest.fixture(scope="function")
-def client():
+@pytest.fixture(scope="function", name="client")
+def fixture_client():
     with mock_emrserverless():
         yield boto3.client("emr-serverless", region_name=DEFAULT_REGION)
 
 
-@pytest.fixture(scope="function")
-def application_factory(client):
+@pytest.fixture(scope="function", name="application_factory")
+def fixture_application_factory(client):
     application_list = []
 
     if settings.TEST_SERVER_MODE:

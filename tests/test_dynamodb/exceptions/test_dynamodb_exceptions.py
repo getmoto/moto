@@ -495,13 +495,13 @@ def test_creating_table_with_0_global_indexes():
 
 @mock_dynamodb
 def test_multiple_transactions_on_same_item():
-    table_schema = {
+    schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
     )
     # Insert an item
     dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
@@ -533,13 +533,13 @@ def test_multiple_transactions_on_same_item():
 
 @mock_dynamodb
 def test_transact_write_items__too_many_transactions():
-    table_schema = {
+    schema = {
         "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
     )
 
     def update_email_transact(email):

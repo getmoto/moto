@@ -15,14 +15,14 @@ from unittest.mock import patch
 from moto.emrcontainers import REGION as DEFAULT_REGION
 
 
-@pytest.fixture(scope="function")
-def client():
+@pytest.fixture(scope="function", name="client")
+def fixture_client():
     with mock_emrcontainers():
         yield boto3.client("emr-containers", region_name=DEFAULT_REGION)
 
 
-@pytest.fixture(scope="function")
-def virtual_cluster_factory(client):
+@pytest.fixture(scope="function", name="virtual_cluster_factory")
+def fixture_virtual_cluster_factory(client):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 
@@ -47,8 +47,8 @@ def virtual_cluster_factory(client):
     yield cluster_list
 
 
-@pytest.fixture()
-def job_factory(client, virtual_cluster_factory):
+@pytest.fixture(name="job_factory")
+def fixture_job_factory(client, virtual_cluster_factory):
     virtual_cluster_id = virtual_cluster_factory[0]
     default_job_driver = {
         "sparkSubmitJobDriver": {

@@ -6,19 +6,19 @@ from botocore.exceptions import ClientError
 from moto import mock_iot, mock_cognitoidentity
 
 
-@pytest.fixture
-def region_name():
+@pytest.fixture(name="region_name")
+def fixture_region_name():
     return "ap-northeast-1"
 
 
-@pytest.fixture
-def iot_client(region_name):
+@pytest.fixture(name="iot_client")
+def fixture_iot_client(region_name):
     with mock_iot():
         yield boto3.client("iot", region_name=region_name)
 
 
-@pytest.fixture
-def policy(iot_client):
+@pytest.fixture(name="policy")
+def fixture_policy(iot_client):
     return iot_client.create_policy(policyName="my-policy", policyDocument="{}")
 
 

@@ -42,8 +42,8 @@ from .fixtures.schema_registry import (
 )
 
 
-@pytest.fixture
-def client():
+@pytest.fixture(name="client")
+def fixture_client():
     with mock_glue():
         yield boto3.client("glue", region_name="us-east-1")
 

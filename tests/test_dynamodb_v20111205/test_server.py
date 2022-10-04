@@ -15,8 +15,8 @@ TABLE_NAME = "my_table_name"
 TABLE_WITH_RANGE_NAME = "my_table_with_range_name"
 
 
-@pytest.fixture(autouse=True)
-def test_client():
+@pytest.fixture(autouse=True, name="test_client")
+def fixture_test_client():
     backend = server.create_backend_app("dynamodb_v20111205")
     test_client = backend.test_client()
 

@@ -1021,19 +1021,12 @@ class SecurityGroupBackend:
                 if cidr_item.get("CidrIp6") == item.get("CidrIp6"):
                     cidr_item["Description"] = item.get("Description")
 
-            for item in security_rule.source_groups:
+            for group in security_rule.source_groups:
                 for source_group in rule.source_groups:
-                    if source_group.get("GroupId") == item.get(
+                    if source_group.get("GroupId") == group.get(
                         "GroupId"
-                    ) or source_group.get("GroupName") == item.get("GroupName"):
-                        source_group["Description"] = item.get("Description")
-
-            for item in security_rule.source_groups:
-                for source_group in rule.source_groups:
-                    if source_group.get("GroupId") == item.get(
-                        "GroupId"
-                    ) or source_group.get("GroupName") == item.get("GroupName"):
-                        source_group["Description"] = item.get("Description")
+                    ) or source_group.get("GroupName") == group.get("GroupName"):
+                        source_group["Description"] = group.get("Description")
 
     def _remove_items_from_rule(self, ip_ranges, _source_groups, prefix_list_ids, rule):
         for item in ip_ranges:

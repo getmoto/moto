@@ -12,14 +12,14 @@ INSTANCE_FAMILIES = list(set([i.split(".")[0] for i in INSTANCE_TYPES.keys()]))
 root = pathlib.Path(__file__).parent
 offerings_path = "../resources/instance_type_offerings"
 INSTANCE_TYPE_OFFERINGS = {}
-for location_type in listdir(root / offerings_path):
-    INSTANCE_TYPE_OFFERINGS[location_type] = {}
-    for _region in listdir(root / offerings_path / location_type):
-        full_path = offerings_path + "/" + location_type + "/" + _region
+for _location_type in listdir(root / offerings_path):
+    INSTANCE_TYPE_OFFERINGS[_location_type] = {}
+    for _region in listdir(root / offerings_path / _location_type):
+        full_path = offerings_path + "/" + _location_type + "/" + _region
         res = load_resource(__name__, full_path)
         for instance in res:
-            instance["LocationType"] = location_type
-        INSTANCE_TYPE_OFFERINGS[location_type][_region.replace(".json", "")] = res
+            instance["LocationType"] = _location_type
+        INSTANCE_TYPE_OFFERINGS[_location_type][_region.replace(".json", "")] = res
 
 
 class InstanceType(dict):

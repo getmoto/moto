@@ -8,12 +8,12 @@ TEST_REGION_NAME = "us-east-1"
 TEST_EXPERIMENT_NAME = "MyExperimentName"
 
 
-@pytest.fixture
-def sagemaker_client():
-    return boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+@pytest.fixture(name="sagemaker_client")
+def fixture_sagemaker_client():
+    with mock_sagemaker():
+        yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
-@mock_sagemaker
 def test_create_experiment(sagemaker_client):
     resp = sagemaker_client.create_experiment(ExperimentName=TEST_EXPERIMENT_NAME)
 
@@ -29,7 +29,6 @@ def test_create_experiment(sagemaker_client):
     )
 
 
-@mock_sagemaker
 def test_list_experiments(sagemaker_client):
 
     experiment_names = [f"some-experiment-name-{i}" for i in range(10)]
@@ -57,7 +56,6 @@ def test_list_experiments(sagemaker_client):
     assert resp.get("NextToken") is None
 
 
-@mock_sagemaker
 def test_delete_experiment(sagemaker_client):
     sagemaker_client.create_experiment(ExperimentName=TEST_EXPERIMENT_NAME)
 
@@ -70,7 +68,6 @@ def test_delete_experiment(sagemaker_client):
     assert len(resp["ExperimentSummaries"]) == 0
 
 
-@mock_sagemaker
 def test_add_tags_to_experiment(sagemaker_client):
     sagemaker_client.create_experiment(ExperimentName=TEST_EXPERIMENT_NAME)
 
@@ -89,7 +86,6 @@ def test_add_tags_to_experiment(sagemaker_client):
     assert resp["Tags"] == tags
 
 
-@mock_sagemaker
 def test_delete_tags_to_experiment(sagemaker_client):
     sagemaker_client.create_experiment(ExperimentName=TEST_EXPERIMENT_NAME)
 

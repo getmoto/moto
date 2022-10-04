@@ -2,13 +2,12 @@ import re
 import sys
 from ipaddress import IPv4Network
 
-import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_efs
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.test_efs.junk_drawer import has_status_code
+from . import fixture_ec2, fixture_efs  # noqa # pylint: disable=unused-import
 
 
 # Handle the fact that `subnet_of` is not a feature before 3.7.
@@ -36,36 +35,15 @@ else:
             )
 
 
-@pytest.fixture(scope="function")
-def aws_credentials(monkeypatch):
-    """Mocked AWS Credentials for moto."""
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
-    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
-    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
-
-
-@pytest.fixture(scope="function")
-def ec2(aws_credentials):  # pylint: disable=unused-argument
-    with mock_ec2():
-        yield boto3.client("ec2", region_name="us-east-1")
-
-
-@pytest.fixture(scope="function")
-def efs(aws_credentials):  # pylint: disable=unused-argument
-    with mock_efs():
-        yield boto3.client("efs", region_name="us-east-1")
-
-
-@pytest.fixture(scope="function")
-def file_system(efs):
+@pytest.fixture(scope="function", name="file_system")
+def fixture_file_system(efs):
     create_fs_resp = efs.create_file_system(CreationToken="foobarbaz")
     create_fs_resp.pop("ResponseMetadata")
     yield create_fs_resp
 
 
-@pytest.fixture(scope="function")
-def subnet(ec2):
+@pytest.fixture(scope="function", name="subnet")
+def fixture_subnet(ec2):
     desc_sn_resp = ec2.describe_subnets()
     subnet = desc_sn_resp["Subnets"][0]
     yield subnet

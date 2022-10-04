@@ -470,24 +470,24 @@ class SESBackend(BaseBackend):
             text_part = str.replace(str(text_part), "{{%s}}" % key, value)
             html_part = str.replace(str(html_part), "{{%s}}" % key, value)
 
-        email = MIMEMultipart("alternative")
+        email_obj = MIMEMultipart("alternative")
 
         mime_text = MIMEBase("text", "plain;charset=UTF-8")
         mime_text.set_payload(text_part.encode("utf-8"))
         encode_7or8bit(mime_text)
-        email.attach(mime_text)
+        email_obj.attach(mime_text)
 
         mime_html = MIMEBase("text", "html;charset=UTF-8")
         mime_html.set_payload(html_part.encode("utf-8"))
         encode_7or8bit(mime_html)
-        email.attach(mime_html)
+        email_obj.attach(mime_html)
 
         now = datetime.datetime.now().isoformat()
 
         rendered_template = "Date: %s\r\nSubject: %s\r\n%s" % (
             now,
             subject_part,
-            email.as_string(),
+            email_obj.as_string(),
         )
         return rendered_template
 

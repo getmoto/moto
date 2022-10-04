@@ -1,11 +1,10 @@
 import re
 
-import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_efs
 from tests.test_efs.junk_drawer import has_status_code
+from . import fixture_efs  # noqa # pylint: disable=unused-import
 
 ARN_PATT = r"^arn:(?P<Partition>[^:\n]*):(?P<Service>[^:\n]*):(?P<Region>[^:\n]*):(?P<AccountID>[^:\n]*):(?P<Ignore>(?P<ResourceType>[^:\/\n]*)[:\/])?(?P<Resource>.*)$"
 STRICT_ARN_PATT = r"^arn:aws:[a-z]+:[a-z]{2}-[a-z]+-[0-9]:[0-9]+:[a-z-]+\/[a-z0-9-]+$"
@@ -28,21 +27,6 @@ SAMPLE_2_PARAMS = {
     "ProvisionedThroughputInMibps": 60,
     "Tags": [{"Key": "Name", "Value": "Test Group1"}],
 }
-
-
-@pytest.fixture(scope="function")
-def aws_credentials(monkeypatch):
-    """Mocked AWS Credentials for moto."""
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
-    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
-    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
-
-
-@pytest.fixture(scope="function")
-def efs(aws_credentials):  # pylint: disable=unused-argument
-    with mock_efs():
-        yield boto3.client("efs", region_name="us-east-1")
 
 
 # Testing Create

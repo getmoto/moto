@@ -297,42 +297,42 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         self.name = name
         self.modification_time = datetime.now(timezone.utc).isoformat()
 
-    def associate_ip_address(self, ip_address):
-        self.ip_addresses.append(ip_address)
+    def associate_ip_address(self, value):
+        self.ip_addresses.append(value)
         self.ip_address_count = len(self.ip_addresses)
 
         eni_id = f"rni-{mock_random.get_random_hex(17)}"
-        self.subnets[ip_address["SubnetId"]][ip_address["Ip"]] = eni_id
+        self.subnets[value["SubnetId"]][value["Ip"]] = eni_id
 
         eni_info = self.ec2_backend.create_network_interface(
             description=f"Route 53 Resolver: {self.id}:{eni_id}",
             group_ids=self.security_group_ids,
             interface_type="interface",
-            private_ip_address=ip_address.get("Ip"),
+            private_ip_address=value.get("Ip"),
             private_ip_addresses=[
-                {"Primary": True, "PrivateIpAddress": ip_address.get("Ip")}
+                {"Primary": True, "PrivateIpAddress": value.get("Ip")}
             ],
-            subnet=ip_address.get("SubnetId"),
+            subnet=value.get("SubnetId"),
         )
         self.eni_ids.append(eni_info.id)
 
-    def disassociate_ip_address(self, ip_address):
-        if not ip_address.get("Ip") and ip_address.get("IpId"):
-            for ip_addr, eni_id in self.subnets[ip_address.get("SubnetId")].items():
-                if ip_address.get("IpId") == eni_id:
-                    ip_address["Ip"] = ip_addr
-        if ip_address.get("Ip"):
+    def disassociate_ip_address(self, value):
+        if not value.get("Ip") and value.get("IpId"):
+            for ip_addr, eni_id in self.subnets[value.get("SubnetId")].items():
+                if value.get("IpId") == eni_id:
+                    value["Ip"] = ip_addr
+        if value.get("Ip"):
             self.ip_addresses = list(
-                filter(lambda i: i["Ip"] != ip_address.get("Ip"), self.ip_addresses)
+                filter(lambda i: i["Ip"] != value.get("Ip"), self.ip_addresses)
             )
 
-            if len(self.subnets[ip_address["SubnetId"]]) == 1:
-                self.subnets.pop(ip_address["SubnetId"])
+            if len(self.subnets[value["SubnetId"]]) == 1:
+                self.subnets.pop(value["SubnetId"])
             else:
-                self.subnets[ip_address["SubnetId"]].pop(ip_address["Ip"])
+                self.subnets[value["SubnetId"]].pop(value["Ip"])
             for eni_id in self.eni_ids:
                 eni_info = self.ec2_backend.get_network_interface(eni_id)
-                if eni_info.private_ip_address == ip_address.get("Ip"):
+                if eni_info.private_ip_address == value.get("Ip"):
                     self.ec2_backend.delete_network_interface(eni_id)
                     self.eni_ids.remove(eni_id)
             self.ip_address_count = len(self.ip_addresses)
@@ -873,32 +873,30 @@ class Route53ResolverBackend(BaseBackend):
         resolver_endpoint.update_name(name)
         return resolver_endpoint
 
-    def associate_resolver_endpoint_ip_address(self, resolver_endpoint_id, ip_address):
+    def associate_resolver_endpoint_ip_address(self, resolver_endpoint_id, value):
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
 
-        if not ip_address.get("Ip"):
+        if not value.get("Ip"):
             subnet_info = self.ec2_backend.get_all_subnets(
-                subnet_ids=[ip_address.get("SubnetId")]
+                subnet_ids=[value.get("SubnetId")]
             )[0]
-            ip_address["Ip"] = subnet_info.get_available_subnet_ip(self)
-        self._verify_subnet_ips([ip_address], False)
+            value["Ip"] = subnet_info.get_available_subnet_ip(self)
+        self._verify_subnet_ips([value], False)
 
-        resolver_endpoint.associate_ip_address(ip_address)
+        resolver_endpoint.associate_ip_address(value)
         return resolver_endpoint
 
-    def disassociate_resolver_endpoint_ip_address(
-        self, resolver_endpoint_id, ip_address
-    ):
+    def disassociate_resolver_endpoint_ip_address(self, resolver_endpoint_id, value):
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
 
-        if not (ip_address.get("Ip") or ip_address.get("IpId")):
+        if not (value.get("Ip") or value.get("IpId")):
             raise InvalidRequestException(
                 "[RSLVR-00503] Need to specify either the IP ID or both subnet and IP address in order to remove IP address."
             )
 
-        resolver_endpoint.disassociate_ip_address(ip_address)
+        resolver_endpoint.disassociate_ip_address(value)
         return resolver_endpoint
 
 
