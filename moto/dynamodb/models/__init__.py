@@ -1656,16 +1656,11 @@ class DynamoDBBackend(BaseBackend):
             target_items.add(item)
 
         errors = []  # [(Code, Message, Item), ..]
-        ddb_verbs = ["ConditionCheck", "Put", "Delete", "Update"]
         for item in transact_items:
             # check transact writes are not performing multiple operations
             # in the same item
-            for ddb_verb in ddb_verbs:
-                if ddb_verb in item:
-                    verb1 = ddb_verb
-                    for verb2 in ddb_verbs:
-                        if verb2 in item and verb2 != verb1:
-                            raise TransactWriteSingleOpException
+            if len(list(item.keys())) > 1:
+                raise TransactWriteSingleOpException
 
             try:
                 if "ConditionCheck" in item:
