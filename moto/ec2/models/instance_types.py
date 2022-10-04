@@ -145,7 +145,9 @@ class InstanceTypeBackend:
                 unknown_ids = set(instance_types) - set(
                     t.get("InstanceType") for t in matches
                 )
-                raise InvalidInstanceTypeError(unknown_ids)
+                raise InvalidInstanceTypeError(
+                    unknown_ids, error_type="InvalidInstanceType"
+                )
         if filters:
             matches = generic_filter(filters, matches)
         return matches
