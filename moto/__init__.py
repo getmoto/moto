@@ -1,7 +1,7 @@
 import importlib
 import sys
 from contextlib import ContextDecorator
-import moto.monkey_patch # noqa # pylint: disable=unused-import
+import moto.prettify_jinja_render # noqa # pylint: disable=unused-import
 
 
 def lazy_load(module_name, element, boto3_name=None, backend=None):
