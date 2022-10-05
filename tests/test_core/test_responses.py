@@ -7,6 +7,7 @@ from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.responses import AWSServiceSpec, BaseResponse
 from moto.core.responses import flatten_json_request_body
+from moto.prettify_jinja_render import pretty_render
 
 
 def test_flatten_json_request_body():
@@ -209,10 +210,10 @@ def test_response_environment_preserved_by_type():
 
 
 @mock.patch(
-    "moto.prettify_jinja_render.settings.PRETTIFY_RESPONSES",
-    new_callable=mock.PropertyMock(return_value=True),
+    "jinja2.environment.Template.render",
+    pretty_render,
 )
-def test_jinja_render_prettify(m_env_var):
+def test_jinja_render_prettify():
 
     response = BaseResponse()
     TEMPLATE = """<TestTemplate><ResponseText>Test text</ResponseText></TestTemplate>"""
@@ -220,4 +221,3 @@ def test_jinja_render_prettify(m_env_var):
     template = response.response_template(TEMPLATE)
     xml_string = template.render()
     assert xml_string == expected_output
-    assert m_env_var
