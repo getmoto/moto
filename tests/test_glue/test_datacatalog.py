@@ -254,25 +254,35 @@ def test_get_tables_expression():
     postfix_expression = "\\w+_mytablepostfix"
     string_expression = "\\w+catchthis\\w+"
 
-    # even though * is an invalid regex, sadly glue api treats it as a glob like wildcard
+    # even though * is an invalid regex, sadly glue api treats it as a glob-like wildcard
     star_expression1 = "*"
     star_expression2 = "mytable*"
     star_expression3 = "*table*"
     star_expression4 = "*catch*is*"
     star_expression5 = ".*catch*is*"
-
-    # sadly glue api treats an expression with a trailing .* as a regex equivalent of \.*
     star_expression6 = "trailing*.*"
 
     response_prefix = helpers.get_tables(client, database_name, prefix_expression)
     response_postfix = helpers.get_tables(client, database_name, postfix_expression)
     response_string_match = helpers.get_tables(client, database_name, string_expression)
-    response_star_expression1 = helpers.get_tables(client, database_name, star_expression1)
-    response_star_expression2 = helpers.get_tables(client, database_name, star_expression2)
-    response_star_expression3 = helpers.get_tables(client, database_name, star_expression3)
-    response_star_expression4 = helpers.get_tables(client, database_name, star_expression4)
-    response_star_expression5 = helpers.get_tables(client, database_name, star_expression5)
-    response_star_expression6 = helpers.get_tables(client, database_name, star_expression6)
+    response_star_expression1 = helpers.get_tables(
+        client, database_name, star_expression1
+    )
+    response_star_expression2 = helpers.get_tables(
+        client, database_name, star_expression2
+    )
+    response_star_expression3 = helpers.get_tables(
+        client, database_name, star_expression3
+    )
+    response_star_expression4 = helpers.get_tables(
+        client, database_name, star_expression4
+    )
+    response_star_expression5 = helpers.get_tables(
+        client, database_name, star_expression5
+    )
+    response_star_expression6 = helpers.get_tables(
+        client, database_name, star_expression6
+    )
 
     tables_prefix = response_prefix["TableList"]
     tables_postfix = response_postfix["TableList"]
