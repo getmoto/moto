@@ -143,7 +143,10 @@ class GlueBackend(BaseBackend):
             # sanitise expression, * is treated as a glob like wildcard
             # so we make it a valid regex
             if "*" in expression:
-                expression = expression.replace("*", ".*")
+                if expression.endswith(".*"):
+                    expression = f"{expression[:-2].replace('*', '.*')}\\{expression[-2:]}"
+                else:
+                    expression = expression.replace("*", ".*")
             return [
                 table
                 for table_name, table in database.tables.items()
