@@ -1,5 +1,4 @@
 import collections
-from boto3.session import Session
 from moto.core import BaseBackend, BaseModel
 from moto.moto_api._internal import mock_random
 from moto.core.utils import BackendDict
@@ -7,7 +6,7 @@ from moto.core.utils import BackendDict
 
 class UsageRecord(BaseModel, dict):
     def __init__(self, timestamp, customer_identifier, dimension, quantity=0):
-        super(UsageRecord, self).__init__()
+        super().__init__()
         self.timestamp = timestamp
         self.customer_identifier = customer_identifier
         self.dimension = dimension
@@ -62,10 +61,12 @@ class Result(BaseModel, dict):
     DUPLICATE_RECORD = "DuplicateRecord"
 
     def __init__(self, **kwargs):
-        self.usage_record = UsageRecord(timestamp=kwargs["Timestamp"],
-                                        customer_identifier=kwargs["CustomerIdentifier"],
-                                        dimension=kwargs["Dimension"],
-                                        quantity=kwargs["Quantity"])
+        self.usage_record = UsageRecord(
+            timestamp=kwargs["Timestamp"],
+            customer_identifier=kwargs["CustomerIdentifier"],
+            dimension=kwargs["Dimension"],
+            quantity=kwargs["Quantity"],
+        )
         self.status = Result.SUCCESS
         self["MeteringRecordId"] = self.usage_record.metering_record_id
 
@@ -99,10 +100,12 @@ class Result(BaseModel, dict):
         """
         assert isinstance(other, Result), "Needs to be a Result type"
         usage_record, other = other.usage_record, self.usage_record
-        return other.customer_identifier == usage_record.customer_identifier and \
-            other.dimension == usage_record.dimension and \
-            other.timestamp == usage_record.timestamp and \
-            other.quantity != usage_record.quantity
+        return (
+            other.customer_identifier == usage_record.customer_identifier
+            and other.dimension == usage_record.dimension
+            and other.timestamp == usage_record.timestamp
+            and other.quantity != usage_record.quantity
+        )
 
 
 class CustomerDeque(collections.deque):
@@ -125,14 +128,16 @@ class MeteringMarketplaceBackend(BaseBackend):
         results = []
         for usage in usage_records:
             result = Result(**usage)
-            if not self.customers_by_product[product_code].is_subscribed(result.usage_record.customer_identifier):
+            if not self.customers_by_product[product_code].is_subscribed(
+                result.usage_record.customer_identifier
+            ):
                 result.status = result.CUSTOMER_NOT_SUBSCRIBED
             elif self.records_by_product[product_code].is_duplicate(result):
                 result.status = result.DUPLICATE_RECORD
-            else:
-                records.append(result)
             results.append(result)
         return results
 
 
-meteringmarketplace_backends = BackendDict(MeteringMarketplaceBackend, "meteringmarketplace")
+meteringmarketplace_backends = BackendDict(
+    MeteringMarketplaceBackend, "meteringmarketplace"
+)

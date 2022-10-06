@@ -6,7 +6,7 @@ from werkzeug.exceptions import BadRequest
 
 class DisabledApiException(BadRequest):
     def __init__(self, message):
-        super(DisabledApiException, self).__init__()
+        super().__init__()
         self.description = json.dumps(
             {"message": message, "__type": "DisabledApiException"}
         )
@@ -14,7 +14,7 @@ class DisabledApiException(BadRequest):
 
 class InternalServiceErrorException(BadRequest):
     def __init__(self, message):
-        super(InternalServiceErrorException, self).__init__()
+        super().__init__()
         self.description = json.dumps(
             {"message": message, "__type": "InternalServiceErrorException"}
         )
@@ -22,7 +22,7 @@ class InternalServiceErrorException(BadRequest):
 
 class InvalidCustomerIdentifierException(BadRequest):
     def __init__(self, message):
-        super(InvalidCustomerIdentifierException, self).__init__()
+        super().__init__()
         self.description = json.dumps(
             {"message": message, "__type": "InvalidCustomerIdentifierException"}
         )
@@ -30,7 +30,7 @@ class InvalidCustomerIdentifierException(BadRequest):
 
 class InvalidProductCodeException(BadRequest):
     def __init__(self, message):
-        super(InvalidProductCodeException, self).__init__()
+        super().__init__()
         self.description = json.dumps(
             {"message": message, "__type": "InvalidProductCodeException"}
         )
@@ -38,7 +38,7 @@ class InvalidProductCodeException(BadRequest):
 
 class InvalidUsageDimensionException(BadRequest):
     def __init__(self, message):
-        super(InvalidUsageDimensionException, self).__init__()
+        super().__init__()
         self.description = json.dumps(
             {"message": message, "__type": "InvalidUsageDimensionException"}
         )
@@ -46,7 +46,7 @@ class InvalidUsageDimensionException(BadRequest):
 
 class ThrottlingException(BadRequest):
     def __init__(self, message):
-        super(ThrottlingException, self).__init__()
+        super().__init__()
         self.description = json.dumps(
             {"message": message, "__type": "ThrottlingException"}
         )
@@ -54,7 +54,7 @@ class ThrottlingException(BadRequest):
 
 class TimestampOutOfBoundsException(BadRequest):
     def __init__(self, message):
-        super(TimestampOutOfBoundsException, self).__init__()
+        super().__init__()
         self.description = json.dumps(
             {"message": message, "__type": "TimestampOutOfBoundsException"}
         )

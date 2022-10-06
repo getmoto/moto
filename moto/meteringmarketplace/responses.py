@@ -5,7 +5,6 @@ from .models import meteringmarketplace_backends, MeteringMarketplaceBackend
 
 
 class MarketplaceMeteringResponse(BaseResponse):
-
     @property
     def backend(self) -> MeteringMarketplaceBackend:
         return meteringmarketplace_backends[self.current_account][self.region]
@@ -15,4 +14,4 @@ class MarketplaceMeteringResponse(BaseResponse):
         usage_records = json.loads(self.body)["UsageRecords"]
         product_code = json.loads(self.body)["ProductCode"]
         results = self.backend.batch_meter_usage(product_code, usage_records)
-        return json.dumps({"Results": results,  "UnprocessedRecords": []})
+        return json.dumps({"Results": results, "UnprocessedRecords": []})

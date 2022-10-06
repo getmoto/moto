@@ -88,4 +88,8 @@ def test_batch_meter_usage():
         record["UsageRecord"].pop("Timestamp")
         assert record["UsageRecord"] in records_without_time
         assert record["MeteringRecordId"]
-        assert record["Status"] in [Result.DUPLICATE_RECORD, Result.CUSTOMER_NOT_SUBSCRIBED, Result.SUCCESS]
+        assert record["Status"] in [
+            Result.DUPLICATE_RECORD,
+            Result.CUSTOMER_NOT_SUBSCRIBED,
+            Result.SUCCESS,
+        ]
