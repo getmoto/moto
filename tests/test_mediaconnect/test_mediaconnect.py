@@ -345,6 +345,38 @@ def test_add_flow_outputs_fails():
 
 
 @mock_mediaconnect
+def test_update_flow_output_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config("test-Flow-1")
+
+    create_response = client.create_flow(**channel_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    create_response["Flow"]["Status"].should.equal("STANDBY")
+    flow_arn = create_response["Flow"]["FlowArn"]
+    output_arn = create_response["Flow"]["Outputs"][0]["OutputArn"]
+
+    update_response = client.update_flow_output(
+        FlowArn=flow_arn, OutputArn=output_arn, Description="new description"
+    )
+    update_response["Output"]["Description"].should.equal("new description")
+
+
+@mock_mediaconnect
+def test_update_flow_output_fails():
+    client = boto3.client("mediaconnect", region_name=region)
+    flow_arn = "unknown-flow"
+    with pytest.raises(ClientError) as err:
+        client.update_flow_output(
+            FlowArn=flow_arn,
+            OutputArn="some-arn",
+            Description="new description",
+        )
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("flow with arn=unknown-flow not found")
+
+
+@mock_mediaconnect
 def test_remove_flow_output_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"

@@ -99,6 +99,12 @@ class MediaConnectBackend(BaseBackend):
         for index, output in enumerate(flow.outputs or []):
             if output.get("protocol") in ["srt-listener", "zixi-pull"]:
                 output["listenerAddress"] = f"{index}.0.0.0"
+            output_id = random.uuid4().hex
+            arn = (
+                f"arn:aws:mediaconnect:{self.region_name}"
+                f":{self.account_id}:output:{output_id}:{output['name']}"
+            )
+            output["outputArn"] = arn
 
     def create_flow(
         self,
@@ -240,6 +246,55 @@ class MediaConnectBackend(BaseBackend):
                 message="flow with arn={} not found".format(flow_arn)
             )
         return flow_arn, output_name
+
+    def update_flow_output(
+        self,
+        flow_arn,
+        output_arn,
+        cidr_allow_list,
+        description,
+        destination,
+        encryption,
+        max_latency,
+        media_stream_output_configuration,
+        min_latency,
+        port,
+        protocol,
+        remote_id,
+        sender_control_port,
+        sender_ip_address,
+        smoothing_latency,
+        stream_id,
+        vpc_interface_attachment,
+    ):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        for output in flow.outputs:
+            if output["outputArn"] == output_arn:
+                output["cidrAllowList"] = cidr_allow_list
+                output["description"] = description
+                output["destination"] = destination
+                output["encryption"] = encryption
+                output["maxLatency"] = max_latency
+                output[
+                    "mediaStreamOutputConfiguration"
+                ] = media_stream_output_configuration
+                output["minLatency"] = min_latency
+                output["port"] = port
+                output["protocol"] = protocol
+                output["remoteId"] = remote_id
+                output["senderControlPort"] = sender_control_port
+                output["senderIpAddress"] = sender_ip_address
+                output["smoothingLatency"] = smoothing_latency
+                output["streamId"] = stream_id
+                output["vpcInterfaceAttachment"] = vpc_interface_attachment
+                return flow_arn, output
+        raise NotFoundException(
+            message="output with arn={} not found".format(output_arn)
+        )
 
     def add_flow_sources(self, flow_arn, sources):
         if flow_arn not in self._flows:

@@ -113,6 +113,47 @@ class MediaConnectResponse(BaseResponse):
         )
         return json.dumps(dict(flow_arn=flow_arn, output_name=output_name))
 
+    def update_flow_output(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        output_arn = unquote(self._get_param("outputArn"))
+        cidr_allow_list = self._get_param("cidrAllowList")
+        description = self._get_param("description")
+        destination = self._get_param("destination")
+        encryption = self._get_param("encryption")
+        max_latency = self._get_param("maxLatency")
+        media_stream_output_configuration = self._get_param(
+            "mediaStreamOutputConfiguration"
+        )
+        min_latency = self._get_param("minLatency")
+        port = self._get_param("port")
+        protocol = self._get_param("protocol")
+        remote_id = self._get_param("remoteId")
+        sender_control_port = self._get_param("senderControlPort")
+        sender_ip_address = self._get_param("senderIpAddress")
+        smoothing_latency = self._get_param("smoothingLatency")
+        stream_id = self._get_param("streamId")
+        vpc_interface_attachment = self._get_param("vpcInterfaceAttachment")
+        flow_arn, output = self.mediaconnect_backend.update_flow_output(
+            flow_arn=flow_arn,
+            output_arn=output_arn,
+            cidr_allow_list=cidr_allow_list,
+            description=description,
+            destination=destination,
+            encryption=encryption,
+            max_latency=max_latency,
+            media_stream_output_configuration=media_stream_output_configuration,
+            min_latency=min_latency,
+            port=port,
+            protocol=protocol,
+            remote_id=remote_id,
+            sender_control_port=sender_control_port,
+            sender_ip_address=sender_ip_address,
+            smoothing_latency=smoothing_latency,
+            stream_id=stream_id,
+            vpc_interface_attachment=vpc_interface_attachment,
+        )
+        return json.dumps(dict(flowArn=flow_arn, output=output))
+
     def add_flow_sources(self):
         flow_arn = unquote(self._get_param("flowArn"))
         sources = self._get_param("sources")
