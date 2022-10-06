@@ -6,5 +6,6 @@ flake8==4.0.1
 click
 inflection
 lxml
+mypy
 packaging
 prompt_toolkit

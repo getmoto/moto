@@ -5,6 +5,7 @@ from moto.moto_api._internal import mock_random
 from .exceptions import AWSValidationException
 from collections import OrderedDict
 from enum import Enum, unique
+from typing import Dict, List, Union, Optional, Tuple
 import time
 
 
@@ -63,21 +64,25 @@ class ScalableDimensionValueSet(Enum):
 
 
 class ApplicationAutoscalingBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.ecs_backend = ecs_backends[account_id][region_name]
-        self.targets = OrderedDict()
-        self.policies = {}
-        self.scheduled_actions = list()
+        self.targets: Dict[str, Dict[str, FakeScalableTarget]] = OrderedDict()
+        self.policies: Dict[str, FakeApplicationAutoscalingPolicy] = {}
+        self.scheduled_actions: List[FakeScheduledAction] = list()
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region, zones):
+    def default_vpc_endpoint_service(
+        service_region: str, zones: List[str]
+    ) -> List[Dict[str, str]]:
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "application-autoscaling"
         )
 
-    def describe_scalable_targets(self, namespace, r_ids=None, dimension=None):
+    def describe_scalable_targets(
+        self, namespace: str, r_ids: Union[None, List[str]], dimension: Union[None, str]
+    ) -> List["FakeScalableTarget"]:
         """Describe scalable targets."""
         if r_ids is None:
             r_ids = []
@@ -88,7 +93,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             targets = [t for t in targets if t.resource_id in r_ids]
         return targets
 
-    def _flatten_scalable_targets(self, namespace):
+    def _flatten_scalable_targets(self, namespace: str) -> List["FakeScalableTarget"]:
         """Flatten scalable targets for a given service namespace down to a list."""
         targets = []
         for dimension in self.targets.keys():
@@ -97,23 +102,41 @@ class ApplicationAutoscalingBackend(BaseBackend):
         targets = [t for t in targets if t.service_namespace == namespace]
         return targets
 
-    def register_scalable_target(self, namespace, r_id, dimension, **kwargs):
+    def register_scalable_target(
+        self,
+        namespace: str,
+        r_id: str,
+        dimension: str,
+        min_capacity: Optional[int],
+        max_capacity: Optional[int],
+        role_arn: str,
+        suspended_state: str,
+    ) -> "FakeScalableTarget":
         """Registers or updates a scalable target."""
         _ = _target_params_are_valid(namespace, r_id, dimension)
         if namespace == ServiceNamespaceValueSet.ECS.value:
             _ = self._ecs_service_exists_for_target(r_id)
         if self._scalable_target_exists(r_id, dimension):
             target = self.targets[dimension][r_id]
-            target.update(**kwargs)
+            target.update(min_capacity, max_capacity, suspended_state)
         else:
-            target = FakeScalableTarget(self, namespace, r_id, dimension, **kwargs)
+            target = FakeScalableTarget(
+                self,
+                namespace,
+                r_id,
+                dimension,
+                min_capacity,
+                max_capacity,
+                role_arn,
+                suspended_state,
+            )
             self._add_scalable_target(target)
         return target
 
-    def _scalable_target_exists(self, r_id, dimension):
+    def _scalable_target_exists(self, r_id: str, dimension: str) -> bool:
         return r_id in self.targets.get(dimension, [])
 
-    def _ecs_service_exists_for_target(self, r_id):
+    def _ecs_service_exists_for_target(self, r_id: str) -> bool:
         """Raises a ValidationException if an ECS service does not exist
         for the specified resource ID.
         """
@@ -123,14 +146,18 @@ class ApplicationAutoscalingBackend(BaseBackend):
             raise AWSValidationException("ECS service doesn't exist: {}".format(r_id))
         return True
 
-    def _add_scalable_target(self, target):
+    def _add_scalable_target(
+        self, target: "FakeScalableTarget"
+    ) -> "FakeScalableTarget":
         if target.scalable_dimension not in self.targets:
             self.targets[target.scalable_dimension] = OrderedDict()
         if target.resource_id not in self.targets[target.scalable_dimension]:
             self.targets[target.scalable_dimension][target.resource_id] = target
         return target
 
-    def deregister_scalable_target(self, namespace, r_id, dimension):
+    def deregister_scalable_target(
+        self, namespace: str, r_id: str, dimension: str
+    ) -> None:
         """Registers or updates a scalable target."""
         if self._scalable_target_exists(r_id, dimension):
             del self.targets[dimension][r_id]
@@ -143,13 +170,13 @@ class ApplicationAutoscalingBackend(BaseBackend):
 
     def put_scaling_policy(
         self,
-        policy_name,
-        service_namespace,
-        resource_id,
-        scalable_dimension,
-        policy_body,
-        policy_type=None,
-    ):
+        policy_name: str,
+        service_namespace: str,
+        resource_id: str,
+        scalable_dimension: str,
+        policy_body: str,
+        policy_type: Optional[None],
+    ) -> "FakeApplicationAutoscalingPolicy":
         policy_key = FakeApplicationAutoscalingPolicy.formulate_key(
             service_namespace, resource_id, scalable_dimension, policy_name
         )
@@ -177,21 +204,20 @@ class ApplicationAutoscalingBackend(BaseBackend):
         self.policies[policy_key] = policy
         return policy
 
-    def describe_scaling_policies(self, service_namespace, **kwargs):
-        policy_names = kwargs.get("policy_names")
-        resource_id = kwargs.get("resource_id")
-        scalable_dimension = kwargs.get("scalable_dimension")
-        max_results = kwargs.get("max_results") or 100
-        next_token = kwargs.get("next_token")
+    def describe_scaling_policies(
+        self,
+        service_namespace: str,
+        resource_id: str,
+        scalable_dimension: str,
+        max_results: Optional[int],
+        next_token: str,
+    ) -> Tuple[Optional[str], List["FakeApplicationAutoscalingPolicy"]]:
+        max_results = max_results or 100
         policies = [
             policy
             for policy in self.policies.values()
             if policy.service_namespace == service_namespace
         ]
-        if policy_names:
-            policies = [
-                policy for policy in policies if policy.policy_name in policy_names
-            ]
         if resource_id:
             policies = [
                 policy for policy in policies if policy.resource_id in resource_id
@@ -209,14 +235,17 @@ class ApplicationAutoscalingBackend(BaseBackend):
         return new_next_token, policies_page
 
     def delete_scaling_policy(
-        self, policy_name, service_namespace, resource_id, scalable_dimension
-    ):
+        self,
+        policy_name: str,
+        service_namespace: str,
+        resource_id: str,
+        scalable_dimension: str,
+    ) -> None:
         policy_key = FakeApplicationAutoscalingPolicy.formulate_key(
             service_namespace, resource_id, scalable_dimension, policy_name
         )
         if policy_key in self.policies:
             del self.policies[policy_key]
-            return {}
         else:
             raise AWSValidationException(
                 "No scaling policy found for service namespace: {}, resource ID: {}, scalable dimension: {}, policy name: {}".format(
@@ -225,8 +254,12 @@ class ApplicationAutoscalingBackend(BaseBackend):
             )
 
     def delete_scheduled_action(
-        self, service_namespace, scheduled_action_name, resource_id, scalable_dimension
-    ):
+        self,
+        service_namespace: str,
+        scheduled_action_name: str,
+        resource_id: str,
+        scalable_dimension: str,
+    ) -> None:
         self.scheduled_actions = [
             a
             for a in self.scheduled_actions
@@ -239,8 +272,12 @@ class ApplicationAutoscalingBackend(BaseBackend):
         ]
 
     def describe_scheduled_actions(
-        self, scheduled_action_names, service_namespace, resource_id, scalable_dimension
-    ):
+        self,
+        scheduled_action_names: str,
+        service_namespace: str,
+        resource_id: str,
+        scalable_dimension: str,
+    ) -> List["FakeScheduledAction"]:
         """
         Pagination is not yet implemented
         """
@@ -261,16 +298,16 @@ class ApplicationAutoscalingBackend(BaseBackend):
 
     def put_scheduled_action(
         self,
-        service_namespace,
-        schedule,
-        timezone,
-        scheduled_action_name,
-        resource_id,
-        scalable_dimension,
-        start_time,
-        end_time,
-        scalable_target_action,
-    ):
+        service_namespace: str,
+        schedule: str,
+        timezone: str,
+        scheduled_action_name: str,
+        resource_id: str,
+        scalable_dimension: str,
+        start_time: str,
+        end_time: str,
+        scalable_target_action: str,
+    ) -> None:
         existing_action = next(
             (
                 a
@@ -307,7 +344,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             self.scheduled_actions.append(action)
 
 
-def _target_params_are_valid(namespace, r_id, dimension):
+def _target_params_are_valid(namespace: str, r_id: str, dimension: str) -> bool:
     """Check whether namespace, resource_id and dimension are valid and consistent with each other."""
     is_valid = True
     valid_namespaces = [n.value for n in ServiceNamespaceValueSet]
@@ -337,7 +374,7 @@ def _target_params_are_valid(namespace, r_id, dimension):
     return is_valid
 
 
-def _get_resource_type_from_resource_id(resource_id):
+def _get_resource_type_from_resource_id(resource_id: str) -> str:
     # AWS Application Autoscaling resource_ids are multi-component (path-like) identifiers that vary in format,
     # depending on the type of resource it identifies.  resource_type is one of its components.
     #  resource_id format variations are described in
@@ -366,38 +403,51 @@ def _get_resource_type_from_resource_id(resource_id):
 
 class FakeScalableTarget(BaseModel):
     def __init__(
-        self, backend, service_namespace, resource_id, scalable_dimension, **kwargs
-    ):
+        self,
+        backend: ApplicationAutoscalingBackend,
+        service_namespace: str,
+        resource_id: str,
+        scalable_dimension: str,
+        min_capacity: Optional[int],
+        max_capacity: Optional[int],
+        role_arn: str,
+        suspended_state: str,
+    ) -> None:
         self.applicationautoscaling_backend = backend
         self.service_namespace = service_namespace
         self.resource_id = resource_id
         self.scalable_dimension = scalable_dimension
-        self.min_capacity = kwargs["min_capacity"]
-        self.max_capacity = kwargs["max_capacity"]
-        self.role_arn = kwargs["role_arn"]
-        self.suspended_state = kwargs["suspended_state"]
+        self.min_capacity = min_capacity
+        self.max_capacity = max_capacity
+        self.role_arn = role_arn
+        self.suspended_state = suspended_state
         self.creation_time = time.time()
 
-    def update(self, **kwargs):
-        if kwargs["min_capacity"] is not None:
-            self.min_capacity = kwargs["min_capacity"]
-        if kwargs["max_capacity"] is not None:
-            self.max_capacity = kwargs["max_capacity"]
-        if kwargs["suspended_state"] is not None:
-            self.suspended_state = kwargs["suspended_state"]
+    def update(
+        self,
+        min_capacity: Optional[int],
+        max_capacity: Optional[int],
+        suspended_state: str,
+    ) -> None:
+        if min_capacity is not None:
+            self.min_capacity = min_capacity
+        if max_capacity is not None:
+            self.max_capacity = max_capacity
+        if suspended_state is not None:
+            self.suspended_state = suspended_state
 
 
 class FakeApplicationAutoscalingPolicy(BaseModel):
     def __init__(
         self,
-        region_name,
-        policy_name,
-        service_namespace,
-        resource_id,
-        scalable_dimension,
-        policy_type,
-        policy_body,
-    ):
+        region_name: str,
+        policy_name: str,
+        service_namespace: str,
+        resource_id: str,
+        scalable_dimension: str,
+        policy_type: Optional[str],
+        policy_body: str,
+    ) -> None:
         self.step_scaling_policy_configuration = None
         self.target_tracking_scaling_policy_configuration = None
 
@@ -429,7 +479,12 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self.creation_time = time.time()
 
     @staticmethod
-    def formulate_key(service_namespace, resource_id, scalable_dimension, policy_name):
+    def formulate_key(
+        service_namespace: str,
+        resource_id: str,
+        scalable_dimension: str,
+        policy_name: str,
+    ) -> str:
         return "{}\t{}\t{}\t{}".format(
             service_namespace, resource_id, scalable_dimension, policy_name
         )
@@ -438,18 +493,18 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
 class FakeScheduledAction(BaseModel):
     def __init__(
         self,
-        service_namespace,
-        schedule,
-        timezone,
-        scheduled_action_name,
-        resource_id,
-        scalable_dimension,
-        start_time,
-        end_time,
-        scalable_target_action,
-        account_id,
-        region,
-    ):
+        service_namespace: str,
+        schedule: str,
+        timezone: str,
+        scheduled_action_name: str,
+        resource_id: str,
+        scalable_dimension: str,
+        start_time: str,
+        end_time: str,
+        scalable_target_action: str,
+        account_id: str,
+        region: str,
+    ) -> None:
         self.arn = f"arn:aws:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}:scheduledActionName/{scheduled_action_name}"
         self.service_namespace = service_namespace
         self.schedule = schedule
@@ -464,13 +519,13 @@ class FakeScheduledAction(BaseModel):
 
     def update(
         self,
-        schedule,
-        timezone,
-        scheduled_action_name,
-        start_time,
-        end_time,
-        scalable_target_action,
-    ):
+        schedule: str,
+        timezone: str,
+        scheduled_action_name: str,
+        start_time: str,
+        end_time: str,
+        scalable_target_action: str,
+    ) -> None:
         if scheduled_action_name:
             self.scheduled_action_name = scheduled_action_name
         if schedule:
