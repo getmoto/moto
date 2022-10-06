@@ -467,6 +467,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self._log_backend = log_backend
         self.log_stream_name = None
 
+        self.container_details = {}
         self.attempts = []
         self.latest_attempt = None
 
@@ -492,24 +493,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         result = self.describe_short()
         result["jobQueue"] = self.job_queue.arn
         result["dependsOn"] = self.depends_on if self.depends_on else []
+        result["container"] = self.container_details
         if self.job_stopped:
             result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
-            result["container"] = {}
-            result["container"]["command"] = self._get_container_property("command", [])
-            result["container"]["privileged"] = self._get_container_property(
-                "privileged", False
-            )
-            result["container"][
-                "readonlyRootFilesystem"
-            ] = self._get_container_property("readonlyRootFilesystem", False)
-            result["container"]["ulimits"] = self._get_container_property("ulimits", {})
-            result["container"]["vcpus"] = self._get_container_property("vcpus", 1)
-            result["container"]["memory"] = self._get_container_property("memory", 512)
-            result["container"]["volumes"] = self._get_container_property("volumes", [])
-            result["container"]["environment"] = self._get_container_property(
-                "environment", []
-            )
-            result["container"]["logStreamName"] = self.log_stream_name
         if self.timeout:
             result["timeout"] = self.timeout
         result["attempts"] = self.attempts
@@ -610,6 +596,21 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             # TODO setup ecs container instance
 
             self.job_started_at = datetime.datetime.now()
+
+            self.container_details["command"] = self._get_container_property("command", [])
+            self.container_details["privileged"] = self._get_container_property(
+                "privileged", False
+            )
+            self.container_details[
+                "readonlyRootFilesystem"
+            ] = self._get_container_property("readonlyRootFilesystem", False)
+            self.container_details["ulimits"] = self._get_container_property("ulimits", {})
+            self.container_details["vcpus"] = self._get_container_property("vcpus", 1)
+            self.container_details["memory"] = self._get_container_property("memory", 512)
+            self.container_details["volumes"] = self._get_container_property("volumes", [])
+            self.container_details["environment"] = self._get_container_property(
+                "environment", []
+            )
             self._start_attempt()
 
             # add host.docker.internal host on linux to emulate Mac + Windows behavior
@@ -727,6 +728,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 self._log_backend.ensure_log_group(log_group, None)
                 self._log_backend.create_log_stream(log_group, stream_name)
                 self._log_backend.put_log_events(log_group, stream_name, logs)
+
+                self.container_details["logStreamName"] = self.log_stream_name
 
                 result = container.wait() or {}
                 self.exit_code = result.get("StatusCode", 0)
