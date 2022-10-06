@@ -1,5 +1,6 @@
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
+from typing import Optional
 import json
 
 # TODO: add "<Type>Sender</Type>" to error responses below?
@@ -133,10 +134,12 @@ class AuthFailureError(RESTError):
 
 
 class AWSError(JsonRESTError):
-    TYPE = None
+    TYPE: Optional[str] = None
     STATUS = 400
 
-    def __init__(self, message, exception_type=None, status=None):
+    def __init__(
+        self, message: str, exception_type: str = None, status: Optional[int] = None
+    ):
         super().__init__(exception_type or self.TYPE, message)
         self.code = status or self.STATUS
 

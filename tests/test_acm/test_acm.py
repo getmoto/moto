@@ -433,6 +433,18 @@ def test_request_certificate_with_tags():
             {"Key": "WithEmptyStr", "Value": ""},
         ],
     )
+    arn_3 = resp["CertificateArn"]
+
+    assert arn_1 != arn_3  # if tags are matched, ACM would have returned same arn
+
+    resp = client.request_certificate(
+        DomainName="google.com",
+        IdempotencyToken=token,
+        SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+    )
+    arn_4 = resp["CertificateArn"]
+
+    assert arn_1 != arn_4  # if tags are matched, ACM would have returned same arn
 
 
 @mock_acm

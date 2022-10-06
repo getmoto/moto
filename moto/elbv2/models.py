@@ -1548,14 +1548,13 @@ Member must satisfy regular expression pattern: {}".format(
         """
         Verify the provided certificate exists in either ACM or IAM
         """
-        from moto.acm import acm_backends
-        from moto.acm.models import AWSResourceNotFoundException
+        from moto.acm.models import acm_backends, CertificateNotFound
 
         try:
             acm_backend = acm_backends[self.account_id][self.region_name]
             acm_backend.get_certificate(certificate_arn)
             return True
-        except AWSResourceNotFoundException:
+        except CertificateNotFound:
             pass
 
         from moto.iam import iam_backends
