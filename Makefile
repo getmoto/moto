@@ -27,6 +27,8 @@ lint:
 	black --check moto/ tests/
 	@echo "Running pylint..."
 	pylint -j 0 moto tests
+	@echo "Running MyPy..."
+	mypy --install-types --non-interactive moto/applicationautoscaling/
 
 format:
 	black moto/ tests/

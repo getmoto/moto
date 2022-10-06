@@ -1,28 +1,23 @@
+import boto3
 import functools
-from collections import defaultdict
 import datetime
 import json
 import logging
 import os
 import re
 import requests
-
 import pytz
-
-from moto.core.exceptions import DryRunClientError
-
-from jinja2 import Environment, DictLoader
-
-from urllib.parse import parse_qs, parse_qsl, urlparse
-
 import xmltodict
-from werkzeug.exceptions import HTTPException
 
-import boto3
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
+from moto import settings
+from moto.core.exceptions import DryRunClientError
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
-from moto import settings
+from jinja2 import Environment, DictLoader
+from typing import Dict, List, Union, Any, Optional
+from urllib.parse import parse_qs, parse_qsl, urlparse
+from werkzeug.exceptions import HTTPException
 
 log = logging.getLogger(__name__)
 
@@ -208,7 +203,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     )
     aws_service_spec = None
 
-    def __init__(self, service_name=None):
+    def __init__(self, service_name=None) -> None:
         super().__init__()
         self.service_name = service_name
 
@@ -216,7 +211,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def dispatch(cls, *args, **kwargs):
         return cls()._dispatch(*args, **kwargs)
 
-    def setup_class(self, request, full_url, headers, use_raw_body=False):
+    def setup_class(self, request, full_url, headers, use_raw_body=False) -> None:
         """
         use_raw_body: Use incoming bytes if True, encode to string otherwise
         """
@@ -473,7 +468,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             headers["status"] = str(headers["status"])
         return status, headers, body
 
-    def _get_param(self, param_name, if_none=None):
+    def _get_param(self, param_name, if_none=None) -> Any:
         val = self.querystring.get(param_name)
         if val is not None:
             return val[0]
@@ -495,13 +490,13 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 pass
         return if_none
 
-    def _get_int_param(self, param_name, if_none=None):
+    def _get_int_param(self, param_name, if_none: int = None) -> Optional[int]:
         val = self._get_param(param_name)
         if val is not None:
             return int(val)
         return if_none
 
-    def _get_bool_param(self, param_name, if_none=None):
+    def _get_bool_param(self, param_name, if_none: bool = None) -> Optional[bool]:
         val = self._get_param(param_name)
         if val is not None:
             val = str(val)
@@ -511,7 +506,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return False
         return if_none
 
-    def _get_multi_param_dict(self, param_prefix):
+    def _get_multi_param_dict(self, param_prefix) -> Dict:
         return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
 
     def _get_multi_param_helper(
@@ -582,7 +577,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return value_dict
 
-    def _get_multi_param(self, param_prefix, skip_result_conversion=False):
+    def _get_multi_param(
+        self, param_prefix, skip_result_conversion=False
+    ) -> List[Union[str, Dict]]:
         """
         Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
         this will return ['my-test-1', 'my-test-2']
@@ -605,7 +602,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return values
 
-    def _get_dict_param(self, param_prefix):
+    def _get_dict_param(self, param_prefix) -> Dict:
         """
         Given a parameter dict of
         {
@@ -627,7 +624,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 ]
         return params
 
-    def _get_params(self):
+    def _get_params(self) -> Dict[str, Union[str, List, Dict]]:
         """
         Given a querystring of
         {
