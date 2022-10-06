@@ -4037,7 +4037,7 @@
 - [X] tag_resource
 - [ ] untag_resource
 - [ ] update_flow
-- [ ] update_flow_entitlement
+- [x] update_flow_entitlement
 - [ ] update_flow_media_stream
 - [ ] update_flow_output
 - [X] update_flow_source

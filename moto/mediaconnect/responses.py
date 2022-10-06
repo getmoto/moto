@@ -177,3 +177,22 @@ class MediaConnectResponse(BaseResponse):
             flow_arn=flow_arn, entitlement_arn=entitlement_arn
         )
         return json.dumps(dict(flowArn=flow_arn, entitlementArn=entitlement_arn))
+
+    def update_flow_entitlement(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        entitlement_arn = unquote(self._get_param("entitlementArn"))
+        description = self._get_param("description")
+        encryption = self._get_param("encryption")
+        entitlement_status = self._get_param("entitlementStatus")
+        name = self._get_param("name")
+        subscribers = self._get_param("subscribers")
+        flow_arn, entitlement = self.mediaconnect_backend.update_flow_entitlement(
+            flow_arn=flow_arn,
+            entitlement_arn=entitlement_arn,
+            description=description,
+            encryption=encryption,
+            entitlement_status=entitlement_status,
+            name=name,
+            subscribers=subscribers,
+        )
+        return json.dumps(dict(flowArn=flow_arn, entitlement=entitlement))

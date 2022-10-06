@@ -351,6 +351,33 @@ class MediaConnectBackend(BaseBackend):
             message="entitlement with arn={} not found".format(entitlement_arn)
         )
 
+    def update_flow_entitlement(
+        self,
+        flow_arn,
+        entitlement_arn,
+        description,
+        encryption,
+        entitlement_status,
+        name,
+        subscribers,
+    ):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        for entitlement in flow.entitlements:
+            if entitlement_arn == entitlement["entitlementArn"]:
+                entitlement["description"] = description
+                entitlement["encryption"] = encryption
+                entitlement["entitlementStatus"] = entitlement_status
+                entitlement["name"] = name
+                entitlement["subscribers"] = subscribers
+                return flow_arn, entitlement
+        raise NotFoundException(
+            message="entitlement with arn={} not found".format(entitlement_arn)
+        )
+
         # add methods from here
 
 

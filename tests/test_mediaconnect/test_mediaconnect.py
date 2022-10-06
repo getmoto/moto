@@ -589,3 +589,53 @@ def test_revoke_flow_entitlement_succeeds():
     describe_response = client.describe_flow(FlowArn=flow_arn)
     describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     len(describe_response["Flow"]["Entitlements"]).should.equal(0)
+
+
+@mock_mediaconnect
+def test_update_flow_entitlement_fails():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config("test-Flow-1")
+
+    create_response = client.create_flow(**channel_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    create_response["Flow"]["Status"].should.equal("STANDBY")
+    flow_arn = create_response["Flow"]["FlowArn"]
+
+    describe_response = client.describe_flow(FlowArn=flow_arn)
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(describe_response["Flow"]["Entitlements"]).should.equal(1)
+
+    with pytest.raises(ClientError) as err:
+        client.update_flow_entitlement(
+            FlowArn=flow_arn,
+            EntitlementArn="some-other-arn",
+            Description="new description",
+        )
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("entitlement with arn=some-other-arn not found")
+
+
+@mock_mediaconnect
+def test_update_flow_entitlement_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config("test-Flow-1")
+
+    create_response = client.create_flow(**channel_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    create_response["Flow"]["Status"].should.equal("STANDBY")
+    flow_arn = create_response["Flow"]["FlowArn"]
+
+    describe_response = client.describe_flow(FlowArn=flow_arn)
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    entitlement_arn = describe_response["Flow"]["Entitlements"][0]["EntitlementArn"]
+
+    update_response = client.update_flow_entitlement(
+        FlowArn=flow_arn,
+        EntitlementArn=entitlement_arn,
+        Description="new description",
+    )
+    update_response["FlowArn"].should.equal(flow_arn)
+    entitlement = update_response["Entitlement"]
+    entitlement["EntitlementArn"].should.equal(entitlement_arn)
+    entitlement["Description"].should.equal("new description")
