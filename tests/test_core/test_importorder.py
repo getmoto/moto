@@ -6,8 +6,8 @@ from moto import settings
 from unittest import SkipTest
 
 
-@pytest.fixture(scope="function")
-def aws_credentials(monkeypatch):
+@pytest.fixture(scope="function", name="aws_credentials")
+def fixture_aws_credentials(monkeypatch):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("No point in testing this in ServerMode.")
     """Mocked AWS Credentials for moto."""

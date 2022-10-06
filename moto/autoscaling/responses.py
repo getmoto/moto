@@ -137,6 +137,10 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DELETE_SCHEDULED_ACTION_TEMPLATE)
         return template.render()
 
+    def describe_scaling_activities(self):
+        template = self.response_template(DESCRIBE_SCALING_ACTIVITIES_TEMPLATE)
+        return template.render()
+
     @amz_crc32
     @amzn_request_id
     def attach_instances(self):
@@ -882,6 +886,14 @@ DELETE_AUTOSCALING_GROUP_TEMPLATE = """<DeleteAutoScalingGroupResponse xmlns="ht
     <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteAutoScalingGroupResponse>"""
+
+DESCRIBE_SCALING_ACTIVITIES_TEMPLATE = """<DescribeScalingActivitiesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<DescribeScalingActivitiesResult>
+</DescribeScalingActivitiesResult>
+<ResponseMetadata>
+<RequestId></RequestId>
+</ResponseMetadata>
+</DescribeScalingActivitiesResponse>"""
 
 DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <DescribeAutoScalingInstancesResult>

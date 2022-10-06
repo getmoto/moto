@@ -3,6 +3,7 @@
 from .exceptions import CostCategoryNotFound
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.utilities.tagging_service import TaggingService
 from moto.moto_api._internal import mock_random
 
 
@@ -40,6 +41,7 @@ class CostExplorerBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.cost_categories = dict()
+        self.tagger = TaggingService()
 
     def create_cost_category_definition(
         self,
@@ -48,6 +50,7 @@ class CostExplorerBackend(BaseBackend):
         rules,
         default_value,
         split_charge_rules,
+        tags,
     ):
         """
         The EffectiveOn and ResourceTags-parameters are not yet implemented
@@ -61,6 +64,7 @@ class CostExplorerBackend(BaseBackend):
             split_charge_rules,
         )
         self.cost_categories[ccd.arn] = ccd
+        self.tag_resource(ccd.arn, tags)
         return ccd.arn, ""
 
     def describe_cost_category_definition(self, cost_category_arn):
@@ -89,6 +93,15 @@ class CostExplorerBackend(BaseBackend):
         cost_category.update(rule_version, rules, default_value, split_charge_rules)
 
         return cost_category_arn, ""
+
+    def list_tags_for_resource(self, resource_arn):
+        return self.tagger.list_tags_for_resource(arn=resource_arn)["Tags"]
+
+    def tag_resource(self, resource_arn, tags):
+        self.tagger.tag_resource(resource_arn, tags)
+
+    def untag_resource(self, resource_arn, tag_keys):
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
 ce_backends = BackendDict(

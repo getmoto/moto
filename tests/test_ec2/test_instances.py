@@ -88,7 +88,12 @@ def test_instance_launch_and_terminate():
         "An error occurred (DryRunOperation) when calling the TerminateInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    client.terminate_instances(InstanceIds=[instance_id])
+    response = client.terminate_instances(InstanceIds=[instance_id])
+    response["TerminatingInstances"].should.have.length_of(1)
+    instance = response["TerminatingInstances"][0]
+    instance["InstanceId"].should.equal(instance_id)
+    instance["PreviousState"].should.equal({"Code": 16, "Name": "running"})
+    instance["CurrentState"].should.equal({"Code": 32, "Name": "shutting-down"})
 
     reservations = client.describe_instances(InstanceIds=[instance_id])["Reservations"]
     instance = reservations[0]["Instances"][0]
@@ -947,8 +952,7 @@ def test_instance_start_and_stop():
         "StartingInstances"
     ]
     started_instances[0]["CurrentState"].should.equal({"Code": 0, "Name": "pending"})
-    # TODO: The PreviousState is hardcoded to 'running' atm
-    # started_instances[0]["PreviousState"].should.equal({'Code': 80, 'Name': 'stopped'})
+    started_instances[0]["PreviousState"].should.equal({"Code": 80, "Name": "stopped"})
 
 
 @mock_ec2
@@ -2416,6 +2420,63 @@ def test_run_instance_cannot_have_subnet_and_networkinterface_parameter():
     err["Message"].should.equal(
         "Network interfaces and an instance-level subnet ID may not be specified on the same request"
     )
+
+
+@mock_ec2
+def test_run_instance_in_subnet_with_nic_private_ip():
+    vpc_cidr_block = "10.26.0.0/16"
+    subnet_cidr_block = "10.26.1.0/24"
+    private_ip = "10.26.1.3"
+    ec2 = boto3.resource("ec2", region_name="eu-west-1")
+    vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock=subnet_cidr_block,
+    )
+    my_interface = {
+        "SubnetId": subnet.id,
+        "DeviceIndex": 0,
+        "PrivateIpAddress": private_ip,
+    }
+    [instance] = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
+    )
+    instance.private_ip_address.should.equal(private_ip)
+
+    interfaces = instance.network_interfaces_attribute
+    address = interfaces[0]["PrivateIpAddresses"][0]
+    address.shouldnt.have.key("Association")
+
+
+@mock_ec2
+def test_run_instance_in_subnet_with_nic_private_ip_and_public_association():
+    vpc_cidr_block = "10.26.0.0/16"
+    subnet_cidr_block = "10.26.1.0/24"
+    primary_private_ip = "10.26.1.3"
+    other_private_ip = "10.26.1.4"
+    ec2 = boto3.resource("ec2", region_name="eu-west-1")
+    vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock=subnet_cidr_block,
+    )
+    my_interface = {
+        "SubnetId": subnet.id,
+        "DeviceIndex": 0,
+        "AssociatePublicIpAddress": True,
+        "PrivateIpAddresses": [
+            {"Primary": True, "PrivateIpAddress": primary_private_ip},
+            {"Primary": False, "PrivateIpAddress": other_private_ip},
+        ],
+    }
+    [instance] = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
+    )
+    instance.private_ip_address.should.equal(primary_private_ip)
+
+    interfaces = instance.network_interfaces_attribute
+    address = interfaces[0]["PrivateIpAddresses"][0]
+    address["Association"].should.have.key("IpOwnerId").equal(ACCOUNT_ID)
 
 
 @mock_ec2

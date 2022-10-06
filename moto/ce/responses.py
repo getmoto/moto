@@ -20,6 +20,7 @@ class CostExplorerResponse(BaseResponse):
         rules = params.get("Rules")
         default_value = params.get("DefaultValue")
         split_charge_rules = params.get("SplitChargeRules")
+        tags = params.get("ResourceTags")
         (
             cost_category_arn,
             effective_start,
@@ -29,6 +30,7 @@ class CostExplorerResponse(BaseResponse):
             rules=rules,
             default_value=default_value,
             split_charge_rules=split_charge_rules,
+            tags=tags,
         )
         return json.dumps(
             dict(CostCategoryArn=cost_category_arn, EffectiveStart=effective_start)
@@ -75,3 +77,23 @@ class CostExplorerResponse(BaseResponse):
         return json.dumps(
             dict(CostCategoryArn=cost_category_arn, EffectiveStart=effective_start)
         )
+
+    def list_tags_for_resource(self):
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        tags = self.ce_backend.list_tags_for_resource(resource_arn)
+        return json.dumps({"ResourceTags": tags})
+
+    def tag_resource(self):
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        tags = params.get("ResourceTags")
+        self.ce_backend.tag_resource(resource_arn, tags)
+        return json.dumps({})
+
+    def untag_resource(self):
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        tag_names = params.get("ResourceTagKeys")
+        self.ce_backend.untag_resource(resource_arn, tag_names)
+        return json.dumps({})

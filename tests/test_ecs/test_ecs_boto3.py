@@ -1707,6 +1707,88 @@ def test_run_task():
 
 @mock_ec2
 @mock_ecs
+def test_run_task_awsvpc_network():
+
+    # Setup
+    client = boto3.client("ecs", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    # ECS setup
+    setup_resources = setup_ecs(client, ec2)
+
+    # Execute
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        startedBy="moto",
+        launchType="FARGATE",
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": [setup_resources[0].id],
+                "securityGroups": [setup_resources[1].id],
+            }
+        },
+    )
+
+    # Verify
+    len(response["tasks"]).should.equal(1)
+    response["tasks"][0]["lastStatus"].should.equal("RUNNING")
+    response["tasks"][0]["desiredStatus"].should.equal("RUNNING")
+    response["tasks"][0]["startedBy"].should.equal("moto")
+    response["tasks"][0]["stoppedReason"].should.equal("")
+
+    eni = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "description", "Values": ["moto ECS"]}]
+    )["NetworkInterfaces"][0]
+    try:
+        # should be UUID
+        UUID(response["tasks"][0]["attachments"][0]["id"])
+    except ValueError:
+        assert False
+    response["tasks"][0]["attachments"][0]["status"].should.equal("ATTACHED")
+    response["tasks"][0]["attachments"][0]["type"].should.equal(
+        "ElasticNetworkInterface"
+    )
+    details = response["tasks"][0]["attachments"][0]["details"]
+
+    assert {"name": "subnetId", "value": setup_resources[0].id} in details
+    assert {"name": "privateDnsName", "value": eni["PrivateDnsName"]} in details
+    assert {"name": "privateIPv4Address", "value": eni["PrivateIpAddress"]} in details
+    assert {"name": "networkInterfaceId", "value": eni["NetworkInterfaceId"]} in details
+    assert {"name": "macAddress", "value": eni["MacAddress"]} in details
+
+
+@mock_ec2
+@mock_ecs
+def test_run_task_awsvpc_network_error():
+
+    # Setup
+    client = boto3.client("ecs", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    # ECS setup
+    setup_ecs(client, ec2)
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.run_task(
+            cluster="test_ecs_cluster",
+            overrides={},
+            taskDefinition="test_ecs_task",
+            startedBy="moto",
+            launchType="FARGATE",
+        )
+        err = exc.value.response["Error"]
+        assert err["Code"].equals("InvalidParameterException")
+        assert err["Message"].equals(
+            "Network Configuration must be provided when networkMode 'awsvpc' is specified."
+        )
+
+
+@mock_ec2
+@mock_ecs
 def test_run_task_default_cluster():
     client = boto3.client("ecs", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -3640,3 +3722,42 @@ def test_list_tasks_with_filters():
         cluster="test_cluster_1", containerInstance=container_id_1, startedBy="bar"
     )
     len(resp["taskArns"]).should.equal(1)
+
+
+def setup_ecs(client, ec2):
+    """test helper"""
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    sg = ec2.create_security_group(
+        VpcId=vpc.id, GroupName="test-ecs", Description="moto ecs"
+    )
+    test_cluster_name = "test_ecs_cluster"
+    client.create_cluster(clusterName=test_cluster_name)
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+    client.register_container_instance(
+        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
+    )
+    client.register_task_definition(
+        family="test_ecs_task",
+        networkMode="awsvpc",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+
+    return subnet, sg

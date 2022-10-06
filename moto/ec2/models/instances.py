@@ -334,6 +334,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return self.id
 
     def start(self):
+        previous_state = copy.copy(self._state)
+
         for nic in self.nics.values():
             nic.start()
 
@@ -343,7 +345,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._reason = ""
         self._state_reason = StateReason()
 
+        return previous_state
+
     def stop(self):
+        previous_state = copy.copy(self._state)
+
         for nic in self.nics.values():
             nic.stop()
 
@@ -358,6 +364,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "Client.UserInitiatedShutdown",
         )
 
+        return previous_state
+
     def is_running(self):
         return self._state.name == "running"
 
@@ -365,6 +373,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.terminate()
 
     def terminate(self):
+        previous_state = copy.copy(self._state)
+
         for nic in self.nics.values():
             nic.stop()
 
@@ -413,6 +423,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 ].id
             )
 
+        return previous_state
+
     def reboot(self):
         self._state.name = "running"
         self._state.code = 16
@@ -424,10 +436,26 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def dynamic_group_list(self):
         return self.security_groups
 
+    def _get_private_ip_from_nic(self, nic):
+        private_ip = nic.get("PrivateIpAddress")
+        if private_ip:
+            return private_ip
+        for address in nic.get("PrivateIpAddresses", []):
+            if address.get("Primary") == "true":
+                return address.get("PrivateIpAddress")
+
     def prep_nics(
         self, nic_spec, private_ip=None, associate_public_ip=None, security_groups=None
     ):
         self.nics = {}
+        for nic in nic_spec:
+            if int(nic.get("DeviceIndex")) == 0:
+                nic_associate_public_ip = nic.get("AssociatePublicIpAddress")
+                if nic_associate_public_ip is not None:
+                    associate_public_ip = nic_associate_public_ip == "true"
+                if private_ip is None:
+                    private_ip = self._get_private_ip_from_nic(nic)
+                break
 
         if self.subnet_id:
             subnet = self.ec2_backend.get_subnet(self.subnet_id)
@@ -693,16 +721,16 @@ class InstanceBackend:
     def start_instances(self, instance_ids):
         started_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
-            instance.start()
-            started_instances.append(instance)
+            previous_state = instance.start()
+            started_instances.append((instance, previous_state))
 
         return started_instances
 
     def stop_instances(self, instance_ids):
         stopped_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
-            instance.stop()
-            stopped_instances.append(instance)
+            previous_state = instance.stop()
+            stopped_instances.append((instance, previous_state))
 
         return stopped_instances
 
@@ -715,8 +743,8 @@ class InstanceBackend:
         for instance in self.get_multi_instances_by_id(instance_ids):
             if instance.disable_api_termination == "true":
                 raise OperationNotPermitted4(instance.id)
-            instance.terminate()
-            terminated_instances.append(instance)
+            previous_state = instance.terminate()
+            terminated_instances.append((instance, previous_state))
 
         return terminated_instances
 

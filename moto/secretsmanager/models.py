@@ -18,13 +18,19 @@ from .exceptions import (
     ClientError,
 )
 from .utils import random_password, secret_arn, get_secret_name_from_arn
-from .list_secrets.filters import filter_all, tag_key, tag_value, description, name
+from .list_secrets.filters import (
+    filter_all,
+    tag_key,
+    tag_value,
+    description_filter,
+    name_filter,
+)
 
 
 _filter_functions = {
     "all": filter_all,
-    "name": name,
-    "description": description,
+    "name": name_filter,
+    "description": description_filter,
     "tag-key": tag_key,
     "tag-value": tag_value,
 }

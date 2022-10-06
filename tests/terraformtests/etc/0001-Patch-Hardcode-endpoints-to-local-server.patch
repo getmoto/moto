@@ -1,18 +1,8 @@
-From 91f2d9c33f241cb9dfb3700eaa739a46a06a29bc Mon Sep 17 00:00:00 2001
-From: Bert Blommers <info@bertblommers.nl>
-Date: Wed, 29 Jun 2022 16:24:04 +0000
-Subject: [PATCH] Patch: Hardcode endpoints
-
----
- internal/conns/config.go      | 15 +++++++++++++++
- internal/provider/provider.go |  4 ++--
- 2 files changed, 17 insertions(+), 2 deletions(-)
-
 diff --git a/internal/conns/config.go b/internal/conns/config.go
-index 7bfd3100fd..b59083068a 100644
+index 13b7d153a7..1d981e9097 100644
 --- a/internal/conns/config.go
 +++ b/internal/conns/config.go
-@@ -78,8 +78,23 @@ type Config struct {
+@@ -86,8 +86,23 @@ type Config struct {
  	UseFIPSEndpoint                bool
  }
 
@@ -26,8 +16,8 @@ index 7bfd3100fd..b59083068a 100644
 +	return localEndpoints
 +}
 +
- // Client configures and returns a fully initialized AWSClient
- func (c *Config) Client(ctx context.Context) (interface{}, diag.Diagnostics) {
+ // ConfigureProvider configures the provided provider Meta (instance data).
+ func (c *Config) ConfigureProvider(ctx context.Context, client *AWSClient) (*AWSClient, diag.Diagnostics) {
 +
 +	// XXX: added by bblommers
 +	// insert custom endpoints
@@ -37,19 +27,18 @@ index 7bfd3100fd..b59083068a 100644
  		AccessKey:                     c.AccessKey,
  		APNInfo:                       StdUserAgentProducts(c.TerraformVersion),
 diff --git a/internal/provider/provider.go b/internal/provider/provider.go
-index 7e6200d9ac..98d8c4fccc 100644
+index c49bd366d3..2db930e61d 100644
 --- a/internal/provider/provider.go
 +++ b/internal/provider/provider.go
-@@ -2082,14 +2082,14 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
+@@ -2196,13 +2196,13 @@ func configure(ctx context.Context, provider *schema.Provider, d *schema.Resourc
  		CustomCABundle:                 d.Get("custom_ca_bundle").(string),
  		EC2MetadataServiceEndpoint:     d.Get("ec2_metadata_service_endpoint").(string),
  		EC2MetadataServiceEndpointMode: d.Get("ec2_metadata_service_endpoint_mode").(string),
 -		Endpoints:                      make(map[string]string),
 +		Endpoints:                      conns.GetLocalEndpoints(),  // XXX: added by bblommers
  		HTTPProxy:                      d.Get("http_proxy").(string),
- 		IgnoreTagsConfig:               expandProviderIgnoreTags(d.Get("ignore_tags").([]interface{})),
  		Insecure:                       d.Get("insecure").(bool),
- 		MaxRetries:                     d.Get("max_retries").(int),
+ 		MaxRetries:                     25, // Set default here, not in schema (muxing with v6 provider).
  		Profile:                        d.Get("profile").(string),
  		Region:                         d.Get("region").(string),
 -		S3UsePathStyle:                 d.Get("s3_use_path_style").(bool) || d.Get("s3_force_path_style").(bool),
@@ -57,6 +46,3 @@ index 7e6200d9ac..98d8c4fccc 100644
  		SecretKey:                      d.Get("secret_key").(string),
  		SkipCredsValidation:            d.Get("skip_credentials_validation").(bool),
  		SkipGetEC2Platforms:            d.Get("skip_get_ec2_platforms").(bool),
--- 
-2.25.1
-

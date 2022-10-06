@@ -1394,7 +1394,7 @@ class S3Response(BaseResponse):
         checksum_value = request.headers.get(checksum_header)
         if not checksum_value and checksum_algorithm:
             # Extract the checksum-value from the body first
-            search = re.search(b"x-amz-checksum-\w+:(\w+={1,2})", body)
+            search = re.search(rb"x-amz-checksum-\w+:(\w+={1,2})", body)
             checksum_value = search.group(1) if search else None
 
         if checksum_value:

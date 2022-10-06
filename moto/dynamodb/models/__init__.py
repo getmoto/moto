@@ -32,6 +32,7 @@ from moto.dynamodb.exceptions import (
     StreamAlreadyEnabledException,
     MockValidationException,
     InvalidConversion,
+    TransactWriteSingleOpException,
 )
 from moto.dynamodb.models.utilities import bytesize
 from moto.dynamodb.models.dynamo_type import DynamoType
@@ -1656,6 +1657,11 @@ class DynamoDBBackend(BaseBackend):
 
         errors = []  # [(Code, Message, Item), ..]
         for item in transact_items:
+            # check transact writes are not performing multiple operations
+            # in the same item
+            if len(list(item.keys())) > 1:
+                raise TransactWriteSingleOpException
+
             try:
                 if "ConditionCheck" in item:
                     item = item["ConditionCheck"]
@@ -1682,6 +1688,7 @@ class DynamoDBBackend(BaseBackend):
                     item = item["Put"]
                     attrs = item["Item"]
                     table_name = item["TableName"]
+                    check_unicity(table_name, item)
                     condition_expression = item.get("ConditionExpression", None)
                     expression_attribute_names = item.get(
                         "ExpressionAttributeNames", None

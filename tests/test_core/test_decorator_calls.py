@@ -18,8 +18,8 @@ def test_basic_decorator():
     client.describe_addresses()["Addresses"].should.equal([])
 
 
-@pytest.fixture
-def aws_credentials(monkeypatch):
+@pytest.fixture(name="aws_credentials")
+def fixture_aws_credentials(monkeypatch):
     """Mocked AWS Credentials for moto."""
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")

@@ -82,13 +82,14 @@ def test_describe_instance_types_gpu_instance_types():
 def test_describe_instance_types_unknown_type():
     client = boto3.client("ec2", "us-east-1")
 
-    with pytest.raises(ClientError) as err:
+    with pytest.raises(ClientError) as exc_info:
         client.describe_instance_types(InstanceTypes=["t1.non_existent"])
-        err.response["Error"]["Code"].should.equal("ValidationException")
-        err.response["Error"]["Message"].split(":")[0].should.look_like(
-            "The instance type '{'t1.non_existent'}' does not exist"
-        )
-        err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+    exc_info.value.response["Error"]["Code"].should.equal("InvalidInstanceType")
+    exc_info.value.response["Error"]["Message"].should.equal(
+        "The following supplied instance types do not exist: [t1.non_existent]",
+    )
+    exc_info.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_ec2
@@ -180,3 +181,34 @@ def test_describe_instance_types_filter_by_current_generation():
 
     # not contain
     types.should_not.contain("t1.micro")
+
+
+@mock_ec2
+def test_describe_instance_types_small_instances():
+    client = boto3.client("ec2", "us-east-1")
+    instance_types = client.describe_instance_types(Filters=[
+        {"Name": "bare-metal", "Values": ["false"]},
+        {"Name": "current-generation", "Values": ["true"]},
+        {"Name": "vcpu-info.default-cores", "Values": ["1"]},
+        {"Name": "memory-info.size-in-mib", "Values": ["512", "1024"]},
+        {"Name": "vcpu-info.valid-threads-per-core", "Values": ["1"]},
+    ])  # fmt: skip
+
+    types = set(t["InstanceType"] for t in instance_types["InstanceTypes"])
+    types.should.equal({"t3.nano", "t3.micro", "t3a.nano", "t3a.micro"})
+
+
+@mock_ec2
+def test_describe_instance_types_invalid_filter():
+    client = boto3.client("ec2", "us-east-1")
+
+    with pytest.raises(ClientError) as exc_info:
+        client.describe_instance_types(
+            Filters=[{"Name": "spam", "Values": ["eggs"]}],
+        )
+
+    exc_info.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    exc_info.value.response["Error"]["Message"].split(":")[0].should.equal(
+        "The filter 'spam' is invalid",
+    )
+    exc_info.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)

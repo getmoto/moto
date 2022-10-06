@@ -83,9 +83,9 @@ class CloudFrontResponse(BaseResponse):
         if_match = headers["If-Match"]
 
         dist, location, e_tag = self.backend.update_distribution(
-            DistributionConfig=distribution_config,
-            Id=dist_id,
-            IfMatch=if_match,
+            dist_config=distribution_config,
+            _id=dist_id,
+            if_match=if_match,
         )
         template = self.response_template(UPDATE_DISTRIBUTION_TEMPLATE)
         response = template.render(distribution=dist, xmlns=XMLNS)

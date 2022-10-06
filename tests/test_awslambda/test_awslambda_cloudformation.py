@@ -139,7 +139,7 @@ def test_event_source_mapping_create_from_cloudformation_json():
         "FunctionArn"
     ]
 
-    template = event_source_mapping_template.substitute(
+    esm_template = event_source_mapping_template.substitute(
         {
             "resource_name": "Foo",
             "batch_size": 1,
@@ -149,7 +149,7 @@ def test_event_source_mapping_create_from_cloudformation_json():
         }
     )
 
-    cf.create_stack(StackName=random_stack_name(), TemplateBody=template)
+    cf.create_stack(StackName=random_stack_name(), TemplateBody=esm_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
 
     event_sources["EventSourceMappings"].should.have.length_of(1)
@@ -174,7 +174,7 @@ def test_event_source_mapping_delete_stack():
     _, lambda_stack = create_stack(cf, s3)
     created_fn_name = get_created_function_name(cf, lambda_stack)
 
-    template = event_source_mapping_template.substitute(
+    esm_template = event_source_mapping_template.substitute(
         {
             "resource_name": "Foo",
             "batch_size": 1,
@@ -184,7 +184,9 @@ def test_event_source_mapping_delete_stack():
         }
     )
 
-    esm_stack = cf.create_stack(StackName=random_stack_name(), TemplateBody=template)
+    esm_stack = cf.create_stack(
+        StackName=random_stack_name(), TemplateBody=esm_template
+    )
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
 
     event_sources["EventSourceMappings"].should.have.length_of(1)

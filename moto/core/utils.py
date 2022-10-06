@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from boto3 import Session
 from moto.settings import allow_unknown_region
 from threading import RLock
+from typing import Any, Optional, List
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -146,28 +147,28 @@ class convert_flask_to_responses_response(object):
         return status, headers, response
 
 
-def iso_8601_datetime_with_milliseconds(datetime):
-    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+def iso_8601_datetime_with_milliseconds(value):
+    return value.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 # Even Python does not support nanoseconds, other languages like Go do (needed for Terraform)
-def iso_8601_datetime_with_nanoseconds(datetime):
-    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
+def iso_8601_datetime_with_nanoseconds(value):
+    return value.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
 
 
-def iso_8601_datetime_without_milliseconds(datetime):
-    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
+def iso_8601_datetime_without_milliseconds(value):
+    return None if value is None else value.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def iso_8601_datetime_without_milliseconds_s3(datetime):
-    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+def iso_8601_datetime_without_milliseconds_s3(value):
+    return None if value is None else value.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
 
 
-def rfc_1123_datetime(datetime):
-    return datetime.strftime(RFC1123)
+def rfc_1123_datetime(src):
+    return src.strftime(RFC1123)
 
 
 def str_to_rfc_1123_datetime(value):
@@ -382,7 +383,11 @@ class BackendDict(dict):
     """
 
     def __init__(
-        self, backend, service_name, use_boto3_regions=True, additional_regions=None
+        self,
+        backend: Any,
+        service_name: str,
+        use_boto3_regions: bool = True,
+        additional_regions: Optional[List[str]] = None,
     ):
         self.backend = backend
         self.service_name = service_name

@@ -79,14 +79,14 @@ class DryRunClientError(RESTError):
 
 
 class JsonRESTError(RESTError):
-    def __init__(self, error_type, message, template="error_json", **kwargs):
+    def __init__(self, error_type, message, template="error_json", **kwargs) -> None:
         super().__init__(error_type, message, template, **kwargs)
         self.description = json.dumps(
             {"__type": self.error_type, "message": self.message}
         )
         self.content_type = "application/json"
 
-    def get_body(self, *args, **kwargs):
+    def get_body(self, *args, **kwargs) -> str:
         return self.description
 
 
