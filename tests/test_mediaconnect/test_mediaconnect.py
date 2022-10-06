@@ -488,15 +488,12 @@ def test_grant_flow_entitlements_fails():
                 {
                     "DataTransferSubscriberFeePercent": 12,
                     "Description": "A new entitlement",
-                    "Encryption": {
-                        "Algorithm": "aes256",
-                        "RoleArn": "some:role"
-                    },
+                    "Encryption": {"Algorithm": "aes256", "RoleArn": "some:role"},
                     "EntitlementStatus": "ENABLED",
                     "Name": "Entitlement-B",
                     "Subscribers": [],
                 }
-            ]
+            ],
         )
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
@@ -535,8 +532,8 @@ def test_grant_flow_entitlements_succeeds():
                 "EntitlementStatus": "ENABLED",
                 "Name": "Entitlement-C",
                 "Subscribers": [],
-            }
-        ]
+            },
+        ],
     )
 
     entitlements = grant_response["Entitlements"]
@@ -562,8 +559,7 @@ def test_revoke_flow_entitlement_fails():
 
     with pytest.raises(ClientError) as err:
         client.revoke_flow_entitlement(
-            FlowArn=flow_arn,
-            EntitlementArn="some-other-arn"
+            FlowArn=flow_arn, EntitlementArn="some-other-arn"
         )
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
@@ -585,8 +581,7 @@ def test_revoke_flow_entitlement_succeeds():
     entitlement_arn = describe_response["Flow"]["Entitlements"][0]["EntitlementArn"]
 
     revoke_response = client.revoke_flow_entitlement(
-        FlowArn=flow_arn,
-        EntitlementArn=entitlement_arn
+        FlowArn=flow_arn, EntitlementArn=entitlement_arn
     )
     revoke_response["FlowArn"].should.equal(flow_arn)
     revoke_response["EntitlementArn"].should.equal(entitlement_arn)
