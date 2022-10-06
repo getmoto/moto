@@ -23,6 +23,7 @@ from collections import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
 from moto import settings
+import moto.prettify_jinja_render  # noqa # pylint: disable=unused-import
 
 log = logging.getLogger(__name__)
 
