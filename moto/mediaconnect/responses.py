@@ -161,3 +161,12 @@ class MediaConnectResponse(BaseResponse):
             whitelist_cidr=whitelist_cidr,
         )
         return json.dumps(dict(flow_arn=flow_arn, source=source))
+
+    def grant_flow_entitlements(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        entitlements = self._get_param("entitlements")
+        flow_arn, entitlements = self.mediaconnect_backend.grant_flow_entitlements(
+            flow_arn=flow_arn,
+            entitlements=entitlements
+        )
+        return json.dumps(dict(flow_arn=flow_arn, entitlements=entitlements))

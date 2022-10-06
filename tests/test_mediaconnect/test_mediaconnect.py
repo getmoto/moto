@@ -471,3 +471,76 @@ def test_update_flow_source_succeeds():
         FlowArn=flow_arn, SourceArn=source_arn, Description="new description"
     )
     update_response["Source"]["Description"].should.equal("new description")
+
+
+@mock_mediaconnect
+def test_grant_flow_entitlements_fails():
+    client = boto3.client("mediaconnect", region_name=region)
+    flow_arn = "unknown-flow"
+
+    channel_config = _create_flow_config("test-Flow-1")
+    client.create_flow(**channel_config)
+
+    with pytest.raises(ClientError) as err:
+        client.grant_flow_entitlements(
+            FlowArn=flow_arn,
+            Entitlements=[
+                {
+                    "DataTransferSubscriberFeePercent": 12,
+                    "Description": "A new entitlement",
+                    "Encryption": {
+                        "Algorithm": "aes256",
+                        "RoleArn": "some:role"
+                    },
+                    "EntitlementStatus": "ENABLED",
+                    "Name": "Entitlement-B",
+                    "Subscribers": [],
+                }
+            ]
+        )
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("flow with arn=unknown-flow not found")
+
+
+@mock_mediaconnect
+def test_grant_flow_entitlements_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config("test-Flow-1")
+
+    create_response = client.create_flow(**channel_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    create_response["Flow"]["Status"].should.equal("STANDBY")
+    flow_arn = create_response["Flow"]["FlowArn"]
+
+    describe_response = client.describe_flow(FlowArn=flow_arn)
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(describe_response["Flow"]["Sources"]).should.equal(1)
+
+    grant_response = client.grant_flow_entitlements(
+        FlowArn=flow_arn,
+        Entitlements=[
+            {
+                "DataTransferSubscriberFeePercent": 12,
+                "Description": "A new entitlement",
+                "Encryption": {"Algorithm": "aes256", "RoleArn": "some:role"},
+                "EntitlementStatus": "ENABLED",
+                "Name": "Entitlement-B",
+                "Subscribers": [],
+            },
+            {
+                "DataTransferSubscriberFeePercent": 12,
+                "Description": "Another new entitlement",
+                "Encryption": {"Algorithm": "aes256", "RoleArn": "some:role"},
+                "EntitlementStatus": "ENABLED",
+                "Name": "Entitlement-C",
+                "Subscribers": [],
+            }
+        ]
+    )
+
+    entitlements = grant_response["Entitlements"]
+    len(entitlements).should.equal(2)
+    entitlement_names = [entitlement["Name"] for entitlement in entitlements]
+    entitlement_names.should.have("Entitlement-B")
+    entitlement_names.should.have("Entitlement-C")

@@ -34,7 +34,7 @@ mediaconnect
 - [X] describe_flow
 - [ ] describe_offering
 - [ ] describe_reservation
-- [ ] grant_flow_entitlements
+- [x] grant_flow_entitlements
 - [ ] list_entitlements
 - [X] list_flows
 - [ ] list_offerings

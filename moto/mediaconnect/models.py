@@ -306,6 +306,25 @@ class MediaConnectBackend(BaseBackend):
             source["whitelistCidr"] = whitelist_cidr
         return flow_arn, source
 
+    def grant_flow_entitlements(
+        self,
+        flow_arn,
+        entitlements,
+    ):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        for entitlement in entitlements:
+            entitlement_id = random.uuid4().hex
+            name = entitlement["name"]
+            arn = (f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:entitlement:{entitlement_id}:{name}")
+            entitlement["entitlementArn"] = arn
+
+        flow.entitlements += entitlements
+        return flow_arn, entitlements
+
     # add methods from here
 
 
