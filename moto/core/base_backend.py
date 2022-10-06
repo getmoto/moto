@@ -1,6 +1,7 @@
 import re
 import string
 from collections import defaultdict
+from typing import List, Dict
 from .utils import convert_regex_to_flask_path
 
 
@@ -21,7 +22,7 @@ class InstanceTrackerMeta(type):
 
 
 class BaseBackend:
-    def __init__(self, region_name, account_id=None):
+    def __init__(self, region_name, account_id=None) -> None:
         self.region_name = region_name
         self.account_id = account_id
 
@@ -127,7 +128,7 @@ class BaseBackend:
         special_service_name="",
         policy_supported=True,
         base_endpoint_dns_names=None,
-    ):  # pylint: disable=too-many-arguments
+    ) -> List[Dict[str, str]]:  # pylint: disable=too-many-arguments
         """List of dicts representing default VPC endpoints for this service."""
         if special_service_name:
             service_name = f"com.amazonaws.{service_region}.{special_service_name}"
