@@ -166,7 +166,14 @@ class MediaConnectResponse(BaseResponse):
         flow_arn = unquote(self._get_param("flowArn"))
         entitlements = self._get_param("entitlements")
         flow_arn, entitlements = self.mediaconnect_backend.grant_flow_entitlements(
-            flow_arn=flow_arn,
-            entitlements=entitlements
+            flow_arn=flow_arn, entitlements=entitlements
         )
         return json.dumps(dict(flow_arn=flow_arn, entitlements=entitlements))
+
+    def revoke_flow_entitlement(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        entitlement_arn = unquote(self._get_param("entitlementArn"))
+        flow_arn, entitlement_arn = self.mediaconnect_backend.revoke_flow_entitlement(
+            flow_arn=flow_arn, entitlement_arn=entitlement_arn
+        )
+        return json.dumps(dict(flowArn=flow_arn, entitlementArn=entitlement_arn))

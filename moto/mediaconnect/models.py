@@ -86,6 +86,14 @@ class MediaConnectBackend(BaseBackend):
             if not source.get("entitlementArn"):
                 source["ingestIp"] = ingest_ip
 
+    def _add_entitlement_details(self, entitlement, entitlement_id):
+        if entitlement:
+            entitlement["entitlementArn"] = (
+                f"arn:aws:mediaconnect:{self.region_name}"
+                f":{self.account_id}:entitlement:{entitlement_id}"
+                f":{entitlement['name']}"
+            )
+
     def _create_flow_add_details(self, flow):
         flow_id = random.uuid4().hex
 
@@ -99,6 +107,10 @@ class MediaConnectBackend(BaseBackend):
         for index, output in enumerate(flow.outputs or []):
             if output.get("protocol") in ["srt-listener", "zixi-pull"]:
                 output["listenerAddress"] = f"{index}.0.0.0"
+
+        for _, entitlement in enumerate(flow.entitlements):
+            entitlement_id = random.uuid4().hex
+            self._add_entitlement_details(entitlement, entitlement_id)
 
     def create_flow(
         self,
@@ -319,13 +331,27 @@ class MediaConnectBackend(BaseBackend):
         for entitlement in entitlements:
             entitlement_id = random.uuid4().hex
             name = entitlement["name"]
-            arn = (f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:entitlement:{entitlement_id}:{name}")
+            arn = f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:entitlement:{entitlement_id}:{name}"
             entitlement["entitlementArn"] = arn
 
         flow.entitlements += entitlements
         return flow_arn, entitlements
 
-    # add methods from here
+    def revoke_flow_entitlement(self, flow_arn, entitlement_arn):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        for entitlement in flow.entitlements:
+            if entitlement_arn == entitlement["entitlementArn"]:
+                flow.entitlements.remove(entitlement)
+                return flow_arn, entitlement_arn
+        raise NotFoundException(
+            message="entitlement with arn={} not found".format(entitlement_arn)
+        )
+
+        # add methods from here
 
 
 mediaconnect_backends = BackendDict(MediaConnectBackend, "mediaconnect")

@@ -45,7 +45,7 @@ mediaconnect
 - [X] remove_flow_output
 - [ ] remove_flow_source
 - [X] remove_flow_vpc_interface
-- [ ] revoke_flow_entitlement
+- [x] revoke_flow_entitlement
 - [X] start_flow
 - [X] stop_flow
 - [X] tag_resource

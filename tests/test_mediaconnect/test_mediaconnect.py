@@ -544,3 +544,53 @@ def test_grant_flow_entitlements_succeeds():
     entitlement_names = [entitlement["Name"] for entitlement in entitlements]
     entitlement_names.should.have("Entitlement-B")
     entitlement_names.should.have("Entitlement-C")
+
+
+@mock_mediaconnect
+def test_revoke_flow_entitlement_fails():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config("test-Flow-1")
+
+    create_response = client.create_flow(**channel_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    create_response["Flow"]["Status"].should.equal("STANDBY")
+    flow_arn = create_response["Flow"]["FlowArn"]
+
+    describe_response = client.describe_flow(FlowArn=flow_arn)
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(describe_response["Flow"]["Entitlements"]).should.equal(1)
+
+    with pytest.raises(ClientError) as err:
+        client.revoke_flow_entitlement(
+            FlowArn=flow_arn,
+            EntitlementArn="some-other-arn"
+        )
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("entitlement with arn=some-other-arn not found")
+
+
+@mock_mediaconnect
+def test_revoke_flow_entitlement_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config("test-Flow-1")
+
+    create_response = client.create_flow(**channel_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    create_response["Flow"]["Status"].should.equal("STANDBY")
+    flow_arn = create_response["Flow"]["FlowArn"]
+
+    describe_response = client.describe_flow(FlowArn=flow_arn)
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    entitlement_arn = describe_response["Flow"]["Entitlements"][0]["EntitlementArn"]
+
+    revoke_response = client.revoke_flow_entitlement(
+        FlowArn=flow_arn,
+        EntitlementArn=entitlement_arn
+    )
+    revoke_response["FlowArn"].should.equal(flow_arn)
+    revoke_response["EntitlementArn"].should.equal(entitlement_arn)
+
+    describe_response = client.describe_flow(FlowArn=flow_arn)
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(describe_response["Flow"]["Entitlements"]).should.equal(0)
