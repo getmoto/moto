@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from boto3 import Session
 from moto.settings import allow_unknown_region
 from threading import RLock
+from typing import Any, Optional, List
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -382,7 +383,11 @@ class BackendDict(dict):
     """
 
     def __init__(
-        self, backend, service_name, use_boto3_regions=True, additional_regions=None
+        self,
+        backend: Any,
+        service_name: str,
+        use_boto3_regions: bool = True,
+        additional_regions: Optional[List[str]] = None,
     ):
         self.backend = backend
         self.service_name = service_name
