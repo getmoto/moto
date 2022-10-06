@@ -597,17 +597,25 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
             self.job_started_at = datetime.datetime.now()
 
-            self.container_details["command"] = self._get_container_property("command", [])
+            self.container_details["command"] = self._get_container_property(
+                "command", []
+            )
             self.container_details["privileged"] = self._get_container_property(
                 "privileged", False
             )
             self.container_details[
                 "readonlyRootFilesystem"
             ] = self._get_container_property("readonlyRootFilesystem", False)
-            self.container_details["ulimits"] = self._get_container_property("ulimits", {})
+            self.container_details["ulimits"] = self._get_container_property(
+                "ulimits", {}
+            )
             self.container_details["vcpus"] = self._get_container_property("vcpus", 1)
-            self.container_details["memory"] = self._get_container_property("memory", 512)
-            self.container_details["volumes"] = self._get_container_property("volumes", [])
+            self.container_details["memory"] = self._get_container_property(
+                "memory", 512
+            )
+            self.container_details["volumes"] = self._get_container_property(
+                "volumes", []
+            )
             self.container_details["environment"] = self._get_container_property(
                 "environment", []
             )
