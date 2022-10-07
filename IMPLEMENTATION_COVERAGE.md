@@ -4171,6 +4171,16 @@
 - [X] put_object
 </details>
 
+## meteringmarketplace
+<details>
+<summary>25% implemented</summary>
+
+- [X] batch_meter_usage
+- [ ] meter_usage
+- [ ] register_usage
+- [ ] resolve_customer
+</details>
+
 ## mq
 <details>
 <summary>86% implemented</summary>
@@ -6480,7 +6490,6 @@
 - mediapackage-vod
 - mediatailor
 - memorydb
-- meteringmarketplace
 - mgh
 - mgn
 - migration-hub-refactor-spaces
