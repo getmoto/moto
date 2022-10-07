@@ -18,6 +18,7 @@ def is_delete_keys(request, path, bucket_name):
     return (
         path == "/" + bucket_name + "/?delete"
         or path == "/" + bucket_name + "?delete"
+        or path == "/" + bucket_name + "?delete="
         or (
             path == "/" + bucket_name
             and getattr(request, "query_string", "") == "delete"

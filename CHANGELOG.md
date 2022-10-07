@@ -1,6 +1,39 @@
 Moto Changelog
 ==============
 
+
+4.0.7
+-----
+Docker Digest for 4.0.7: <autopopulateddigest>
+
+    New Services:
+        * Comprehend:
+            * create_entity_recognizer()
+            * delete_entity_recognizer()
+            * describe_entity_recognizer()
+            * list_entity_recognizers()
+            * list_tags_for_resource()
+            * stop_training_entity_recognizer()
+
+        * MeteringMarketplace:
+            * batch_meter_usage()
+
+    New Methods:
+        * EC2:
+            * modify_vpc_endpoint()
+        * MediaConnect:
+            * grant_flow_entitlements()
+            * revoke_flow_entitlement()
+            * update_flow_entitlement()
+            * update_flow_output()
+
+    Miscellaneous:
+        * DynamoDB:transact_write_items() - Now includes validation if multipel operations are provided in the same item
+        * EC2:cancel_spot_fleet_request() - Fixed a bug where instances were always terminated
+        * EC2:create_instances() - Now uses the private IP address as as provided in the NetworkInterface
+        * EC2:describe_instance_types() - Now supports all filters
+        * ECS:run_task() - Now creates/attaches an ENI if appropriate
+
 4.0.6
 -----
 Docker Digest for 4.0.6: _sha256:01582a705be7c50bc15993acc2271cd190db9c08c5fc09d85c59c8ddae6bb260_

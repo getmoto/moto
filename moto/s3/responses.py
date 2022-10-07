@@ -757,7 +757,7 @@ class S3Response(BaseResponse):
             body = self.body.decode("utf-8")
             ver = re.search(r"<Status>([A-Za-z]+)</Status>", body)
             if ver:
-                self.backend.set_bucket_versioning(bucket_name, ver.group(1))
+                self.backend.put_bucket_versioning(bucket_name, ver.group(1))
                 template = self.response_template(S3_BUCKET_VERSIONING)
                 return template.render(bucket_versioning_status=ver.group(1))
             else:

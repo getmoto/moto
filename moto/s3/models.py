@@ -1553,7 +1553,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         else:
             return self.buckets.pop(bucket_name)
 
-    def set_bucket_versioning(self, bucket_name, status):
+    def put_bucket_versioning(self, bucket_name, status):
         self.get_bucket(bucket_name).versioning_status = status
 
     def get_bucket_versioning(self, bucket_name):
