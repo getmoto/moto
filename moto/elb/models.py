@@ -575,12 +575,12 @@ class ELBBackend(BaseBackend):
         return load_balancer
 
     def _register_certificate(self, ssl_certificate_id, dns_name):
-        from moto.acm.models import acm_backends, AWSResourceNotFoundException
+        from moto.acm.models import acm_backends, CertificateNotFound
 
         acm_backend = acm_backends[self.account_id][self.region_name]
         try:
             acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
-        except AWSResourceNotFoundException:
+        except CertificateNotFound:
             raise CertificateNotFoundException()
 
     def enable_availability_zones_for_load_balancer(
