@@ -7,7 +7,7 @@ class AmpException(JsonRESTError):
 
 
 class ResourceNotFoundException(AmpException):
-    def __init__(self, message, resource_id, resource_type):
+    def __init__(self, message: str, resource_id: str, resource_type: str):
         super().__init__("ResourceNotFoundException", message)
         self.description = json.dumps(
             {
@@ -21,7 +21,7 @@ class ResourceNotFoundException(AmpException):
 class WorkspaceNotFound(ResourceNotFoundException):
     code = 404
 
-    def __init__(self, workspace_id):
+    def __init__(self, workspace_id: str):
         super().__init__(
             "Workspace not found",
             resource_id=workspace_id,
@@ -32,7 +32,7 @@ class WorkspaceNotFound(ResourceNotFoundException):
 class RuleGroupNamespaceNotFound(ResourceNotFoundException):
     code = 404
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         super().__init__(
             "RuleGroupNamespace not found",
             resource_id=name,

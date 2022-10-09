@@ -211,7 +211,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def dispatch(cls, *args, **kwargs):
         return cls()._dispatch(*args, **kwargs)
 
-    def setup_class(self, request, full_url, headers, use_raw_body=False) -> None:
+    def setup_class(
+        self, request: Any, full_url: str, headers: Any, use_raw_body: bool = False
+    ) -> None:
         """
         use_raw_body: Use incoming bytes if True, encode to string otherwise
         """

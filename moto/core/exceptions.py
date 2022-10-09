@@ -1,6 +1,6 @@
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
-from typing import Optional
+from typing import Any, Optional
 import json
 
 # TODO: add "<Type>Sender</Type>" to error responses below?
@@ -80,7 +80,9 @@ class DryRunClientError(RESTError):
 
 
 class JsonRESTError(RESTError):
-    def __init__(self, error_type, message, template="error_json", **kwargs) -> None:
+    def __init__(
+        self, error_type: str, message: str, template: str = "error_json", **kwargs: Any
+    ):
         super().__init__(error_type, message, template, **kwargs)
         self.description = json.dumps(
             {"__type": self.error_type, "message": self.message}

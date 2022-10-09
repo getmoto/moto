@@ -5,13 +5,21 @@ from moto.core.utils import BackendDict, unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
-from typing import Dict
+from typing import Any, Callable, Dict, List
 from .exceptions import RuleGroupNamespaceNotFound, WorkspaceNotFound
 from .utils import PAGINATION_MODEL
 
 
 class RuleGroupNamespace(BaseModel):
-    def __init__(self, account_id, region, workspace_id, name, data, tag_fn):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        workspace_id: str,
+        name: str,
+        data: str,
+        tag_fn: Callable[[str], Dict[str, str]],
+    ):
         self.name = name
         self.data = data
         self.tag_fn = tag_fn
@@ -19,11 +27,11 @@ class RuleGroupNamespace(BaseModel):
         self.created_at = unix_time()
         self.modified_at = self.created_at
 
-    def update(self, new_data):
+    def update(self, new_data: str) -> None:
         self.data = new_data
         self.modified_at = unix_time()
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "arn": self.arn,
@@ -36,7 +44,13 @@ class RuleGroupNamespace(BaseModel):
 
 
 class Workspace(BaseModel):
-    def __init__(self, account_id, region, alias, tag_fn):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        alias: str,
+        tag_fn: Callable[[str], Dict[str, str]],
+    ):
         self.alias = alias
         self.workspace_id = f"ws-{mock_random.uuid4()}"
         self.arn = f"arn:aws:aps:{region}:{account_id}:workspace/{self.workspace_id}"
@@ -44,9 +58,9 @@ class Workspace(BaseModel):
         self.status = {"statusCode": "ACTIVE"}
         self.created_at = unix_time()
         self.tag_fn = tag_fn
-        self.rule_group_namespaces = dict()
+        self.rule_group_namespaces: Dict[str, RuleGroupNamespace] = dict()
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "alias": self.alias,
             "arn": self.arn,
@@ -61,12 +75,12 @@ class Workspace(BaseModel):
 class PrometheusServiceBackend(BaseBackend):
     """Implementation of PrometheusService APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.workspaces: Dict(str, Workspace) = dict()
+        self.workspaces: Dict[str, Workspace] = dict()
         self.tagger = TaggingService()
 
-    def create_workspace(self, alias, tags):
+    def create_workspace(self, alias: str, tags: Dict[str, str]) -> Workspace:
         """
         The ClientToken-parameter is not yet implemented
         """
@@ -80,41 +94,41 @@ class PrometheusServiceBackend(BaseBackend):
         self.tag_resource(workspace.arn, tags)
         return workspace
 
-    def describe_workspace(self, workspace_id) -> Workspace:
+    def describe_workspace(self, workspace_id: str) -> Workspace:
         if workspace_id not in self.workspaces:
             raise WorkspaceNotFound(workspace_id)
         return self.workspaces[workspace_id]
 
-    def list_tags_for_resource(self, resource_arn):
+    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def update_workspace_alias(self, alias, workspace_id):
+    def update_workspace_alias(self, alias: str, workspace_id: str) -> None:
         """
         The ClientToken-parameter is not yet implemented
         """
         self.workspaces[workspace_id].alias = alias
 
-    def delete_workspace(self, workspace_id):
+    def delete_workspace(self, workspace_id: str) -> None:
         """
         The ClientToken-parameter is not yet implemented
         """
         self.workspaces.pop(workspace_id, None)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
-    def list_workspaces(self, alias):
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    def list_workspaces(self, alias: str) -> List[Workspace]:  # type: ignore[misc]
         if alias:
             return [w for w in self.workspaces.values() if w.alias == alias]
         return list(self.workspaces.values())
 
-    def tag_resource(self, resource_arn, tags):
-        tags = self.tagger.convert_dict_to_tags_input(tags)
-        self.tagger.tag_resource(resource_arn, tags)
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+        tag_list = self.tagger.convert_dict_to_tags_input(tags)
+        self.tagger.tag_resource(resource_arn, tag_list)
 
-    def untag_resource(self, resource_arn, tag_keys):
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def create_rule_groups_namespace(
-        self, data, name, tags, workspace_id
+        self, data: str, name: str, tags: Dict[str, str], workspace_id: str
     ) -> RuleGroupNamespace:
         """
         The ClientToken-parameter is not yet implemented
@@ -132,20 +146,24 @@ class PrometheusServiceBackend(BaseBackend):
         self.tag_resource(group.arn, tags)
         return group
 
-    def delete_rule_groups_namespace(self, name, workspace_id) -> None:
+    def delete_rule_groups_namespace(self, name: str, workspace_id: str) -> None:
         """
         The ClientToken-parameter is not yet implemented
         """
         ws = self.describe_workspace(workspace_id)
         ws.rule_group_namespaces.pop(name, None)
 
-    def describe_rule_groups_namespace(self, name, workspace_id) -> RuleGroupNamespace:
+    def describe_rule_groups_namespace(
+        self, name: str, workspace_id: str
+    ) -> RuleGroupNamespace:
         ws = self.describe_workspace(workspace_id)
         if name not in ws.rule_group_namespaces:
             raise RuleGroupNamespaceNotFound(name=name)
         return ws.rule_group_namespaces[name]
 
-    def put_rule_groups_namespace(self, data, name, workspace_id) -> RuleGroupNamespace:
+    def put_rule_groups_namespace(
+        self, data: str, name: str, workspace_id: str
+    ) -> RuleGroupNamespace:
         """
         The ClientToken-parameter is not yet implemented
         """
@@ -153,8 +171,8 @@ class PrometheusServiceBackend(BaseBackend):
         ns.update(data)
         return ns
 
-    @paginate(pagination_model=PAGINATION_MODEL)
-    def list_rule_groups_namespaces(self, name, workspace_id):
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    def list_rule_groups_namespaces(self, name: str, workspace_id: str) -> List[RuleGroupNamespace]:  # type: ignore
         ws = self.describe_workspace(workspace_id)
         if name:
             return [
