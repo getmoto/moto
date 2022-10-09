@@ -4,7 +4,7 @@ Moto Changelog
 
 4.0.7
 -----
-Docker Digest for 4.0.7: <autopopulateddigest>
+Docker Digest for 4.0.7: _sha256:a8ecbdba177c91c557ff76814c1b9a4d6673dc8e1e4183b183e5cff4ce73c356_
 
     New Services:
         * Comprehend:
