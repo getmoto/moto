@@ -5246,7 +5246,7 @@
 
 ## s3
 <details>
-<summary>61% implemented</summary>
+<summary>62% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -5331,7 +5331,7 @@
 - [X] put_bucket_replication
 - [ ] put_bucket_request_payment
 - [X] put_bucket_tagging
-- [ ] put_bucket_versioning
+- [X] put_bucket_versioning
 - [ ] put_bucket_website
 - [X] put_object
 - [X] put_object_acl

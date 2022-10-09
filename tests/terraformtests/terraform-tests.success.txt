@@ -243,9 +243,48 @@ route53|2:
   - TestAccRoute53HealthCheck_disappears
   - TestAccRoute53ResolverEndpoint
 s3:
+  - TestAccS3Bucket_Basic_forceDestroyWithEmptyPrefixes
+  - TestAccS3Bucket_Basic_namePrefix
+  - TestAccS3Bucket_Basic_keyEnabled
+  - TestAccS3Bucket_Basic_forceDestroyWithObjectLockEnabled
+  - TestAccS3Bucket_Basic_generatedName
+  - TestAccS3Bucket_Basic_acceleration
+  - TestAccS3Bucket_Basic_forceDestroy
+  - TestAccS3Bucket_Basic_emptyString
   - TestAccS3BucketPolicy
   - TestAccS3BucketPublicAccessBlock
+  - TestAccS3BucketVersioning_basic
+  - TestAccS3BucketVersioning_disappears
+  - TestAccS3BucketVersioning_update
+  - TestAccS3BucketVersioning_Status_
   - TestAccS3ObjectCopy
+  - TestAccS3Object_noNameNoKey
+  - TestAccS3Object_sse
+  - TestAccS3Object_kms
+  - TestAccS3Object_empty
+  - TestAccS3Object_source
+  - TestAccS3Object_content
+  - TestAccS3Object_etagEncryption
+  - TestAccS3Object_contentBase64
+  - TestAccS3Object_sourceHashTrigger
+  - TestAccS3Object_withContentCharacteristics
+  - TestAccS3Object_nonVersioned
+  - TestAccS3Object_acl
+  - TestAccS3Object_metadata
+  - TestAccS3Object_tags
+  - TestAccS3ObjectDataSource_kmsEncrypted
+  - TestAccS3ObjectDataSource_readableBody
+  - TestAccS3ObjectDataSource_bucketKeyEnabled
+  - TestAccS3ObjectDataSource_allParams
+  - TestAccS3ObjectDataSource_object
+  - TestAccS3ObjectDataSource_leadingSlash
+  - TestAccS3ObjectDataSource_multipleSlashes
+  - TestAccS3ObjectDataSource_singleSlashAsKey
+  - TestAccS3ObjectsDataSource_all
+  - TestAccS3ObjectsDataSource_prefixes
+  - TestAccS3ObjectsDataSource_maxKeys
+  - TestAccS3ObjectsDataSource_startAfter
+  - TestAccS3ObjectsDataSource_fetchOwner
 sagemaker:
   - TestAccSageMakerPrebuiltECRImageDataSource
 servicediscovery:
