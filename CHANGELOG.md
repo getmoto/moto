@@ -33,6 +33,7 @@ Docker Digest for 4.0.7: <autopopulateddigest>
         * EC2:create_instances() - Now uses the private IP address as as provided in the NetworkInterface
         * EC2:describe_instance_types() - Now supports all filters
         * ECS:run_task() - Now creates/attaches an ENI if appropriate
+        * S3: Fixed an issue where file handles were not closed on large uploads
 
 4.0.6
 -----
