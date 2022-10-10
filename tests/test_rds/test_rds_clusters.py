@@ -75,6 +75,58 @@ def test_create_db_cluster_needs_long_master_user_password():
 
 
 @mock_rds
+def test_modify_db_cluster_needs_long_master_user_password():
+    client = boto3.client("rds", region_name="eu-north-1")
+
+    client.create_db_cluster(
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora",
+        MasterUsername="root",
+        MasterUserPassword="hunter21",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_cluster(
+            DBClusterIdentifier="cluster-id",
+            MasterUserPassword="hunter2",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
+    )
+
+
+@mock_rds
+def test_modify_db_cluster_new_cluster_identifier():
+    client = boto3.client("rds", region_name="eu-north-1")
+    old_id = "cluster-id"
+    new_id = "new-cluster-id"
+
+    client.create_db_cluster(
+        DBClusterIdentifier=old_id,
+        Engine="aurora",
+        MasterUsername="root",
+        MasterUserPassword="hunter21",
+    )
+
+    resp = client.modify_db_cluster(
+        DBClusterIdentifier=old_id,
+        NewDBClusterIdentifier=new_id,
+        MasterUserPassword="hunter21",
+    )
+
+    resp["DBCluster"].should.have.key("DBClusterIdentifier").equal(new_id)
+
+    clusters = [
+        cluster["DBClusterIdentifier"]
+        for cluster in client.describe_db_clusters()["DBClusters"]
+    ]
+
+    assert old_id not in clusters
+
+
+@mock_rds
 def test_create_db_cluster__verify_default_properties():
     client = boto3.client("rds", region_name="eu-north-1")
 
