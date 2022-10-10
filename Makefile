@@ -28,7 +28,7 @@ lint:
 	@echo "Running pylint..."
 	pylint -j 0 moto tests
 	@echo "Running MyPy..."
-	mypy --install-types --non-interactive moto/acm moto/amp moto/applicationautoscaling/
+	mypy --install-types --non-interactive
 
 format:
 	black moto/ tests/
