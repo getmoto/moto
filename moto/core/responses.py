@@ -106,13 +106,15 @@ class _TemplateEnvironmentMixin(object):
     def response_template(self, source):
         template_id = self._make_template_id(source)
         if not self.contains_template(template_id):
-            pretty_xml = ""
             if settings.PRETTIFY_RESPONSES:
-                pretty_xml = parseXML(source).toprettyxml()
-            collapsed = re.sub(
-                self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
-            )
-            self.environment.loader.update({template_id: pretty_xml or collapsed})
+                # pretty xml
+                xml = parseXML(source).toprettyxml()
+            else:
+                # collapsed xml
+                xml = re.sub(
+                    self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
+                )
+            self.environment.loader.update({template_id: xml})
         return self.environment.get_template(template_id)
 
 
