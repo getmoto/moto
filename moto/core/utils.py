@@ -175,7 +175,7 @@ def str_to_rfc_1123_datetime(value):
     return datetime.datetime.strptime(value, RFC1123)
 
 
-def unix_time(dt=None):
+def unix_time(dt: datetime.datetime = None) -> datetime.datetime:
     dt = dt or datetime.datetime.utcnow()
     epoch = datetime.datetime.utcfromtimestamp(0)
     delta = dt - epoch
