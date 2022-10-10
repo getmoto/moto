@@ -18,6 +18,8 @@ from jinja2 import Environment, DictLoader
 from typing import Dict, List, Union, Any, Optional
 from urllib.parse import parse_qs, parse_qsl, urlparse
 from werkzeug.exceptions import HTTPException
+from xml.dom.minidom import parseString as parseXML
+
 
 log = logging.getLogger(__name__)
 
@@ -104,10 +106,15 @@ class _TemplateEnvironmentMixin(object):
     def response_template(self, source):
         template_id = self._make_template_id(source)
         if not self.contains_template(template_id):
-            collapsed = re.sub(
-                self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
-            )
-            self.environment.loader.update({template_id: collapsed})
+            if settings.PRETTIFY_RESPONSES:
+                # pretty xml
+                xml = parseXML(source).toprettyxml()
+            else:
+                # collapsed xml
+                xml = re.sub(
+                    self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
+                )
+            self.environment.loader.update({template_id: xml})
         return self.environment.get_template(template_id)
 
 
