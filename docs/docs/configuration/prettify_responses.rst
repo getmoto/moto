@@ -1,10 +1,10 @@
-.. _mokey_patch_page:
+.. _prettify_responses_page:
 
 .. role:: raw-html(raw)
     :format: html
 
 =============================
-Prettify jinja render
+Prettify responses
 =============================
 
 This option allows to prettify responses from moto. Pretty responses are more readable (eg. for debugging purposes). 

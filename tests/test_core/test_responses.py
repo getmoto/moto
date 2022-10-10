@@ -1,4 +1,4 @@
-from unittest import mock
+from unittest import SkipTest, mock
 import sure  # noqa # pylint: disable=unused-import
 
 from collections import OrderedDict
@@ -7,7 +7,7 @@ from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.responses import AWSServiceSpec, BaseResponse
 from moto.core.responses import flatten_json_request_body
-from moto.prettify_jinja_render import pretty_render
+from moto import settings
 
 
 def test_flatten_json_request_body():
@@ -210,14 +210,18 @@ def test_response_environment_preserved_by_type():
 
 
 @mock.patch(
-    "jinja2.environment.Template.render",
-    pretty_render,
+    "moto.core.responses.settings.PRETTIFY_RESPONSES",
+    new_callable=mock.PropertyMock(return_value=True),
 )
-def test_jinja_render_prettify():
-
+def test_jinja_render_prettify(m_env_var):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "It is not possible to set the environment variable in server mode"
+        )
     response = BaseResponse()
     TEMPLATE = """<TestTemplate><ResponseText>Test text</ResponseText></TestTemplate>"""
-    expected_output = '<?xml version="1.0" ?>\n<TestTemplate>\n\t<ResponseText>Test text</ResponseText>\n</TestTemplate>\n'
+    expected_output = '<?xml version="1.0" ?>\n<TestTemplate>\n\t<ResponseText>Test text</ResponseText>\n</TestTemplate>'
     template = response.response_template(TEMPLATE)
     xml_string = template.render()
     assert xml_string == expected_output
+    assert m_env_var

@@ -12,7 +12,7 @@ Moto has a variety of ways to configure the mock behaviour.
 
   environment_variables
   recorder/index
-  prettify_jinja_render
+  prettify_responses
   state_transition/index
   state_transition/models
 
