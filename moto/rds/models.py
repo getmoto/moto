@@ -73,14 +73,7 @@ class Cluster:
                 "The parameter MasterUsername must be provided and must not be blank."
             )
         self.master_user_password = kwargs.get("master_user_password")
-        if not self.master_user_password:
-            raise InvalidParameterValue(
-                "The parameter MasterUserPassword must be provided and must not be blank."
-            )
-        if len(self.master_user_password) < 8:
-            raise InvalidParameterValue(
-                "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
-            )
+
         self.availability_zones = kwargs.get("availability_zones")
         if not self.availability_zones:
             self.availability_zones = [
@@ -113,12 +106,40 @@ class Cluster:
         self.enabled_cloudwatch_logs_exports = (
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
-        self.enable_http_endpoint = False
+        self.enable_http_endpoint = kwargs.get("enable_http_endpoint")
+
+    @property
+    def db_cluster_arn(self):
+        return f"arn:aws:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
+
+    @property
+    def master_user_password(self):
+        return self._master_user_password
+
+    @master_user_password.setter
+    def master_user_password(self, val):
+        if not val:
+            raise InvalidParameterValue(
+                "The parameter MasterUserPassword must be provided and must not be blank."
+            )
+        if len(val) < 8:
+            raise InvalidParameterValue(
+                "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
+            )
+        self._master_user_password = val
+
+    @property
+    def enable_http_endpoint(self):
+        return self._enable_http_endpoint
+
+    @enable_http_endpoint.setter
+    def enable_http_endpoint(self, val):
         # instead of raising an error on aws rds create-db-cluster commands with
         # incompatible configurations with enable_http_endpoint
         # (e.g. engine_mode is not set to "serverless"), the API
         # automatically sets the enable_http_endpoint parameter to False
-        if kwargs.get("enable_http_endpoint"):
+        self._enable_http_endpoint = False
+        if val is not None:
             if self.engine_mode == "serverless":
                 if self.engine == "aurora-mysql" and self.engine_version in [
                     "5.6.10a",
@@ -126,22 +147,20 @@ class Cluster:
                     "2.07.1",
                     "5.7.2",
                 ]:
-                    self.enable_http_endpoint = kwargs.get(
-                        "enable_http_endpoint", False
-                    )
+                    self._enable_http_endpoint = val
                 elif self.engine == "aurora-postgresql" and self.engine_version in [
                     "10.12",
                     "10.14",
                     "10.18",
                     "11.13",
                 ]:
-                    self.enable_http_endpoint = kwargs.get(
-                        "enable_http_endpoint", False
-                    )
+                    self._enable_http_endpoint = val
 
-    @property
-    def db_cluster_arn(self):
-        return f"arn:aws:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
+    def get_cfg(self):
+        cfg = self.__dict__
+        cfg["master_user_password"] = cfg.pop("_master_user_password")
+        cfg["enable_http_endpoint"] = cfg.pop("_enable_http_endpoint")
+        return cfg
 
     def to_xml(self):
         template = Template(
@@ -1894,7 +1913,7 @@ class RDSBackend(BaseBackend):
             db_cluster_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_cluster = snapshot.cluster
-        new_cluster_props = copy.deepcopy(original_cluster.__dict__)
+        new_cluster_props = copy.deepcopy(original_cluster.get_cfg())
         for key, value in overrides.items():
             if value:
                 new_cluster_props[key] = value
