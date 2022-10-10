@@ -1813,6 +1813,24 @@ class RDSBackend(BaseBackend):
         cluster.status = "available"  # Already set the final status in the background
         return initial_state
 
+    def modify_db_cluster(self, kwargs):
+        cluster_id = kwargs["db_cluster_identifier"]
+
+        cluster = self.clusters[cluster_id]
+        del self.clusters[cluster_id]
+
+        kwargs["db_cluster_identifier"] = kwargs.pop("new_db_cluster_identifier")
+        for k, v in kwargs.items():
+            if v is not None:
+                setattr(cluster, k, v)
+
+        cluster_id = kwargs.get("new_db_cluster_identifier", cluster_id)
+        self.clusters[cluster_id] = cluster
+
+        initial_state = copy.deepcopy(cluster)  # Return status=creating
+        cluster.status = "available"  # Already set the final status in the background
+        return initial_state
+
     def create_db_cluster_snapshot(
         self, db_cluster_identifier, db_snapshot_identifier, tags=None
     ):
