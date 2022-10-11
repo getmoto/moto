@@ -87,10 +87,7 @@ ec2:
   - TestAccEC2CarrierGateway_
   - TestAccEC2InstanceTypeOfferingDataSource_
   - TestAccEC2InstanceTypeOfferingsDataSource_
-  - TestAccEC2InternetGateway_
-  - TestAccEC2NATGateway_
   - TestAccEC2RouteTableAssociation_
-  - TestAccEC2SecurityGroups
   - TestAccEC2SpotInstanceRequest_disappears
   - TestAccEC2SpotInstanceRequest_interruptUpdate
   - TestAccEC2VPCEndpointService_
@@ -99,6 +96,42 @@ ec2:
   - TestAccEC2VPNGateway_
   - TestAccEC2VPNGatewayAttachment_
   - TestAccVPC_
+  - TestAccVPCEgressOnlyInternetGateway_
+  - TestAccVPCInternetGateway
+  - TestAccVPCNATGateway_
+  - TestAccVPCSecurityGroupDataSource_basic
+  - TestAccVPCSecurityGroupRule_
+  - TestAccVPCSecurityGroup_allowAll
+  - TestAccVPCSecurityGroup_basic
+  - TestAccVPCSecurityGroup_change
+  - TestAccVPCSecurityGroup_cidrAndGroups
+  - TestAccVPCSecurityGroup_defaultEgressVPC
+  - TestAccVPCSecurityGroup_disappears
+  - TestAccVPCSecurityGroup_driftComplex
+  - TestAccVPCSecurityGroup_egressMode
+  - TestAccVPCSecurityGroup_egressWithPrefixList
+  - TestAccVPCSecurityGroup_failWithDiffMismatch
+  - TestAccVPCSecurityGroup_ingressMode
+  - TestAccVPCSecurityGroup_ingressWithCIDRAndSGsVPC
+  - TestAccVPCSecurityGroup_ingressWithPrefixList
+  - TestAccVPCSecurityGroup_invalidCIDRBlock
+  - TestAccVPCSecurityGroup_ipRangeAndSecurityGroupWithSameRules
+  - TestAccVPCSecurityGroup_ipRangesWithSameRules
+  - TestAccVPCSecurityGroup_ipv4AndIPv6Egress
+  - TestAccVPCSecurityGroup_ipv6
+  - TestAccVPCSecurityGroup_multiIngress
+  - TestAccVPCSecurityGroup_nameGenerated
+  - TestAccVPCSecurityGroup_namePrefix
+  - TestAccVPCSecurityGroup_namePrefixTerraform
+  - TestAccVPCSecurityGroup_nameTerraformPrefix
+  - TestAccVPCSecurityGroup_noVPC
+  - TestAccVPCSecurityGroup_ruleDescription
+  - TestAccVPCSecurityGroup_ruleGathering
+  - TestAccVPCSecurityGroup_self
+  - TestAccVPCSecurityGroup_sourceSecurityGroup
+  - TestAccVPCSecurityGroup_tags
+  - TestAccVPCSecurityGroup_vpc
+  - TestAccVPCSecurityGroups
 ecr:
   - TestAccECRLifecyclePolicy
   - TestAccECRRegistryPolicy

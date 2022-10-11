@@ -138,6 +138,9 @@ mock_s3control = lazy_load(".s3control", "mock_s3control")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker")
 mock_sdb = lazy_load(".sdb", "mock_sdb")
 mock_secretsmanager = lazy_load(".secretsmanager", "mock_secretsmanager")
+mock_servicequotas = lazy_load(
+    ".servicequotas", "mock_servicequotas", boto3_name="service-quotas"
+)
 mock_ses = lazy_load(".ses", "mock_ses")
 mock_servicediscovery = lazy_load(".servicediscovery", "mock_servicediscovery")
 mock_signer = lazy_load(".signer", "mock_signer", boto3_name="signer")

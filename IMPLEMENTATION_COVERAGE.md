@@ -5723,6 +5723,31 @@
 - [ ] validate_resource_policy
 </details>
 
+## service-quotas
+<details>
+<summary>10% implemented</summary>
+
+- [ ] associate_service_quota_template
+- [ ] delete_service_quota_increase_request_from_template
+- [ ] disassociate_service_quota_template
+- [ ] get_association_for_service_quota_template
+- [ ] get_aws_default_service_quota
+- [ ] get_requested_service_quota_change
+- [X] get_service_quota
+- [ ] get_service_quota_increase_request_from_template
+- [X] list_aws_default_service_quotas
+- [ ] list_requested_service_quota_change_history
+- [ ] list_requested_service_quota_change_history_by_quota
+- [ ] list_service_quota_increase_requests_in_template
+- [ ] list_service_quotas
+- [ ] list_services
+- [ ] list_tags_for_resource
+- [ ] put_service_quota_increase_request_into_template
+- [ ] request_service_quota_increase
+- [ ] tag_resource
+- [ ] untag_resource
+</details>
+
 ## servicediscovery
 <details>
 <summary>61% implemented</summary>
@@ -6537,7 +6562,6 @@
 - schemas
 - securityhub
 - serverlessrepo
-- service-quotas
 - servicecatalog
 - servicecatalog-appregistry
 - sesv2

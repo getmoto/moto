@@ -148,6 +148,7 @@ backend_url_patterns = [
         "servicediscovery",
         re.compile("https?://servicediscovery\\.(.+)\\.amazonaws\\.com"),
     ),
+    ("service-quotas", re.compile("https?://servicequotas\\.(.+)\\.amazonaws\\.com")),
     ("ses", re.compile("https?://email\\.(.+)\\.amazonaws\\.com")),
     ("ses", re.compile("https?://ses\\.(.+)\\.amazonaws\\.com")),
     ("signer", re.compile("https?://signer\\.(.+)\\.amazonaws\\.com")),
