@@ -186,7 +186,7 @@ def unix_time_millis(dt=None):
     return unix_time(dt) * 1000.0
 
 
-def path_url(url):
+def path_url(url: str) -> str:
     parsed_url = urlparse(url)
     path = parsed_url.path
     if not path:

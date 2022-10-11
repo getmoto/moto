@@ -2,8 +2,8 @@ import json
 import hashlib
 import pkgutil
 
-
 from collections.abc import MutableMapping
+from typing import Any, Dict
 
 
 def str2bool(v):
@@ -23,7 +23,7 @@ def load_resource(package, resource, as_json=True):
     return json.loads(resource) if as_json else resource.decode("utf-8")
 
 
-def merge_multiple_dicts(*args):
+def merge_multiple_dicts(*args: Any) -> Dict[str, any]:
     result = {}
     for d in args:
         result.update(d)

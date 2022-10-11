@@ -29,7 +29,7 @@ class CloudFormationModel(BaseModel):
 
     @classmethod
     @abstractmethod
-    def has_cfn_attr(cls, attr):
+    def has_cfn_attr(cls, attr):  # pylint: disable=unused-argument
         # Used for validation
         # If a template creates an Output for an attribute that does not exist, an error should be thrown
         return True

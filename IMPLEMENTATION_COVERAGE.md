@@ -49,7 +49,7 @@
 
 ## apigateway
 <details>
-<summary>65% implemented</summary>
+<summary>62% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -157,12 +157,12 @@
 - [ ] update_deployment
 - [ ] update_documentation_part
 - [ ] update_documentation_version
-- [X] update_domain_name
+- [ ] update_domain_name
 - [ ] update_gateway_response
 - [ ] update_integration
 - [ ] update_integration_response
-- [X] update_method
-- [X] update_method_response
+- [ ] update_method
+- [ ] update_method_response
 - [ ] update_model
 - [X] update_request_validator
 - [ ] update_resource
