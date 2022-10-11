@@ -63,6 +63,56 @@ class RDSResponse(BaseResponse):
         args["tags"] = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
         return args
 
+    def _get_modify_db_cluster_kwargs(self):
+        args = {
+            "auto_minor_version_upgrade": self._get_param("AutoMinorVersionUpgrade"),
+            "allocated_storage": self._get_int_param("AllocatedStorage"),
+            "availability_zone": self._get_param("AvailabilityZone"),
+            "backup_retention_period": self._get_param("BackupRetentionPeriod"),
+            "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
+            "db_instance_class": self._get_param("DBInstanceClass"),
+            "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
+            "new_db_cluster_identifier": self._get_param("NewDBClusterIdentifier"),
+            "db_instance_identifier": self._get_param("DBInstanceIdentifier"),
+            "db_name": self._get_param("DBName"),
+            "db_parameter_group_name": self._get_param("DBParameterGroupName"),
+            "db_snapshot_identifier": self._get_param("DBSnapshotIdentifier"),
+            "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
+            "engine": self._get_param("Engine"),
+            "engine_version": self._get_param("EngineVersion"),
+            "enable_cloudwatch_logs_exports": self._get_params().get(
+                "EnableCloudwatchLogsExports"
+            ),
+            "enable_iam_database_authentication": self._get_bool_param(
+                "EnableIAMDatabaseAuthentication"
+            ),
+            "license_model": self._get_param("LicenseModel"),
+            "iops": self._get_int_param("Iops"),
+            "kms_key_id": self._get_param("KmsKeyId"),
+            "master_user_password": self._get_param("MasterUserPassword"),
+            "master_username": self._get_param("MasterUsername"),
+            "multi_az": self._get_bool_param("MultiAZ"),
+            "option_group_name": self._get_param("OptionGroupName"),
+            "port": self._get_param("Port"),
+            # PreferredBackupWindow
+            # PreferredMaintenanceWindow
+            "publicly_accessible": self._get_param("PubliclyAccessible"),
+            "account_id": self.current_account,
+            "region": self.region,
+            "security_groups": self._get_multi_param(
+                "DBSecurityGroups.DBSecurityGroupName"
+            ),
+            "storage_encrypted": self._get_param("StorageEncrypted"),
+            "storage_type": self._get_param("StorageType", None),
+            "vpc_security_group_ids": self._get_multi_param(
+                "VpcSecurityGroupIds.VpcSecurityGroupId"
+            ),
+            "tags": list(),
+            "deletion_protection": self._get_bool_param("DeletionProtection"),
+        }
+        args["tags"] = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        return args
+
     def _get_db_replica_kwargs(self):
         return {
             "auto_minor_version_upgrade": self._get_param("AutoMinorVersionUpgrade"),
@@ -513,6 +563,12 @@ class RDSResponse(BaseResponse):
         kwargs = self._get_db_cluster_kwargs()
         cluster = self.backend.create_db_cluster(kwargs)
         template = self.response_template(CREATE_DB_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
+
+    def modify_db_cluster(self):
+        kwargs = self._get_modify_db_cluster_kwargs()
+        cluster = self.backend.modify_db_cluster(kwargs)
+        template = self.response_template(MODIFY_DB_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
 
     def describe_db_clusters(self):
@@ -987,6 +1043,15 @@ CREATE_DB_CLUSTER_TEMPLATE = """<CreateDBClusterResponse xmlns="http://rds.amazo
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
   </ResponseMetadata>
 </CreateDBClusterResponse>"""
+
+MODIFY_DB_CLUSTER_TEMPLATE = """<ModifyDBClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ModifyDBClusterResult>
+  {{ cluster.to_xml() }}
+  </ModifyDBClusterResult>
+  <ResponseMetadata>
+    <RequestId>69673d54-e48e-4ba4-9333-c5a6c1e7526a</RequestId>
+  </ResponseMetadata>
+</ModifyDBClusterResponse>"""
 
 DESCRIBE_CLUSTERS_TEMPLATE = """<DescribeDBClustersResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <DescribeDBClustersResult>
