@@ -135,6 +135,7 @@ class FakeKey(BaseModel, ManagedState):
             max_buffer_size if max_buffer_size else get_s3_default_key_buffer_size()
         )
         self._value_buffer = tempfile.SpooledTemporaryFile(self._max_buffer_size)
+        self.disposed = False
         self.value = value
         self.lock = threading.Lock()
 
@@ -339,6 +340,22 @@ class FakeKey(BaseModel, ManagedState):
 
         return False
 
+    def dispose(self, garbage=False):
+        if garbage and not self.disposed:
+            import warnings
+
+            warnings.warn("S3 key was not disposed of in time", ResourceWarning)
+        try:
+            self._value_buffer.close()
+            if self.multipart:
+                self.multipart.dispose()
+        except:  # noqa: E722 Do not use bare except
+            pass
+        self.disposed = True
+
+    def __del__(self):
+        self.dispose(garbage=True)
+
 
 class FakeMultipart(BaseModel):
     def __init__(
@@ -401,6 +418,9 @@ class FakeMultipart(BaseModel):
         key = FakeKey(
             part_id, value, encryption=self.sse_encryption, kms_key_id=self.kms_key_id
         )
+        if part_id in self.parts:
+            # We're overwriting the current part - dispose of it first
+            self.parts[part_id].dispose()
         self.parts[part_id] = key
         if part_id not in self.partlist:
             insort(self.partlist, part_id)
@@ -410,6 +430,10 @@ class FakeMultipart(BaseModel):
         max_marker = part_number_marker + max_parts
         for part_id in self.partlist[part_number_marker:max_marker]:
             yield self.parts[part_id]
+
+    def dispose(self):
+        for part in self.parts.values():
+            part.dispose()
 
 
 class FakeGrantee(BaseModel):
@@ -867,13 +891,20 @@ class PublicAccessBlock(BaseModel):
         }
 
 
+class MultipartDict(dict):
+    def __delitem__(self, key):
+        if key in self:
+            self[key].dispose()
+        super().__delitem__(key)
+
+
 class FakeBucket(CloudFormationModel):
     def __init__(self, name, account_id, region_name):
         self.name = name
         self.account_id = account_id
         self.region_name = region_name
         self.keys = _VersionedKeyStore()
-        self.multiparts = {}
+        self.multiparts = MultipartDict()
         self.versioning_status = None
         self.rules = []
         self.policy = None
@@ -1427,10 +1458,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         for bucket in self.buckets.values():
             for key in bucket.keys.values():
                 if isinstance(key, FakeKey):
-                    key._value_buffer.close()
-                    if key.multipart is not None:
-                        for part in key.multipart.parts.values():
-                            part._value_buffer.close()
+                    key.dispose()
+            for mp in bucket.multiparts.values():
+                mp.dispose()
         super().reset()
 
     @property
@@ -1748,11 +1778,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_until=lock_until,
         )
 
-        keys = [
-            key
-            for key in bucket.keys.getlist(key_name, [])
-            if key.version_id != new_key.version_id
-        ] + [new_key]
+        existing_keys = bucket.keys.getlist(key_name, [])
+        if bucket.is_versioned:
+            keys = existing_keys + [new_key]
+        else:
+            for key in existing_keys:
+                key.dispose()
+            keys = [new_key]
         bucket.keys.setlist(key_name, keys)
 
         notifications.send_event(
@@ -1931,20 +1963,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             pub_block_config.get("BlockPublicPolicy"),
             pub_block_config.get("RestrictPublicBuckets"),
         )
-
-    def complete_multipart(self, bucket_name, multipart_id, body):
-        bucket = self.get_bucket(bucket_name)
-        multipart = bucket.multiparts[multipart_id]
-        value, etag = multipart.complete(body)
-        if value is None:
-            return
-        del bucket.multiparts[multipart_id]
-
-        key = self.put_object(
-            bucket_name, multipart.key_name, value, etag=etag, multipart=multipart
-        )
-        key.set_metadata(multipart.metadata)
-        return key
 
     def abort_multipart_upload(self, bucket_name, multipart_id):
         bucket = self.get_bucket(bucket_name)
