@@ -1,10 +1,8 @@
 import boto3
 import os
-import gc
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 import requests
-import warnings
 
 from botocore.client import ClientError
 from functools import wraps
@@ -1011,39 +1009,3 @@ def test_head_object_returns_part_count():
     # Header is not returned when we do not pass PartNumber
     resp = client.head_object(Bucket=bucket, Key=key)
     resp.shouldnt.have.key("PartsCount")
-
-
-def test_reset_after_multipart_upload_closes_file_handles():
-    """
-    Large Uploads are written to disk for performance reasons
-    This test verifies that the filehandles are properly closed when resetting Moto
-    """
-    s3 = s3model.S3Backend("us-west-1", "1234")
-    s3.create_bucket("my-bucket", "us-west-1")
-    s3.put_object("my-bucket", "my-key", "x" * 10_000_000)
-
-    with warnings.catch_warnings(record=True) as warning_list:
-        warnings.simplefilter("always", ResourceWarning)  # add filter
-        s3.reset()
-        gc.collect()
-    warning_types = [type(warn.message) for warn in warning_list]
-    warning_types.shouldnt.contain(ResourceWarning)
-
-
-def test_deleting_large_upload_closes_file_handles():
-    """
-    Large Uploads are written to disk for performance reasons
-    This test verifies that the filehandles are properly closed on deletion
-    """
-    s3 = s3model.S3Backend("us-east-1", "1234")
-    s3.create_bucket("my-bucket", "us-west-1")
-    s3.put_object("my-bucket", "my-key", "x" * 10_000_000)
-
-    with warnings.catch_warnings(record=True) as warning_list:
-        warnings.simplefilter("always", ResourceWarning)  # add filter
-        s3.delete_object(bucket_name="my-bucket", key_name="my-key")
-        gc.collect()
-    warning_types = [type(warn.message) for warn in warning_list]
-    warning_types.shouldnt.contain(ResourceWarning)
-
-    s3.reset()
