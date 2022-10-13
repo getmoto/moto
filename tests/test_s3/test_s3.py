@@ -2463,6 +2463,20 @@ def test_list_object_versions_with_delimiter():
         {"key11-without-data", "key12-without-data", "key13-without-data"}
     )
 
+    # Delimiter with Prefix being the entire key
+    response = s3.list_object_versions(
+        Bucket=bucket_name, Prefix="key1-with-data", Delimiter="-"
+    )
+    response.should.have.key("Versions").length_of(3)
+    response.shouldnt.have.key("CommonPrefixes")
+
+    # Delimiter without prefix
+    response = s3.list_object_versions(Bucket=bucket_name, Delimiter="-with-")
+    response["CommonPrefixes"].should.have.length_of(8)
+    response["CommonPrefixes"].should.contain({"Prefix": "key1-with-"})
+    # Should return all keys -without-data
+    response.should.have.key("Versions").length_of(24)
+
 
 @mock_s3
 def test_list_object_versions_with_delimiter_for_deleted_objects():
