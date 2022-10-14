@@ -2,24 +2,28 @@
 import json
 
 from moto.core.responses import BaseResponse
+from typing import Any, Tuple, Dict
 from urllib.parse import unquote
 
 from .exceptions import UnknownProtocol
-from .models import apigatewayv2_backends
+from .models import apigatewayv2_backends, ApiGatewayV2Backend
+
+
+RESPONSE_TYPE = Tuple[int, Dict[str, str], str]
 
 
 class ApiGatewayV2Response(BaseResponse):
     """Handler for ApiGatewayV2 requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="apigatewayv2")
 
     @property
-    def apigatewayv2_backend(self):
+    def apigatewayv2_backend(self) -> ApiGatewayV2Backend:
         """Return backend instance specific for this region."""
         return apigatewayv2_backends[self.current_account][self.region]
 
-    def apis(self, request, full_url, headers):
+    def apis(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -27,7 +31,7 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "GET":
             return self.get_apis()
 
-    def api(self, request, full_url, headers):
+    def api(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -39,7 +43,7 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "DELETE":
             return self.delete_api()
 
-    def authorizer(self, request, full_url, headers):
+    def authorizer(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
@@ -49,25 +53,25 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "PATCH":
             return self.update_authorizer()
 
-    def authorizers(self, request, full_url, headers):
+    def authorizers(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
             return self.create_authorizer()
 
-    def cors(self, request, full_url, headers):
+    def cors(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
             return self.delete_cors_configuration()
 
-    def route_request_parameter(self, request, full_url, headers):
+    def route_request_parameter(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
             return self.delete_route_request_parameter()
 
-    def model(self, request, full_url, headers):
+    def model(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
@@ -77,13 +81,13 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "PATCH":
             return self.update_model()
 
-    def models(self, request, full_url, headers):
+    def models(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
             return self.create_model()
 
-    def integration(self, request, full_url, headers):
+    def integration(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
@@ -93,7 +97,7 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "PATCH":
             return self.update_integration()
 
-    def integrations(self, request, full_url, headers):
+    def integrations(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -101,7 +105,7 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_integration()
 
-    def integration_response(self, request, full_url, headers):
+    def integration_response(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
@@ -111,7 +115,7 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "PATCH":
             return self.update_integration_response()
 
-    def integration_responses(self, request, full_url, headers):
+    def integration_responses(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -119,7 +123,7 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_integration_response()
 
-    def route(self, request, full_url, headers):
+    def route(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
@@ -129,7 +133,7 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "PATCH":
             return self.update_route()
 
-    def routes(self, request, full_url, headers):
+    def routes(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -137,7 +141,7 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_route()
 
-    def route_response(self, request, full_url, headers):
+    def route_response(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
@@ -145,13 +149,13 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "GET":
             return self.get_route_response()
 
-    def route_responses(self, request, full_url, headers):
+    def route_responses(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
             return self.create_route_response()
 
-    def tags(self, request, full_url, headers):
+    def tags(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -161,7 +165,7 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "DELETE":
             return self.untag_resource()
 
-    def vpc_link(self, request, full_url, headers):
+    def vpc_link(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if request.method == "DELETE":
@@ -171,7 +175,7 @@ class ApiGatewayV2Response(BaseResponse):
         if request.method == "PATCH":
             return self.update_vpc_link()
 
-    def vpc_links(self, request, full_url, headers):
+    def vpc_links(self, request: Any, full_url: str, headers: Any) -> RESPONSE_TYPE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if request.method == "GET":
@@ -179,7 +183,7 @@ class ApiGatewayV2Response(BaseResponse):
         if request.method == "POST":
             return self.create_vpc_link()
 
-    def create_api(self):
+    def create_api(self) -> RESPONSE_TYPE:
         params = json.loads(self.body)
 
         api_key_selection_expression = params.get("apiKeySelectionExpression")
@@ -210,21 +214,21 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(api.to_json())
 
-    def delete_api(self):
+    def delete_api(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-1]
         self.apigatewayv2_backend.delete_api(api_id=api_id)
-        return 200, "", "{}"
+        return 200, {}, "{}"
 
-    def get_api(self):
+    def get_api(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-1]
         api = self.apigatewayv2_backend.get_api(api_id=api_id)
         return 200, {}, json.dumps(api.to_json())
 
-    def get_apis(self):
+    def get_apis(self) -> RESPONSE_TYPE:
         apis = self.apigatewayv2_backend.get_apis()
         return 200, {}, json.dumps({"items": [a.to_json() for a in apis]})
 
-    def update_api(self):
+    def update_api(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-1]
         params = json.loads(self.body)
         api_key_selection_expression = params.get("apiKeySelectionExpression")
@@ -248,7 +252,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(api.to_json())
 
-    def reimport_api(self):
+    def reimport_api(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-1]
         params = json.loads(self.body)
         body = params.get("body")
@@ -259,7 +263,7 @@ class ApiGatewayV2Response(BaseResponse):
         api = self.apigatewayv2_backend.reimport_api(api_id, body, fail_on_warnings)
         return 201, {}, json.dumps(api.to_json())
 
-    def create_authorizer(self):
+    def create_authorizer(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-2]
         params = json.loads(self.body)
 
@@ -288,21 +292,21 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(authorizer.to_json())
 
-    def delete_authorizer(self):
+    def delete_authorizer(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         authorizer_id = self.path.split("/")[-1]
 
         self.apigatewayv2_backend.delete_authorizer(api_id, authorizer_id)
         return 200, {}, "{}"
 
-    def get_authorizer(self):
+    def get_authorizer(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         authorizer_id = self.path.split("/")[-1]
 
         authorizer = self.apigatewayv2_backend.get_authorizer(api_id, authorizer_id)
         return 200, {}, json.dumps(authorizer.to_json())
 
-    def update_authorizer(self):
+    def update_authorizer(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         authorizer_id = self.path.split("/")[-1]
         params = json.loads(self.body)
@@ -333,12 +337,12 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(authorizer.to_json())
 
-    def delete_cors_configuration(self):
+    def delete_cors_configuration(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-2]
         self.apigatewayv2_backend.delete_cors_configuration(api_id)
         return 200, {}, "{}"
 
-    def create_model(self):
+    def create_model(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-2]
         params = json.loads(self.body)
 
@@ -351,21 +355,21 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(model.to_json())
 
-    def delete_model(self):
+    def delete_model(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         model_id = self.path.split("/")[-1]
 
         self.apigatewayv2_backend.delete_model(api_id, model_id)
         return 200, {}, "{}"
 
-    def get_model(self):
+    def get_model(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         model_id = self.path.split("/")[-1]
 
         model = self.apigatewayv2_backend.get_model(api_id, model_id)
         return 200, {}, json.dumps(model.to_json())
 
-    def update_model(self):
+    def update_model(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         model_id = self.path.split("/")[-1]
         params = json.loads(self.body)
@@ -385,27 +389,27 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(model.to_json())
 
-    def get_tags(self):
+    def get_tags(self) -> RESPONSE_TYPE:
         resource_arn = unquote(self.path.split("/tags/")[1])
         tags = self.apigatewayv2_backend.get_tags(resource_arn)
         return 200, {}, json.dumps({"tags": tags})
 
-    def tag_resource(self):
+    def tag_resource(self) -> RESPONSE_TYPE:
         resource_arn = unquote(self.path.split("/tags/")[1])
         tags = json.loads(self.body).get("tags", {})
         self.apigatewayv2_backend.tag_resource(resource_arn, tags)
         return 201, {}, "{}"
 
-    def untag_resource(self):
+    def untag_resource(self) -> RESPONSE_TYPE:
         resource_arn = unquote(self.path.split("/tags/")[1])
-        tag_keys = self.querystring.get("tagKeys")
+        tag_keys = self.querystring.get("tagKeys") or []
         self.apigatewayv2_backend.untag_resource(resource_arn, tag_keys)
         return 200, {}, "{}"
 
-    def create_route(self):
+    def create_route(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-2]
         params = json.loads(self.body)
-        api_key_required = params.get("apiKeyRequired", False)
+        api_key_required: bool = params.get("apiKeyRequired", False)
         authorization_scopes = params.get("authorizationScopes")
         authorization_type = params.get("authorizationType", "NONE")
         authorizer_id = params.get("authorizerId")
@@ -434,13 +438,13 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 201, {}, json.dumps(route.to_json())
 
-    def delete_route(self):
+    def delete_route(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         route_id = self.path.split("/")[-1]
         self.apigatewayv2_backend.delete_route(api_id=api_id, route_id=route_id)
         return 200, {}, "{}"
 
-    def delete_route_request_parameter(self):
+    def delete_route_request_parameter(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-5]
         route_id = self.path.split("/")[-3]
         request_param = self.path.split("/")[-1]
@@ -449,18 +453,18 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, "{}"
 
-    def get_route(self):
+    def get_route(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         route_id = self.path.split("/")[-1]
         api = self.apigatewayv2_backend.get_route(api_id=api_id, route_id=route_id)
         return 200, {}, json.dumps(api.to_json())
 
-    def get_routes(self):
+    def get_routes(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-2]
         apis = self.apigatewayv2_backend.get_routes(api_id=api_id)
         return 200, {}, json.dumps({"items": [api.to_json() for api in apis]})
 
-    def update_route(self):
+    def update_route(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         route_id = self.path.split("/")[-1]
 
@@ -495,7 +499,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(api.to_json())
 
-    def create_route_response(self):
+    def create_route_response(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-4]
         route_id = self.path.split("/")[-2]
         params = json.loads(self.body)
@@ -512,7 +516,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(route_response.to_json())
 
-    def delete_route_response(self):
+    def delete_route_response(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-5]
         route_id = self.path.split("/")[-3]
         route_response_id = self.path.split("/")[-1]
@@ -522,7 +526,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, "{}"
 
-    def get_route_response(self):
+    def get_route_response(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-5]
         route_id = self.path.split("/")[-3]
         route_response_id = self.path.split("/")[-1]
@@ -532,7 +536,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(route_response.to_json())
 
-    def create_integration(self):
+    def create_integration(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-2]
 
         params = json.loads(self.body)
@@ -575,7 +579,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(integration.to_json())
 
-    def get_integration(self):
+    def get_integration(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         integration_id = self.path.split("/")[-1]
 
@@ -584,13 +588,13 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(integration.to_json())
 
-    def get_integrations(self):
+    def get_integrations(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-2]
 
         integrations = self.apigatewayv2_backend.get_integrations(api_id=api_id)
         return 200, {}, json.dumps({"items": [i.to_json() for i in integrations]})
 
-    def delete_integration(self):
+    def delete_integration(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         integration_id = self.path.split("/")[-1]
 
@@ -599,7 +603,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, "{}"
 
-    def update_integration(self):
+    def update_integration(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-3]
         integration_id = self.path.split("/")[-1]
 
@@ -644,7 +648,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(integration.to_json())
 
-    def create_integration_response(self):
+    def create_integration_response(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-4]
         int_id = self.path.split("/")[-2]
 
@@ -665,7 +669,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(integration_response.to_json())
 
-    def delete_integration_response(self):
+    def delete_integration_response(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-5]
         int_id = self.path.split("/")[-3]
         int_res_id = self.path.split("/")[-1]
@@ -675,7 +679,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, "{}"
 
-    def get_integration_response(self):
+    def get_integration_response(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-5]
         int_id = self.path.split("/")[-3]
         int_res_id = self.path.split("/")[-1]
@@ -685,7 +689,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(int_response.to_json())
 
-    def get_integration_responses(self):
+    def get_integration_responses(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-4]
         int_id = self.path.split("/")[-2]
 
@@ -694,7 +698,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps({"items": [res.to_json() for res in int_response]})
 
-    def update_integration_response(self):
+    def update_integration_response(self) -> RESPONSE_TYPE:
         api_id = self.path.split("/")[-5]
         int_id = self.path.split("/")[-3]
         int_res_id = self.path.split("/")[-1]
@@ -717,7 +721,7 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(integration_response.to_json())
 
-    def create_vpc_link(self):
+    def create_vpc_link(self) -> RESPONSE_TYPE:
         params = json.loads(self.body)
 
         name = params.get("name")
@@ -729,21 +733,21 @@ class ApiGatewayV2Response(BaseResponse):
         )
         return 200, {}, json.dumps(vpc_link.to_json())
 
-    def delete_vpc_link(self):
+    def delete_vpc_link(self) -> RESPONSE_TYPE:
         vpc_link_id = self.path.split("/")[-1]
         self.apigatewayv2_backend.delete_vpc_link(vpc_link_id)
         return 200, {}, "{}"
 
-    def get_vpc_link(self):
+    def get_vpc_link(self) -> RESPONSE_TYPE:
         vpc_link_id = self.path.split("/")[-1]
         vpc_link = self.apigatewayv2_backend.get_vpc_link(vpc_link_id)
         return 200, {}, json.dumps(vpc_link.to_json())
 
-    def get_vpc_links(self):
+    def get_vpc_links(self) -> RESPONSE_TYPE:
         vpc_links = self.apigatewayv2_backend.get_vpc_links()
         return 200, {}, json.dumps({"items": [link.to_json() for link in vpc_links]})
 
-    def update_vpc_link(self):
+    def update_vpc_link(self) -> RESPONSE_TYPE:
         vpc_link_id = self.path.split("/")[-1]
         params = json.loads(self.body)
         name = params.get("name")
