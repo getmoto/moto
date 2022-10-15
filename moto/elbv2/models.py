@@ -528,6 +528,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "routing.http.preserve_host_header.enabled",
         "routing.http.x_amzn_tls_version_and_cipher_suite.enabled",
         "routing.http.xff_client_port.enabled",
+        "routing.http.xff_header_processing.mode",
         "routing.http2.enabled",
         "waf.fail_open.enabled",
     }
