@@ -1,10 +1,10 @@
 import json
-from werkzeug.exceptions import BadRequest
+from moto.core.exceptions import JsonRESTError
 
 
-class AthenaClientError(BadRequest):
+class AthenaClientError(JsonRESTError):
     def __init__(self, code, message):
-        super().__init__()
+        super().__init__(error_type="InvalidRequestException", message=message)
         self.description = json.dumps(
             {
                 "Error": {
