@@ -9,6 +9,6 @@ class AppSyncExceptions(JsonRESTError):
 class GraphqlAPINotFound(AppSyncExceptions):
     code = 404
 
-    def __init__(self, api_id):
+    def __init__(self, api_id: str):
         super().__init__("NotFoundException", f"GraphQL API {api_id} not found.")
         self.description = json.dumps({"message": self.message})

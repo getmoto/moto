@@ -10,7 +10,7 @@ from urllib.parse import unquote
 class PrometheusServiceResponse(BaseResponse):
     """Handler for PrometheusService requests and responses."""
 
-    def tags(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore [return]
+    def tags(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self.list_tags_for_resource()
