@@ -57,8 +57,6 @@ class AppSyncResponse(BaseResponse):
 
     def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
-        print("tags")
-        print(request.method)
         if request.method == "POST":
             return self.tag_resource()
         if request.method == "DELETE":

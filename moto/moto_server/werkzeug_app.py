@@ -78,7 +78,7 @@ class DomainDispatcherApplication(object):
                 return backend
 
         if "amazonaws.com" in host:
-            print(
+            print(  # noqa
                 "Unable to find appropriate backend for {}."
                 "Remember to add the URL to urls.py, and run scripts/update_backend_index.py to index it.".format(
                     host
