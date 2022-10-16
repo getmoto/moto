@@ -1,18 +1,11 @@
-import json
-from werkzeug.exceptions import BadRequest
+from moto.core.exceptions import JsonRESTError
 
 
-class ResourceNotFoundException(BadRequest):
+class ResourceNotFoundException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "ResourceNotFoundException"}
-        )
+        super().__init__(error_type="ResourceNotFoundException", message=message)
 
 
-class ValidationException(BadRequest):
+class ValidationException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "ResourceNotFoundException"}
-        )
+        super().__init__(error_type="ResourceNotFoundException", message=message)

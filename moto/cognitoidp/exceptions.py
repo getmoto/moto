@@ -1,62 +1,39 @@
-import json
-from werkzeug.exceptions import BadRequest
 from moto.core.exceptions import JsonRESTError
 
 
-class ResourceNotFoundError(BadRequest):
+class ResourceNotFoundError(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "ResourceNotFoundException"}
-        )
+        super().__init__(error_type="ResourceNotFoundException", message=message)
 
 
-class UserNotFoundError(BadRequest):
+class UserNotFoundError(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "UserNotFoundException"}
-        )
+        super().__init__(error_type="UserNotFoundException", message=message)
 
 
-class UsernameExistsException(BadRequest):
+class UsernameExistsException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "UsernameExistsException"}
-        )
+        super().__init__(error_type="UsernameExistsException", message=message)
 
 
-class GroupExistsException(BadRequest):
+class GroupExistsException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "GroupExistsException"}
-        )
+        super().__init__(error_type="GroupExistsException", message=message)
 
 
-class NotAuthorizedError(BadRequest):
+class NotAuthorizedError(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "NotAuthorizedException"}
-        )
+        super().__init__(error_type="NotAuthorizedException", message=message)
 
 
-class UserNotConfirmedException(BadRequest):
+class UserNotConfirmedException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "UserNotConfirmedException"}
-        )
+        super().__init__(error_type="UserNotConfirmedException", message=message)
 
 
-class ExpiredCodeException(BadRequest):
+class ExpiredCodeException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "ExpiredCodeException"}
-        )
+        super().__init__(error_type="ExpiredCodeException", message=message)
 
 
 class InvalidParameterException(JsonRESTError):

@@ -1,60 +1,38 @@
-from __future__ import unicode_literals
-
-import json
-from werkzeug.exceptions import BadRequest
+from moto.core.exceptions import JsonRESTError
 
 
-class DisabledApiException(BadRequest):
+class DisabledApiException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "DisabledApiException"}
+        super().__init__(error_type="DisabledApiException", message=message)
+
+
+class InternalServiceErrorException(JsonRESTError):
+    def __init__(self, message):
+        super().__init__(error_type="InternalServiceErrorException", message=message)
+
+
+class InvalidCustomerIdentifierException(JsonRESTError):
+    def __init__(self, message):
+        super().__init__(
+            error_type="InvalidCustomerIdentifierException", message=message
         )
 
 
-class InternalServiceErrorException(BadRequest):
+class InvalidProductCodeException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "InternalServiceErrorException"}
-        )
+        super().__init__(error_type="InvalidProductCodeException", message=message)
 
 
-class InvalidCustomerIdentifierException(BadRequest):
+class InvalidUsageDimensionException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "InvalidCustomerIdentifierException"}
-        )
+        super().__init__(error_type="InvalidUsageDimensionException", message=message)
 
 
-class InvalidProductCodeException(BadRequest):
+class ThrottlingException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "InvalidProductCodeException"}
-        )
+        super().__init__(error_type="ThrottlingException", message=message)
 
 
-class InvalidUsageDimensionException(BadRequest):
+class TimestampOutOfBoundsException(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "InvalidUsageDimensionException"}
-        )
-
-
-class ThrottlingException(BadRequest):
-    def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "ThrottlingException"}
-        )
-
-
-class TimestampOutOfBoundsException(BadRequest):
-    def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "TimestampOutOfBoundsException"}
-        )
+        super().__init__(error_type="TimestampOutOfBoundsException", message=message)

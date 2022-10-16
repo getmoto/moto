@@ -1,4 +1,4 @@
-from werkzeug.exceptions import BadRequest
+from moto.core.exceptions import RESTError
 from jinja2 import Template
 
 
@@ -9,36 +9,32 @@ class UnformattedGetAttTemplateException(Exception):
     status_code = 400
 
 
-class ValidationError(BadRequest):
+class ValidationError(RESTError):
     def __init__(self, name_or_id=None, message=None):
         if message is None:
             message = "Stack with id {0} does not exist".format(name_or_id)
 
         template = Template(ERROR_RESPONSE)
-        super().__init__()
+        super().__init__(error_type="ValidationError", message=message)
         self.description = template.render(code="ValidationError", message=message)
 
 
-class MissingParameterError(BadRequest):
+class MissingParameterError(RESTError):
     def __init__(self, parameter_name):
         template = Template(ERROR_RESPONSE)
-        super().__init__()
-        self.description = template.render(
-            code="Missing Parameter",
-            message="Missing parameter {0}".format(parameter_name),
-        )
+        message = "Missing parameter {0}".format(parameter_name)
+        super().__init__(error_type="ValidationError", message=message)
+        self.description = template.render(code="Missing Parameter", message=message)
 
 
-class ExportNotFound(BadRequest):
+class ExportNotFound(RESTError):
     """Exception to raise if a template tries to import a non-existent export"""
 
     def __init__(self, export_name):
         template = Template(ERROR_RESPONSE)
-        super().__init__()
-        self.description = template.render(
-            code="ExportNotFound",
-            message="No export named {0} found.".format(export_name),
-        )
+        message = "No export named {0} found.".format(export_name)
+        super().__init__(error_type="ExportNotFound", message=message)
+        self.description = template.render(code="ExportNotFound", message=message)
 
 
 class UnsupportedAttribute(ValidationError):
