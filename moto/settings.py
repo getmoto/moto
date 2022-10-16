@@ -118,15 +118,15 @@ def get_docker_host():
         else:
             _ip = network_settings["IPAddress"]
             if network_name:
-                print(
+                print(  # noqa
                     f"WARNING - Moto couldn't find network '{network_name}' - defaulting to {_ip}"
                 )
         return f"http://{_ip}"
     except Exception as e:  # noqa
-        print(
+        print(  # noqa
             "WARNING - Unable to parse Docker API response. Defaulting to 'host.docker.internal'"
         )
-        print(f"{type(e)}::{e}")
+        print(f"{type(e)}::{e}")  # noqa
         return "http://host.docker.internal"
 
 

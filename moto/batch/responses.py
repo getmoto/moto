@@ -25,10 +25,7 @@ class BatchResponse(BaseResponse):
         if self.body is None or self.body == "":
             self._json = {}
         elif not hasattr(self, "_json"):
-            try:
-                self._json = json.loads(self.body)
-            except ValueError:
-                print()
+            self._json = json.loads(self.body)
         return self._json
 
     def _get_param(self, param_name, if_none=None):
