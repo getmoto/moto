@@ -30,6 +30,8 @@ class CloudFrontResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self.create_invalidation()
+        if request.method == "GET":
+            return self.list_invalidations()
 
     def tags(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -103,6 +105,17 @@ class CloudFrontResponse(BaseResponse):
         response = template.render(invalidation=invalidation, xmlns=XMLNS)
 
         return 200, {"Location": invalidation.location}, response
+
+    def list_invalidations(self):
+        dist_id = self.path.split("/")[-2]
+        marker = None
+        max_items = None
+
+        invalidations = self.backend.list_invalidations(dist_id, marker, max_items)
+        template = self.response_template(INVALIDATIONS_TEMPLATE)
+        response = template.render(invalidations=invalidations, xmlns=XMLNS)
+
+        return 200, {}, response
 
     def list_tags_for_resource(self):
         resource = unquote(self._get_param("Resource"))
@@ -588,6 +601,24 @@ CREATE_INVALIDATION_TEMPLATE = """<?xml version="1.0"?>
     </Paths>
   </InvalidationBatch>
 </Invalidation>
+"""
+
+INVALIDATIONS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
+<InvalidationList>
+   <IsTruncated>false</IsTruncated>
+   <Items>
+      {% for invalidation in invalidations %}
+      <InvalidationSummary>
+         <CreateTime>{{ invalidation.create_time }}</CreateTime>
+         <Id>{{ invalidation.invalidation_id }}</Id>
+         <Status>{{ invalidation.status }}</Status>
+      </InvalidationSummary>
+      {% endfor %}
+   </Items>
+   <Marker></Marker>
+   <MaxItems>100</MaxItems>
+   <Quantity>{{ invalidations|length }}</Quantity>
+</InvalidationList>
 """
 
 TAGS_TEMPLATE = """<?xml version="1.0"?>

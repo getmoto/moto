@@ -234,6 +234,7 @@ class CloudFrontBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.distributions = dict()
+        self.invalidations = dict()
         self.tagger = TaggingService()
 
         state_manager.register_default_transition(
@@ -315,8 +316,19 @@ class CloudFrontBackend(BaseBackend):
     def create_invalidation(self, dist_id, paths, caller_ref):
         dist, _ = self.get_distribution(dist_id)
         invalidation = Invalidation(dist, paths, caller_ref)
+        try:
+            self.invalidations[dist_id].append(invalidation)
+        except KeyError:
+            self.invalidations[dist_id] = [invalidation]
 
         return invalidation
+
+    def list_invalidations(self, dist_id, marker, _max_items):
+        if marker:
+            raise NotImplementedError(
+                "moto: paging of invalidations for a distro is not implemented"
+            )
+        return self.invalidations.get(dist_id) or {}
 
     def list_tags_for_resource(self, resource):
         return self.tagger.list_tags_for_resource(resource)
