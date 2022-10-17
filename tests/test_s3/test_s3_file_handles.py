@@ -1,9 +1,10 @@
 import gc
 import warnings
-import unittest
 from functools import wraps
+from moto import settings
 from moto.s3 import models as s3model
 from moto.s3.responses import S3ResponseInstance
+from unittest import SkipTest, TestCase
 
 
 def verify_zero_warnings(f):
@@ -24,13 +25,15 @@ def verify_zero_warnings(f):
     return wrapped
 
 
-class TestS3FileHandleClosures(unittest.TestCase):
+class TestS3FileHandleClosures(TestCase):
     """
     Large Uploads are written to disk for performance reasons
     These tests verifies that the filehandles are properly closed after specific actions
     """
 
     def setUp(self) -> None:
+        if settings.TEST_SERVER_MODE:
+            raise SkipTest("No point in testing ServerMode, we're not using boto3")
         self.s3 = s3model.S3Backend("us-west-1", "1234")
         self.s3.create_bucket("my-bucket", "us-west-1")
         self.s3.create_bucket("versioned-bucket", "us-west-1")
