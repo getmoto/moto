@@ -32,7 +32,7 @@ install_requires = [
     "cryptography>=3.3.1",
     "requests>=2.5",
     "xmltodict",
-    "werkzeug<=2.1.1",
+    "werkzeug>=0.5,!=2.2.0,!=2.2.1",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "responses>=0.13.0",
@@ -73,7 +73,7 @@ all_extra_deps = [
     _dep_openapi,
     _setuptools,
 ]
-all_server_deps = all_extra_deps + ["flask", "flask-cors"]
+all_server_deps = all_extra_deps + ["flask!=2.2.0,!=2.2.1", "flask-cors"]
 
 extras_per_service = {}
 for service_name in [
