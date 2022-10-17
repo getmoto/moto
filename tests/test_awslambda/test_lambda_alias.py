@@ -297,3 +297,26 @@ def test_update_alias_routingconfig():
     resp.should.have.key("RoutingConfig").equals(
         {"AdditionalVersionWeights": {"2": 0.5}}
     )
+
+
+@mock_lambda
+def test_get_function_using_alias():
+    client = boto3.client("lambda", region_name="us-east-2")
+    fn_name = str(uuid4())[0:6]
+
+    client.create_function(
+        FunctionName=fn_name,
+        Runtime="python3.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_test_zip_file1()},
+    )
+    client.publish_version(FunctionName=fn_name)
+    client.publish_version(FunctionName=fn_name)
+
+    client.create_alias(FunctionName=fn_name, Name="live", FunctionVersion="1")
+
+    fn = client.get_function(FunctionName=fn_name, Qualifier="live")["Configuration"]
+    fn["FunctionArn"].should.equal(
+        f"arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{fn_name}:1"
+    )
