@@ -2098,7 +2098,7 @@ def test_only_detach_user_policy():
         Path="/mypolicy/",
         Description="free floating policy",
     )
-    
+
     resp = client.list_attached_user_policies(UserName=user.name)
     resp["AttachedPolicies"].should.have.length_of(0)
 
@@ -2123,7 +2123,7 @@ def test_only_detach_group_policy():
         Path="/mypolicy/",
         Description="free floating policy",
     )
-    
+
     resp = client.list_attached_group_policies(GroupName=group.name)
     resp["AttachedPolicies"].should.have.length_of(0)
 
@@ -2148,7 +2148,7 @@ def test_only_detach_role_policy():
         Path="/mypolicy/",
         Description="free floating policy",
     )
-    
+
     resp = client.list_attached_role_policies(RoleName=role.name)
     resp["AttachedPolicies"].should.have.length_of(0)
 
