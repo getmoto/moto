@@ -1727,9 +1727,11 @@ class IAMBackend(BaseBackend):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         try:
             policy = arns[policy_arn]
-            policy.detach_from(self.get_role(role_name))
+            if policy.arn not in self.get_role(role_name).managed_policies.keys():
+                raise KeyError
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
+        policy.detach_from(self.get_role(role_name))
 
     def attach_group_policy(self, policy_arn, group_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -1745,6 +1747,8 @@ class IAMBackend(BaseBackend):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         try:
             policy = arns[policy_arn]
+            if policy.arn not in self.get_group(group_name).managed_policies.keys():
+                raise KeyError
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
         policy.detach_from(self.get_group(group_name))
