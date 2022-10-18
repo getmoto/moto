@@ -15,34 +15,6 @@ To do so, you need to mock the ``botocore.client.BaseClient._make_api_call`` fun
     import botocore
     from unittest.mock import patch
 
-    # Analyzer Class
-    class Analyzer:
-    arn: str
-    name: str
-    status: str
-    findings_count: int
-    tags: str
-    type: str
-    region: str
-
-    def __init__(
-        self,
-        arn,
-        name,
-        status,
-        findings_count,
-        tags,
-        type,
-        region,
-    ):
-        self.arn = arn
-        self.name = name
-        self.status = status
-        self.findings_count = findings_count
-        self.tags = tags
-        self.type = type
-        self.region = region
-
     # Original botocore _make_api_call function
     orig = botocore.client.BaseClient._make_api_call
     
