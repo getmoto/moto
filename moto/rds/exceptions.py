@@ -1,10 +1,10 @@
 from jinja2 import Template
-from werkzeug.exceptions import BadRequest
+from moto.core.exceptions import RESTError
 
 
-class RDSClientError(BadRequest):
+class RDSClientError(RESTError):
     def __init__(self, code, message):
-        super().__init__()
+        super().__init__(error_type=code, message=message)
         template = Template(
             """
         <ErrorResponse>

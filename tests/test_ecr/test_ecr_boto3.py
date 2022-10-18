@@ -396,7 +396,7 @@ def test_put_image_with_push_date():
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
-            imageTag="latest",
+            imageTag="first",
         )
 
     with freeze_time("2019-05-31 00:00:00"):
@@ -404,7 +404,7 @@ def test_put_image_with_push_date():
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
-            imageTag="latest",
+            imageTag="second",
         )
 
     describe_response = client.describe_images(repositoryName="test_repository")
@@ -459,6 +459,46 @@ def test_put_image_with_multiple_tags():
 
     len(response2["imageDetails"][0]["imageTags"]).should.be(2)
     response2["imageDetails"][0]["imageTags"].should.be.equal(["v1", "latest"])
+
+
+@mock_ecr
+def test_put_multiple_images_with_same_tag():
+    repo_name = "testrepo"
+    image_tag = "my-tag"
+
+    client = boto3.client("ecr", "us-east-1")
+    client.create_repository(repositoryName=repo_name)
+
+    image_1 = client.put_image(
+        repositoryName=repo_name,
+        imageTag=image_tag,
+        imageManifest=json.dumps(_create_image_manifest()),
+    )["image"]["imageId"]["imageDigest"]
+
+    # We should overwrite the first image
+    image_2 = client.put_image(
+        repositoryName=repo_name,
+        imageTag=image_tag,
+        imageManifest=json.dumps(_create_image_manifest()),
+    )["image"]["imageId"]["imageDigest"]
+
+    assert image_1 != image_2
+
+    images = client.describe_images(repositoryName=repo_name)["imageDetails"]
+
+    images.should.have.length_of(1)
+    images[0]["imageDigest"].should.equal(image_2)
+
+    # Image with different tags are allowed
+    image_3 = client.put_image(
+        repositoryName=repo_name,
+        imageTag="different-tag",
+        imageManifest=json.dumps(_create_image_manifest()),
+    )["image"]["imageId"]["imageDigest"]
+
+    images = client.describe_images(repositoryName=repo_name)["imageDetails"]
+    images.should.have.length_of(2)
+    set([img["imageDigest"] for img in images]).should.equal({image_2, image_3})
 
 
 @mock_ecr

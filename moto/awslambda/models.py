@@ -895,6 +895,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         arn = f"arn:aws:lambda:{self.region}:{self.account_id}:function:{self.function_name}:{name}"
         raise UnknownAliasException(arn)
 
+    def has_alias(self, alias_name) -> bool:
+        try:
+            return self.get_alias(alias_name) is not None
+        except UnknownAliasException:
+            return False
+
     def put_alias(self, name, description, function_version, routing_config):
         alias = LambdaAlias(
             account_id=self.account_id,
@@ -1115,7 +1121,6 @@ class LambdaStorage(object):
     def __init__(self, region_name, account_id):
         # Format 'func_name' {'versions': []}
         self._functions = {}
-        self._aliases = dict()
         self._arns = weakref.WeakValueDictionary()
         self.region_name = region_name
         self.account_id = account_id
@@ -1123,13 +1128,11 @@ class LambdaStorage(object):
     def _get_latest(self, name):
         return self._functions[name]["latest"]
 
-    def _get_version(self, name, version):
-        index = version - 1
-
-        try:
-            return self._functions[name]["versions"][index]
-        except IndexError:
-            return None
+    def _get_version(self, name: str, version: str):
+        for config in self._functions[name]["versions"]:
+            if str(config.version) == version or config.has_alias(version):
+                return config
+        return None
 
     def delete_alias(self, name, function_name):
         fn = self.get_function_by_name_or_arn(function_name)
@@ -1158,10 +1161,10 @@ class LambdaStorage(object):
         if qualifier is None:
             return self._get_latest(name)
 
-        try:
-            return self._get_version(name, int(qualifier))
-        except ValueError:
+        if qualifier.lower() == "$latest":
             return self._functions[name]["latest"]
+
+        return self._get_version(name, qualifier)
 
     def list_versions_by_function(self, name):
         if name not in self._functions:

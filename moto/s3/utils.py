@@ -108,6 +108,11 @@ class _VersionedKeyStore(dict):
     def __sgetitem__(self, key):
         return super().__getitem__(key)
 
+    def pop(self, key):
+        for version in self.getlist(key, []):
+            version.dispose()
+        super().pop(key)
+
     def __getitem__(self, key):
         return self.__sgetitem__(key)[-1]
 

@@ -490,6 +490,11 @@ class ECRBackend(BaseBackend):
         else:
             raise Exception("{0} is not a repository".format(repository_name))
 
+        # Tags are unique, so delete any existing image with this tag first
+        self.batch_delete_image(
+            repository_name=repository_name, image_ids=[{"imageTag": image_tag}]
+        )
+
         existing_images = list(
             filter(
                 lambda x: x.response_object["imageManifest"] == image_manifest,

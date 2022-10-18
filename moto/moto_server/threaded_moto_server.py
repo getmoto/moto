@@ -25,7 +25,7 @@ class ThreadedMotoServer:
 
     def start(self):
         if self._verbose:
-            print(
+            print(  # noqa
                 f"Starting a new Thread with MotoServer running on {self._ip_address}:{self._port}..."
             )
         self._thread = Thread(target=self._server_entry, daemon=True)

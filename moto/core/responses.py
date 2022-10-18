@@ -15,7 +15,7 @@ from moto.core.exceptions import DryRunClientError
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
 from jinja2 import Environment, DictLoader
-from typing import Dict, List, Union, Any, Optional
+from typing import Dict, List, Union, Any, Optional, Tuple
 from urllib.parse import parse_qs, parse_qsl, urlparse
 from werkzeug.exceptions import HTTPException
 from xml.dom.minidom import parseString as parseXML
@@ -24,6 +24,8 @@ from xml.dom.minidom import parseString as parseXML
 log = logging.getLogger(__name__)
 
 JINJA_ENVS = {}
+
+TYPE_RESPONSE = Tuple[int, Dict[str, str], str]
 
 
 def _decode_dict(d):
