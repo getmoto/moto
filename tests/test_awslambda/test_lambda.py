@@ -1100,3 +1100,37 @@ def test_remove_unknown_permission_throws_error():
     err = exc.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
     err["Message"].should.equal("No policy is associated with the given resource.")
+
+
+@mock_lambda
+def test_multiple_qualifiers():
+    client = boto3.client("lambda", "us-east-1")
+
+    zip_content = get_test_zip_file1()
+    fn_name = str(uuid4())[0:6]
+    client.create_function(
+        FunctionName=fn_name,
+        Runtime="python3.7",
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile": zip_content},
+    )
+
+    for _ in range(10):
+        client.publish_version(FunctionName=fn_name)
+
+    resp = client.list_versions_by_function(FunctionName=fn_name)["Versions"]
+    qualis = [fn["FunctionArn"].split(":")[-1] for fn in resp]
+    qualis.should.equal(["$LATEST", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"])
+
+    client.delete_function(FunctionName=fn_name, Qualifier="4")
+    client.delete_function(FunctionName=fn_name, Qualifier="5")
+
+    resp = client.list_versions_by_function(FunctionName=fn_name)["Versions"]
+    qualis = [fn["FunctionArn"].split(":")[-1] for fn in resp]
+    qualis.should.equal(["$LATEST", "1", "2", "3", "6", "7", "8", "9", "10"])
+
+    fn = client.get_function(FunctionName=fn_name, Qualifier="6")["Configuration"]
+    fn["FunctionArn"].should.equal(
+        f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{fn_name}:6"
+    )
