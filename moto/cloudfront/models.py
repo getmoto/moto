@@ -323,11 +323,10 @@ class CloudFrontBackend(BaseBackend):
 
         return invalidation
 
-    def list_invalidations(self, dist_id, marker, _max_items):
-        if marker:
-            raise NotImplementedError(
-                "moto: paging of invalidations for a distro is not implemented"
-            )
+    def list_invalidations(self, dist_id):
+        """
+        Pagination is not yet implemented
+        """
         return self.invalidations.get(dist_id) or {}
 
     def list_tags_for_resource(self, resource):

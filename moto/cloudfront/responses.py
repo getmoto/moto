@@ -108,10 +108,7 @@ class CloudFrontResponse(BaseResponse):
 
     def list_invalidations(self):
         dist_id = self.path.split("/")[-2]
-        marker = None
-        max_items = None
-
-        invalidations = self.backend.list_invalidations(dist_id, marker, max_items)
+        invalidations = self.backend.list_invalidations(dist_id)
         template = self.response_template(INVALIDATIONS_TEMPLATE)
         response = template.render(invalidations=invalidations, xmlns=XMLNS)
 
