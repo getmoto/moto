@@ -3290,7 +3290,7 @@ def test_get_account_summary():
             "ServerCertificatesQuota": 20,
             "MFADevices": 0,
             "UserPolicySizeQuota": 2048,
-            "PolicyVersionsInUse": 0,
+            "PolicyVersionsInUse": 1,
             "ServerCertificates": 0,
             "Roles": 0,
             "RolesQuota": 1000,
