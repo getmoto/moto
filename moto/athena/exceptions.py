@@ -3,7 +3,7 @@ from moto.core.exceptions import JsonRESTError
 
 
 class AthenaClientError(JsonRESTError):
-    def __init__(self, code, message):
+    def __init__(self, code: str, message: str):
         super().__init__(error_type="InvalidRequestException", message=message)
         self.description = json.dumps(
             {
