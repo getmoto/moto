@@ -3,7 +3,7 @@ Moto Changelog
 
 4.0.8
 -----
-Docker Digest for 4.0.8: <autopopulateddigest>
+Docker Digest for 4.0.8: _sha256:41883fb0f38572f3194dcbef6731eafdc6d8d7d4e319257d2ba2468c401c9881_
 
     General:
         * Unpins the werkzeug-dependency - Moto now works with werkzeug==2.2.2
