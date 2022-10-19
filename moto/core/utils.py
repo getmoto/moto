@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 
-def camelcase_to_underscores(argument):
+def camelcase_to_underscores(argument: Optional[str]) -> str:
     """Converts a camelcase param like theNewAttribute to the equivalent
     python underscore variable like the_new_attribute"""
     result = ""
@@ -147,7 +147,7 @@ class convert_flask_to_responses_response(object):
         return status, headers, response
 
 
-def iso_8601_datetime_with_milliseconds(value):
+def iso_8601_datetime_with_milliseconds(value: datetime) -> str:
     return value.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 

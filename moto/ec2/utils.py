@@ -74,7 +74,7 @@ def random_ami_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["image"])
 
 
-def random_instance_id():
+def random_instance_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["instance"], size=17)
 
 

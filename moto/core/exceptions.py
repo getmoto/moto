@@ -50,7 +50,9 @@ class RESTError(HTTPException):
         "error": ERROR_RESPONSE,
     }
 
-    def __init__(self, error_type, message, template="error", **kwargs):
+    def __init__(
+        self, error_type: str, message: str, template: str = "error", **kwargs: Any
+    ):
         super().__init__()
         self.error_type = error_type
         self.message = message

@@ -14,8 +14,8 @@ from moto import settings
 from moto.core.exceptions import DryRunClientError
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
-from jinja2 import Environment, DictLoader
-from typing import Dict, List, Union, Any, Optional, Tuple
+from jinja2 import Environment, DictLoader, Template
+from typing import Dict, Union, Any, Tuple, TypeVar
 from urllib.parse import parse_qs, parse_qsl, urlparse
 from werkzeug.exceptions import HTTPException
 from xml.dom.minidom import parseString as parseXML
@@ -26,6 +26,7 @@ log = logging.getLogger(__name__)
 JINJA_ENVS = {}
 
 TYPE_RESPONSE = Tuple[int, Dict[str, str], str]
+TYPE_IF_NONE = TypeVar("TYPE_IF_NONE")
 
 
 def _decode_dict(d):
@@ -105,7 +106,7 @@ class _TemplateEnvironmentMixin(object):
         """
         return str(id(source))
 
-    def response_template(self, source):
+    def response_template(self, source: str) -> Template:
         template_id = self._make_template_id(source)
         if not self.contains_template(template_id):
             if settings.PRETTIFY_RESPONSES:
@@ -501,13 +502,17 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 pass
         return if_none
 
-    def _get_int_param(self, param_name, if_none: int = None) -> Optional[int]:
+    def _get_int_param(
+        self, param_name, if_none: TYPE_IF_NONE = None
+    ) -> Union[int, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:
             return int(val)
         return if_none
 
-    def _get_bool_param(self, param_name, if_none: bool = None) -> Optional[bool]:
+    def _get_bool_param(
+        self, param_name, if_none: TYPE_IF_NONE = None
+    ) -> Union[bool, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:
             val = str(val)
@@ -588,9 +593,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return value_dict
 
-    def _get_multi_param(
-        self, param_prefix, skip_result_conversion=False
-    ) -> List[Union[str, Dict]]:
+    def _get_multi_param(self, param_prefix, skip_result_conversion=False) -> Any:
         """
         Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
         this will return ['my-test-1', 'my-test-2']
@@ -635,7 +638,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 ]
         return params
 
-    def _get_params(self) -> Dict[str, Union[str, List, Dict]]:
+    def _get_params(self) -> Any:
         """
         Given a querystring of
         {
@@ -710,7 +713,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             obj[keylist[-1]] = value
 
-    def _get_list_prefix(self, param_prefix):
+    def _get_list_prefix(self, param_prefix: str) -> Any:
         """
         Given a query dict like
         {

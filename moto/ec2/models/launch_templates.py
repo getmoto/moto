@@ -179,10 +179,10 @@ class LaunchTemplateBackend:
         self.launch_template_insert_order.append(template.id)
         return template
 
-    def get_launch_template(self, template_id):
+    def get_launch_template(self, template_id: str) -> LaunchTemplate:
         return self.launch_templates[template_id]
 
-    def get_launch_template_by_name(self, name):
+    def get_launch_template_by_name(self, name: str) -> LaunchTemplate:
         if name not in self.launch_template_name_to_ids:
             raise InvalidLaunchTemplateNameNotFoundWithNameError(name)
         return self.get_launch_template(self.launch_template_name_to_ids[name])

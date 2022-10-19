@@ -2,6 +2,7 @@ import copy
 import warnings
 from collections import OrderedDict
 from datetime import datetime
+from typing import Any, List, Tuple
 from moto import settings
 
 from moto.core import CloudFormationModel
@@ -69,7 +70,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def __init__(self, ec2_backend, image_id, user_data, security_groups, **kwargs):
         super().__init__()
         self.ec2_backend = ec2_backend
-        self.id = random_instance_id()
+        self.id: str = random_instance_id()
         self.owner_id = ec2_backend.account_id
         self.lifecycle = kwargs.get("lifecycle")
 
@@ -79,9 +80,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         if launch_template_arg and not image_id:
             # the image id from the template should be used
             template_version = ec2_backend._get_template_from_args(launch_template_arg)
-            self.image_id = template_version.image_id
+            self.image_id: str = template_version.image_id
         else:
-            self.image_id = image_id
+            self.image_id: str = image_id
         # Check if we have tags to process
         if launch_template_arg:
             template_version = ec2_backend._get_template_from_args(launch_template_arg)
@@ -95,7 +96,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state_reason = StateReason()
         self.user_data = user_data
         self.security_groups = security_groups
-        self.instance_type = kwargs.get("instance_type", "m1.small")
+        self.instance_type: str = kwargs.get("instance_type", "m1.small")
         self.region_name = kwargs.get("region_name", "us-east-1")
         placement = kwargs.get("placement", None)
         self.subnet_id = kwargs.get("subnet_id")
@@ -159,7 +160,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         else:
             self._placement.zone = ec2_backend.region_name + "a"
 
-        self.block_device_mapping = BlockDeviceMapping()
+        self.block_device_mapping: BlockDeviceMapping = BlockDeviceMapping()
 
         self._private_ips = set()
         self.prep_nics(
@@ -592,7 +593,14 @@ class InstanceBackend:
                 return instance
         raise InvalidInstanceIdError(instance_id)
 
-    def add_instances(self, image_id, count, user_data, security_group_names, **kwargs):
+    def add_instances(
+        self,
+        image_id: str,
+        count: int,
+        user_data: str,
+        security_group_names: List[str],
+        **kwargs: Any
+    ) -> Reservation:
         location_type = "availability-zone" if kwargs.get("placement") else "region"
         default_region = "us-east-1"
         if settings.ENABLE_KEYPAIR_VALIDATION:
@@ -734,7 +742,7 @@ class InstanceBackend:
 
         return stopped_instances
 
-    def terminate_instances(self, instance_ids):
+    def terminate_instances(self, instance_ids: List[str]) -> List[Tuple[str, str]]:
         terminated_instances = []
         if not instance_ids:
             raise EC2ClientError(
