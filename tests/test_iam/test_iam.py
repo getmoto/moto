@@ -2084,6 +2084,81 @@ def test_attach_detach_user_policy():
     resp["AttachedPolicies"].should.have.length_of(0)
 
 
+@mock_iam()
+def test_only_detach_user_policy():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = boto3.client("iam", region_name="us-east-1")
+
+    user = iam.create_user(UserName="test-user")
+
+    policy_name = "FreePolicy"
+    policy = iam.create_policy(
+        PolicyName=policy_name,
+        PolicyDocument=MOCK_POLICY,
+        Path="/mypolicy/",
+        Description="free floating policy",
+    )
+
+    resp = client.list_attached_user_policies(UserName=user.name)
+    resp["AttachedPolicies"].should.have.length_of(0)
+
+    with pytest.raises(ClientError) as exc:
+        client.detach_user_policy(UserName=user.name, PolicyArn=policy.arn)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal(f"Policy {policy.arn} was not found.")
+
+
+@mock_iam()
+def test_only_detach_group_policy():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = boto3.client("iam", region_name="us-east-1")
+
+    group = iam.create_group(GroupName="test-group")
+
+    policy_name = "FreePolicy"
+    policy = iam.create_policy(
+        PolicyName=policy_name,
+        PolicyDocument=MOCK_POLICY,
+        Path="/mypolicy/",
+        Description="free floating policy",
+    )
+
+    resp = client.list_attached_group_policies(GroupName=group.name)
+    resp["AttachedPolicies"].should.have.length_of(0)
+
+    with pytest.raises(ClientError) as exc:
+        client.detach_group_policy(GroupName=group.name, PolicyArn=policy.arn)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal(f"Policy {policy.arn} was not found.")
+
+
+@mock_iam()
+def test_only_detach_role_policy():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = boto3.client("iam", region_name="us-east-1")
+
+    role = iam.create_role(RoleName="test-role", AssumeRolePolicyDocument="{}")
+
+    policy_name = "FreePolicy"
+    policy = iam.create_policy(
+        PolicyName=policy_name,
+        PolicyDocument=MOCK_POLICY,
+        Path="/mypolicy/",
+        Description="free floating policy",
+    )
+
+    resp = client.list_attached_role_policies(RoleName=role.name)
+    resp["AttachedPolicies"].should.have.length_of(0)
+
+    with pytest.raises(ClientError) as exc:
+        client.detach_role_policy(RoleName=role.name, PolicyArn=policy.arn)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal(f"Policy {policy.arn} was not found.")
+
+
 @mock_iam
 def test_update_access_key():
     iam = boto3.resource("iam", region_name="us-east-1")
@@ -3215,7 +3290,7 @@ def test_get_account_summary():
             "ServerCertificatesQuota": 20,
             "MFADevices": 0,
             "UserPolicySizeQuota": 2048,
-            "PolicyVersionsInUse": 0,
+            "PolicyVersionsInUse": 1,
             "ServerCertificates": 0,
             "Roles": 0,
             "RolesQuota": 1000,
@@ -3287,7 +3362,7 @@ def test_get_account_summary():
             "ServerCertificatesQuota": 20,
             "MFADevices": 1,
             "UserPolicySizeQuota": 2048,
-            "PolicyVersionsInUse": 3,
+            "PolicyVersionsInUse": 4,
             "ServerCertificates": 1,
             "Roles": 1,
             "RolesQuota": 1000,
