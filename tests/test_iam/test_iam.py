@@ -3362,7 +3362,7 @@ def test_get_account_summary():
             "ServerCertificatesQuota": 20,
             "MFADevices": 1,
             "UserPolicySizeQuota": 2048,
-            "PolicyVersionsInUse": 3,
+            "PolicyVersionsInUse": 4,
             "ServerCertificates": 1,
             "Roles": 1,
             "RolesQuota": 1000,
