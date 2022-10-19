@@ -117,7 +117,7 @@ rds
 - [ ] modify_certificates
 - [ ] modify_current_db_cluster_capacity
 - [ ] modify_custom_db_engine_version
-- [ ] modify_db_cluster
+- [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
 - [ ] modify_db_cluster_parameter_group
 - [ ] modify_db_cluster_snapshot_attribute

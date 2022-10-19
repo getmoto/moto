@@ -218,10 +218,12 @@ glue
 - [X] update_database
 - [ ] update_dev_endpoint
 - [ ] update_job
+- [ ] update_job_from_source_control
 - [ ] update_ml_transform
 - [ ] update_partition
 - [ ] update_registry
 - [ ] update_schema
+- [ ] update_source_control_from_job
 - [ ] update_table
 - [ ] update_trigger
 - [ ] update_user_defined_function

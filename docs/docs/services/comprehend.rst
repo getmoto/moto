@@ -32,6 +32,7 @@ comprehend
 - [ ] batch_detect_key_phrases
 - [ ] batch_detect_sentiment
 - [ ] batch_detect_syntax
+- [ ] batch_detect_targeted_sentiment
 - [ ] classify_document
 - [ ] contains_pii_entities
 - [ ] create_document_classifier
@@ -64,6 +65,7 @@ comprehend
 - [ ] detect_pii_entities
 - [ ] detect_sentiment
 - [ ] detect_syntax
+- [ ] detect_targeted_sentiment
 - [ ] import_model
 - [ ] list_document_classification_jobs
 - [ ] list_document_classifier_summaries

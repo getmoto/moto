@@ -66,10 +66,10 @@ ce
 - [ ] get_usage_forecast
 - [ ] list_cost_allocation_tags
 - [ ] list_cost_category_definitions
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] provide_anomaly_feedback
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_anomaly_monitor
 - [ ] update_anomaly_subscription
 - [ ] update_cost_allocation_tags_status
