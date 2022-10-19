@@ -165,8 +165,8 @@ class FakeTrainingJob(BaseObject):
         self.debug_rule_configurations = debug_rule_configurations
         self.tensor_board_output_config = tensor_board_output_config
         self.experiment_config = experiment_config
-        self.training_job_arn = arn_formatter(
-            "training-job", training_job_name, account_id, region_name
+        self.training_job_arn = FakeTrainingJob.arn_formatter(
+            training_job_name, account_id, region_name
         )
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -218,6 +218,10 @@ class FakeTrainingJob(BaseObject):
     @property
     def response_create(self):
         return {"TrainingJobArn": self.training_job_arn}
+
+    @staticmethod
+    def arn_formatter(name, account_id, region_name):
+        return arn_formatter("training-job", name, account_id, region_name)
 
 
 class FakeEndpoint(BaseObject, CloudFormationModel):
@@ -1865,21 +1869,11 @@ class SageMakerModelBackend(BaseBackend):
             return self.training_jobs[training_job_name].response_object
         except KeyError:
             message = "Could not find training job '{}'.".format(
-                FakeTrainingJob.arn_formatter(training_job_name, self.region_name)
+                FakeTrainingJob.arn_formatter(
+                    training_job_name, self.account_id, self.region_name
+                )
             )
             raise ValidationError(message=message)
-
-    def delete_training_job(self, training_job_name):
-        try:
-            del self.training_jobs[training_job_name]
-        except KeyError:
-            message = "Could not find endpoint configuration '{}'.".format(
-                FakeTrainingJob.arn_formatter(training_job_name, self.region_name)
-            )
-            raise ValidationError(message=message)
-
-    def _update_training_job_details(self, training_job_name, details_json):
-        self.training_jobs[training_job_name].update(details_json)
 
     def list_training_jobs(
         self,

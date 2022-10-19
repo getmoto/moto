@@ -441,3 +441,15 @@ def test_delete_tags_from_training_job():
 
     response = client.list_tags(ResourceArn=resource_arn)
     assert response["Tags"] == []
+
+
+@mock_sagemaker
+def test_describe_unknown_training_job():
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.describe_training_job(TrainingJobName="unknown")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        f"Could not find training job 'arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:training-job/unknown'."
+    )

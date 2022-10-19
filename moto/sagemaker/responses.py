@@ -257,12 +257,6 @@ class SageMakerResponse(BaseResponse):
         return json.dumps(response)
 
     @amzn_request_id
-    def delete_training_job(self):
-        training_job_name = self._get_param("TrainingJobName")
-        self.sagemaker_backend.delete_training_job(training_job_name)
-        return 200, {}, json.dumps("{}")
-
-    @amzn_request_id
     def create_notebook_instance_lifecycle_config(self):
         lifecycle_configuration = (
             self.sagemaker_backend.create_notebook_instance_lifecycle_config(
