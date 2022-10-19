@@ -3,6 +3,7 @@ import re
 from jinja2 import Template
 from botocore.exceptions import ParamValidationError
 from collections import OrderedDict
+from typing import Any, List, Dict, Iterable, Optional
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
@@ -1175,7 +1176,12 @@ Member must satisfy regular expression pattern: {}".format(
             raise RuleNotFoundError("One or more rules not found")
         return matched_rules
 
-    def describe_target_groups(self, load_balancer_arn, target_group_arns, names):
+    def describe_target_groups(
+        self,
+        load_balancer_arn: Optional[str],
+        target_group_arns: List[str],
+        names: Optional[List[str]],
+    ) -> Iterable[FakeTargetGroup]:
         if load_balancer_arn:
             if load_balancer_arn not in self.load_balancers:
                 raise LoadBalancerNotFoundError()
@@ -1284,13 +1290,15 @@ Member must satisfy regular expression pattern: {}".format(
             rule.actions = actions
         return rule
 
-    def register_targets(self, target_group_arn, instances):
+    def register_targets(self, target_group_arn: str, instances: List[Any]):
         target_group = self.target_groups.get(target_group_arn)
         if target_group is None:
             raise TargetGroupNotFoundError()
         target_group.register(instances)
 
-    def deregister_targets(self, target_group_arn, instances):
+    def deregister_targets(
+        self, target_group_arn: str, instances: List[Dict[str, Any]]
+    ):
         target_group = self.target_groups.get(target_group_arn)
         if target_group is None:
             raise TargetGroupNotFoundError()

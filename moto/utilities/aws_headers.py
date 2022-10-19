@@ -1,8 +1,12 @@
 from functools import wraps
+from typing import Any, Callable, TypeVar
 
 import binascii
 import re
 from moto.moto_api._internal import mock_random as random
+
+
+TypeDec = TypeVar("TypeDec", bound=Callable[..., Any])
 
 
 def gen_amz_crc32(response, headerdict=None):
@@ -26,9 +30,9 @@ def gen_amzn_requestid_long(headerdict=None):
     return req_id
 
 
-def amz_crc32(f):
+def amz_crc32(f: TypeDec) -> TypeDec:
     @wraps(f)
-    def _wrapper(*args, **kwargs):
+    def _wrapper(*args: Any, **kwargs: Any) -> Any:
         response = f(*args, **kwargs)
 
         headers = {}
@@ -54,9 +58,9 @@ def amz_crc32(f):
     return _wrapper
 
 
-def amzn_request_id(f):
+def amzn_request_id(f: TypeDec) -> TypeDec:
     @wraps(f)
-    def _wrapper(*args, **kwargs):
+    def _wrapper(*args: Any, **kwargs: Any) -> Any:
         response = f(*args, **kwargs)
 
         headers = {}

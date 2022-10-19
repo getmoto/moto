@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+from typing import Any, Dict, List, Optional, Union
 
 
 class BlockDeviceType(object):
@@ -29,18 +30,18 @@ class BlockDeviceType(object):
 
     def __init__(
         self,
-        connection=None,
-        ephemeral_name=None,
-        no_device=False,
-        volume_id=None,
-        snapshot_id=None,
-        status=None,
-        attach_time=None,
-        delete_on_termination=False,
-        size=None,
-        volume_type=None,
-        iops=None,
-        encrypted=None,
+        connection: Optional[str] = None,
+        ephemeral_name: Optional[str] = None,
+        no_device: Union[bool, str] = False,
+        volume_id: Optional[str] = None,
+        snapshot_id: Optional[str] = None,
+        status: Optional[str] = None,
+        attach_time: Optional[str] = None,
+        delete_on_termination: bool = False,
+        size: Optional[str] = None,
+        volume_type: Optional[str] = None,
+        iops: Optional[str] = None,
+        encrypted: Optional[str] = None,
     ):
         self.connection = connection
         self.ephemeral_name = ephemeral_name
@@ -55,6 +56,7 @@ class BlockDeviceType(object):
         self.iops = iops
         self.encrypted = encrypted
         self.kms_key_id = None
+        self.throughput = None
 
 
 # for backwards compatibility
@@ -73,17 +75,7 @@ class BlockDeviceMapping(dict):
     reservation = image.run(..., block_device_map=bdm, ...)
     """
 
-    def __init__(self, connection=None):
-        """
-        :type connection: :class:`boto.ec2.EC2Connection`
-        :param connection: Optional connection.
-        """
-        dict.__init__(self)
-        self.connection = connection
-        self.current_name = None
-        self.current_value = None
-
-    def to_source_dict(self):
+    def to_source_dict(self) -> List[Dict[str, Any]]:
         return [
             {
                 "DeviceName": device_name,

@@ -1,8 +1,8 @@
 import datetime
-
 import pytz
-
 from collections import OrderedDict
+from typing import List, Iterable
+
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
 from moto.ec2.models import ec2_backends
@@ -359,7 +359,7 @@ class ELBBackend(BaseBackend):
 
         return balancer
 
-    def describe_load_balancers(self, names):
+    def describe_load_balancers(self, names: List[str]) -> List[FakeLoadBalancer]:
         balancers = self.load_balancers.values()
         if names:
             matched_balancers = [
@@ -465,8 +465,11 @@ class ELBBackend(BaseBackend):
         return balancer
 
     def register_instances(
-        self, load_balancer_name, instance_ids, from_autoscaling=False
-    ):
+        self,
+        load_balancer_name: str,
+        instance_ids: Iterable[str],
+        from_autoscaling: bool = False,
+    ) -> FakeLoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         attr_name = (
             "instance_sparse_ids"
@@ -479,8 +482,11 @@ class ELBBackend(BaseBackend):
         return load_balancer
 
     def deregister_instances(
-        self, load_balancer_name, instance_ids, from_autoscaling=False
-    ):
+        self,
+        load_balancer_name: str,
+        instance_ids: Iterable[str],
+        from_autoscaling: bool = False,
+    ) -> FakeLoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         attr_name = (
             "instance_sparse_ids"

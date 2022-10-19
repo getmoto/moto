@@ -1,5 +1,6 @@
 import re
 from collections import defaultdict
+from typing import Dict, List
 
 from ..exceptions import (
     InvalidParameterValueErrorTagNull,
@@ -18,7 +19,7 @@ class TagBackend:
     def __init__(self):
         self.tags = defaultdict(dict)
 
-    def create_tags(self, resource_ids, tags):
+    def create_tags(self, resource_ids: List[str], tags: Dict[str, str]):
         if None in set([tags[tag] for tag in tags]):
             raise InvalidParameterValueErrorTagNull()
         for resource_id in resource_ids:
@@ -36,7 +37,7 @@ class TagBackend:
                 self.tags[resource_id][tag] = tags[tag]
         return True
 
-    def delete_tags(self, resource_ids, tags):
+    def delete_tags(self, resource_ids: List[str], tags: Dict[str, str]):
         for resource_id in resource_ids:
             for tag in tags:
                 if tag in self.tags[resource_id]:
