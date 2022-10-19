@@ -112,7 +112,11 @@ cloudfront
 - [ ] list_field_level_encryption_configs
 - [ ] list_field_level_encryption_profiles
 - [ ] list_functions
-- [ ] list_invalidations
+- [X] list_invalidations
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_key_groups
 - [ ] list_origin_access_controls
 - [ ] list_origin_request_policies

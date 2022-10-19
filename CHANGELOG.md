@@ -1,6 +1,31 @@
 Moto Changelog
 ==============
 
+4.0.8
+-----
+Docker Digest for 4.0.8: <autopopulateddigest>
+
+    General:
+        * Unpins the werkzeug-dependency - Moto now works with werkzeug==2.2.2
+        * Fixes the Docker-build to run on M1 Macbooks.
+
+    New Services:
+        * ServiceQuotas:
+            * get_service_quota()
+            * list_aws_default_service_quotas()
+
+    New Methods:
+        * CloudFront: list_invalidations()
+        * RDS: modify_db_cluster()
+
+    Miscellaneous:
+        * Lambda:delete_function() - fixed an issue where the wrong Function would be deleted when providing a qualifier
+        * ECR:put_image() now removes any existing images that have the provided tag
+        * IAM:detach_user/group/role_policy() now throws the correct error message when the policy is not attached in the first place 
+        * S3:list_object_versions(): Fix delimiter to take prefix into account 
+        * S3: Now closes file handles as early as possible when deleting files/multipart uploads
+        * Sagamaker:describe_training_job() now throws the correct exception when trying to explain a non-existing job
+
 
 4.0.7
 -----

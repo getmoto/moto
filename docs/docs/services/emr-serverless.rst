@@ -31,6 +31,7 @@ emr-serverless
 - [X] create_application
 - [X] delete_application
 - [X] get_application
+- [ ] get_dashboard_for_job_run
 - [ ] get_job_run
 - [X] list_applications
 - [ ] list_job_runs
