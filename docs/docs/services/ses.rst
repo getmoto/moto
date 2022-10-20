@@ -12,7 +12,7 @@
 ses
 ===
 
-.. autoclass:: moto.sns.models.SESBackend
+.. autoclass:: moto.ses.models.SESBackend
 
 |start-h3| Example usage |end-h3|
 
