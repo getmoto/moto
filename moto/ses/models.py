@@ -119,6 +119,17 @@ def are_all_variables_present(template, template_data):
 
 
 class SESBackend(BaseBackend):
+    """
+    Responsible for mocking calls to SES.
+    Sent messages are persisted in the backend. If you need to verify that a message was sent successfully, you can use the internal API to check:
+    .. sourcecode:: python
+        from moto.core import DEFAULT_ACCOUNT_ID
+        from moto.ses import ses_backends
+        ses_backend = ses_backends[DEFAULT_ACCOUNT_ID]["global"]
+        messages = ses_backend.sent_messages # sent_messages is a List of Message objects
+    Note that, as this is an internal API, the exact format may differ per versions.
+    """
+    
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.addresses = []
