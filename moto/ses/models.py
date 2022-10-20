@@ -125,6 +125,7 @@ class SESBackend(BaseBackend):
     Sent messages are persisted in the backend. If you need to verify that a message was sent successfully, you can use the internal API to check:
 
     .. sourcecode:: python
+
         from moto.core import DEFAULT_ACCOUNT_ID
         from moto.ses import ses_backends
         ses_backend = ses_backends[DEFAULT_ACCOUNT_ID]["global"]
