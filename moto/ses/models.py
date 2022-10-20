@@ -133,7 +133,7 @@ class SESBackend(BaseBackend):
 
     Note that, as this is an internal API, the exact format may differ per versions.
     """
-    
+
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.addresses = []
