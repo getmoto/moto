@@ -29,12 +29,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: "3.8"
-    # FIXME: pinned because of https://github.com/hashicorp/terraform-provider-aws/issues/27049
-    - name: Install terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: "1.2.9"
-        terraform_wrapper: "false"
     - name: Start MotoServer
       run: |
         pip install PyYAML

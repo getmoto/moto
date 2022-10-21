@@ -1,60 +1,49 @@
-From ba338bc6eff2276671b8fd8e61c5a1aceab96112 Mon Sep 17 00:00:00 2001
+From 01a50d07400ee7513b31ec10e9832a2d8290b4e2 Mon Sep 17 00:00:00 2001
 From: Bert Blommers <info@bertblommers.nl>
-Date: Tue, 4 Oct 2022 19:00:11 +0000
-Subject: [PATCH] Patch: Reduce Comprehend timings
+Date: Sat, 22 Oct 2022 13:25:17 +0000
+Subject: [PATCH] Patch: Comprehend timings
 
 ---
- internal/service/comprehend/common_model.go      | 2 +-
- internal/service/comprehend/consts.go            | 6 +++---
- internal/service/comprehend/entity_recognizer.go | 6 +++---
- 3 files changed, 7 insertions(+), 7 deletions(-)
+ internal/service/comprehend/common_model.go |  2 +-
+ internal/service/comprehend/consts.go       | 12 ++++++------
+ 2 files changed, 7 insertions(+), 7 deletions(-)
 
 diff --git a/internal/service/comprehend/common_model.go b/internal/service/comprehend/common_model.go
-index 7fa0c1022f..eb6b7c9265 100644
+index 034314bdcc..03a29aa3c2 100644
 --- a/internal/service/comprehend/common_model.go
 +++ b/internal/service/comprehend/common_model.go
-@@ -57,7 +57,7 @@ func waitNetworkInterfaceCreated(ctx context.Context, conn *ec2.EC2, initialENII
+@@ -60,7 +60,7 @@ func waitNetworkInterfaceCreated(ctx context.Context, conn *ec2.EC2, initialENII
  		Pending:    []string{},
  		Target:     []string{ec2.NetworkInterfaceStatusInUse},
  		Refresh:    statusNetworkInterfaces(ctx, conn, initialENIIds, securityGroups, subnets),
 -		Delay:      4 * time.Minute,
-+		Delay:      40 * time.Second,
++		Delay:      4 * time.Second,
  		MinTimeout: 10 * time.Second,
  		Timeout:    timeout,
  	}
 diff --git a/internal/service/comprehend/consts.go b/internal/service/comprehend/consts.go
-index 8c926987a4..2420b78dcc 100644
+index e57884a12d..df5fd0678b 100644
 --- a/internal/service/comprehend/consts.go
 +++ b/internal/service/comprehend/consts.go
-@@ -4,8 +4,8 @@ import (
- 	"time"
- )
- 
--const iamPropagationTimeout = 2 * time.Minute
-+const iamPropagationTimeout = 20 * time.Second
- 
+@@ -7,12 +7,12 @@ import (
+ const iamPropagationTimeout = 2 * time.Minute
+
  // Avoid service throttling
--const entityRegcognizerDelay = 1 * time.Minute
+-const entityRegcognizerCreatedDelay = 10 * time.Minute
++const entityRegcognizerCreatedDelay = 10 * time.Second
+ const entityRegcognizerStoppedDelay = 0
+-const entityRegcognizerDeletedDelay = 5 * time.Minute
 -const entityRegcognizerPollInterval = 1 * time.Minute
-+const entityRegcognizerDelay = 10 * time.Second
-+const entityRegcognizerPollInterval = 10 * time.Second
-diff --git a/internal/service/comprehend/entity_recognizer.go b/internal/service/comprehend/entity_recognizer.go
-index 119bf790db..3e953427af 100644
---- a/internal/service/comprehend/entity_recognizer.go
-+++ b/internal/service/comprehend/entity_recognizer.go
-@@ -42,9 +42,9 @@ func ResourceEntityRecognizer() *schema.Resource {
- 		},
- 
- 		Timeouts: &schema.ResourceTimeout{
--			Create: schema.DefaultTimeout(60 * time.Minute),
--			Update: schema.DefaultTimeout(60 * time.Minute),
--			Delete: schema.DefaultTimeout(30 * time.Minute),
-+			Create: schema.DefaultTimeout(60 * time.Second),
-+			Update: schema.DefaultTimeout(60 * time.Second),
-+			Delete: schema.DefaultTimeout(30 * time.Second),
- 		},
- 
- 		Schema: map[string]*schema.Schema{
++const entityRegcognizerDeletedDelay = 5 * time.Second
++const entityRegcognizerPollInterval = 1 * time.Second
+
+-const documentClassifierCreatedDelay = 15 * time.Minute
++const documentClassifierCreatedDelay = 15 * time.Second
+ const documentClassifierStoppedDelay = 0
+-const documentClassifierDeletedDelay = 5 * time.Minute
+-const documentClassifierPollInterval = 1 * time.Minute
++const documentClassifierDeletedDelay = 5 * time.Second
++const documentClassifierPollInterval = 1 * time.Second
 -- 
 2.25.1
 

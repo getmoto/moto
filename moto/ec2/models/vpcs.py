@@ -169,6 +169,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         # This attribute is set to 'true' only for default VPCs
         # or VPCs created using the wizard of the VPC console
         self.enable_dns_hostnames = "true" if is_default else "false"
+        self.enable_network_address_usage_metrics = "false"
 
         self.associate_vpc_cidr_block(cidr_block)
         if amazon_provided_ipv6_cidr_block:
@@ -466,7 +467,11 @@ class VPCBackend:
 
     def describe_vpc_attribute(self, vpc_id, attr_name):
         vpc = self.get_vpc(vpc_id)
-        if attr_name in ("enable_dns_support", "enable_dns_hostnames"):
+        if attr_name in (
+            "enable_dns_support",
+            "enable_dns_hostnames",
+            "enable_network_address_usage_metrics",
+        ):
             return getattr(vpc, attr_name)
         else:
             raise InvalidParameterValueError(attr_name)
@@ -493,7 +498,11 @@ class VPCBackend:
 
     def modify_vpc_attribute(self, vpc_id, attr_name, attr_value):
         vpc = self.get_vpc(vpc_id)
-        if attr_name in ("enable_dns_support", "enable_dns_hostnames"):
+        if attr_name in (
+            "enable_dns_support",
+            "enable_dns_hostnames",
+            "enable_network_address_usage_metrics",
+        ):
             setattr(vpc, attr_name, attr_value)
         else:
             raise InvalidParameterValueError(attr_name)
