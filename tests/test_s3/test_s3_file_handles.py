@@ -57,6 +57,11 @@ class TestS3FileHandleClosures(TestCase):
         self.s3.put_object("my-bucket", "my-key", "b" * 10_000_000)
 
     @verify_zero_warnings
+    def test_versioned_file(self):
+        self.s3.put_bucket_versioning("my-bucket", "Enabled")
+        self.s3.put_object("my-bucket", "my-key", "b" * 10_000_000)
+
+    @verify_zero_warnings
     def test_copy_object(self):
         key = self.s3.get_object("my-bucket", "my-key")
         self.s3.copy_object(

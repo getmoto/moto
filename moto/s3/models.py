@@ -1455,12 +1455,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def reset(self):
         # For every key and multipart, Moto opens a TemporaryFile to write the value of those keys
         # Ensure that these TemporaryFile-objects are closed, and leave no filehandles open
-        for bucket in self.buckets.values():
-            for key in bucket.keys.values():
-                if isinstance(key, FakeKey):
-                    key.dispose()
-            for mp in bucket.multiparts.values():
-                mp.dispose()
+        for mp in FakeMultipart.instances:
+            mp.dispose()
+        for key in FakeKey.instances:
+            key.dispose()
         super().reset()
 
     @property
