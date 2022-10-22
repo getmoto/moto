@@ -175,14 +175,14 @@ def str_to_rfc_1123_datetime(value):
     return datetime.datetime.strptime(value, RFC1123)
 
 
-def unix_time(dt: datetime.datetime = None) -> datetime.datetime:
+def unix_time(dt: datetime.datetime = None) -> int:
     dt = dt or datetime.datetime.utcnow()
     epoch = datetime.datetime.utcfromtimestamp(0)
     delta = dt - epoch
     return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
 
 
-def unix_time_millis(dt=None):
+def unix_time_millis(dt: datetime = None) -> int:
     return unix_time(dt) * 1000.0
 
 

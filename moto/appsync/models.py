@@ -51,19 +51,20 @@ class GraphqlSchema(BaseModel):
 
 
 class GraphqlAPIKey(BaseModel):
-    def __init__(self, description: str, expires: Optional[datetime]):
+    def __init__(self, description: str, expires: Optional[int]):
         self.key_id = str(mock_random.uuid4())[0:6]
         self.description = description
-        self.expires = expires
-        if not self.expires:
+        if not expires:
             default_expiry = datetime.now(timezone.utc)
             default_expiry = default_expiry.replace(
                 minute=0, second=0, microsecond=0, tzinfo=None
             )
             default_expiry = default_expiry + timedelta(days=7)
             self.expires = unix_time(default_expiry)
+        else:
+            self.expires = expires
 
-    def update(self, description: Optional[str], expires: Optional[datetime]) -> None:
+    def update(self, description: Optional[str], expires: Optional[int]) -> None:
         if description:
             self.description = description
         if expires:
@@ -138,9 +139,7 @@ class GraphqlAPI(BaseModel):
         if xray_enabled is not None:
             self.xray_enabled = xray_enabled
 
-    def create_api_key(
-        self, description: str, expires: Optional[datetime]
-    ) -> GraphqlAPIKey:
+    def create_api_key(self, description: str, expires: Optional[int]) -> GraphqlAPIKey:
         api_key = GraphqlAPIKey(description, expires)
         self.api_keys[api_key.key_id] = api_key
         return api_key
@@ -152,7 +151,7 @@ class GraphqlAPI(BaseModel):
         self.api_keys.pop(api_key_id)
 
     def update_api_key(
-        self, api_key_id: str, description: str, expires: Optional[datetime]
+        self, api_key_id: str, description: str, expires: Optional[int]
     ) -> GraphqlAPIKey:
         api_key = self.api_keys[api_key_id]
         api_key.update(description, expires)
@@ -265,7 +264,7 @@ class AppSyncBackend(BaseBackend):
         return self.graphql_apis.values()
 
     def create_api_key(
-        self, api_id: str, description: str, expires: Optional[datetime]
+        self, api_id: str, description: str, expires: Optional[int]
     ) -> GraphqlAPIKey:
         return self.graphql_apis[api_id].create_api_key(description, expires)
 
@@ -286,7 +285,7 @@ class AppSyncBackend(BaseBackend):
         api_id: str,
         api_key_id: str,
         description: str,
-        expires: Optional[datetime],
+        expires: Optional[int],
     ) -> GraphqlAPIKey:
         return self.graphql_apis[api_id].update_api_key(
             api_key_id, description, expires
