@@ -2,7 +2,7 @@ import copy
 import itertools
 import json
 from collections import defaultdict
-
+from typing import Optional
 from moto.core import CloudFormationModel
 from moto.core.utils import aws_api_matches
 from ..exceptions import (
@@ -543,7 +543,7 @@ class SecurityGroupBackend:
                 return self._delete_security_group(None, group.id)
             raise InvalidSecurityGroupNotFoundError(name)
 
-    def get_security_group_from_id(self, group_id):
+    def get_security_group_from_id(self, group_id: str) -> Optional[SecurityGroup]:
         # 2 levels of chaining necessary since it's a complex structure
         all_groups = itertools.chain.from_iterable(
             [x.copy().values() for x in self.groups.copy().values()]

@@ -106,7 +106,7 @@ class TaggingService:
                 result[tag[self.key_name]] = None
         return result
 
-    def validate_tags(self, tags, limit=0):
+    def validate_tags(self, tags: List[Dict[str, str]], limit: int = 0) -> str:
         """Returns error message if tags in 'tags' list of dicts are invalid.
 
         The validation does not include a check for duplicate keys.

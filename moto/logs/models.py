@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-
+from typing import Any, Dict, List, Tuple, Optional
 from moto.core import BaseBackend, BaseModel
 from moto.core import CloudFormationModel
 from moto.core.utils import unix_time_millis, BackendDict
@@ -627,7 +627,9 @@ class LogsBackend(BaseBackend):
         )
         return self.groups[log_group_name]
 
-    def ensure_log_group(self, log_group_name, tags):
+    def ensure_log_group(
+        self, log_group_name: str, tags: Optional[Dict[str, str]]
+    ) -> None:
         if log_group_name in self.groups:
             return
         self.groups[log_group_name] = LogGroup(
@@ -653,7 +655,7 @@ class LogsBackend(BaseBackend):
 
         return groups
 
-    def create_log_stream(self, log_group_name, log_stream_name):
+    def create_log_stream(self, log_group_name: str, log_stream_name: str) -> LogStream:
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
@@ -702,7 +704,12 @@ class LogsBackend(BaseBackend):
             order_by=order_by,
         )
 
-    def put_log_events(self, log_group_name, log_stream_name, log_events):
+    def put_log_events(
+        self,
+        log_group_name: str,
+        log_stream_name: str,
+        log_events: List[Dict[str, Any]],
+    ) -> Tuple[str, Dict[str, Any]]:
         """
         The SequenceToken-parameter is not yet implemented
         """

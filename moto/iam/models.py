@@ -10,7 +10,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
 from jinja2 import Template
-from typing import Mapping
+from typing import List, Mapping
 from urllib import parse
 from moto.core.exceptions import RESTError
 from moto.core import DEFAULT_ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
@@ -2188,7 +2188,7 @@ class IAMBackend(BaseBackend):
 
         raise IAMNotFoundException("Instance profile {0} not found".format(profile_arn))
 
-    def get_instance_profiles(self):
+    def get_instance_profiles(self) -> List[InstanceProfile]:
         return self.instance_profiles.values()
 
     def get_instance_profiles_for_role(self, role_name):

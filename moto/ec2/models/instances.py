@@ -2,7 +2,7 @@ import copy
 import warnings
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, Optional
 from moto import settings
 
 from moto.core import CloudFormationModel
@@ -597,7 +597,7 @@ class InstanceBackend:
         self,
         image_id: str,
         count: int,
-        user_data: str,
+        user_data: Optional[str],
         security_group_names: List[str],
         **kwargs: Any
     ) -> Reservation:

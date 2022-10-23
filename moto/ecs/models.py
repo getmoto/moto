@@ -1,7 +1,7 @@
 import re
 from copy import copy
 from datetime import datetime
-
+from typing import Any
 import pytz
 
 from moto import settings
@@ -850,7 +850,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             raise Exception("{0} is not a task_definition".format(task_definition_name))
 
-    def create_cluster(self, cluster_name, tags=None, cluster_settings=None):
+    def create_cluster(
+        self, cluster_name: str, tags: Any = None, cluster_settings: Any = None
+    ) -> Cluster:
         """
         The following parameters are not yet implemented: configuration, capacityProviders, defaultCapacityProviderStrategy
         """
@@ -926,7 +928,7 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return list_clusters, failures
 
-    def delete_cluster(self, cluster_str):
+    def delete_cluster(self, cluster_str: str) -> Cluster:
         cluster = self._get_cluster(cluster_str)
 
         return self.clusters.pop(cluster.name)

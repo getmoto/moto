@@ -1,45 +1,28 @@
 from moto.core.responses import BaseResponse
-from .models import batch_backends
+from .models import batch_backends, BatchBackend
 from urllib.parse import urlsplit, unquote
 
 import json
 
 
 class BatchResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="batch")
 
-    def _error(self, code, message):
-        return json.dumps({"__type": code, "message": message}), dict(status=400)
-
     @property
-    def batch_backend(self):
+    def batch_backend(self) -> BatchBackend:
         """
         :return: Batch Backend
         :rtype: moto.batch.models.BatchBackend
         """
         return batch_backends[self.current_account][self.region]
 
-    @property
-    def json(self):
-        if self.body is None or self.body == "":
-            self._json = {}
-        elif not hasattr(self, "_json"):
-            self._json = json.loads(self.body)
-        return self._json
-
-    def _get_param(self, param_name, if_none=None):
-        val = self.json.get(param_name)
-        if val is not None:
-            return val
-        return if_none
-
-    def _get_action(self):
+    def _get_action(self) -> str:
         # Return element after the /v1/*
         return urlsplit(self.uri).path.lstrip("/").split("/")[1]
 
     # CreateComputeEnvironment
-    def createcomputeenvironment(self):
+    def createcomputeenvironment(self) -> str:
         compute_env_name = self._get_param("computeEnvironmentName")
         compute_resource = self._get_param("computeResources")
         service_role = self._get_param("serviceRole")
@@ -59,7 +42,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DescribeComputeEnvironments
-    def describecomputeenvironments(self):
+    def describecomputeenvironments(self) -> str:
         compute_environments = self._get_param("computeEnvironments")
 
         envs = self.batch_backend.describe_compute_environments(compute_environments)
@@ -68,7 +51,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DeleteComputeEnvironment
-    def deletecomputeenvironment(self):
+    def deletecomputeenvironment(self) -> str:
         compute_environment = self._get_param("computeEnvironment")
 
         self.batch_backend.delete_compute_environment(compute_environment)
@@ -76,7 +59,7 @@ class BatchResponse(BaseResponse):
         return ""
 
     # UpdateComputeEnvironment
-    def updatecomputeenvironment(self):
+    def updatecomputeenvironment(self) -> str:
         compute_env_name = self._get_param("computeEnvironment")
         compute_resource = self._get_param("computeResources")
         service_role = self._get_param("serviceRole")
@@ -94,7 +77,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # CreateJobQueue
-    def createjobqueue(self):
+    def createjobqueue(self) -> str:
         compute_env_order = self._get_param("computeEnvironmentOrder")
         queue_name = self._get_param("jobQueueName")
         priority = self._get_param("priority")
@@ -114,7 +97,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DescribeJobQueues
-    def describejobqueues(self):
+    def describejobqueues(self) -> str:
         job_queues = self._get_param("jobQueues")
 
         queues = self.batch_backend.describe_job_queues(job_queues)
@@ -123,7 +106,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # UpdateJobQueue
-    def updatejobqueue(self):
+    def updatejobqueue(self) -> str:
         compute_env_order = self._get_param("computeEnvironmentOrder")
         queue_name = self._get_param("jobQueue")
         priority = self._get_param("priority")
@@ -141,7 +124,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DeleteJobQueue
-    def deletejobqueue(self):
+    def deletejobqueue(self) -> str:
         queue_name = self._get_param("jobQueue")
 
         self.batch_backend.delete_job_queue(queue_name)
@@ -149,7 +132,7 @@ class BatchResponse(BaseResponse):
         return ""
 
     # RegisterJobDefinition
-    def registerjobdefinition(self):
+    def registerjobdefinition(self) -> str:
         container_properties = self._get_param("containerProperties")
         def_name = self._get_param("jobDefinitionName")
         parameters = self._get_param("parameters")
@@ -180,7 +163,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DeregisterJobDefinition
-    def deregisterjobdefinition(self):
+    def deregisterjobdefinition(self) -> str:
         queue_name = self._get_param("jobDefinition")
 
         self.batch_backend.deregister_job_definition(queue_name)
@@ -188,7 +171,7 @@ class BatchResponse(BaseResponse):
         return ""
 
     # DescribeJobDefinitions
-    def describejobdefinitions(self):
+    def describejobdefinitions(self) -> str:
         job_def_name = self._get_param("jobDefinitionName")
         job_def_list = self._get_param("jobDefinitions")
         status = self._get_param("status")
@@ -201,7 +184,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # SubmitJob
-    def submitjob(self):
+    def submitjob(self) -> str:
         container_overrides = self._get_param("containerOverrides")
         depends_on = self._get_param("dependsOn")
         job_def = self._get_param("jobDefinition")
@@ -223,13 +206,13 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DescribeJobs
-    def describejobs(self):
+    def describejobs(self) -> str:
         jobs = self._get_param("jobs")
 
         return json.dumps({"jobs": self.batch_backend.describe_jobs(jobs)})
 
     # ListJobs
-    def listjobs(self):
+    def listjobs(self) -> str:
         job_queue = self._get_param("jobQueue")
         job_status = self._get_param("jobStatus")
 
@@ -239,7 +222,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # TerminateJob
-    def terminatejob(self):
+    def terminatejob(self) -> str:
         job_id = self._get_param("jobId")
         reason = self._get_param("reason")
 
@@ -248,22 +231,22 @@ class BatchResponse(BaseResponse):
         return ""
 
     # CancelJob
-    def canceljob(self):
+    def canceljob(self) -> str:
         job_id = self._get_param("jobId")
         reason = self._get_param("reason")
         self.batch_backend.cancel_job(job_id, reason)
 
         return ""
 
-    def tags(self):
+    def tags(self) -> str:
         resource_arn = unquote(self.path).split("/v1/tags/")[-1]
         tags = self._get_param("tags")
         if self.method == "POST":
             self.batch_backend.tag_resource(resource_arn, tags)
-            return ""
         if self.method == "GET":
             tags = self.batch_backend.list_tags_for_resource(resource_arn)
             return json.dumps({"tags": tags})
         if self.method == "DELETE":
             tag_keys = self.querystring.get("tagKeys")
-            self.batch_backend.untag_resource(resource_arn, tag_keys)
+            self.batch_backend.untag_resource(resource_arn, tag_keys)  # type: ignore[arg-type]
+        return ""
