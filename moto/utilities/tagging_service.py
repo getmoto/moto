@@ -22,7 +22,7 @@ class TaggingService:
                 result[key] = val
         return result
 
-    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, arn: str) -> Dict[str, List[Dict[str, str]]]:
         """Return list of tags inside dict with key of "tag_name".
 
         Useful for describe functions; this return value can be added to
