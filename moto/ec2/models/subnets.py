@@ -229,7 +229,7 @@ class SubnetBackend:
         # maps availability zone to dict of (subnet_id, subnet)
         self.subnets = defaultdict(dict)
 
-    def get_subnet(self, subnet_id):
+    def get_subnet(self, subnet_id: str) -> Subnet:
         for subnets in self.subnets.values():
             if subnet_id in subnets:
                 return subnets[subnet_id]

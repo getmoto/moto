@@ -1,3 +1,6 @@
+from typing import Any, Dict
+
+
 DEFAULT_TRANSITION = {"progression": "immediate"}
 
 
@@ -6,7 +9,9 @@ class StateManager:
         self._default_transitions = dict()
         self._transitions = dict()
 
-    def register_default_transition(self, model_name, transition):
+    def register_default_transition(
+        self, model_name: str, transition: Dict[str, Any]
+    ) -> None:
         """
         Register the default transition for a specific model.
         This should only be called by Moto backends - use the `set_transition` method to override this default transition in your own tests.

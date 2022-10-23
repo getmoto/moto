@@ -32,7 +32,7 @@ class BaseBackend:
             for model in models.values():
                 model.instances = []
 
-    def reset(self):
+    def reset(self) -> None:
         region_name = self.region_name
         account_id = self.account_id
         self._reset_model_refs()
