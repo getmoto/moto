@@ -22,18 +22,18 @@
 
 ## amp
 <details>
-<summary>61% implemented</summary>
+<summary>80% implemented</summary>
 
 - [ ] create_alert_manager_definition
-- [ ] create_logging_configuration
+- [X] create_logging_configuration
 - [X] create_rule_groups_namespace
 - [X] create_workspace
 - [ ] delete_alert_manager_definition
-- [ ] delete_logging_configuration
+- [X] delete_logging_configuration
 - [X] delete_rule_groups_namespace
 - [X] delete_workspace
 - [ ] describe_alert_manager_definition
-- [ ] describe_logging_configuration
+- [X] describe_logging_configuration
 - [X] describe_rule_groups_namespace
 - [X] describe_workspace
 - [X] list_rule_groups_namespaces
@@ -43,7 +43,7 @@
 - [X] put_rule_groups_namespace
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_logging_configuration
+- [X] update_logging_configuration
 - [X] update_workspace_alias
 </details>
 

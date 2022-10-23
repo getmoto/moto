@@ -140,3 +140,32 @@ class PrometheusServiceResponse(BaseResponse):
                 ruleGroupsNamespaces=[ns.to_dict() for ns in namespaces],
             )
         )
+
+    def create_logging_configuration(self) -> str:
+        workspace_id = unquote(self.path).split("/")[-2]
+        log_group_arn = self._get_param("logGroupArn")
+        status = self.amp_backend.create_logging_configuration(
+            workspace_id=workspace_id,
+            log_group_arn=log_group_arn,
+        )
+        return json.dumps({"status": status})
+
+    def describe_logging_configuration(self) -> str:
+        workspace_id = unquote(self.path).split("/")[-2]
+        config = self.amp_backend.describe_logging_configuration(
+            workspace_id=workspace_id
+        )
+        return json.dumps({"loggingConfiguration": config})
+
+    def update_logging_configuration(self) -> str:
+        workspace_id = unquote(self.path).split("/")[-2]
+        log_group_arn = self._get_param("logGroupArn")
+        status = self.amp_backend.update_logging_configuration(
+            workspace_id=workspace_id, log_group_arn=log_group_arn
+        )
+        return json.dumps({"status": status})
+
+    def delete_logging_configuration(self) -> str:
+        workspace_id = unquote(self.path).split("/")[-2]
+        self.amp_backend.delete_logging_configuration(workspace_id=workspace_id)
+        return "{}"
