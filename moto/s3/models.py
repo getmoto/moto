@@ -305,7 +305,12 @@ class FakeKey(BaseModel, ManagedState):
     # https://docs.python.org/3/library/pickle.html#handling-stateful-objects
     def __getstate__(self):
         state = self.__dict__.copy()
-        state["value"] = self.value
+        try:
+            state["value"] = self.value
+        except ValueError:
+            # Buffer is already closed, so we can't reach the data
+            # Only happens if the key was deleted
+            state["value"] = ""
         del state["_value_buffer"]
         del state["lock"]
         return state

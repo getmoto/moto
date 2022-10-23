@@ -1,3 +1,4 @@
+import copy
 import gc
 import warnings
 from functools import wraps
@@ -186,3 +187,21 @@ class TestS3FileHandleClosures(TestCase):
         self.s3.delete_object(
             bucket_name="my-bucket", key_name="my-key", version_id=key._version_id
         )
+
+
+def test_verify_key_can_be_copied_after_disposing():
+    # https://github.com/spulec/moto/issues/5588
+    # Multithreaded bug where:
+    #  - User: calls list_object_versions
+    #  - Moto creates a list of all keys
+    #  - User: deletes a key
+    #  - Moto iterates over the previously created list, that contains a now-deleted key, and creates a copy of it
+    #
+    # This test verifies the copy-operation succeeds, it will just not have any data
+    key = s3model.FakeKey(name="test", bucket_name="bucket", value="sth")
+    assert not key._value_buffer.closed
+    key.dispose()
+    assert key._value_buffer.closed
+
+    copied_key = copy.copy(key)
+    copied_key.value.should.equal(b"")
