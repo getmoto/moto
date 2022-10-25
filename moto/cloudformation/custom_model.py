@@ -1,5 +1,6 @@
 import json
 import threading
+from typing import Any, Dict
 
 from moto import settings
 from moto.core import CloudFormationModel
@@ -8,33 +9,40 @@ from moto.moto_api._internal import mock_random
 
 
 class CustomModel(CloudFormationModel):
-    def __init__(self, region_name, request_id, logical_id, resource_name):
+    def __init__(
+        self, region_name: str, request_id: str, logical_id: str, resource_name: str
+    ):
         self.region_name = region_name
         self.request_id = request_id
         self.logical_id = logical_id
         self.resource_name = resource_name
-        self.data = dict()
+        self.data: Dict[str, Any] = dict()
         self._finished = False
 
-    def set_data(self, data):
+    def set_data(self, data: Dict[str, Any]) -> None:
         self.data = data
         self._finished = True
 
-    def is_created(self):
+    def is_created(self) -> bool:
         return self._finished
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.resource_name
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         return "?"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "CustomModel":
         logical_id = kwargs["LogicalId"]
         stack_id = kwargs["StackId"]
         resource_type = kwargs["ResourceType"]
@@ -85,11 +93,11 @@ class CustomModel(CloudFormationModel):
         return custom_resource
 
     @classmethod
-    def has_cfn_attr(cls, attr):  # pylint: disable=unused-argument
+    def has_cfn_attr(cls, attr: str) -> bool:  # pylint: disable=unused-argument
         # We don't know which attributes are supported for third-party resources
         return True
 
-    def get_cfn_attribute(self, attribute_name):
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
         if attribute_name in self.data:
             return self.data[attribute_name]
         return None

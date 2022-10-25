@@ -1,5 +1,6 @@
 from moto.core.exceptions import RESTError
 from jinja2 import Template
+from typing import Optional
 
 
 class UnformattedGetAttTemplateException(Exception):
@@ -10,7 +11,7 @@ class UnformattedGetAttTemplateException(Exception):
 
 
 class ValidationError(RESTError):
-    def __init__(self, name_or_id=None, message=None):
+    def __init__(self, name_or_id: Optional[str] = None, message: Optional[str] = None):
         if message is None:
             message = "Stack with id {0} does not exist".format(name_or_id)
 
@@ -20,7 +21,7 @@ class ValidationError(RESTError):
 
 
 class MissingParameterError(RESTError):
-    def __init__(self, parameter_name):
+    def __init__(self, parameter_name: str):
         template = Template(ERROR_RESPONSE)
         message = "Missing parameter {0}".format(parameter_name)
         super().__init__(error_type="ValidationError", message=message)
@@ -30,7 +31,7 @@ class MissingParameterError(RESTError):
 class ExportNotFound(RESTError):
     """Exception to raise if a template tries to import a non-existent export"""
 
-    def __init__(self, export_name):
+    def __init__(self, export_name: str):
         template = Template(ERROR_RESPONSE)
         message = "No export named {0} found.".format(export_name)
         super().__init__(error_type="ExportNotFound", message=message)
@@ -38,7 +39,7 @@ class ExportNotFound(RESTError):
 
 
 class UnsupportedAttribute(ValidationError):
-    def __init__(self, resource, attr):
+    def __init__(self, resource: str, attr: str):
         template = Template(ERROR_RESPONSE)
         super().__init__()
         self.description = template.render(
