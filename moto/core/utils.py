@@ -152,16 +152,18 @@ def iso_8601_datetime_with_milliseconds(value: datetime) -> str:
 
 
 # Even Python does not support nanoseconds, other languages like Go do (needed for Terraform)
-def iso_8601_datetime_with_nanoseconds(value):
+def iso_8601_datetime_with_nanoseconds(value: datetime.datetime) -> str:
     return value.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
 
 
-def iso_8601_datetime_without_milliseconds(value):
-    return None if value is None else value.strftime("%Y-%m-%dT%H:%M:%SZ")
+def iso_8601_datetime_without_milliseconds(value: datetime.datetime) -> Optional[str]:
+    return value.strftime("%Y-%m-%dT%H:%M:%SZ") if value else None
 
 
-def iso_8601_datetime_without_milliseconds_s3(value):
-    return None if value is None else value.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+def iso_8601_datetime_without_milliseconds_s3(
+    value: datetime.datetime,
+) -> Optional[str]:
+    return value.strftime("%Y-%m-%dT%H:%M:%S.000Z") if value else None
 
 
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"

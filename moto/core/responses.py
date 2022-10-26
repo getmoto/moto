@@ -218,7 +218,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.service_name = service_name
 
     @classmethod
-    def dispatch(cls, *args, **kwargs):
+    def dispatch(cls, *args: Any, **kwargs: Any) -> Any:
         return cls()._dispatch(*args, **kwargs)
 
     def setup_class(

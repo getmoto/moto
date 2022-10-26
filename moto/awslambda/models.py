@@ -1076,10 +1076,6 @@ class EventSourceMapping(CloudFormationModel):
         lambda_backend.delete_event_source_mapping(self.uuid)
 
     @staticmethod
-    def cloudformation_name_type() -> None:
-        return None
-
-    @staticmethod
     def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-eventsourcemapping.html
         return "AWS::Lambda::EventSourceMapping"
@@ -1141,10 +1137,6 @@ class LambdaVersion(CloudFormationModel):
 
     def __repr__(self) -> str:
         return str(self.logical_resource_id)  # type: ignore[attr-defined]
-
-    @staticmethod
-    def cloudformation_name_type() -> None:
-        return None
 
     @staticmethod
     def cloudformation_type() -> str:
