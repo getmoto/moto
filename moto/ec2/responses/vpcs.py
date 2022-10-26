@@ -1,7 +1,7 @@
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import add_tag_specification
 from ._base_response import EC2BaseResponse
-
+from moto.core import DEFAULT_ACCOUNT_ID
 
 class VPCs(EC2BaseResponse):
     def _get_doc_date(self):
@@ -651,7 +651,7 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
                     {% endfor %}
                 </baseEndpointDnsNameSet>
                 <managesVpcEndpoints>{{ 'true' if service.ManagesVpcEndpoints else 'false' }}</managesVpcEndpoints>
-                <owner>{{ service.Owner }}</owner>
+                <owner>{{ DEFAULT_ACCOUNT_ID }}</owner>
                 {% if service.PrivateDnsName is defined %}
                     <privateDnsName>{{ service.PrivateDnsName }}</privateDnsName>
                     <privateDnsNameSet>
