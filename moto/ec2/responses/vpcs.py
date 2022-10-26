@@ -1,7 +1,6 @@
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import add_tag_specification
 from ._base_response import EC2BaseResponse
-from moto.core import DEFAULT_ACCOUNT_ID
 
 
 class VPCs(EC2BaseResponse):
@@ -243,7 +242,7 @@ class VPCs(EC2BaseResponse):
             region=self.region,
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE)
-        return template.render(vpc_end_points=vpc_end_point_services)
+        return template.render(vpc_end_points=vpc_end_point_services, account_id=self.current_account)
 
     def describe_vpc_endpoints(self):
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
@@ -652,7 +651,7 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
                     {% endfor %}
                 </baseEndpointDnsNameSet>
                 <managesVpcEndpoints>{{ 'true' if service.ManagesVpcEndpoints else 'false' }}</managesVpcEndpoints>
-                <owner>{{ DEFAULT_ACCOUNT_ID }}</owner>
+                <owner>{{ account_id }}</owner>
                 {% if service.PrivateDnsName is defined %}
                     <privateDnsName>{{ service.PrivateDnsName }}</privateDnsName>
                     <privateDnsNameSet>
