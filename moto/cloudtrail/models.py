@@ -318,7 +318,9 @@ class CloudTrailBackend(BaseBackend):
         if include_shadow_trails:
             current_account = cloudtrail_backends[self.account_id]
             for backend in current_account.values():
-                all_trails.extend(backend.trails.values())
+                for trail in backend.trails.values():
+                    if trail.is_multi_region == True or trail.region_name == backend.region_name:
+                        all_trails.extend(backend.trails.values())
         else:
             all_trails.extend(self.trails.values())
         return all_trails
