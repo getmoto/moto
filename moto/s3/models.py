@@ -1919,6 +1919,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket.set_cors(cors_rules)
 
     def put_bucket_logging(self, bucket_name, logging_config):
+        """
+        The logging functionality itself is not yet implemented - we only store the configuration for now.
+        """
         bucket = self.get_bucket(bucket_name)
         bucket.set_logging(logging_config, self)
 
