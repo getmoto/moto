@@ -86,6 +86,12 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
                 for route in self.routes.values()
                 if route.gateway is not None
             ]
+        elif filter_name == "route.vpc-peering-connection-id":
+            return [
+                route.vpc_pcx.id
+                for route in self.routes.values()
+                if route.vpc_pcx is not None
+            ]
         else:
             return super().get_filter_value(filter_name, "DescribeRouteTables")
 

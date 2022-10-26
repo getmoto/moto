@@ -205,6 +205,58 @@ def test_route_tables_filters_associations():
 
 
 @mock_ec2
+def test_route_tables_filters_vpc_peering_connection():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    main_route_table_id = client.describe_route_tables(
+        Filters=[
+            {"Name": "vpc-id", "Values": [vpc.id]},
+            {"Name": "association.main", "Values": ["true"]},
+        ]
+    )["RouteTables"][0]["RouteTableId"]
+    main_route_table = ec2.RouteTable(main_route_table_id)
+    ROUTE_CIDR = "10.0.0.4/24"
+
+    peer_vpc = ec2.create_vpc(CidrBlock="11.0.0.0/16")
+    vpc_pcx = ec2.create_vpc_peering_connection(VpcId=vpc.id, PeerVpcId=peer_vpc.id)
+
+    main_route_table.create_route(
+        DestinationCidrBlock=ROUTE_CIDR, VpcPeeringConnectionId=vpc_pcx.id
+    )
+
+    # Refresh route table
+    main_route_table.reload()
+    new_routes = [
+        route
+        for route in main_route_table.routes
+        if route.destination_cidr_block != vpc.cidr_block
+    ]
+    new_routes.should.have.length_of(1)
+
+    new_route = new_routes[0]
+    new_route.gateway_id.should.equal(None)
+    new_route.instance_id.should.equal(None)
+    new_route.vpc_peering_connection_id.should.equal(vpc_pcx.id)
+    new_route.state.should.equal("active")
+    new_route.destination_cidr_block.should.equal(ROUTE_CIDR)
+
+    # Filter by Peering Connection
+    route_tables = client.describe_route_tables(
+        Filters=[{"Name": "route.vpc-peering-connection-id", "Values": [vpc_pcx.id]}]
+    )["RouteTables"]
+    route_tables.should.have.length_of(1)
+    route_table = route_tables[0]
+    route_table["RouteTableId"].should.equal(main_route_table_id)
+    vpc_pcx_ids = [
+        route["VpcPeeringConnectionId"]
+        for route in route_table["Routes"]
+        if "VpcPeeringConnectionId" in route
+    ]
+    all(vpc_pcx_id == vpc_pcx.id for vpc_pcx_id in vpc_pcx_ids)
+
+
+@mock_ec2
 def test_route_table_associations():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
