@@ -3,6 +3,7 @@ from moto.ec2.utils import add_tag_specification
 from ._base_response import EC2BaseResponse
 from moto.core import DEFAULT_ACCOUNT_ID
 
+
 class VPCs(EC2BaseResponse):
     def _get_doc_date(self):
         return (
