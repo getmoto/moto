@@ -242,7 +242,9 @@ class VPCs(EC2BaseResponse):
             region=self.region,
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE)
-        return template.render(vpc_end_points=vpc_end_point_services, account_id=self.current_account)
+        return template.render(
+            vpc_end_points=vpc_end_point_services, account_id=self.current_account
+        )
 
     def describe_vpc_endpoints(self):
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
