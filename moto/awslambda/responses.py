@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 from urllib.parse import unquote
 
 from moto.core.utils import path_url
@@ -276,21 +276,14 @@ class LambdaResponse(BaseResponse):
     def _list_functions(self) -> TYPE_RESPONSE:
         querystring = self.querystring
         func_version = querystring.get("FunctionVersion", [None])[0]
-        result: Dict[str, List[Dict[str, Any]]] = {"Functions": []}
-
-        for fn in self.backend.list_functions(func_version):
-            json_data = fn.get_configuration()
-            result["Functions"].append(json_data)
+        result = {"Functions": self.backend.list_functions(func_version)}
 
         return 200, {}, json.dumps(result)
 
     def _list_versions_by_function(self, function_name: str) -> TYPE_RESPONSE:
-        result: Dict[str, Any] = {"Versions": []}
 
-        functions = self.backend.list_versions_by_function(function_name)
-        for fn in functions:
-            json_data = fn.get_configuration()
-            result["Versions"].append(json_data)
+        function_configs = self.backend.list_versions_by_function(function_name)
+        result: Dict[str, Any] = {"Versions": function_configs}
 
         return 200, {}, json.dumps(result)
 

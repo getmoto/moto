@@ -1222,13 +1222,15 @@ class LambdaStorage(object):
 
         return self._get_version(name, qualifier)
 
-    def list_versions_by_function(self, name: str) -> Iterable[LambdaFunction]:
+    def list_versions_by_function(self, name: str) -> Iterable[Dict[str, Any]]:
         if name not in self._functions:
             return []
 
-        latest = copy.copy(self._functions[name]["latest"])
-        latest.function_arn += ":$LATEST"
-        return [latest] + self._functions[name]["versions"]
+        # No point in copying the entire function-object - copying the configuration only is much quicker
+        latest = copy.copy(self._functions[name]["latest"].get_configuration())
+        latest["FunctionArn"] = latest["FunctionArn"] + ":$LATEST"
+        others = [f.get_configuration() for f in self._functions[name]["versions"]]
+        return [latest] + others
 
     def get_arn(self, arn: str) -> Optional[LambdaFunction]:
         # Function ARN may contain an alias
@@ -1332,15 +1334,16 @@ class LambdaStorage(object):
                 ):
                     del self._functions[name]
 
-    def all(self) -> Iterable[LambdaFunction]:
+    def all(self) -> Iterable[Dict[str, Any]]:
         result = []
 
         for function_group in self._functions.values():
-            latest = copy.deepcopy(function_group["latest"])
-            latest.function_arn = "{}:$LATEST".format(latest.function_arn)
+            latest = copy.deepcopy(function_group["latest"].get_configuration())
+            latest["FunctionArn"] = latest["FunctionArn"] + ":$LATEST"
             result.append(latest)
 
-            result.extend(function_group["versions"])
+            others = [fn.get_configuration() for fn in function_group["versions"]]
+            result.extend(others)
 
         return result
 
@@ -1645,7 +1648,7 @@ class LambdaBackend(BaseBackend):
             function_name_or_arn, qualifier
         )
 
-    def list_versions_by_function(self, function_name: str) -> Iterable[LambdaFunction]:
+    def list_versions_by_function(self, function_name: str) -> Iterable[Dict[str, Any]]:
         return self._lambdas.list_versions_by_function(function_name)
 
     def get_event_source_mapping(self, uuid: str) -> Optional[EventSourceMapping]:
@@ -1693,10 +1696,10 @@ class LambdaBackend(BaseBackend):
 
     def list_functions(
         self, func_version: Optional[str] = None
-    ) -> Iterable[LambdaFunction]:
+    ) -> Iterable[Dict[str, Any]]:
         if func_version == "ALL":
             return self._lambdas.all()
-        return self._lambdas.latest()
+        return [fn.get_configuration() for fn in self._lambdas.latest()]
 
     def send_sqs_batch(self, function_arn: str, messages: Any, queue_arn: str) -> bool:
         success = True
