@@ -665,7 +665,10 @@ class CloudWatchBackend(BaseBackend):
         return self.tagger.get_tag_dict_for_resource(arn)
 
     def tag_resource(self, arn, tags):
-        if arn not in self.tagger.tags.keys():
+        # From boto3:
+        # Currently, the only CloudWatch resources that can be tagged are alarms and Contributor Insights rules.
+        all_arns = [alarm.alarm_arn for alarm in self.get_all_alarms()]
+        if arn not in all_arns:
             raise ResourceNotFoundException
 
         self.tagger.tag_resource(arn, tags)

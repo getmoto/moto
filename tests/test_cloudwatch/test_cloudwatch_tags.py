@@ -103,6 +103,28 @@ def test_tag_resource():
 
 
 @mock_cloudwatch
+def test_tag_resource_on_resource_without_tags():
+    cw = boto3.client("cloudwatch", region_name="eu-central-1")
+    cw.put_metric_alarm(
+        AlarmName="testalarm",
+        EvaluationPeriods=1,
+        ComparisonOperator="GreaterThanThreshold",
+        Period=60,
+        MetricName="test",
+        Namespace="test",
+    )
+    alarms = cw.describe_alarms()
+    alarm_arn = alarms["MetricAlarms"][0]["AlarmArn"]
+
+    # List 0 tags - none have been added
+    cw.list_tags_for_resource(ResourceARN=alarm_arn)["Tags"].should.equal([])
+
+    # Tag the Alarm for the first time
+    cw.tag_resource(ResourceARN=alarm_arn, Tags=[{"Key": "tk", "Value": "tv"}])
+    assert len(cw.list_tags_for_resource(ResourceARN=alarm_arn)["Tags"]) == 1
+
+
+@mock_cloudwatch
 def test_tag_resource_error_not_exists():
     # given
     region_name = "eu-central-1"
