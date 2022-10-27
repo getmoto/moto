@@ -12,15 +12,3 @@ def bucket_name_from_url(url):
 
 def parse_key_name(path):
     return "/".join(path.split("/")[2:])
-
-
-def is_delete_keys(request, path, bucket_name):
-    return (
-        path == "/" + bucket_name + "/?delete"
-        or path == "/" + bucket_name + "?delete"
-        or path == "/" + bucket_name + "?delete="
-        or (
-            path == "/" + bucket_name
-            and getattr(request, "query_string", "") == "delete"
-        )
-    )
