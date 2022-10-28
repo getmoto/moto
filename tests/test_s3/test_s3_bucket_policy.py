@@ -13,7 +13,7 @@ class TestBucketPolicy:
         cls.server = ThreadedMotoServer(port="6000", verbose=False)
         cls.server.start()
 
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.client = boto3.client(
             "s3", region_name="us-east-1", endpoint_url="http://localhost:6000"
         )
@@ -21,7 +21,7 @@ class TestBucketPolicy:
         self.client.put_object(Bucket="mybucket", Key="test_txt", Body=b"mybytes")
         self.key_name = "http://localhost:6000/mybucket/test_txt"
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         self.client.delete_object(Bucket="mybucket", Key="test_txt")
         self.client.delete_bucket(Bucket="mybucket")
 

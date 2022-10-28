@@ -126,7 +126,7 @@ class TestWithSetup_UppercaseU(unittest.TestCase):
 
 @mock_s3
 class TestWithSetup_LowercaseU:
-    def setup(self, *args):  # pylint: disable=unused-argument
+    def setup_method(self, *args):  # pylint: disable=unused-argument
         # This method will be executed automatically using pytest
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")

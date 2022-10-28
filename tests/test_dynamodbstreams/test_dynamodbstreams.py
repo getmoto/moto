@@ -10,7 +10,7 @@ class TestCore:
     stream_arn = None
     mocks = []
 
-    def setup(self):
+    def setup_method(self):
         self.mocks = [mock_dynamodb(), mock_dynamodbstreams()]
         for m in self.mocks:
             m.start()
@@ -30,7 +30,7 @@ class TestCore:
         )
         self.stream_arn = resp["TableDescription"]["LatestStreamArn"]
 
-    def teardown(self):
+    def teardown_method(self):
         conn = boto3.client("dynamodb", region_name="us-east-1")
         conn.delete_table(TableName="test-streams")
         self.stream_arn = None
@@ -196,12 +196,12 @@ class TestCore:
 class TestEdges:
     mocks = []
 
-    def setup(self):
+    def setup_method(self):
         self.mocks = [mock_dynamodb(), mock_dynamodbstreams()]
         for m in self.mocks:
             m.start()
 
-    def teardown(self):
+    def teardown_method(self):
         for m in self.mocks:
             try:
                 m.stop()
