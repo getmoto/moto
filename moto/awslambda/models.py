@@ -494,6 +494,13 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         self._aliases: Dict[str, LambdaAlias] = dict()
 
+    def __getstate__(self) -> Dict[str, Any]:
+        return {
+            k: v
+            for (k, v) in self.__dict__.items()
+            if k != "_DockerModel__docker_client"
+        }
+
     def set_version(self, version: int) -> None:
         self.function_arn = make_function_ver_arn(
             self.region, self.account_id, self.function_name, version
