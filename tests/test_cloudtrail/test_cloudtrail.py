@@ -327,7 +327,7 @@ def test_get_trail_status_after_starting_and_stopping():
 @mock_cloudtrail
 @mock_s3
 @mock_sns
-def test_list_trails():
+def test_list_trails_different_home_region_one_multiregion():
     client = boto3.client("cloudtrail", region_name="eu-west-3")
 
     _, trail1, _ = create_trail_simple()
@@ -335,15 +335,9 @@ def test_list_trails():
     _, trail3, _ = create_trail_simple(region_name="eu-west-1")
 
     all_trails = client.list_trails()["Trails"]
-    all_trails.should.have.length_of(3)
+    all_trails.should.have.length_of(1)
 
-    all_trails.should.contain(
-        {
-            "TrailARN": trail1["TrailARN"],
-            "Name": trail1["Name"],
-            "HomeRegion": "us-east-1",
-        }
-    )
+    # Only the Trail created in the ap-southeast-2 is MultiRegion
     all_trails.should.contain(
         {
             "TrailARN": trail2["TrailARN"],
@@ -351,13 +345,21 @@ def test_list_trails():
             "HomeRegion": "ap-southeast-2",
         }
     )
-    all_trails.should.contain(
-        {
-            "TrailARN": trail3["TrailARN"],
-            "Name": trail3["Name"],
-            "HomeRegion": "eu-west-1",
-        }
-    )
+
+@mock_cloudtrail
+@mock_s3
+@mock_sns
+def test_list_trails_different_home_region_no_multiregion():
+    client = boto3.client("cloudtrail", region_name="eu-west-3")
+
+    create_trail_simple()
+    create_trail_simple(region_name="ap-southeast-2")
+    create_trail_simple(region_name="eu-west-1")
+
+    all_trails = client.list_trails()["Trails"]
+    # Since there is no MultiRegion Trail created
+    # the eu-west-3 has no Trails
+    all_trails.should.have.length_of(0)
 
 
 @mock_cloudtrail
@@ -367,10 +369,12 @@ def test_describe_trails_without_shadowtrails():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     _, trail1, _ = create_trail_simple()
     _, trail2, _, _ = create_trail_advanced()
-    _, trail3, _ = create_trail_simple(region_name="eu-west-1")
+    create_trail_simple(region_name="eu-west-1")
 
+    # There are two Trails created in the us-east-1
+    # one MultiRegion and the other is not MultiRegion
     trails = client.describe_trails()["trailList"]
-    trails.should.have.length_of(3)
+    trails.should.have.length_of(2)
 
     first_trail = [t for t in trails if t["Name"] == trail1["Name"]][0]
     first_trail.should.have.key("Name").equal(trail1["Name"])
@@ -400,20 +404,6 @@ def test_describe_trails_without_shadowtrails():
     second_trail.should.have.key("HasInsightSelectors").equal(False)
     second_trail.should.have.key("IsOrganizationTrail").equal(True)
 
-    third_trail = [t for t in trails if t["Name"] == trail3["Name"]][0]
-    third_trail.should.have.key("Name").equal(trail3["Name"])
-    third_trail.should.have.key("S3BucketName").equal(trail3["S3BucketName"])
-    third_trail.should.have.key("IncludeGlobalServiceEvents").equal(True)
-    third_trail.should.have.key("IsMultiRegionTrail").equal(False)
-    third_trail.should.have.key("HomeRegion").equal("eu-west-1")
-    third_trail.should.have.key("LogFileValidationEnabled").equal(False)
-    third_trail.should.have.key("HasCustomEventSelectors").equal(False)
-    third_trail.should.have.key("HasInsightSelectors").equal(False)
-    third_trail.should.have.key("IsOrganizationTrail").equal(False)
-    third_trail.shouldnt.have.key("S3KeyPrefix")
-    third_trail.shouldnt.have.key("SnsTopicName")
-    third_trail.shouldnt.have.key("SnsTopicARN")
-
 
 @mock_cloudtrail
 @mock_s3
@@ -425,12 +415,17 @@ def test_describe_trails_with_shadowtrails_true():
     create_trail_advanced()
     create_trail_simple(region_name="eu-west-1")
 
+    # There are two Trails created in the us-east-1
+    # one MultiRegion and the other is not MultiRegion
     trails = client.describe_trails(includeShadowTrails=True)["trailList"]
-    trails.should.have.length_of(3)
+    trails.should.have.length_of(2)
 
+    # There are two Trails in the eu-west-1
+    # one MultiRegion (created in the us-east-1)
+    # and another not MultiRegion created in the us-east-1
     eu_client = boto3.client("cloudtrail", region_name="eu-west-1")
     trails = eu_client.describe_trails(includeShadowTrails=True)["trailList"]
-    trails.should.have.length_of(3)
+    trails.should.have.length_of(2)
 
 
 @mock_cloudtrail

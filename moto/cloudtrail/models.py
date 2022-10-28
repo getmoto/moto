@@ -321,7 +321,7 @@ class CloudTrailBackend(BaseBackend):
                 for trail in backend.trails.values():
                     if (
                         trail.is_multi_region
-                        or trail.region_name == backend.region_name
+                        or trail.region_name == self.region_name
                     ):
                         all_trails.append(trail)
         else:
