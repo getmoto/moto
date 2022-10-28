@@ -94,7 +94,7 @@ class TestEmrSecurityGroupManager(object):
 
     mocks = []
 
-    def setup(self):
+    def setup_method(self):
         self.mocks = [mock_ec2()]
         for mock in self.mocks:
             mock.start()
@@ -105,7 +105,7 @@ class TestEmrSecurityGroupManager(object):
         self.ec2 = ec2
         self.ec2_client = ec2_client
 
-    def teardown(self):
+    def teardown_method(self):
         for mock in self.mocks:
             mock.stop()
 
