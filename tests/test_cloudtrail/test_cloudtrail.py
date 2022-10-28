@@ -330,9 +330,9 @@ def test_get_trail_status_after_starting_and_stopping():
 def test_list_trails_different_home_region_one_multiregion():
     client = boto3.client("cloudtrail", region_name="eu-west-3")
 
-    _, trail1, _ = create_trail_simple()
+    create_trail_simple()
     _, trail2, _, _ = create_trail_advanced(region_name="ap-southeast-2")
-    _, trail3, _ = create_trail_simple(region_name="eu-west-1")
+    create_trail_simple(region_name="eu-west-1")
 
     all_trails = client.list_trails()["Trails"]
     all_trails.should.have.length_of(1)
@@ -345,6 +345,7 @@ def test_list_trails_different_home_region_one_multiregion():
             "HomeRegion": "ap-southeast-2",
         }
     )
+
 
 @mock_cloudtrail
 @mock_s3

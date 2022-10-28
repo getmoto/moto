@@ -319,10 +319,7 @@ class CloudTrailBackend(BaseBackend):
             current_account = cloudtrail_backends[self.account_id]
             for backend in current_account.values():
                 for trail in backend.trails.values():
-                    if (
-                        trail.is_multi_region
-                        or trail.region_name == self.region_name
-                    ):
+                    if trail.is_multi_region or trail.region_name == self.region_name:
                         all_trails.append(trail)
         else:
             all_trails.extend(self.trails.values())
