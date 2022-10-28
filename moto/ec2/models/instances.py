@@ -140,6 +140,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.architecture = ami.architecture if ami else "x86_64"
         self.root_device_name = ami.root_device_name if ami else None
         self.disable_api_stop = False
+        self.iam_instance_profile = kwargs.get("iam_instance_profile")
 
         # handle weird bug around user_data -- something grabs the repr(), so
         # it must be clean
@@ -661,6 +662,7 @@ class InstanceBackend:
             new_instance = Instance(
                 self, image_id, user_data, security_groups, **kwargs
             )
+
             new_reservation.instances.append(new_instance)
             new_instance.add_tags(instance_tags)
             block_device_mappings = None

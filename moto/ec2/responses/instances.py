@@ -73,6 +73,9 @@ class InstanceResponse(EC2BaseResponse):
             ),
             "launch_template": self._get_multi_param_dict("LaunchTemplate"),
             "hibernation_options": self._get_multi_param_dict("HibernationOptions"),
+            "iam_instance_profile": self._get_param("IamInstanceProfile.Name")
+            or self._get_param("IamInstanceProfile.Arn")
+            or None,
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(
@@ -87,6 +90,11 @@ class InstanceResponse(EC2BaseResponse):
             new_reservation = self.ec2_backend.add_instances(
                 image_id, min_count, user_data, security_group_names, **kwargs
             )
+            if kwargs.get("iam_instance_profile"):
+                self.ec2_backend.associate_iam_instance_profile(
+                    instance_id=new_reservation.instances[0].id,
+                    iam_instance_profile_name=kwargs.get("iam_instance_profile"),
+                )
 
             template = self.response_template(EC2_RUN_INSTANCES)
             return template.render(
@@ -422,6 +430,10 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
+          <iamInstanceProfile>
+            <arn>{{ instance.iam_instance_profile['Arn'] }}</arn>
+            <id>{{ instance.iam_instance_profile['Id'] }}</id>
+          </iamInstanceProfile>
           <launchTime>{{ instance.launch_time }}</launchTime>
           {% if instance.lifecycle %}
           <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
@@ -573,6 +585,10 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>
+                    <iamInstanceProfile>
+                        <arn>{{ instance.iam_instance_profile['Arn'] }}</arn>
+                        <id>{{ instance.iam_instance_profile['Id'] }}</id>
+                    </iamInstanceProfile>
                     <launchTime>{{ instance.launch_time }}</launchTime>
                     {% if instance.lifecycle %}
                     <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
