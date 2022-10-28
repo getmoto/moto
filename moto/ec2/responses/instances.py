@@ -73,8 +73,9 @@ class InstanceResponse(EC2BaseResponse):
             ),
             "launch_template": self._get_multi_param_dict("LaunchTemplate"),
             "hibernation_options": self._get_multi_param_dict("HibernationOptions"),
-            "iam_instance_profile": self._get_param("IamInstanceProfile.Name")
-            or self._get_param("IamInstanceProfile.Arn")
+            "iam_instance_profile_name": self._get_param("IamInstanceProfile.Name")
+            or None,
+            "iam_instance_profile_arn": self._get_param("IamInstanceProfile.Arn")
             or None,
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
@@ -90,10 +91,15 @@ class InstanceResponse(EC2BaseResponse):
             new_reservation = self.ec2_backend.add_instances(
                 image_id, min_count, user_data, security_group_names, **kwargs
             )
-            if kwargs.get("iam_instance_profile"):
+            if kwargs.get("iam_instance_profile_name"):
                 self.ec2_backend.associate_iam_instance_profile(
                     instance_id=new_reservation.instances[0].id,
-                    iam_instance_profile_name=kwargs.get("iam_instance_profile"),
+                    iam_instance_profile_name=kwargs.get("iam_instance_profile_name"),
+                )
+            if kwargs.get("iam_instance_profile_arn"):
+                self.ec2_backend.associate_iam_instance_profile(
+                    instance_id=new_reservation.instances[0].id,
+                    iam_instance_profile_arn=kwargs.get("iam_instance_profile_arn"),
                 )
 
             template = self.response_template(EC2_RUN_INSTANCES)

@@ -662,7 +662,6 @@ class InstanceBackend:
             new_instance = Instance(
                 self, image_id, user_data, security_groups, **kwargs
             )
-
             new_reservation.instances.append(new_instance)
             new_instance.add_tags(instance_tags)
             block_device_mappings = None

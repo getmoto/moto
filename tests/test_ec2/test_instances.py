@@ -2526,7 +2526,7 @@ def test_instance_iam_instance_profile():
         InstanceProfileName=profile_name,
     )
 
-    result = ec2_resource.create_instances(
+    result1 = ec2_resource.create_instances(
         ImageId="ami-d3adb33f",
         MinCount=1,
         MaxCount=1,
@@ -2534,7 +2534,20 @@ def test_instance_iam_instance_profile():
             "Name": profile_name,
         },
     )
-    instance = result[0]
+    instance = result1[0]
+    assert "Arn" in instance.iam_instance_profile
+    assert "Id" in instance.iam_instance_profile
+    assert profile["InstanceProfile"]["Arn"] == instance.iam_instance_profile["Arn"]
+
+    result2 = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        IamInstanceProfile={
+            "Arn": profile["InstanceProfile"]["Arn"],
+        },
+    )
+    instance = result2[0]
     assert "Arn" in instance.iam_instance_profile
     assert "Id" in instance.iam_instance_profile
     assert profile["InstanceProfile"]["Arn"] == instance.iam_instance_profile["Arn"]
