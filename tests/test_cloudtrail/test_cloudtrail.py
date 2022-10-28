@@ -76,7 +76,6 @@ def test_create_trail_simple():
     )
     resp.should.have.key("LogFileValidationEnabled").equal(False)
     resp.should.have.key("IsOrganizationTrail").equal(False)
-    return resp
 
 
 def create_trail_simple(region_name="us-east-1"):
@@ -203,8 +202,9 @@ def test_get_trail_unknown():
 
 
 @mock_cloudtrail
+@mock_s3
 def test_get_trail():
-    test_create_trail_simple()
+    create_trail_simple()
     client = boto3.client("cloudtrail", region_name="us-east-1")
     _, _, name = create_trail_simple()
     trail = client.get_trail(Name=name)["Trail"]
