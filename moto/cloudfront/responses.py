@@ -1,54 +1,55 @@
 import xmltodict
+from typing import Any, Dict
 from urllib.parse import unquote
 
-from moto.core.responses import BaseResponse
-from .models import cloudfront_backends
+from moto.core.responses import BaseResponse, TYPE_RESPONSE
+from .models import cloudfront_backends, CloudFrontBackend
 
 
 XMLNS = "http://cloudfront.amazonaws.com/doc/2020-05-31/"
 
 
 class CloudFrontResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="cloudfront")
 
-    def _get_xml_body(self):
+    def _get_xml_body(self) -> Dict[str, Any]:
         return xmltodict.parse(self.body, dict_constructor=dict)
 
     @property
-    def backend(self):
+    def backend(self) -> CloudFrontBackend:
         return cloudfront_backends[self.current_account]["global"]
 
-    def distributions(self, request, full_url, headers):
+    def distributions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self.create_distribution()
         if request.method == "GET":
             return self.list_distributions()
 
-    def invalidation(self, request, full_url, headers):
+    def invalidation(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self.create_invalidation()
         if request.method == "GET":
             return self.list_invalidations()
 
-    def tags(self, request, full_url, headers):
+    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self.list_tags_for_resource()
 
-    def create_distribution(self):
+    def create_distribution(self) -> TYPE_RESPONSE:
         params = self._get_xml_body()
         if "DistributionConfigWithTags" in params:
             config = params.get("DistributionConfigWithTags")
-            tags = (config.get("Tags", {}).get("Items") or {}).get("Tag", [])
+            tags = (config.get("Tags", {}).get("Items") or {}).get("Tag", [])  # type: ignore[union-attr]
             if not isinstance(tags, list):
                 tags = [tags]
         else:
             config = params
             tags = []
-        distribution_config = config.get("DistributionConfig")
+        distribution_config = config.get("DistributionConfig")  # type: ignore[union-attr]
         distribution, location, e_tag = self.backend.create_distribution(
             distribution_config=distribution_config,
             tags=tags,
@@ -58,13 +59,13 @@ class CloudFrontResponse(BaseResponse):
         headers = {"ETag": e_tag, "Location": location}
         return 200, headers, response
 
-    def list_distributions(self):
+    def list_distributions(self) -> TYPE_RESPONSE:
         distributions = self.backend.list_distributions()
         template = self.response_template(LIST_TEMPLATE)
         response = template.render(distributions=distributions)
         return 200, {}, response
 
-    def individual_distribution(self, request, full_url, headers):
+    def individual_distribution(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         distribution_id = full_url.split("/")[-1]
         if request.method == "DELETE":
@@ -77,7 +78,9 @@ class CloudFrontResponse(BaseResponse):
             response = template.render(distribution=dist, xmlns=XMLNS)
             return 200, {"ETag": etag}, response
 
-    def update_distribution(self, request, full_url, headers):
+    def update_distribution(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         params = self._get_xml_body()
         distribution_config = params.get("DistributionConfig")
@@ -85,7 +88,7 @@ class CloudFrontResponse(BaseResponse):
         if_match = headers["If-Match"]
 
         dist, location, e_tag = self.backend.update_distribution(
-            dist_config=distribution_config,
+            dist_config=distribution_config,  # type: ignore[arg-type]
             _id=dist_id,
             if_match=if_match,
         )
@@ -94,19 +97,19 @@ class CloudFrontResponse(BaseResponse):
         headers = {"ETag": e_tag, "Location": location}
         return 200, headers, response
 
-    def create_invalidation(self):
+    def create_invalidation(self) -> TYPE_RESPONSE:
         dist_id = self.path.split("/")[-2]
         params = self._get_xml_body()["InvalidationBatch"]
         paths = ((params.get("Paths") or {}).get("Items") or {}).get("Path") or []
         caller_ref = params.get("CallerReference")
 
-        invalidation = self.backend.create_invalidation(dist_id, paths, caller_ref)
+        invalidation = self.backend.create_invalidation(dist_id, paths, caller_ref)  # type: ignore[arg-type]
         template = self.response_template(CREATE_INVALIDATION_TEMPLATE)
         response = template.render(invalidation=invalidation, xmlns=XMLNS)
 
         return 200, {"Location": invalidation.location}, response
 
-    def list_invalidations(self):
+    def list_invalidations(self) -> TYPE_RESPONSE:
         dist_id = self.path.split("/")[-2]
         invalidations = self.backend.list_invalidations(dist_id)
         template = self.response_template(INVALIDATIONS_TEMPLATE)
@@ -114,7 +117,7 @@ class CloudFrontResponse(BaseResponse):
 
         return 200, {}, response
 
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> TYPE_RESPONSE:
         resource = unquote(self._get_param("Resource"))
         tags = self.backend.list_tags_for_resource(resource=resource)["Tags"]
         template = self.response_template(TAGS_TEMPLATE)
