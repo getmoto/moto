@@ -378,7 +378,9 @@ def test_default_vpc():
     attr = response.get("EnableDnsHostnames")
     attr.get("Value").should.equal(True)
 
-    response = default_vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    response = default_vpc.describe_attribute(
+        Attribute="enableNetworkAddressUsageMetrics"
+    )
     attr = response.get("EnableNetworkAddressUsageMetrics")
     attr.get("Value").should.equal(False)
 
