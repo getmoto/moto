@@ -9,7 +9,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError, ParamValidationError
 from freezegun import freeze_time
-from moto import mock_ec2, settings
+from moto import mock_ec2, mock_iam, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
@@ -2514,6 +2514,43 @@ def test_describe_instances_filter_vpcid_via_networkinterface():
     found = list(ec2.instances.filter(Filters=_filter))
     found.should.have.length_of(1)
     found.should.equal([instance])
+
+
+@mock_ec2
+@mock_iam
+def test_instance_iam_instance_profile():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+    iam = boto3.client("iam", "us-west-1")
+    profile_name = "fake_profile"
+    profile = iam.create_instance_profile(
+        InstanceProfileName=profile_name,
+    )
+
+    result1 = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        IamInstanceProfile={
+            "Name": profile_name,
+        },
+    )
+    instance = result1[0]
+    assert "Arn" in instance.iam_instance_profile
+    assert "Id" in instance.iam_instance_profile
+    assert profile["InstanceProfile"]["Arn"] == instance.iam_instance_profile["Arn"]
+
+    result2 = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        IamInstanceProfile={
+            "Arn": profile["InstanceProfile"]["Arn"],
+        },
+    )
+    instance = result2[0]
+    assert "Arn" in instance.iam_instance_profile
+    assert "Id" in instance.iam_instance_profile
+    assert profile["InstanceProfile"]["Arn"] == instance.iam_instance_profile["Arn"]
 
 
 def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102

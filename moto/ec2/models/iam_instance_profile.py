@@ -17,6 +17,11 @@ class IamInstanceProfileAssociation(CloudFormationModel):
         self.instance = instance
         self.iam_instance_profile = iam_instance_profile
         self.state = "associated"
+        ec2_backend.modify_instance_attribute(
+            instance.id,
+            "iam_instance_profile",
+            {"Arn": self.iam_instance_profile.arn, "Id": association_id},
+        )
 
 
 class IamInstanceProfileAssociationBackend:
