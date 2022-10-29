@@ -378,6 +378,10 @@ def test_default_vpc():
     attr = response.get("EnableDnsHostnames")
     attr.get("Value").should.equal(True)
 
+    response = default_vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").should.equal(False)
+
 
 @mock_ec2
 def test_non_default_vpc():
@@ -401,6 +405,10 @@ def test_non_default_vpc():
 
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
+    attr.get("Value").should.equal(False)
+
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
     attr.get("Value").should.equal(False)
 
     # Check Primary CIDR Block Associations
@@ -489,6 +497,26 @@ def test_vpc_modify_enable_dns_hostnames():
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
     attr.get("Value").should.be.ok
+
+
+@mock_ec2
+def test_vpc_modify_enable_network_address_usage_metrics():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock="172.31.0.0/16")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    # Test default values for VPC attributes
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").shouldnt.be.ok
+
+    vpc.modify_attribute(EnableNetworkAddressUsageMetrics={"Value": True})
+
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").should.equal(True)
 
 
 @mock_ec2
