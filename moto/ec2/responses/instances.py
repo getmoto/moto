@@ -436,10 +436,12 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
+          {% if instance.iam_instance_profile %}
           <iamInstanceProfile>
             <arn>{{ instance.iam_instance_profile['Arn'] }}</arn>
             <id>{{ instance.iam_instance_profile['Id'] }}</id>
           </iamInstanceProfile>
+          {% endif %}
           <launchTime>{{ instance.launch_time }}</launchTime>
           {% if instance.lifecycle %}
           <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
@@ -591,10 +593,12 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>
+                    {% if instance.iam_instance_profile %}
                     <iamInstanceProfile>
                         <arn>{{ instance.iam_instance_profile['Arn'] }}</arn>
                         <id>{{ instance.iam_instance_profile['Id'] }}</id>
                     </iamInstanceProfile>
+                    {% endif %}
                     <launchTime>{{ instance.launch_time }}</launchTime>
                     {% if instance.lifecycle %}
                     <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
