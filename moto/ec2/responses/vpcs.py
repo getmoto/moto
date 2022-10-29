@@ -137,8 +137,7 @@ class VPCs(EC2BaseResponse):
 
     def modify_vpc_attribute(self):
         vpc_id = self._get_param("VpcId")
-
-        for attribute in ("EnableDnsSupport", "EnableDnsHostnames"):
+        for attribute in ("EnableDnsSupport", "EnableDnsHostnames", "EnableNetworkAddressUsageMetrics"):
             if self.querystring.get("%s.Value" % attribute):
                 attr_name = camelcase_to_underscores(attribute)
                 attr_value = self.querystring.get("%s.Value" % attribute)[0]
