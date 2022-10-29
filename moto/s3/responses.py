@@ -20,7 +20,6 @@ from moto.core.utils import path_url
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,
     parse_key_name as bucketpath_parse_key_name,
-    is_delete_keys as bucketpath_is_delete_keys,
 )
 from moto.utilities.aws_headers import amzn_request_id
 
@@ -142,17 +141,6 @@ def parse_key_name(pth):
     return pth[1:] if pth.startswith("/") else pth
 
 
-def is_delete_keys(request, path):
-    # GOlang sends a request as url/?delete= (treating it as a normal key=value, even if the value is empty)
-    # Python sends a request as url/?delete (treating it as a flag)
-    # https://github.com/spulec/moto/issues/2937
-    return (
-        path == "/?delete"
-        or path == "/?delete="
-        or (path == "/" and getattr(request, "query_string", "") == "delete")
-    )
-
-
 class S3Response(BaseResponse):
     def __init__(self):
         super().__init__(service_name="s3")
@@ -226,11 +214,9 @@ class S3Response(BaseResponse):
         )
         return not path_based
 
-    def is_delete_keys(self, request, path, bucket_name):
-        if self.subdomain_based_buckets(request):
-            return is_delete_keys(request, path)
-        else:
-            return bucketpath_is_delete_keys(request, path, bucket_name)
+    def is_delete_keys(self):
+        qs = parse_qs(urlparse(self.path).query, keep_blank_values=True)
+        return "delete" in qs
 
     def parse_bucket_name_from_url(self, request, url):
         if self.subdomain_based_buckets(request):
@@ -964,7 +950,7 @@ class S3Response(BaseResponse):
 
         self.path = self._get_path(request)
 
-        if self.is_delete_keys(request, self.path, bucket_name):
+        if self.is_delete_keys():
             self.data["Action"] = "DeleteObject"
             try:
                 self._authenticate_and_authorize_s3_action()
