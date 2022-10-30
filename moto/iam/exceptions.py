@@ -6,7 +6,7 @@ XMLNS_IAM = "https://iam.amazonaws.com/doc/2010-05-08/"
 class IAMNotFoundException(RESTError):
     code = 404
 
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__(
             "NoSuchEntity", message, xmlns=XMLNS_IAM, template="wrapped_single_error"
         )
