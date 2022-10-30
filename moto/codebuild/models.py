@@ -3,22 +3,23 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.moto_api._internal import mock_random
 from collections import defaultdict
 from dateutil import parser
+from typing import Any, Dict, List, Optional
 import datetime
 
 
 class CodeBuildProjectMetadata(BaseModel):
     def __init__(
         self,
-        account_id,
-        region_name,
-        project_name,
-        source_version,
-        artifacts,
-        build_id,
-        service_role,
+        account_id: str,
+        region_name: str,
+        project_name: str,
+        source_version: Optional[str],
+        artifacts: Optional[Dict[str, Any]],
+        build_id: str,
+        service_role: str,
     ):
         current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
-        self.build_metadata = dict()
+        self.build_metadata: Dict[str, Any] = dict()
 
         self.build_metadata["id"] = build_id
         self.build_metadata[
@@ -90,16 +91,16 @@ class CodeBuildProjectMetadata(BaseModel):
 class CodeBuild(BaseModel):
     def __init__(
         self,
-        account_id,
-        region,
-        project_name,
-        project_source,
-        artifacts,
-        environment,
-        serviceRole="some_role",
+        account_id: str,
+        region: str,
+        project_name: str,
+        project_source: Dict[str, Any],
+        artifacts: Dict[str, Any],
+        environment: Dict[str, Any],
+        serviceRole: str = "some_role",
     ):
         current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
-        self.project_metadata = dict()
+        self.project_metadata: Dict[str, Any] = dict()
 
         self.project_metadata["name"] = project_name
         self.project_metadata["arn"] = "arn:aws:codebuild:{0}:{1}:project/{2}".format(
@@ -127,16 +128,21 @@ class CodeBuild(BaseModel):
 
 
 class CodeBuildBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.codebuild_projects = dict()
-        self.build_history = dict()
-        self.build_metadata = dict()
-        self.build_metadata_history = defaultdict(list)
+        self.codebuild_projects: Dict[str, CodeBuild] = dict()
+        self.build_history: Dict[str, List[str]] = dict()
+        self.build_metadata: Dict[str, CodeBuildProjectMetadata] = dict()
+        self.build_metadata_history: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
 
     def create_project(
-        self, project_name, project_source, artifacts, environment, service_role
-    ):
+        self,
+        project_name: str,
+        project_source: Dict[str, Any],
+        artifacts: Dict[str, Any],
+        environment: Dict[str, Any],
+        service_role: str,
+    ) -> Dict[str, Any]:
         # required in other functions that don't
         self.project_name = project_name
         self.service_role = service_role
@@ -156,7 +162,7 @@ class CodeBuildBackend(BaseBackend):
 
         return self.codebuild_projects[project_name].project_metadata
 
-    def list_projects(self):
+    def list_projects(self) -> List[str]:
 
         projects = []
 
@@ -165,7 +171,12 @@ class CodeBuildBackend(BaseBackend):
 
         return projects
 
-    def start_build(self, project_name, source_version=None, artifact_override=None):
+    def start_build(
+        self,
+        project_name: str,
+        source_version: Optional[str] = None,
+        artifact_override: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
 
         build_id = "{0}:{1}".format(project_name, mock_random.uuid4())
 
@@ -189,7 +200,7 @@ class CodeBuildBackend(BaseBackend):
 
         return self.build_metadata[project_name].build_metadata
 
-    def _set_phases(self, phases):
+    def _set_phases(self, phases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
         # No phaseStatus for QUEUED on first start
         for existing_phase in phases:
@@ -209,7 +220,7 @@ class CodeBuildBackend(BaseBackend):
         ]
 
         for status in statuses:
-            phase = dict()
+            phase: Dict[str, Any] = dict()
             phase["phaseType"] = status
             phase["phaseStatus"] = "SUCCEEDED"
             phase["startTime"] = current_date
@@ -219,8 +230,8 @@ class CodeBuildBackend(BaseBackend):
 
         return phases
 
-    def batch_get_builds(self, ids):
-        batch_build_metadata = []
+    def batch_get_builds(self, ids: List[str]) -> List[Dict[str, Any]]:
+        batch_build_metadata: List[Dict[str, Any]] = []
 
         for metadata in self.build_metadata_history.values():
             for build in metadata:
@@ -237,24 +248,24 @@ class CodeBuildBackend(BaseBackend):
 
         return batch_build_metadata
 
-    def list_builds_for_project(self, project_name):
+    def list_builds_for_project(self, project_name: str) -> List[str]:
         try:
             return self.build_history[project_name]
         except KeyError:
             return list()
 
-    def list_builds(self):
+    def list_builds(self) -> List[str]:
         ids = []
 
         for build_ids in self.build_history.values():
             ids += build_ids
         return ids
 
-    def delete_project(self, project_name):
+    def delete_project(self, project_name: str) -> None:
         self.build_metadata.pop(project_name, None)
         self.codebuild_projects.pop(project_name, None)
 
-    def stop_build(self, build_id):
+    def stop_build(self, build_id: str) -> Optional[Dict[str, Any]]:  # type: ignore[return]
 
         for metadata in self.build_metadata_history.values():
             for build in metadata:
