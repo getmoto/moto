@@ -1,23 +1,23 @@
 """Handles incoming cloudtrail requests, invokes methods, returns responses."""
 import json
-
+from typing import Any, Dict
 from moto.core.responses import BaseResponse
-from .models import cloudtrail_backends
+from .models import cloudtrail_backends, CloudTrailBackend
 from .exceptions import InvalidParameterCombinationException
 
 
 class CloudTrailResponse(BaseResponse):
     """Handler for CloudTrail requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="cloudtrail")
 
     @property
-    def cloudtrail_backend(self):
+    def cloudtrail_backend(self) -> CloudTrailBackend:
         """Return backend instance specific for this region."""
         return cloudtrail_backends[self.current_account][self.region]
 
-    def create_trail(self):
+    def create_trail(self) -> str:
         name = self._get_param("Name")
         bucket_name = self._get_param("S3BucketName")
         is_global = self._get_bool_param("IncludeGlobalServiceEvents", True)
@@ -50,43 +50,43 @@ class CloudTrailResponse(BaseResponse):
         )
         return json.dumps(trail.description())
 
-    def get_trail(self):
+    def get_trail(self) -> str:
         name = self._get_param("Name")
         trail = self.cloudtrail_backend.get_trail(name)
         return json.dumps({"Trail": trail.description()})
 
-    def get_trail_status(self):
+    def get_trail_status(self) -> str:
         name = self._get_param("Name")
         status = self.cloudtrail_backend.get_trail_status(name)
         return json.dumps(status.description())
 
-    def describe_trails(self):
+    def describe_trails(self) -> str:
         include_shadow_trails = self._get_bool_param("includeShadowTrails", True)
         trails = self.cloudtrail_backend.describe_trails(include_shadow_trails)
         return json.dumps(
             {"trailList": [t.description(include_region=True) for t in trails]}
         )
 
-    def list_trails(self):
+    def list_trails(self) -> str:
         all_trails = self.cloudtrail_backend.list_trails()
         return json.dumps({"Trails": [t.short() for t in all_trails]})
 
-    def start_logging(self):
+    def start_logging(self) -> str:
         name = self._get_param("Name")
         self.cloudtrail_backend.start_logging(name)
         return json.dumps({})
 
-    def stop_logging(self):
+    def stop_logging(self) -> str:
         name = self._get_param("Name")
         self.cloudtrail_backend.stop_logging(name)
         return json.dumps({})
 
-    def delete_trail(self):
+    def delete_trail(self) -> str:
         name = self._get_param("Name")
         self.cloudtrail_backend.delete_trail(name)
         return json.dumps({})
 
-    def update_trail(self):
+    def update_trail(self) -> str:
         name = self._get_param("Name")
         s3_bucket_name = self._get_param("S3BucketName")
         s3_key_prefix = self._get_param("S3KeyPrefix")
@@ -113,7 +113,7 @@ class CloudTrailResponse(BaseResponse):
         )
         return json.dumps(trail.description())
 
-    def put_event_selectors(self):
+    def put_event_selectors(self) -> str:
         params = json.loads(self.body)
         trail_name = params.get("TrailName")
         event_selectors = params.get("EventSelectors")
@@ -135,7 +135,7 @@ class CloudTrailResponse(BaseResponse):
             )
         )
 
-    def get_event_selectors(self):
+    def get_event_selectors(self) -> str:
         params = json.loads(self.body)
         trail_name = params.get("TrailName")
         (
@@ -151,14 +151,14 @@ class CloudTrailResponse(BaseResponse):
             )
         )
 
-    def add_tags(self):
+    def add_tags(self) -> str:
         params = json.loads(self.body)
         resource_id = params.get("ResourceId")
         tags_list = params.get("TagsList")
         self.cloudtrail_backend.add_tags(resource_id=resource_id, tags_list=tags_list)
         return json.dumps(dict())
 
-    def remove_tags(self):
+    def remove_tags(self) -> str:
         resource_id = self._get_param("ResourceId")
         tags_list = self._get_param("TagsList")
         self.cloudtrail_backend.remove_tags(
@@ -166,7 +166,7 @@ class CloudTrailResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def list_tags(self):
+    def list_tags(self) -> str:
         params = json.loads(self.body)
         resource_id_list = params.get("ResourceIdList")
         resource_tag_list = self.cloudtrail_backend.list_tags(
@@ -174,7 +174,7 @@ class CloudTrailResponse(BaseResponse):
         )
         return json.dumps(dict(ResourceTagList=resource_tag_list))
 
-    def put_insight_selectors(self):
+    def put_insight_selectors(self) -> str:
         trail_name = self._get_param("TrailName")
         insight_selectors = self._get_param("InsightSelectors")
         trail_arn, insight_selectors = self.cloudtrail_backend.put_insight_selectors(
@@ -182,12 +182,12 @@ class CloudTrailResponse(BaseResponse):
         )
         return json.dumps(dict(TrailARN=trail_arn, InsightSelectors=insight_selectors))
 
-    def get_insight_selectors(self):
+    def get_insight_selectors(self) -> str:
         trail_name = self._get_param("TrailName")
         trail_arn, insight_selectors = self.cloudtrail_backend.get_insight_selectors(
             trail_name=trail_name
         )
-        resp = {"TrailARN": trail_arn}
+        resp: Dict[str, Any] = {"TrailARN": trail_arn}
         if insight_selectors:
             resp["InsightSelectors"] = insight_selectors
         return json.dumps(resp)
