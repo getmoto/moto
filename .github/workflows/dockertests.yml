@@ -19,7 +19,7 @@ jobs:
       - name: Get pip cache dir
         id: pip-cache-dir
         run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+          echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
       - name: pip cache
         id: pip-cache
         uses: actions/cache@v3
@@ -59,7 +59,7 @@ jobs:
     - name: Get pip cache dir
       id: pip-cache
       run: |
-        echo "::set-output name=dir::$(pip cache dir)"
+        echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
       uses: actions/cache@v3
       with:
@@ -118,7 +118,7 @@ jobs:
     - name: Get pip cache dir
       id: pip-cache
       run: |
-        echo "::set-output name=dir::$(pip cache dir)"
+        echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
       uses: actions/cache@v3
       with:
@@ -174,7 +174,7 @@ jobs:
     - name: Get pip cache dir
       id: pip-cache
       run: |
-        echo "::set-output name=dir::$(pip cache dir)"
+        echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
       uses: actions/cache@v3
       with:
