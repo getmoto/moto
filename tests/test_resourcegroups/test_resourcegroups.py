@@ -55,8 +55,6 @@ def test_get_group():
     response = resource_groups.get_group(GroupName="test_resource_group")
     response["Group"]["Description"].should.contain("description")
 
-    return response
-
 
 @mock_resourcegroups
 def test_get_group_query():
@@ -86,8 +84,6 @@ def test_get_tags():
     response["Tags"]["resource_group_tag_key"].should.contain(
         "resource_group_tag_value"
     )
-
-    return response
 
 
 @mock_resourcegroups
