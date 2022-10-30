@@ -798,3 +798,75 @@ def test_transact_write_items_multiple_operations_fail():
         err["Message"]
         == "TransactItems can only contain one of Check, Put, Update or Delete"
     )
+
+
+@mock_dynamodb
+def test_update_primary_key_with_sortkey():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    schema = {
+        "KeySchema": [
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+    }
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
+    )
+
+    table = dynamodb.Table("test-table")
+    base_item = {"pk": "testchangepk", "sk": "else"}
+    table.put_item(Item=base_item)
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "n/a", "sk": "else"},
+            UpdateExpression="SET #attr1 = :val1",
+            ExpressionAttributeNames={"#attr1": "pk"},
+            ExpressionAttributeValues={":val1": "different"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Cannot update attribute pk. This attribute is part of the key"
+    )
+
+    table.get_item(Key={"pk": "testchangepk", "sk": "else"})["Item"].should.equal(
+        {"pk": "testchangepk", "sk": "else"}
+    )
+
+
+@mock_dynamodb
+def test_update_primary_key():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    schema = {
+        "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
+    }
+    dynamodb.create_table(
+        TableName="without_sk", BillingMode="PAY_PER_REQUEST", **schema
+    )
+
+    table = dynamodb.Table("without_sk")
+    base_item = {"pk": "testchangepk"}
+    table.put_item(Item=base_item)
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "n/a"},
+            UpdateExpression="SET #attr1 = :val1",
+            ExpressionAttributeNames={"#attr1": "pk"},
+            ExpressionAttributeValues={":val1": "different"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Cannot update attribute pk. This attribute is part of the key"
+    )
+
+    table.get_item(Key={"pk": "testchangepk"})["Item"].should.equal(
+        {"pk": "testchangepk"}
+    )
