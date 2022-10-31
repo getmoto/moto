@@ -5,6 +5,7 @@ import boto3
 
 import sure  # noqa # pylint: disable=unused-import
 import random
+import sys
 
 from moto import mock_ec2, settings
 from unittest import SkipTest
@@ -360,6 +361,10 @@ def test_vpc_get_by_tag_value_subset():
 
 @mock_ec2
 def test_default_vpc():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     # Create the default VPC
@@ -378,9 +383,19 @@ def test_default_vpc():
     attr = response.get("EnableDnsHostnames")
     attr.get("Value").should.equal(True)
 
+    response = default_vpc.describe_attribute(
+        Attribute="enableNetworkAddressUsageMetrics"
+    )
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").should.equal(False)
+
 
 @mock_ec2
 def test_non_default_vpc():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     # Create the default VPC - this already exists when backend instantiated!
@@ -401,6 +416,10 @@ def test_non_default_vpc():
 
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
+    attr.get("Value").should.equal(False)
+
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
     attr.get("Value").should.equal(False)
 
     # Check Primary CIDR Block Associations
@@ -489,6 +508,30 @@ def test_vpc_modify_enable_dns_hostnames():
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
     attr.get("Value").should.be.ok
+
+
+@mock_ec2
+def test_vpc_modify_enable_network_address_usage_metrics():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock="172.31.0.0/16")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    # Test default values for VPC attributes
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").shouldnt.be.ok
+
+    vpc.modify_attribute(EnableNetworkAddressUsageMetrics={"Value": True})
+
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").should.equal(True)
 
 
 @mock_ec2
