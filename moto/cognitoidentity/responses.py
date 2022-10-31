@@ -1,17 +1,17 @@
 from moto.core.responses import BaseResponse
-from .models import cognitoidentity_backends
+from .models import cognitoidentity_backends, CognitoIdentityBackend
 from .utils import get_random_identity_id
 
 
 class CognitoIdentityResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="cognito-identity")
 
     @property
-    def backend(self):
+    def backend(self) -> CognitoIdentityBackend:
         return cognitoidentity_backends[self.current_account][self.region]
 
-    def create_identity_pool(self):
+    def create_identity_pool(self) -> str:
         identity_pool_name = self._get_param("IdentityPoolName")
         allow_unauthenticated_identities = self._get_param(
             "AllowUnauthenticatedIdentities"
@@ -34,7 +34,7 @@ class CognitoIdentityResponse(BaseResponse):
             tags=pool_tags,
         )
 
-    def update_identity_pool(self):
+    def update_identity_pool(self) -> str:
         pool_id = self._get_param("IdentityPoolId")
         pool_name = self._get_param("IdentityPoolName")
         allow_unauthenticated = self._get_bool_param("AllowUnauthenticatedIdentities")
@@ -57,26 +57,26 @@ class CognitoIdentityResponse(BaseResponse):
             tags=pool_tags,
         )
 
-    def get_id(self):
+    def get_id(self) -> str:
         return self.backend.get_id(identity_pool_id=self._get_param("IdentityPoolId"))
 
-    def describe_identity_pool(self):
+    def describe_identity_pool(self) -> str:
         return self.backend.describe_identity_pool(self._get_param("IdentityPoolId"))
 
-    def get_credentials_for_identity(self):
+    def get_credentials_for_identity(self) -> str:
         return self.backend.get_credentials_for_identity(self._get_param("IdentityId"))
 
-    def get_open_id_token_for_developer_identity(self):
+    def get_open_id_token_for_developer_identity(self) -> str:
         return self.backend.get_open_id_token_for_developer_identity(
             self._get_param("IdentityId") or get_random_identity_id(self.region)
         )
 
-    def get_open_id_token(self):
+    def get_open_id_token(self) -> str:
         return self.backend.get_open_id_token(
             self._get_param("IdentityId") or get_random_identity_id(self.region)
         )
 
-    def list_identities(self):
+    def list_identities(self) -> str:
         return self.backend.list_identities(
             self._get_param("IdentityPoolId") or get_random_identity_id(self.region)
         )

@@ -48,7 +48,7 @@ def filter_resources(resources, filters, attr_pairs):
     return result
 
 
-def md5_hash(data=None):
+def md5_hash(data: Any = None) -> Any:
     """
     MD5-hashing for non-security usecases.
     Required for Moto to work in FIPS-enabled systems
