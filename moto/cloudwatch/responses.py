@@ -1,27 +1,38 @@
 import json
 
 from dateutil.parser import parse as dtparse
-
+from typing import Dict, List, Iterable, Tuple, Union
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
-from .models import cloudwatch_backends, MetricDataQuery, MetricStat, Metric, Dimension
+from .models import (
+    cloudwatch_backends,
+    CloudWatchBackend,
+    MetricDataQuery,
+    MetricStat,
+    Metric,
+    Dimension,
+    FakeAlarm,
+)
 from .exceptions import InvalidParameterCombination
 
 
+ERROR_RESPONSE = Tuple[str, Dict[str, int]]
+
+
 class CloudWatchResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="cloudwatch")
 
     @property
-    def cloudwatch_backend(self):
+    def cloudwatch_backend(self) -> CloudWatchBackend:
         return cloudwatch_backends[self.current_account][self.region]
 
-    def _error(self, code, message, status=400):
+    def _error(self, code: str, message: str, status: int = 400) -> ERROR_RESPONSE:
         template = self.response_template(ERROR_RESPONSE_TEMPLATE)
         return template.render(code=code, message=message), dict(status=status)
 
     @amzn_request_id
-    def put_metric_alarm(self):
+    def put_metric_alarm(self) -> str:
         name = self._get_param("AlarmName")
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
@@ -30,14 +41,14 @@ class CloudWatchResponse(BaseResponse):
         if metrics:
             metric_data_queries = []
             for metric in metrics:
-                dimensions = []
+                metric_dimensions = []
                 dims = (
                     metric.get("MetricStat", {})
                     .get("Metric", {})
                     .get("Dimensions.member", [])
                 )
                 for dim in dims:
-                    dimensions.append(
+                    metric_dimensions.append(
                         Dimension(name=dim.get("Name"), value=dim.get("Value"))
                     )
                 metric_stat = None
@@ -51,7 +62,7 @@ class CloudWatchResponse(BaseResponse):
                         metric=Metric(
                             metric_name=stat_metric_name,
                             namespace=stat_metric_ns,
-                            dimensions=dimensions,
+                            dimensions=metric_dimensions,
                         ),
                         period=stat_details.get("Period"),
                         stat=stat_details.get("Stat"),
@@ -121,7 +132,7 @@ class CloudWatchResponse(BaseResponse):
         return template.render(alarm=alarm)
 
     @amzn_request_id
-    def describe_alarms(self):
+    def describe_alarms(self) -> str:
         action_prefix = self._get_param("ActionPrefix")
         alarm_name_prefix = self._get_param("AlarmNamePrefix")
         alarm_names = self._get_multi_param("AlarmNames.member")
@@ -149,14 +160,14 @@ class CloudWatchResponse(BaseResponse):
         )
 
     @amzn_request_id
-    def delete_alarms(self):
+    def delete_alarms(self) -> str:
         alarm_names = self._get_multi_param("AlarmNames.member")
         self.cloudwatch_backend.delete_alarms(alarm_names)
         template = self.response_template(DELETE_METRIC_ALARMS_TEMPLATE)
         return template.render()
 
     @amzn_request_id
-    def put_metric_data(self):
+    def put_metric_data(self) -> str:
         namespace = self._get_param("Namespace")
         metric_data = self._get_multi_param("MetricData.member")
         self.cloudwatch_backend.put_metric_data(namespace, metric_data)
@@ -164,7 +175,7 @@ class CloudWatchResponse(BaseResponse):
         return template.render()
 
     @amzn_request_id
-    def get_metric_data(self):
+    def get_metric_data(self) -> str:
         start = dtparse(self._get_param("StartTime"))
         end = dtparse(self._get_param("EndTime"))
         scan_by = self._get_param("ScanBy")
@@ -178,7 +189,7 @@ class CloudWatchResponse(BaseResponse):
         return template.render(results=results)
 
     @amzn_request_id
-    def get_metric_statistics(self):
+    def get_metric_statistics(self) -> str:
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
         start_time = dtparse(self._get_param("StartTime"))
@@ -210,7 +221,7 @@ class CloudWatchResponse(BaseResponse):
         return template.render(label=metric_name, datapoints=datapoints)
 
     @amzn_request_id
-    def list_metrics(self):
+    def list_metrics(self) -> str:
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
         dimensions = self._get_params().get("Dimensions", [])
@@ -222,24 +233,26 @@ class CloudWatchResponse(BaseResponse):
         return template.render(metrics=metrics, next_token=next_token)
 
     @amzn_request_id
-    def delete_dashboards(self):
+    def delete_dashboards(self) -> Union[str, ERROR_RESPONSE]:
         dashboards = self._get_multi_param("DashboardNames.member")
         if dashboards is None:
             return self._error("InvalidParameterValue", "Need at least 1 dashboard")
 
-        status, error = self.cloudwatch_backend.delete_dashboards(dashboards)
-        if not status:
+        error = self.cloudwatch_backend.delete_dashboards(dashboards)
+        if error is not None:
             return self._error("ResourceNotFound", error)
 
         template = self.response_template(DELETE_DASHBOARD_TEMPLATE)
         return template.render()
 
     @amzn_request_id
-    def describe_alarm_history(self):
+    def describe_alarm_history(self) -> None:
         raise NotImplementedError()
 
     @staticmethod
-    def filter_alarms(alarms, metric_name, namespace):
+    def filter_alarms(
+        alarms: Iterable[FakeAlarm], metric_name: str, namespace: str
+    ) -> List[FakeAlarm]:
         metric_filtered_alarms = []
 
         for alarm in alarms:
@@ -248,7 +261,7 @@ class CloudWatchResponse(BaseResponse):
         return metric_filtered_alarms
 
     @amzn_request_id
-    def describe_alarms_for_metric(self):
+    def describe_alarms_for_metric(self) -> str:
         alarms = self.cloudwatch_backend.get_all_alarms()
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
@@ -257,15 +270,15 @@ class CloudWatchResponse(BaseResponse):
         return template.render(alarms=filtered_alarms)
 
     @amzn_request_id
-    def disable_alarm_actions(self):
+    def disable_alarm_actions(self) -> str:
         raise NotImplementedError()
 
     @amzn_request_id
-    def enable_alarm_actions(self):
+    def enable_alarm_actions(self) -> str:
         raise NotImplementedError()
 
     @amzn_request_id
-    def get_dashboard(self):
+    def get_dashboard(self) -> Union[str, ERROR_RESPONSE]:
         dashboard_name = self._get_param("DashboardName")
 
         dashboard = self.cloudwatch_backend.get_dashboard(dashboard_name)
@@ -276,7 +289,7 @@ class CloudWatchResponse(BaseResponse):
         return template.render(dashboard=dashboard)
 
     @amzn_request_id
-    def list_dashboards(self):
+    def list_dashboards(self) -> str:
         prefix = self._get_param("DashboardNamePrefix", "")
 
         dashboards = self.cloudwatch_backend.list_dashboards(prefix)
@@ -285,7 +298,7 @@ class CloudWatchResponse(BaseResponse):
         return template.render(dashboards=dashboards)
 
     @amzn_request_id
-    def put_dashboard(self):
+    def put_dashboard(self) -> Union[str, ERROR_RESPONSE]:
         name = self._get_param("DashboardName")
         body = self._get_param("DashboardBody")
 
@@ -300,7 +313,7 @@ class CloudWatchResponse(BaseResponse):
         return template.render()
 
     @amzn_request_id
-    def set_alarm_state(self):
+    def set_alarm_state(self) -> str:
         alarm_name = self._get_param("AlarmName")
         reason = self._get_param("StateReason")
         reason_data = self._get_param("StateReasonData")
@@ -314,7 +327,7 @@ class CloudWatchResponse(BaseResponse):
         return template.render()
 
     @amzn_request_id
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("ResourceARN")
 
         tags = self.cloudwatch_backend.list_tags_for_resource(resource_arn)
@@ -323,7 +336,7 @@ class CloudWatchResponse(BaseResponse):
         return template.render(tags=tags)
 
     @amzn_request_id
-    def tag_resource(self):
+    def tag_resource(self) -> str:
         resource_arn = self._get_param("ResourceARN")
         tags = self._get_multi_param("Tags.member")
 
@@ -333,7 +346,7 @@ class CloudWatchResponse(BaseResponse):
         return template.render()
 
     @amzn_request_id
-    def untag_resource(self):
+    def untag_resource(self) -> str:
         resource_arn = self._get_param("ResourceARN")
         tag_keys = self._get_multi_param("TagKeys.member")
 

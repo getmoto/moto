@@ -195,5 +195,5 @@ class ConfigQueryModel:
 class CloudWatchMetricProvider(object):
     @staticmethod
     @abstractmethod
-    def get_cloudwatch_metrics(account_id):
+    def get_cloudwatch_metrics(account_id: str) -> Any:
         pass
