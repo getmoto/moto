@@ -5,6 +5,7 @@ import boto3
 
 import sure  # noqa # pylint: disable=unused-import
 import random
+import sys
 
 from moto import mock_ec2, settings
 from unittest import SkipTest
@@ -360,6 +361,10 @@ def test_vpc_get_by_tag_value_subset():
 
 @mock_ec2
 def test_default_vpc():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     # Create the default VPC
@@ -387,6 +392,10 @@ def test_default_vpc():
 
 @mock_ec2
 def test_non_default_vpc():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     # Create the default VPC - this already exists when backend instantiated!
@@ -503,6 +512,10 @@ def test_vpc_modify_enable_dns_hostnames():
 
 @mock_ec2
 def test_vpc_modify_enable_network_address_usage_metrics():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     # Create the default VPC
