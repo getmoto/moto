@@ -500,7 +500,7 @@ class CloudWatchBackend(BaseBackend):
     ) -> List[Dict[str, Any]]:
 
         period_data = [
-            md for md in self.metric_data if start_time <= md.timestamp <= end_time
+            md for md in self.metric_data if start_time <= md.timestamp < end_time
         ]
 
         results = []
@@ -582,7 +582,7 @@ class CloudWatchBackend(BaseBackend):
             for md in self.get_all_metrics()
             if md.namespace == namespace
             and md.name == metric_name
-            and start_time <= md.timestamp <= end_time
+            and start_time <= md.timestamp < end_time
         ]
 
         if unit:
