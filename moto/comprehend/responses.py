@@ -2,21 +2,21 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import comprehend_backends
+from .models import comprehend_backends, ComprehendBackend
 
 
 class ComprehendResponse(BaseResponse):
     """Handler for Comprehend requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="comprehend")
 
     @property
-    def comprehend_backend(self):
+    def comprehend_backend(self) -> ComprehendBackend:
         """Return backend instance specific for this region."""
         return comprehend_backends[self.current_account][self.region]
 
-    def list_entity_recognizers(self):
+    def list_entity_recognizers(self) -> str:
         params = json.loads(self.body)
         _filter = params.get("Filter", {})
         recognizers = self.comprehend_backend.list_entity_recognizers(_filter=_filter)
@@ -24,7 +24,7 @@ class ComprehendResponse(BaseResponse):
             dict(EntityRecognizerPropertiesList=[r.to_dict() for r in recognizers])
         )
 
-    def create_entity_recognizer(self):
+    def create_entity_recognizer(self) -> str:
         params = json.loads(self.body)
         recognizer_name = params.get("RecognizerName")
         version_name = params.get("VersionName")
@@ -50,7 +50,7 @@ class ComprehendResponse(BaseResponse):
         )
         return json.dumps(dict(EntityRecognizerArn=entity_recognizer_arn))
 
-    def describe_entity_recognizer(self):
+    def describe_entity_recognizer(self) -> str:
         params = json.loads(self.body)
         entity_recognizer_arn = params.get("EntityRecognizerArn")
         recognizer = self.comprehend_backend.describe_entity_recognizer(
@@ -58,7 +58,7 @@ class ComprehendResponse(BaseResponse):
         )
         return json.dumps(dict(EntityRecognizerProperties=recognizer.to_dict()))
 
-    def stop_training_entity_recognizer(self):
+    def stop_training_entity_recognizer(self) -> str:
         params = json.loads(self.body)
         entity_recognizer_arn = params.get("EntityRecognizerArn")
         self.comprehend_backend.stop_training_entity_recognizer(
@@ -66,7 +66,7 @@ class ComprehendResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceArn")
         tags = self.comprehend_backend.list_tags_for_resource(
@@ -74,7 +74,7 @@ class ComprehendResponse(BaseResponse):
         )
         return json.dumps(dict(ResourceArn=resource_arn, Tags=tags))
 
-    def delete_entity_recognizer(self):
+    def delete_entity_recognizer(self) -> str:
         params = json.loads(self.body)
         entity_recognizer_arn = params.get("EntityRecognizerArn")
         self.comprehend_backend.delete_entity_recognizer(
@@ -82,14 +82,14 @@ class ComprehendResponse(BaseResponse):
         )
         return "{}"
 
-    def tag_resource(self):
+    def tag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceArn")
         tags = params.get("Tags")
         self.comprehend_backend.tag_resource(resource_arn, tags)
         return "{}"
 
-    def untag_resource(self):
+    def untag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceArn")
         tag_keys = params.get("TagKeys")
