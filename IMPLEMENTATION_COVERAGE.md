@@ -535,7 +535,7 @@
 
 ## cloudformation
 <details>
-<summary>30% implemented</summary>
+<summary>31% implemented</summary>
 
 - [ ] activate_type
 - [ ] batch_describe_type_configurations
@@ -599,7 +599,7 @@
 - [ ] stop_stack_set_operation
 - [ ] test_type
 - [X] update_stack
-- [ ] update_stack_instances
+- [X] update_stack_instances
 - [X] update_stack_set
 - [ ] update_termination_protection
 - [X] validate_template
@@ -1665,6 +1665,7 @@
 <details>
 <summary>35% implemented</summary>
 
+- [ ] accept_address_transfer
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
 - [X] accept_transit_gateway_peering_attachment
@@ -1865,6 +1866,7 @@
 - [ ] deregister_transit_gateway_multicast_group_members
 - [ ] deregister_transit_gateway_multicast_group_sources
 - [ ] describe_account_attributes
+- [ ] describe_address_transfers
 - [X] describe_addresses
 - [ ] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
@@ -2004,6 +2006,7 @@
 - [X] detach_network_interface
 - [X] detach_volume
 - [X] detach_vpn_gateway
+- [ ] disable_address_transfer
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
@@ -2026,6 +2029,7 @@
 - [X] disassociate_transit_gateway_route_table
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
+- [ ] enable_address_transfer
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
@@ -3939,7 +3943,7 @@
 
 ## logs
 <details>
-<summary>59% implemented</summary>
+<summary>55% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -3969,6 +3973,7 @@
 - [ ] get_log_group_fields
 - [ ] get_log_record
 - [ ] get_query_results
+- [ ] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_destination
 - [ ] put_destination_policy
@@ -3981,8 +3986,10 @@
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
+- [ ] tag_resource
 - [ ] test_metric_filter
 - [X] untag_log_group
+- [ ] untag_resource
 </details>
 
 ## managedblockchain
@@ -5605,6 +5612,7 @@
 - [ ] list_hyper_parameter_tuning_jobs
 - [ ] list_image_versions
 - [ ] list_images
+- [ ] list_inference_recommendations_job_steps
 - [ ] list_inference_recommendations_jobs
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam

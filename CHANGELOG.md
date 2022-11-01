@@ -1,6 +1,19 @@
 Moto Changelog
 ==============
 
+4.0.9
+-----
+Docker Digest for 4.0.9: <autopopulateddigest>
+
+    Miscellaneous:
+        * CloudTrail: describe_trails() now returns the correct (MultiRegion) trails
+        * CloudWatch:tag_resource() now allows tagting new Alarms that didn't have tags yet
+        * EC2: create_instances() now supports the `IamInstanceProfile`-parameter
+        * EC2: describe_route_tables() now supports the `route.vpc-peering-connection-id`-filter
+        * EC2: modify_vpc_attribute() now supports the enableNetworkAddressUsageMetrics-attribute
+        * S3: delete_objects() now works against the JS SDK v3.197.0
+
+
 4.0.8
 -----
 Docker Digest for 4.0.8: _sha256:41883fb0f38572f3194dcbef6731eafdc6d8d7d4e319257d2ba2468c401c9881_
