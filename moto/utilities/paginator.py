@@ -2,13 +2,16 @@ import inspect
 
 from copy import deepcopy
 from functools import wraps
+from typing import Dict, Any, Callable
 
 from botocore.paginate import TokenDecoder, TokenEncoder
 
 from moto.core.exceptions import InvalidToken
 
 
-def paginate(pagination_model, original_function=None):
+def paginate(
+    pagination_model: Dict[str, Any], original_function: Callable = None
+) -> Callable:
     def pagination_decorator(func):
         @wraps(func)
         def pagination_wrapper(*args, **kwargs):

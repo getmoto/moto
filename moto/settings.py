@@ -3,6 +3,7 @@ import os
 import pathlib
 
 from functools import lru_cache
+from typing import Optional
 
 
 TEST_SERVER_MODE = os.environ.get("TEST_SERVER_MODE", "0").lower() == "true"
@@ -130,5 +131,5 @@ def get_docker_host() -> str:
         return "http://host.docker.internal"
 
 
-def get_cognito_idp_user_pool_id_strategy():
+def get_cognito_idp_user_pool_id_strategy() -> Optional[str]:
     return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY")

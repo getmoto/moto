@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from typing import Any, Dict, Tuple
 
 from moto.core.responses import BaseResponse
 from .models import (
@@ -8,6 +9,7 @@ from .models import (
     find_account_region_by_value,
     RegionAgnosticBackend,
     UserStatus,
+    CognitoIdpBackend,
 )
 from .exceptions import InvalidParameterException
 
@@ -16,24 +18,24 @@ region_agnostic_backend = RegionAgnosticBackend()
 
 
 class CognitoIdpResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="cognito-idp")
 
     @property
-    def parameters(self):
+    def parameters(self) -> Dict[str, Any]:  # type: ignore[misc]
         return json.loads(self.body)
 
     @property
-    def backend(self):
+    def backend(self) -> CognitoIdpBackend:
         return cognitoidp_backends[self.current_account][self.region]
 
     # User pool
-    def create_user_pool(self):
+    def create_user_pool(self) -> str:
         name = self.parameters.pop("PoolName")
         user_pool = self.backend.create_user_pool(name, self.parameters)
         return json.dumps({"UserPool": user_pool.to_json(extended=True)})
 
-    def set_user_pool_mfa_config(self):
+    def set_user_pool_mfa_config(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         sms_config = self._get_param("SmsMfaConfiguration", None)
         token_config = self._get_param("SoftwareTokenMfaConfiguration", None)
@@ -60,38 +62,40 @@ class CognitoIdpResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    def get_user_pool_mfa_config(self):
+    def get_user_pool_mfa_config(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         response = self.backend.get_user_pool_mfa_config(user_pool_id)
         return json.dumps(response)
 
-    def list_user_pools(self):
+    def list_user_pools(self) -> str:
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
         user_pools, next_token = self.backend.list_user_pools(
             max_results=max_results, next_token=next_token
         )
-        response = {"UserPools": [user_pool.to_json() for user_pool in user_pools]}
+        response: Dict[str, Any] = {
+            "UserPools": [user_pool.to_json() for user_pool in user_pools]
+        }
         if next_token:
             response["NextToken"] = str(next_token)
         return json.dumps(response)
 
-    def describe_user_pool(self):
+    def describe_user_pool(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         user_pool = self.backend.describe_user_pool(user_pool_id)
         return json.dumps({"UserPool": user_pool.to_json(extended=True)})
 
-    def update_user_pool(self):
+    def update_user_pool(self) -> None:
         user_pool_id = self._get_param("UserPoolId")
         self.backend.update_user_pool(user_pool_id, self.parameters)
 
-    def delete_user_pool(self):
+    def delete_user_pool(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         self.backend.delete_user_pool(user_pool_id)
         return ""
 
     # User pool domain
-    def create_user_pool_domain(self):
+    def create_user_pool_domain(self) -> str:
         domain = self._get_param("Domain")
         user_pool_id = self._get_param("UserPoolId")
         custom_domain_config = self._get_param("CustomDomainConfig")
@@ -103,21 +107,21 @@ class CognitoIdpResponse(BaseResponse):
             return json.dumps(domain_description)
         return ""
 
-    def describe_user_pool_domain(self):
+    def describe_user_pool_domain(self) -> str:
         domain = self._get_param("Domain")
         user_pool_domain = self.backend.describe_user_pool_domain(domain)
-        domain_description = {}
+        domain_description: Dict[str, Any] = {}
         if user_pool_domain:
             domain_description = user_pool_domain.to_json()
 
         return json.dumps({"DomainDescription": domain_description})
 
-    def delete_user_pool_domain(self):
+    def delete_user_pool_domain(self) -> str:
         domain = self._get_param("Domain")
         self.backend.delete_user_pool_domain(domain)
         return ""
 
-    def update_user_pool_domain(self):
+    def update_user_pool_domain(self) -> str:
         domain = self._get_param("Domain")
         custom_domain_config = self._get_param("CustomDomainConfig")
         user_pool_domain = self.backend.update_user_pool_domain(
@@ -129,7 +133,7 @@ class CognitoIdpResponse(BaseResponse):
         return ""
 
     # User pool client
-    def create_user_pool_client(self):
+    def create_user_pool_client(self) -> str:
         user_pool_id = self.parameters.pop("UserPoolId")
         generate_secret = self.parameters.pop("GenerateSecret", False)
         user_pool_client = self.backend.create_user_pool_client(
@@ -137,14 +141,14 @@ class CognitoIdpResponse(BaseResponse):
         )
         return json.dumps({"UserPoolClient": user_pool_client.to_json(extended=True)})
 
-    def list_user_pool_clients(self):
+    def list_user_pool_clients(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
         user_pool_clients, next_token = self.backend.list_user_pool_clients(
             user_pool_id, max_results=max_results, next_token=next_token
         )
-        response = {
+        response: Dict[str, Any] = {
             "UserPoolClients": [
                 user_pool_client.to_json() for user_pool_client in user_pool_clients
             ]
@@ -153,7 +157,7 @@ class CognitoIdpResponse(BaseResponse):
             response["NextToken"] = str(next_token)
         return json.dumps(response)
 
-    def describe_user_pool_client(self):
+    def describe_user_pool_client(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         client_id = self._get_param("ClientId")
         user_pool_client = self.backend.describe_user_pool_client(
@@ -161,7 +165,7 @@ class CognitoIdpResponse(BaseResponse):
         )
         return json.dumps({"UserPoolClient": user_pool_client.to_json(extended=True)})
 
-    def update_user_pool_client(self):
+    def update_user_pool_client(self) -> str:
         user_pool_id = self.parameters.pop("UserPoolId")
         client_id = self.parameters.pop("ClientId")
         user_pool_client = self.backend.update_user_pool_client(
@@ -169,14 +173,14 @@ class CognitoIdpResponse(BaseResponse):
         )
         return json.dumps({"UserPoolClient": user_pool_client.to_json(extended=True)})
 
-    def delete_user_pool_client(self):
+    def delete_user_pool_client(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         client_id = self._get_param("ClientId")
         self.backend.delete_user_pool_client(user_pool_id, client_id)
         return ""
 
     # Identity provider
-    def create_identity_provider(self):
+    def create_identity_provider(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         name = self.parameters.pop("ProviderName")
         identity_provider = self.backend.create_identity_provider(
@@ -186,14 +190,14 @@ class CognitoIdpResponse(BaseResponse):
             {"IdentityProvider": identity_provider.to_json(extended=True)}
         )
 
-    def list_identity_providers(self):
+    def list_identity_providers(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
         identity_providers, next_token = self.backend.list_identity_providers(
             user_pool_id, max_results=max_results, next_token=next_token
         )
-        response = {
+        response: Dict[str, Any] = {
             "Providers": [
                 identity_provider.to_json() for identity_provider in identity_providers
             ]
@@ -202,7 +206,7 @@ class CognitoIdpResponse(BaseResponse):
             response["NextToken"] = str(next_token)
         return json.dumps(response)
 
-    def describe_identity_provider(self):
+    def describe_identity_provider(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         name = self._get_param("ProviderName")
         identity_provider = self.backend.describe_identity_provider(user_pool_id, name)
@@ -210,7 +214,7 @@ class CognitoIdpResponse(BaseResponse):
             {"IdentityProvider": identity_provider.to_json(extended=True)}
         )
 
-    def update_identity_provider(self):
+    def update_identity_provider(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         name = self._get_param("ProviderName")
         identity_provider = self.backend.update_identity_provider(
@@ -220,14 +224,14 @@ class CognitoIdpResponse(BaseResponse):
             {"IdentityProvider": identity_provider.to_json(extended=True)}
         )
 
-    def delete_identity_provider(self):
+    def delete_identity_provider(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         name = self._get_param("ProviderName")
         self.backend.delete_identity_provider(user_pool_id, name)
         return ""
 
     # Group
-    def create_group(self):
+    def create_group(self) -> str:
         group_name = self._get_param("GroupName")
         user_pool_id = self._get_param("UserPoolId")
         description = self._get_param("Description")
@@ -240,13 +244,13 @@ class CognitoIdpResponse(BaseResponse):
 
         return json.dumps({"Group": group.to_json()})
 
-    def get_group(self):
+    def get_group(self) -> str:
         group_name = self._get_param("GroupName")
         user_pool_id = self._get_param("UserPoolId")
         group = self.backend.get_group(user_pool_id, group_name)
         return json.dumps({"Group": group.to_json()})
 
-    def list_groups(self):
+    def list_groups(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         limit = self._get_param("Limit")
         token = self._get_param("NextToken")
@@ -258,13 +262,13 @@ class CognitoIdpResponse(BaseResponse):
             response["NextToken"] = token
         return json.dumps(response)
 
-    def delete_group(self):
+    def delete_group(self) -> str:
         group_name = self._get_param("GroupName")
         user_pool_id = self._get_param("UserPoolId")
         self.backend.delete_group(user_pool_id, group_name)
         return ""
 
-    def update_group(self):
+    def update_group(self) -> str:
         group_name = self._get_param("GroupName")
         user_pool_id = self._get_param("UserPoolId")
         description = self._get_param("Description")
@@ -277,7 +281,7 @@ class CognitoIdpResponse(BaseResponse):
 
         return json.dumps({"Group": group.to_json()})
 
-    def admin_add_user_to_group(self):
+    def admin_add_user_to_group(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         group_name = self._get_param("GroupName")
@@ -286,7 +290,7 @@ class CognitoIdpResponse(BaseResponse):
 
         return ""
 
-    def list_users_in_group(self):
+    def list_users_in_group(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         group_name = self._get_param("GroupName")
         limit = self._get_param("Limit")
@@ -299,13 +303,13 @@ class CognitoIdpResponse(BaseResponse):
             response["NextToken"] = token
         return json.dumps(response)
 
-    def admin_list_groups_for_user(self):
+    def admin_list_groups_for_user(self) -> str:
         username = self._get_param("Username")
         user_pool_id = self._get_param("UserPoolId")
         groups = self.backend.admin_list_groups_for_user(user_pool_id, username)
         return json.dumps({"Groups": [group.to_json() for group in groups]})
 
-    def admin_remove_user_from_group(self):
+    def admin_remove_user_from_group(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         group_name = self._get_param("GroupName")
@@ -314,14 +318,14 @@ class CognitoIdpResponse(BaseResponse):
 
         return ""
 
-    def admin_reset_user_password(self):
+    def admin_reset_user_password(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         self.backend.admin_reset_user_password(user_pool_id, username)
         return ""
 
     # User
-    def admin_create_user(self):
+    def admin_create_user(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         message_action = self._get_param("MessageAction")
@@ -336,23 +340,23 @@ class CognitoIdpResponse(BaseResponse):
 
         return json.dumps({"User": user.to_json(extended=True)})
 
-    def admin_confirm_sign_up(self):
+    def admin_confirm_sign_up(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         return self.backend.admin_confirm_sign_up(user_pool_id, username)
 
-    def admin_get_user(self):
+    def admin_get_user(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         user = self.backend.admin_get_user(user_pool_id, username)
         return json.dumps(user.to_json(extended=True, attributes_key="UserAttributes"))
 
-    def get_user(self):
+    def get_user(self) -> str:
         access_token = self._get_param("AccessToken")
         user = region_agnostic_backend.get_user(access_token=access_token)
         return json.dumps(user.to_json(extended=True, attributes_key="UserAttributes"))
 
-    def list_users(self):
+    def list_users(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         limit = self._get_param("Limit")
         token = self._get_param("PaginationToken")
@@ -362,12 +366,15 @@ class CognitoIdpResponse(BaseResponse):
             user_pool_id, limit=limit, pagination_token=token
         )
         if filt:
-            inherent_attributes = {
+            inherent_attributes: Dict[str, Any] = {
                 "cognito:user_status": lambda u: u.status,
                 "status": lambda u: "Enabled" if u.enabled else "Disabled",
                 "username": lambda u: u.username,
             }
-            comparisons = {"=": lambda x, y: x == y, "^=": lambda x, y: x.startswith(y)}
+            comparisons: Dict[str, Any] = {
+                "=": lambda x, y: x == y,
+                "^=": lambda x, y: x.startswith(y),
+            }
             allowed_attributes = [
                 "username",
                 "email",
@@ -402,7 +409,7 @@ class CognitoIdpResponse(BaseResponse):
                     and compare(inherent_attributes[name](user), value)
                 )
             ]
-        response = {
+        response: Dict[str, Any] = {
             "Users": [
                 user.to_json(extended=True, attributes_to_get=attributes_to_get)
                 for user in users
@@ -412,25 +419,25 @@ class CognitoIdpResponse(BaseResponse):
             response["PaginationToken"] = str(token)
         return json.dumps(response)
 
-    def admin_disable_user(self):
+    def admin_disable_user(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         self.backend.admin_disable_user(user_pool_id, username)
         return ""
 
-    def admin_enable_user(self):
+    def admin_enable_user(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         self.backend.admin_enable_user(user_pool_id, username)
         return ""
 
-    def admin_delete_user(self):
+    def admin_delete_user(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         self.backend.admin_delete_user(user_pool_id, username)
         return ""
 
-    def admin_initiate_auth(self):
+    def admin_initiate_auth(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         client_id = self._get_param("ClientId")
         auth_flow = self._get_param("AuthFlow")
@@ -442,7 +449,7 @@ class CognitoIdpResponse(BaseResponse):
 
         return json.dumps(auth_result)
 
-    def respond_to_auth_challenge(self):
+    def respond_to_auth_challenge(self) -> str:
         session = self._get_param("Session")
         client_id = self._get_param("ClientId")
         challenge_name = self._get_param("ChallengeName")
@@ -453,7 +460,7 @@ class CognitoIdpResponse(BaseResponse):
 
         return json.dumps(auth_result)
 
-    def forgot_password(self):
+    def forgot_password(self) -> str:
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         account, region = find_account_region_by_value("client_id", client_id)
@@ -469,7 +476,7 @@ class CognitoIdpResponse(BaseResponse):
     # on localhost (doesn't get a region in the host header), it doesn't know what
     # region's backend should handle the traffic, and we use `find_region_by_value` to
     # solve that problem.
-    def confirm_forgot_password(self):
+    def confirm_forgot_password(self) -> str:
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
@@ -481,7 +488,7 @@ class CognitoIdpResponse(BaseResponse):
         return ""
 
     # Ditto the comment on confirm_forgot_password.
-    def change_password(self):
+    def change_password(self) -> str:
         access_token = self._get_param("AccessToken")
         previous_password = self._get_param("PreviousPassword")
         proposed_password = self._get_param("ProposedPassword")
@@ -491,33 +498,33 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
-    def admin_update_user_attributes(self):
+    def admin_update_user_attributes(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         attributes = self._get_param("UserAttributes")
         self.backend.admin_update_user_attributes(user_pool_id, username, attributes)
         return ""
 
-    def admin_delete_user_attributes(self):
+    def admin_delete_user_attributes(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         attributes = self._get_param("UserAttributeNames")
         self.backend.admin_delete_user_attributes(user_pool_id, username, attributes)
         return ""
 
-    def admin_user_global_sign_out(self):
+    def admin_user_global_sign_out(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         self.backend.admin_user_global_sign_out(user_pool_id, username)
         return ""
 
-    def global_sign_out(self):
+    def global_sign_out(self) -> str:
         access_token = self._get_param("AccessToken")
         self.backend.global_sign_out(access_token)
         return ""
 
     # Resource Server
-    def create_resource_server(self):
+    def create_resource_server(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         identifier = self._get_param("Identifier")
         name = self._get_param("Name")
@@ -527,7 +534,7 @@ class CognitoIdpResponse(BaseResponse):
         )
         return json.dumps({"ResourceServer": resource_server.to_json()})
 
-    def sign_up(self):
+    def sign_up(self) -> str:
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
@@ -544,13 +551,13 @@ class CognitoIdpResponse(BaseResponse):
             }
         )
 
-    def confirm_sign_up(self):
+    def confirm_sign_up(self) -> str:
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         region_agnostic_backend.confirm_sign_up(client_id=client_id, username=username)
         return ""
 
-    def initiate_auth(self):
+    def initiate_auth(self) -> str:
         client_id = self._get_param("ClientId")
         auth_flow = self._get_param("AuthFlow")
         auth_parameters = self._get_param("AuthParameters")
@@ -561,17 +568,17 @@ class CognitoIdpResponse(BaseResponse):
 
         return json.dumps(auth_result)
 
-    def associate_software_token(self):
+    def associate_software_token(self) -> str:
         access_token = self._get_param("AccessToken")
         result = self.backend.associate_software_token(access_token)
         return json.dumps(result)
 
-    def verify_software_token(self):
+    def verify_software_token(self) -> str:
         access_token = self._get_param("AccessToken")
         result = self.backend.verify_software_token(access_token)
         return json.dumps(result)
 
-    def set_user_mfa_preference(self):
+    def set_user_mfa_preference(self) -> str:
         access_token = self._get_param("AccessToken")
         software_token_mfa_settings = self._get_param("SoftwareTokenMfaSettings")
         sms_mfa_settings = self._get_param("SMSMfaSettings")
@@ -580,7 +587,7 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
-    def admin_set_user_mfa_preference(self):
+    def admin_set_user_mfa_preference(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         software_token_mfa_settings = self._get_param("SoftwareTokenMfaSettings")
@@ -590,7 +597,7 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
-    def admin_set_user_password(self):
+    def admin_set_user_password(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
         password = self._get_param("Password")
@@ -600,13 +607,13 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
-    def add_custom_attributes(self):
+    def add_custom_attributes(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
         custom_attributes = self._get_param("CustomAttributes")
         self.backend.add_custom_attributes(user_pool_id, custom_attributes)
         return ""
 
-    def update_user_attributes(self):
+    def update_user_attributes(self) -> str:
         access_token = self._get_param("AccessToken")
         attributes = self._get_param("UserAttributes")
         self.backend.update_user_attributes(access_token, attributes)
@@ -614,13 +621,16 @@ class CognitoIdpResponse(BaseResponse):
 
 
 class CognitoIdpJsonWebKeyResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         with open(
             os.path.join(os.path.dirname(__file__), "resources/jwks-public.json")
         ) as f:
             self.json_web_key = f.read()
 
     def serve_json_web_key(
-        self, request, full_url, headers
-    ):  # pylint: disable=unused-argument
+        self,
+        request: Any,  # pylint: disable=unused-argument
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,  # pylint: disable=unused-argument
+    ) -> Tuple[int, Dict[str, str], str]:
         return 200, {"Content-Type": "application/json"}, self.json_web_key
