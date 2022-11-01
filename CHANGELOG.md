@@ -3,7 +3,7 @@ Moto Changelog
 
 4.0.9
 -----
-Docker Digest for 4.0.9: <autopopulateddigest>
+Docker Digest for 4.0.9: _sha256:0c7a87255814035794733764d497fcb659ae0d6c843fae41040bb1a29c0726ab_
 
     Miscellaneous:
         * CloudTrail: describe_trails() now returns the correct (MultiRegion) trails
