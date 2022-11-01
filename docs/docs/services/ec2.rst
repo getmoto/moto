@@ -27,6 +27,7 @@ ec2
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] accept_address_transfer
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
 - [X] accept_transit_gateway_peering_attachment
@@ -231,6 +232,7 @@ ec2
 - [ ] deregister_transit_gateway_multicast_group_members
 - [ ] deregister_transit_gateway_multicast_group_sources
 - [ ] describe_account_attributes
+- [ ] describe_address_transfers
 - [X] describe_addresses
 - [ ] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
@@ -393,6 +395,7 @@ ec2
 - [X] detach_network_interface
 - [X] detach_volume
 - [X] detach_vpn_gateway
+- [ ] disable_address_transfer
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
@@ -415,6 +418,7 @@ ec2
 - [X] disassociate_transit_gateway_route_table
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
+- [ ] enable_address_transfer
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores

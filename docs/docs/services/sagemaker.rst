@@ -203,6 +203,7 @@ sagemaker
 - [ ] list_hyper_parameter_tuning_jobs
 - [ ] list_image_versions
 - [ ] list_images
+- [ ] list_inference_recommendations_job_steps
 - [ ] list_inference_recommendations_jobs
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
