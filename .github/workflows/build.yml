@@ -104,8 +104,6 @@ jobs:
         pip install -r requirements-dev.txt
         pip install pytest-cov
         pip install pytest-github-actions-annotate-failures
-        # https://github.com/aws/aws-xray-sdk-python/issues/196
-        pip install "coverage<=4.5.4"
     - name: Test with pytest
       run: |
         make test-only
@@ -153,7 +151,6 @@ jobs:
     - name: Install project dependencies
       run: |
         pip install -r requirements-dev.txt
-        pip install "coverage<=4.5.4"
     - name: Test ServerMode/Coverage
       env:
         TEST_SERVER_MODE: ${{ true }}
