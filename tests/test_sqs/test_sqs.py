@@ -3,6 +3,7 @@ import os
 import time
 import uuid
 import hashlib
+import sys
 
 import boto3
 import botocore.exceptions
@@ -10,6 +11,7 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_sqs, settings
+from moto.utilities.distutils_version import LooseVersion
 
 from unittest import SkipTest, mock
 
@@ -634,6 +636,9 @@ def test_set_queue_attributes():
 def _get_common_url(region):
     # Different versions of botocore return different URLs
     # See https://github.com/boto/botocore/issues/2705
+    boto3_version = sys.modules["botocore"].__version__
+    if LooseVersion(boto3_version) >= LooseVersion("1.29.0"):
+        return f"https://sqs.{region}.amazonaws.com"
     common_name_enabled = (
         os.environ.get("BOTO_DISABLE_COMMONNAME", "false").lower() == "false"
     )
