@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 from .base_backend import InstanceTrackerMeta
 
 
@@ -98,14 +98,14 @@ class ConfigQueryModel:
 
     def list_config_service_resources(
         self,
-        account_id,
-        resource_ids,
-        resource_name,
-        limit,
-        next_token,
-        backend_region=None,
-        resource_region=None,
-        aggregator=None,
+        account_id: str,
+        resource_ids: Optional[List[str]],
+        resource_name: Optional[str],
+        limit: int,
+        next_token: Optional[str],
+        backend_region: Optional[str] = None,
+        resource_region: Optional[str] = None,
+        aggregator: Optional[Dict[str, Any]] = None,
     ):
         """For AWS Config. This will list all of the resources of the given type and optional resource name and region.
 
@@ -158,12 +158,12 @@ class ConfigQueryModel:
 
     def get_config_resource(
         self,
-        account_id,
-        resource_id,
-        resource_name=None,
-        backend_region=None,
-        resource_region=None,
-    ):
+        account_id: str,
+        resource_id: str,
+        resource_name: Optional[str] = None,
+        backend_region: Optional[str] = None,
+        resource_region: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """For AWS Config. This will query the backend for the specific resource type configuration.
 
         This supports both aggregated, and non-aggregated fetching -- for batched fetching -- the Config batching requests
