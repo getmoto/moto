@@ -4,23 +4,23 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import ResourceNotFound
-from typing import Dict
+from typing import Any, Dict, List, Iterable
 
 
 class EntityRecognizer(BaseModel):
     def __init__(
         self,
-        region_name,
-        account_id,
-        language_code,
-        input_data_config,
-        data_access_role_arn,
-        version_name,
-        recognizer_name,
-        volume_kms_key_id,
-        vpc_config,
-        model_kms_key_id,
-        model_policy,
+        region_name: str,
+        account_id: str,
+        language_code: str,
+        input_data_config: Dict[str, Any],
+        data_access_role_arn: str,
+        version_name: str,
+        recognizer_name: str,
+        volume_kms_key_id: str,
+        vpc_config: Dict[str, List[str]],
+        model_kms_key_id: str,
+        model_policy: str,
     ):
         self.name = recognizer_name
         self.arn = f"arn:aws:comprehend:{region_name}:{account_id}:entity-recognizer/{recognizer_name}"
@@ -36,7 +36,7 @@ class EntityRecognizer(BaseModel):
         self.model_policy = model_policy
         self.status = "TRAINED"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "EntityRecognizerArn": self.arn,
             "LanguageCode": self.language_code,
@@ -54,12 +54,14 @@ class EntityRecognizer(BaseModel):
 class ComprehendBackend(BaseBackend):
     """Implementation of Comprehend APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.recognizers: Dict[str, EntityRecognizer] = dict()
         self.tagger = TaggingService()
 
-    def list_entity_recognizers(self, _filter):
+    def list_entity_recognizers(
+        self, _filter: Dict[str, Any]
+    ) -> Iterable[EntityRecognizer]:
         """
         Pagination is not yet implemented.
         The following filters are not yet implemented: Status, SubmitTimeBefore, SubmitTimeAfter
@@ -74,17 +76,17 @@ class ComprehendBackend(BaseBackend):
 
     def create_entity_recognizer(
         self,
-        recognizer_name,
-        version_name,
-        data_access_role_arn,
-        tags,
-        input_data_config,
-        language_code,
-        volume_kms_key_id,
-        vpc_config,
-        model_kms_key_id,
-        model_policy,
-    ):
+        recognizer_name: str,
+        version_name: str,
+        data_access_role_arn: str,
+        tags: List[Dict[str, str]],
+        input_data_config: Dict[str, Any],
+        language_code: str,
+        volume_kms_key_id: str,
+        vpc_config: Dict[str, List[str]],
+        model_kms_key_id: str,
+        model_policy: str,
+    ) -> str:
         """
         The ClientRequestToken-parameter is not yet implemented
         """
@@ -105,26 +107,28 @@ class ComprehendBackend(BaseBackend):
         self.tagger.tag_resource(recognizer.arn, tags)
         return recognizer.arn
 
-    def describe_entity_recognizer(self, entity_recognizer_arn) -> EntityRecognizer:
+    def describe_entity_recognizer(
+        self, entity_recognizer_arn: str
+    ) -> EntityRecognizer:
         if entity_recognizer_arn not in self.recognizers:
             raise ResourceNotFound
         return self.recognizers[entity_recognizer_arn]
 
-    def stop_training_entity_recognizer(self, entity_recognizer_arn):
+    def stop_training_entity_recognizer(self, entity_recognizer_arn: str) -> None:
         recognizer = self.describe_entity_recognizer(entity_recognizer_arn)
         if recognizer.status == "TRAINING":
             recognizer.status = "STOP_REQUESTED"
 
-    def list_tags_for_resource(self, resource_arn):
+    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
         return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
 
-    def delete_entity_recognizer(self, entity_recognizer_arn):
+    def delete_entity_recognizer(self, entity_recognizer_arn: str) -> None:
         self.recognizers.pop(entity_recognizer_arn, None)
 
-    def tag_resource(self, resource_arn, tags):
+    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def untag_resource(self, resource_arn, tag_keys):
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
