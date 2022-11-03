@@ -189,6 +189,9 @@ def test_create_db_cluster__verify_default_properties():
     cluster.should.have.key("DomainMemberships").equal([])
     cluster.should.have.key("TagList").equal([])
     cluster.should.have.key("ClusterCreateTime")
+    cluster.should.have.key(
+        "EarliestRestorableTime"
+    ).should.be.greater_than_or_equal_to(cluster["ClusterCreateTime"])
 
 
 @mock_rds
