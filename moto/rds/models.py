@@ -54,7 +54,7 @@ class Cluster:
         self.account_id = kwargs.get("account_id")
         self.region_name = kwargs.get("region")
         self.cluster_create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.now()
+            datetime.datetime.utcnow()
         )
         self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
         if self.copy_tags_to_snapshot is None:
@@ -107,6 +107,9 @@ class Cluster:
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
         self.enable_http_endpoint = kwargs.get("enable_http_endpoint")
+        self.earliest_restorable_time = iso_8601_datetime_with_milliseconds(
+            datetime.datetime.utcnow()
+        )
 
     @property
     def db_cluster_arn(self):
@@ -178,6 +181,7 @@ class Cluster:
               <DBClusterParameterGroup>{{ cluster.parameter_group }}</DBClusterParameterGroup>
               <DBSubnetGroup>{{ cluster.subnet_group }}</DBSubnetGroup>
               <ClusterCreateTime>{{ cluster.cluster_create_time }}</ClusterCreateTime>
+              <EarliestRestorableTime>{{ cluster.earliest_restorable_time }}</EarliestRestorableTime>
               <Engine>{{ cluster.engine }}</Engine>
               <Status>{{ cluster.status }}</Status>
               <Endpoint>{{ cluster.endpoint }}</Endpoint>
