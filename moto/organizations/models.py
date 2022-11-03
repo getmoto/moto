@@ -405,6 +405,13 @@ class OrganizationsBackend(BaseBackend):
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_ou.id)
         return new_ou.describe()
 
+    def delete_organizational_unit(self, **kwargs):
+        ou_to_delete = self.get_organizational_unit_by_id(
+            kwargs["OrganizationalUnitId"]
+        )
+        self.ou.remove(ou_to_delete)
+        return {}
+
     def update_organizational_unit(self, **kwargs):
         for ou in self.ou:
             if ou.name == kwargs["Name"]:
