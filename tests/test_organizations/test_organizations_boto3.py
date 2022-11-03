@@ -118,10 +118,21 @@ def test_delete_organizational_unit():
     ou_name = "ou01"
     response = client.create_organizational_unit(ParentId=root_id, Name=ou_name)
     validate_organizational_unit(org, response)
-    response = client.delete_organizational_unit(
-        OrganizationalUnitId=response["OrganizationalUnit"]["Id"]
-    )
+
+    # delete organizational unit
+    ou_id = response["OrganizationalUnit"]["Id"]
+    response = client.delete_organizational_unit(OrganizationalUnitId=ou_id)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    # verify the deletion
+    with pytest.raises(ClientError) as e:
+        client.describe_organizational_unit(OrganizationalUnitId=ou_id)
+    ex = e.value
+    ex.operation_name.should.equal("DescribeOrganizationalUnit")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain(
+        "OrganizationalUnitNotFoundException"
+    )
 
 
 @mock_organizations
