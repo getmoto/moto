@@ -111,6 +111,20 @@ def test_create_organizational_unit():
 
 
 @mock_organizations
+def test_delete_organizational_unit():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_name = "ou01"
+    response = client.create_organizational_unit(ParentId=root_id, Name=ou_name)
+    validate_organizational_unit(org, response)
+    response = client.delete_organizational_unit(
+        OrganizationalUnitId=response["OrganizationalUnit"]["Id"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_organizations
 def test_describe_organizational_unit():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
