@@ -1,12 +1,14 @@
 import pathlib
-
+from typing import Any, Dict
 from os import listdir
 from ..utils import generic_filter
 
 from moto.utilities.utils import load_resource
 from ..exceptions import InvalidFilter, InvalidInstanceTypeError
 
-INSTANCE_TYPES = load_resource(__name__, "../resources/instance_types.json")
+INSTANCE_TYPES: Dict[str, Any] = load_resource(
+    __name__, "../resources/instance_types.json"
+)
 INSTANCE_FAMILIES = list(set([i.split(".")[0] for i in INSTANCE_TYPES.keys()]))
 
 root = pathlib.Path(__file__).parent
