@@ -1,10 +1,8 @@
 import hashlib
 import json
 import re
-import uuid
 from collections import namedtuple
 from datetime import datetime, timezone
-from random import random
 from typing import Dict, List
 
 from botocore.exceptions import ParamValidationError
@@ -27,6 +25,7 @@ from moto.ecr.exceptions import (
 from moto.ecr.policy_validation import EcrLifecyclePolicyValidator
 from moto.iam.exceptions import MalformedPolicyDocument
 from moto.iam.policy_validation import IAMPolicyDocumentValidator
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
 
 ECR_REPOSITORY_ARN_PATTERN = "^arn:(?P<partition>[^:]+):ecr:(?P<region>[^:]+):(?P<account_id>[^:]+):repository/(?P<repo_name>.*)$"
@@ -97,7 +96,7 @@ class Repository(BaseObject, CloudFormationModel):
         if encryption_config == {"encryptionType": "KMS"}:
             encryption_config[
                 "kmsKey"
-            ] = f"arn:aws:kms:{self.region_name}:{self.account_id}:key/{uuid.uuid4()}"
+            ] = f"arn:aws:kms:{self.region_name}:{self.account_id}:key/{random.uuid4()}"
         return encryption_config
 
     def _get_image(self, image_tag, image_digest):
@@ -250,7 +249,7 @@ class Image(BaseObject):
         self.last_scan = None
 
     def _create_digest(self):
-        image_contents = "docker_image{0}".format(int(random() * 10**6))
+        image_contents = "docker_image{0}".format(int(random.random() * 10**6))
         self.image_digest = (
             "sha256:%s" % hashlib.sha256(image_contents.encode("utf-8")).hexdigest()
         )
@@ -490,6 +489,11 @@ class ECRBackend(BaseBackend):
             repository = self.repositories[repository_name]
         else:
             raise Exception("{0} is not a repository".format(repository_name))
+
+        # Tags are unique, so delete any existing image with this tag first
+        self.batch_delete_image(
+            repository_name=repository_name, image_ids=[{"imageTag": image_tag}]
+        )
 
         existing_images = list(
             filter(

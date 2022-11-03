@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: set-matrix
-        run: echo "::set-output name=matrix::$(python tests/terraformtests/get_tf_services.py --names)"
+        run: echo "matrix=$(python tests/terraformtests/get_tf_services.py --names)" >> $GITHUB_OUTPUT
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
   test_service:
@@ -41,15 +41,15 @@ jobs:
         path: |
           ~/go/pkg/mod
           ~/.cache/go-build
-        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ matrix.service }}-${{ hashFiles('**/tests/terraformtests/terraform-provider-aws/go.sum') }}
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/tests/terraformtests/terraform-provider-aws/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go-${{ matrix.go-version }}-${{ matrix.service }}-
+          ${{ runner.os }}-go-${{ matrix.go-version }}-
     - name: Get list of tests for  this service
       id: get-list
-      run: echo "::set-output name=testlist::$(python tests/terraformtests/get_tf_tests.py '${{ matrix.service }}')"
+      run: echo "testlist=$(python tests/terraformtests/get_tf_tests.py '${{ matrix.service }}')" >> $GITHUB_OUTPUT
     - name: Get original AWS service name
       id: get-service-name
-      run: echo "::set-output name=servicename::$(python -c "print('${{ matrix.service }}'[:'${{ matrix.service }}'.index('|') if '|' in '${{ matrix.service }}' else len('${{ matrix.service }}')])")"
+      run: echo "servicename=$(python -c "print('${{ matrix.service }}'[:'${{ matrix.service }}'.index('|') if '|' in '${{ matrix.service }}' else len('${{ matrix.service }}')])")" >> $GITHUB_OUTPUT
     - name: Execute tests
       run: |
         make terraformtests SERVICE_NAME=${{ steps.get-service-name.outputs.servicename }} TEST_NAMES=${{ steps.get-list.outputs.testlist }}

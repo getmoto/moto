@@ -1,19 +1,20 @@
 import re
 from itertools import cycle
 from time import sleep
+from typing import Any, Dict, List, Tuple, Optional, Set
 import datetime
 import time
-import uuid
 import logging
 import threading
 import dateutil.parser
 from sys import platform
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.iam import iam_backends
-from moto.ec2 import ec2_backends
-from moto.ecs import ecs_backends
-from moto.logs import logs_backends
+from moto.iam.models import iam_backends, IAMBackend
+from moto.ec2.models import ec2_backends, EC2Backend
+from moto.ec2.models.instances import Instance
+from moto.ecs.models import ecs_backends, EC2ContainerServiceBackend
+from moto.logs.models import logs_backends, LogsBackend
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import InvalidParameterValueException, ClientException, ValidationError
@@ -29,6 +30,7 @@ from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAM
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis, BackendDict
 from moto.moto_api import state_manager
+from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.docker_utilities import DockerModel
 from moto import settings
@@ -39,7 +41,7 @@ COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
 )
 
 
-def datetime2int_milliseconds(date):
+def datetime2int_milliseconds(date: datetime.datetime) -> int:
     """
     AWS returns timestamps in milliseconds
     We don't use milliseconds timestamps internally,
@@ -48,20 +50,20 @@ def datetime2int_milliseconds(date):
     return int(date.timestamp() * 1000)
 
 
-def datetime2int(date):
+def datetime2int(date: datetime.datetime) -> int:
     return int(time.mktime(date.timetuple()))
 
 
 class ComputeEnvironment(CloudFormationModel):
     def __init__(
         self,
-        compute_environment_name,
-        _type,
-        state,
-        compute_resources,
-        service_role,
-        account_id,
-        region_name,
+        compute_environment_name: str,
+        _type: str,
+        state: str,
+        compute_resources: Dict[str, Any],
+        service_role: str,
+        account_id: str,
+        region_name: str,
     ):
         self.name = compute_environment_name
         self.env_type = _type
@@ -72,34 +74,39 @@ class ComputeEnvironment(CloudFormationModel):
             account_id, compute_environment_name, region_name
         )
 
-        self.instances = []
-        self.ecs_arn = None
-        self.ecs_name = None
+        self.instances: List[Instance] = []
+        self.ecs_arn = ""
+        self.ecs_name = ""
 
-    def add_instance(self, instance):
+    def add_instance(self, instance: Instance) -> None:
         self.instances.append(instance)
 
-    def set_ecs(self, arn, name):
+    def set_ecs(self, arn: str, name: str) -> None:
         self.ecs_arn = arn
         self.ecs_name = name
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.arn
 
     @staticmethod
-    def cloudformation_name_type():
+    def cloudformation_name_type() -> str:
         return "ComputeEnvironmentName"
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-batch-computeenvironment.html
         return "AWS::Batch::ComputeEnvironment"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "ComputeEnvironment":
         backend = batch_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
@@ -118,13 +125,13 @@ class ComputeEnvironment(CloudFormationModel):
 class JobQueue(CloudFormationModel):
     def __init__(
         self,
-        name,
-        priority,
-        state,
-        environments,
-        env_order_json,
-        backend,
-        tags=None,
+        name: str,
+        priority: str,
+        state: str,
+        environments: List[ComputeEnvironment],
+        env_order_json: List[Dict[str, Any]],
+        backend: "BatchBackend",
+        tags: Optional[Dict[str, str]] = None,
     ):
         """
         :param name: Job queue name
@@ -150,10 +157,10 @@ class JobQueue(CloudFormationModel):
         if tags:
             backend.tag_resource(self.arn, tags)
 
-        self.jobs = []
+        self.jobs: List[Job] = []
 
-    def describe(self):
-        result = {
+    def describe(self) -> Dict[str, Any]:
+        return {
             "computeEnvironmentOrder": self.env_order_json,
             "jobQueueArn": self.arn,
             "jobQueueName": self.name,
@@ -163,25 +170,28 @@ class JobQueue(CloudFormationModel):
             "tags": self.backend.list_tags_for_resource(self.arn),
         }
 
-        return result
-
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.arn
 
     @staticmethod
-    def cloudformation_name_type():
+    def cloudformation_name_type() -> str:
         return "JobQueueName"
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-batch-jobqueue.html
         return "AWS::Batch::JobQueue"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "JobQueue":
         backend = batch_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
@@ -206,25 +216,24 @@ class JobQueue(CloudFormationModel):
 class JobDefinition(CloudFormationModel):
     def __init__(
         self,
-        name,
-        parameters,
-        _type,
-        container_properties,
-        tags=None,
-        revision=0,
-        retry_strategy=0,
-        timeout=None,
-        backend=None,
-        platform_capabilities=None,
-        propagate_tags=None,
+        name: str,
+        parameters: Optional[Dict[str, Any]],
+        _type: str,
+        container_properties: Dict[str, Any],
+        tags: Dict[str, str],
+        retry_strategy: Dict[str, str],
+        timeout: Dict[str, int],
+        backend: "BatchBackend",
+        platform_capabilities: List[str],
+        propagate_tags: bool,
+        revision: Optional[int] = 0,
     ):
         self.name = name
         self.retry_strategy = retry_strategy
         self.type = _type
-        self.revision = revision
+        self.revision = revision or 0
         self._region = backend.region_name
         self.container_properties = container_properties
-        self.arn = None
         self.status = "ACTIVE"
         self.parameters = parameters or {}
         self.timeout = timeout
@@ -238,26 +247,23 @@ class JobDefinition(CloudFormationModel):
             self.container_properties["secrets"] = []
 
         self._validate()
-        self._update_arn()
-
-        tags = self._format_tags(tags or {})
-        # Validate the tags before proceeding.
-        errmsg = self.backend.tagger.validate_tags(tags)
-        if errmsg:
-            raise ValidationError(errmsg)
-
-        self.backend.tagger.tag_resource(self.arn, tags)
-
-    def _format_tags(self, tags):
-        return [{"Key": k, "Value": v} for k, v in tags.items()]
-
-    def _update_arn(self):
         self.revision += 1
         self.arn = make_arn_for_task_def(
             self.backend.account_id, self.name, self.revision, self._region
         )
 
-    def _get_resource_requirement(self, req_type, default=None):
+        tag_list = self._format_tags(tags or {})
+        # Validate the tags before proceeding.
+        errmsg = self.backend.tagger.validate_tags(tag_list)
+        if errmsg:
+            raise ValidationError(errmsg)
+
+        self.backend.tagger.tag_resource(self.arn, tag_list)
+
+    def _format_tags(self, tags: Dict[str, str]) -> List[Dict[str, str]]:
+        return [{"Key": k, "Value": v} for k, v in tags.items()]
+
+    def _get_resource_requirement(self, req_type: str, default: Any = None) -> Any:
         """
         Get resource requirement from container properties.
 
@@ -297,7 +303,7 @@ class JobDefinition(CloudFormationModel):
         else:
             return self.container_properties.get(req_type, default)
 
-    def _validate(self):
+    def _validate(self) -> None:
         # For future use when containers arnt the only thing in batch
         if self.type not in ("container",):
             raise ClientException('type must be one of "container"')
@@ -320,12 +326,18 @@ class JobDefinition(CloudFormationModel):
         if vcpus <= 0:
             raise ClientException("container vcpus limit must be greater than 0")
 
-    def deregister(self):
+    def deregister(self) -> None:
         self.status = "INACTIVE"
 
     def update(
-        self, parameters, _type, container_properties, retry_strategy, tags, timeout
-    ):
+        self,
+        parameters: Optional[Dict[str, Any]],
+        _type: str,
+        container_properties: Dict[str, Any],
+        retry_strategy: Dict[str, Any],
+        tags: Dict[str, str],
+        timeout: Dict[str, int],
+    ) -> "JobDefinition":
         if self.status != "INACTIVE":
             if parameters is None:
                 parameters = self.parameters
@@ -353,7 +365,7 @@ class JobDefinition(CloudFormationModel):
             propagate_tags=self.propagate_tags,
         )
 
-    def describe(self):
+    def describe(self) -> Dict[str, Any]:
         result = {
             "jobDefinitionArn": self.arn,
             "jobDefinitionName": self.name,
@@ -374,22 +386,27 @@ class JobDefinition(CloudFormationModel):
         return result
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.arn
 
     @staticmethod
-    def cloudformation_name_type():
+    def cloudformation_name_type() -> str:
         return "JobDefinitionName"
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-batch-jobdefinition.html
         return "AWS::Batch::JobDefinition"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "JobDefinition":
         backend = batch_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
         res = backend.register_job_definition(
@@ -411,25 +428,15 @@ class JobDefinition(CloudFormationModel):
 class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
     def __init__(
         self,
-        name,
-        job_def,
-        job_queue,
-        log_backend,
-        container_overrides,
-        depends_on,
-        all_jobs,
-        timeout,
+        name: str,
+        job_def: JobDefinition,
+        job_queue: JobQueue,
+        log_backend: LogsBackend,
+        container_overrides: Optional[Dict[str, Any]],
+        depends_on: Optional[List[Dict[str, str]]],
+        all_jobs: Dict[str, "Job"],
+        timeout: Optional[Dict[str, int]],
     ):
-        """
-        Docker Job
-
-        :param name: Job Name
-        :param job_def: Job definition
-        :type: job_def: JobDefinition
-        :param job_queue: Job Queue
-        :param log_backend: Log backend
-        :type log_backend: moto.logs.models.LogsBackend
-        """
         threading.Thread.__init__(self)
         DockerModel.__init__(self)
         ManagedState.__init__(
@@ -444,33 +451,34 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         )
 
         self.job_name = name
-        self.job_id = str(uuid.uuid4())
+        self.job_id = str(mock_random.uuid4())
         self.job_definition = job_def
-        self.container_overrides = container_overrides or {}
+        self.container_overrides: Dict[str, Any] = container_overrides or {}
         self.job_queue = job_queue
         self.job_queue.jobs.append(self)
         self.job_created_at = datetime.datetime.now()
         self.job_started_at = datetime.datetime(1970, 1, 1)
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
         self.job_stopped = False
-        self.job_stopped_reason = None
+        self.job_stopped_reason: Optional[str] = None
         self.depends_on = depends_on
         self.timeout = timeout
         self.all_jobs = all_jobs
 
         self.stop = False
-        self.exit_code = None
+        self.exit_code: Optional[int] = None
 
         self.daemon = True
         self.name = "MOTO-BATCH-" + self.job_id
 
         self._log_backend = log_backend
-        self.log_stream_name = None
+        self.log_stream_name: Optional[str] = None
 
-        self.attempts = []
-        self.latest_attempt = None
+        self.container_details: Dict[str, Any] = {}
+        self.attempts: List[Dict[str, Any]] = []
+        self.latest_attempt: Optional[Dict[str, Any]] = None
 
-    def describe_short(self):
+    def describe_short(self) -> Dict[str, Any]:
         result = {
             "jobId": self.job_id,
             "jobName": self.job_name,
@@ -488,34 +496,19 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 result["container"] = {"exitCode": self.exit_code}
         return result
 
-    def describe(self):
+    def describe(self) -> Dict[str, Any]:
         result = self.describe_short()
         result["jobQueue"] = self.job_queue.arn
-        result["dependsOn"] = self.depends_on if self.depends_on else []
+        result["dependsOn"] = self.depends_on or []
+        result["container"] = self.container_details
         if self.job_stopped:
             result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
-            result["container"] = {}
-            result["container"]["command"] = self._get_container_property("command", [])
-            result["container"]["privileged"] = self._get_container_property(
-                "privileged", False
-            )
-            result["container"][
-                "readonlyRootFilesystem"
-            ] = self._get_container_property("readonlyRootFilesystem", False)
-            result["container"]["ulimits"] = self._get_container_property("ulimits", {})
-            result["container"]["vcpus"] = self._get_container_property("vcpus", 1)
-            result["container"]["memory"] = self._get_container_property("memory", 512)
-            result["container"]["volumes"] = self._get_container_property("volumes", [])
-            result["container"]["environment"] = self._get_container_property(
-                "environment", []
-            )
-            result["container"]["logStreamName"] = self.log_stream_name
         if self.timeout:
             result["timeout"] = self.timeout
         result["attempts"] = self.attempts
         return result
 
-    def _get_container_property(self, p, default):
+    def _get_container_property(self, p: str, default: Any) -> Any:
         if p == "environment":
             job_env = self.container_overrides.get(p, default)
             jd_env = self.job_definition.container_properties.get(p, default)
@@ -540,14 +533,14 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             p, self.job_definition.container_properties.get(p, default)
         )
 
-    def _get_attempt_duration(self):
+    def _get_attempt_duration(self) -> Optional[int]:
         if self.timeout:
             return self.timeout["attemptDurationSeconds"]
         if self.job_definition.timeout:
             return self.job_definition.timeout["attemptDurationSeconds"]
         return None
 
-    def run(self):
+    def run(self) -> None:
         """
         Run the container.
 
@@ -610,6 +603,29 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             # TODO setup ecs container instance
 
             self.job_started_at = datetime.datetime.now()
+
+            self.container_details["command"] = self._get_container_property(
+                "command", []
+            )
+            self.container_details["privileged"] = self._get_container_property(
+                "privileged", False
+            )
+            self.container_details[
+                "readonlyRootFilesystem"
+            ] = self._get_container_property("readonlyRootFilesystem", False)
+            self.container_details["ulimits"] = self._get_container_property(
+                "ulimits", {}
+            )
+            self.container_details["vcpus"] = self._get_container_property("vcpus", 1)
+            self.container_details["memory"] = self._get_container_property(
+                "memory", 512
+            )
+            self.container_details["volumes"] = self._get_container_property(
+                "volumes", []
+            )
+            self.container_details["environment"] = self._get_container_property(
+                "environment", []
+            )
             self._start_attempt()
 
             # add host.docker.internal host on linux to emulate Mac + Windows behavior
@@ -663,7 +679,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 if self._get_attempt_duration():
                     attempt_duration = self._get_attempt_duration()
                     max_time = self.job_started_at + datetime.timedelta(
-                        seconds=attempt_duration
+                        seconds=attempt_duration  # type: ignore[arg-type]
                     )
 
                 while container.status == "running" and not self.stop:
@@ -728,9 +744,12 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 self._log_backend.create_log_stream(log_group, stream_name)
                 self._log_backend.put_log_events(log_group, stream_name, logs)
 
+                self.container_details["logStreamName"] = self.log_stream_name
+
                 result = container.wait() or {}
-                self.exit_code = result.get("StatusCode", 0)
-                job_failed = self.stop or self.exit_code > 0
+                exit_code = result.get("StatusCode", 0)
+                self.exit_code = exit_code
+                job_failed = self.stop or exit_code > 0
                 self._mark_stopped(success=not job_failed)
 
             except Exception as err:
@@ -751,7 +770,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             )
             self._mark_stopped(success=False)
 
-    def _mark_stopped(self, success=True):
+    def _mark_stopped(self, success: bool = True) -> None:
         # Ensure that job_stopped/job_stopped_at-attributes are set first
         # The describe-method needs them immediately when status is set
         self.job_stopped = True
@@ -759,7 +778,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.status = "SUCCEEDED" if success else "FAILED"
         self._stop_attempt()
 
-    def _start_attempt(self):
+    def _start_attempt(self) -> None:
         self.latest_attempt = {
             "container": {
                 "containerInstanceArn": "TBD",
@@ -773,21 +792,21 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         )
         self.attempts.append(self.latest_attempt)
 
-    def _stop_attempt(self):
+    def _stop_attempt(self) -> None:
         if self.latest_attempt:
             self.latest_attempt["container"]["logStreamName"] = self.log_stream_name
             self.latest_attempt["stoppedAt"] = datetime2int_milliseconds(
                 self.job_stopped_at
             )
 
-    def terminate(self, reason):
+    def terminate(self, reason: str) -> None:
         if not self.stop:
             self.stop = True
             self.job_stopped_reason = reason
 
-    def _wait_for_dependencies(self):
-        dependent_ids = [dependency["jobId"] for dependency in self.depends_on]
-        successful_dependencies = set()
+    def _wait_for_dependencies(self) -> bool:
+        dependent_ids = [dependency["jobId"] for dependency in self.depends_on]  # type: ignore[union-attr]
+        successful_dependencies: Set[str] = set()
         while len(successful_dependencies) != len(dependent_ids):
             for dependent_id in dependent_ids:
                 if dependent_id in self.all_jobs:
@@ -821,21 +840,21 @@ class BatchBackend(BaseBackend):
     With this decorator, jobs are simply marked as 'Success' without trying to execute any commands/scripts.
     """
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.tagger = TaggingService()
 
-        self._compute_environments = {}
-        self._job_queues = {}
-        self._job_definitions = {}
-        self._jobs = {}
+        self._compute_environments: Dict[str, ComputeEnvironment] = {}
+        self._job_queues: Dict[str, JobQueue] = {}
+        self._job_definitions: Dict[str, JobDefinition] = {}
+        self._jobs: Dict[str, Job] = {}
 
         state_manager.register_default_transition(
             "batch::job", transition={"progression": "manual", "times": 1}
         )
 
     @property
-    def iam_backend(self):
+    def iam_backend(self) -> IAMBackend:
         """
         :return: IAM Backend
         :rtype: moto.iam.models.IAMBackend
@@ -843,7 +862,7 @@ class BatchBackend(BaseBackend):
         return iam_backends[self.account_id]["global"]
 
     @property
-    def ec2_backend(self):
+    def ec2_backend(self) -> EC2Backend:
         """
         :return: EC2 Backend
         :rtype: moto.ec2.models.EC2Backend
@@ -851,7 +870,7 @@ class BatchBackend(BaseBackend):
         return ec2_backends[self.account_id][self.region_name]
 
     @property
-    def ecs_backend(self):
+    def ecs_backend(self) -> EC2ContainerServiceBackend:
         """
         :return: ECS Backend
         :rtype: moto.ecs.models.EC2ContainerServiceBackend
@@ -859,14 +878,14 @@ class BatchBackend(BaseBackend):
         return ecs_backends[self.account_id][self.region_name]
 
     @property
-    def logs_backend(self):
+    def logs_backend(self) -> LogsBackend:
         """
         :return: ECS Backend
         :rtype: moto.logs.models.LogsBackend
         """
         return logs_backends[self.account_id][self.region_name]
 
-    def reset(self):
+    def reset(self) -> None:
         for job in self._jobs.values():
             if job.status not in ("FAILED", "SUCCEEDED"):
                 job.stop = True
@@ -875,16 +894,18 @@ class BatchBackend(BaseBackend):
 
         super().reset()
 
-    def get_compute_environment_by_arn(self, arn):
+    def get_compute_environment_by_arn(self, arn: str) -> Optional[ComputeEnvironment]:
         return self._compute_environments.get(arn)
 
-    def get_compute_environment_by_name(self, name):
+    def get_compute_environment_by_name(
+        self, name: str
+    ) -> Optional[ComputeEnvironment]:
         for comp_env in self._compute_environments.values():
             if comp_env.name == name:
                 return comp_env
         return None
 
-    def get_compute_environment(self, identifier):
+    def get_compute_environment(self, identifier: str) -> Optional[ComputeEnvironment]:
         """
         Get compute environment by name or ARN
         :param identifier: Name or ARN
@@ -893,21 +914,20 @@ class BatchBackend(BaseBackend):
         :return: Compute Environment or None
         :rtype: ComputeEnvironment or None
         """
-        env = self.get_compute_environment_by_arn(identifier)
-        if env is None:
-            env = self.get_compute_environment_by_name(identifier)
-        return env
+        return self.get_compute_environment_by_arn(
+            identifier
+        ) or self.get_compute_environment_by_name(identifier)
 
-    def get_job_queue_by_arn(self, arn):
+    def get_job_queue_by_arn(self, arn: str) -> Optional[JobQueue]:
         return self._job_queues.get(arn)
 
-    def get_job_queue_by_name(self, name):
+    def get_job_queue_by_name(self, name: str) -> Optional[JobQueue]:
         for comp_env in self._job_queues.values():
             if comp_env.name == name:
                 return comp_env
         return None
 
-    def get_job_queue(self, identifier):
+    def get_job_queue(self, identifier: str) -> Optional[JobQueue]:
         """
         Get job queue by name or ARN
         :param identifier: Name or ARN
@@ -916,15 +936,14 @@ class BatchBackend(BaseBackend):
         :return: Job Queue or None
         :rtype: JobQueue or None
         """
-        env = self.get_job_queue_by_arn(identifier)
-        if env is None:
-            env = self.get_job_queue_by_name(identifier)
-        return env
+        return self.get_job_queue_by_arn(identifier) or self.get_job_queue_by_name(
+            identifier
+        )
 
-    def get_job_definition_by_arn(self, arn):
+    def get_job_definition_by_arn(self, arn: str) -> Optional[JobDefinition]:
         return self._job_definitions.get(arn)
 
-    def get_job_definition_by_name(self, name):
+    def get_job_definition_by_name(self, name: str) -> Optional[JobDefinition]:
         latest_revision = -1
         latest_job = None
         for job_def in self._job_definitions.values():
@@ -933,13 +952,15 @@ class BatchBackend(BaseBackend):
                 latest_revision = job_def.revision
         return latest_job
 
-    def get_job_definition_by_name_revision(self, name, revision):
+    def get_job_definition_by_name_revision(
+        self, name: str, revision: str
+    ) -> Optional[JobDefinition]:
         for job_def in self._job_definitions.values():
             if job_def.name == name and job_def.revision == int(revision):
                 return job_def
         return None
 
-    def get_job_definition(self, identifier):
+    def get_job_definition(self, identifier: str) -> Optional[JobDefinition]:
         """
         Get job definitions by name or ARN
         :param identifier: Name or ARN
@@ -958,7 +979,7 @@ class BatchBackend(BaseBackend):
                 job_def = self.get_job_definition_by_name(identifier)
         return job_def
 
-    def get_job_definitions(self, identifier):
+    def get_job_definitions(self, identifier: str) -> List[JobDefinition]:
         """
         Get job definitions by name or ARN
         :param identifier: Name or ARN
@@ -978,21 +999,15 @@ class BatchBackend(BaseBackend):
 
         return result
 
-    def get_job_by_id(self, identifier):
-        """
-        Get job by id
-        :param identifier: Job ID
-        :type identifier: str
-
-        :return: Job
-        :rtype: Job
-        """
+    def get_job_by_id(self, identifier: str) -> Optional[Job]:
         try:
             return self._jobs[identifier]
         except KeyError:
             return None
 
-    def describe_compute_environments(self, environments=None):
+    def describe_compute_environments(
+        self, environments: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
@@ -1006,7 +1021,7 @@ class BatchBackend(BaseBackend):
             if len(envs) > 0 and arn not in envs and environment.name not in envs:
                 continue
 
-            json_part = {
+            json_part: Dict[str, Any] = {
                 "computeEnvironmentArn": arn,
                 "computeEnvironmentName": environment.name,
                 "ecsClusterArn": environment.ecs_arn,
@@ -1024,8 +1039,13 @@ class BatchBackend(BaseBackend):
         return result
 
     def create_compute_environment(
-        self, compute_environment_name, _type, state, compute_resources, service_role
-    ):
+        self,
+        compute_environment_name: str,
+        _type: str,
+        state: str,
+        compute_resources: Dict[str, Any],
+        service_role: str,
+    ) -> Tuple[str, str]:
         # Validate
         if COMPUTE_ENVIRONMENT_NAME_REGEX.match(compute_environment_name) is None:
             raise InvalidParameterValueException(
@@ -1110,13 +1130,13 @@ class BatchBackend(BaseBackend):
 
         # Create ECS cluster
         # Should be of format P2OnDemand_Batch_UUID
-        cluster_name = "OnDemand_Batch_" + str(uuid.uuid4())
+        cluster_name = "OnDemand_Batch_" + str(mock_random.uuid4())
         ecs_cluster = self.ecs_backend.create_cluster(cluster_name)
         new_comp_env.set_ecs(ecs_cluster.arn, cluster_name)
 
         return compute_environment_name, new_comp_env.arn
 
-    def _validate_compute_resources(self, cr):
+    def _validate_compute_resources(self, cr: Dict[str, Any]) -> None:
         """
         Checks contents of sub dictionary for managed clusters
 
@@ -1184,16 +1204,15 @@ class BatchBackend(BaseBackend):
             )
 
     @staticmethod
-    def find_min_instances_to_meet_vcpus(instance_types, target):
+    def find_min_instances_to_meet_vcpus(
+        instance_types: List[str], target: float
+    ) -> List[str]:
         """
         Finds the minimum needed instances to meed a vcpu target
 
         :param instance_types: Instance types, like ['t2.medium', 't2.small']
-        :type instance_types: list of str
         :param target: VCPU target
-        :type target: float
         :return: List of instance types
-        :rtype: list of str
         """
         # vcpus = [ (vcpus, instance_type), (vcpus, instance_type), ... ]
         instance_vcpus = []
@@ -1242,7 +1261,7 @@ class BatchBackend(BaseBackend):
 
         return instances
 
-    def delete_compute_environment(self, compute_environment_name):
+    def delete_compute_environment(self, compute_environment_name: str) -> None:
         if compute_environment_name is None:
             raise InvalidParameterValueException("Missing computeEnvironment parameter")
 
@@ -1262,8 +1281,12 @@ class BatchBackend(BaseBackend):
                     self.ec2_backend.terminate_instances(instance_ids)
 
     def update_compute_environment(
-        self, compute_environment_name, state, compute_resources, service_role
-    ):
+        self,
+        compute_environment_name: str,
+        state: Optional[str],
+        compute_resources: Optional[Any],
+        service_role: Optional[str],
+    ) -> Tuple[str, str]:
         # Validate
         compute_env = self.get_compute_environment(compute_environment_name)
         if compute_env is None:
@@ -1272,13 +1295,13 @@ class BatchBackend(BaseBackend):
         # Look for IAM role
         if service_role is not None:
             try:
-                role = self.iam_backend.get_role_by_arn(service_role)
+                self.iam_backend.get_role_by_arn(service_role)
             except IAMNotFoundException:
                 raise InvalidParameterValueException(
                     "Could not find IAM role {0}".format(service_role)
                 )
 
-            compute_env.service_role = role
+            compute_env.service_role = service_role
 
         if state is not None:
             if state not in ("ENABLED", "DISABLED"):
@@ -1296,8 +1319,13 @@ class BatchBackend(BaseBackend):
         return compute_env.name, compute_env.arn
 
     def create_job_queue(
-        self, queue_name, priority, state, compute_env_order, tags=None
-    ):
+        self,
+        queue_name: str,
+        priority: str,
+        state: str,
+        compute_env_order: List[Dict[str, str]],
+        tags: Optional[Dict[str, str]] = None,
+    ) -> Tuple[str, str]:
         for variable, var_name in (
             (queue_name, "jobQueueName"),
             (priority, "priority"),
@@ -1348,7 +1376,9 @@ class BatchBackend(BaseBackend):
 
         return queue_name, queue.arn
 
-    def describe_job_queues(self, job_queues=None):
+    def describe_job_queues(
+        self, job_queues: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
@@ -1366,7 +1396,13 @@ class BatchBackend(BaseBackend):
 
         return result
 
-    def update_job_queue(self, queue_name, priority, state, compute_env_order):
+    def update_job_queue(
+        self,
+        queue_name: str,
+        priority: Optional[str],
+        state: Optional[str],
+        compute_env_order: Optional[List[Dict[str, Any]]],
+    ) -> Tuple[str, str]:
         if queue_name is None:
             raise ClientException("jobQueueName must be provided")
 
@@ -1411,7 +1447,7 @@ class BatchBackend(BaseBackend):
 
         return queue_name, job_queue.arn
 
-    def delete_job_queue(self, queue_name):
+    def delete_job_queue(self, queue_name: str) -> None:
         job_queue = self.get_job_queue(queue_name)
 
         if job_queue is not None:
@@ -1419,16 +1455,16 @@ class BatchBackend(BaseBackend):
 
     def register_job_definition(
         self,
-        def_name,
-        parameters,
-        _type,
-        tags,
-        retry_strategy,
-        container_properties,
-        timeout,
-        platform_capabilities,
-        propagate_tags,
-    ):
+        def_name: str,
+        parameters: Dict[str, Any],
+        _type: str,
+        tags: Dict[str, str],
+        retry_strategy: Dict[str, Any],
+        container_properties: Dict[str, Any],
+        timeout: Dict[str, int],
+        platform_capabilities: List[str],
+        propagate_tags: bool,
+    ) -> Tuple[str, str, int]:
         if def_name is None:
             raise ClientException("jobDefinitionName must be provided")
 
@@ -1462,7 +1498,7 @@ class BatchBackend(BaseBackend):
 
         return def_name, job_def.arn, job_def.revision
 
-    def deregister_job_definition(self, def_name):
+    def deregister_job_definition(self, def_name: str) -> None:
         job_def = self.get_job_definition_by_arn(def_name)
         if job_def is None and ":" in def_name:
             name, revision = def_name.split(":", 1)
@@ -1472,8 +1508,11 @@ class BatchBackend(BaseBackend):
             self._job_definitions[job_def.arn].deregister()
 
     def describe_job_definitions(
-        self, job_def_name=None, job_def_list=None, status=None
-    ):
+        self,
+        job_def_name: Optional[str] = None,
+        job_def_list: Optional[List[str]] = None,
+        status: Optional[str] = None,
+    ) -> List[JobDefinition]:
         """
         Pagination is not yet implemented
         """
@@ -1485,8 +1524,8 @@ class BatchBackend(BaseBackend):
             if job_def is not None:
                 jobs.extend(job_def)
         elif job_def_list is not None:
-            for job in job_def_list:
-                job_def = self.get_job_definitions(job)
+            for jdn in job_def_list:
+                job_def = self.get_job_definitions(jdn)
                 if job_def is not None:
                     jobs.extend(job_def)
         else:
@@ -1501,13 +1540,13 @@ class BatchBackend(BaseBackend):
 
     def submit_job(
         self,
-        job_name,
-        job_def_id,
-        job_queue,
-        depends_on=None,
-        container_overrides=None,
-        timeout=None,
-    ):
+        job_name: str,
+        job_def_id: str,
+        job_queue: str,
+        depends_on: Optional[List[Dict[str, str]]] = None,
+        container_overrides: Optional[Dict[str, Any]] = None,
+        timeout: Optional[Dict[str, int]] = None,
+    ) -> Tuple[str, str]:
         """
         Parameters RetryStrategy and Parameters are not yet implemented.
         """
@@ -1539,7 +1578,7 @@ class BatchBackend(BaseBackend):
 
         return job_name, job.job_id
 
-    def describe_jobs(self, jobs):
+    def describe_jobs(self, jobs: Optional[List[str]]) -> List[Dict[str, Any]]:
         job_filter = set()
         if jobs is not None:
             job_filter = set(jobs)
@@ -1553,13 +1592,15 @@ class BatchBackend(BaseBackend):
 
         return result
 
-    def list_jobs(self, job_queue, job_status=None):
+    def list_jobs(
+        self, job_queue_name: str, job_status: Optional[str] = None
+    ) -> List[Job]:
         """
         Pagination is not yet implemented
         """
         jobs = []
 
-        job_queue = self.get_job_queue(job_queue)
+        job_queue = self.get_job_queue(job_queue_name)
         if job_queue is None:
             raise ClientException("Job queue {0} does not exist".format(job_queue))
 
@@ -1584,7 +1625,7 @@ class BatchBackend(BaseBackend):
 
         return jobs
 
-    def cancel_job(self, job_id, reason):
+    def cancel_job(self, job_id: str, reason: str) -> None:
         if job_id == "":
             raise ClientException(
                 "'reason' is a required field (cannot be an empty string)"
@@ -1600,7 +1641,7 @@ class BatchBackend(BaseBackend):
                 job.terminate(reason)
             # No-Op for jobs that have already started - user has to explicitly terminate those
 
-    def terminate_job(self, job_id, reason):
+    def terminate_job(self, job_id: str, reason: str) -> None:
         if job_id == "":
             raise ClientException(
                 "'reason' is a required field (cannot be a empty string)"
@@ -1614,14 +1655,14 @@ class BatchBackend(BaseBackend):
         if job is not None:
             job.terminate(reason)
 
-    def tag_resource(self, resource_arn, tags):
-        tags = self.tagger.convert_dict_to_tags_input(tags or {})
-        self.tagger.tag_resource(resource_arn, tags)
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+        tag_list = self.tagger.convert_dict_to_tags_input(tags or {})
+        self.tagger.tag_resource(resource_arn, tag_list)
 
-    def list_tags_for_resource(self, resource_arn):
+    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def untag_resource(self, resource_arn, tag_keys):
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 

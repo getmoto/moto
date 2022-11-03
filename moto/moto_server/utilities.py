@@ -8,6 +8,8 @@ from werkzeug.routing import BaseConverter
 class RegexConverter(BaseConverter):
     # http://werkzeug.pocoo.org/docs/routing/#custom-converters
 
+    part_isolating = False
+
     def __init__(self, url_map, *items):
         super().__init__(url_map)
         self.regex = items[0]

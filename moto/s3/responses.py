@@ -7,7 +7,6 @@ import urllib.parse
 
 from moto import settings
 from moto.core.utils import (
-    amzn_request_id,
     extract_region_from_aws_authorization,
     str_to_rfc_1123_datetime,
 )
@@ -21,8 +20,8 @@ from moto.core.utils import path_url
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,
     parse_key_name as bucketpath_parse_key_name,
-    is_delete_keys as bucketpath_is_delete_keys,
 )
+from moto.utilities.aws_headers import amzn_request_id
 
 from .exceptions import (
     BucketAlreadyExists,
@@ -142,17 +141,6 @@ def parse_key_name(pth):
     return pth[1:] if pth.startswith("/") else pth
 
 
-def is_delete_keys(request, path):
-    # GOlang sends a request as url/?delete= (treating it as a normal key=value, even if the value is empty)
-    # Python sends a request as url/?delete (treating it as a flag)
-    # https://github.com/spulec/moto/issues/2937
-    return (
-        path == "/?delete"
-        or path == "/?delete="
-        or (path == "/" and getattr(request, "query_string", "") == "delete")
-    )
-
-
 class S3Response(BaseResponse):
     def __init__(self):
         super().__init__(service_name="s3")
@@ -226,11 +214,9 @@ class S3Response(BaseResponse):
         )
         return not path_based
 
-    def is_delete_keys(self, request, path, bucket_name):
-        if self.subdomain_based_buckets(request):
-            return is_delete_keys(request, path)
-        else:
-            return bucketpath_is_delete_keys(request, path, bucket_name)
+    def is_delete_keys(self):
+        qs = parse_qs(urlparse(self.path).query, keep_blank_values=True)
+        return "delete" in qs
 
     def parse_bucket_name_from_url(self, request, url):
         if self.subdomain_based_buckets(request):
@@ -757,7 +743,7 @@ class S3Response(BaseResponse):
             body = self.body.decode("utf-8")
             ver = re.search(r"<Status>([A-Za-z]+)</Status>", body)
             if ver:
-                self.backend.set_bucket_versioning(bucket_name, ver.group(1))
+                self.backend.put_bucket_versioning(bucket_name, ver.group(1))
                 template = self.response_template(S3_BUCKET_VERSIONING)
                 return template.render(bucket_versioning_status=ver.group(1))
             else:
@@ -964,7 +950,7 @@ class S3Response(BaseResponse):
 
         self.path = self._get_path(request)
 
-        if self.is_delete_keys(request, self.path, bucket_name):
+        if self.is_delete_keys():
             self.data["Action"] = "DeleteObject"
             try:
                 self._authenticate_and_authorize_s3_action()
@@ -1104,6 +1090,15 @@ class S3Response(BaseResponse):
             line = body_io.readline()
         return bytes(new_body)
 
+    def _handle_encoded_body(self, body, content_length):
+        body_io = io.BytesIO(body)
+        # first line should equal '{content_length}\r\n
+        body_io.readline()
+        # Body contains actual data next
+        return body_io.read(content_length)
+        # last line should equal
+        # amz-checksum-sha256:<..>\r\n
+
     @amzn_request_id
     def key_response(self, request, full_url, headers):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
@@ -1155,10 +1150,13 @@ class S3Response(BaseResponse):
                 signed_url = "Signature=" in request.path
             key = self.backend.get_object(bucket_name, key_name)
 
-            if key:
-                if (key.acl and not key.acl.public_read) and not signed_url:
+            if key and not signed_url:
+                bucket = self.backend.get_bucket(bucket_name)
+                resource = f"arn:aws:s3:::{bucket_name}/{key_name}"
+                bucket_policy_allows = bucket.allow_action("s3:GetObject", resource)
+                if not bucket_policy_allows and (key.acl and not key.acl.public_read):
                     return 403, {}, ""
-            elif signed_url:
+            elif signed_url and not key:
                 # coming in from requests.get(s3.generate_presigned_url())
                 if self._invalid_headers(request.url, dict(request.headers)):
                     return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
@@ -1381,11 +1379,21 @@ class S3Response(BaseResponse):
         checksum_header = f"x-amz-checksum-{checksum_algorithm.lower()}"
         checksum_value = request.headers.get(checksum_header)
         if not checksum_value and checksum_algorithm:
-            search = re.search(r"x-amz-checksum-\w+:(\w+={1,2})", body.decode())
+            # Extract the checksum-value from the body first
+            search = re.search(rb"x-amz-checksum-\w+:(\w+={1,2})", body)
             checksum_value = search.group(1) if search else None
 
         if checksum_value:
             response_headers.update({checksum_header: checksum_value})
+
+        # Extract the actual data from the body second
+        if (
+            request.headers.get("x-amz-content-sha256", None)
+            == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
+        ):
+            body = self._handle_encoded_body(
+                body, int(request.headers["x-amz-decoded-content-length"])
+            )
 
         bucket_key_enabled = request.headers.get(
             "x-amz-server-side-encryption-bucket-key-enabled", None

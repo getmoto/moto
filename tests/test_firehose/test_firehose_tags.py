@@ -5,8 +5,8 @@ import pytest
 
 from moto import mock_firehose
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.core.utils import get_random_hex
 from moto.firehose.models import MAX_TAGS_PER_DELIVERY_STREAM
+from moto.moto_api._internal import mock_random
 from tests.test_firehose.test_firehose import TEST_REGION
 from tests.test_firehose.test_firehose import sample_s3_dest_config
 
@@ -15,7 +15,7 @@ from tests.test_firehose.test_firehose import sample_s3_dest_config
 def test_list_tags_for_delivery_stream():
     """Test invocations of list_tags_for_delivery_stream()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
-    stream_name = f"test_list_tags_{get_random_hex(6)}"
+    stream_name = f"test_list_tags_{mock_random.get_random_hex(6)}"
 
     number_of_tags = 50
     tags = [{"Key": f"{x}_k", "Value": f"{x}_v"} for x in range(1, number_of_tags + 1)]
@@ -79,7 +79,7 @@ def test_tag_delivery_stream():
     client = boto3.client("firehose", region_name=TEST_REGION)
 
     # Create a delivery stream for testing purposes.
-    stream_name = f"test_tags_{get_random_hex(6)}"
+    stream_name = f"test_tags_{mock_random.get_random_hex(6)}"
     client.create_delivery_stream(
         DeliveryStreamName=stream_name,
         ExtendedS3DestinationConfiguration=sample_s3_dest_config(),
@@ -140,7 +140,7 @@ def test_untag_delivery_stream():
     client = boto3.client("firehose", region_name=TEST_REGION)
 
     # Create a delivery stream for testing purposes.
-    stream_name = f"test_untag_{get_random_hex(6)}"
+    stream_name = f"test_untag_{mock_random.get_random_hex(6)}"
     tag_list = [
         {"Key": "one", "Value": "1"},
         {"Key": "two", "Value": "2"},

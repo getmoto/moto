@@ -1,5 +1,4 @@
 import datetime
-import uuid
 import json
 
 import requests
@@ -12,6 +11,7 @@ from moto.core.utils import (
     camelcase_to_underscores,
     BackendDict,
 )
+from moto.moto_api._internal import mock_random
 from moto.sqs import sqs_backends
 from moto.sqs.exceptions import MissingParameter
 
@@ -60,7 +60,7 @@ class Topic(CloudFormationModel):
         self.content_based_deduplication = "false"
 
     def publish(self, message, subject=None, message_attributes=None, group_id=None):
-        message_id = str(uuid.uuid4())
+        message_id = str(mock_random.uuid4())
         subscriptions, _ = self.sns_backend.list_subscriptions(self.arn)
         for subscription in subscriptions:
             subscription.publish(
@@ -424,7 +424,7 @@ class PlatformEndpoint(BaseModel):
         self.custom_user_data = custom_user_data
         self.token = token
         self.attributes = attributes
-        self.id = uuid.uuid4()
+        self.id = mock_random.uuid4()
         self.arn = f"arn:aws:sns:{region}:{account_id}:endpoint/{self.application.platform}/{self.application.name}/{self.id}"
         self.messages = OrderedDict()
         self.__fixup_attributes()
@@ -449,7 +449,7 @@ class PlatformEndpoint(BaseModel):
             raise SnsEndpointDisabled("Endpoint %s disabled" % self.id)
 
         # This is where we would actually send a message
-        message_id = str(uuid.uuid4())
+        message_id = str(mock_random.uuid4())
         self.messages[message_id] = message
         return message_id
 
@@ -462,8 +462,9 @@ class SNSBackend(BaseBackend):
 
     .. sourcecode:: python
 
+        from moto.core import DEFAULT_ACCOUNT_ID
         from moto.sns import sns_backends
-        sns_backend = sns_backends["us-east-1"]  # Use the appropriate region
+        sns_backend = sns_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]  # Use the appropriate account/region
         all_send_notifications = sns_backend.topics[topic_arn].sent_notifications
 
     Note that, as this is an internal API, the exact format may differ per versions.
@@ -650,7 +651,7 @@ class SNSBackend(BaseBackend):
             if len(message) > MAXIMUM_SMS_MESSAGE_BYTES:
                 raise ValueError("SMS message must be less than 1600 bytes")
 
-            message_id = str(uuid.uuid4())
+            message_id = str(mock_random.uuid4())
             self.sms_messages[message_id] = (phone_number, message)
             return message_id
 

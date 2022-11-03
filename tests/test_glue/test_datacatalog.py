@@ -228,6 +228,84 @@ def test_get_tables():
 
 
 @mock_glue
+def test_get_tables_expression():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    helpers.create_database(client, database_name)
+
+    table_names = [
+        "mytableprefix_123",
+        "mytableprefix_something_test",
+        "something_mytablepostfix",
+        "test_catchthis123_test",
+        "asduas6781catchthisasdas",
+        "fakecatchthisfake",
+        "trailingtest.",
+        "trailingtest...",
+    ]
+    table_inputs = {}
+
+    for table_name in table_names:
+        table_input = helpers.create_table_input(database_name, table_name)
+        table_inputs[table_name] = table_input
+        helpers.create_table(client, database_name, table_name, table_input)
+
+    prefix_expression = "mytableprefix_\\w+"
+    postfix_expression = "\\w+_mytablepostfix"
+    string_expression = "\\w+catchthis\\w+"
+
+    # even though * is an invalid regex, sadly glue api treats it as a glob-like wildcard
+    star_expression1 = "*"
+    star_expression2 = "mytable*"
+    star_expression3 = "*table*"
+    star_expression4 = "*catch*is*"
+    star_expression5 = ".*catch*is*"
+    star_expression6 = "trailing*.*"
+
+    response_prefix = helpers.get_tables(client, database_name, prefix_expression)
+    response_postfix = helpers.get_tables(client, database_name, postfix_expression)
+    response_string_match = helpers.get_tables(client, database_name, string_expression)
+    response_star_expression1 = helpers.get_tables(
+        client, database_name, star_expression1
+    )
+    response_star_expression2 = helpers.get_tables(
+        client, database_name, star_expression2
+    )
+    response_star_expression3 = helpers.get_tables(
+        client, database_name, star_expression3
+    )
+    response_star_expression4 = helpers.get_tables(
+        client, database_name, star_expression4
+    )
+    response_star_expression5 = helpers.get_tables(
+        client, database_name, star_expression5
+    )
+    response_star_expression6 = helpers.get_tables(
+        client, database_name, star_expression6
+    )
+
+    tables_prefix = response_prefix["TableList"]
+    tables_postfix = response_postfix["TableList"]
+    tables_string_match = response_string_match["TableList"]
+    tables_star_expression1 = response_star_expression1["TableList"]
+    tables_star_expression2 = response_star_expression2["TableList"]
+    tables_star_expression3 = response_star_expression3["TableList"]
+    tables_star_expression4 = response_star_expression4["TableList"]
+    tables_star_expression5 = response_star_expression5["TableList"]
+    tables_star_expression6 = response_star_expression6["TableList"]
+
+    tables_prefix.should.have.length_of(2)
+    tables_postfix.should.have.length_of(1)
+    tables_string_match.should.have.length_of(3)
+    tables_star_expression1.should.have.length_of(8)
+    tables_star_expression2.should.have.length_of(2)
+    tables_star_expression3.should.have.length_of(3)
+    tables_star_expression4.should.have.length_of(3)
+    tables_star_expression5.should.have.length_of(3)
+    tables_star_expression6.should.have.length_of(2)
+
+
+@mock_glue
 def test_get_table_versions():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"

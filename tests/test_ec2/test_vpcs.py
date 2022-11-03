@@ -5,6 +5,7 @@ import boto3
 
 import sure  # noqa # pylint: disable=unused-import
 import random
+import sys
 
 from moto import mock_ec2, settings
 from unittest import SkipTest
@@ -360,6 +361,10 @@ def test_vpc_get_by_tag_value_subset():
 
 @mock_ec2
 def test_default_vpc():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     # Create the default VPC
@@ -378,9 +383,19 @@ def test_default_vpc():
     attr = response.get("EnableDnsHostnames")
     attr.get("Value").should.equal(True)
 
+    response = default_vpc.describe_attribute(
+        Attribute="enableNetworkAddressUsageMetrics"
+    )
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").should.equal(False)
+
 
 @mock_ec2
 def test_non_default_vpc():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     # Create the default VPC - this already exists when backend instantiated!
@@ -401,6 +416,10 @@ def test_non_default_vpc():
 
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
+    attr.get("Value").should.equal(False)
+
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
     attr.get("Value").should.equal(False)
 
     # Check Primary CIDR Block Associations
@@ -489,6 +508,30 @@ def test_vpc_modify_enable_dns_hostnames():
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
     attr.get("Value").should.be.ok
+
+
+@mock_ec2
+def test_vpc_modify_enable_network_address_usage_metrics():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock="172.31.0.0/16")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    # Test default values for VPC attributes
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").shouldnt.be.ok
+
+    vpc.modify_attribute(EnableNetworkAddressUsageMetrics={"Value": True})
+
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").should.equal(True)
 
 
 @mock_ec2
@@ -1094,6 +1137,50 @@ def retrieve_all_endpoints(ec2):
         all_endpoints.extend(resp["VpcEndpoints"])
         next_token = resp.get("NextToken")
     return all_endpoints
+
+
+@mock_ec2
+def test_modify_vpc_endpoint():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id1 = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    subnet_id2 = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.2.0/24")["Subnet"][
+        "SubnetId"
+    ]
+
+    rt_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SubnetIds=[subnet_id1],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=vpc_id,
+        AddSubnetIds=[subnet_id2],
+    )
+
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    endpoint["SubnetIds"].should.equal([subnet_id1, subnet_id2])
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, AddRouteTableIds=[rt_id])
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    endpoint.should.have.key("RouteTableIds").equals([rt_id])
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, RemoveRouteTableIds=[rt_id])
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    endpoint.shouldnt.have.key("RouteTableIds")
+
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=vpc_id,
+        PolicyDocument="doc",
+    )
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    endpoint.should.have.key("PolicyDocument").equals("doc")
 
 
 @mock_ec2

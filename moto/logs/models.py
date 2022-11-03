@@ -1,11 +1,8 @@
-import uuid
-
 from datetime import datetime, timedelta
-
+from typing import Any, Dict, List, Tuple, Optional
 from moto.core import BaseBackend, BaseModel
 from moto.core import CloudFormationModel
 from moto.core.utils import unix_time_millis, BackendDict
-from moto.utilities.paginator import paginate
 from moto.logs.metric_filters import MetricFilters
 from moto.logs.exceptions import (
     ResourceNotFoundException,
@@ -13,7 +10,9 @@ from moto.logs.exceptions import (
     InvalidParameterException,
     LimitExceededException,
 )
+from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
+from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL, EventMessageFilter
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
@@ -628,7 +627,9 @@ class LogsBackend(BaseBackend):
         )
         return self.groups[log_group_name]
 
-    def ensure_log_group(self, log_group_name, tags):
+    def ensure_log_group(
+        self, log_group_name: str, tags: Optional[Dict[str, str]]
+    ) -> None:
         if log_group_name in self.groups:
             return
         self.groups[log_group_name] = LogGroup(
@@ -654,7 +655,7 @@ class LogsBackend(BaseBackend):
 
         return groups
 
-    def create_log_stream(self, log_group_name, log_stream_name):
+    def create_log_stream(self, log_group_name: str, log_stream_name: str) -> LogStream:
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
@@ -703,7 +704,12 @@ class LogsBackend(BaseBackend):
             order_by=order_by,
         )
 
-    def put_log_events(self, log_group_name, log_stream_name, log_events):
+    def put_log_events(
+        self,
+        log_group_name: str,
+        log_stream_name: str,
+        log_events: List[Dict[str, Any]],
+    ) -> Tuple[str, Dict[str, Any]]:
         """
         The SequenceToken-parameter is not yet implemented
         """
@@ -943,7 +949,7 @@ class LogsBackend(BaseBackend):
             if log_group_name not in self.groups:
                 raise ResourceNotFoundException()
 
-        query_id = uuid.uuid1()
+        query_id = mock_random.uuid1()
         self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
         return query_id
 
@@ -951,7 +957,7 @@ class LogsBackend(BaseBackend):
         s3_backends[self.account_id]["global"].get_bucket(destination)
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
-        task_id = uuid.uuid4()
+        task_id = mock_random.uuid4()
         return task_id
 
 

@@ -1,24 +1,18 @@
-from functools import lru_cache, wraps
+from functools import lru_cache
 
-import binascii
 import datetime
 import inspect
-import random
 import re
-import string
 from botocore.exceptions import ClientError
 from boto3 import Session
 from moto.settings import allow_unknown_region
 from threading import RLock
+from typing import Any, Optional, List
 from urllib.parse import urlparse
 from uuid import uuid4
 
 
-REQUEST_ID_LONG = string.digits + string.ascii_uppercase
-HEX_CHARS = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-
-
-def camelcase_to_underscores(argument):
+def camelcase_to_underscores(argument: Optional[str]) -> str:
     """Converts a camelcase param like theNewAttribute to the equivalent
     python underscore variable like the_new_attribute"""
     result = ""
@@ -75,20 +69,6 @@ def method_names_from_class(clazz):
     return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
 
 
-def get_random_hex(length=8):
-    return "".join(str(random.choice(HEX_CHARS)) for _ in range(length))
-
-
-def get_random_message_id():
-    return "{0}-{1}-{2}-{3}-{4}".format(
-        get_random_hex(8),
-        get_random_hex(4),
-        get_random_hex(4),
-        get_random_hex(4),
-        get_random_hex(12),
-    )
-
-
 def convert_regex_to_flask_path(url_path):
     """
     Converts a regex matching url to one that can be used with flask
@@ -124,8 +104,10 @@ class convert_to_flask_response(object):
 
     def __call__(self, args=None, **kwargs):
         from flask import request, Response
+        from moto.moto_api import recorder
 
         try:
+            recorder._record_request(request)
             result = self.callback(request, request.url, dict(request.headers))
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]
@@ -165,130 +147,48 @@ class convert_flask_to_responses_response(object):
         return status, headers, response
 
 
-def iso_8601_datetime_with_milliseconds(datetime):
-    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+def iso_8601_datetime_with_milliseconds(value: datetime) -> str:
+    return value.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 # Even Python does not support nanoseconds, other languages like Go do (needed for Terraform)
-def iso_8601_datetime_with_nanoseconds(datetime):
-    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
+def iso_8601_datetime_with_nanoseconds(value: datetime.datetime) -> str:
+    return value.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
 
 
-def iso_8601_datetime_without_milliseconds(datetime):
-    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
+def iso_8601_datetime_without_milliseconds(value: datetime.datetime) -> Optional[str]:
+    return value.strftime("%Y-%m-%dT%H:%M:%SZ") if value else None
 
 
-def iso_8601_datetime_without_milliseconds_s3(datetime):
-    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+def iso_8601_datetime_without_milliseconds_s3(
+    value: datetime.datetime,
+) -> Optional[str]:
+    return value.strftime("%Y-%m-%dT%H:%M:%S.000Z") if value else None
 
 
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
 
 
-def rfc_1123_datetime(datetime):
-    return datetime.strftime(RFC1123)
+def rfc_1123_datetime(src):
+    return src.strftime(RFC1123)
 
 
 def str_to_rfc_1123_datetime(value):
     return datetime.datetime.strptime(value, RFC1123)
 
 
-def unix_time(dt=None):
+def unix_time(dt: datetime.datetime = None) -> int:
     dt = dt or datetime.datetime.utcnow()
     epoch = datetime.datetime.utcfromtimestamp(0)
     delta = dt - epoch
     return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
 
 
-def unix_time_millis(dt=None):
+def unix_time_millis(dt: datetime = None) -> int:
     return unix_time(dt) * 1000.0
 
 
-def gen_amz_crc32(response, headerdict=None):
-    if not isinstance(response, bytes):
-        response = response.encode("utf-8")
-
-    crc = binascii.crc32(response)
-
-    if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({"x-amz-crc32": str(crc)})
-
-    return crc
-
-
-def gen_amzn_requestid_long(headerdict=None):
-    req_id = "".join([random.choice(REQUEST_ID_LONG) for _ in range(0, 52)])
-
-    if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({"x-amzn-requestid": req_id})
-
-    return req_id
-
-
-def amz_crc32(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        response = f(*args, **kwargs)
-
-        headers = {}
-        status = 200
-
-        if isinstance(response, str):
-            body = response
-        else:
-            if len(response) == 2:
-                body, new_headers = response
-                status = new_headers.get("status", 200)
-            else:
-                status, new_headers, body = response
-            headers.update(new_headers)
-            # Cast status to string
-            if "status" in headers:
-                headers["status"] = str(headers["status"])
-
-        try:
-            # Doesnt work on python2 for some odd unicode strings
-            gen_amz_crc32(body, headers)
-        except Exception:
-            pass
-
-        return status, headers, body
-
-    return _wrapper
-
-
-def amzn_request_id(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        response = f(*args, **kwargs)
-
-        headers = {}
-        status = 200
-
-        if isinstance(response, str):
-            body = response
-        else:
-            if len(response) == 2:
-                body, new_headers = response
-                status = new_headers.get("status", 200)
-            else:
-                status, new_headers, body = response
-            headers.update(new_headers)
-
-        request_id = gen_amzn_requestid_long(headers)
-
-        # Update request ID in XML
-        try:
-            body = re.sub(r"(?<=<RequestId>).*(?=<\/RequestId>)", request_id, body)
-        except Exception:  # Will just ignore if it cant work on bytes (which are str's on python2)
-            pass
-
-        return status, headers, body
-
-    return _wrapper
-
-
-def path_url(url):
+def path_url(url: str) -> str:
     parsed_url = urlparse(url)
     path = parsed_url.path
     if not path:
@@ -485,7 +385,11 @@ class BackendDict(dict):
     """
 
     def __init__(
-        self, backend, service_name, use_boto3_regions=True, additional_regions=None
+        self,
+        backend: Any,
+        service_name: str,
+        use_boto3_regions: bool = True,
+        additional_regions: Optional[List[str]] = None,
     ):
         self.backend = backend
         self.service_name = service_name

@@ -1,6 +1,6 @@
-import random
 import string
 from email.utils import parseaddr
+from moto.moto_api._internal import mock_random as random
 
 
 def random_hex(length):

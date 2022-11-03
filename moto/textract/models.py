@@ -1,11 +1,10 @@
 """TextractBackend class with methods for supported APIs."""
 
-import uuid
-from random import randint
 from collections import defaultdict
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random
 
 from .exceptions import InvalidParameterException, InvalidJobIdException
 
@@ -29,7 +28,7 @@ class TextractBackend(BaseBackend):
     """Implementation of Textract APIs."""
 
     JOB_STATUS = TextractJobStatus.succeeded
-    PAGES = {"Pages": randint(5, 500)}
+    PAGES = {"Pages": mock_random.randint(5, 500)}
     BLOCKS = []
 
     def __init__(self, region_name, account_id):
@@ -51,7 +50,7 @@ class TextractBackend(BaseBackend):
         """
         if not document_location:
             raise InvalidParameterException()
-        job_id = str(uuid.uuid4())
+        job_id = str(mock_random.uuid4())
         self.async_text_detection_jobs[job_id] = TextractJob(
             {
                 "Blocks": TextractBackend.BLOCKS,

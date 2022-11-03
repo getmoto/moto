@@ -3,6 +3,7 @@ import logging
 import re
 from urllib.parse import urlparse, unquote, quote
 from requests.structures import CaseInsensitiveDict
+from typing import Union, Tuple
 import sys
 from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
@@ -44,7 +45,7 @@ def bucket_name_from_url(url):
 
 
 # 'owi-common-cf', 'snippets/test.json' = bucket_and_name_from_url('s3://owi-common-cf/snippets/test.json')
-def bucket_and_name_from_url(url):
+def bucket_and_name_from_url(url: str) -> Union[Tuple[str, str], Tuple[None, None]]:
     prefix = "s3://"
     if url.startswith(prefix):
         bucket_name = url[len(prefix) : url.index("/", len(prefix))]
@@ -107,6 +108,11 @@ class _VersionedKeyStore(dict):
 
     def __sgetitem__(self, key):
         return super().__getitem__(key)
+
+    def pop(self, key):
+        for version in self.getlist(key, []):
+            version.dispose()
+        super().pop(key)
 
     def __getitem__(self, key):
         return self.__sgetitem__(key)[-1]

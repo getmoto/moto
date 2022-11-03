@@ -842,9 +842,21 @@ def test_non_existent_authorizer():
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
 
-    client.get_authorizer.when.called_with(
-        restApiId=api_id, authorizerId="xxx"
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError) as exc:
+        client.get_authorizer(restApiId=api_id, authorizerId="xxx")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("Invalid Authorizer identifier specified")
+
+    with pytest.raises(ClientError) as exc:
+        client.update_authorizer(
+            restApiId=api_id,
+            authorizerId="xxx",
+            patchOperations=[{"op": "add", "path": "/type", "value": "sth"}],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("Invalid Authorizer identifier specified")
 
 
 @mock_apigateway
@@ -1871,18 +1883,6 @@ def test_get_domain_name_unknown_domainname():
     client = boto3.client("apigateway", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.get_domain_name(domainName="www.google.com")
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid domain name identifier specified"
-    )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-
-
-@mock_apigateway
-def test_update_domain_name_unknown_domainname():
-    client = boto3.client("apigateway", region_name="us-east-1")
-    with pytest.raises(ClientError) as ex:
-        client.update_domain_name(domainName="www.google.fr", patchOperations=[])
 
     ex.value.response["Error"]["Message"].should.equal(
         "Invalid domain name identifier specified"

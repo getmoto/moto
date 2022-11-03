@@ -12,9 +12,10 @@ TEST_ARN = "arn:aws:sagemaker:eu-west-1:000000000000:x-x/foobar"
 TEST_MODEL_NAME = "MyModelName"
 
 
-@pytest.fixture
-def sagemaker_client():
-    return boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+@pytest.fixture(name="sagemaker_client")
+def fixture_sagemaker_client():
+    with mock_sagemaker():
+        yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
 class MySageMakerModel(object):
@@ -36,7 +37,6 @@ class MySageMakerModel(object):
         return resp
 
 
-@mock_sagemaker
 def test_describe_model(sagemaker_client):
     test_model = MySageMakerModel()
     test_model.save(sagemaker_client)
@@ -44,14 +44,12 @@ def test_describe_model(sagemaker_client):
     assert model.get("ModelName").should.equal(TEST_MODEL_NAME)
 
 
-@mock_sagemaker
 def test_describe_model_not_found(sagemaker_client):
     with pytest.raises(ClientError) as err:
         sagemaker_client.describe_model(ModelName="unknown")
     assert err.value.response["Error"]["Message"].should.contain("Could not find model")
 
 
-@mock_sagemaker
 def test_create_model(sagemaker_client):
     vpc_config = VpcConfig(["sg-foobar"], ["subnet-xxx"])
     model = sagemaker_client.create_model(
@@ -64,7 +62,6 @@ def test_create_model(sagemaker_client):
     )
 
 
-@mock_sagemaker
 def test_delete_model(sagemaker_client):
     test_model = MySageMakerModel()
     test_model.save(sagemaker_client)
@@ -74,14 +71,12 @@ def test_delete_model(sagemaker_client):
     assert len(sagemaker_client.list_models()["Models"]).should.equal(0)
 
 
-@mock_sagemaker
 def test_delete_model_not_found(sagemaker_client):
     with pytest.raises(ClientError) as err:
         sagemaker_client.delete_model(ModelName="blah")
     assert err.value.response["Error"]["Code"].should.equal("404")
 
 
-@mock_sagemaker
 def test_list_models(sagemaker_client):
     test_model = MySageMakerModel()
     test_model.save(sagemaker_client)
@@ -93,7 +88,6 @@ def test_list_models(sagemaker_client):
     )
 
 
-@mock_sagemaker
 def test_list_models_multiple(sagemaker_client):
     name_model_1 = "blah"
     arn_model_1 = "arn:aws:sagemaker:eu-west-1:000000000000:x-x/foobar"
@@ -108,13 +102,11 @@ def test_list_models_multiple(sagemaker_client):
     assert len(models["Models"]).should.equal(2)
 
 
-@mock_sagemaker
 def test_list_models_none(sagemaker_client):
     models = sagemaker_client.list_models()
     assert len(models["Models"]).should.equal(0)
 
 
-@mock_sagemaker
 def test_add_tags_to_model(sagemaker_client):
     model = MySageMakerModel().save(sagemaker_client)
     resource_arn = model["ModelArn"]
@@ -129,7 +121,6 @@ def test_add_tags_to_model(sagemaker_client):
     assert response["Tags"] == tags
 
 
-@mock_sagemaker
 def test_delete_tags_from_model(sagemaker_client):
     model = MySageMakerModel().save(sagemaker_client)
     resource_arn = model["ModelArn"]

@@ -1,6 +1,7 @@
 import ipaddress
 import itertools
 from collections import defaultdict
+from typing import Any, Iterable, List, Optional
 
 from moto.core import CloudFormationModel
 from ..exceptions import (
@@ -228,7 +229,7 @@ class SubnetBackend:
         # maps availability zone to dict of (subnet_id, subnet)
         self.subnets = defaultdict(dict)
 
-    def get_subnet(self, subnet_id):
+    def get_subnet(self, subnet_id: str) -> Subnet:
         for subnets in self.subnets.values():
             if subnet_id in subnets:
                 return subnets[subnet_id]
@@ -344,7 +345,9 @@ class SubnetBackend:
         self.subnets[availability_zone][subnet_id] = subnet
         return subnet
 
-    def get_all_subnets(self, subnet_ids=None, filters=None):
+    def get_all_subnets(
+        self, subnet_ids: Optional[List[str]] = None, filters: Optional[Any] = None
+    ) -> Iterable[Subnet]:
         # Extract a list of all subnets
         matches = itertools.chain(
             *[x.copy().values() for x in self.subnets.copy().values()]

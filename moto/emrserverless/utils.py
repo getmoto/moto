@@ -1,5 +1,4 @@
-# import json
-import random
+from moto.moto_api._internal import mock_random as random
 import string
 
 

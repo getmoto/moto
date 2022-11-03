@@ -3,7 +3,7 @@ import json
 from moto.sagemaker.exceptions import AWSValidationException
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amzn_request_id
+from moto.utilities.aws_headers import amzn_request_id
 from .models import sagemaker_backends
 
 
@@ -255,12 +255,6 @@ class SageMakerResponse(BaseResponse):
         training_job_name = self._get_param("TrainingJobName")
         response = self.sagemaker_backend.describe_training_job(training_job_name)
         return json.dumps(response)
-
-    @amzn_request_id
-    def delete_training_job(self):
-        training_job_name = self._get_param("TrainingJobName")
-        self.sagemaker_backend.delete_training_job(training_job_name)
-        return 200, {}, json.dumps("{}")
 
     @amzn_request_id
     def create_notebook_instance_lifecycle_config(self):

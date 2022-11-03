@@ -1,6 +1,5 @@
 import base64
 import fnmatch
-import random
 import re
 import ipaddress
 
@@ -10,6 +9,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from moto.iam import iam_backends
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 
 EC2_RESOURCE_TO_PREFIX = {
@@ -74,7 +74,7 @@ def random_ami_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["image"])
 
 
-def random_instance_id():
+def random_instance_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["instance"], size=17)
 
 
@@ -787,14 +787,15 @@ def gen_moto_amis(described_images, drop_images_missing_keys=True):
     return result
 
 
-def convert_tag_spec(tag_spec_set):
-    # IN:  [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
-    # OUT: {_type: {k: v, ..}}
+def convert_tag_spec(tag_spec_set, tag_key="Tag"):
+    # IN:   [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
+    #  (or) [{"ResourceType": _type, "Tags": [{"Key": k, "Value": v}, ..]}] <-- special cfn case
+    # OUT:  {_type: {k: v, ..}}
     tags = {}
     for tag_spec in tag_spec_set:
         if tag_spec["ResourceType"] not in tags:
             tags[tag_spec["ResourceType"]] = {}
         tags[tag_spec["ResourceType"]].update(
-            {tag["Key"]: tag["Value"] for tag in tag_spec["Tag"]}
+            {tag["Key"]: tag["Value"] for tag in tag_spec[tag_key]}
         )
     return tags

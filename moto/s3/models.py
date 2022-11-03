@@ -5,29 +5,27 @@ import datetime
 import copy
 import itertools
 import codecs
-import random
 import string
 import tempfile
 import threading
 import pytz
 import sys
-import time
-import uuid
 import urllib.parse
 
 from bisect import insort
 from importlib import reload
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core import CloudWatchMetricProvider
-
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
+    unix_time,
     unix_time_millis,
     BackendDict,
 )
 from moto.cloudwatch.models import MetricDatum
 from moto.moto_api import state_manager
+from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import LowercaseDict, md5_hash
@@ -80,7 +78,7 @@ class FakeDeleteMarker(BaseModel):
         self.key = key
         self.name = key.name
         self.last_modified = datetime.datetime.utcnow()
-        self._version_id = str(uuid.uuid4())
+        self._version_id = str(random.uuid4())
 
     @property
     def last_modified_ISO8601(self):
@@ -137,6 +135,7 @@ class FakeKey(BaseModel, ManagedState):
             max_buffer_size if max_buffer_size else get_s3_default_key_buffer_size()
         )
         self._value_buffer = tempfile.SpooledTemporaryFile(self._max_buffer_size)
+        self.disposed = False
         self.value = value
         self.lock = threading.Lock()
 
@@ -306,7 +305,12 @@ class FakeKey(BaseModel, ManagedState):
     # https://docs.python.org/3/library/pickle.html#handling-stateful-objects
     def __getstate__(self):
         state = self.__dict__.copy()
-        state["value"] = self.value
+        try:
+            state["value"] = self.value
+        except ValueError:
+            # Buffer is already closed, so we can't reach the data
+            # Only happens if the key was deleted
+            state["value"] = ""
         del state["_value_buffer"]
         del state["lock"]
         return state
@@ -340,6 +344,22 @@ class FakeKey(BaseModel, ManagedState):
                 return True
 
         return False
+
+    def dispose(self, garbage=False):
+        if garbage and not self.disposed:
+            import warnings
+
+            warnings.warn("S3 key was not disposed of in time", ResourceWarning)
+        try:
+            self._value_buffer.close()
+            if self.multipart:
+                self.multipart.dispose()
+        except:  # noqa: E722 Do not use bare except
+            pass
+        self.disposed = True
+
+    def __del__(self):
+        self.dispose(garbage=True)
 
 
 class FakeMultipart(BaseModel):
@@ -403,6 +423,9 @@ class FakeMultipart(BaseModel):
         key = FakeKey(
             part_id, value, encryption=self.sse_encryption, kms_key_id=self.kms_key_id
         )
+        if part_id in self.parts:
+            # We're overwriting the current part - dispose of it first
+            self.parts[part_id].dispose()
         self.parts[part_id] = key
         if part_id not in self.partlist:
             insort(self.partlist, part_id)
@@ -412,6 +435,10 @@ class FakeMultipart(BaseModel):
         max_marker = part_number_marker + max_parts
         for part_id in self.partlist[part_number_marker:max_marker]:
             yield self.parts[part_id]
+
+    def dispose(self):
+        for part in self.parts.values():
+            part.dispose()
 
 
 class FakeGrantee(BaseModel):
@@ -869,13 +896,20 @@ class PublicAccessBlock(BaseModel):
         }
 
 
+class MultipartDict(dict):
+    def __delitem__(self, key):
+        if key in self:
+            self[key].dispose()
+        super().__delitem__(key)
+
+
 class FakeBucket(CloudFormationModel):
     def __init__(self, name, account_id, region_name):
         self.name = name
         self.account_id = account_id
         self.region_name = region_name
         self.keys = _VersionedKeyStore()
-        self.multiparts = {}
+        self.multiparts = MultipartDict()
         self.versioning_status = None
         self.rules = []
         self.policy = None
@@ -906,6 +940,15 @@ class FakeBucket(CloudFormationModel):
     @property
     def is_versioned(self):
         return self.versioning_status == "Enabled"
+
+    def allow_action(self, action, resource):
+        if self.policy is None:
+            return False
+        from moto.iam.access_control import IAMPolicy, PermissionResult
+
+        iam_policy = IAMPolicy(self.policy.decode())
+        result = iam_policy.is_action_permitted(action, resource)
+        return result == PermissionResult.PERMITTED
 
     def set_lifecycle(self, rules):
         self.rules = []
@@ -1300,9 +1343,7 @@ class FakeBucket(CloudFormationModel):
             "version": "1.3",
             "configurationItemCaptureTime": str(self.creation_date),
             "configurationItemStatus": "ResourceDiscovered",
-            "configurationStateId": str(
-                int(time.mktime(self.creation_date.timetuple()))
-            ),  # PY2 and 3 compatible
+            "configurationStateId": str(int(unix_time())),
             "configurationItemMD5Hash": "",
             "arn": self.arn,
             "resourceType": "AWS::S3::Bucket",
@@ -1415,6 +1456,15 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         state_manager.register_default_transition(
             "s3::keyrestore", transition={"progression": "immediate"}
         )
+
+    def reset(self):
+        # For every key and multipart, Moto opens a TemporaryFile to write the value of those keys
+        # Ensure that these TemporaryFile-objects are closed, and leave no filehandles open
+        for mp in FakeMultipart.instances:
+            mp.dispose()
+        for key in FakeKey.instances:
+            key.dispose()
+        super().reset()
 
     @property
     def _url_module(self):
@@ -1531,7 +1581,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def list_buckets(self):
         return self.buckets.values()
 
-    def get_bucket(self, bucket_name):
+    def get_bucket(self, bucket_name) -> FakeBucket:
         try:
             return self.buckets[bucket_name]
         except KeyError:
@@ -1548,7 +1598,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         else:
             return self.buckets.pop(bucket_name)
 
-    def set_bucket_versioning(self, bucket_name, status):
+    def put_bucket_versioning(self, bucket_name, status):
         self.get_bucket(bucket_name).versioning_status = status
 
     def get_bucket_versioning(self, bucket_name):
@@ -1584,10 +1634,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             # Filter for keys that start with prefix
             if not name.startswith(prefix):
                 continue
-            # separate out all keys that contain delimiter
-            if delimiter and delimiter in name:
-                index = name.index(delimiter) + len(delimiter)
-                prefix_including_delimiter = name[0:index]
+            # separate keys that contain the same string between the prefix and the first occurrence of the delimiter
+            if delimiter and delimiter in name[len(prefix) :]:
+                end_of_delimiter = (
+                    len(prefix) + name[len(prefix) :].index(delimiter) + len(delimiter)
+                )
+                prefix_including_delimiter = name[0:end_of_delimiter]
                 common_prefixes.append(prefix_including_delimiter)
                 continue
 
@@ -1721,7 +1773,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,
-            version_id=str(uuid.uuid4()) if bucket.is_versioned else "null",
+            version_id=str(random.uuid4()) if bucket.is_versioned else "null",
             multipart=multipart,
             encryption=encryption,
             kms_key_id=kms_key_id,
@@ -1731,11 +1783,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_until=lock_until,
         )
 
-        keys = [
-            key
-            for key in bucket.keys.getlist(key_name, [])
-            if key.version_id != new_key.version_id
-        ] + [new_key]
+        existing_keys = bucket.keys.getlist(key_name, [])
+        if bucket.is_versioned:
+            keys = existing_keys + [new_key]
+        else:
+            for key in existing_keys:
+                key.dispose()
+            keys = [new_key]
         bucket.keys.setlist(key_name, keys)
 
         notifications.send_event(
@@ -1865,6 +1919,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket.set_cors(cors_rules)
 
     def put_bucket_logging(self, bucket_name, logging_config):
+        """
+        The logging functionality itself is not yet implemented - we only store the configuration for now.
+        """
         bucket = self.get_bucket(bucket_name)
         bucket.set_logging(logging_config, self)
 
@@ -1914,20 +1971,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             pub_block_config.get("BlockPublicPolicy"),
             pub_block_config.get("RestrictPublicBuckets"),
         )
-
-    def complete_multipart(self, bucket_name, multipart_id, body):
-        bucket = self.get_bucket(bucket_name)
-        multipart = bucket.multiparts[multipart_id]
-        value, etag = multipart.complete(body)
-        if value is None:
-            return
-        del bucket.multiparts[multipart_id]
-
-        key = self.put_object(
-            bucket_name, multipart.key_name, value, etag=etag, multipart=multipart
-        )
-        key.set_metadata(multipart.metadata)
-        return key
 
     def abort_multipart_upload(self, bucket_name, multipart_id):
         bucket = self.get_bucket(bucket_name)

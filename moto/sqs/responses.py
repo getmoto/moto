@@ -2,12 +2,8 @@ import re
 
 from moto.core.exceptions import RESTError
 from moto.core.responses import BaseResponse
-from moto.core.utils import (
-    amz_crc32,
-    amzn_request_id,
-    underscores_to_camelcase,
-    camelcase_to_pascal,
-)
+from moto.core.utils import underscores_to_camelcase, camelcase_to_pascal
+from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 from urllib.parse import urlparse
 
 from .exceptions import (

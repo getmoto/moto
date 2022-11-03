@@ -1,9 +1,9 @@
 from collections import OrderedDict
-from uuid import uuid4
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.mediaconnect.exceptions import NotFoundException
+from moto.moto_api._internal import mock_random as random
 
 
 class Flow(BaseModel):
@@ -86,8 +86,16 @@ class MediaConnectBackend(BaseBackend):
             if not source.get("entitlementArn"):
                 source["ingestIp"] = ingest_ip
 
+    def _add_entitlement_details(self, entitlement, entitlement_id):
+        if entitlement:
+            entitlement["entitlementArn"] = (
+                f"arn:aws:mediaconnect:{self.region_name}"
+                f":{self.account_id}:entitlement:{entitlement_id}"
+                f":{entitlement['name']}"
+            )
+
     def _create_flow_add_details(self, flow):
-        flow_id = uuid4().hex
+        flow_id = random.uuid4().hex
 
         flow.description = "A Moto test flow"
         flow.egress_ip = "127.0.0.1"
@@ -99,6 +107,16 @@ class MediaConnectBackend(BaseBackend):
         for index, output in enumerate(flow.outputs or []):
             if output.get("protocol") in ["srt-listener", "zixi-pull"]:
                 output["listenerAddress"] = f"{index}.0.0.0"
+            output_id = random.uuid4().hex
+            arn = (
+                f"arn:aws:mediaconnect:{self.region_name}"
+                f":{self.account_id}:output:{output_id}:{output['name']}"
+            )
+            output["outputArn"] = arn
+
+        for _, entitlement in enumerate(flow.entitlements):
+            entitlement_id = random.uuid4().hex
+            self._add_entitlement_details(entitlement, entitlement_id)
 
     def create_flow(
         self,
@@ -241,6 +259,55 @@ class MediaConnectBackend(BaseBackend):
             )
         return flow_arn, output_name
 
+    def update_flow_output(
+        self,
+        flow_arn,
+        output_arn,
+        cidr_allow_list,
+        description,
+        destination,
+        encryption,
+        max_latency,
+        media_stream_output_configuration,
+        min_latency,
+        port,
+        protocol,
+        remote_id,
+        sender_control_port,
+        sender_ip_address,
+        smoothing_latency,
+        stream_id,
+        vpc_interface_attachment,
+    ):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        for output in flow.outputs:
+            if output["outputArn"] == output_arn:
+                output["cidrAllowList"] = cidr_allow_list
+                output["description"] = description
+                output["destination"] = destination
+                output["encryption"] = encryption
+                output["maxLatency"] = max_latency
+                output[
+                    "mediaStreamOutputConfiguration"
+                ] = media_stream_output_configuration
+                output["minLatency"] = min_latency
+                output["port"] = port
+                output["protocol"] = protocol
+                output["remoteId"] = remote_id
+                output["senderControlPort"] = sender_control_port
+                output["senderIpAddress"] = sender_ip_address
+                output["smoothingLatency"] = smoothing_latency
+                output["streamId"] = stream_id
+                output["vpcInterfaceAttachment"] = vpc_interface_attachment
+                return flow_arn, output
+        raise NotFoundException(
+            message="output with arn={} not found".format(output_arn)
+        )
+
     def add_flow_sources(self, flow_arn, sources):
         if flow_arn not in self._flows:
             raise NotFoundException(
@@ -248,7 +315,7 @@ class MediaConnectBackend(BaseBackend):
             )
         flow = self._flows[flow_arn]
         for source in sources:
-            source_id = uuid4().hex
+            source_id = random.uuid4().hex
             name = source["name"]
             arn = f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:source:{source_id}:{name}"
             source["sourceArn"] = arn
@@ -306,7 +373,67 @@ class MediaConnectBackend(BaseBackend):
             source["whitelistCidr"] = whitelist_cidr
         return flow_arn, source
 
-    # add methods from here
+    def grant_flow_entitlements(
+        self,
+        flow_arn,
+        entitlements,
+    ):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        for entitlement in entitlements:
+            entitlement_id = random.uuid4().hex
+            name = entitlement["name"]
+            arn = f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:entitlement:{entitlement_id}:{name}"
+            entitlement["entitlementArn"] = arn
+
+        flow.entitlements += entitlements
+        return flow_arn, entitlements
+
+    def revoke_flow_entitlement(self, flow_arn, entitlement_arn):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        for entitlement in flow.entitlements:
+            if entitlement_arn == entitlement["entitlementArn"]:
+                flow.entitlements.remove(entitlement)
+                return flow_arn, entitlement_arn
+        raise NotFoundException(
+            message="entitlement with arn={} not found".format(entitlement_arn)
+        )
+
+    def update_flow_entitlement(
+        self,
+        flow_arn,
+        entitlement_arn,
+        description,
+        encryption,
+        entitlement_status,
+        name,
+        subscribers,
+    ):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        for entitlement in flow.entitlements:
+            if entitlement_arn == entitlement["entitlementArn"]:
+                entitlement["description"] = description
+                entitlement["encryption"] = encryption
+                entitlement["entitlementStatus"] = entitlement_status
+                entitlement["name"] = name
+                entitlement["subscribers"] = subscribers
+                return flow_arn, entitlement
+        raise NotFoundException(
+            message="entitlement with arn={} not found".format(entitlement_arn)
+        )
+
+        # add methods from here
 
 
 mediaconnect_backends = BackendDict(MediaConnectBackend, "mediaconnect")

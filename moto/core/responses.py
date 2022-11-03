@@ -1,32 +1,32 @@
+import boto3
 import functools
-from collections import defaultdict
 import datetime
 import json
 import logging
 import os
 import re
 import requests
-
 import pytz
-
-from moto.core.exceptions import DryRunClientError
-
-from jinja2 import Environment, DictLoader
-
-from urllib.parse import parse_qs, parse_qsl, urlparse
-
 import xmltodict
-from werkzeug.exceptions import HTTPException
 
-import boto3
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
+from moto import settings
+from moto.core.exceptions import DryRunClientError
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
-from moto import settings
+from jinja2 import Environment, DictLoader, Template
+from typing import Dict, Union, Any, Tuple, TypeVar
+from urllib.parse import parse_qs, parse_qsl, urlparse
+from werkzeug.exceptions import HTTPException
+from xml.dom.minidom import parseString as parseXML
+
 
 log = logging.getLogger(__name__)
 
 JINJA_ENVS = {}
+
+TYPE_RESPONSE = Tuple[int, Dict[str, str], str]
+TYPE_IF_NONE = TypeVar("TYPE_IF_NONE")
 
 
 def _decode_dict(d):
@@ -106,13 +106,18 @@ class _TemplateEnvironmentMixin(object):
         """
         return str(id(source))
 
-    def response_template(self, source):
+    def response_template(self, source: str) -> Template:
         template_id = self._make_template_id(source)
         if not self.contains_template(template_id):
-            collapsed = re.sub(
-                self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
-            )
-            self.environment.loader.update({template_id: collapsed})
+            if settings.PRETTIFY_RESPONSES:
+                # pretty xml
+                xml = parseXML(source).toprettyxml()
+            else:
+                # collapsed xml
+                xml = re.sub(
+                    self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
+                )
+            self.environment.loader.update({template_id: xml})
         return self.environment.get_template(template_id)
 
 
@@ -208,15 +213,17 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     )
     aws_service_spec = None
 
-    def __init__(self, service_name=None):
+    def __init__(self, service_name=None) -> None:
         super().__init__()
         self.service_name = service_name
 
     @classmethod
-    def dispatch(cls, *args, **kwargs):
+    def dispatch(cls, *args: Any, **kwargs: Any) -> Any:
         return cls()._dispatch(*args, **kwargs)
 
-    def setup_class(self, request, full_url, headers, use_raw_body=False):
+    def setup_class(
+        self, request: Any, full_url: str, headers: Any, use_raw_body: bool = False
+    ) -> None:
         """
         use_raw_body: Use incoming bytes if True, encode to string otherwise
         """
@@ -473,7 +480,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             headers["status"] = str(headers["status"])
         return status, headers, body
 
-    def _get_param(self, param_name, if_none=None):
+    def _get_param(self, param_name, if_none=None) -> Any:
         val = self.querystring.get(param_name)
         if val is not None:
             return val[0]
@@ -495,13 +502,17 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 pass
         return if_none
 
-    def _get_int_param(self, param_name, if_none=None):
+    def _get_int_param(
+        self, param_name, if_none: TYPE_IF_NONE = None
+    ) -> Union[int, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:
             return int(val)
         return if_none
 
-    def _get_bool_param(self, param_name, if_none=None):
+    def _get_bool_param(
+        self, param_name, if_none: TYPE_IF_NONE = None
+    ) -> Union[bool, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:
             val = str(val)
@@ -511,7 +522,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return False
         return if_none
 
-    def _get_multi_param_dict(self, param_prefix):
+    def _get_multi_param_dict(self, param_prefix) -> Dict:
         return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
 
     def _get_multi_param_helper(
@@ -582,7 +593,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return value_dict
 
-    def _get_multi_param(self, param_prefix, skip_result_conversion=False):
+    def _get_multi_param(self, param_prefix, skip_result_conversion=False) -> Any:
         """
         Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
         this will return ['my-test-1', 'my-test-2']
@@ -605,7 +616,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return values
 
-    def _get_dict_param(self, param_prefix):
+    def _get_dict_param(self, param_prefix) -> Dict:
         """
         Given a parameter dict of
         {
@@ -627,7 +638,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 ]
         return params
 
-    def _get_params(self):
+    def _get_params(self) -> Any:
         """
         Given a querystring of
         {
@@ -702,7 +713,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             obj[keylist[-1]] = value
 
-    def _get_list_prefix(self, param_prefix):
+    def _get_list_prefix(self, param_prefix: str) -> Any:
         """
         Given a query dict like
         {
@@ -859,7 +870,7 @@ class AWSServiceSpec(object):
 
     """
 
-    def __init__(self, path):
+    def __init__(self, path: str):
         spec = load_resource("botocore", path)
 
         self.metadata = spec["metadata"]

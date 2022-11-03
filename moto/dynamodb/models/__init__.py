@@ -4,7 +4,6 @@ import datetime
 import decimal
 import json
 import re
-import uuid
 
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
@@ -33,6 +32,7 @@ from moto.dynamodb.exceptions import (
     StreamAlreadyEnabledException,
     MockValidationException,
     InvalidConversion,
+    TransactWriteSingleOpException,
 )
 from moto.dynamodb.models.utilities import bytesize
 from moto.dynamodb.models.dynamo_type import DynamoType
@@ -40,6 +40,7 @@ from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
+from moto.moto_api._internal import mock_random
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -222,7 +223,7 @@ class StreamRecord(BaseModel):
             keys[table.range_key_attr] = rec.range_key.to_json()
 
         self.record = {
-            "eventID": uuid.uuid4().hex,
+            "eventID": mock_random.uuid4().hex,
             "eventName": event_name,
             "eventSource": "aws:dynamodb",
             "eventVersion": "1.0",
@@ -1125,7 +1126,7 @@ class Backup(object):
     def _make_identifier(self):
         timestamp = int(unix_time_millis(self.creation_date_time))
         timestamp_padded = str("0" + str(timestamp))[-16:16]
-        guid = str(uuid.uuid4())
+        guid = str(mock_random.uuid4())
         guid_shortened = guid[:8]
         return "{}-{}".format(timestamp_padded, guid_shortened)
 
@@ -1654,8 +1655,13 @@ class DynamoDBBackend(BaseBackend):
                 raise MultipleTransactionsException()
             target_items.add(item)
 
-        errors = []
+        errors = []  # [(Code, Message, Item), ..]
         for item in transact_items:
+            # check transact writes are not performing multiple operations
+            # in the same item
+            if len(list(item.keys())) > 1:
+                raise TransactWriteSingleOpException
+
             try:
                 if "ConditionCheck" in item:
                     item = item["ConditionCheck"]
@@ -1682,6 +1688,7 @@ class DynamoDBBackend(BaseBackend):
                     item = item["Put"]
                     attrs = item["Item"]
                     table_name = item["TableName"]
+                    check_unicity(table_name, item)
                     condition_expression = item.get("ConditionExpression", None)
                     expression_attribute_names = item.get(
                         "ExpressionAttributeNames", None
@@ -1738,14 +1745,14 @@ class DynamoDBBackend(BaseBackend):
                     )
                 else:
                     raise ValueError
-                errors.append((None, None))
+                errors.append((None, None, None))
             except MultipleTransactionsException:
                 # Rollback to the original state, and reraise the error
                 self.tables = original_table_state
                 raise MultipleTransactionsException()
             except Exception as e:  # noqa: E722 Do not use bare except
-                errors.append((type(e).__name__, e.message))
-        if set(errors) != set([(None, None)]):
+                errors.append((type(e).__name__, e.message, item))
+        if any([code is not None for code, _, _ in errors]):
             # Rollback to the original state, and reraise the errors
             self.tables = original_table_state
             raise TransactionCanceledException(errors)

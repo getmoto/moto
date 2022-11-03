@@ -1,10 +1,14 @@
 import requests
 
 from . import IntegrationParser
+from ..models import Integration
+from typing import Tuple, Union
 
 
 class TypeAwsParser(IntegrationParser):
-    def invoke(self, request, integration):
+    def invoke(
+        self, request: requests.PreparedRequest, integration: Integration
+    ) -> Tuple[int, Union[str, bytes]]:
         # integration.uri = arn:aws:apigateway:{region}:{subdomain.service|service}:path|action/{service_api}
         # example value = 'arn:aws:apigateway:us-west-2:dynamodb:action/PutItem'
         try:

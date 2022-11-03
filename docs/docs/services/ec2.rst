@@ -27,6 +27,7 @@ ec2
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] accept_address_transfer
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
 - [X] accept_transit_gateway_peering_attachment
@@ -80,6 +81,8 @@ ec2
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
 - [ ] create_client_vpn_route
+- [ ] create_coip_cidr
+- [ ] create_coip_pool
 - [X] create_customer_gateway
 - [ ] create_default_subnet
 - [X] create_default_vpc
@@ -99,6 +102,8 @@ ec2
 - [X] create_launch_template
 - [ ] create_launch_template_version
 - [ ] create_local_gateway_route
+- [ ] create_local_gateway_route_table
+- [ ] create_local_gateway_route_table_virtual_interface_group_association
 - [ ] create_local_gateway_route_table_vpc_association
 - [X] create_managed_prefix_list
 - [X] create_nat_gateway
@@ -154,6 +159,8 @@ ec2
 - [X] delete_carrier_gateway
 - [ ] delete_client_vpn_endpoint
 - [ ] delete_client_vpn_route
+- [ ] delete_coip_cidr
+- [ ] delete_coip_pool
 - [X] delete_customer_gateway
 - [ ] delete_dhcp_options
 - [X] delete_egress_only_internet_gateway
@@ -169,6 +176,8 @@ ec2
 - [X] delete_launch_template
 - [ ] delete_launch_template_versions
 - [ ] delete_local_gateway_route
+- [ ] delete_local_gateway_route_table
+- [ ] delete_local_gateway_route_table_virtual_interface_group_association
 - [ ] delete_local_gateway_route_table_vpc_association
 - [X] delete_managed_prefix_list
 - [X] delete_nat_gateway
@@ -223,6 +232,7 @@ ec2
 - [ ] deregister_transit_gateway_multicast_group_members
 - [ ] deregister_transit_gateway_multicast_group_sources
 - [ ] describe_account_attributes
+- [ ] describe_address_transfers
 - [X] describe_addresses
 - [ ] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
@@ -385,6 +395,7 @@ ec2
 - [X] detach_network_interface
 - [X] detach_volume
 - [X] detach_vpn_gateway
+- [ ] disable_address_transfer
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
@@ -407,6 +418,7 @@ ec2
 - [X] disassociate_transit_gateway_route_table
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
+- [ ] enable_address_transfer
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
@@ -493,6 +505,7 @@ ec2
 - [ ] modify_ipam_resource_cidr
 - [ ] modify_ipam_scope
 - [ ] modify_launch_template
+- [ ] modify_local_gateway_route
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
@@ -511,7 +524,7 @@ ec2
 - [X] modify_volume
 - [ ] modify_volume_attribute
 - [X] modify_vpc_attribute
-- [ ] modify_vpc_endpoint
+- [X] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
 - [X] modify_vpc_endpoint_service_configuration
   

@@ -3,14 +3,15 @@ import re
 from jinja2 import Template
 from botocore.exceptions import ParamValidationError
 from collections import OrderedDict
+from typing import Any, List, Dict, Iterable, Optional
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
-    get_random_hex,
     BackendDict,
 )
 from moto.ec2.models import ec2_backends
+from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from .utils import make_arn_for_target_group
 from .utils import make_arn_for_load_balancer
@@ -525,8 +526,10 @@ class FakeLoadBalancer(CloudFormationModel):
         "load_balancing.cross_zone.enabled",
         "routing.http.desync_mitigation_mode",
         "routing.http.drop_invalid_header_fields.enabled",
+        "routing.http.preserve_host_header.enabled",
         "routing.http.x_amzn_tls_version_and_cipher_suite.enabled",
         "routing.http.xff_client_port.enabled",
+        "routing.http.xff_header_processing.mode",
         "routing.http2.enabled",
         "waf.fail_open.enabled",
     }
@@ -757,7 +760,7 @@ class ELBv2Backend(BaseBackend):
 
         self._validate_actions(actions)
         arn = listener_arn.replace(":listener/", ":listener-rule/")
-        arn += "/%s" % (get_random_hex(16))
+        arn += f"/{mock_random.get_random_hex(16)}"
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
@@ -1173,7 +1176,12 @@ Member must satisfy regular expression pattern: {}".format(
             raise RuleNotFoundError("One or more rules not found")
         return matched_rules
 
-    def describe_target_groups(self, load_balancer_arn, target_group_arns, names):
+    def describe_target_groups(
+        self,
+        load_balancer_arn: Optional[str],
+        target_group_arns: List[str],
+        names: Optional[List[str]],
+    ) -> Iterable[FakeTargetGroup]:
         if load_balancer_arn:
             if load_balancer_arn not in self.load_balancers:
                 raise LoadBalancerNotFoundError()
@@ -1282,13 +1290,15 @@ Member must satisfy regular expression pattern: {}".format(
             rule.actions = actions
         return rule
 
-    def register_targets(self, target_group_arn, instances):
+    def register_targets(self, target_group_arn: str, instances: List[Any]):
         target_group = self.target_groups.get(target_group_arn)
         if target_group is None:
             raise TargetGroupNotFoundError()
         target_group.register(instances)
 
-    def deregister_targets(self, target_group_arn, instances):
+    def deregister_targets(
+        self, target_group_arn: str, instances: List[Dict[str, Any]]
+    ):
         target_group = self.target_groups.get(target_group_arn)
         if target_group is None:
             raise TargetGroupNotFoundError()
@@ -1547,14 +1557,13 @@ Member must satisfy regular expression pattern: {}".format(
         """
         Verify the provided certificate exists in either ACM or IAM
         """
-        from moto.acm import acm_backends
-        from moto.acm.models import AWSResourceNotFoundException
+        from moto.acm.models import acm_backends, CertificateNotFound
 
         try:
             acm_backend = acm_backends[self.account_id][self.region_name]
             acm_backend.get_certificate(certificate_arn)
             return True
-        except AWSResourceNotFoundException:
+        except CertificateNotFound:
             pass
 
         from moto.iam import iam_backends

@@ -207,14 +207,14 @@ class TransactionCanceledException(DynamodbException):
 
     def __init__(self, errors):
         msg = self.cancel_reason_msg.format(
-            ", ".join([str(code) for code, _ in errors])
+            ", ".join([str(code) for code, _, _ in errors])
         )
         super().__init__(
             error_type=TransactionCanceledException.error_type, message=msg
         )
         reasons = [
-            {"Code": code, "Message": message} if code else {"Code": "None"}
-            for code, message in errors
+            {"Code": code, "Message": message, **item} if code else {"Code": "None"}
+            for code, message, item in errors
         ]
         self.description = json.dumps(
             {
@@ -260,6 +260,13 @@ class InvalidAttributeTypeError(MockValidationException):
 
     def __init__(self, name, expected_type, actual_type):
         super().__init__(self.msg.format(name, expected_type, actual_type))
+
+
+class DuplicateUpdateExpression(InvalidUpdateExpression):
+    def __init__(self, names):
+        super().__init__(
+            f"Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{names[0]}], path two: [{names[1]}]"
+        )
 
 
 class TooManyAddClauses(InvalidUpdateExpression):
@@ -316,3 +323,12 @@ class InvalidConversion(JsonRESTError):
     def __init__(self):
         er = "SerializationException"
         super().__init__(er, "NUMBER_VALUE cannot be converted to String")
+
+
+class TransactWriteSingleOpException(MockValidationException):
+    there_can_be_only_one = (
+        "TransactItems can only contain one of Check, Put, Update or Delete"
+    )
+
+    def __init__(self):
+        super().__init__(self.there_can_be_only_one)

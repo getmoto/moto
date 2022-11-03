@@ -1,19 +1,16 @@
 import base64
 import os
-import random
 import string
 import sys
-import uuid
 from datetime import datetime
 import json
 import re
-import time
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
 from jinja2 import Template
-from typing import Mapping
+from typing import List, Mapping
 from urllib import parse
 from moto.core.exceptions import RESTError
 from moto.core import DEFAULT_ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
@@ -21,11 +18,13 @@ from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
     BackendDict,
+    unix_time,
 )
 from moto.iam.policy_validation import (
     IAMPolicyDocumentValidator,
     IAMTrustPolicyDocumentValidator,
 )
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 
 from .aws_managed_policies import aws_managed_policies_data
@@ -50,6 +49,8 @@ from .utils import (
     random_alphanumeric,
     random_resource_id,
     random_policy_id,
+    random_role_id,
+    generate_access_key_id_from_account_id,
 )
 from ..utilities.tagging_service import TaggingService
 
@@ -329,9 +330,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
             "version": "1.3",
             "configurationItemCaptureTime": str(self.create_date),
             "configurationItemStatus": "OK",
-            "configurationStateId": str(
-                int(time.mktime(self.create_date.timetuple()))
-            ),  # PY2 and 3 compatible
+            "configurationStateId": str(int(unix_time())),
             "arn": "arn:aws:iam::{}:policy/{}".format(self.account_id, self.name),
             "resourceType": "AWS::IAM::Policy",
             "resourceId": self.id,
@@ -720,9 +719,7 @@ class Role(CloudFormationModel):
             "version": "1.3",
             "configurationItemCaptureTime": str(self.create_date),
             "configurationItemStatus": "ResourceDiscovered",
-            "configurationStateId": str(
-                int(time.mktime(self.create_date.timetuple()))
-            ),  # PY2 and 3 compatible
+            "configurationStateId": str(int(unix_time())),
             "arn": f"arn:aws:iam::{self.account_id}:role/{self.name}",
             "resourceType": "AWS::IAM::Role",
             "resourceId": self.name,
@@ -988,9 +985,11 @@ class AccessKeyLastUsed:
 
 
 class AccessKey(CloudFormationModel):
-    def __init__(self, user_name, prefix, status="Active"):
+    def __init__(self, user_name, prefix, account_id, status="Active"):
         self.user_name = user_name
-        self.access_key_id = prefix + random_access_key()
+        self.access_key_id = generate_access_key_id_from_account_id(
+            account_id, prefix=prefix, total_length=20
+        )
         self.secret_access_key = random_alphanumeric(40)
         self.status = status
         self.create_date = datetime.utcnow()
@@ -1207,7 +1206,9 @@ class User(CloudFormationModel):
         del self.policies[policy_name]
 
     def create_access_key(self, prefix, status="Active") -> AccessKey:
-        access_key = AccessKey(self.name, prefix=prefix, status=status)
+        access_key = AccessKey(
+            self.name, prefix=prefix, status=status, account_id=self.account_id
+        )
         self.access_keys.append(access_key)
         return access_key
 
@@ -1726,9 +1727,11 @@ class IAMBackend(BaseBackend):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         try:
             policy = arns[policy_arn]
-            policy.detach_from(self.get_role(role_name))
+            if policy.arn not in self.get_role(role_name).managed_policies.keys():
+                raise KeyError
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
+        policy.detach_from(self.get_role(role_name))
 
     def attach_group_policy(self, policy_arn, group_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -1744,6 +1747,8 @@ class IAMBackend(BaseBackend):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         try:
             policy = arns[policy_arn]
+            if policy.arn not in self.get_group(group_name).managed_policies.keys():
+                raise KeyError
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
         policy.detach_from(self.get_group(group_name))
@@ -1760,6 +1765,8 @@ class IAMBackend(BaseBackend):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         try:
             policy = arns[policy_arn]
+            if policy.arn not in self.get_user(user_name).managed_policies.keys():
+                raise KeyError
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
         policy.detach_from(self.get_user(user_name))
@@ -1870,7 +1877,7 @@ class IAMBackend(BaseBackend):
         max_session_duration,
         linked_service=None,
     ):
-        role_id = random_resource_id()
+        role_id = random_role_id(self.account_id)
         if permissions_boundary and not self.policy_arn_regex.match(
             permissions_boundary
         ):
@@ -1910,7 +1917,7 @@ class IAMBackend(BaseBackend):
                 return role
         raise IAMNotFoundException("Role {0} not found".format(role_name))
 
-    def get_role_by_arn(self, arn):
+    def get_role_by_arn(self, arn: str) -> Role:
         for role in self.get_roles():
             if role.arn == arn:
                 return role
@@ -2181,7 +2188,7 @@ class IAMBackend(BaseBackend):
 
         raise IAMNotFoundException("Instance profile {0} not found".format(profile_arn))
 
-    def get_instance_profiles(self):
+    def get_instance_profiles(self) -> List[InstanceProfile]:
         return self.instance_profiles.values()
 
     def get_instance_profiles_for_role(self, role_name):
@@ -2536,7 +2543,7 @@ class IAMBackend(BaseBackend):
 
     def create_temp_access_key(self):
         # Temporary access keys such as the ones returned by STS when assuming a role temporarily
-        key = AccessKey(user_name=None, prefix="ASIA")
+        key = AccessKey(user_name=None, prefix="ASIA", account_id=self.account_id)
 
         self.access_keys[key.physical_resource_id] = key
         return key
@@ -3033,7 +3040,7 @@ class IAMBackend(BaseBackend):
 
     def delete_service_linked_role(self, role_name):
         self.delete_role(role_name)
-        deletion_task_id = str(uuid.uuid4())
+        deletion_task_id = str(random.uuid4())
         return deletion_task_id
 
     def get_service_linked_role_deletion_status(self):

@@ -79,14 +79,14 @@ class TestNodegroup:
     ]
 
 
-@pytest.fixture(autouse=True)
-def test_client():
+@pytest.fixture(autouse=True, name="test_client")
+def fixture_test_client():
     backend = server.create_backend_app(service=SERVICE)
     yield backend.test_client()
 
 
-@pytest.fixture(scope="function")
-def create_cluster(test_client):
+@pytest.fixture(scope="function", name="create_cluster")
+def fixtue_create_cluster(test_client):
     def create_and_verify_cluster(client, name):
         """Creates one valid cluster and verifies return status code 200."""
         data = deepcopy(TestCluster.data)
@@ -106,8 +106,8 @@ def create_cluster(test_client):
     yield _execute
 
 
-@pytest.fixture(scope="function", autouse=True)
-def create_nodegroup(test_client):
+@pytest.fixture(scope="function", autouse=True, name="create_nodegroup")
+def fixture_create_nodegroup(test_client):
     def create_and_verify_nodegroup(client, name):
         """Creates one valid nodegroup and verifies return status code 200."""
         data = deepcopy(TestNodegroup.data)

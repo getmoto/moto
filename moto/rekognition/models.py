@@ -1,10 +1,10 @@
 """RekognitionBackend class with methods for supported APIs."""
 
-import random
 import string
 
 from moto.core import BaseBackend
 from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random as random
 
 
 class RekognitionBackend(BaseBackend):

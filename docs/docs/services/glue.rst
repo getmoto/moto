@@ -25,21 +25,21 @@ glue
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] batch_create_partition
+- [X] batch_create_partition
 - [ ] batch_delete_connection
-- [ ] batch_delete_partition
-- [ ] batch_delete_table
+- [X] batch_delete_partition
+- [X] batch_delete_table
 - [ ] batch_delete_table_version
 - [ ] batch_get_blueprints
 - [ ] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
 - [ ] batch_get_dev_endpoints
 - [ ] batch_get_jobs
-- [ ] batch_get_partition
+- [X] batch_get_partition
 - [ ] batch_get_triggers
 - [ ] batch_get_workflows
 - [ ] batch_stop_job_run
-- [ ] batch_update_partition
+- [X] batch_update_partition
 - [ ] cancel_ml_task_run
 - [ ] cancel_statement
 - [ ] check_schema_version_validity
@@ -218,10 +218,12 @@ glue
 - [X] update_database
 - [ ] update_dev_endpoint
 - [ ] update_job
+- [ ] update_job_from_source_control
 - [ ] update_ml_transform
 - [ ] update_partition
 - [ ] update_registry
 - [ ] update_schema
+- [ ] update_source_control_from_job
 - [ ] update_table
 - [ ] update_trigger
 - [ ] update_user_defined_function

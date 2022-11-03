@@ -1,24 +1,28 @@
 import json
-import uuid
 
 from moto.awslambda.exceptions import (
     PreconditionFailedException,
     UnknownPolicyException,
 )
+from moto.moto_api._internal import mock_random
+from typing import Any, Callable, Dict, List, Optional, TypeVar
+
+
+TYPE_IDENTITY = TypeVar("TYPE_IDENTITY")
 
 
 class Policy:
-    def __init__(self, parent):
-        self.revision = str(uuid.uuid4())
-        self.statements = []
+    def __init__(self, parent: Any):  # Parent should be a LambdaFunction
+        self.revision = str(mock_random.uuid4())
+        self.statements: List[Dict[str, Any]] = []
         self.parent = parent
 
-    def wire_format(self):
+    def wire_format(self) -> str:
         p = self.get_policy()
         p["Policy"] = json.dumps(p["Policy"])
         return json.dumps(p)
 
-    def get_policy(self):
+    def get_policy(self) -> Dict[str, Any]:
         return {
             "Policy": {
                 "Version": "2012-10-17",
@@ -29,7 +33,9 @@ class Policy:
         }
 
     # adds the raw JSON statement to the policy
-    def add_statement(self, raw, qualifier=None):
+    def add_statement(
+        self, raw: str, qualifier: Optional[str] = None
+    ) -> Dict[str, Any]:
         policy = json.loads(raw, object_hook=self.decode_policy)
         if len(policy.revision) > 0 and self.revision != policy.revision:
             raise PreconditionFailedException(
@@ -45,10 +51,11 @@ class Policy:
                 policy.statements[0]["Resource"] + ":" + qualifier
             )
         self.statements.append(policy.statements[0])
-        self.revision = str(uuid.uuid4())
+        self.revision = str(mock_random.uuid4())
+        return policy.statements[0]
 
     # removes the statement that matches 'sid' from the policy
-    def del_statement(self, sid, revision=""):
+    def del_statement(self, sid: str, revision: str = "") -> None:
         if len(revision) > 0 and self.revision != revision:
             raise PreconditionFailedException(
                 "The RevisionId provided does not match the latest RevisionId"
@@ -64,7 +71,7 @@ class Policy:
 
     # converts AddPermission request to PolicyStatement
     # https://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-    def decode_policy(self, obj):
+    def decode_policy(self, obj: Dict[str, Any]) -> "Policy":
         # import pydevd
         # pydevd.settrace("localhost", port=5678)
         policy = Policy(self.parent)
@@ -73,7 +80,7 @@ class Policy:
         # set some default values if these keys are not set
         self.ensure_set(obj, "Effect", "Allow")
         self.ensure_set(obj, "Resource", self.parent.function_arn + ":$LATEST")
-        self.ensure_set(obj, "StatementId", str(uuid.uuid4()))
+        self.ensure_set(obj, "StatementId", str(mock_random.uuid4()))
 
         # transform field names and values
         self.transform_property(obj, "StatementId", "Sid", self.nop_formatter)
@@ -84,6 +91,9 @@ class Policy:
         )
         self.transform_property(
             obj, "SourceAccount", "SourceAccount", self.source_account_formatter
+        )
+        self.transform_property(
+            obj, "PrincipalOrgID", "Condition", self.principal_org_id_formatter
         )
 
         # remove RevisionId and EventSourceToken if they are set
@@ -97,14 +107,14 @@ class Policy:
 
         return policy
 
-    def nop_formatter(self, obj):
+    def nop_formatter(self, obj: TYPE_IDENTITY) -> TYPE_IDENTITY:
         return obj
 
-    def ensure_set(self, obj, key, value):
+    def ensure_set(self, obj: Dict[str, Any], key: str, value: Any) -> None:
         if key not in obj:
             obj[key] = value
 
-    def principal_formatter(self, obj):
+    def principal_formatter(self, obj: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(obj, str):
             if obj.endswith(".amazonaws.com"):
                 return {"Service": obj}
@@ -112,24 +122,39 @@ class Policy:
                 return {"AWS": obj}
         return obj
 
-    def source_account_formatter(self, obj):
+    def source_account_formatter(
+        self, obj: TYPE_IDENTITY
+    ) -> Dict[str, Dict[str, TYPE_IDENTITY]]:
         return {"StringEquals": {"AWS:SourceAccount": obj}}
 
-    def source_arn_formatter(self, obj):
+    def source_arn_formatter(
+        self, obj: TYPE_IDENTITY
+    ) -> Dict[str, Dict[str, TYPE_IDENTITY]]:
         return {"ArnLike": {"AWS:SourceArn": obj}}
 
-    def transform_property(self, obj, old_name, new_name, formatter):
+    def principal_org_id_formatter(
+        self, obj: TYPE_IDENTITY
+    ) -> Dict[str, Dict[str, TYPE_IDENTITY]]:
+        return {"StringEquals": {"aws:PrincipalOrgID": obj}}
+
+    def transform_property(
+        self,
+        obj: Dict[str, Any],
+        old_name: str,
+        new_name: str,
+        formatter: Callable[..., Any],
+    ) -> None:
         if old_name in obj:
             obj[new_name] = formatter(obj[old_name])
             if new_name != old_name:
                 del obj[old_name]
 
-    def remove_if_set(self, obj, keys):
+    def remove_if_set(self, obj: Dict[str, Any], keys: List[str]) -> None:
         for key in keys:
             if key in obj:
                 del obj[key]
 
-    def condition_merge(self, obj):
+    def condition_merge(self, obj: Dict[str, Any]) -> None:
         if "SourceArn" in obj:
             if "Condition" not in obj:
                 obj["Condition"] = {}

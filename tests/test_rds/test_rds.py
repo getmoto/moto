@@ -42,6 +42,8 @@ def test_create_database():
     db_instance["VpcSecurityGroups"][0]["VpcSecurityGroupId"].should.equal("sg-123456")
     db_instance["DeletionProtection"].should.equal(False)
     db_instance["EnabledCloudwatchLogsExports"].should.equal(["audit", "error"])
+    db_instance["Endpoint"]["Port"].should.equal(1234)
+    db_instance["DbInstancePort"].should.equal(1234)
 
 
 @mock_rds
@@ -336,6 +338,8 @@ def test_get_databases():
 
     instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-2")
     instances["DBInstances"][0]["DeletionProtection"].should.equal(True)
+    instances["DBInstances"][0]["Endpoint"]["Port"].should.equal(1234)
+    instances["DBInstances"][0]["DbInstancePort"].should.equal(1234)
 
 
 @mock_rds
@@ -1709,11 +1713,48 @@ def test_create_database_replica():
     master["DBInstances"][0]["ReadReplicaDBInstanceIdentifiers"].should.equal(
         ["db-replica-1"]
     )
+    replica = conn.describe_db_instances(DBInstanceIdentifier="db-replica-1")[
+        "DBInstances"
+    ][0]
+    replica["ReadReplicaSourceDBInstanceIdentifier"].should.equal("db-master-1")
 
     conn.delete_db_instance(DBInstanceIdentifier="db-replica-1", SkipFinalSnapshot=True)
 
     master = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
     master["DBInstances"][0]["ReadReplicaDBInstanceIdentifiers"].should.equal([])
+
+
+@mock_rds
+def test_create_database_replica_cross_region():
+    us1 = boto3.client("rds", region_name="us-east-1")
+    us2 = boto3.client("rds", region_name="us-west-2")
+
+    source_id = "db-master-1"
+    source_arn = us1.create_db_instance(
+        DBInstanceIdentifier=source_id,
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBInstanceClass="db.m1.small",
+    )["DBInstance"]["DBInstanceArn"]
+
+    target_id = "db-replica-1"
+    target_arn = us2.create_db_instance_read_replica(
+        DBInstanceIdentifier=target_id,
+        SourceDBInstanceIdentifier=source_arn,
+        DBInstanceClass="db.m1.small",
+    )["DBInstance"]["DBInstanceArn"]
+
+    source_db = us1.describe_db_instances(DBInstanceIdentifier=source_id)[
+        "DBInstances"
+    ][0]
+    source_db.should.have.key("ReadReplicaDBInstanceIdentifiers").equals([target_arn])
+
+    target_db = us2.describe_db_instances(DBInstanceIdentifier=target_id)[
+        "DBInstances"
+    ][0]
+    target_db.should.have.key("ReadReplicaSourceDBInstanceIdentifier").equals(
+        source_arn
+    )
 
 
 @mock_rds

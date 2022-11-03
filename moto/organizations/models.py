@@ -355,7 +355,7 @@ class OrganizationsBackend(BaseBackend):
         return root
 
     def create_organization(self, **kwargs):
-        self.org = FakeOrganization(self.account_id, kwargs["FeatureSet"])
+        self.org = FakeOrganization(self.account_id, kwargs.get("FeatureSet") or "ALL")
         root_ou = FakeRoot(self.org)
         self.ou.append(root_ou)
         master_account = FakeAccount(
@@ -404,6 +404,13 @@ class OrganizationsBackend(BaseBackend):
         self.ou.append(new_ou)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_ou.id)
         return new_ou.describe()
+
+    def delete_organizational_unit(self, **kwargs):
+        ou_to_delete = self.get_organizational_unit_by_id(
+            kwargs["OrganizationalUnitId"]
+        )
+        self.ou.remove(ou_to_delete)
+        return {}
 
     def update_organizational_unit(self, **kwargs):
         for ou in self.ou:

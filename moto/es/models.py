@@ -1,5 +1,6 @@
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex, BackendDict
+from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random
 from .exceptions import DomainNotFound
 
 
@@ -23,7 +24,7 @@ class Domain(BaseModel):
         advanced_security_options,
         auto_tune_options,
     ):
-        self.domain_id = get_random_hex(8)
+        self.domain_id = mock_random.get_random_hex(8)
         self.region_name = region_name
         self.domain_name = domain_name
         self.es_version = es_version

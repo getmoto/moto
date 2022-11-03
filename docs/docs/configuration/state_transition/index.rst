@@ -36,7 +36,7 @@ Sticking with the example above, you may want to test what happens if the cluste
 
     from moto.moto_api import state_manager
 
-    state_manager.set_transition(model_name="dax::cluster", transition={"progression": "time", "duration": 5})
+    state_manager.set_transition(model_name="dax::cluster", transition={"progression": "time", "seconds": 5})
 
     create_and_wait_for_cluster("my_new_cluster")
 
@@ -46,7 +46,7 @@ In order to test what happens in the event of a timeout, we can order the cluste
 
     from moto.moto_api import state_manager
 
-    state_manager.set_transition(model_name="dax::cluster", transition={"progression": "time", "duration": 600})
+    state_manager.set_transition(model_name="dax::cluster", transition={"progression": "time", "seconds": 600})
 
     try:
         create_and_wait_for_cluster("my_new_cluster")
@@ -124,7 +124,7 @@ This is an example request for `dax::cluster` to wait 5 seconds before the clust
 
 .. sourcecode:: python
 
-    post_body = dict(model_name="dax::cluster", transition={"progression": "time", "duration": 5})
+    post_body = dict(model_name="dax::cluster", transition={"progression": "time", "seconds": 5})
     resp = requests.post("http://localhost:5000/moto-api/state-manager/set-transition", data=json.dumps(post_body))
 
 An example request to see the currently configured transition for a specific model:

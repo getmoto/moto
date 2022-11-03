@@ -42,9 +42,10 @@ TEST_SERVERLESS_PRODUCTION_VARIANTS = [
 ]
 
 
-@pytest.fixture
-def sagemaker_client():
-    return boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+@pytest.fixture(name="sagemaker_client")
+def fixture_sagemaker_client():
+    with mock_sagemaker():
+        yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
 def create_endpoint_config_helper(sagemaker_client, production_variants):
@@ -72,7 +73,6 @@ def create_endpoint_config_helper(sagemaker_client, production_variants):
     resp["ProductionVariants"].should.equal(production_variants)
 
 
-@mock_sagemaker
 def test_create_endpoint_config(sagemaker_client):
     with pytest.raises(ClientError) as e:
         sagemaker_client.create_endpoint_config(
@@ -85,7 +85,6 @@ def test_create_endpoint_config(sagemaker_client):
     create_endpoint_config_helper(sagemaker_client, TEST_PRODUCTION_VARIANTS)
 
 
-@mock_sagemaker
 def test_create_endpoint_config_serverless(sagemaker_client):
     with pytest.raises(ClientError) as e:
         sagemaker_client.create_endpoint_config(
@@ -98,7 +97,6 @@ def test_create_endpoint_config_serverless(sagemaker_client):
     create_endpoint_config_helper(sagemaker_client, TEST_SERVERLESS_PRODUCTION_VARIANTS)
 
 
-@mock_sagemaker
 def test_delete_endpoint_config(sagemaker_client):
     _create_model(sagemaker_client, TEST_MODEL_NAME)
     resp = sagemaker_client.create_endpoint_config(
@@ -140,7 +138,6 @@ def test_delete_endpoint_config(sagemaker_client):
     )
 
 
-@mock_sagemaker
 def test_create_endpoint_invalid_instance_type(sagemaker_client):
     _create_model(sagemaker_client, TEST_MODEL_NAME)
 
@@ -160,7 +157,6 @@ def test_create_endpoint_invalid_instance_type(sagemaker_client):
     assert expected_message in e.value.response["Error"]["Message"]
 
 
-@mock_sagemaker
 def test_create_endpoint_invalid_memory_size(sagemaker_client):
     _create_model(sagemaker_client, TEST_MODEL_NAME)
 
@@ -180,7 +176,6 @@ def test_create_endpoint_invalid_memory_size(sagemaker_client):
     assert expected_message in e.value.response["Error"]["Message"]
 
 
-@mock_sagemaker
 def test_create_endpoint(sagemaker_client):
     with pytest.raises(ClientError) as e:
         sagemaker_client.create_endpoint(
@@ -221,7 +216,6 @@ def test_create_endpoint(sagemaker_client):
     assert resp["Tags"] == GENERIC_TAGS_PARAM
 
 
-@mock_sagemaker
 def test_delete_endpoint(sagemaker_client):
     _set_up_sagemaker_resources(
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
@@ -237,7 +231,6 @@ def test_delete_endpoint(sagemaker_client):
     assert e.value.response["Error"]["Message"].startswith("Could not find endpoint")
 
 
-@mock_sagemaker
 def test_add_tags_endpoint(sagemaker_client):
     _set_up_sagemaker_resources(
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
@@ -253,7 +246,6 @@ def test_add_tags_endpoint(sagemaker_client):
     assert response["Tags"] == GENERIC_TAGS_PARAM
 
 
-@mock_sagemaker
 def test_delete_tags_endpoint(sagemaker_client):
     _set_up_sagemaker_resources(
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
@@ -273,7 +265,6 @@ def test_delete_tags_endpoint(sagemaker_client):
     assert response["Tags"] == []
 
 
-@mock_sagemaker
 def test_list_tags_endpoint(sagemaker_client):
     _set_up_sagemaker_resources(
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
@@ -298,7 +289,6 @@ def test_list_tags_endpoint(sagemaker_client):
     assert response["Tags"] == tags[50:]
 
 
-@mock_sagemaker
 def test_update_endpoint_weights_and_capacities_one_variant(sagemaker_client):
     _set_up_sagemaker_resources(
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
@@ -342,7 +332,6 @@ def test_update_endpoint_weights_and_capacities_one_variant(sagemaker_client):
     resp["ProductionVariants"][0]["CurrentWeight"].should.equal(new_desired_weight)
 
 
-@mock_sagemaker
 def test_update_endpoint_weights_and_capacities_two_variants(sagemaker_client):
     production_variants = [
         {
@@ -422,7 +411,6 @@ def test_update_endpoint_weights_and_capacities_two_variants(sagemaker_client):
     resp["ProductionVariants"][1]["CurrentWeight"].should.equal(new_desired_weight)
 
 
-@mock_sagemaker
 def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_variant(
     sagemaker_client,
 ):
@@ -459,7 +447,6 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_vari
     resp.should.equal(old_resp)
 
 
-@mock_sagemaker
 def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endpoint(
     sagemaker_client,
 ):
@@ -497,7 +484,6 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endp
     resp.should.equal(old_resp)
 
 
-@mock_sagemaker
 def test_update_endpoint_weights_and_capacities_should_throw_clienterror_nonunique_variant(
     sagemaker_client,
 ):

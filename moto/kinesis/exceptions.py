@@ -1,21 +1,14 @@
-import json
-from werkzeug.exceptions import BadRequest
+from moto.core.exceptions import JsonRESTError
 
 
-class ResourceNotFoundError(BadRequest):
+class ResourceNotFoundError(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "ResourceNotFoundException"}
-        )
+        super().__init__(error_type="ResourceNotFoundException", message=message)
 
 
-class ResourceInUseError(BadRequest):
+class ResourceInUseError(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "ResourceInUseException"}
-        )
+        super().__init__(error_type="ResourceInUseException", message=message)
 
 
 class StreamNotFoundError(ResourceNotFoundError):
@@ -23,13 +16,10 @@ class StreamNotFoundError(ResourceNotFoundError):
         super().__init__(f"Stream {stream_name} under account {account_id} not found.")
 
 
-class StreamCannotBeUpdatedError(BadRequest):
+class StreamCannotBeUpdatedError(JsonRESTError):
     def __init__(self, stream_name, account_id):
-        super().__init__()
         message = f"Request is invalid. Stream {stream_name} under account {account_id} is in On-Demand mode."
-        self.description = json.dumps(
-            {"message": message, "__type": "ValidationException"}
-        )
+        super().__init__(error_type="ValidationException", message=message)
 
 
 class ShardNotFoundError(ResourceNotFoundError):
@@ -44,12 +34,9 @@ class ConsumerNotFound(ResourceNotFoundError):
         super().__init__(f"Consumer {consumer}, account {account_id} not found.")
 
 
-class InvalidArgumentError(BadRequest):
+class InvalidArgumentError(JsonRESTError):
     def __init__(self, message):
-        super().__init__()
-        self.description = json.dumps(
-            {"message": message, "__type": "InvalidArgumentException"}
-        )
+        super().__init__(error_type="InvalidArgumentException", message=message)
 
 
 class InvalidRetentionPeriod(InvalidArgumentError):
@@ -73,12 +60,27 @@ class InvalidIncreaseRetention(InvalidArgumentError):
         super().__init__(msg)
 
 
-class ValidationException(BadRequest):
+class ValidationException(JsonRESTError):
     def __init__(self, value, position, regex_to_match):
-        super().__init__()
-        self.description = json.dumps(
-            {
-                "message": f"1 validation error detected: Value '{value}' at '{position}' failed to satisfy constraint: Member must satisfy regular expression pattern: {regex_to_match}",
-                "__type": "ValidationException",
-            }
+        msg = f"1 validation error detected: Value '{value}' at '{position}' failed to satisfy constraint: Member must satisfy regular expression pattern: {regex_to_match}"
+        super().__init__(error_type="ValidationException", message=msg)
+
+
+class RecordSizeExceedsLimit(JsonRESTError):
+    def __init__(self, position):
+        msg = f"1 validation error detected: Value at 'records.{position}.member.data' failed to satisfy constraint: Member must have length less than or equal to 1048576"
+        super().__init__(error_type="ValidationException", message=msg)
+
+
+class TotalRecordsSizeExceedsLimit(JsonRESTError):
+    def __init__(self):
+        super().__init__(
+            error_type="InvalidArgumentException",
+            message="Records size exceeds 5 MB limit",
         )
+
+
+class TooManyRecords(JsonRESTError):
+    def __init__(self):
+        msg = "1 validation error detected: Value at 'records' failed to satisfy constraint: Member must have length less than or equal to 500"
+        super().__init__(error_type="ValidationException", message=msg)

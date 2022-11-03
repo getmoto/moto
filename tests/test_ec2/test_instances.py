@@ -9,7 +9,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError, ParamValidationError
 from freezegun import freeze_time
-from moto import mock_ec2, settings
+from moto import mock_ec2, mock_iam, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
@@ -88,7 +88,12 @@ def test_instance_launch_and_terminate():
         "An error occurred (DryRunOperation) when calling the TerminateInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    client.terminate_instances(InstanceIds=[instance_id])
+    response = client.terminate_instances(InstanceIds=[instance_id])
+    response["TerminatingInstances"].should.have.length_of(1)
+    instance = response["TerminatingInstances"][0]
+    instance["InstanceId"].should.equal(instance_id)
+    instance["PreviousState"].should.equal({"Code": 16, "Name": "running"})
+    instance["CurrentState"].should.equal({"Code": 32, "Name": "shutting-down"})
 
     reservations = client.describe_instances(InstanceIds=[instance_id])["Reservations"]
     instance = reservations[0]["Instances"][0]
@@ -689,6 +694,19 @@ def test_get_instances_filtering_by_ni_private_dns():
 
 
 @mock_ec2
+def test_run_instances_with_unknown_security_group():
+    client = boto3.client("ec2", region_name="us-east-1")
+    sg_id = f"sg-{str(uuid4())[0:6]}"
+    with pytest.raises(ClientError) as exc:
+        client.run_instances(
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroupIds=[sg_id]
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidGroup.NotFound")
+    err["Message"].should.equal(f"The security group '{sg_id}' does not exist")
+
+
+@mock_ec2
 def test_get_instances_filtering_by_instance_group_name():
     client = boto3.client("ec2", region_name="us-east-1")
     sec_group_name = str(uuid4())[0:6]
@@ -934,8 +952,7 @@ def test_instance_start_and_stop():
         "StartingInstances"
     ]
     started_instances[0]["CurrentState"].should.equal({"Code": 0, "Name": "pending"})
-    # TODO: The PreviousState is hardcoded to 'running' atm
-    # started_instances[0]["PreviousState"].should.equal({'Code': 80, 'Name': 'stopped'})
+    started_instances[0]["PreviousState"].should.equal({"Code": 80, "Name": "stopped"})
 
 
 @mock_ec2
@@ -2406,6 +2423,63 @@ def test_run_instance_cannot_have_subnet_and_networkinterface_parameter():
 
 
 @mock_ec2
+def test_run_instance_in_subnet_with_nic_private_ip():
+    vpc_cidr_block = "10.26.0.0/16"
+    subnet_cidr_block = "10.26.1.0/24"
+    private_ip = "10.26.1.3"
+    ec2 = boto3.resource("ec2", region_name="eu-west-1")
+    vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock=subnet_cidr_block,
+    )
+    my_interface = {
+        "SubnetId": subnet.id,
+        "DeviceIndex": 0,
+        "PrivateIpAddress": private_ip,
+    }
+    [instance] = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
+    )
+    instance.private_ip_address.should.equal(private_ip)
+
+    interfaces = instance.network_interfaces_attribute
+    address = interfaces[0]["PrivateIpAddresses"][0]
+    address.shouldnt.have.key("Association")
+
+
+@mock_ec2
+def test_run_instance_in_subnet_with_nic_private_ip_and_public_association():
+    vpc_cidr_block = "10.26.0.0/16"
+    subnet_cidr_block = "10.26.1.0/24"
+    primary_private_ip = "10.26.1.3"
+    other_private_ip = "10.26.1.4"
+    ec2 = boto3.resource("ec2", region_name="eu-west-1")
+    vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock=subnet_cidr_block,
+    )
+    my_interface = {
+        "SubnetId": subnet.id,
+        "DeviceIndex": 0,
+        "AssociatePublicIpAddress": True,
+        "PrivateIpAddresses": [
+            {"Primary": True, "PrivateIpAddress": primary_private_ip},
+            {"Primary": False, "PrivateIpAddress": other_private_ip},
+        ],
+    }
+    [instance] = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
+    )
+    instance.private_ip_address.should.equal(primary_private_ip)
+
+    interfaces = instance.network_interfaces_attribute
+    address = interfaces[0]["PrivateIpAddresses"][0]
+    address["Association"].should.have.key("IpOwnerId").equal(ACCOUNT_ID)
+
+
+@mock_ec2
 def test_describe_instances_dryrun():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -2440,6 +2514,43 @@ def test_describe_instances_filter_vpcid_via_networkinterface():
     found = list(ec2.instances.filter(Filters=_filter))
     found.should.have.length_of(1)
     found.should.equal([instance])
+
+
+@mock_ec2
+@mock_iam
+def test_instance_iam_instance_profile():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+    iam = boto3.client("iam", "us-west-1")
+    profile_name = "fake_profile"
+    profile = iam.create_instance_profile(
+        InstanceProfileName=profile_name,
+    )
+
+    result1 = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        IamInstanceProfile={
+            "Name": profile_name,
+        },
+    )
+    instance = result1[0]
+    assert "Arn" in instance.iam_instance_profile
+    assert "Id" in instance.iam_instance_profile
+    assert profile["InstanceProfile"]["Arn"] == instance.iam_instance_profile["Arn"]
+
+    result2 = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        IamInstanceProfile={
+            "Arn": profile["InstanceProfile"]["Arn"],
+        },
+    )
+    instance = result2[0]
+    assert "Arn" in instance.iam_instance_profile
+    assert "Id" in instance.iam_instance_profile
+    assert profile["InstanceProfile"]["Arn"] == instance.iam_instance_profile["Arn"]
 
 
 def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102

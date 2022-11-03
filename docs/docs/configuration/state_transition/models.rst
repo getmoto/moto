@@ -56,6 +56,19 @@ Advancement:
 
     Call `boto3.client("dax").describe_clusters(..)`.
 
+Service: Glue
+---------------------
+
+**Model**: `glue::job_run`  :raw-html:`<br />`
+Available States:  :raw-html:`<br />`
+
+    "STARTING" --> "RUNNING" --> "SUCCEEDED"
+
+Transition type: `immediate`  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("glue").get_job_run(..)`
+
 Service: S3 (Glacier Restoration)
 -----------------------------------
 

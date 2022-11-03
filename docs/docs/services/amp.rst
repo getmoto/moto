@@ -28,7 +28,7 @@ amp
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_alert_manager_definition
-- [ ] create_logging_configuration
+- [X] create_logging_configuration
 - [X] create_rule_groups_namespace
   
         The ClientToken-parameter is not yet implemented
@@ -40,7 +40,7 @@ amp
         
 
 - [ ] delete_alert_manager_definition
-- [ ] delete_logging_configuration
+- [X] delete_logging_configuration
 - [X] delete_rule_groups_namespace
   
         The ClientToken-parameter is not yet implemented
@@ -52,7 +52,7 @@ amp
         
 
 - [ ] describe_alert_manager_definition
-- [ ] describe_logging_configuration
+- [X] describe_logging_configuration
 - [X] describe_rule_groups_namespace
 - [X] describe_workspace
 - [X] list_rule_groups_namespaces
@@ -66,7 +66,7 @@ amp
 
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_logging_configuration
+- [X] update_logging_configuration
 - [X] update_workspace_alias
   
         The ClientToken-parameter is not yet implemented

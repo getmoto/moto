@@ -58,6 +58,15 @@ def test_create_organization():
 
 
 @mock_organizations
+def test_create_organization_without_feature_set():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization()
+    response = client.describe_organization()
+    validate_organization(response)
+    response["Organization"]["FeatureSet"].should.equal("ALL")
+
+
+@mock_organizations
 def test_describe_organization():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -99,6 +108,31 @@ def test_create_organizational_unit():
     response = client.create_organizational_unit(ParentId=root_id, Name=ou_name)
     validate_organizational_unit(org, response)
     response["OrganizationalUnit"]["Name"].should.equal(ou_name)
+
+
+@mock_organizations
+def test_delete_organizational_unit():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_name = "ou01"
+    response = client.create_organizational_unit(ParentId=root_id, Name=ou_name)
+    validate_organizational_unit(org, response)
+
+    # delete organizational unit
+    ou_id = response["OrganizationalUnit"]["Id"]
+    response = client.delete_organizational_unit(OrganizationalUnitId=ou_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    # verify the deletion
+    with pytest.raises(ClientError) as e:
+        client.describe_organizational_unit(OrganizationalUnitId=ou_id)
+    ex = e.value
+    ex.operation_name.should.equal("DescribeOrganizationalUnit")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain(
+        "OrganizationalUnitNotFoundException"
+    )
 
 
 @mock_organizations

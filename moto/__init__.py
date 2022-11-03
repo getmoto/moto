@@ -48,6 +48,7 @@ mock_cognitoidentity = lazy_load(
     ".cognitoidentity", "mock_cognitoidentity", boto3_name="cognito-identity"
 )
 mock_cognitoidp = lazy_load(".cognitoidp", "mock_cognitoidp", boto3_name="cognito-idp")
+mock_comprehend = lazy_load(".comprehend", "mock_comprehend")
 mock_config = lazy_load(".config", "mock_config")
 mock_databrew = lazy_load(".databrew", "mock_databrew")
 mock_datapipeline = lazy_load(".datapipeline", "mock_datapipeline")
@@ -105,6 +106,7 @@ mock_mediastore = lazy_load(".mediastore", "mock_mediastore")
 mock_mediastoredata = lazy_load(
     ".mediastoredata", "mock_mediastoredata", boto3_name="mediastore-data"
 )
+mock_meteringmarketplace = lazy_load(".meteringmarketplace", "mock_meteringmarketplace")
 mock_mq = lazy_load(".mq", "mock_mq", boto3_name="mq")
 mock_opsworks = lazy_load(".opsworks", "mock_opsworks")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
@@ -136,6 +138,9 @@ mock_s3control = lazy_load(".s3control", "mock_s3control")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker")
 mock_sdb = lazy_load(".sdb", "mock_sdb")
 mock_secretsmanager = lazy_load(".secretsmanager", "mock_secretsmanager")
+mock_servicequotas = lazy_load(
+    ".servicequotas", "mock_servicequotas", boto3_name="service-quotas"
+)
 mock_ses = lazy_load(".ses", "mock_ses")
 mock_servicediscovery = lazy_load(".servicediscovery", "mock_servicediscovery")
 mock_signer = lazy_load(".signer", "mock_signer", boto3_name="signer")
@@ -185,7 +190,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "4.0.2.dev"
+__version__ = "4.0.10.dev"
 
 
 try:

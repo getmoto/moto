@@ -1,11 +1,11 @@
 import datetime
 import json
-import time
 
 from boto3 import Session
 
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.common_models import ConfigQueryModel
+from moto.core.utils import unix_time
 from moto.s3control import s3control_backends
 
 
@@ -135,9 +135,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
             "accountId": account_id,
             "configurationItemCaptureTime": str(creation_time),
             "configurationItemStatus": "OK",
-            "configurationStateId": str(
-                int(time.mktime(creation_time.timetuple()))
-            ),  # PY2 and 3 compatible
+            "configurationStateId": str(int(unix_time())),
             "resourceType": "AWS::S3::AccountPublicAccessBlock",
             "resourceId": account_id,
             "awsRegion": pab_region,

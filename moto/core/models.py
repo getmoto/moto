@@ -14,6 +14,7 @@ from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 
 from moto import settings
+from moto.core.utils import BackendDict
 from .botocore_stubber import BotocoreStubber
 from .custom_responses_mock import (
     get_response_mock,
@@ -21,7 +22,6 @@ from .custom_responses_mock import (
     not_implemented_callback,
     reset_responses_mock,
 )
-from .utils import convert_flask_to_responses_response
 
 DEFAULT_ACCOUNT_ID = "123456789012"
 
@@ -272,6 +272,9 @@ class BotocoreEventMockAWS(BaseMockAWS):
         reset_responses_mock(responses_mock)
 
     def enable_patching(self, reset=True):  # pylint: disable=unused-argument
+        # Circumvent circular imports
+        from .utils import convert_flask_to_responses_response
+
         botocore_stubber.enabled = True
         for method in BOTOCORE_HTTP_METHODS:
             for backend in self.backends_for_urls:
@@ -388,7 +391,7 @@ class ServerModeMockAWS(BaseMockAWS):
 class base_decorator:
     mock_backend = MockAWS
 
-    def __init__(self, backends):
+    def __init__(self, backends: BackendDict):
         self.backends = backends
 
     def __call__(self, func=None):

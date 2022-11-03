@@ -1,15 +1,15 @@
 from datetime import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
+from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
-from uuid import uuid4
 
 from .exceptions import ApplicationNotFound, EventStreamNotFound
 
 
 class App(BaseModel):
     def __init__(self, account_id, name):
-        self.application_id = str(uuid4()).replace("-", "")
+        self.application_id = str(mock_random.uuid4()).replace("-", "")
         self.arn = (
             f"arn:aws:mobiletargeting:us-east-1:{account_id}:apps/{self.application_id}"
         )

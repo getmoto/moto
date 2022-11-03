@@ -1,12 +1,12 @@
 import time
 import json
-import uuid
 import datetime
 
 from typing import List, Tuple
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random
 from .exceptions import (
     SecretNotFoundException,
     SecretHasNoValueException,
@@ -18,13 +18,19 @@ from .exceptions import (
     ClientError,
 )
 from .utils import random_password, secret_arn, get_secret_name_from_arn
-from .list_secrets.filters import filter_all, tag_key, tag_value, description, name
+from .list_secrets.filters import (
+    filter_all,
+    tag_key,
+    tag_value,
+    description_filter,
+    name_filter,
+)
 
 
 _filter_functions = {
     "all": filter_all,
-    "name": name,
-    "description": description,
+    "name": name_filter,
+    "description": description_filter,
     "tag-key": tag_key,
     "tag-value": tag_value,
 }
@@ -221,7 +227,7 @@ class SecretsManagerBackend(BaseBackend):
         if version_id:
             self._client_request_token_validator(version_id)
         else:
-            version_id = str(uuid.uuid4())
+            version_id = str(mock_random.uuid4())
         return version_id
 
     def get_secret_value(self, secret_id, version_id, version_stage):
@@ -512,7 +518,7 @@ class SecretsManagerBackend(BaseBackend):
             self._client_request_token_validator(client_request_token)
             new_version_id = client_request_token
         else:
-            new_version_id = str(uuid.uuid4())
+            new_version_id = str(mock_random.uuid4())
 
         # We add the new secret version as "pending". The previous version remains
         # as "current" for now. Once we've passed the new secret through the lambda

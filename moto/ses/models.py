@@ -119,6 +119,21 @@ def are_all_variables_present(template, template_data):
 
 
 class SESBackend(BaseBackend):
+    """
+    Responsible for mocking calls to SES.
+
+    Sent messages are persisted in the backend. If you need to verify that a message was sent successfully, you can use the internal API to check:
+
+    .. sourcecode:: python
+
+        from moto.core import DEFAULT_ACCOUNT_ID
+        from moto.ses import ses_backends
+        ses_backend = ses_backends[DEFAULT_ACCOUNT_ID]["global"]
+        messages = ses_backend.sent_messages # sent_messages is a List of Message objects
+
+    Note that, as this is an internal API, the exact format may differ per versions.
+    """
+
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.addresses = []
@@ -470,24 +485,24 @@ class SESBackend(BaseBackend):
             text_part = str.replace(str(text_part), "{{%s}}" % key, value)
             html_part = str.replace(str(html_part), "{{%s}}" % key, value)
 
-        email = MIMEMultipart("alternative")
+        email_obj = MIMEMultipart("alternative")
 
         mime_text = MIMEBase("text", "plain;charset=UTF-8")
         mime_text.set_payload(text_part.encode("utf-8"))
         encode_7or8bit(mime_text)
-        email.attach(mime_text)
+        email_obj.attach(mime_text)
 
         mime_html = MIMEBase("text", "html;charset=UTF-8")
         mime_html.set_payload(html_part.encode("utf-8"))
         encode_7or8bit(mime_html)
-        email.attach(mime_html)
+        email_obj.attach(mime_html)
 
         now = datetime.datetime.now().isoformat()
 
         rendered_template = "Date: %s\r\nSubject: %s\r\n%s" % (
             now,
             subject_part,
-            email.as_string(),
+            email_obj.as_string(),
         )
         return rendered_template
 

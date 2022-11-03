@@ -809,6 +809,24 @@ def test_upload_from_file_to_presigned_url():
 
 
 @mock_s3
+def test_upload_file_with_checksum_algorithm():
+    random_bytes = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\n\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\n"
+    with open("rb.tmp", mode="wb") as f:
+        f.write(random_bytes)
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = "mybucket"
+    s3_client.create_bucket(Bucket=bucket)
+    s3_client.upload_file(
+        "rb.tmp", bucket, "my_key.csv", ExtraArgs={"ChecksumAlgorithm": "SHA256"}
+    )
+    os.remove("rb.tmp")
+
+    actual_content = s3.Object(bucket, "my_key.csv").get()["Body"].read()
+    assert random_bytes == actual_content
+
+
+@mock_s3
 def test_put_chunked_with_v4_signature_in_body():
     bucket_name = "mybucket"
     file_name = "file"
@@ -2444,6 +2462,20 @@ def test_list_object_versions_with_delimiter():
     all_keys.should.equal(
         {"key11-without-data", "key12-without-data", "key13-without-data"}
     )
+
+    # Delimiter with Prefix being the entire key
+    response = s3.list_object_versions(
+        Bucket=bucket_name, Prefix="key1-with-data", Delimiter="-"
+    )
+    response.should.have.key("Versions").length_of(3)
+    response.shouldnt.have.key("CommonPrefixes")
+
+    # Delimiter without prefix
+    response = s3.list_object_versions(Bucket=bucket_name, Delimiter="-with-")
+    response["CommonPrefixes"].should.have.length_of(8)
+    response["CommonPrefixes"].should.contain({"Prefix": "key1-with-"})
+    # Should return all keys -without-data
+    response.should.have.key("Versions").length_of(24)
 
 
 @mock_s3

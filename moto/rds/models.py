@@ -1,7 +1,6 @@
 import copy
 import datetime
 import os
-import random
 import string
 
 from collections import defaultdict
@@ -9,9 +8,9 @@ from jinja2 import Template
 from re import compile as re_compile
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.ec2.models import ec2_backends
+from moto.moto_api._internal import mock_random as random
 from .exceptions import (
     RDSClientError,
     DBClusterNotFoundError,
@@ -55,7 +54,7 @@ class Cluster:
         self.account_id = kwargs.get("account_id")
         self.region_name = kwargs.get("region")
         self.cluster_create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.now()
+            datetime.datetime.utcnow()
         )
         self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
         if self.copy_tags_to_snapshot is None:
@@ -74,14 +73,7 @@ class Cluster:
                 "The parameter MasterUsername must be provided and must not be blank."
             )
         self.master_user_password = kwargs.get("master_user_password")
-        if not self.master_user_password:
-            raise InvalidParameterValue(
-                "The parameter MasterUserPassword must be provided and must not be blank."
-            )
-        if len(self.master_user_password) < 8:
-            raise InvalidParameterValue(
-                "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
-            )
+
         self.availability_zones = kwargs.get("availability_zones")
         if not self.availability_zones:
             self.availability_zones = [
@@ -114,10 +106,64 @@ class Cluster:
         self.enabled_cloudwatch_logs_exports = (
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
+        self.enable_http_endpoint = kwargs.get("enable_http_endpoint")
+        self.earliest_restorable_time = iso_8601_datetime_with_milliseconds(
+            datetime.datetime.utcnow()
+        )
 
     @property
     def db_cluster_arn(self):
         return f"arn:aws:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
+
+    @property
+    def master_user_password(self):
+        return self._master_user_password
+
+    @master_user_password.setter
+    def master_user_password(self, val):
+        if not val:
+            raise InvalidParameterValue(
+                "The parameter MasterUserPassword must be provided and must not be blank."
+            )
+        if len(val) < 8:
+            raise InvalidParameterValue(
+                "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
+            )
+        self._master_user_password = val
+
+    @property
+    def enable_http_endpoint(self):
+        return self._enable_http_endpoint
+
+    @enable_http_endpoint.setter
+    def enable_http_endpoint(self, val):
+        # instead of raising an error on aws rds create-db-cluster commands with
+        # incompatible configurations with enable_http_endpoint
+        # (e.g. engine_mode is not set to "serverless"), the API
+        # automatically sets the enable_http_endpoint parameter to False
+        self._enable_http_endpoint = False
+        if val is not None:
+            if self.engine_mode == "serverless":
+                if self.engine == "aurora-mysql" and self.engine_version in [
+                    "5.6.10a",
+                    "5.6.1",
+                    "2.07.1",
+                    "5.7.2",
+                ]:
+                    self._enable_http_endpoint = val
+                elif self.engine == "aurora-postgresql" and self.engine_version in [
+                    "10.12",
+                    "10.14",
+                    "10.18",
+                    "11.13",
+                ]:
+                    self._enable_http_endpoint = val
+
+    def get_cfg(self):
+        cfg = self.__dict__
+        cfg["master_user_password"] = cfg.pop("_master_user_password")
+        cfg["enable_http_endpoint"] = cfg.pop("_enable_http_endpoint")
+        return cfg
 
     def to_xml(self):
         template = Template(
@@ -135,6 +181,7 @@ class Cluster:
               <DBClusterParameterGroup>{{ cluster.parameter_group }}</DBClusterParameterGroup>
               <DBSubnetGroup>{{ cluster.subnet_group }}</DBSubnetGroup>
               <ClusterCreateTime>{{ cluster.cluster_create_time }}</ClusterCreateTime>
+              <EarliestRestorableTime>{{ cluster.earliest_restorable_time }}</EarliestRestorableTime>
               <Engine>{{ cluster.engine }}</Engine>
               <Status>{{ cluster.status }}</Status>
               <Endpoint>{{ cluster.endpoint }}</Endpoint>
@@ -170,7 +217,7 @@ class Cluster:
               <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
-              <HttpEndpointEnabled>false</HttpEndpointEnabled>
+              <HttpEndpointEnabled>{{ cluster.enable_http_endpoint }}</HttpEndpointEnabled>
               <CopyTagsToSnapshot>{{ cluster.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <CrossAccountClone>false</CrossAccountClone>
               <DomainMemberships></DomainMemberships>
@@ -598,6 +645,7 @@ class Database(CloudFormationModel):
                 <Address>{{ database.address }}</Address>
                 <Port>{{ database.port }}</Port>
               </Endpoint>
+              <DbInstancePort>{{ database.port }}</DbInstancePort>
               <DBInstanceArn>{{ database.db_instance_arn }}</DBInstanceArn>
               <TagList>
               {%- for tag in database.tags -%}
@@ -619,7 +667,11 @@ class Database(CloudFormationModel):
         )
 
     def add_replica(self, replica):
-        self.replicas.append(replica.db_instance_identifier)
+        if self.region_name != replica.region_name:
+            # Cross Region replica
+            self.replicas.append(replica.db_instance_arn)
+        else:
+            self.replicas.append(replica.db_instance_identifier)
 
     def remove_replica(self, replica):
         self.replicas.remove(replica.db_instance_identifier)
@@ -747,7 +799,7 @@ class Database(CloudFormationModel):
         if source_db_identifier:
             # Replica
             db_kwargs["source_db_identifier"] = source_db_identifier
-            database = rds_backend.create_database_replica(db_kwargs)
+            database = rds_backend.create_db_instance_read_replica(db_kwargs)
         else:
             database = rds_backend.create_db_instance(db_kwargs)
         return database
@@ -1145,13 +1197,19 @@ class SecurityGroup(CloudFormationModel):
 
 
 class SubnetGroup(CloudFormationModel):
-    def __init__(self, subnet_name, description, subnets, tags):
+    def __init__(self, subnet_name, description, subnets, tags, region, account_id):
         self.subnet_name = subnet_name
         self.description = description
         self.subnets = subnets
         self.status = "Complete"
         self.tags = tags
         self.vpc_id = self.subnets[0].vpc_id
+        self.region = region
+        self.account_id = account_id
+
+    @property
+    def sg_arn(self):
+        return f"arn:aws:rds:{self.region}:{self.account_id}:subgrp:{self.subnet_name}"
 
     def to_xml(self):
         template = Template(
@@ -1160,6 +1218,7 @@ class SubnetGroup(CloudFormationModel):
               <SubnetGroupStatus>{{ subnet_group.status }}</SubnetGroupStatus>
               <DBSubnetGroupDescription>{{ subnet_group.description }}</DBSubnetGroupDescription>
               <DBSubnetGroupName>{{ subnet_group.subnet_name }}</DBSubnetGroupName>
+              <DBSubnetGroupArn>{{ subnet_group.sg_arn }}</DBSubnetGroupArn>
               <Subnets>
                 {% for subnet in subnet_group.subnets %}
                 <Subnet>
@@ -1222,7 +1281,10 @@ class SubnetGroup(CloudFormationModel):
         subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
         rds_backend = rds_backends[account_id][region_name]
         subnet_group = rds_backend.create_subnet_group(
-            resource_name, description, subnets, tags
+            resource_name,
+            description,
+            subnets,
+            tags,
         )
         return subnet_group
 
@@ -1325,7 +1387,7 @@ class RDSBackend(BaseBackend):
 
         return self.database_snapshots.pop(db_snapshot_identifier)
 
-    def create_database_replica(self, db_kwargs):
+    def create_db_instance_read_replica(self, db_kwargs):
         database_id = db_kwargs["db_instance_identifier"]
         source_database_id = db_kwargs["source_db_identifier"]
         primary = self.find_db_from_id(source_database_id)
@@ -1335,6 +1397,7 @@ class RDSBackend(BaseBackend):
         # Shouldn't really copy here as the instance is duplicated. RDS replicas have different instances.
         replica = copy.copy(primary)
         replica.update(db_kwargs)
+        replica.region_name = self.region_name
         replica.set_as_replica()
         self.databases[database_id] = replica
         primary.add_replica(replica)
@@ -1485,8 +1548,16 @@ class RDSBackend(BaseBackend):
         security_group.authorize_cidr(cidr_ip)
         return security_group
 
-    def create_subnet_group(self, subnet_name, description, subnets, tags):
-        subnet_group = SubnetGroup(subnet_name, description, subnets, tags)
+    def create_subnet_group(
+        self,
+        subnet_name,
+        description,
+        subnets,
+        tags,
+    ):
+        subnet_group = SubnetGroup(
+            subnet_name, description, subnets, tags, self.region_name, self.account_id
+        )
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
 
@@ -1746,6 +1817,24 @@ class RDSBackend(BaseBackend):
         cluster.status = "available"  # Already set the final status in the background
         return initial_state
 
+    def modify_db_cluster(self, kwargs):
+        cluster_id = kwargs["db_cluster_identifier"]
+
+        cluster = self.clusters[cluster_id]
+        del self.clusters[cluster_id]
+
+        kwargs["db_cluster_identifier"] = kwargs.pop("new_db_cluster_identifier")
+        for k, v in kwargs.items():
+            if v is not None:
+                setattr(cluster, k, v)
+
+        cluster_id = kwargs.get("new_db_cluster_identifier", cluster_id)
+        self.clusters[cluster_id] = cluster
+
+        initial_state = copy.deepcopy(cluster)  # Return status=creating
+        cluster.status = "available"  # Already set the final status in the background
+        return initial_state
+
     def create_db_cluster_snapshot(
         self, db_cluster_identifier, db_snapshot_identifier, tags=None
     ):
@@ -1846,7 +1935,7 @@ class RDSBackend(BaseBackend):
             db_cluster_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_cluster = snapshot.cluster
-        new_cluster_props = copy.deepcopy(original_cluster.__dict__)
+        new_cluster_props = copy.deepcopy(original_cluster.get_cfg())
         for key, value in overrides.items():
             if value:
                 new_cluster_props[key] = value

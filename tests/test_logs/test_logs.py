@@ -16,26 +16,24 @@ from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
 
-@pytest.fixture
-def json_policy_doc():
-    """Returns a policy document in JSON format.
+"""Returns a policy document in JSON format.
 
-    The ARN is bogus, but that shouldn't matter for the test.
-    """
-    return json.dumps(
-        {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Sid": "Route53LogsToCloudWatchLogs",
-                    "Effect": "Allow",
-                    "Principal": {"Service": ["route53.amazonaws.com"]},
-                    "Action": "logs:PutLogEvents",
-                    "Resource": "log_arn",
-                }
-            ],
-        }
-    )
+The ARN is bogus, but that shouldn't matter for the test.
+"""
+json_policy_doc = json.dumps(
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "Route53LogsToCloudWatchLogs",
+                "Effect": "Allow",
+                "Principal": {"Service": ["route53.amazonaws.com"]},
+                "Action": "logs:PutLogEvents",
+                "Resource": "log_arn",
+            }
+        ],
+    }
+)
 
 
 @mock_logs
@@ -589,7 +587,7 @@ def test_put_resource_policy():
 
 
 @mock_logs
-def test_put_resource_policy_too_many(json_policy_doc):
+def test_put_resource_policy_too_many():
     client = boto3.client("logs", TEST_REGION)
 
     # Create the maximum number of resource policies.
@@ -617,7 +615,7 @@ def test_put_resource_policy_too_many(json_policy_doc):
 
 
 @mock_logs
-def test_delete_resource_policy(json_policy_doc):
+def test_delete_resource_policy():
     client = boto3.client("logs", TEST_REGION)
 
     # Create a bunch of resource policies so we can give delete a workout.
@@ -649,7 +647,7 @@ def test_delete_resource_policy(json_policy_doc):
 
 
 @mock_logs
-def test_describe_resource_policies(json_policy_doc):
+def test_describe_resource_policies():
     client = boto3.client("logs", TEST_REGION)
 
     # Create the maximum number of resource policies so there's something

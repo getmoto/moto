@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import Any, Dict, List, Optional
 from .base_backend import InstanceTrackerMeta
 
 
@@ -14,22 +15,22 @@ class BaseModel(metaclass=InstanceTrackerMeta):
 class CloudFormationModel(BaseModel):
     @staticmethod
     @abstractmethod
-    def cloudformation_name_type():
+    def cloudformation_name_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
         # This must be implemented as a staticmethod with no parameters
-        # Return None for resources that do not have a name property
-        pass
+        # Return "" for resources that do not have a name property
+        return ""
 
     @staticmethod
     @abstractmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # This must be implemented as a staticmethod with no parameters
         # See for example https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
         return "AWS::SERVICE::RESOURCE"
 
     @classmethod
     @abstractmethod
-    def has_cfn_attr(cls, attr):
+    def has_cfn_attr(cls, attr: str) -> bool:  # pylint: disable=unused-argument
         # Used for validation
         # If a template creates an Output for an attribute that does not exist, an error should be thrown
         return True
@@ -37,44 +38,53 @@ class CloudFormationModel(BaseModel):
     @classmethod
     @abstractmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+        **kwargs: Any
+    ) -> Any:
         # This must be implemented as a classmethod with parameters:
         # cls, resource_name, cloudformation_json, account_id, region_name
         # Extract the resource parameters from the cloudformation json
         # and return an instance of the resource class
-        pass
+        ...
 
     @classmethod
     @abstractmethod
     def update_from_cloudformation_json(
         cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
-    ):
+        original_resource: Any,
+        new_resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ) -> Any:
         # This must be implemented as a classmethod with parameters:
         # cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
         # Extract the resource parameters from the cloudformation json,
         # delete the old resource and return the new one. Optionally inspect
         # the change in parameters and no-op when nothing has changed.
-        pass
+        ...
 
     @classmethod
     @abstractmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
-    ):
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ) -> None:
         # This must be implemented as a classmethod with parameters:
         # cls, resource_name, cloudformation_json, account_id, region_name
         # Extract the resource parameters from the cloudformation json
         # and delete the resource. Do not include a return statement.
-        pass
+        ...
 
     @abstractmethod
-    def is_created(self):
+    def is_created(self) -> bool:
         # Verify whether the resource was created successfully
         # Assume True after initialization
         # Custom resources may need time after init before they are created successfully
@@ -88,14 +98,14 @@ class ConfigQueryModel:
 
     def list_config_service_resources(
         self,
-        account_id,
-        resource_ids,
-        resource_name,
-        limit,
-        next_token,
-        backend_region=None,
-        resource_region=None,
-        aggregator=None,
+        account_id: str,
+        resource_ids: Optional[List[str]],
+        resource_name: Optional[str],
+        limit: int,
+        next_token: Optional[str],
+        backend_region: Optional[str] = None,
+        resource_region: Optional[str] = None,
+        aggregator: Optional[Dict[str, Any]] = None,
     ):
         """For AWS Config. This will list all of the resources of the given type and optional resource name and region.
 
@@ -148,12 +158,12 @@ class ConfigQueryModel:
 
     def get_config_resource(
         self,
-        account_id,
-        resource_id,
-        resource_name=None,
-        backend_region=None,
-        resource_region=None,
-    ):
+        account_id: str,
+        resource_id: str,
+        resource_name: Optional[str] = None,
+        backend_region: Optional[str] = None,
+        resource_region: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """For AWS Config. This will query the backend for the specific resource type configuration.
 
         This supports both aggregated, and non-aggregated fetching -- for batched fetching -- the Config batching requests
@@ -185,5 +195,5 @@ class ConfigQueryModel:
 class CloudWatchMetricProvider(object):
     @staticmethod
     @abstractmethod
-    def get_cloudwatch_metrics(account_id):
+    def get_cloudwatch_metrics(account_id: str) -> Any:
         pass

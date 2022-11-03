@@ -1,7 +1,14 @@
-from ..batch.models import batch_backends, BaseBackend, Job, ClientException
+from ..batch.models import (
+    batch_backends,
+    BaseBackend,
+    Job,
+    ClientException,
+    BatchBackend,
+)
 from ..core.utils import BackendDict
 
 import datetime
+from typing import Any, Dict, List, Tuple, Optional
 
 
 class BatchSimpleBackend(BaseBackend):
@@ -11,10 +18,10 @@ class BatchSimpleBackend(BaseBackend):
     """
 
     @property
-    def backend(self):
+    def backend(self) -> BatchBackend:
         return batch_backends[self.account_id][self.region_name]
 
-    def __getattribute__(self, name):
+    def __getattribute__(self, name: str) -> Any:
         """
         Magic part that makes this class behave like a wrapper around the regular batch_backend
         We intercept calls to `submit_job` and replace this with our own (non-Docker) implementation
@@ -32,7 +39,7 @@ class BatchSimpleBackend(BaseBackend):
             return object.__getattribute__(self, name)
         if name in ["submit_job"]:
 
-            def newfunc(*args, **kwargs):
+            def newfunc(*args: Any, **kwargs: Any) -> Any:
                 attr = object.__getattribute__(self, name)
                 return attr(*args, **kwargs)
 
@@ -42,13 +49,13 @@ class BatchSimpleBackend(BaseBackend):
 
     def submit_job(
         self,
-        job_name,
-        job_def_id,
-        job_queue,
-        depends_on=None,
-        container_overrides=None,
-        timeout=None,
-    ):
+        job_name: str,
+        job_def_id: str,
+        job_queue: str,
+        depends_on: Optional[List[Dict[str, str]]] = None,
+        container_overrides: Optional[Dict[str, Any]] = None,
+        timeout: Optional[Dict[str, int]] = None,
+    ) -> Tuple[str, str]:
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
         if job_def is None:

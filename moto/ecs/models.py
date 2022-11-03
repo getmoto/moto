@@ -1,9 +1,7 @@
 import re
-import uuid
 from copy import copy
 from datetime import datetime
-from random import random, randint
-
+from typing import Any
 import pytz
 
 from moto import settings
@@ -15,7 +13,10 @@ from moto.core.utils import (
     remap_nested_keys,
     BackendDict,
 )
+
+from ..ec2.utils import random_private_ip
 from moto.ec2 import ec2_backends
+from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
     EcsClientException,
@@ -243,7 +244,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         family = properties.get(
-            "Family", "task-definition-{0}".format(int(random() * 10**6))
+            "Family", "task-definition-{0}".format(int(mock_random.random() * 10**6))
         )
         container_definitions = remap_nested_keys(
             properties.get("ContainerDefinitions", []), pascal_to_camelcase
@@ -266,7 +267,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
         family = properties.get(
-            "Family", "task-definition-{0}".format(int(random() * 10**6))
+            "Family", "task-definition-{0}".format(int(mock_random.random() * 10**6))
         )
         container_definitions = properties["ContainerDefinitions"]
         volumes = properties.get("Volumes")
@@ -301,8 +302,9 @@ class Task(BaseObject):
         overrides=None,
         started_by="",
         tags=None,
+        networking_configuration=None,
     ):
-        self.id = str(uuid.uuid4())
+        self.id = str(mock_random.uuid4())
         self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
         self.container_instance_arn = container_instance_arn
@@ -319,6 +321,42 @@ class Task(BaseObject):
         self.region_name = cluster.region_name
         self._account_id = backend.account_id
         self._backend = backend
+        self.attachments = []
+
+        if task_definition.network_mode == "awsvpc":
+            if not networking_configuration:
+
+                raise InvalidParameterException(
+                    "Network Configuration must be provided when networkMode 'awsvpc' is specified."
+                )
+
+            self.network_configuration = networking_configuration
+            net_conf = networking_configuration["awsvpcConfiguration"]
+            ec2_backend = ec2_backends[self._account_id][self.region_name]
+
+            eni = ec2_backend.create_network_interface(
+                subnet=net_conf["subnets"][0],
+                private_ip_address=random_private_ip(),
+                group_ids=net_conf["securityGroups"],
+                description="moto ECS",
+            )
+            eni.status = "in-use"
+            eni.device_index = 0
+
+            self.attachments.append(
+                {
+                    "id": str(mock_random.uuid4()),
+                    "type": "ElasticNetworkInterface",
+                    "status": "ATTACHED",
+                    "details": [
+                        {"name": "subnetId", "value": net_conf["subnets"][0]},
+                        {"name": "networkInterfaceId", "value": eni.id},
+                        {"name": "macAddress", "value": eni.mac_address},
+                        {"name": "privateDnsName", "value": eni.private_dns_name},
+                        {"name": "privateIPv4Address", "value": eni.private_ip_address},
+                    ],
+                }
+            )
 
     @property
     def task_arn(self):
@@ -335,7 +373,7 @@ class Task(BaseObject):
 
 class CapacityProvider(BaseObject):
     def __init__(self, account_id, region_name, name, asg_details, tags):
-        self._id = str(uuid.uuid4())
+        self._id = str(mock_random.uuid4())
         self.capacity_provider_arn = f"arn:aws:ecs:{region_name}:{account_id}:capacity_provider/{name}/{self._id}"
         self.name = name
         self.status = "ACTIVE"
@@ -391,7 +429,7 @@ class Service(BaseObject, CloudFormationModel):
                 {
                     "createdAt": datetime.now(pytz.utc),
                     "desiredCount": self.desired_count,
-                    "id": "ecs-svc/{}".format(randint(0, 32**12)),
+                    "id": "ecs-svc/{}".format(mock_random.randint(0, 32**12)),
                     "launchType": self.launch_type,
                     "pendingCount": self.desired_count,
                     "runningCount": 0,
@@ -620,7 +658,7 @@ class ContainerInstance(BaseObject):
         }
         self.registered_at = datetime.now(pytz.utc)
         self.region_name = region_name
-        self.id = str(uuid.uuid4())
+        self.id = str(mock_random.uuid4())
         self.cluster_name = cluster_name
         self._account_id = backend.account_id
         self._backend = backend
@@ -718,7 +756,7 @@ class TaskSet(BaseObject):
         self.createdAt = datetime.now(pytz.utc)
         self.updatedAt = datetime.now(pytz.utc)
         self.stabilityStatusAt = datetime.now(pytz.utc)
-        self.id = "ecs-svc/{}".format(randint(0, 32**12))
+        self.id = "ecs-svc/{}".format(mock_random.randint(0, 32**12))
         self.service_arn = ""
         self.cluster_arn = ""
 
@@ -812,7 +850,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             raise Exception("{0} is not a task_definition".format(task_definition_name))
 
-    def create_cluster(self, cluster_name, tags=None, cluster_settings=None):
+    def create_cluster(
+        self, cluster_name: str, tags: Any = None, cluster_settings: Any = None
+    ) -> Cluster:
         """
         The following parameters are not yet implemented: configuration, capacityProviders, defaultCapacityProviderStrategy
         """
@@ -888,7 +928,7 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return list_clusters, failures
 
-    def delete_cluster(self, cluster_str):
+    def delete_cluster(self, cluster_str: str) -> Cluster:
         cluster = self._get_cluster(cluster_str)
 
         return self.clusters.pop(cluster.name)
@@ -976,6 +1016,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         started_by,
         tags,
         launch_type,
+        networking_configuration=None,
     ):
         cluster = self._get_cluster(cluster_str)
 
@@ -1019,6 +1060,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         started_by=started_by or "",
                         tags=tags or [],
                         launch_type=launch_type or "",
+                        networking_configuration=networking_configuration,
                     )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements

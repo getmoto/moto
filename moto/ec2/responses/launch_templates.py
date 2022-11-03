@@ -1,5 +1,5 @@
-import uuid
 from moto.ec2.exceptions import FilterNotImplementedError
+from moto.moto_api._internal import mock_random
 from ._base_response import EC2BaseResponse
 
 from xml.etree import ElementTree
@@ -10,7 +10,7 @@ def xml_root(name):
     root = ElementTree.Element(
         name, {"xmlns": "http://ec2.amazonaws.com/doc/2016-11-15/"}
     )
-    request_id = str(uuid.uuid4()) + "example"
+    request_id = str(mock_random.uuid4()) + "example"
     ElementTree.SubElement(root, "requestId").text = request_id
 
     return root

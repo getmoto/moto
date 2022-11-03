@@ -1,13 +1,13 @@
 import datetime
-
 import pytz
-
 from collections import OrderedDict
+from typing import List, Iterable
+
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
 from moto.ec2.models import ec2_backends
 from moto.ec2.exceptions import InvalidInstanceIdError
-from uuid import uuid4
+from moto.moto_api._internal import mock_random
 from .exceptions import (
     BadHealthCheckDefinition,
     DuplicateLoadBalancerName,
@@ -306,7 +306,7 @@ class ELBBackend(BaseBackend):
             raise EmptyListenersError()
         if not security_groups:
             sg = ec2_backend.create_security_group(
-                name=f"default_elb_{uuid4()}",
+                name=f"default_elb_{mock_random.uuid4()}",
                 description="ELB created security group used when no security group is specified during ELB creation - modifications could impact traffic to future ELBs",
                 vpc_id=vpc_id,
             )
@@ -359,7 +359,7 @@ class ELBBackend(BaseBackend):
 
         return balancer
 
-    def describe_load_balancers(self, names):
+    def describe_load_balancers(self, names: List[str]) -> List[FakeLoadBalancer]:
         balancers = self.load_balancers.values()
         if names:
             matched_balancers = [
@@ -465,8 +465,11 @@ class ELBBackend(BaseBackend):
         return balancer
 
     def register_instances(
-        self, load_balancer_name, instance_ids, from_autoscaling=False
-    ):
+        self,
+        load_balancer_name: str,
+        instance_ids: Iterable[str],
+        from_autoscaling: bool = False,
+    ) -> FakeLoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         attr_name = (
             "instance_sparse_ids"
@@ -479,8 +482,11 @@ class ELBBackend(BaseBackend):
         return load_balancer
 
     def deregister_instances(
-        self, load_balancer_name, instance_ids, from_autoscaling=False
-    ):
+        self,
+        load_balancer_name: str,
+        instance_ids: Iterable[str],
+        from_autoscaling: bool = False,
+    ) -> FakeLoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         attr_name = (
             "instance_sparse_ids"
@@ -575,12 +581,12 @@ class ELBBackend(BaseBackend):
         return load_balancer
 
     def _register_certificate(self, ssl_certificate_id, dns_name):
-        from moto.acm.models import acm_backends, AWSResourceNotFoundException
+        from moto.acm.models import acm_backends, CertificateNotFound
 
         acm_backend = acm_backends[self.account_id][self.region_name]
         try:
             acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
-        except AWSResourceNotFoundException:
+        except CertificateNotFound:
             raise CertificateNotFoundException()
 
     def enable_availability_zones_for_load_balancer(

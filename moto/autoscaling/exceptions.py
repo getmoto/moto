@@ -8,7 +8,7 @@ class AutoscalingClientError(RESTError):
 class ResourceContentionError(RESTError):
     code = 500
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "ResourceContentionError",
             "You already have a pending update to an Auto Scaling resource (for example, a group, instance, or load balancer).",
@@ -16,12 +16,12 @@ class ResourceContentionError(RESTError):
 
 
 class InvalidInstanceError(AutoscalingClientError):
-    def __init__(self, instance_id):
+    def __init__(self, instance_id: str):
         super().__init__(
             "ValidationError", "Instance [{0}] is invalid.".format(instance_id)
         )
 
 
 class ValidationError(AutoscalingClientError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__("ValidationError", message)

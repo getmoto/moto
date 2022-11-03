@@ -1,11 +1,9 @@
 import json
 import hashlib
-import random
-import string
 import pkgutil
 
-
 from collections.abc import MutableMapping
+from typing import Any, Dict, Union
 
 
 def str2bool(v):
@@ -15,15 +13,9 @@ def str2bool(v):
         return False
 
 
-def random_string(length=None):
-    n = length or 20
-    random_str = "".join(
-        [random.choice(string.ascii_letters + string.digits) for i in range(n)]
-    )
-    return random_str
-
-
-def load_resource(package, resource, as_json=True):
+def load_resource(
+    package: str, resource: str, as_json: bool = True
+) -> Union[Dict[str, Any], str]:
     """
     Open a file, and return the contents as JSON.
     Usage:
@@ -33,7 +25,7 @@ def load_resource(package, resource, as_json=True):
     return json.loads(resource) if as_json else resource.decode("utf-8")
 
 
-def merge_multiple_dicts(*args):
+def merge_multiple_dicts(*args: Any) -> Dict[str, any]:
     result = {}
     for d in args:
         result.update(d)
@@ -58,7 +50,7 @@ def filter_resources(resources, filters, attr_pairs):
     return result
 
 
-def md5_hash(data=None):
+def md5_hash(data: Any = None) -> Any:
     """
     MD5-hashing for non-security usecases.
     Required for Moto to work in FIPS-enabled systems

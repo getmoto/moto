@@ -25,8 +25,10 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.id = route_table_id
         self.vpc_id = vpc_id
-        self.main = main
-        self.main_association = random_subnet_association_id()
+        if main:
+            self.main_association_id = random_subnet_association_id()
+        else:
+            self.main_association_id = None
         self.associations = {}
         self.routes = {}
 
@@ -64,7 +66,7 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         if filter_name == "association.main":
             # Note: Boto only supports 'true'.
             # https://github.com/boto/boto/issues/1742
-            if self.main:
+            if self.main_association_id is not None:
                 return "true"
             else:
                 return "false"
@@ -75,7 +77,7 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         elif filter_name == "association.route-table-id":
             return self.id
         elif filter_name == "association.route-table-association-id":
-            return self.associations.keys()
+            return self.all_associations_ids
         elif filter_name == "association.subnet-id":
             return self.associations.values()
         elif filter_name == "route.gateway-id":
@@ -84,8 +86,22 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
                 for route in self.routes.values()
                 if route.gateway is not None
             ]
+        elif filter_name == "route.vpc-peering-connection-id":
+            return [
+                route.vpc_pcx.id
+                for route in self.routes.values()
+                if route.vpc_pcx is not None
+            ]
         else:
             return super().get_filter_value(filter_name, "DescribeRouteTables")
+
+    @property
+    def all_associations_ids(self):
+        # NOTE(yoctozepto): Doing an explicit copy to not touch the original.
+        all_associations = set(self.associations)
+        if self.main_association_id is not None:
+            all_associations.add(self.main_association_id)
+        return all_associations
 
 
 class RouteTableBackend:
@@ -186,7 +202,7 @@ class RouteTableBackend:
     def replace_route_table_association(self, association_id, route_table_id):
         # Idempotent if association already exists.
         new_route_table = self.get_route_table(route_table_id)
-        if association_id in new_route_table.associations:
+        if association_id in new_route_table.all_associations_ids:
             return association_id
 
         # Find route table which currently has the association, error if none.
@@ -195,11 +211,19 @@ class RouteTableBackend:
         )
         if not route_tables_by_association_id:
             raise InvalidAssociationIdError(association_id)
+        previous_route_table = route_tables_by_association_id[0]
 
         # Remove existing association, create new one.
-        previous_route_table = route_tables_by_association_id[0]
-        subnet_id = previous_route_table.associations.pop(association_id, None)
-        return self.associate_route_table(route_table_id, subnet_id)
+        new_association_id = random_subnet_association_id()
+        if previous_route_table.main_association_id == association_id:
+            previous_route_table.main_association_id = None
+            new_route_table.main_association_id = new_association_id
+        else:
+            association_target_id = previous_route_table.associations.pop(
+                association_id
+            )
+            new_route_table.associations[new_association_id] = association_target_id
+        return new_association_id
 
 
 # TODO: refractor to isloate class methods from backend logic

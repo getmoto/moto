@@ -5,7 +5,7 @@ from dateutil.tz import tzlocal
 
 from moto.core import BaseBackend, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
-from uuid import uuid4
+from moto.moto_api._internal import mock_random
 from .exceptions import (
     ExecutionAlreadyExists,
     ExecutionDoesNotExist,
@@ -498,7 +498,7 @@ class StepFunctionBackend(BaseBackend):
         execution = state_machine.start_execution(
             region_name=self.region_name,
             account_id=self.account_id,
-            execution_name=name or str(uuid4()),
+            execution_name=name or str(mock_random.uuid4()),
             execution_input=execution_input,
         )
         return execution

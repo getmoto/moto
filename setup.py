@@ -32,7 +32,7 @@ install_requires = [
     "cryptography>=3.3.1",
     "requests>=2.5",
     "xmltodict",
-    "werkzeug>=0.5,<2.2.0",
+    "werkzeug>=0.5,!=2.2.0,!=2.2.1",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "responses>=0.13.0",
@@ -73,7 +73,7 @@ all_extra_deps = [
     _dep_openapi,
     _setuptools,
 ]
-all_server_deps = all_extra_deps + ["flask<2.2.0", "flask-cors"]
+all_server_deps = all_extra_deps + ["flask!=2.2.0,!=2.2.1", "flask-cors"]
 
 extras_per_service = {}
 for service_name in [
@@ -142,7 +142,7 @@ setup(
     install_requires=install_requires,
     extras_require=extras_require,
     include_package_data=True,
-    license="Apache",
+    license="Apache License 2.0",
     test_suite="tests",
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -151,6 +151,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],

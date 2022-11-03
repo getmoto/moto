@@ -1,6 +1,6 @@
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-import random
+from moto.moto_api._internal import mock_random as random
 import string
 
 

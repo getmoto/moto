@@ -66,8 +66,11 @@ def get_table(client, database_name, table_name):
     return client.get_table(DatabaseName=database_name, Name=table_name)
 
 
-def get_tables(client, database_name):
-    return client.get_tables(DatabaseName=database_name)
+def get_tables(client, database_name, expression=None):
+    if expression:
+        return client.get_tables(DatabaseName=database_name, Expression=expression)
+    else:
+        return client.get_tables(DatabaseName=database_name)
 
 
 def get_table_versions(client, database_name, table_name):

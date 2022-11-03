@@ -60,6 +60,7 @@ s3control
 - [ ] get_bucket_lifecycle_configuration
 - [ ] get_bucket_policy
 - [ ] get_bucket_tagging
+- [ ] get_bucket_versioning
 - [ ] get_job_tagging
 - [ ] get_multi_region_access_point
 - [ ] get_multi_region_access_point_policy
@@ -79,6 +80,7 @@ s3control
 - [ ] put_bucket_lifecycle_configuration
 - [ ] put_bucket_policy
 - [ ] put_bucket_tagging
+- [ ] put_bucket_versioning
 - [ ] put_job_tagging
 - [ ] put_multi_region_access_point_policy
 - [X] put_public_access_block

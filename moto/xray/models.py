@@ -16,11 +16,11 @@ class TelemetryRecords(BaseModel):
         self.records = records
 
     @classmethod
-    def from_json(cls, json):
-        instance_id = json.get("EC2InstanceId", None)
-        hostname = json.get("Hostname")
-        resource_arn = json.get("ResourceARN")
-        telemetry_records = json["TelemetryRecords"]
+    def from_json(cls, src):
+        instance_id = src.get("EC2InstanceId", None)
+        hostname = src.get("Hostname")
+        resource_arn = src.get("ResourceARN")
+        telemetry_records = src["TelemetryRecords"]
 
         return cls(instance_id, hostname, resource_arn, telemetry_records)
 
@@ -242,8 +242,8 @@ class XRayBackend(BaseBackend):
             service_region, zones, "xray"
         )
 
-    def add_telemetry_records(self, json):
-        self._telemetry_records.append(TelemetryRecords.from_json(json))
+    def add_telemetry_records(self, src):
+        self._telemetry_records.append(TelemetryRecords.from_json(src))
 
     def process_segment(self, doc):
         try:

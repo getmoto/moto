@@ -1,7 +1,8 @@
 from collections import defaultdict
 from datetime import datetime
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex, BackendDict
+from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random
 from moto.s3.exceptions import (
     WrongPublicAccessBlockAccountIdError,
     NoSuchPublicAccessBlockConfiguration,
@@ -22,7 +23,7 @@ class AccessPoint(BaseModel):
         public_access_block_configuration,
     ):
         self.name = name
-        self.alias = f"{name}-{get_random_hex(34)}-s3alias"
+        self.alias = f"{name}-{mock_random.get_random_hex(34)}-s3alias"
         self.bucket = bucket
         self.created = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
         self.arn = f"arn:aws:s3:us-east-1:{account_id}:accesspoint/{name}"

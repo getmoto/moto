@@ -76,6 +76,20 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
         self.created_at = utc_date_and_time()
 
+    def modify(self, policy_doc, add_subnets, add_route_tables, remove_route_tables):
+        if policy_doc:
+            self.policy_document = policy_doc
+        if add_subnets:
+            self.subnet_ids.extend(add_subnets)
+        if add_route_tables:
+            self.route_table_ids.extend(add_route_tables)
+        if remove_route_tables:
+            self.route_table_ids = [
+                rt_id
+                for rt_id in self.route_table_ids
+                if rt_id not in remove_route_tables
+            ]
+
     def get_filter_value(self, filter_name):
         if filter_name in ("vpc-endpoint-type", "vpc_endpoint_type"):
             return self.endpoint_type
@@ -155,6 +169,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         # This attribute is set to 'true' only for default VPCs
         # or VPCs created using the wizard of the VPC console
         self.enable_dns_hostnames = "true" if is_default else "false"
+        self.enable_network_address_usage_metrics = "false"
 
         self.associate_vpc_cidr_block(cidr_block)
         if amazon_provided_ipv6_cidr_block:
@@ -452,7 +467,11 @@ class VPCBackend:
 
     def describe_vpc_attribute(self, vpc_id, attr_name):
         vpc = self.get_vpc(vpc_id)
-        if attr_name in ("enable_dns_support", "enable_dns_hostnames"):
+        if attr_name in (
+            "enable_dns_support",
+            "enable_dns_hostnames",
+            "enable_network_address_usage_metrics",
+        ):
             return getattr(vpc, attr_name)
         else:
             raise InvalidParameterValueError(attr_name)
@@ -479,7 +498,11 @@ class VPCBackend:
 
     def modify_vpc_attribute(self, vpc_id, attr_name, attr_value):
         vpc = self.get_vpc(vpc_id)
-        if attr_name in ("enable_dns_support", "enable_dns_hostnames"):
+        if attr_name in (
+            "enable_dns_support",
+            "enable_dns_hostnames",
+            "enable_network_address_usage_metrics",
+        ):
             setattr(vpc, attr_name, attr_value)
         else:
             raise InvalidParameterValueError(attr_name)
@@ -592,6 +615,12 @@ class VPCBackend:
                 )
 
         return vpc_end_point
+
+    def modify_vpc_endpoint(
+        self, vpc_id, policy_doc, add_subnets, remove_route_tables, add_route_tables
+    ):
+        endpoint = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_id])[0]
+        endpoint.modify(policy_doc, add_subnets, add_route_tables, remove_route_tables)
 
     def delete_vpc_endpoints(self, vpce_ids=None):
         for vpce_id in vpce_ids or []:

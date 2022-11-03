@@ -21,7 +21,6 @@ from gzip import GzipFile
 import io
 import json
 from time import time
-from uuid import uuid4
 import warnings
 
 import requests
@@ -36,6 +35,7 @@ from moto.firehose.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
+from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.utilities.tagging_service import TaggingService
 
@@ -407,7 +407,7 @@ class FirehoseBackend(BaseBackend):
         url = http_destination["EndpointConfiguration"]["Url"]
         headers = {"Content-Type": "application/json"}
         record_to_send = {
-            "requestId": str(uuid4()),
+            "requestId": str(mock_random.uuid4()),
             "timestamp": int(time()),
             "records": [{"data": record["Data"]} for record in records],
         }
@@ -418,7 +418,7 @@ class FirehoseBackend(BaseBackend):
             raise RuntimeError(
                 "Firehose PutRecord(Batch) to HTTP destination failed"
             ) from exc
-        return [{"RecordId": str(uuid4())} for _ in range(len(records))]
+        return [{"RecordId": str(mock_random.uuid4())} for _ in range(len(records))]
 
     @staticmethod
     def _format_s3_object_path(delivery_stream_name, version_id, prefix):
@@ -433,7 +433,7 @@ class FirehoseBackend(BaseBackend):
         return (
             f"{prefix}{now.strftime('%Y/%m/%d/%H')}/"
             f"{delivery_stream_name}-{version_id}-"
-            f"{now.strftime('%Y-%m-%d-%H-%M-%S')}-{str(uuid4())}"
+            f"{now.strftime('%Y-%m-%d-%H-%M-%S')}-{str(mock_random.uuid4())}"
         )
 
     def put_s3_records(self, delivery_stream_name, version_id, s3_destination, records):
@@ -455,7 +455,7 @@ class FirehoseBackend(BaseBackend):
             raise RuntimeError(
                 "Firehose PutRecord(Batch to S3 destination failed"
             ) from exc
-        return [{"RecordId": str(uuid4())} for _ in range(len(records))]
+        return [{"RecordId": str(mock_random.uuid4())} for _ in range(len(records))]
 
     def put_record_batch(self, delivery_stream_name, records):
         """Write multiple data records into a Kinesis Data firehose stream."""
@@ -494,7 +494,7 @@ class FirehoseBackend(BaseBackend):
                 # This isn't implmented as these services aren't implemented,
                 # so ignore the data, but return a "proper" response.
                 request_responses = [
-                    {"RecordId": str(uuid4())} for _ in range(len(records))
+                    {"RecordId": str(mock_random.uuid4())} for _ in range(len(records))
                 ]
 
         return {

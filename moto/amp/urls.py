@@ -13,6 +13,7 @@ url_paths = {
     "{0}/workspaces$": response.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)$": response.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)/alias$": response.dispatch,
+    "{0}/workspaces/(?P<workspace_id>[^/]+)/logging$": response.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces$": response.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces/(?P<name>[^/]+)$": response.dispatch,
     "{0}/tags/(?P<resource_arn>[^/]+)$": response.dispatch,

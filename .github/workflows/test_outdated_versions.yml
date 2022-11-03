@@ -13,10 +13,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.10" ]
+        python-version: [ "3.11" ]
         responses-version: ["0.13.0", "0.15.0", "0.17.0", "0.19.0", "0.20.0" ]
-        mock-version: [ "3.0.5", "4.0.0", "4.0.3" ]
-        werkzeug-version: ["2.0.1", "2.1.1"]
+        werkzeug-version: ["2.0.1", "2.1.1", "2.2.2"]
+        openapi-spec-validator-version: ["0.4.0", "0.5.0"]
 
     steps:
     - name: Checkout repository
@@ -35,9 +35,36 @@ jobs:
       run: |
         pip install -r requirements-dev.txt
         pip install responses==${{ matrix.responses-version }}
-        pip install mock==${{ matrix.mock-version }}
+        pip install flask==${{ matrix.werkzeug-version }}
         pip install werkzeug==${{ matrix.werkzeug-version }}
+        pip install openapi-spec-validator==${{ matrix.openapi-spec-validator-version }}
 
     - name: Run tests
       run: |
         pytest -sv tests/test_core ./tests/test_apigateway/test_apigateway_integration.py ./tests/test_s3/test_server.py
+
+    - name: Start MotoServer
+      run: |
+        python setup.py sdist
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
+        python scripts/ci_wait_for_server.py
+    - name: Test ServerMode/Coverage
+      env:
+        TEST_SERVER_MODE: ${{ true }}
+      run: |
+        pytest -sv tests/test_core tests/test_awslambda tests/test_cloudformation
+    - name: "Stop MotoServer"
+      if: always()
+      run: |
+        mkdir serverlogs
+        pwd
+        ls -la
+        cp server_output.log serverlogs/server_output.log
+        docker stop motoserver
+    - name: Archive TF logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: motoserver
+        path: |
+          serverlogs/*

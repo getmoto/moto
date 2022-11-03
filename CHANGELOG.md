@@ -1,9 +1,144 @@
 Moto Changelog
 ==============
 
+4.0.9
+-----
+Docker Digest for 4.0.9: _sha256:0c7a87255814035794733764d497fcb659ae0d6c843fae41040bb1a29c0726ab_
+
+    Miscellaneous:
+        * CloudTrail: describe_trails() now returns the correct (MultiRegion) trails
+        * CloudWatch:tag_resource() now allows tagting new Alarms that didn't have tags yet
+        * EC2: create_instances() now supports the `IamInstanceProfile`-parameter
+        * EC2: describe_route_tables() now supports the `route.vpc-peering-connection-id`-filter
+        * EC2: modify_vpc_attribute() now supports the enableNetworkAddressUsageMetrics-attribute
+        * S3: delete_objects() now works against the JS SDK v3.197.0
+
+
+4.0.8
+-----
+Docker Digest for 4.0.8: _sha256:41883fb0f38572f3194dcbef6731eafdc6d8d7d4e319257d2ba2468c401c9881_
+
+    General:
+        * Unpins the werkzeug-dependency - Moto now works with werkzeug==2.2.2
+        * Fixes the Docker-build to run on M1 Macbooks.
+
+    New Services:
+        * ServiceQuotas:
+            * get_service_quota()
+            * list_aws_default_service_quotas()
+
+    New Methods:
+        * CloudFront: list_invalidations()
+        * RDS: modify_db_cluster()
+
+    Miscellaneous:
+        * Lambda:delete_function() - fixed an issue where the wrong Function would be deleted when providing a qualifier
+        * ECR:put_image() now removes any existing images that have the provided tag
+        * IAM:detach_user/group/role_policy() now throws the correct error message when the policy is not attached in the first place 
+        * S3:list_object_versions(): Fix delimiter to take prefix into account 
+        * S3: Now closes file handles as early as possible when deleting files/multipart uploads
+        * Sagamaker:describe_training_job() now throws the correct exception when trying to explain a non-existing job
+
+
+4.0.7
+-----
+Docker Digest for 4.0.7: _sha256:a8ecbdba177c91c557ff76814c1b9a4d6673dc8e1e4183b183e5cff4ce73c356_
+
+    New Services:
+        * Comprehend:
+            * create_entity_recognizer()
+            * delete_entity_recognizer()
+            * describe_entity_recognizer()
+            * list_entity_recognizers()
+            * list_tags_for_resource()
+            * stop_training_entity_recognizer()
+
+        * MeteringMarketplace:
+            * batch_meter_usage()
+
+    New Methods:
+        * EC2:
+            * modify_vpc_endpoint()
+        * MediaConnect:
+            * grant_flow_entitlements()
+            * revoke_flow_entitlement()
+            * update_flow_entitlement()
+            * update_flow_output()
+
+    Miscellaneous:
+        * DynamoDB:transact_write_items() - Now includes validation if multipel operations are provided in the same item
+        * EC2:cancel_spot_fleet_request() - Fixed a bug where instances were always terminated
+        * EC2:create_instances() - Now uses the private IP address as as provided in the NetworkInterface
+        * EC2:describe_instance_types() - Now supports all filters
+        * ECS:run_task() - Now creates/attaches an ENI if appropriate
+        * S3: Fixed an issue where file handles were not closed on large uploads
+
+4.0.6
+-----
+Docker Digest for 4.0.6: _sha256:01582a705be7c50bc15993acc2271cd190db9c08c5fc09d85c59c8ddae6bb260_
+
+    General:
+        * Moto can now be seeded, which will make identifiers deterministic.
+          See http://docs.getmoto.org/en/latest/docs/configuration/recorder/index.html
+        * The format for access-key and role ids has been changed, and is now generated using the same algorithm that AWS uses
+
+    Miscellaneous:
+        * AWSLambda:add_permission() now properly handles the PrincipalOrgID-param
+        * DynamoDB:update_item() now validates duplicate UpdateExpressions
+        * EC2 now exposes instance types in the correct availability zones for us-west-1 (us-west-1a and us-west-1b)
+        * EC2 has various improvements around the handling of RouteTableAssociations
+        * Glue:get_tables() now supports the Expression-parameter
+        * Organizations:create_organization() now uses a default value for FeatureSet=ALL
+        * RDS:describe_db_subnet_groups() now returns the DBSubnetGroupArn-attribute
+        * S3:upload_file() now supports the ExtraArgs: ChecksumAlgorithm-parameter
+        * SSM:list_commands() now returns the DeliveryTimedOutCount-attribute
+
+
+4.0.5
+-----
+Docker Digest for 4.0.5: _sha256:d18f760f3498b212b0c8c205c9c28c2b41e8c7a108f44e1bd1d7ee86dfc37c03_
+
+    General:
+        * Moto now has a Recorder, to easily record and replay a given set of requests.
+          See http://docs.getmoto.org/en/latest/docs/configuration/recorder/index.html
+
+    Miscellaneous:
+        * CloudFormation now supports the creation/update/deletion of AWS::EC2::LaunchTemplate
+        * Glue:start_job_run() now respects the MaxConcurrentRuns-parameter
+        * S3:get_object() now performs rudimentary BucketPolicy validation
+        * StateManager now supports `glue::job_run`, managing how long it takes to for a Glue job to become 'SUCCEEDED'
+
+
+4.0.3
+-----
+Docker Digest for 4.0.3: <autopopulateddigest>
+
+    General:
+        * Compatible with openapi-spec-validator 0.5.x
+
+    New Methods:
+        * Kinesis:
+            * update_stream_mode()
+        * WAFv2:
+            * associate_web_acl()
+            * delete_web_acl()
+            * disassociate_web_acl()
+            * get_web_acl()
+            * get_web_acl_for_resource()
+            * list_rule_groups()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_web_acl()
+
+    Miscellaneous:
+        * DynamoDB:query() now has improved support for KeyConditionExpression
+        * Kinesis:put_records() now validates the size/number of records, following AWS' behaviour
+
+
 4.0.2
 -----
-Docker Digest for 4.0.2: <autopopulateddigest>
+Docker Digest for 4.0.2: _sha256:32b30fef5d54d30eb7beca263dcb0ba08bd3718adb8b5d95f9f4b6e9cfc854f1_
 
     New Services:
         * Amazon Managed Prometheus (AMP)

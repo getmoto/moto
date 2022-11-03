@@ -2,34 +2,23 @@ import json
 import base64
 
 from moto.core.responses import BaseResponse
-from .models import acm_backends, AWSValidationException
+from typing import Dict, List, Tuple, Union
+from .models import acm_backends, AWSCertificateManagerBackend
+from .exceptions import AWSValidationException
+
+
+GENERIC_RESPONSE_TYPE = Union[str, Tuple[str, Dict[str, int]]]
 
 
 class AWSCertificateManagerResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="acm")
 
     @property
-    def acm_backend(self):
-        """
-        ACM Backend
-
-        :return: ACM Backend object
-        :rtype: moto.acm.models.AWSCertificateManagerBackend
-        """
+    def acm_backend(self) -> AWSCertificateManagerBackend:
         return acm_backends[self.current_account][self.region]
 
-    @property
-    def request_params(self):
-        try:
-            return json.loads(self.body)
-        except ValueError:
-            return {}
-
-    def _get_param(self, param_name, if_none=None):
-        return self.request_params.get(param_name, if_none)
-
-    def add_tags_to_certificate(self):
+    def add_tags_to_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
         tags = self._get_param("Tags")
 
@@ -44,7 +33,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         return ""
 
-    def delete_certificate(self):
+    def delete_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
 
         if arn is None:
@@ -58,7 +47,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         return ""
 
-    def describe_certificate(self):
+    def describe_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
 
         if arn is None:
@@ -72,7 +61,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         return json.dumps(cert_bundle.describe())
 
-    def get_certificate(self):
+    def get_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
 
         if arn is None:
@@ -90,7 +79,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         }
         return json.dumps(result)
 
-    def import_certificate(self):
+    def import_certificate(self) -> str:
         """
         Returns errors on:
         Certificate, PrivateKey or Chain not being properly formatted
@@ -137,7 +126,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         return json.dumps({"CertificateArn": arn})
 
-    def list_certificates(self):
+    def list_certificates(self) -> str:
         certs = []
         statuses = self._get_param("CertificateStatuses")
         for cert_bundle in self.acm_backend.get_certificates_list(statuses):
@@ -151,16 +140,18 @@ class AWSCertificateManagerResponse(BaseResponse):
         result = {"CertificateSummaryList": certs}
         return json.dumps(result)
 
-    def list_tags_for_certificate(self):
+    def list_tags_for_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
 
         if arn is None:
             msg = "A required parameter for the specified action is not supplied."
-            return {"__type": "MissingParameter", "message": msg}, dict(status=400)
+            return json.dumps({"__type": "MissingParameter", "message": msg}), dict(
+                status=400
+            )
 
         cert_bundle = self.acm_backend.get_certificate(arn)
 
-        result = {"Tags": []}
+        result: Dict[str, List[Dict[str, str]]] = {"Tags": []}
         # Tag "objects" can not contain the Value part
         for key, value in cert_bundle.tags.items():
             tag_dict = {"Key": key}
@@ -170,7 +161,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def remove_tags_from_certificate(self):
+    def remove_tags_from_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
         tags = self._get_param("Tags")
 
@@ -185,7 +176,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         return ""
 
-    def request_certificate(self):
+    def request_certificate(self) -> GENERIC_RESPONSE_TYPE:
         domain_name = self._get_param("DomainName")
         idempotency_token = self._get_param("IdempotencyToken")
         subject_alt_names = self._get_param("SubjectAlternativeNames")
@@ -210,7 +201,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         return json.dumps({"CertificateArn": arn})
 
-    def resend_validation_email(self):
+    def resend_validation_email(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
         domain = self._get_param("Domain")
         # ValidationDomain not used yet.
@@ -235,7 +226,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         return ""
 
-    def export_certificate(self):
+    def export_certificate(self) -> GENERIC_RESPONSE_TYPE:
         certificate_arn = self._get_param("CertificateArn")
         passphrase = self._get_param("Passphrase")
 

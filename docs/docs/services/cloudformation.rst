@@ -93,7 +93,7 @@ cloudformation
 - [ ] stop_stack_set_operation
 - [ ] test_type
 - [X] update_stack
-- [ ] update_stack_instances
+- [X] update_stack_instances
 - [X] update_stack_set
 - [ ] update_termination_protection
 - [X] validate_template

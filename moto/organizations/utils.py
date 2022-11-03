@@ -1,6 +1,6 @@
-import random
 import re
 import string
+from moto.moto_api._internal import mock_random as random
 
 
 MASTER_ACCOUNT_EMAIL = "master@example.com"

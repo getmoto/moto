@@ -101,6 +101,33 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
 
 
 @mock_dynamodb
+def test_query_table_with_wrong_key_attribute_names_throws_exception():
+    item = {
+        "partitionKey": "pk-1",
+        "someAttribute": "lore ipsum",
+    }
+
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    table = dynamodb.Table("test-table")
+    table.put_item(Item=item)
+
+    # check using wrong name for sort key throws exception
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression="wrongName = :pk",
+            ExpressionAttributeValues={":pk": "pk"},
+        )["Items"]
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "Query condition missed key schema element: partitionKey"
+    )
+
+
+@mock_dynamodb
 def test_empty_expressionattributenames():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
@@ -468,13 +495,13 @@ def test_creating_table_with_0_global_indexes():
 
 @mock_dynamodb
 def test_multiple_transactions_on_same_item():
-    table_schema = {
+    schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
     )
     # Insert an item
     dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
@@ -506,13 +533,13 @@ def test_multiple_transactions_on_same_item():
 
 @mock_dynamodb
 def test_transact_write_items__too_many_transactions():
-    table_schema = {
+    schema = {
         "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
     )
 
     def update_email_transact(email):
@@ -549,6 +576,45 @@ def test_update_item_non_existent_table():
     err = exc.value.response["Error"]
     assert err["Code"].should.equal("ResourceNotFoundException")
     assert err["Message"].should.equal("Requested resource not found")
+
+
+@mock_dynamodb
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "set example_column = :example_column, example_column = :example_column",
+        "set example_column = :example_column ADD x :y set example_column = :example_column",
+    ],
+)
+def test_update_item_with_duplicate_expressions(expression):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="example_table",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    record = {
+        "pk": "example_id",
+        "example_column": "example",
+    }
+    table = dynamodb.Table("example_table")
+    table.put_item(Item=record)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "example_id"},
+            UpdateExpression=expression,
+            ExpressionAttributeValues={":example_column": "test"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [example_column], path two: [example_column]"
+    )
+
+    # The item is not updated
+    item = table.get_item(Key={"pk": "example_id"})["Item"]
+    item.should.equal({"pk": "example_id", "example_column": "example"})
 
 
 @mock_dynamodb
@@ -667,3 +733,140 @@ def test_batch_put_item_with_empty_value():
     # Empty regular parameter workst just fine though
     with table.batch_writer() as batch:
         batch.put_item(Item={"pk": "sth", "sk": "else", "par": ""})
+
+
+@mock_dynamodb
+def test_query_begins_with_without_brackets():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName="test-table",
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
+    )
+    with pytest.raises(ClientError) as exc:
+        client.query(
+            TableName="test-table",
+            KeyConditionExpression="pk=:pk AND begins_with sk, :sk ",
+            ExpressionAttributeValues={":pk": {"S": "test1"}, ":sk": {"S": "test2"}},
+        )
+    err = exc.value.response["Error"]
+    err["Message"].should.equal(
+        'Invalid KeyConditionExpression: Syntax error; token: "sk"'
+    )
+    err["Code"].should.equal("ValidationException")
+
+
+@mock_dynamodb
+def test_transact_write_items_multiple_operations_fail():
+
+    # Setup
+    schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = "test-table"
+    dynamodb.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "Item": {"id": {"S": "test"}},
+                        "TableName": table_name,
+                    },
+                    "Delete": {
+                        "Key": {"id": {"S": "test"}},
+                        "TableName": table_name,
+                    },
+                }
+            ]
+        )
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "TransactItems can only contain one of Check, Put, Update or Delete"
+    )
+
+
+@mock_dynamodb
+def test_update_primary_key_with_sortkey():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    schema = {
+        "KeySchema": [
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+    }
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
+    )
+
+    table = dynamodb.Table("test-table")
+    base_item = {"pk": "testchangepk", "sk": "else"}
+    table.put_item(Item=base_item)
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "n/a", "sk": "else"},
+            UpdateExpression="SET #attr1 = :val1",
+            ExpressionAttributeNames={"#attr1": "pk"},
+            ExpressionAttributeValues={":val1": "different"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Cannot update attribute pk. This attribute is part of the key"
+    )
+
+    table.get_item(Key={"pk": "testchangepk", "sk": "else"})["Item"].should.equal(
+        {"pk": "testchangepk", "sk": "else"}
+    )
+
+
+@mock_dynamodb
+def test_update_primary_key():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    schema = {
+        "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
+    }
+    dynamodb.create_table(
+        TableName="without_sk", BillingMode="PAY_PER_REQUEST", **schema
+    )
+
+    table = dynamodb.Table("without_sk")
+    base_item = {"pk": "testchangepk"}
+    table.put_item(Item=base_item)
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "n/a"},
+            UpdateExpression="SET #attr1 = :val1",
+            ExpressionAttributeNames={"#attr1": "pk"},
+            ExpressionAttributeValues={":val1": "different"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Cannot update attribute pk. This attribute is part of the key"
+    )
+
+    table.get_item(Key={"pk": "testchangepk"})["Item"].should.equal(
+        {"pk": "testchangepk"}
+    )

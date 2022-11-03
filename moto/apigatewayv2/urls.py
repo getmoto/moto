@@ -26,7 +26,9 @@ url_paths = {
     "{0}/v2/apis/(?P<api_id>[^/]+)/routes/(?P<route_id>[^/]+)/routeresponses$": response_v2.route_responses,
     "{0}/v2/apis/(?P<api_id>[^/]+)/routes/(?P<route_id>[^/]+)/routeresponses/(?P<route_response_id>[^/]+)$": response_v2.route_response,
     "{0}/v2/apis/(?P<api_id>[^/]+)/routes/(?P<route_id>[^/]+)/requestparameters/(?P<request_parameter>[^/]+)$": response_v2.route_request_parameter,
-    "{0}/v2/tags/(?P<resource_arn>.+)$": response_v2.tags,
+    "{0}/v2/tags/(?P<resource_arn>[^/]+)$": response_v2.tags,
+    "{0}/v2/tags/(?P<resource_arn_pt1>[^/]+)/apis/(?P<resource_arn_pt2>[^/]+)$": response_v2.tags,
+    "{0}/v2/tags/(?P<resource_arn_pt1>[^/]+)/vpclinks/(?P<resource_arn_pt2>[^/]+)$": response_v2.tags,
     "{0}/v2/vpclinks$": response_v2.vpc_links,
     "{0}/v2/vpclinks/(?P<vpc_link_id>[^/]+)$": response_v2.vpc_link,
 }

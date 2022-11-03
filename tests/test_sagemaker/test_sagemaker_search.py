@@ -8,12 +8,12 @@ from moto import mock_sagemaker
 TEST_REGION_NAME = "us-east-1"
 
 
-@pytest.fixture
-def sagemaker_client():
-    return boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+@pytest.fixture(name="sagemaker_client")
+def fixture_sagemaker_client():
+    with mock_sagemaker():
+        yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
-@mock_sagemaker
 def test_search(sagemaker_client):
     experiment_name = "experiment_name"
     trial_component_name = "trial_component_name"
@@ -60,7 +60,6 @@ def test_search(sagemaker_client):
     assert resp["Results"][0]["Trial"]["TrialName"] == trial_name
 
 
-@mock_sagemaker
 def test_search_trial_component_with_experiment_name(sagemaker_client):
     experiment_name = "experiment_name"
     trial_component_name = "trial_component_name"

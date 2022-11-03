@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from moto import mock_logs
 from moto import mock_route53
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.core.utils import get_random_hex
+from moto.moto_api._internal import mock_random
 
 # The log group must be in the us-east-1 region.
 TEST_REGION = "us-east-1"
@@ -17,7 +17,7 @@ def create_hosted_zone_id(route53_client, hosted_zone_test_name):
     """Return ID of a newly created Route53 public hosted zone"""
     response = route53_client.create_hosted_zone(
         Name=hosted_zone_test_name,
-        CallerReference=f"test_caller_ref_{get_random_hex(6)}",
+        CallerReference=f"test_caller_ref_{mock_random.get_random_hex(6)}",
     )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
     assert "HostedZone" in response and response["HostedZone"]["Id"]
@@ -46,7 +46,7 @@ def test_create_query_logging_config_bad_args():
     client = boto3.client("route53", region_name=TEST_REGION)
     logs_client = boto3.client("logs", region_name=TEST_REGION)
 
-    hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+    hosted_zone_test_name = f"route53_query_log_{mock_random.get_random_hex(6)}.test"
     hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
     log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
@@ -114,7 +114,7 @@ def test_create_query_logging_config_good_args():
     client = boto3.client("route53", region_name=TEST_REGION)
     logs_client = boto3.client("logs", region_name=TEST_REGION)
 
-    hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+    hosted_zone_test_name = f"route53_query_log_{mock_random.get_random_hex(6)}.test"
     hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
     log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
@@ -141,7 +141,7 @@ def test_delete_query_logging_config():
     logs_client = boto3.client("logs", region_name=TEST_REGION)
 
     # Create a query logging config that can then be deleted.
-    hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+    hosted_zone_test_name = f"route53_query_log_{mock_random.get_random_hex(6)}.test"
     hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
     log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
@@ -172,7 +172,7 @@ def test_get_query_logging_config():
     logs_client = boto3.client("logs", region_name=TEST_REGION)
 
     # Create a query logging config that can then be retrieved.
-    hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+    hosted_zone_test_name = f"route53_query_log_{mock_random.get_random_hex(6)}.test"
     hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
     log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
@@ -212,7 +212,9 @@ def test_list_query_logging_configs_bad_args():
 
     # Create a couple of query logging configs to work with.
     for _ in range(3):
-        hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+        hosted_zone_test_name = (
+            f"route53_query_log_{mock_random.get_random_hex(6)}.test"
+        )
         hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
         log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
         client.create_query_logging_config(
@@ -246,7 +248,9 @@ def test_list_query_logging_configs_good_args():
     # Create a couple of query logging configs to work with.
     zone_ids = []
     for _ in range(10):
-        hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+        hosted_zone_test_name = (
+            f"route53_query_log_{mock_random.get_random_hex(6)}.test"
+        )
         hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
         zone_ids.append(hosted_zone_id)
 

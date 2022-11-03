@@ -40,7 +40,7 @@ To verify whether your tests pass in ServerMode, you can run the following comma
 Parallel tests
 ^^^^^^^^^^^^^^^^^^^^^
 
-To speed up our CI, the ServerMode tests for the `awslambda`, `batch`, `ec2` and `sqs` services will run in parallel.
+To speed up our CI, the tests for the `awslambda`, `batch`, `ec2` and `sqs` services will run in parallel.
 This means the following:
 
  - Make sure you use unique names for functions/queues/etc

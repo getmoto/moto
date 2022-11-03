@@ -75,6 +75,58 @@ def test_create_db_cluster_needs_long_master_user_password():
 
 
 @mock_rds
+def test_modify_db_cluster_needs_long_master_user_password():
+    client = boto3.client("rds", region_name="eu-north-1")
+
+    client.create_db_cluster(
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora",
+        MasterUsername="root",
+        MasterUserPassword="hunter21",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_cluster(
+            DBClusterIdentifier="cluster-id",
+            MasterUserPassword="hunter2",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
+    )
+
+
+@mock_rds
+def test_modify_db_cluster_new_cluster_identifier():
+    client = boto3.client("rds", region_name="eu-north-1")
+    old_id = "cluster-id"
+    new_id = "new-cluster-id"
+
+    client.create_db_cluster(
+        DBClusterIdentifier=old_id,
+        Engine="aurora",
+        MasterUsername="root",
+        MasterUserPassword="hunter21",
+    )
+
+    resp = client.modify_db_cluster(
+        DBClusterIdentifier=old_id,
+        NewDBClusterIdentifier=new_id,
+        MasterUserPassword="hunter21",
+    )
+
+    resp["DBCluster"].should.have.key("DBClusterIdentifier").equal(new_id)
+
+    clusters = [
+        cluster["DBClusterIdentifier"]
+        for cluster in client.describe_db_clusters()["DBClusters"]
+    ]
+
+    assert old_id not in clusters
+
+
+@mock_rds
 def test_create_db_cluster__verify_default_properties():
     client = boto3.client("rds", region_name="eu-north-1")
 
@@ -137,6 +189,9 @@ def test_create_db_cluster__verify_default_properties():
     cluster.should.have.key("DomainMemberships").equal([])
     cluster.should.have.key("TagList").equal([])
     cluster.should.have.key("ClusterCreateTime")
+    cluster.should.have.key(
+        "EarliestRestorableTime"
+    ).should.be.greater_than_or_equal_to(cluster["ClusterCreateTime"])
 
 
 @mock_rds
@@ -716,3 +771,39 @@ def test_add_tags_to_cluster_snapshot():
 
     tags = conn.list_tags_for_resource(ResourceName=snapshot_arn)["TagList"]
     tags.should.equal([{"Key": "k2", "Value": "v2"}])
+
+
+@mock_rds
+def test_create_db_cluster_with_enable_http_endpoint_valid():
+    client = boto3.client("rds", region_name="eu-north-1")
+
+    resp = client.create_db_cluster(
+        DBClusterIdentifier="cluster-id",
+        DatabaseName="users",
+        Engine="aurora-mysql",
+        EngineMode="serverless",
+        EngineVersion="5.6.10a",
+        MasterUsername="root",
+        MasterUserPassword="hunter2_",
+        EnableHttpEndpoint=True,
+    )
+    cluster = resp["DBCluster"]
+    cluster.should.have.key("HttpEndpointEnabled").equal(True)
+
+
+@mock_rds
+def test_create_db_cluster_with_enable_http_endpoint_invalid():
+    client = boto3.client("rds", region_name="eu-north-1")
+
+    resp = client.create_db_cluster(
+        DBClusterIdentifier="cluster-id",
+        DatabaseName="users",
+        Engine="aurora-mysql",
+        EngineMode="serverless",
+        EngineVersion="5.7.0",
+        MasterUsername="root",
+        MasterUserPassword="hunter2_",
+        EnableHttpEndpoint=True,
+    )
+    cluster = resp["DBCluster"]
+    cluster.should.have.key("HttpEndpointEnabled").equal(False)

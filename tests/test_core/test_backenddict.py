@@ -91,7 +91,7 @@ class TestMultiThreadedAccess:
             time.sleep(0.1)
             self.data = []
 
-    def setup(self):
+    def setup_method(self):
         self.backend = BackendDict(TestMultiThreadedAccess.SlowExampleBackend, "ec2")
 
     def test_access_a_slow_backend_concurrently(self):

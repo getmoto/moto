@@ -3,7 +3,7 @@ from abc import abstractmethod
 from collections import deque
 
 from moto.dynamodb.models import DynamoType
-from ..exceptions import TooManyAddClauses
+from ..exceptions import DuplicateUpdateExpression, TooManyAddClauses
 
 
 class Node(metaclass=abc.ABCMeta):
@@ -26,6 +26,13 @@ class Node(metaclass=abc.ABCMeta):
             nr_of_clauses = len(self.find_clauses(UpdateExpressionAddClause))
             if nr_of_clauses > 1:
                 raise TooManyAddClauses()
+            set_actions = self.find_clauses(UpdateExpressionSetAction)
+            # set_attributes = ["attr", "map.attr", attr.list[2], ..]
+            set_attributes = [s.children[0].to_str() for s in set_actions]
+            # We currently only check for duplicates
+            # We should also check for partial duplicates, i.e. [attr, attr.sub] is also invalid
+            if len(set_attributes) != len(set(set_attributes)):
+                raise DuplicateUpdateExpression(set_attributes)
 
     def find_clauses(self, clause_type):
         clauses = []
@@ -140,7 +147,8 @@ class UpdateExpressionDeleteAction(UpdateExpressionClause):
 
 
 class UpdateExpressionPath(UpdateExpressionClause):
-    pass
+    def to_str(self):
+        return "".join(x.to_str() for x in self.children)
 
 
 class UpdateExpressionValue(UpdateExpressionClause):
@@ -178,6 +186,9 @@ class UpdateExpressionDeleteClause(UpdateExpressionClause):
 class ExpressionPathDescender(Node):
     """Node identifying descender into nested structure (.) in expression"""
 
+    def to_str(self):
+        return "."
+
 
 class ExpressionSelector(LeafNode):
     """Node identifying selector [selection_index] in expresion"""
@@ -193,6 +204,9 @@ class ExpressionSelector(LeafNode):
     def get_index(self):
         return self.children[0]
 
+    def to_str(self):
+        return f"[{self.get_index()}]"
+
 
 class ExpressionAttribute(LeafNode):
     """An attribute identifier as used in the DDB item"""
@@ -203,6 +217,9 @@ class ExpressionAttribute(LeafNode):
     def get_attribute_name(self):
         return self.children[0]
 
+    def to_str(self):
+        return self.get_attribute_name()
+
 
 class ExpressionAttributeName(LeafNode):
     """An ExpressionAttributeName is an alias for an attribute identifier"""
@@ -212,6 +229,9 @@ class ExpressionAttributeName(LeafNode):
 
     def get_attribute_name_placeholder(self):
         return self.children[0]
+
+    def to_str(self):
+        return self.get_attribute_name_placeholder()
 
 
 class ExpressionAttributeValue(LeafNode):

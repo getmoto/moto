@@ -2,8 +2,7 @@ from .exceptions import ResourceNotFound
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
-from uuid import uuid4
-import random
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL
 
@@ -18,7 +17,7 @@ class AccountAssignment(BaseModel):
         principal_type,
         principal_id,
     ):
-        self.request_id = str(uuid4())
+        self.request_id = str(random.uuid4())
         self.instance_arn = instance_arn
         self.target_id = target_id
         self.target_type = target_type
