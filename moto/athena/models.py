@@ -5,6 +5,8 @@ from moto.core.utils import BackendDict
 from moto.moto_api._internal import mock_random
 from typing import Any, Dict, List, Optional
 
+import warnings
+
 
 class TaggableResourceMixin(object):
     # This mixing was copied from Redshift when initially implementing
@@ -172,6 +174,14 @@ class AthenaBackend(BaseBackend):
         )
         self.executions[execution.id] = execution
         return execution.id
+
+    def get_execution(self, exec_id: str) -> Execution:
+        warnings.warn("`get_execution` has been replaced by `get_query_execution`"
+                      "to align with the Athena API, "
+                      "and will be removed in a future version.",
+                      PendingDeprecationWarning)
+        return self.get_query_execution(exec_id)
+
 
     def get_query_execution(self, exec_id: str) -> Execution:
         return self.executions[exec_id]
