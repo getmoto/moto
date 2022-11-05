@@ -258,7 +258,7 @@ class Queue(CloudFormationModel):
         self._messages = []
         self._pending_messages = set()
         self.deleted_messages = set()
-        self._condition = Condition()
+        self._messages_lock = Condition()
 
         now = unix_time()
         self.created_timestamp = now
@@ -538,9 +538,9 @@ class Queue(CloudFormationModel):
                     if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
                         return
 
-        with self._condition:
+        with self._messages_lock:
             self._messages.append(message)
-            self._condition.notify_all()
+            self._messages_lock.notify_all()
 
         for arn, esm in self.lambda_event_source_mappings.items():
             backend = sqs_backends[self.account_id][self.region]
@@ -596,8 +596,8 @@ class Queue(CloudFormationModel):
         self._messages = new_messages
 
     def wait_for_messages(self, timeout):
-        with self._condition:
-            self._condition.wait_for(lambda: self.messages, timeout=timeout)
+        with self._messages_lock:
+            self._messages_lock.wait_for(lambda: self.messages, timeout=timeout)
 
     @classmethod
     def has_cfn_attr(cls, attr):
