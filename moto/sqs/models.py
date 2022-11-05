@@ -938,7 +938,7 @@ class SQSBackend(BaseBackend):
 
             if previous_result_count == len(result):
                 if wait_seconds_timeout == 0:
-                    # There is timeout and we have added no additional results,
+                    # There is no timeout and no additional results,
                     # so break to avoid an infinite loop.
                     break
 
