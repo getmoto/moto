@@ -525,9 +525,6 @@ class Queue(CloudFormationModel):
             if message.visible and not message.delayed
         ]
 
-    def purge(self):
-        self._messages = []
-
     def add_message(self, message):
         if (
             self.fifo_queue
@@ -954,6 +951,7 @@ class SQSBackend(BaseBackend):
 
     def delete_message(self, queue_name, receipt_handle):
         queue = self.get_queue(queue_name)
+
         queue.delete_message(receipt_handle)
 
     def change_message_visibility(self, queue_name, receipt_handle, visibility_timeout):
@@ -981,7 +979,7 @@ class SQSBackend(BaseBackend):
 
     def purge_queue(self, queue_name):
         queue = self.get_queue(queue_name)
-        queue.purge()
+        queue._messages = []
         queue._pending_messages = set()
 
     def list_dead_letter_source_queues(self, queue_name):
