@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 import re
 from collections import defaultdict
@@ -6,552 +5,652 @@ from collections import defaultdict
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import sns_backends
-from .exceptions import SNSNotFoundError, InvalidParameterValue
+from .exceptions import InvalidParameterValue, SNSNotFoundError
 from .utils import is_e164
 
 
 class SNSResponse(BaseResponse):
-    SMS_ATTR_REGEX = re.compile(r'^attributes\.entry\.(?P<index>\d+)\.(?P<type>key|value)$')
-    OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r'^\+?\d+$')
+    SMS_ATTR_REGEX = re.compile(
+        r"^attributes\.entry\.(?P<index>\d+)\.(?P<type>key|value)$"
+    )
+    OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r"^\+?\d+$")
+
+    def __init__(self):
+        super().__init__(service_name="sns")
 
     @property
     def backend(self):
-        return sns_backends[self.region]
+        return sns_backends[self.current_account][self.region]
 
-    def _error(self, code, message, sender='Sender'):
+    def _error(self, code, message, sender="Sender"):
         template = self.response_template(ERROR_RESPONSE)
         return template.render(code=code, message=message, sender=sender)
 
     def _get_attributes(self):
-        attributes = self._get_list_prefix('Attributes.entry')
-        return dict(
-            (attribute['key'], attribute['value'])
-            for attribute
-            in attributes
-        )
+        attributes = self._get_list_prefix("Attributes.entry")
+        return dict((attribute["key"], attribute["value"]) for attribute in attributes)
 
-    def _parse_message_attributes(self, prefix='', value_namespace='Value.'):
+    def _get_tags(self):
+        tags = self._get_list_prefix("Tags.member")
+        return {tag["key"]: tag["value"] for tag in tags}
+
+    def _parse_message_attributes(self):
         message_attributes = self._get_object_map(
-            'MessageAttributes.entry',
-            name='Name',
-            value='Value'
+            "MessageAttributes.entry", name="Name", value="Value"
         )
+        return self._transform_message_attributes(message_attributes)
+
+    def _transform_message_attributes(self, message_attributes):
         # SNS converts some key names before forwarding messages
         # DataType -> Type, StringValue -> Value, BinaryValue -> Value
         transformed_message_attributes = {}
         for name, value in message_attributes.items():
             # validation
-            data_type = value['DataType']
+            data_type = value["DataType"]
             if not data_type:
                 raise InvalidParameterValue(
                     "The message attribute '{0}' must contain non-empty "
-                    "message attribute value.".format(name))
+                    "message attribute value.".format(name)
+                )
 
-            data_type_parts = data_type.split('.')
-            if (len(data_type_parts) > 2 or
-                    data_type_parts[0] not in ['String', 'Binary', 'Number']):
+            data_type_parts = data_type.split(".")
+            if len(data_type_parts) > 2 or data_type_parts[0] not in [
+                "String",
+                "Binary",
+                "Number",
+            ]:
                 raise InvalidParameterValue(
                     "The message attribute '{0}' has an invalid message "
                     "attribute type, the set of supported type prefixes is "
-                    "Binary, Number, and String.".format(name))
+                    "Binary, Number, and String.".format(name)
+                )
 
             transform_value = None
-            if 'StringValue' in value:
-                transform_value = value['StringValue']
-            elif 'BinaryValue' in value:
-                transform_value = value['BinaryValue']
-            if not transform_value:
+            if "StringValue" in value:
+                if data_type == "Number":
+                    try:
+                        transform_value = int(value["StringValue"])
+                    except ValueError:
+                        try:
+                            transform_value = float(value["StringValue"])
+                        except ValueError:
+                            raise InvalidParameterValue(
+                                "An error occurred (ParameterValueInvalid) "
+                                "when calling the Publish operation: "
+                                "Could not cast message attribute '{0}' value to number.".format(
+                                    name
+                                )
+                            )
+                else:
+                    transform_value = value["StringValue"]
+            elif "BinaryValue" in value:
+                transform_value = value["BinaryValue"]
+            if transform_value == "":
                 raise InvalidParameterValue(
                     "The message attribute '{0}' must contain non-empty "
                     "message attribute value for message attribute "
-                    "type '{1}'.".format(name, data_type[0]))
+                    "type '{1}'.".format(name, data_type[0])
+                )
 
             # transformation
             transformed_message_attributes[name] = {
-                'Type': data_type, 'Value': transform_value
+                "Type": data_type,
+                "Value": transform_value,
             }
 
         return transformed_message_attributes
 
     def create_topic(self):
-        name = self._get_param('Name')
-        topic = self.backend.create_topic(name)
+        name = self._get_param("Name")
+        attributes = self._get_attributes()
+        tags = self._get_tags()
+        topic = self.backend.create_topic(name, attributes, tags)
 
         if self.request_json:
-            return json.dumps({
-                'CreateTopicResponse': {
-                    'CreateTopicResult': {
-                        'TopicArn': topic.arn,
-                    },
-                    'ResponseMetadata': {
-                        'RequestId': 'a8dec8b3-33a4-11df-8963-01868b7c937a',
+            return json.dumps(
+                {
+                    "CreateTopicResponse": {
+                        "CreateTopicResult": {"TopicArn": topic.arn},
+                        "ResponseMetadata": {
+                            "RequestId": "a8dec8b3-33a4-11df-8963-01868b7c937a"
+                        },
                     }
                 }
-            })
+            )
 
         template = self.response_template(CREATE_TOPIC_TEMPLATE)
         return template.render(topic=topic)
 
     def list_topics(self):
-        next_token = self._get_param('NextToken')
+        next_token = self._get_param("NextToken")
         topics, next_token = self.backend.list_topics(next_token=next_token)
 
         if self.request_json:
-            return json.dumps({
-                'ListTopicsResponse': {
-                    'ListTopicsResult': {
-                        'Topics': [{'TopicArn': topic.arn} for topic in topics],
-                        'NextToken': next_token,
-                    }
-                },
-                'ResponseMetadata': {
-                    'RequestId': 'a8dec8b3-33a4-11df-8963-01868b7c937a',
+            return json.dumps(
+                {
+                    "ListTopicsResponse": {
+                        "ListTopicsResult": {
+                            "Topics": [{"TopicArn": topic.arn} for topic in topics],
+                            "NextToken": next_token,
+                        }
+                    },
+                    "ResponseMetadata": {
+                        "RequestId": "a8dec8b3-33a4-11df-8963-01868b7c937a"
+                    },
                 }
-            })
+            )
 
         template = self.response_template(LIST_TOPICS_TEMPLATE)
         return template.render(topics=topics, next_token=next_token)
 
     def delete_topic(self):
-        topic_arn = self._get_param('TopicArn')
+        topic_arn = self._get_param("TopicArn")
         self.backend.delete_topic(topic_arn)
 
         if self.request_json:
-            return json.dumps({
-                'DeleteTopicResponse': {
-                    'ResponseMetadata': {
-                        'RequestId': 'a8dec8b3-33a4-11df-8963-01868b7c937a',
+            return json.dumps(
+                {
+                    "DeleteTopicResponse": {
+                        "ResponseMetadata": {
+                            "RequestId": "a8dec8b3-33a4-11df-8963-01868b7c937a"
+                        }
                     }
                 }
-            })
+            )
 
         template = self.response_template(DELETE_TOPIC_TEMPLATE)
         return template.render()
 
     def get_topic_attributes(self):
-        topic_arn = self._get_param('TopicArn')
+        topic_arn = self._get_param("TopicArn")
         topic = self.backend.get_topic(topic_arn)
 
         if self.request_json:
-            return json.dumps({
+            attributes = {
+                "Owner": topic.account_id,
+                "Policy": topic.policy,
+                "TopicArn": topic.arn,
+                "DisplayName": topic.display_name,
+                "SubscriptionsPending": topic.subscriptions_pending,
+                "SubscriptionsConfirmed": topic.subscriptions_confimed,
+                "SubscriptionsDeleted": topic.subscriptions_deleted,
+                "DeliveryPolicy": topic.delivery_policy,
+                "EffectiveDeliveryPolicy": topic.effective_delivery_policy,
+            }
+            if topic.kms_master_key_id:
+                attributes["KmsMasterKeyId"] = topic.kms_master_key_id
+            if topic.fifo_topic == "true":
+                attributes["FifoTopic"] = topic.fifo_topic
+                attributes[
+                    "ContentBasedDeduplication"
+                ] = topic.content_based_deduplication
+            response = {
                 "GetTopicAttributesResponse": {
-                    "GetTopicAttributesResult": {
-                        "Attributes": {
-                            "Owner": topic.account_id,
-                            "Policy": topic.policy,
-                            "TopicArn": topic.arn,
-                            "DisplayName": topic.display_name,
-                            "SubscriptionsPending": topic.subscriptions_pending,
-                            "SubscriptionsConfirmed": topic.subscriptions_confimed,
-                            "SubscriptionsDeleted": topic.subscriptions_deleted,
-                            "DeliveryPolicy": topic.delivery_policy,
-                            "EffectiveDeliveryPolicy": topic.effective_delivery_policy,
-                        }
-                    },
+                    "GetTopicAttributesResult": {"Attributes": attributes},
                     "ResponseMetadata": {
                         "RequestId": "057f074c-33a7-11df-9540-99d0768312d3"
-                    }
+                    },
                 }
-            })
+            }
+            return json.dumps(response)
 
         template = self.response_template(GET_TOPIC_ATTRIBUTES_TEMPLATE)
         return template.render(topic=topic)
 
     def set_topic_attributes(self):
-        topic_arn = self._get_param('TopicArn')
-        attribute_name = self._get_param('AttributeName')
+        topic_arn = self._get_param("TopicArn")
+        attribute_name = self._get_param("AttributeName")
         attribute_name = camelcase_to_underscores(attribute_name)
-        attribute_value = self._get_param('AttributeValue')
-        self.backend.set_topic_attribute(
-            topic_arn, attribute_name, attribute_value)
+        attribute_value = self._get_param("AttributeValue")
+        self.backend.set_topic_attribute(topic_arn, attribute_name, attribute_value)
 
         if self.request_json:
-            return json.dumps({
-                "SetTopicAttributesResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
+            return json.dumps(
+                {
+                    "SetTopicAttributesResponse": {
+                        "ResponseMetadata": {
+                            "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
+                        }
                     }
                 }
-            })
+            )
 
         template = self.response_template(SET_TOPIC_ATTRIBUTES_TEMPLATE)
         return template.render()
 
     def subscribe(self):
-        topic_arn = self._get_param('TopicArn')
-        endpoint = self._get_param('Endpoint')
-        protocol = self._get_param('Protocol')
+        topic_arn = self._get_param("TopicArn")
+        endpoint = self._get_param("Endpoint")
+        protocol = self._get_param("Protocol")
         attributes = self._get_attributes()
-
-        if protocol == 'sms' and not is_e164(endpoint):
-            return self._error(
-                'InvalidParameter',
-                'Phone number does not meet the E164 format'
-            ), dict(status=400)
 
         subscription = self.backend.subscribe(topic_arn, endpoint, protocol)
 
         if attributes is not None:
             for attr_name, attr_value in attributes.items():
-                self.backend.set_subscription_attributes(subscription.arn, attr_name, attr_value)
+                self.backend.set_subscription_attributes(
+                    subscription.arn, attr_name, attr_value
+                )
 
         if self.request_json:
-            return json.dumps({
-                "SubscribeResponse": {
-                    "SubscribeResult": {
-                        "SubscriptionArn": subscription.arn,
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
+            return json.dumps(
+                {
+                    "SubscribeResponse": {
+                        "SubscribeResult": {"SubscriptionArn": subscription.arn},
+                        "ResponseMetadata": {
+                            "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
+                        },
                     }
                 }
-            })
+            )
 
         template = self.response_template(SUBSCRIBE_TEMPLATE)
         return template.render(subscription=subscription)
 
     def unsubscribe(self):
-        subscription_arn = self._get_param('SubscriptionArn')
+        subscription_arn = self._get_param("SubscriptionArn")
         self.backend.unsubscribe(subscription_arn)
 
         if self.request_json:
-            return json.dumps({
-                "UnsubscribeResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
+            return json.dumps(
+                {
+                    "UnsubscribeResponse": {
+                        "ResponseMetadata": {
+                            "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
+                        }
                     }
                 }
-            })
+            )
 
         template = self.response_template(UNSUBSCRIBE_TEMPLATE)
         return template.render()
 
     def list_subscriptions(self):
-        next_token = self._get_param('NextToken')
+        next_token = self._get_param("NextToken")
         subscriptions, next_token = self.backend.list_subscriptions(
-            next_token=next_token)
+            next_token=next_token
+        )
 
         if self.request_json:
-            return json.dumps({
-                "ListSubscriptionsResponse": {
-                    "ListSubscriptionsResult": {
-                        "Subscriptions": [{
-                            "TopicArn": subscription.topic.arn,
-                            "Protocol": subscription.protocol,
-                            "SubscriptionArn": subscription.arn,
-                            "Owner": subscription.topic.account_id,
-                            "Endpoint": subscription.endpoint,
-                        } for subscription in subscriptions],
-                        'NextToken': next_token,
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+            return json.dumps(
+                {
+                    "ListSubscriptionsResponse": {
+                        "ListSubscriptionsResult": {
+                            "Subscriptions": [
+                                {
+                                    "TopicArn": subscription.topic.arn,
+                                    "Protocol": subscription.protocol,
+                                    "SubscriptionArn": subscription.arn,
+                                    "Owner": subscription.topic.account_id,
+                                    "Endpoint": subscription.endpoint,
+                                }
+                                for subscription in subscriptions
+                            ],
+                            "NextToken": next_token,
+                        },
+                        "ResponseMetadata": {
+                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                        },
                     }
                 }
-            })
+            )
 
         template = self.response_template(LIST_SUBSCRIPTIONS_TEMPLATE)
-        return template.render(subscriptions=subscriptions,
-                               next_token=next_token)
+        return template.render(subscriptions=subscriptions, next_token=next_token)
 
     def list_subscriptions_by_topic(self):
-        topic_arn = self._get_param('TopicArn')
-        next_token = self._get_param('NextToken')
+        topic_arn = self._get_param("TopicArn")
+        next_token = self._get_param("NextToken")
         subscriptions, next_token = self.backend.list_subscriptions(
-            topic_arn, next_token=next_token)
+            topic_arn, next_token=next_token
+        )
 
         if self.request_json:
-            return json.dumps({
-                "ListSubscriptionsByTopicResponse": {
-                    "ListSubscriptionsByTopicResult": {
-                        "Subscriptions": [{
-                            "TopicArn": subscription.topic.arn,
-                            "Protocol": subscription.protocol,
-                            "SubscriptionArn": subscription.arn,
-                            "Owner": subscription.topic.account_id,
-                            "Endpoint": subscription.endpoint,
-                        } for subscription in subscriptions],
-                        'NextToken': next_token,
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+            return json.dumps(
+                {
+                    "ListSubscriptionsByTopicResponse": {
+                        "ListSubscriptionsByTopicResult": {
+                            "Subscriptions": [
+                                {
+                                    "TopicArn": subscription.topic.arn,
+                                    "Protocol": subscription.protocol,
+                                    "SubscriptionArn": subscription.arn,
+                                    "Owner": subscription.topic.account_id,
+                                    "Endpoint": subscription.endpoint,
+                                }
+                                for subscription in subscriptions
+                            ],
+                            "NextToken": next_token,
+                        },
+                        "ResponseMetadata": {
+                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                        },
                     }
                 }
-            })
+            )
 
         template = self.response_template(LIST_SUBSCRIPTIONS_BY_TOPIC_TEMPLATE)
-        return template.render(subscriptions=subscriptions,
-                               next_token=next_token)
+        return template.render(subscriptions=subscriptions, next_token=next_token)
 
     def publish(self):
-        target_arn = self._get_param('TargetArn')
-        topic_arn = self._get_param('TopicArn')
-        phone_number = self._get_param('PhoneNumber')
-        subject = self._get_param('Subject')
+        target_arn = self._get_param("TargetArn")
+        topic_arn = self._get_param("TopicArn")
+        phone_number = self._get_param("PhoneNumber")
+        subject = self._get_param("Subject")
+        message_group_id = self._get_param("MessageGroupId")
 
         message_attributes = self._parse_message_attributes()
 
+        arn = None
         if phone_number is not None:
             # Check phone is correct syntax (e164)
             if not is_e164(phone_number):
-                return self._error(
-                    'InvalidParameter',
-                    'Phone number does not meet the E164 format'
-                ), dict(status=400)
-
-            # Look up topic arn by phone number
-            try:
-                arn = self.backend.get_topic_from_phone_number(phone_number)
-            except SNSNotFoundError:
-                return self._error(
-                    'ParameterValueInvalid',
-                    'Could not find topic associated with phone number'
-                ), dict(status=400)
+                return (
+                    self._error(
+                        "InvalidParameter", "Phone number does not meet the E164 format"
+                    ),
+                    dict(status=400),
+                )
         elif target_arn is not None:
             arn = target_arn
         else:
             arn = topic_arn
 
-        message = self._get_param('Message')
+        message = self._get_param("Message")
 
         try:
             message_id = self.backend.publish(
-                arn, message, subject=subject,
-                message_attributes=message_attributes)
+                message,
+                arn=arn,
+                phone_number=phone_number,
+                subject=subject,
+                message_attributes=message_attributes,
+                group_id=message_group_id,
+            )
         except ValueError as err:
-            error_response = self._error('InvalidParameter', str(err))
+            error_response = self._error("InvalidParameter", str(err))
             return error_response, dict(status=400)
 
         if self.request_json:
-            return json.dumps({
-                "PublishResponse": {
-                    "PublishResult": {
-                        "MessageId": message_id,
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+            return json.dumps(
+                {
+                    "PublishResponse": {
+                        "PublishResult": {"MessageId": message_id},
+                        "ResponseMetadata": {
+                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                        },
                     }
                 }
-            })
+            )
 
         template = self.response_template(PUBLISH_TEMPLATE)
         return template.render(message_id=message_id)
 
+    def publish_batch(self):
+        topic_arn = self._get_param("TopicArn")
+        publish_batch_request_entries = self._get_multi_param(
+            "PublishBatchRequestEntries.member"
+        )
+        for entry in publish_batch_request_entries:
+            if "MessageAttributes" in entry:
+                # Convert into the same format as the regular publish-method
+                # FROM: [{'Name': 'a', 'Value': {'DataType': 'String', 'StringValue': 'v'}}]
+                # TO  : {'name': {'DataType': 'Number', 'StringValue': '123'}}
+                msg_attrs = {y["Name"]: y["Value"] for y in entry["MessageAttributes"]}
+                # Use the same validation/processing as the regular publish-method
+                entry["MessageAttributes"] = self._transform_message_attributes(
+                    msg_attrs
+                )
+        successful, failed = self.backend.publish_batch(
+            topic_arn=topic_arn,
+            publish_batch_request_entries=publish_batch_request_entries,
+        )
+        template = self.response_template(PUBLISH_BATCH_TEMPLATE)
+        return template.render(successful=successful, failed=failed)
+
     def create_platform_application(self):
-        name = self._get_param('Name')
-        platform = self._get_param('Platform')
+        name = self._get_param("Name")
+        platform = self._get_param("Platform")
         attributes = self._get_attributes()
         platform_application = self.backend.create_platform_application(
-            self.region, name, platform, attributes)
+            name, platform, attributes
+        )
 
         if self.request_json:
-            return json.dumps({
-                "CreatePlatformApplicationResponse": {
-                    "CreatePlatformApplicationResult": {
-                        "PlatformApplicationArn": platform_application.arn,
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937b",
+            return json.dumps(
+                {
+                    "CreatePlatformApplicationResponse": {
+                        "CreatePlatformApplicationResult": {
+                            "PlatformApplicationArn": platform_application.arn
+                        },
+                        "ResponseMetadata": {
+                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937b"
+                        },
                     }
                 }
-            })
+            )
 
         template = self.response_template(CREATE_PLATFORM_APPLICATION_TEMPLATE)
         return template.render(platform_application=platform_application)
 
     def get_platform_application_attributes(self):
-        arn = self._get_param('PlatformApplicationArn')
+        arn = self._get_param("PlatformApplicationArn")
         application = self.backend.get_application(arn)
 
         if self.request_json:
-            return json.dumps({
-                "GetPlatformApplicationAttributesResponse": {
-                    "GetPlatformApplicationAttributesResult": {
-                        "Attributes": application.attributes,
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937f",
+            return json.dumps(
+                {
+                    "GetPlatformApplicationAttributesResponse": {
+                        "GetPlatformApplicationAttributesResult": {
+                            "Attributes": application.attributes
+                        },
+                        "ResponseMetadata": {
+                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
+                        },
                     }
                 }
-            })
+            )
 
-        template = self.response_template(
-            GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
+        template = self.response_template(GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
         return template.render(application=application)
 
     def set_platform_application_attributes(self):
-        arn = self._get_param('PlatformApplicationArn')
+        arn = self._get_param("PlatformApplicationArn")
         attributes = self._get_attributes()
 
         self.backend.set_application_attributes(arn, attributes)
 
         if self.request_json:
-            return json.dumps({
-                "SetPlatformApplicationAttributesResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-12df-8963-01868b7c937f",
+            return json.dumps(
+                {
+                    "SetPlatformApplicationAttributesResponse": {
+                        "ResponseMetadata": {
+                            "RequestId": "384ac68d-3775-12df-8963-01868b7c937f"
+                        }
                     }
                 }
-            })
+            )
 
-        template = self.response_template(
-            SET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
+        template = self.response_template(SET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
         return template.render()
 
     def list_platform_applications(self):
         applications = self.backend.list_platform_applications()
 
         if self.request_json:
-            return json.dumps({
-                "ListPlatformApplicationsResponse": {
-                    "ListPlatformApplicationsResult": {
-                        "PlatformApplications": [{
-                            "PlatformApplicationArn": application.arn,
-                            "attributes": application.attributes,
-                        } for application in applications],
-                        "NextToken": None
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937c",
+            return json.dumps(
+                {
+                    "ListPlatformApplicationsResponse": {
+                        "ListPlatformApplicationsResult": {
+                            "PlatformApplications": [
+                                {
+                                    "PlatformApplicationArn": application.arn,
+                                    "attributes": application.attributes,
+                                }
+                                for application in applications
+                            ],
+                            "NextToken": None,
+                        },
+                        "ResponseMetadata": {
+                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937c"
+                        },
                     }
                 }
-            })
+            )
 
         template = self.response_template(LIST_PLATFORM_APPLICATIONS_TEMPLATE)
         return template.render(applications=applications)
 
     def delete_platform_application(self):
-        platform_arn = self._get_param('PlatformApplicationArn')
+        platform_arn = self._get_param("PlatformApplicationArn")
         self.backend.delete_platform_application(platform_arn)
 
         if self.request_json:
-            return json.dumps({
-                "DeletePlatformApplicationResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937e",
+            return json.dumps(
+                {
+                    "DeletePlatformApplicationResponse": {
+                        "ResponseMetadata": {
+                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937e"
+                        }
                     }
                 }
-            })
+            )
 
         template = self.response_template(DELETE_PLATFORM_APPLICATION_TEMPLATE)
         return template.render()
 
     def create_platform_endpoint(self):
-        application_arn = self._get_param('PlatformApplicationArn')
+        application_arn = self._get_param("PlatformApplicationArn")
         application = self.backend.get_application(application_arn)
 
-        custom_user_data = self._get_param('CustomUserData')
-        token = self._get_param('Token')
+        custom_user_data = self._get_param("CustomUserData")
+        token = self._get_param("Token")
         attributes = self._get_attributes()
 
         platform_endpoint = self.backend.create_platform_endpoint(
-            self.region, application, custom_user_data, token, attributes)
+            application, custom_user_data, token, attributes
+        )
 
         if self.request_json:
-            return json.dumps({
-                "CreatePlatformEndpointResponse": {
-                    "CreatePlatformEndpointResult": {
-                        "EndpointArn": platform_endpoint.arn,
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3779-11df-8963-01868b7c937b",
+            return json.dumps(
+                {
+                    "CreatePlatformEndpointResponse": {
+                        "CreatePlatformEndpointResult": {
+                            "EndpointArn": platform_endpoint.arn
+                        },
+                        "ResponseMetadata": {
+                            "RequestId": "384ac68d-3779-11df-8963-01868b7c937b"
+                        },
                     }
                 }
-            })
+            )
 
         template = self.response_template(CREATE_PLATFORM_ENDPOINT_TEMPLATE)
         return template.render(platform_endpoint=platform_endpoint)
 
     def list_endpoints_by_platform_application(self):
-        application_arn = self._get_param('PlatformApplicationArn')
-        endpoints = self.backend.list_endpoints_by_platform_application(
-            application_arn)
+        application_arn = self._get_param("PlatformApplicationArn")
+        endpoints = self.backend.list_endpoints_by_platform_application(application_arn)
 
         if self.request_json:
-            return json.dumps({
-                "ListEndpointsByPlatformApplicationResponse": {
-                    "ListEndpointsByPlatformApplicationResult": {
-                        "Endpoints": [
-                            {
-                                "Attributes": endpoint.attributes,
-                                "EndpointArn": endpoint.arn,
-                            } for endpoint in endpoints
-                        ],
-                        "NextToken": None
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+            return json.dumps(
+                {
+                    "ListEndpointsByPlatformApplicationResponse": {
+                        "ListEndpointsByPlatformApplicationResult": {
+                            "Endpoints": [
+                                {
+                                    "Attributes": endpoint.attributes,
+                                    "EndpointArn": endpoint.arn,
+                                }
+                                for endpoint in endpoints
+                            ],
+                            "NextToken": None,
+                        },
+                        "ResponseMetadata": {
+                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                        },
                     }
                 }
-            })
+            )
 
         template = self.response_template(
-            LIST_ENDPOINTS_BY_PLATFORM_APPLICATION_TEMPLATE)
+            LIST_ENDPOINTS_BY_PLATFORM_APPLICATION_TEMPLATE
+        )
         return template.render(endpoints=endpoints)
 
     def get_endpoint_attributes(self):
-        arn = self._get_param('EndpointArn')
-        endpoint = self.backend.get_endpoint(arn)
+        arn = self._get_param("EndpointArn")
+        try:
+            endpoint = self.backend.get_endpoint(arn)
 
-        if self.request_json:
-            return json.dumps({
-                "GetEndpointAttributesResponse": {
-                    "GetEndpointAttributesResult": {
-                        "Attributes": endpoint.attributes,
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937f",
+            if self.request_json:
+                return json.dumps(
+                    {
+                        "GetEndpointAttributesResponse": {
+                            "GetEndpointAttributesResult": {
+                                "Attributes": endpoint.attributes
+                            },
+                            "ResponseMetadata": {
+                                "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
+                            },
+                        }
                     }
-                }
-            })
+                )
 
-        template = self.response_template(GET_ENDPOINT_ATTRIBUTES_TEMPLATE)
-        return template.render(endpoint=endpoint)
+            template = self.response_template(GET_ENDPOINT_ATTRIBUTES_TEMPLATE)
+            return template.render(endpoint=endpoint)
+        except SNSNotFoundError:
+            error_response = self._error("NotFound", "Endpoint does not exist")
+            return error_response, dict(status=404)
 
     def set_endpoint_attributes(self):
-        arn = self._get_param('EndpointArn')
+        arn = self._get_param("EndpointArn")
         attributes = self._get_attributes()
 
         self.backend.set_endpoint_attributes(arn, attributes)
 
         if self.request_json:
-            return json.dumps({
-                "SetEndpointAttributesResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "384bc68d-3775-12df-8963-01868b7c937f",
+            return json.dumps(
+                {
+                    "SetEndpointAttributesResponse": {
+                        "ResponseMetadata": {
+                            "RequestId": "384bc68d-3775-12df-8963-01868b7c937f"
+                        }
                     }
                 }
-            })
+            )
 
         template = self.response_template(SET_ENDPOINT_ATTRIBUTES_TEMPLATE)
         return template.render()
 
     def delete_endpoint(self):
-        arn = self._get_param('EndpointArn')
+        arn = self._get_param("EndpointArn")
         self.backend.delete_endpoint(arn)
 
         if self.request_json:
-            return json.dumps({
-                "DeleteEndpointResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "384bc68d-3775-12df-8963-01868b7c937f",
+            return json.dumps(
+                {
+                    "DeleteEndpointResponse": {
+                        "ResponseMetadata": {
+                            "RequestId": "384bc68d-3775-12df-8963-01868b7c937f"
+                        }
                     }
                 }
-            })
+            )
 
         template = self.response_template(DELETE_ENDPOINT_TEMPLATE)
         return template.render()
 
     def get_subscription_attributes(self):
-        arn = self._get_param('SubscriptionArn')
+        arn = self._get_param("SubscriptionArn")
         attributes = self.backend.get_subscription_attributes(arn)
         template = self.response_template(GET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=attributes)
 
     def set_subscription_attributes(self):
-        arn = self._get_param('SubscriptionArn')
-        attr_name = self._get_param('AttributeName')
-        attr_value = self._get_param('AttributeValue')
+        arn = self._get_param("SubscriptionArn")
+        attr_name = self._get_param("AttributeName")
+        attr_value = self._get_param("AttributeValue")
         self.backend.set_subscription_attributes(arn, attr_name, attr_value)
         template = self.response_template(SET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE)
         return template.render()
@@ -565,7 +664,7 @@ class SNSResponse(BaseResponse):
         for key, value in self.querystring.items():
             match = self.SMS_ATTR_REGEX.match(key)
             if match is not None:
-                temp_dict[match.group('index')][match.group('type')] = value[0]
+                temp_dict[match.group("index")][match.group("type")] = value[0]
 
         # 1: {key:X, value:Y}
         # to
@@ -573,8 +672,8 @@ class SNSResponse(BaseResponse):
         # All of this, just to take into account when people provide invalid stuff.
         result = {}
         for item in temp_dict.values():
-            if 'key' in item and 'value' in item:
-                result[item['key']] = item['value']
+            if "key" in item and "value" in item:
+                result[item["key"]] = item["value"]
 
         self.backend.update_sms_attributes(result)
 
@@ -584,11 +683,13 @@ class SNSResponse(BaseResponse):
     def get_sms_attributes(self):
         filter_list = set()
         for key, value in self.querystring.items():
-            if key.startswith('attributes.member.1'):
+            if key.startswith("attributes.member.1"):
                 filter_list.add(value[0])
 
         if len(filter_list) > 0:
-            result = {k: v for k, v in self.backend.sms_attributes.items() if k in filter_list}
+            result = {
+                k: v for k, v in self.backend.sms_attributes.items() if k in filter_list
+            }
         else:
             result = self.backend.sms_attributes
 
@@ -596,24 +697,24 @@ class SNSResponse(BaseResponse):
         return template.render(attributes=result)
 
     def check_if_phone_number_is_opted_out(self):
-        number = self._get_param('phoneNumber')
+        number = self._get_param("phoneNumber")
         if self.OPT_OUT_PHONE_NUMBER_REGEX.match(number) is None:
             error_response = self._error(
-                code='InvalidParameter',
-                message='Invalid parameter: PhoneNumber Reason: input incorrectly formatted'
+                code="InvalidParameter",
+                message="Invalid parameter: PhoneNumber Reason: input incorrectly formatted",
             )
             return error_response, dict(status=400)
 
         # There should be a nicer way to set if a nubmer has opted out
         template = self.response_template(CHECK_IF_OPTED_OUT_TEMPLATE)
-        return template.render(opt_out=str(number.endswith('99')).lower())
+        return template.render(opt_out=str(number.endswith("99")).lower())
 
     def list_phone_numbers_opted_out(self):
         template = self.response_template(LIST_OPTOUT_TEMPLATE)
         return template.render(opt_outs=self.backend.opt_out_numbers)
 
     def opt_in_phone_number(self):
-        number = self._get_param('phoneNumber')
+        number = self._get_param("phoneNumber")
 
         try:
             self.backend.opt_out_numbers.remove(number)
@@ -624,43 +725,30 @@ class SNSResponse(BaseResponse):
         return template.render()
 
     def add_permission(self):
-        arn = self._get_param('TopicArn')
-        label = self._get_param('Label')
-        accounts = self._get_multi_param('AWSAccountId.member.')
-        action = self._get_multi_param('ActionName.member.')
+        topic_arn = self._get_param("TopicArn")
+        label = self._get_param("Label")
+        aws_account_ids = self._get_multi_param("AWSAccountId.member.")
+        action_names = self._get_multi_param("ActionName.member.")
 
-        if arn not in self.backend.topics:
-            error_response = self._error('NotFound', 'Topic does not exist')
-            return error_response, dict(status=404)
-
-        key = (arn, label)
-        self.backend.permissions[key] = {'accounts': accounts, 'action': action}
+        self.backend.add_permission(topic_arn, label, aws_account_ids, action_names)
 
         template = self.response_template(ADD_PERMISSION_TEMPLATE)
         return template.render()
 
     def remove_permission(self):
-        arn = self._get_param('TopicArn')
-        label = self._get_param('Label')
+        topic_arn = self._get_param("TopicArn")
+        label = self._get_param("Label")
 
-        if arn not in self.backend.topics:
-            error_response = self._error('NotFound', 'Topic does not exist')
-            return error_response, dict(status=404)
-
-        try:
-            key = (arn, label)
-            del self.backend.permissions[key]
-        except KeyError:
-            pass
+        self.backend.remove_permission(topic_arn, label)
 
         template = self.response_template(DEL_PERMISSION_TEMPLATE)
         return template.render()
 
     def confirm_subscription(self):
-        arn = self._get_param('TopicArn')
+        arn = self._get_param("TopicArn")
 
         if arn not in self.backend.topics:
-            error_response = self._error('NotFound', 'Topic does not exist')
+            error_response = self._error("NotFound", "Topic does not exist")
             return error_response, dict(status=404)
 
         # Once Tokens are stored by the `subscribe` endpoint and distributed
@@ -679,7 +767,33 @@ class SNSResponse(BaseResponse):
         #     return error_response, dict(status=400)
 
         template = self.response_template(CONFIRM_SUBSCRIPTION_TEMPLATE)
-        return template.render(sub_arn='{0}:68762e72-e9b1-410a-8b3b-903da69ee1d5'.format(arn))
+        return template.render(
+            sub_arn="{0}:68762e72-e9b1-410a-8b3b-903da69ee1d5".format(arn)
+        )
+
+    def list_tags_for_resource(self):
+        arn = self._get_param("ResourceArn")
+
+        result = self.backend.list_tags_for_resource(arn)
+
+        template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
+        return template.render(tags=result)
+
+    def tag_resource(self):
+        arn = self._get_param("ResourceArn")
+        tags = self._get_tags()
+
+        self.backend.tag_resource(arn, tags)
+
+        return self.response_template(TAG_RESOURCE_TEMPLATE).render()
+
+    def untag_resource(self):
+        arn = self._get_param("ResourceArn")
+        tag_keys = self._get_multi_param("TagKeys.member")
+
+        self.backend.untag_resource(arn, tag_keys)
+
+        return self.response_template(UNTAG_RESOURCE_TEMPLATE).render()
 
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
@@ -754,6 +868,22 @@ GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns
         <key>EffectiveDeliveryPolicy</key>
         <value>{{ topic.effective_delivery_policy }}</value>
       </entry>
+      {% if topic.kms_master_key_id %}
+      <entry>
+        <key>KmsMasterKeyId</key>
+        <value>{{ topic.kms_master_key_id }}</value>
+      </entry>
+      {% endif %}
+      {% if topic.fifo_topic == 'true' %}
+      <entry>
+        <key>FifoTopic</key>
+        <value>{{ topic.fifo_topic }}</value>
+      </entry>
+      <entry>
+        <key>ContentBasedDeduplication</key>
+        <value>{{ topic.content_based_deduplication }}</value>
+      </entry>
+      {% endif %}
     </Attributes>
   </GetTopicAttributesResult>
   <ResponseMetadata>
@@ -992,10 +1122,12 @@ GET_SMS_ATTRIBUTES_TEMPLATE = """<GetSMSAttributesResponse xmlns="http://sns.ama
   <GetSMSAttributesResult>
     <attributes>
       {% for name, value in attributes.items() %}
+      {% if value %}
       <entry>
         <key>{{ name }}</key>
         <value>{{ value }}</value>
       </entry>
+      {% endif %}
       {% endfor %}
     </attributes>
   </GetSMSAttributesResult>
@@ -1062,3 +1194,59 @@ CONFIRM_SUBSCRIPTION_TEMPLATE = """<ConfirmSubscriptionResponse xmlns="http://sn
     <RequestId>16eb4dde-7b3c-5b3e-a22a-1fe2a92d3293</RequestId>
   </ResponseMetadata>
 </ConfirmSubscriptionResponse>"""
+
+LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <ListTagsForResourceResult>
+    <Tags>
+      {% for name, value in tags.items() %}
+      <member>
+        <Key>{{ name }}</Key>
+        <Value>{{ value }}</Value>
+      </member>
+      {% endfor %}
+    </Tags>
+  </ListTagsForResourceResult>
+  <ResponseMetadata>
+    <RequestId>97fa763f-861b-5223-a946-20251f2a42e2</RequestId>
+  </ResponseMetadata>
+</ListTagsForResourceResponse>"""
+
+TAG_RESOURCE_TEMPLATE = """<TagResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+    <TagResourceResult/>
+    <ResponseMetadata>
+        <RequestId>fd4ab1da-692f-50a7-95ad-e7c665877d98</RequestId>
+    </ResponseMetadata>
+</TagResourceResponse>"""
+
+UNTAG_RESOURCE_TEMPLATE = """<UntagResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+    <UntagResourceResult/>
+    <ResponseMetadata>
+        <RequestId>14eb7b1a-4cbd-5a56-80db-2d06412df769</RequestId>
+    </ResponseMetadata>
+</UntagResourceResponse>"""
+
+PUBLISH_BATCH_TEMPLATE = """<PublishBatchResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <PublishBatchResult>
+    <Successful>
+{% for successful in successful %}
+      <member>
+        <Id>{{ successful["Id"] }}</Id>
+        <MessageId>{{ successful["MessageId"] }}</MessageId>
+      </member>
+{% endfor %}
+    </Successful>
+    <Failed>
+{% for failed in failed %}
+      <member>
+        <Id>{{ failed["Id"] }}</Id>
+        <Code>{{ failed["Code"] }}</Code>
+        <Message>{{ failed["Message"] }}</Message>
+        <SenderFault>{{'true' if failed["SenderFault"] else 'false'}}</SenderFault>
+      </member>
+{% endfor %}
+    </Failed>
+  </PublishBatchResult>
+</PublishBatchResponse>"""

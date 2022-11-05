@@ -1,5 +1,4 @@
-from __future__ import unicode_literals
-from .models import glue_backend
+from .models import glue_backends
+from ..core.models import base_decorator
 
-glue_backends = {"global": glue_backend}
-mock_glue = glue_backend.decorator
+mock_glue = base_decorator(glue_backends)

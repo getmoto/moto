@@ -1,0 +1,35 @@
+name: "Service-specific Dependencies Test"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'  # every day at midnight
+
+jobs:
+  runtest:
+    name: Run Dependency Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.8 ]
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Run test
+      env:
+        AWS_ACCESS_KEY_ID: key
+        AWS_SECRET_ACCESS_KEY: secret
+      run: |
+        scripts/dependency_test.sh
+    - name: Archive logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: buildfolder-${{ matrix.python-version }}
+        path: |
+          test_results_*.log

@@ -1,31 +1,28 @@
-from __future__ import unicode_literals
-
-from moto.core.responses import BaseResponse
 from moto.ec2.models import validate_resource_ids
-from moto.ec2.utils import tags_from_query_string, filters_from_querystring
+from moto.core.utils import tags_from_query_string
+from ._base_response import EC2BaseResponse
 
 
-class TagResponse(BaseResponse):
-
+class TagResponse(EC2BaseResponse):
     def create_tags(self):
-        resource_ids = self._get_multi_param('ResourceId')
+        resource_ids = self._get_multi_param("ResourceId")
         validate_resource_ids(resource_ids)
         self.ec2_backend.do_resources_exist(resource_ids)
         tags = tags_from_query_string(self.querystring)
-        if self.is_not_dryrun('CreateTags'):
+        if self.is_not_dryrun("CreateTags"):
             self.ec2_backend.create_tags(resource_ids, tags)
             return CREATE_RESPONSE
 
     def delete_tags(self):
-        resource_ids = self._get_multi_param('ResourceId')
+        resource_ids = self._get_multi_param("ResourceId")
         validate_resource_ids(resource_ids)
         tags = tags_from_query_string(self.querystring)
-        if self.is_not_dryrun('DeleteTags'):
+        if self.is_not_dryrun("DeleteTags"):
             self.ec2_backend.delete_tags(resource_ids, tags)
             return DELETE_RESPONSE
 
     def describe_tags(self):
-        filters = filters_from_querystring(querystring_dict=self.querystring)
+        filters = self._filters_from_querystring()
         tags = self.ec2_backend.describe_tags(filters=filters)
         template = self.response_template(DESCRIBE_RESPONSE)
         return template.render(tags=tags)

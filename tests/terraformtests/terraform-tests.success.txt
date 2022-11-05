@@ -1,0 +1,370 @@
+acm:
+  - TestAccACMCertificateDataSource
+amp:
+  - TestAccAMPWorkspace
+  - TestAccAMPRuleGroupNamespace
+apigateway:
+  - TestAccAPIGatewayAPIKeyDataSource_basic
+  - TestAccAPIGatewayAPIKey_disappears
+  - TestAccAPIGatewayAPIKey_enabled
+  - TestAccAPIGatewayAPIKey_value
+  - TestAccAPIGatewayGatewayResponse
+  - TestAccAPIGatewayRestAPI_apiKeySource
+  - TestAccAPIGatewayRestAPI_basic
+  - TestAccAPIGatewayRestAPI_description
+  - TestAccAPIGatewayRestAPI_disappears
+  - TestAccAPIGatewayRestAPI_Endpoint_private
+  - TestAccAPIGatewayStage_basic
+  - TestAccAPIGatewayStage_Disappears_restAPI
+  - TestAccAPIGatewayStage_disappears
+  - TestAccAPIGatewayStage_Disappears_referencingDeployment
+  - TestAccAPIGatewayStage_tags
+  - TestAccAPIGatewayStage_accessLogSettings
+apigatewayv2:
+  - TestAccAPIGatewayV2Authorizer
+  - TestAccAPIGatewayV2IntegrationResponse
+  - TestAccAPIGatewayV2Model
+  - TestAccAPIGatewayV2Route
+  - TestAccAPIGatewayV2VPCLink
+autoscaling:
+  - TestAccAutoScalingAttachment
+  - TestAccAutoScalingGroupDataSource
+  - TestAccAutoScalingGroupTag
+  - TestAccAutoScalingGroup_basic
+  - TestAccAutoScalingGroup_disappears
+  - TestAccAutoScalingGroup_nameGenerated
+  - TestAccAutoScalingGroup_namePrefix
+  - TestAccAutoScalingGroup_enablingMetrics
+  - TestAccAutoScalingGroup_suspendingProcesses
+  - TestAccAutoScalingGroup_mixedInstancesPolicy
+  - TestAccAutoScalingGroup_MixedInstancesPolicy_capacityRebalance
+  - TestAccAutoScalingLaunchConfigurationDataSource
+  - TestAccAutoScalingLaunchConfiguration_AssociatePublicIPAddress
+  - TestAccAutoScalingLaunchConfiguration_EBS_noDevice
+  - TestAccAutoScalingLaunchConfiguration_userData
+  - TestAccAutoScalingLaunchConfiguration_metadataOptions
+  - TestAccAutoScalingLaunchConfiguration_with
+  - TestAccAutoScalingLaunchConfiguration_encryptedEBSBlockDevice
+  - TestAccAutoScalingLaunchConfiguration_encryptedRootBlockDevice
+batch:
+  - TestAccBatchJobDefinition
+  - TestAccBatchJobQueue_basic
+  - TestAccBatchJobQueue_tags
+  - TestAccBatchJobQueue_disappears
+  - TestAccBatchJobQueue_priority
+  - TestAccBatchJobQueue_state
+  - TestAccBatchJobQueue_ComputeEnvironments_externalOrderUpdate
+ce:
+  - TestAccCECostCategory
+cloudfront:
+  - TestAccCloudFrontDistributionDataSource_basic
+  - TestAccCloudFrontDistribution_isIPV6Enabled
+cloudtrail:
+  - TestAccCloudTrailServiceAccount
+cloudwatch:
+  - TestAccCloudWatchDashboard
+  - TestAccCloudWatchLogsDestination
+  - TestAccCloudWatchLogsDestinationPolicy
+  - TestAccCloudWatchLogsGroupDataSource
+cognitoidp:
+  - TestAccCognitoIDPIdentityProvider
+  - TestAccCognitoIDPUserGroup_
+  - TestAccCognitoIDPUserInGroup
+  - TestAccCognitoIDPUserPoolClientDataSource
+  - TestAccCognitoIDPUserPoolClient_basic
+  - TestAccCognitoIDPUserPoolClient_enableRevocation
+  - TestAccCognitoIDPUserPoolClient_refreshTokenValidity
+  - TestAccCognitoIDPUserPoolClient_accessTokenValidity
+  - TestAccCognitoIDPUserPoolClient_idTokenValidity
+  - TestAccCognitoIDPUserPoolClient_name
+  - TestAccCognitoIDPUserPoolClient_allFields
+  - TestAccCognitoIDPUserPool_
+  - TestAccCognitoIDPUser_
+  - TestAccCognitoIDPUserPoolClients
+comprehend:
+  - TestAccComprehendEntityRecognizer_basic
+  - TestAccComprehendEntityRecognizer_disappears
+  - TestAccComprehendEntityRecognizer_version
+  - TestAccComprehendEntityRecognizer_documents
+  - TestAccComprehendEntityRecognizer_annotations
+  - TestAccComprehendEntityRecognizer_tags
+  - TestAccComprehendEntityRecognizer_DefaultTags
+  - TestAccComprehendEntityRecognizer_KMSKeys
+dax:
+  - TestAccDAXCluster_basic
+  - TestAccDAXCluster_Encryption
+dynamodb:
+  - TestAccDynamoDBTableItem
+ec2:
+  - TestAccEC2AvailabilityZonesDataSource_
+  - TestAccEC2CarrierGateway_
+  - TestAccEC2InstanceTypeOfferingDataSource_
+  - TestAccEC2InstanceTypeOfferingsDataSource_
+  - TestAccEC2RouteTableAssociation_
+  - TestAccEC2SpotInstanceRequest_disappears
+  - TestAccEC2SpotInstanceRequest_interruptUpdate
+  - TestAccEC2VPCEndpointService_
+  - TestAccEC2VPCPeeringConnectionAccepter_
+  - TestAccEC2VPCsDataSource
+  - TestAccEC2VPNGateway_
+  - TestAccEC2VPNGatewayAttachment_
+  - TestAccVPCEgressOnlyInternetGateway_
+  - TestAccVPCInternetGateway
+  - TestAccVPCNATGateway_
+  - TestAccVPCSecurityGroupDataSource_basic
+  - TestAccVPCSecurityGroupRule_
+  - TestAccVPCSecurityGroup_allowAll
+  - TestAccVPCSecurityGroup_basic
+  - TestAccVPCSecurityGroup_change
+  - TestAccVPCSecurityGroup_cidrAndGroups
+  - TestAccVPCSecurityGroup_defaultEgressVPC
+  - TestAccVPCSecurityGroup_disappears
+  - TestAccVPCSecurityGroup_driftComplex
+  - TestAccVPCSecurityGroup_egressMode
+  - TestAccVPCSecurityGroup_egressWithPrefixList
+  - TestAccVPCSecurityGroup_failWithDiffMismatch
+  - TestAccVPCSecurityGroup_ingressMode
+  - TestAccVPCSecurityGroup_ingressWithCIDRAndSGsVPC
+  - TestAccVPCSecurityGroup_ingressWithPrefixList
+  - TestAccVPCSecurityGroup_invalidCIDRBlock
+  - TestAccVPCSecurityGroup_ipRangeAndSecurityGroupWithSameRules
+  - TestAccVPCSecurityGroup_ipRangesWithSameRules
+  - TestAccVPCSecurityGroup_ipv4AndIPv6Egress
+  - TestAccVPCSecurityGroup_ipv6
+  - TestAccVPCSecurityGroup_multiIngress
+  - TestAccVPCSecurityGroup_nameGenerated
+  - TestAccVPCSecurityGroup_namePrefix
+  - TestAccVPCSecurityGroup_namePrefixTerraform
+  - TestAccVPCSecurityGroup_nameTerraformPrefix
+  - TestAccVPCSecurityGroup_noVPC
+  - TestAccVPCSecurityGroup_ruleDescription
+  - TestAccVPCSecurityGroup_ruleGathering
+  - TestAccVPCSecurityGroup_self
+  - TestAccVPCSecurityGroup_sourceSecurityGroup
+  - TestAccVPCSecurityGroup_tags
+  - TestAccVPCSecurityGroup_vpc
+  - TestAccVPCSecurityGroups
+ecr:
+  - TestAccECRLifecyclePolicy
+  - TestAccECRRegistryPolicy
+  - TestAccECRReplicationConfiguration
+  - TestAccECRRepository
+  - TestAccECRRepositoryDataSource
+  - TestAccECRRepositoryPolicy
+efs:
+  - TestAccEFSAccessPoint_
+  - TestAccEFSAccessPointDataSource
+  - TestAccEFSFileSystemDataSource
+elasticbeanstalk:
+  - TestAccElasticBeanstalkHostedZoneDataSource
+  - TestAccElasticBeanstalkSolutionStackDataSource
+elb:
+  - TestAccELBAttachment
+  - TestAccELBBackendServerPolicy
+  - TestAccELBHostedZoneIDDataSource
+  - TestAccELBListenerPolicy
+  - TestAccELBServiceAccountDataSource
+  - TestAccELBSSLNegotiationPolicy
+elbv2:
+  - TestAccELBV2ListenerCertificate
+  - TestAccELBV2TargetGroupAttachment
+  - TestAccELBV2TargetGroupDataSource
+events:
+  - TestAccEventsAPIDestination
+  - TestAccEventsArchive
+  - TestAccEventsBus
+  - TestAccEventsBusPolicy
+  - TestAccEventsConnection
+  - TestAccEventsConnectionDataSource
+  - TestAccEventsPermission
+guardduty:
+  - TestAccGuardDuty_serial/Detector/basic
+  - TestAccGuardDuty_serial/Filter/basic
+iam:
+  - TestAccIAMAccessKey_
+  - TestAccIAMAccountAlias_
+  - TestAccIAMGroup_
+  - TestAccIAMInstanceProfileDataSource_
+  - TestAccIAMGroupPolicy_
+  - TestAccIAMOpenIDConnectProvider_
+  - TestAccIAMOpenidConnectProviderDataSource_
+  - TestAccIAMPolicy_
+  - TestAccIAMPolicyDataSource_
+  - TestAccIAMPolicyDocumentDataSource_
+  - TestAccIAMRoleDataSource_
+  - TestAccIAMRolePolicy_
+  - TestAccIAMRolePolicyAttachment_
+  - TestAccIAMSessionContextDataSource_
+  - TestAccIAMServiceLinkedRole
+  - TestAccIAMUserDataSource_
+  - TestAccIAMUserPolicy_
+  - TestAccIAMUserPolicyAttachment_
+  - TestAccIAMUserSSHKey_
+  - TestAccIAMUserSSHKeyDataSource_
+iot:
+  - TestAccIoTEndpointDataSource
+kinesis:
+  - TestAccKinesisStreamConsumerDataSource_
+  - TestAccKinesisStreamConsumer_
+  - TestAccKinesisStreamDataSource_
+  - TestAccKinesisStream_
+kms:
+  - TestAccKMSAlias
+  - TestAccKMSGrant_arn
+  - TestAccKMSGrant_asymmetricKey
+  - TestAccKMSGrant_basic
+  - TestAccKMSGrant_bare
+  - TestAccKMSGrant_withConstraints
+  - TestAccKMSGrant_withRetiringPrincipal
+  - TestAccKMSKey_Policy_basic
+  - TestAccKMSKey_Policy_iamRole
+  - TestAccKMSKey_Policy_iamRoleOrder
+  - TestAccKMSKey_Policy_iamServiceLinkedRole
+  - TestAccKMSSecretDataSource
+  - TestAccKMSSecretsDataSource
+lambda:
+  - TestAccLambdaAlias_
+  - TestAccLambdaLayerVersion_basic
+  - TestAccLambdaLayerVersion_compatibleArchitectures
+  - TestAccLambdaLayerVersion_compatibleRuntimes
+  - TestAccLambdaLayerVersion_licenseInfo
+  - TestAccLambdaLayerVersion_s3
+  - TestAccLambdaLayerVersion_update
+  - TestAccLambdaFunctionURL
+meta:
+  - TestAccMetaBillingServiceAccountDataSource
+mq:
+  - TestAccMQBrokerDataSource
+  - TestAccMQBroker_
+quicksight:
+  - TestAccQuickSightUser
+  - TestAccQuickSightGroup_
+redshift:
+  - TestAccRedshiftServiceAccountDataSource
+route53|1:
+  - TestAccRoute53Record_basic
+  - TestAccRoute53Record_underscored
+  - TestAccRoute53Record_disappears
+  - TestAccRoute53Record_Disappears_multipleRecords
+  - TestAccRoute53Record_Basic_fqdn
+  - TestAccRoute53Record_Basic_trailingPeriodAndZoneID
+  - TestAccRoute53Record_txtSupport
+  - TestAccRoute53Record_spfSupport
+  - TestAccRoute53Record_caaSupport
+  - TestAccRoute53Record_dsSupport
+  - TestAccRoute53Record_generatesSuffix
+  - TestAccRoute53Record_wildcard
+  - TestAccRoute53Record_failover
+  - TestAccRoute53Record_Weighted_basic
+  - TestAccRoute53Record_WeightedToSimple_basic
+  - TestAccRoute53Record_Alias_s3
+  - TestAccRoute53Record_Geolocation_basic
+  - TestAccRoute53Record_HealthCheckID_setIdentifierChange
+  - TestAccRoute53Record_HealthCheckID_typeChange
+  - TestAccRoute53Record_Latency_basic
+  - TestAccRoute53Record_typeChange
+  - TestAccRoute53Record_nameChange
+  - TestAccRoute53Record_setIdentifierChange
+  - TestAccRoute53Record_empty
+  - TestAccRoute53Record_longTXTrecord
+  - TestAccRoute53Record_doNotAllowOverwrite
+  - TestAccRoute53Record_allowOverwrite
+route53|2:
+  - TestAccRoute53Zone_
+  - TestAccRoute53ZoneAssociation
+  - TestAccRoute53ZoneDataSource_id
+  - TestAccRoute53ZoneDataSource_name
+  - TestAccRoute53ZoneDataSource_tags
+  - TestAccRoute53ZoneDataSource_vpc
+  - TestAccRoute53HealthCheck_basic
+  - TestAccRoute53HealthCheck_tags
+  - TestAccRoute53HealthCheck_withSearchString
+  - TestAccRoute53HealthCheck_withChildHealthChecks
+  - TestAccRoute53HealthCheck_withHealthCheckRegions
+  - TestAccRoute53HealthCheck_ip
+  - TestAccRoute53HealthCheck_ipv6
+  - TestAccRoute53HealthCheck_withSNI
+  - TestAccRoute53HealthCheck_disabled
+  - TestAccRoute53HealthCheck_disappears
+  - TestAccRoute53ResolverEndpoint
+s3:
+  - TestAccS3Bucket_Basic_forceDestroyWithEmptyPrefixes
+  - TestAccS3Bucket_Basic_namePrefix
+  - TestAccS3Bucket_Basic_keyEnabled
+  - TestAccS3Bucket_Basic_forceDestroyWithObjectLockEnabled
+  - TestAccS3Bucket_Basic_generatedName
+  - TestAccS3Bucket_Basic_acceleration
+  - TestAccS3Bucket_Basic_forceDestroy
+  - TestAccS3Bucket_Basic_emptyString
+  - TestAccS3BucketPolicy
+  - TestAccS3BucketPublicAccessBlock
+  - TestAccS3BucketVersioning_basic
+  - TestAccS3BucketVersioning_disappears
+  - TestAccS3BucketVersioning_update
+  - TestAccS3BucketVersioning_Status_
+  - TestAccS3ObjectCopy
+  - TestAccS3Object_noNameNoKey
+  - TestAccS3Object_sse
+  - TestAccS3Object_kms
+  - TestAccS3Object_empty
+  - TestAccS3Object_source
+  - TestAccS3Object_content
+  - TestAccS3Object_etagEncryption
+  - TestAccS3Object_contentBase64
+  - TestAccS3Object_sourceHashTrigger
+  - TestAccS3Object_withContentCharacteristics
+  - TestAccS3Object_nonVersioned
+  - TestAccS3Object_acl
+  - TestAccS3Object_metadata
+  - TestAccS3Object_tags
+  - TestAccS3ObjectDataSource_kmsEncrypted
+  - TestAccS3ObjectDataSource_readableBody
+  - TestAccS3ObjectDataSource_bucketKeyEnabled
+  - TestAccS3ObjectDataSource_allParams
+  - TestAccS3ObjectDataSource_object
+  - TestAccS3ObjectDataSource_leadingSlash
+  - TestAccS3ObjectDataSource_multipleSlashes
+  - TestAccS3ObjectDataSource_singleSlashAsKey
+  - TestAccS3ObjectsDataSource_all
+  - TestAccS3ObjectsDataSource_prefixes
+  - TestAccS3ObjectsDataSource_maxKeys
+  - TestAccS3ObjectsDataSource_startAfter
+  - TestAccS3ObjectsDataSource_fetchOwner
+sagemaker:
+  - TestAccSageMakerPrebuiltECRImageDataSource
+servicediscovery:
+  - TestAccServiceDiscoveryDNSNamespaceDataSource
+  - TestAccServiceDiscoveryHTTPNamespace
+  - TestAccServiceDiscoveryPrivateDNSNamespace
+  - TestAccServiceDiscoveryPublicDNSNamespace
+  - TestAccServiceDiscoveryService
+signer:
+ - TestAccSignerSigningProfileDataSource_basic
+ - TestAccSignerSigningProfile_basic
+ - TestAccSignerSigningProfile_generateNameWithNamePrefix
+ - TestAccSignerSigningProfile_generateName
+ - TestAccSignerSigningProfile_tags
+ - TestAccSignerSigningProfile_signatureValidityPeriod
+sns:
+  - TestAccSNSTopicPolicy
+  - TestAccSNSTopicDataSource
+  - TestAccSNSSMSPreferences
+ssm:
+  - TestAccSSMDocumentDataSource_basic
+  - TestAccSSMDocument_
+sts:
+  - TestAccSTSCallerIdentityDataSource
+sqs:
+  - TestAccSQSQueueDataSource
+  - TestAccSQSQueuePolicy
+  - TestAccSQSQueue_FIFOQueue_
+timestreamwrite:
+  - TestAccTimestreamWriteDatabase
+  - TestAccTimestreamWriteTable
+wafv2:
+  - TestAccWAFV2WebACL_basic
+  - TestAccWAFV2WebACL_disappears
+  - TestAccWAFV2WebACL_minimal
+  - TestAccWAFV2WebACL_tags
+  - TestAccWAFV2WebACL_Update_rule
+  - TestAccWAFV2WebACL_RuleLabels

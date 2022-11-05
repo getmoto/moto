@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
-from .models import ses_backend
+from .models import ses_backends
+from ..core.models import base_decorator
 
-ses_backends = {"global": ses_backend}
-mock_ses = ses_backend.decorator
-mock_ses_deprecated = ses_backend.deprecated_decorator
+mock_ses = base_decorator(ses_backends)

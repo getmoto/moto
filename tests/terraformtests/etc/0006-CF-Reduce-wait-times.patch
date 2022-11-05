@@ -1,0 +1,29 @@
+From bc72f0c3ec4a4d099d6d9c9ab8bb5c839957378f Mon Sep 17 00:00:00 2001
+From: Bert Blommers <info@bertblommers.nl>
+Date: Wed, 29 Jun 2022 16:25:09 +0000
+Subject: [PATCH] Patch CF timings
+
+---
+ internal/service/cloudfront/distribution.go | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/internal/service/cloudfront/distribution.go b/internal/service/cloudfront/distribution.go
+index 3d34f2cf1c..17e7e17014 100644
+--- a/internal/service/cloudfront/distribution.go
++++ b/internal/service/cloudfront/distribution.go
+@@ -1185,9 +1185,9 @@ func DistributionWaitUntilDeployed(id string, meta interface{}) error {
+ 		Pending:    []string{"InProgress"},
+ 		Target:     []string{"Deployed"},
+ 		Refresh:    resourceWebDistributionStateRefreshFunc(id, meta),
+-		Timeout:    90 * time.Minute,
+-		MinTimeout: 15 * time.Second,
+-		Delay:      1 * time.Minute,
++		Timeout:    1 * time.Minute,
++		MinTimeout: 5 * time.Second,
++		Delay:      10 * time.Second,
+ 	}
+ 
+ 	_, err := stateConf.WaitForState()
+-- 
+2.25.1
+

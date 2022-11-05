@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from moto.core.responses import BaseResponse
@@ -7,6 +5,8 @@ from .models import kinesis_backends
 
 
 class KinesisResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="kinesis")
 
     @property
     def parameters(self):
@@ -14,46 +14,48 @@ class KinesisResponse(BaseResponse):
 
     @property
     def kinesis_backend(self):
-        return kinesis_backends[self.region]
-
-    @property
-    def is_firehose(self):
-        host = self.headers.get('host') or self.headers['Host']
-        return host.startswith('firehose') or 'firehose' in self.headers.get('Authorization', '')
+        return kinesis_backends[self.current_account][self.region]
 
     def create_stream(self):
-        stream_name = self.parameters.get('StreamName')
-        shard_count = self.parameters.get('ShardCount')
+        stream_name = self.parameters.get("StreamName")
+        shard_count = self.parameters.get("ShardCount")
+        stream_mode = self.parameters.get("StreamModeDetails")
         self.kinesis_backend.create_stream(
-            stream_name, shard_count, self.region)
+            stream_name, shard_count, stream_mode=stream_mode
+        )
         return ""
 
     def describe_stream(self):
-        stream_name = self.parameters.get('StreamName')
+        stream_name = self.parameters.get("StreamName")
+        limit = self.parameters.get("Limit")
         stream = self.kinesis_backend.describe_stream(stream_name)
-        return json.dumps(stream.to_json())
+        return json.dumps(stream.to_json(shard_limit=limit))
+
+    def describe_stream_summary(self):
+        stream_name = self.parameters.get("StreamName")
+        stream = self.kinesis_backend.describe_stream_summary(stream_name)
+        return json.dumps(stream.to_json_summary())
 
     def list_streams(self):
         streams = self.kinesis_backend.list_streams()
         stream_names = [stream.stream_name for stream in streams]
-        max_streams = self._get_param('Limit', 10)
+        max_streams = self._get_param("Limit", 10)
         try:
-            token = self.parameters.get('ExclusiveStartStreamName')
+            token = self.parameters.get("ExclusiveStartStreamName")
         except ValueError:
-            token = self._get_param('ExclusiveStartStreamName')
+            token = self._get_param("ExclusiveStartStreamName")
         if token:
             start = stream_names.index(token) + 1
         else:
             start = 0
-        streams_resp = stream_names[start:start + max_streams]
+        streams_resp = stream_names[start : start + max_streams]
         has_more_streams = False
         if start + max_streams < len(stream_names):
             has_more_streams = True
 
-        return json.dumps({
-            "HasMoreStreams": has_more_streams,
-            "StreamNames": streams_resp
-        })
+        return json.dumps(
+            {"HasMoreStreams": has_more_streams, "StreamNames": streams_resp}
+        )
 
     def delete_stream(self):
         stream_name = self.parameters.get("StreamName")
@@ -64,59 +66,57 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         shard_id = self.parameters.get("ShardId")
         shard_iterator_type = self.parameters.get("ShardIteratorType")
-        starting_sequence_number = self.parameters.get(
-            "StartingSequenceNumber")
+        starting_sequence_number = self.parameters.get("StartingSequenceNumber")
         at_timestamp = self.parameters.get("Timestamp")
 
         shard_iterator = self.kinesis_backend.get_shard_iterator(
-            stream_name, shard_id, shard_iterator_type, starting_sequence_number, at_timestamp
+            stream_name,
+            shard_id,
+            shard_iterator_type,
+            starting_sequence_number,
+            at_timestamp,
         )
 
-        return json.dumps({
-            "ShardIterator": shard_iterator
-        })
+        return json.dumps({"ShardIterator": shard_iterator})
 
     def get_records(self):
         shard_iterator = self.parameters.get("ShardIterator")
         limit = self.parameters.get("Limit")
 
-        next_shard_iterator, records, millis_behind_latest = self.kinesis_backend.get_records(
-            shard_iterator, limit)
+        (
+            next_shard_iterator,
+            records,
+            millis_behind_latest,
+        ) = self.kinesis_backend.get_records(shard_iterator, limit)
 
-        return json.dumps({
-            "NextShardIterator": next_shard_iterator,
-            "Records": [record.to_json() for record in records],
-            'MillisBehindLatest': millis_behind_latest
-        })
+        return json.dumps(
+            {
+                "NextShardIterator": next_shard_iterator,
+                "Records": [record.to_json() for record in records],
+                "MillisBehindLatest": millis_behind_latest,
+            }
+        )
 
     def put_record(self):
-        if self.is_firehose:
-            return self.firehose_put_record()
         stream_name = self.parameters.get("StreamName")
         partition_key = self.parameters.get("PartitionKey")
         explicit_hash_key = self.parameters.get("ExplicitHashKey")
-        sequence_number_for_ordering = self.parameters.get(
-            "SequenceNumberForOrdering")
         data = self.parameters.get("Data")
 
         sequence_number, shard_id = self.kinesis_backend.put_record(
-            stream_name, partition_key, explicit_hash_key, sequence_number_for_ordering, data
+            stream_name,
+            partition_key,
+            explicit_hash_key,
+            data,
         )
 
-        return json.dumps({
-            "SequenceNumber": sequence_number,
-            "ShardId": shard_id,
-        })
+        return json.dumps({"SequenceNumber": sequence_number, "ShardId": shard_id})
 
     def put_records(self):
-        if self.is_firehose:
-            return self.put_record_batch()
         stream_name = self.parameters.get("StreamName")
         records = self.parameters.get("Records")
 
-        response = self.kinesis_backend.put_records(
-            stream_name, records
-        )
+        response = self.kinesis_backend.put_records(stream_name, records)
 
         return json.dumps(response)
 
@@ -138,105 +138,150 @@ class KinesisResponse(BaseResponse):
         )
         return ""
 
-    ''' Firehose '''
+    def list_shards(self):
+        stream_name = self.parameters.get("StreamName")
+        next_token = self.parameters.get("NextToken")
+        max_results = self.parameters.get("MaxResults", 10000)
+        shards, token = self.kinesis_backend.list_shards(
+            stream_name=stream_name, limit=max_results, next_token=next_token
+        )
+        res = {"Shards": shards}
+        if token:
+            res["NextToken"] = token
+        return json.dumps(res)
 
-    def create_delivery_stream(self):
-        stream_name = self.parameters['DeliveryStreamName']
-        redshift_config = self.parameters.get(
-            'RedshiftDestinationConfiguration')
+    def update_shard_count(self):
+        stream_name = self.parameters.get("StreamName")
+        target_shard_count = self.parameters.get("TargetShardCount")
+        current_shard_count = self.kinesis_backend.update_shard_count(
+            stream_name=stream_name, target_shard_count=target_shard_count
+        )
+        return json.dumps(
+            dict(
+                StreamName=stream_name,
+                CurrentShardCount=current_shard_count,
+                TargetShardCount=target_shard_count,
+            )
+        )
 
-        if redshift_config:
-            redshift_s3_config = redshift_config['S3Configuration']
-            stream_kwargs = {
-                'redshift_username': redshift_config['Username'],
-                'redshift_password': redshift_config['Password'],
-                'redshift_jdbc_url': redshift_config['ClusterJDBCURL'],
-                'redshift_role_arn': redshift_config['RoleARN'],
-                'redshift_copy_command': redshift_config['CopyCommand'],
+    def increase_stream_retention_period(self):
+        stream_name = self.parameters.get("StreamName")
+        retention_period_hours = self.parameters.get("RetentionPeriodHours")
+        self.kinesis_backend.increase_stream_retention_period(
+            stream_name, retention_period_hours
+        )
+        return ""
 
-                'redshift_s3_role_arn': redshift_s3_config['RoleARN'],
-                'redshift_s3_bucket_arn': redshift_s3_config['BucketARN'],
-                'redshift_s3_prefix': redshift_s3_config['Prefix'],
-                'redshift_s3_compression_format': redshift_s3_config.get('CompressionFormat'),
-                'redshift_s3_buffering_hings': redshift_s3_config['BufferingHints'],
-            }
-        else:
-            # S3 Config
-            s3_config = self.parameters['S3DestinationConfiguration']
-            stream_kwargs = {
-                's3_role_arn': s3_config['RoleARN'],
-                's3_bucket_arn': s3_config['BucketARN'],
-                's3_prefix': s3_config['Prefix'],
-                's3_compression_format': s3_config.get('CompressionFormat'),
-                's3_buffering_hings': s3_config['BufferingHints'],
-            }
-        stream = self.kinesis_backend.create_delivery_stream(
-            stream_name, **stream_kwargs)
-        return json.dumps({
-            'DeliveryStreamARN': stream.arn
-        })
-
-    def describe_delivery_stream(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        stream = self.kinesis_backend.get_delivery_stream(stream_name)
-        return json.dumps(stream.to_dict())
-
-    def list_delivery_streams(self):
-        streams = self.kinesis_backend.list_delivery_streams()
-        return json.dumps({
-            "DeliveryStreamNames": [
-                stream.name for stream in streams
-            ],
-            "HasMoreDeliveryStreams": False
-        })
-
-    def delete_delivery_stream(self):
-        stream_name = self.parameters['DeliveryStreamName']
-        self.kinesis_backend.delete_delivery_stream(stream_name)
-        return json.dumps({})
-
-    def firehose_put_record(self):
-        stream_name = self.parameters['DeliveryStreamName']
-        record_data = self.parameters['Record']['Data']
-
-        record = self.kinesis_backend.put_firehose_record(
-            stream_name, record_data)
-        return json.dumps({
-            "RecordId": record.record_id,
-        })
-
-    def put_record_batch(self):
-        stream_name = self.parameters['DeliveryStreamName']
-        records = self.parameters['Records']
-
-        request_responses = []
-        for record in records:
-            record_response = self.kinesis_backend.put_firehose_record(
-                stream_name, record['Data'])
-            request_responses.append({
-                "RecordId": record_response.record_id
-            })
-        return json.dumps({
-            "FailedPutCount": 0,
-            "RequestResponses": request_responses,
-        })
+    def decrease_stream_retention_period(self):
+        stream_name = self.parameters.get("StreamName")
+        retention_period_hours = self.parameters.get("RetentionPeriodHours")
+        self.kinesis_backend.decrease_stream_retention_period(
+            stream_name, retention_period_hours
+        )
+        return ""
 
     def add_tags_to_stream(self):
-        stream_name = self.parameters.get('StreamName')
-        tags = self.parameters.get('Tags')
+        stream_name = self.parameters.get("StreamName")
+        tags = self.parameters.get("Tags")
         self.kinesis_backend.add_tags_to_stream(stream_name, tags)
         return json.dumps({})
 
     def list_tags_for_stream(self):
-        stream_name = self.parameters.get('StreamName')
-        exclusive_start_tag_key = self.parameters.get('ExclusiveStartTagKey')
-        limit = self.parameters.get('Limit')
+        stream_name = self.parameters.get("StreamName")
+        exclusive_start_tag_key = self.parameters.get("ExclusiveStartTagKey")
+        limit = self.parameters.get("Limit")
         response = self.kinesis_backend.list_tags_for_stream(
-            stream_name, exclusive_start_tag_key, limit)
+            stream_name, exclusive_start_tag_key, limit
+        )
         return json.dumps(response)
 
     def remove_tags_from_stream(self):
-        stream_name = self.parameters.get('StreamName')
-        tag_keys = self.parameters.get('TagKeys')
+        stream_name = self.parameters.get("StreamName")
+        tag_keys = self.parameters.get("TagKeys")
         self.kinesis_backend.remove_tags_from_stream(stream_name, tag_keys)
         return json.dumps({})
+
+    def enable_enhanced_monitoring(self):
+        stream_name = self.parameters.get("StreamName")
+        shard_level_metrics = self.parameters.get("ShardLevelMetrics")
+        current, desired = self.kinesis_backend.enable_enhanced_monitoring(
+            stream_name=stream_name, shard_level_metrics=shard_level_metrics
+        )
+        return json.dumps(
+            dict(
+                StreamName=stream_name,
+                CurrentShardLevelMetrics=current,
+                DesiredShardLevelMetrics=desired,
+            )
+        )
+
+    def disable_enhanced_monitoring(self):
+        stream_name = self.parameters.get("StreamName")
+        shard_level_metrics = self.parameters.get("ShardLevelMetrics")
+        current, desired = self.kinesis_backend.disable_enhanced_monitoring(
+            stream_name=stream_name, to_be_disabled=shard_level_metrics
+        )
+        return json.dumps(
+            dict(
+                StreamName=stream_name,
+                CurrentShardLevelMetrics=current,
+                DesiredShardLevelMetrics=desired,
+            )
+        )
+
+    def list_stream_consumers(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumers = self.kinesis_backend.list_stream_consumers(stream_arn=stream_arn)
+        return json.dumps(dict(Consumers=[c.to_json() for c in consumers]))
+
+    def register_stream_consumer(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumer_name = self.parameters.get("ConsumerName")
+        consumer = self.kinesis_backend.register_stream_consumer(
+            stream_arn=stream_arn, consumer_name=consumer_name
+        )
+        return json.dumps(dict(Consumer=consumer.to_json()))
+
+    def describe_stream_consumer(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumer_name = self.parameters.get("ConsumerName")
+        consumer_arn = self.parameters.get("ConsumerARN")
+        consumer = self.kinesis_backend.describe_stream_consumer(
+            stream_arn=stream_arn,
+            consumer_name=consumer_name,
+            consumer_arn=consumer_arn,
+        )
+        return json.dumps(
+            dict(ConsumerDescription=consumer.to_json(include_stream_arn=True))
+        )
+
+    def deregister_stream_consumer(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumer_name = self.parameters.get("ConsumerName")
+        consumer_arn = self.parameters.get("ConsumerARN")
+        self.kinesis_backend.deregister_stream_consumer(
+            stream_arn=stream_arn,
+            consumer_name=consumer_name,
+            consumer_arn=consumer_arn,
+        )
+        return json.dumps(dict())
+
+    def start_stream_encryption(self):
+        stream_name = self.parameters.get("StreamName")
+        encryption_type = self.parameters.get("EncryptionType")
+        key_id = self.parameters.get("KeyId")
+        self.kinesis_backend.start_stream_encryption(
+            stream_name=stream_name, encryption_type=encryption_type, key_id=key_id
+        )
+        return json.dumps(dict())
+
+    def stop_stream_encryption(self):
+        stream_name = self.parameters.get("StreamName")
+        self.kinesis_backend.stop_stream_encryption(stream_name=stream_name)
+        return json.dumps(dict())
+
+    def update_stream_mode(self):
+        stream_arn = self.parameters.get("StreamARN")
+        stream_mode = self.parameters.get("StreamModeDetails")
+        self.kinesis_backend.update_stream_mode(stream_arn, stream_mode)
+        return "{}"

@@ -14,71 +14,6 @@ If you've never used ``moto`` before, you should read the
 :doc:`Getting Started with Moto <docs/getting_started>` guide to get familiar
 with ``moto`` and its usage.
 
-Currently implemented Services:
--------------------------------
-
-+-----------------------+---------------------+-----------------------------------+
-| Service Name          | Decorator           | Development Status                |
-+=======================+=====================+===================================+
-| API Gateway           | @mock_apigateway    | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| Autoscaling           | @mock_autoscaling   | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| Cloudformation        | @mock_cloudformation| core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| Cloudwatch            | @mock_cloudwatch    | basic endpoints done              |
-+-----------------------+---------------------+-----------------------------------+
-| Data Pipeline         | @mock_datapipeline  | basic endpoints done              |
-+-----------------------+---------------------+-----------------------------------+
-| - DynamoDB            | - @mock_dynamodb    | - core endpoints done             |
-| - DynamoDB2           | - @mock_dynamodb2   | - core endpoints + partial indexes|
-+-----------------------+---------------------+-----------------------------------+
-| EC2                   | @mock_ec2           | core endpoints done               |
-|     - AMI             |                     |     - core endpoints done         |
-|     - EBS             |                     |     - core endpoints done         |
-|     - Instances       |                     |     - all  endpoints done         |
-|     - Security Groups |                     |     - core endpoints done         |
-|     - Tags            |                     |     - all  endpoints done         |
-+-----------------------+---------------------+-----------------------------------+
-| ECS                   | @mock_ecs           | basic endpoints done              |
-+-----------------------+---------------------+-----------------------------------+
-| ELB                   | @mock_elb           | core endpoints done               |
-|                       | @mock_elbv2         | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| EMR                   | @mock_emr           | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| Glacier               | @mock_glacier       | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| IAM                   | @mock_iam           | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| Lambda                | @mock_lambda        | basic endpoints done              |
-+-----------------------+---------------------+-----------------------------------+
-| Kinesis               | @mock_kinesis       | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| KMS                   | @mock_kms           | basic endpoints done              |
-+-----------------------+---------------------+-----------------------------------+
-| RDS                   | @mock_rds           | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| RDS2                  | @mock_rds2          | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| Redshift              | @mock_redshift      | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| Route53               | @mock_route53       | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| S3                    | @mock_s3            | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| SES                   | @mock_ses           | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| SNS                   | @mock_sns           | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| SQS                   | @mock_sqs           | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| STS                   | @mock_sts           | core endpoints done               |
-+-----------------------+---------------------+-----------------------------------+
-| SWF                   | @mock_swf           | basic endpoints done              |
-+-----------------------+---------------------+-----------------------------------+
-
-
 
 Additional Resources
 --------------------
@@ -93,9 +28,50 @@ Additional Resources
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :glob:
+   :caption: Getting Started
 
    docs/getting_started
    docs/server_mode
-   docs/moto_apis
-   docs/ec2_tut
+   docs/faq
+   docs/iam
+   docs/aws_config
+   docs/multi_account
+
+.. toctree::
+  :hidden:
+  :caption: Configuration
+
+  docs/configuration/index
+
+.. toctree::
+  :maxdepth: 1
+  :hidden:
+  :caption: Implemented Services
+
+  docs/services/index
+  docs/services/patching_other_services
+
+.. toctree::
+  :maxdepth: 1
+  :hidden:
+  :caption: Contributing to Moto
+
+  docs/contributing/index
+  docs/contributing/installation
+  docs/contributing/architecture
+  docs/contributing/new_feature
+  docs/contributing/checklist
+  docs/contributing/faq
+
+
+.. toctree::
+  :maxdepth: 1
+  :hidden:
+  :titlesonly:
+  :caption: Development Tips
+
+  docs/contributing/development_tips/index
+  docs/contributing/development_tips/urls
+  docs/contributing/development_tips/tests
+  docs/contributing/development_tips/utilities
+  docs/contributing/development_tips/new_state_transitions

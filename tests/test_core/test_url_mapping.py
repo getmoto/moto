@@ -1,5 +1,4 @@
-from __future__ import unicode_literals
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.core.utils import convert_regex_to_flask_path
 
@@ -14,9 +13,10 @@ def test_flask_path_converting_simple():
 
 
 def test_flask_path_converting_regex():
-    convert_regex_to_flask_path(
-        "/(?P<key_name>[a-zA-Z0-9\-_]+)").should.equal('/<regex("[a-zA-Z0-9\-_]+"):key_name>')
-
-    convert_regex_to_flask_path("(?P<account_id>\d+)/(?P<queue_name>.*)$").should.equal(
-        '<regex("\d+"):account_id>/<regex(".*"):queue_name>'
+    convert_regex_to_flask_path(r"/(?P<key_name>[a-zA-Z0-9\-_]+)").should.equal(
+        r'/<regex("[a-zA-Z0-9\-_]+"):key_name>'
     )
+
+    convert_regex_to_flask_path(
+        r"(?P<account_id>\d+)/(?P<queue_name>.*)$"
+    ).should.equal(r'<regex("\d+"):account_id>/<regex(".*"):queue_name>')

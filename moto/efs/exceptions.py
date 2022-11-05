@@ -1,0 +1,109 @@
+from moto.core.exceptions import JsonRESTError
+
+
+class EFSError(JsonRESTError):
+    pass
+
+
+class AccessPointNotFound(EFSError):
+    code = 404
+
+    def __init__(self, access_point_id):
+        super().__init__(
+            "AccessPointNotFound", f"Access Point {access_point_id} does not exist."
+        )
+
+
+class FileSystemAlreadyExists(EFSError):
+    code = 409
+
+    def __init__(self, creation_token, *args, **kwargs):
+        super().__init__(
+            "FileSystemAlreadyExists",
+            "File system with {} already exists.".format(creation_token),
+            *args,
+            **kwargs,
+        )
+
+
+class FileSystemNotFound(EFSError):
+    code = 404
+
+    def __init__(self, file_system_id, *args, **kwargs):
+        super().__init__(
+            "FileSystemNotFound",
+            "File system {} does not exist.".format(file_system_id),
+            *args,
+            **kwargs,
+        )
+
+
+class FileSystemInUse(EFSError):
+    code = 409
+
+    def __init__(self, msg, *args, **kwargs):
+        super().__init__("FileSystemInUse", msg, *args, **kwargs)
+
+
+class MountTargetConflict(EFSError):
+    code = 409
+
+    def __init__(self, msg, *args, **kwargs):
+        super().__init__("MountTargetConflict", msg, *args, **kwargs)
+
+
+class MountTargetNotFound(EFSError):
+    code = 404
+
+    def __init__(self, mount_target_id, *args, **kwargs):
+        super().__init__(
+            "MountTargetNotFound",
+            "Mount target '{}' does not exist.".format(mount_target_id),
+            *args,
+            **kwargs,
+        )
+
+
+class BadRequest(EFSError):
+    code = 400
+
+    def __init__(self, msg, *args, **kwargs):
+        super().__init__("BadRequest", msg, *args, **kwargs)
+
+
+class PolicyNotFound(EFSError):
+    code = 404
+
+    def __init__(self, *args, **kwargs):
+        super().__init__("PolicyNotFound", *args, **kwargs)
+
+
+class SubnetNotFound(EFSError):
+    code = 404
+
+    def __init__(self, subnet_id, *args, **kwargs):
+        super().__init__(
+            "SubnetNotFound",
+            "The subnet ID '{}' does not exist".format(subnet_id),
+            *args,
+            **kwargs,
+        )
+
+
+class SecurityGroupNotFound(EFSError):
+    code = 404
+
+    def __init__(self, security_group_id, *args, **kwargs):
+        super().__init__(
+            "SecurityGroupNotFound",
+            "The SecurityGroup ID '{}' does not exist".format(security_group_id),
+            *args,
+            **kwargs,
+        )
+
+
+class SecurityGroupLimitExceeded(EFSError):
+    code = 400
+
+    def __init__(self, msg, *args, **kwargs):
+        super().__init__("SecurityGroupLimitExceeded", msg, *args, **kwargs)

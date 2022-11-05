@@ -1,11 +1,11 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import resourcegroupstaggingapi_backends
 import json
 
 
 class ResourceGroupsTaggingAPIResponse(BaseResponse):
-    SERVICE_NAME = 'resourcegroupstaggingapi'
+    def __init__(self):
+        super().__init__(service_name="resourcegroupstaggingapi")
 
     @property
     def backend(self):
@@ -14,7 +14,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         :returns: Resource tagging api backend
         :rtype: moto.resourcegroupstaggingapi.models.ResourceGroupsTaggingAPIBackend
         """
-        return resourcegroupstaggingapi_backends[self.region]
+        return resourcegroupstaggingapi_backends[self.current_account][self.region]
 
     def get_resources(self):
         pagination_token = self._get_param("PaginationToken")
@@ -32,25 +32,21 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         )
 
         # Format tag response
-        response = {
-            'ResourceTagMappingList': resource_tag_mapping_list
-        }
+        response = {"ResourceTagMappingList": resource_tag_mapping_list}
         if pagination_token:
-            response['PaginationToken'] = pagination_token
+            response["PaginationToken"] = pagination_token
 
         return json.dumps(response)
 
     def get_tag_keys(self):
         pagination_token = self._get_param("PaginationToken")
         pagination_token, tag_keys = self.backend.get_tag_keys(
-            pagination_token=pagination_token,
+            pagination_token=pagination_token
         )
 
-        response = {
-            'TagKeys': tag_keys
-        }
+        response = {"TagKeys": tag_keys}
         if pagination_token:
-            response['PaginationToken'] = pagination_token
+            response["PaginationToken"] = pagination_token
 
         return json.dumps(response)
 
@@ -58,15 +54,12 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         pagination_token = self._get_param("PaginationToken")
         key = self._get_param("Key")
         pagination_token, tag_values = self.backend.get_tag_values(
-            pagination_token=pagination_token,
-            key=key,
+            pagination_token=pagination_token, key=key
         )
 
-        response = {
-            'TagValues': tag_values
-        }
+        response = {"TagValues": tag_values}
         if pagination_token:
-            response['PaginationToken'] = pagination_token
+            response["PaginationToken"] = pagination_token
 
         return json.dumps(response)
 

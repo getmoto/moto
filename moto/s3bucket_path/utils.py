@@ -1,5 +1,4 @@
-from __future__ import unicode_literals
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 def bucket_name_from_url(url):
@@ -13,12 +12,3 @@ def bucket_name_from_url(url):
 
 def parse_key_name(path):
     return "/".join(path.split("/")[2:])
-
-
-def is_delete_keys(request, path, bucket_name):
-    return (
-        path == u'/' + bucket_name + u'/?delete' or
-        path == u'/' + bucket_name + u'?delete' or
-        (path == u'/' + bucket_name and
-         getattr(request, "query_string", "") == "delete")
-    )

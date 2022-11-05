@@ -1,28 +1,51 @@
-from __future__ import unicode_literals
-
-import sure  # noqa
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 from freezegun import freeze_time
 
-from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase, unix_time
+from moto.core.utils import (
+    camelcase_to_underscores,
+    underscores_to_camelcase,
+    unix_time,
+    camelcase_to_pascal,
+    pascal_to_camelcase,
+)
 
 
-def test_camelcase_to_underscores():
-    cases = {
-        "theNewAttribute": "the_new_attribute",
-        "attri bute With Space": "attribute_with_space",
-        "FirstLetterCapital": "first_letter_capital",
-        "ListMFADevices": "list_mfa_devices",
-    }
-    for arg, expected in cases.items():
-        camelcase_to_underscores(arg).should.equal(expected)
+@pytest.mark.parametrize(
+    "_input,expected",
+    [
+        ("theNewAttribute", "the_new_attribute"),
+        ("attri bute With Space", "attribute_with_space"),
+        ("FirstLetterCapital", "first_letter_capital"),
+        ("ListMFADevices", "list_mfa_devices"),
+    ],
+)
+def test_camelcase_to_underscores(_input, expected):
+    camelcase_to_underscores(_input).should.equal(expected)
 
 
-def test_underscores_to_camelcase():
-    cases = {
-        "the_new_attribute": "theNewAttribute",
-    }
-    for arg, expected in cases.items():
-        underscores_to_camelcase(arg).should.equal(expected)
+@pytest.mark.parametrize(
+    "_input,expected",
+    [("the_new_attribute", "theNewAttribute"), ("attribute", "attribute")],
+)
+def test_underscores_to_camelcase(_input, expected):
+    underscores_to_camelcase(_input).should.equal(expected)
+
+
+@pytest.mark.parametrize(
+    "_input,expected",
+    [("TheNewAttribute", "theNewAttribute"), ("Attribute", "attribute")],
+)
+def test_pascal_to_camelcase(_input, expected):
+    pascal_to_camelcase(_input).should.equal(expected)
+
+
+@pytest.mark.parametrize(
+    "_input,expected",
+    [("theNewAttribute", "TheNewAttribute"), ("attribute", "Attribute")],
+)
+def test_camelcase_to_pascal(_input, expected):
+    camelcase_to_pascal(_input).should.equal(expected)
 
 
 @freeze_time("2015-01-01 12:00:00")

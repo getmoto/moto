@@ -1,15 +1,10 @@
-from __future__ import unicode_literals
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import (
-    filters_from_querystring,
-    dhcp_configuration_from_querystring)
+from ._base_response import EC2BaseResponse
 
 
-class DHCPOptions(BaseResponse):
-
+class DHCPOptions(EC2BaseResponse):
     def associate_dhcp_options(self):
-        dhcp_opt_id = self._get_param('DhcpOptionsId')
-        vpc_id = self._get_param('VpcId')
+        dhcp_opt_id = self._get_param("DhcpOptionsId")
+        vpc_id = self._get_param("VpcId")
 
         dhcp_opt = self.ec2_backend.describe_dhcp_options([dhcp_opt_id])[0]
         vpc = self.ec2_backend.get_vpc(vpc_id)
@@ -20,7 +15,8 @@ class DHCPOptions(BaseResponse):
         return template.render()
 
     def create_dhcp_options(self):
-        dhcp_config = dhcp_configuration_from_querystring(self.querystring)
+        dhcp_config = self._get_multi_param("DhcpConfiguration")
+        dhcp_config = {f["Key"]: f["Value"] for f in dhcp_config}
 
         # TODO validate we only got the options we know about
 
@@ -35,28 +31,27 @@ class DHCPOptions(BaseResponse):
             domain_name=domain_name,
             ntp_servers=ntp_servers,
             netbios_name_servers=netbios_name_servers,
-            netbios_node_type=netbios_node_type
+            netbios_node_type=netbios_node_type,
         )
 
         template = self.response_template(CREATE_DHCP_OPTIONS_RESPONSE)
         return template.render(dhcp_options_set=dhcp_options_set)
 
     def delete_dhcp_options(self):
-        dhcp_opt_id = self._get_param('DhcpOptionsId')
+        dhcp_opt_id = self._get_param("DhcpOptionsId")
         delete_status = self.ec2_backend.delete_dhcp_options_set(dhcp_opt_id)
         template = self.response_template(DELETE_DHCP_OPTIONS_RESPONSE)
         return template.render(delete_status=delete_status)
 
     def describe_dhcp_options(self):
         dhcp_opt_ids = self._get_multi_param("DhcpOptionsId")
-        filters = filters_from_querystring(self.querystring)
-        dhcp_opts = self.ec2_backend.get_all_dhcp_options(
-            dhcp_opt_ids, filters)
+        filters = self._filters_from_querystring()
+        dhcp_opts = self.ec2_backend.describe_dhcp_options(dhcp_opt_ids, filters)
         template = self.response_template(DESCRIBE_DHCP_OPTIONS_RESPONSE)
         return template.render(dhcp_options=dhcp_opts)
 
 
-CREATE_DHCP_OPTIONS_RESPONSE = u"""
+CREATE_DHCP_OPTIONS_RESPONSE = """
 <CreateDhcpOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <dhcpOptions>
@@ -92,14 +87,14 @@ CREATE_DHCP_OPTIONS_RESPONSE = u"""
 </CreateDhcpOptionsResponse>
 """
 
-DELETE_DHCP_OPTIONS_RESPONSE = u"""
+DELETE_DHCP_OPTIONS_RESPONSE = """
 <DeleteDhcpOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <return>{{delete_status}}</return>
 </DeleteDhcpOptionsResponse>
 """
 
-DESCRIBE_DHCP_OPTIONS_RESPONSE = u"""
+DESCRIBE_DHCP_OPTIONS_RESPONSE = """
 <DescribeDhcpOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <dhcpOptionsSet>
@@ -139,7 +134,7 @@ DESCRIBE_DHCP_OPTIONS_RESPONSE = u"""
 </DescribeDhcpOptionsResponse>
 """
 
-ASSOCIATE_DHCP_OPTIONS_RESPONSE = u"""
+ASSOCIATE_DHCP_OPTIONS_RESPONSE = """
 <AssociateDhcpOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
 <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
 <return>true</return>

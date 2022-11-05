@@ -23,41 +23,58 @@ def json_serial(obj):
     raise TypeError("Type not serializable")
 
 
-client = boto3.client('iam')
+client = boto3.client("iam")
 
 policies = {}
 
-paginator = client.get_paginator('list_policies')
+paginator = client.get_paginator("list_policies")
 try:
-    response_iterator = paginator.paginate(Scope='AWS')
+    response_iterator = paginator.paginate(Scope="AWS")
     for response in response_iterator:
-        for policy in response['Policies']:
-            policies[policy['PolicyName']] = policy
+        for policy in response["Policies"]:
+            policy.pop("AttachmentCount", None)
+            policy.pop("IsAttachable", None)
+            policy.pop("IsDefaultVersion", None)
+            policy.pop("PolicyId", None)
+            policy_name = policy.pop("PolicyName")
+            policies[policy_name] = policy
 except NoCredentialsError:
     print("USAGE:")
     print("Put your AWS credentials into ~/.aws/credentials and run:")
     print(__file__)
     print("")
     print("Or specify them on the command line:")
-    print("AWS_ACCESS_KEY_ID=your_personal_access_key AWS_SECRET_ACCESS_KEY=your_personal_secret {}".format(__file__))
+    print(
+        "AWS_ACCESS_KEY_ID=your_personal_access_key AWS_SECRET_ACCESS_KEY=your_personal_secret {}".format(
+            __file__
+        )
+    )
     print("")
     sys.exit(1)
 
 for policy_name in policies:
+    # We don't need the ARN afterwards
+    policy_arn = policies[policy_name].pop("Arn")
     response = client.get_policy_version(
-        PolicyArn=policies[policy_name]['Arn'],
-        VersionId=policies[policy_name]['DefaultVersionId'])
-    for key in response['PolicyVersion']:
-        policies[policy_name][key] = response['PolicyVersion'][key]
+        PolicyArn=policy_arn,
+        VersionId=policies[policy_name]["DefaultVersionId"],
+    )
+    for key in response["PolicyVersion"]:
+        if key in ["DefaultVersionId", "Path", "Document", "UpdateDate"]:
+            policies[policy_name][key] = response["PolicyVersion"][key]
 
-with open(output_file, 'w') as f:
-    triple_quote = '\"\"\"'
+with open(output_file, "w") as f:
+    triple_quote = '"""'
 
     f.write("# Imported via `make aws_managed_policies`\n")
-    f.write('aws_managed_policies_data = {}\n'.format(triple_quote))
-    f.write(json.dumps(policies,
-                     sort_keys=True,
-                     indent=4,
-                     separators=(',', ': '),
-                     default=json_serial))
-    f.write('{}\n'.format(triple_quote))
+    f.write("aws_managed_policies_data = {}\n".format(triple_quote))
+    f.write(
+        json.dumps(
+            policies,
+            sort_keys=True,
+            indent=1,
+            separators=(",", ":"),
+            default=json_serial,
+        )
+    )
+    f.write("{}\n".format(triple_quote))

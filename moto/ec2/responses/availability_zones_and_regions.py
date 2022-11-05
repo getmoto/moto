@@ -1,16 +1,17 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 
 
 class AvailabilityZonesAndRegions(BaseResponse):
-
     def describe_availability_zones(self):
-        zones = self.ec2_backend.describe_availability_zones()
+        self.error_on_dryrun()
+        filters = self._filters_from_querystring()
+        zones = self.ec2_backend.describe_availability_zones(filters)
         template = self.response_template(DESCRIBE_ZONES_RESPONSE)
         return template.render(zones=zones)
 
     def describe_regions(self):
-        region_names = self._get_multi_param('RegionName')
+        self.error_on_dryrun()
+        region_names = self._get_multi_param("RegionName")
         regions = self.ec2_backend.describe_regions(region_names)
         template = self.response_template(DESCRIBE_REGIONS_RESPONSE)
         return template.render(regions=regions)
@@ -23,6 +24,7 @@ DESCRIBE_REGIONS_RESPONSE = """<DescribeRegionsResponse xmlns="http://ec2.amazon
           <item>
              <regionName>{{ region.name }}</regionName>
              <regionEndpoint>{{ region.endpoint }}</regionEndpoint>
+             <optInStatus>{{ region.opt_in_status }}</optInStatus>
           </item>
       {% endfor %}
    </regionInfo>
@@ -36,6 +38,8 @@ DESCRIBE_ZONES_RESPONSE = """<DescribeAvailabilityZonesResponse xmlns="http://ec
           <zoneName>{{ zone.name }}</zoneName>
           <zoneState>available</zoneState>
           <regionName>{{ zone.region_name }}</regionName>
+          <zoneId>{{ zone.zone_id }}</zoneId>
+          <zoneType>{{ zone.zone_type }}</zoneType>
           <messageSet/>
        </item>
    {% endfor %}

@@ -1,54 +1,56 @@
-from __future__ import unicode_literals
-
-from collections import defaultdict
+import boto3
+import functools
 import datetime
 import json
 import logging
+import os
 import re
-import io
-
+import requests
 import pytz
-from moto.core.exceptions import DryRunClientError
-
-from jinja2 import Environment, DictLoader, TemplateNotFound
-
-import six
-from six.moves.urllib.parse import parse_qs, urlparse
-
 import xmltodict
-from pkg_resources import resource_filename
-from werkzeug.exceptions import HTTPException
 
-import boto3
-from moto.compat import OrderedDict
+from collections import defaultdict, OrderedDict
+from moto import settings
+from moto.core.exceptions import DryRunClientError
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
+from moto.utilities.utils import load_resource
+from jinja2 import Environment, DictLoader, Template
+from typing import Dict, Union, Any, Tuple, TypeVar
+from urllib.parse import parse_qs, parse_qsl, urlparse
+from werkzeug.exceptions import HTTPException
+from xml.dom.minidom import parseString as parseXML
 
 
 log = logging.getLogger(__name__)
 
+JINJA_ENVS = {}
+
+TYPE_RESPONSE = Tuple[int, Dict[str, str], str]
+TYPE_IF_NONE = TypeVar("TYPE_IF_NONE")
+
 
 def _decode_dict(d):
-    decoded = {}
+    decoded = OrderedDict()
     for key, value in d.items():
-        if isinstance(key, six.binary_type):
+        if isinstance(key, bytes):
             newkey = key.decode("utf-8")
         elif isinstance(key, (list, tuple)):
             newkey = []
             for k in key:
-                if isinstance(k, six.binary_type):
-                    newkey.append(k.decode('utf-8'))
+                if isinstance(k, bytes):
+                    newkey.append(k.decode("utf-8"))
                 else:
                     newkey.append(k)
         else:
             newkey = key
 
-        if isinstance(value, six.binary_type):
+        if isinstance(value, bytes):
             newvalue = value.decode("utf-8")
         elif isinstance(value, (list, tuple)):
             newvalue = []
             for v in value:
-                if isinstance(v, six.binary_type):
-                    newvalue.append(v.decode('utf-8'))
+                if isinstance(v, bytes):
+                    newvalue.append(v.decode("utf-8"))
                 else:
                     newvalue.append(v)
         else:
@@ -59,18 +61,6 @@ def _decode_dict(d):
 
 
 class DynamicDictLoader(DictLoader):
-    """
-      Note: There's a bug in jinja2 pre-2.7.3 DictLoader where caching does not work.
-        Including the fixed (current) method version here to ensure performance benefit
-        even for those using older jinja versions.
-    """
-
-    def get_source(self, environment, template):
-        if template in self.mapping:
-            source = self.mapping[template]
-            return source, None, lambda: source == self.mapping.get(template)
-        raise TemplateNotFound(template)
-
     def update(self, mapping):
         self.mapping.update(mapping)
 
@@ -79,46 +69,166 @@ class DynamicDictLoader(DictLoader):
 
 
 class _TemplateEnvironmentMixin(object):
-
-    def __init__(self):
-        super(_TemplateEnvironmentMixin, self).__init__()
-        self.loader = DynamicDictLoader({})
-        self.environment = Environment(
-            loader=self.loader, autoescape=self.should_autoescape)
+    LEFT_PATTERN = re.compile(r"[\s\n]+<")
+    RIGHT_PATTERN = re.compile(r">[\s\n]+")
 
     @property
     def should_autoescape(self):
         # Allow for subclass to overwrite
         return False
 
-    def contains_template(self, template_id):
-        return self.loader.contains(template_id)
+    @property
+    def environment(self):
+        key = type(self)
+        try:
+            environment = JINJA_ENVS[key]
+        except KeyError:
+            loader = DynamicDictLoader({})
+            environment = Environment(
+                loader=loader,
+                autoescape=self.should_autoescape,
+                trim_blocks=True,
+                lstrip_blocks=True,
+            )
+            JINJA_ENVS[key] = environment
 
-    def response_template(self, source):
-        template_id = id(source)
+        return environment
+
+    def contains_template(self, template_id):
+        return self.environment.loader.contains(template_id)
+
+    @classmethod
+    def _make_template_id(cls, source):
+        """
+        Return a numeric string that's unique for the lifetime of the source.
+
+        Jinja2 expects to template IDs to be strings.
+        """
+        return str(id(source))
+
+    def response_template(self, source: str) -> Template:
+        template_id = self._make_template_id(source)
         if not self.contains_template(template_id):
-            self.loader.update({template_id: source})
-            self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape, trim_blocks=True,
-                                           lstrip_blocks=True)
+            if settings.PRETTIFY_RESPONSES:
+                # pretty xml
+                xml = parseXML(source).toprettyxml()
+            else:
+                # collapsed xml
+                xml = re.sub(
+                    self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
+                )
+            self.environment.loader.update({template_id: xml})
         return self.environment.get_template(template_id)
 
 
-class BaseResponse(_TemplateEnvironmentMixin):
+class ActionAuthenticatorMixin(object):
 
-    default_region = 'us-east-1'
+    request_count = 0
+
+    def _authenticate_and_authorize_action(self, iam_request_cls):
+        if (
+            ActionAuthenticatorMixin.request_count
+            >= settings.INITIAL_NO_AUTH_ACTION_COUNT
+        ):
+            iam_request = iam_request_cls(
+                account_id=self.current_account,
+                method=self.method,
+                path=self.path,
+                data=self.data,
+                headers=self.headers,
+            )
+            iam_request.check_signature()
+            iam_request.check_action_permitted()
+        else:
+            ActionAuthenticatorMixin.request_count += 1
+
+    def _authenticate_and_authorize_normal_action(self):
+        from moto.iam.access_control import IAMRequest
+
+        self._authenticate_and_authorize_action(IAMRequest)
+
+    def _authenticate_and_authorize_s3_action(self):
+        from moto.iam.access_control import S3IAMRequest
+
+        self._authenticate_and_authorize_action(S3IAMRequest)
+
+    @staticmethod
+    def set_initial_no_auth_action_count(initial_no_auth_action_count):
+        _test_server_mode_endpoint = settings.test_server_mode_endpoint()
+
+        def decorator(function):
+            def wrapper(*args, **kwargs):
+                if settings.TEST_SERVER_MODE:
+                    response = requests.post(
+                        f"{_test_server_mode_endpoint}/moto-api/reset-auth",
+                        data=str(initial_no_auth_action_count).encode("utf-8"),
+                    )
+                    original_initial_no_auth_action_count = response.json()[
+                        "PREVIOUS_INITIAL_NO_AUTH_ACTION_COUNT"
+                    ]
+                else:
+                    original_initial_no_auth_action_count = (
+                        settings.INITIAL_NO_AUTH_ACTION_COUNT
+                    )
+                    original_request_count = ActionAuthenticatorMixin.request_count
+                    settings.INITIAL_NO_AUTH_ACTION_COUNT = initial_no_auth_action_count
+                    ActionAuthenticatorMixin.request_count = 0
+                try:
+                    result = function(*args, **kwargs)
+                finally:
+                    if settings.TEST_SERVER_MODE:
+                        requests.post(
+                            f"{_test_server_mode_endpoint}/moto-api/reset-auth",
+                            data=str(original_initial_no_auth_action_count).encode(
+                                "utf-8"
+                            ),
+                        )
+                    else:
+                        ActionAuthenticatorMixin.request_count = original_request_count
+                        settings.INITIAL_NO_AUTH_ACTION_COUNT = (
+                            original_initial_no_auth_action_count
+                        )
+                return result
+
+            functools.update_wrapper(wrapper, function)
+            wrapper.__wrapped__ = function
+            return wrapper
+
+        return decorator
+
+
+class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
+
+    default_region = "us-east-1"
     # to extract region, use [^.]
-    region_regex = re.compile(r'\.(?P<region>[a-z]{2}-[a-z]+-\d{1})\.amazonaws\.com')
-    param_list_regex = re.compile(r'(.*)\.(\d+)\.')
-    access_key_regex = re.compile(r'AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]')
+    region_regex = re.compile(r"\.(?P<region>[a-z]{2}-[a-z]+-\d{1})\.amazonaws\.com")
+    region_from_useragent_regex = re.compile(
+        r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
+    )
+    # Note: technically, we could remove "member" from the regex below... (leaving it for clarity)
+    param_list_regex = re.compile(r"^(\.?[^.]*(\.member|\.[^.]+)?)\.(\d+)\.?")
+    param_regex = re.compile(r"([^\.]*)\.(\w+)(\..+)?")
+    access_key_regex = re.compile(
+        r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
+    )
     aws_service_spec = None
 
+    def __init__(self, service_name=None) -> None:
+        super().__init__()
+        self.service_name = service_name
+
     @classmethod
-    def dispatch(cls, *args, **kwargs):
+    def dispatch(cls, *args: Any, **kwargs: Any) -> Any:
         return cls()._dispatch(*args, **kwargs)
 
-    def setup_class(self, request, full_url, headers):
-        querystring = {}
-        if hasattr(request, 'body'):
+    def setup_class(
+        self, request: Any, full_url: str, headers: Any, use_raw_body: bool = False
+    ) -> None:
+        """
+        use_raw_body: Use incoming bytes if True, encode to string otherwise
+        """
+        querystring = OrderedDict()
+        if hasattr(request, "body"):
             # Boto
             self.body = request.body
         else:
@@ -129,71 +239,124 @@ class BaseResponse(_TemplateEnvironmentMixin):
             # definition for back-compatibility
             self.body = request.data
 
-            querystring = {}
+            querystring = OrderedDict()
             for key, value in request.form.items():
-                querystring[key] = [value, ]
+                querystring[key] = [value]
 
         raw_body = self.body
-        if isinstance(self.body, six.binary_type):
-            self.body = self.body.decode('utf-8')
+        if isinstance(self.body, bytes) and not use_raw_body:
+            self.body = self.body.decode("utf-8")
 
         if not querystring:
             querystring.update(
-                parse_qs(urlparse(full_url).query, keep_blank_values=True))
+                parse_qs(urlparse(full_url).query, keep_blank_values=True)
+            )
         if not querystring:
-            if 'json' in request.headers.get('content-type', []) and self.aws_service_spec:
+            if (
+                "json" in request.headers.get("content-type", [])
+                and self.aws_service_spec
+            ):
                 decoded = json.loads(self.body)
 
-                target = request.headers.get(
-                    'x-amz-target') or request.headers.get('X-Amz-Target')
-                service, method = target.split('.')
+                target = request.headers.get("x-amz-target") or request.headers.get(
+                    "X-Amz-Target"
+                )
+                _, method = target.split(".")
                 input_spec = self.aws_service_spec.input_spec(method)
-                flat = flatten_json_request_body('', decoded, input_spec)
+                flat = flatten_json_request_body("", decoded, input_spec)
                 for key, value in flat.items():
                     querystring[key] = [value]
-            elif self.body:
-                querystring.update(parse_qs(raw_body, keep_blank_values=True))
+            elif self.body and not use_raw_body:
+                try:
+                    querystring.update(
+                        OrderedDict(
+                            (key, [value])
+                            for key, value in parse_qsl(
+                                raw_body, keep_blank_values=True
+                            )
+                        )
+                    )
+                except (UnicodeEncodeError, UnicodeDecodeError, AttributeError):
+                    pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
             querystring.update(headers)
 
-        querystring = _decode_dict(querystring)
+        try:
+            querystring = _decode_dict(querystring)
+        except UnicodeDecodeError:
+            pass  # ignore decoding errors, as the body may not contain a legitimate querystring
+
         self.uri = full_url
         self.path = urlparse(full_url).path
         self.querystring = querystring
+        self.data = querystring
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
         self.uri_match = None
 
         self.headers = request.headers
-        if 'host' not in self.headers:
-            self.headers['host'] = urlparse(full_url).netloc
+        if "host" not in self.headers:
+            self.headers["host"] = urlparse(full_url).netloc
         self.response_headers = {"server": "amazon.com"}
 
+        # Register visit with IAM
+        from moto.iam.models import mark_account_as_visited
+
+        self.access_key = self.get_access_key()
+        self.current_account = self.get_current_account()
+        mark_account_as_visited(
+            account_id=self.current_account,
+            access_key=self.access_key,
+            service=self.service_name,
+            region=self.region,
+        )
+
     def get_region_from_url(self, request, full_url):
-        match = self.region_regex.search(full_url)
-        if match:
-            region = match.group(1)
-        elif 'Authorization' in request.headers and 'AWS4' in request.headers['Authorization']:
-            region = request.headers['Authorization'].split(",")[
-                0].split("/")[2]
+        url_match = self.region_regex.search(full_url)
+        user_agent_match = self.region_from_useragent_regex.search(
+            request.headers.get("User-Agent", "")
+        )
+        if url_match:
+            region = url_match.group(1)
+        elif user_agent_match:
+            region = user_agent_match.group(1)
+        elif (
+            "Authorization" in request.headers
+            and "AWS4" in request.headers["Authorization"]
+        ):
+            region = request.headers["Authorization"].split(",")[0].split("/")[2]
         else:
             region = self.default_region
         return region
 
-    def get_current_user(self):
+    def get_access_key(self):
         """
         Returns the access key id used in this request as the current user id
         """
-        if 'Authorization' in self.headers:
-            match = self.access_key_regex.search(self.headers['Authorization'])
+        if "Authorization" in self.headers:
+            match = self.access_key_regex.search(self.headers["Authorization"])
             if match:
                 return match.group(1)
 
-        if self.querystring.get('AWSAccessKeyId'):
-            return self.querystring.get('AWSAccessKeyId')
+        if self.querystring.get("AWSAccessKeyId"):
+            return self.querystring.get("AWSAccessKeyId")[0]
         else:
-            # Should we raise an unauthorized exception instead?
-            return '111122223333'
+            return "AKIAEXAMPLE"
+
+    def get_current_account(self):
+        # PRIO 1: Check if we have a Environment Variable set
+        if "MOTO_ACCOUNT_ID" in os.environ:
+            return os.environ["MOTO_ACCOUNT_ID"]
+
+        # PRIO 2: Check if we have a specific request header that specifies the Account ID
+        if "x-moto-account-id" in self.headers:
+            return self.headers["x-moto-account-id"]
+
+        # PRIO 3: Use the access key to get the Account ID
+        # PRIO 4: This method will return the default Account ID as a last resort
+        from moto.iam.models import get_account_id_from
+
+        return get_account_id_from(self.get_access_key())
 
     def _dispatch(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -208,17 +371,27 @@ class BaseResponse(_TemplateEnvironmentMixin):
         -> '^/cars/.*/drivers/.*/drive$'
 
         """
-        def _convert(elem, is_last):
-            if not re.match('^{.*}$', elem):
-                return elem
-            name = elem.replace('{', '').replace('}', '')
-            if is_last:
-                return '(?P<%s>[^/]*)' % name
-            return '(?P<%s>.*)' % name
 
-        elems = uri.split('/')
+        def _convert(elem, is_last):
+            if not re.match("^{.*}$", elem):
+                return elem
+            name = (
+                elem.replace("{", "")
+                .replace("}", "")
+                .replace("+", "")
+                .replace("-", "_")
+            )
+            if is_last:
+                return "(?P<%s>[^/]+)" % name
+            return "(?P<%s>.*)" % name
+
+        elems = uri.split("/")
         num_elems = len(elems)
-        regexp = '^{}$'.format('/'.join([_convert(elem, (i == num_elems - 1)) for i, elem in enumerate(elems)]))
+        regexp = "^{}$".format(
+            "/".join(
+                [_convert(elem, (i == num_elems - 1)) for i, elem in enumerate(elems)]
+            )
+        )
         return regexp
 
     def _get_action_from_method_and_request_uri(self, method, request_uri):
@@ -229,19 +402,16 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
         # service response class should have 'SERVICE_NAME' class member,
         # if you want to get action from method and url
-        if not hasattr(self, 'SERVICE_NAME'):
-            return None
-        service = self.SERVICE_NAME
-        conn = boto3.client(service, region_name=self.region)
+        conn = boto3.client(self.service_name, region_name=self.region)
 
         # make cache if it does not exist yet
-        if not hasattr(self, 'method_urls'):
+        if not hasattr(self, "method_urls"):
             self.method_urls = defaultdict(lambda: defaultdict(str))
             op_names = conn._service_model.operation_names
             for op_name in op_names:
                 op_model = conn._service_model.operation_model(op_name)
-                _method = op_model.http['method']
-                uri_regexp = self.uri_to_regexp(op_model.http['requestUri'])
+                _method = op_model.http["method"]
+                uri_regexp = self.uri_to_regexp(op_model.http["requestUri"])
                 self.method_urls[_method][uri_regexp] = op_model.name
         regexp_and_names = self.method_urls[method]
         for regexp, name in regexp_and_names.items():
@@ -252,20 +422,26 @@ class BaseResponse(_TemplateEnvironmentMixin):
         return None
 
     def _get_action(self):
-        action = self.querystring.get('Action', [""])[0]
-        if not action:  # Some services use a header for the action
-            # Headers are case-insensitive. Probably a better way to do this.
-            match = self.headers.get(
-                'x-amz-target') or self.headers.get('X-Amz-Target')
-            if match:
-                action = match.split(".")[-1]
+        action = self.querystring.get("Action", [""])[0]
+        if action:
+            return action
+        # Some services use a header for the action
+        # Headers are case-insensitive. Probably a better way to do this.
+        match = self.headers.get("x-amz-target") or self.headers.get("X-Amz-Target")
+        if match:
+            return match.split(".")[-1]
         # get action from method and uri
-        if not action:
-            return self._get_action_from_method_and_request_uri(self.method, self.path)
-        return action
+        return self._get_action_from_method_and_request_uri(self.method, self.path)
 
     def call_action(self):
         headers = self.response_headers
+
+        try:
+            self._authenticate_and_authorize_normal_action()
+        except HTTPException as http_error:
+            response = http_error.description, dict(status=http_error.code)
+            return self._send_response(headers, response)
+
         action = camelcase_to_underscores(self._get_action())
         method_names = method_names_from_class(self.__class__)
         if action in method_names:
@@ -273,29 +449,38 @@ class BaseResponse(_TemplateEnvironmentMixin):
             try:
                 response = method()
             except HTTPException as http_error:
-                response = http_error.description, dict(status=http_error.code)
+                response_headers = dict(http_error.get_headers() or [])
+                response_headers["status"] = http_error.code
+                response = http_error.description, response_headers
 
-            if isinstance(response, six.string_types):
+            if isinstance(response, str):
                 return 200, headers, response
             else:
-                if len(response) == 2:
-                    body, new_headers = response
-                else:
-                    status, new_headers, body = response
-                status = new_headers.get('status', 200)
-                headers.update(new_headers)
-                # Cast status to string
-                if "status" in headers:
-                    headers['status'] = str(headers['status'])
-                return status, headers, body
+                return self._send_response(headers, response)
 
         if not action:
-            return 404, headers, ''
+            return 404, headers, ""
 
         raise NotImplementedError(
-            "The {0} action has not been implemented".format(action))
+            "The {0} action has not been implemented".format(action)
+        )
 
-    def _get_param(self, param_name, if_none=None):
+    @staticmethod
+    def _send_response(headers, response):
+        if response is None:
+            response = "", {}
+        if len(response) == 2:
+            body, new_headers = response
+        else:
+            status, new_headers, body = response
+        status = new_headers.get("status", 200)
+        headers.update(new_headers)
+        # Cast status to string
+        if "status" in headers:
+            headers["status"] = str(headers["status"])
+        return status, headers, body
+
+    def _get_param(self, param_name, if_none=None) -> Any:
         val = self.querystring.get(param_name)
         if val is not None:
             return val[0]
@@ -317,40 +502,51 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 pass
         return if_none
 
-    def _get_int_param(self, param_name, if_none=None):
+    def _get_int_param(
+        self, param_name, if_none: TYPE_IF_NONE = None
+    ) -> Union[int, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:
             return int(val)
         return if_none
 
-    def _get_bool_param(self, param_name, if_none=None):
+    def _get_bool_param(
+        self, param_name, if_none: TYPE_IF_NONE = None
+    ) -> Union[bool, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:
-            if val.lower() == 'true':
+            val = str(val)
+            if val.lower() == "true":
                 return True
-            elif val.lower() == 'false':
+            elif val.lower() == "false":
                 return False
         return if_none
 
-    def _get_multi_param_helper(self, param_prefix):
-        value_dict = dict()
-        tracked_prefixes = set()  # prefixes which have already been processed
+    def _get_multi_param_dict(self, param_prefix) -> Dict:
+        return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
 
-        def is_tracked(name_param):
-            for prefix_loop in tracked_prefixes:
-                if name_param.startswith(prefix_loop):
-                    return True
-            return False
+    def _get_multi_param_helper(
+        self, param_prefix, skip_result_conversion=False, tracked_prefixes=None
+    ):
+        value_dict = dict()
+        tracked_prefixes = (
+            tracked_prefixes or set()
+        )  # prefixes which have already been processed
 
         for name, value in self.querystring.items():
-            if is_tracked(name) or not name.startswith(param_prefix):
+            if not name.startswith(param_prefix):
                 continue
 
-            if len(name) > len(param_prefix) and \
-                    not name[len(param_prefix):].startswith('.'):
+            if len(name) > len(param_prefix) and not name[
+                len(param_prefix) :
+            ].startswith("."):
                 continue
 
-            match = self.param_list_regex.search(name[len(param_prefix):]) if len(name) > len(param_prefix) else None
+            match = (
+                self.param_list_regex.search(name[len(param_prefix) :])
+                if len(name) > len(param_prefix)
+                else None
+            )
             if match:
                 prefix = param_prefix + match.group(1)
                 value = self._get_multi_param(prefix)
@@ -358,20 +554,46 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 name = prefix
                 value_dict[name] = value
             else:
-                value_dict[name] = value[0]
+                match = self.param_regex.search(name[len(param_prefix) :])
+                if match:
+                    # enable access to params that are lists of dicts, e.g., "TagSpecification.1.ResourceType=.."
+                    sub_attr = "%s%s.%s" % (
+                        name[: len(param_prefix)],
+                        match.group(1),
+                        match.group(2),
+                    )
+                    if match.group(3):
+                        value = self._get_multi_param_helper(
+                            sub_attr,
+                            tracked_prefixes=tracked_prefixes,
+                            skip_result_conversion=skip_result_conversion,
+                        )
+                    else:
+                        value = self._get_param(sub_attr)
+                    tracked_prefixes.add(sub_attr)
+                    value_dict[name] = value
+                else:
+                    value_dict[name] = value[0]
 
         if not value_dict:
             return None
 
-        if len(value_dict) > 1:
+        if skip_result_conversion or len(value_dict) > 1:
             # strip off period prefix
-            value_dict = {name[len(param_prefix) + 1:]: value for name, value in value_dict.items()}
+            value_dict = {
+                name[len(param_prefix) + 1 :]: value
+                for name, value in value_dict.items()
+            }
+            for k in list(value_dict.keys()):
+                parts = k.split(".")
+                if len(parts) != 2 or parts[1] != "member":
+                    value_dict[parts[0]] = value_dict.pop(k)
         else:
             value_dict = list(value_dict.values())[0]
 
         return value_dict
 
-    def _get_multi_param(self, param_prefix):
+    def _get_multi_param(self, param_prefix, skip_result_conversion=False) -> Any:
         """
         Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
         this will return ['my-test-1', 'my-test-2']
@@ -383,8 +605,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
         values = []
         index = 1
         while True:
-            value_dict = self._get_multi_param_helper(prefix + str(index))
-            if not value_dict:
+            value_dict = self._get_multi_param_helper(
+                prefix + str(index), skip_result_conversion=skip_result_conversion
+            )
+            if not value_dict and value_dict != "":
                 break
 
             values.append(value_dict)
@@ -392,7 +616,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
         return values
 
-    def _get_dict_param(self, param_prefix):
+    def _get_dict_param(self, param_prefix) -> Dict:
         """
         Given a parameter dict of
         {
@@ -402,18 +626,94 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
         returns
         {
-            "SlaveInstanceType": "m1.small",
-            "InstanceCount": "1",
+            "slave_instance_type": "m1.small",
+            "instance_count": "1",
         }
         """
         params = {}
         for key, value in self.querystring.items():
             if key.startswith(param_prefix):
-                params[camelcase_to_underscores(
-                    key.replace(param_prefix, ""))] = value[0]
+                params[camelcase_to_underscores(key.replace(param_prefix, ""))] = value[
+                    0
+                ]
         return params
 
-    def _get_list_prefix(self, param_prefix):
+    def _get_params(self) -> Any:
+        """
+        Given a querystring of
+        {
+            'Action': ['CreatRule'],
+            'Conditions.member.1.Field': ['http-header'],
+            'Conditions.member.1.HttpHeaderConfig.HttpHeaderName': ['User-Agent'],
+            'Conditions.member.1.HttpHeaderConfig.Values.member.1': ['curl'],
+            'Actions.member.1.FixedResponseConfig.StatusCode': ['200'],
+            'Actions.member.1.FixedResponseConfig.ContentType': ['text/plain'],
+            'Actions.member.1.Type': ['fixed-response']
+        }
+
+        returns
+        {
+            'Action': 'CreatRule',
+            'Conditions': [
+                {
+                    'Field': 'http-header',
+                    'HttpHeaderConfig': {
+                        'HttpHeaderName': 'User-Agent',
+                        'Values': ['curl']
+                    }
+                }
+            ],
+            'Actions': [
+                {
+                    'Type': 'fixed-response',
+                    'FixedResponseConfig': {
+                        'StatusCode': '200',
+                        'ContentType': 'text/plain'
+                    }
+                }
+            ]
+        }
+        """
+        params = {}
+        for k, v in sorted(self.querystring.items()):
+            self._parse_param(k, v[0], params)
+        return params
+
+    def _parse_param(self, key, value, params):
+        keylist = key.split(".")
+        obj = params
+        for i, key in enumerate(keylist[:-1]):
+            if key in obj:
+                # step into
+                parent = obj
+                obj = obj[key]
+            else:
+                if key == "member":
+                    if not isinstance(obj, list):
+                        # initialize list
+                        # reset parent
+                        obj = []
+                        parent[keylist[i - 1]] = obj
+                elif isinstance(obj, dict):
+                    # initialize dict
+                    obj[key] = {}
+                    # step into
+                    parent = obj
+                    obj = obj[key]
+                elif key.isdigit():
+                    index = int(key) - 1
+                    if len(obj) <= index:
+                        # initialize list element
+                        obj.insert(index, {})
+                    # step into
+                    parent = obj
+                    obj = obj[index]
+        if isinstance(obj, list):
+            obj.append(value)
+        else:
+            obj[keylist[-1]] = value
+
+    def _get_list_prefix(self, param_prefix: str) -> Any:
         """
         Given a query dict like
         {
@@ -443,19 +743,20 @@ class BaseResponse(_TemplateEnvironmentMixin):
             new_items = {}
             for key, value in self.querystring.items():
                 if key.startswith(index_prefix):
-                    new_items[camelcase_to_underscores(
-                        key.replace(index_prefix, ""))] = value[0]
+                    new_items[
+                        camelcase_to_underscores(key.replace(index_prefix, ""))
+                    ] = value[0]
             if not new_items:
                 break
             results.append(new_items)
             param_index += 1
         return results
 
-    def _get_map_prefix(self, param_prefix, key_end='.key', value_end='.value'):
+    def _get_map_prefix(self, param_prefix, key_end=".key", value_end=".value"):
         results = {}
         param_index = 1
         while 1:
-            index_prefix = '{0}.{1}.'.format(param_prefix, param_index)
+            index_prefix = "{0}.{1}.".format(param_prefix, param_index)
 
             k, v = None, None
             for key, value in self.querystring.items():
@@ -465,7 +766,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
                     elif key.endswith(value_end):
                         v = value[0]
 
-            if not (k and v):
+            if not (k and v is not None):
                 break
 
             results[k] = v
@@ -473,27 +774,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
         return results
 
-    def _parse_tag_specification(self, param_prefix):
-        tags = self._get_list_prefix(param_prefix)
-
-        results = defaultdict(dict)
-        for tag in tags:
-            resource_type = tag.pop("resource_type")
-
-            param_index = 1
-            while True:
-                key_name = 'tag.{0}._key'.format(param_index)
-                value_name = 'tag.{0}._value'.format(param_index)
-
-                try:
-                    results[resource_type][tag[key_name]] = tag[value_name]
-                except KeyError:
-                    break
-                param_index += 1
-
-        return results
-
-    def _get_object_map(self, prefix, name='Name', value='Value'):
+    def _get_object_map(self, prefix, name="Name", value="Value"):
         """
         Given a query dict like
         {
@@ -521,15 +802,14 @@ class BaseResponse(_TemplateEnvironmentMixin):
         index = 1
         while True:
             # Loop through looking for keys representing object name
-            name_key = '{0}.{1}.{2}'.format(prefix, index, name)
+            name_key = "{0}.{1}.{2}".format(prefix, index, name)
             obj_name = self.querystring.get(name_key)
             if not obj_name:
                 # Found all keys
                 break
 
             obj = {}
-            value_key_prefix = '{0}.{1}.{2}.'.format(
-                prefix, index, value)
+            value_key_prefix = "{0}.{1}.{2}.".format(prefix, index, value)
             for k, v in self.querystring.items():
                 if k.startswith(value_key_prefix):
                     _, value_key = k.split(value_key_prefix, 1)
@@ -543,51 +823,20 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
     @property
     def request_json(self):
-        return 'JSON' in self.querystring.get('ContentType', [])
+        return "JSON" in self.querystring.get("ContentType", [])
 
-    def is_not_dryrun(self, action):
-        if 'true' in self.querystring.get('DryRun', ['false']):
-            message = 'An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set' % action
-            raise DryRunClientError(
-                error_type="DryRunOperation", message=message)
+    def error_on_dryrun(self):
+        self.is_not_dryrun()
+
+    def is_not_dryrun(self, action=None):
+        action = action or self._get_param("Action")
+        if "true" in self.querystring.get("DryRun", ["false"]):
+            message = (
+                "An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set"
+                % action
+            )
+            raise DryRunClientError(error_type="DryRunOperation", message=message)
         return True
-
-
-class MotoAPIResponse(BaseResponse):
-
-    def reset_response(self, request, full_url, headers):
-        if request.method == "POST":
-            from .models import moto_api_backend
-            moto_api_backend.reset()
-            return 200, {}, json.dumps({"status": "ok"})
-        return 400, {}, json.dumps({"Error": "Need to POST to reset Moto"})
-
-    def model_data(self, request, full_url, headers):
-        from moto.core.models import model_data
-
-        results = {}
-        for service in sorted(model_data):
-            models = model_data[service]
-            results[service] = {}
-            for name in sorted(models):
-                model = models[name]
-                results[service][name] = []
-                for instance in model.instances:
-                    inst_result = {}
-                    for attr in dir(instance):
-                        if not attr.startswith("_"):
-                            try:
-                                json.dumps(getattr(instance, attr))
-                            except TypeError:
-                                pass
-                            else:
-                                inst_result[attr] = getattr(instance, attr)
-                    results[service][name].append(inst_result)
-        return 200, {"Content-Type": "application/javascript"}, json.dumps(results)
-
-    def dashboard(self, request, full_url, headers):
-        from flask import render_template
-        return render_template('dashboard.html')
 
 
 class _RecursiveDictRef(object):
@@ -598,7 +847,7 @@ class _RecursiveDictRef(object):
         self.dic = {}
 
     def __repr__(self):
-        return '{!r}'.format(self.dic)
+        return "{!r}".format(self.dic)
 
     def __getattr__(self, key):
         return self.dic.__getattr__(key)
@@ -621,22 +870,21 @@ class AWSServiceSpec(object):
 
     """
 
-    def __init__(self, path):
-        self.path = resource_filename('botocore', path)
-        with io.open(self.path, 'r', encoding='utf-8') as f:
-            spec = json.load(f)
-        self.metadata = spec['metadata']
-        self.operations = spec['operations']
-        self.shapes = spec['shapes']
+    def __init__(self, path: str):
+        spec = load_resource("botocore", path)
+
+        self.metadata = spec["metadata"]
+        self.operations = spec["operations"]
+        self.shapes = spec["shapes"]
 
     def input_spec(self, operation):
         try:
             op = self.operations[operation]
         except KeyError:
-            raise ValueError('Invalid operation: {}'.format(operation))
-        if 'input' not in op:
+            raise ValueError("Invalid operation: {}".format(operation))
+        if "input" not in op:
             return {}
-        shape = self.shapes[op['input']['shape']]
+        shape = self.shapes[op["input"]["shape"]]
         return self._expand(shape)
 
     def output_spec(self, operation):
@@ -650,125 +898,135 @@ class AWSServiceSpec(object):
         try:
             op = self.operations[operation]
         except KeyError:
-            raise ValueError('Invalid operation: {}'.format(operation))
-        if 'output' not in op:
+            raise ValueError("Invalid operation: {}".format(operation))
+        if "output" not in op:
             return {}
-        shape = self.shapes[op['output']['shape']]
+        shape = self.shapes[op["output"]["shape"]]
         return self._expand(shape)
 
     def _expand(self, shape):
         def expand(dic, seen=None):
             seen = seen or {}
-            if dic['type'] == 'structure':
+            if dic["type"] == "structure":
                 nodes = {}
-                for k, v in dic['members'].items():
+                for k, v in dic["members"].items():
                     seen_till_here = dict(seen)
                     if k in seen_till_here:
                         nodes[k] = seen_till_here[k]
                         continue
                     seen_till_here[k] = _RecursiveDictRef()
-                    nodes[k] = expand(self.shapes[v['shape']], seen_till_here)
+                    nodes[k] = expand(self.shapes[v["shape"]], seen_till_here)
                     seen_till_here[k].set_reference(k, nodes[k])
-                nodes['type'] = 'structure'
+                nodes["type"] = "structure"
                 return nodes
 
-            elif dic['type'] == 'list':
+            elif dic["type"] == "list":
                 seen_till_here = dict(seen)
-                shape = dic['member']['shape']
+                shape = dic["member"]["shape"]
                 if shape in seen_till_here:
                     return seen_till_here[shape]
                 seen_till_here[shape] = _RecursiveDictRef()
                 expanded = expand(self.shapes[shape], seen_till_here)
                 seen_till_here[shape].set_reference(shape, expanded)
-                return {'type': 'list', 'member': expanded}
+                return {"type": "list", "member": expanded}
 
-            elif dic['type'] == 'map':
+            elif dic["type"] == "map":
                 seen_till_here = dict(seen)
-                node = {'type': 'map'}
+                node = {"type": "map"}
 
-                if 'shape' in dic['key']:
-                    shape = dic['key']['shape']
+                if "shape" in dic["key"]:
+                    shape = dic["key"]["shape"]
                     seen_till_here[shape] = _RecursiveDictRef()
-                    node['key'] = expand(self.shapes[shape], seen_till_here)
-                    seen_till_here[shape].set_reference(shape, node['key'])
+                    node["key"] = expand(self.shapes[shape], seen_till_here)
+                    seen_till_here[shape].set_reference(shape, node["key"])
                 else:
-                    node['key'] = dic['key']['type']
+                    node["key"] = dic["key"]["type"]
 
-                if 'shape' in dic['value']:
-                    shape = dic['value']['shape']
+                if "shape" in dic["value"]:
+                    shape = dic["value"]["shape"]
                     seen_till_here[shape] = _RecursiveDictRef()
-                    node['value'] = expand(self.shapes[shape], seen_till_here)
-                    seen_till_here[shape].set_reference(shape, node['value'])
+                    node["value"] = expand(self.shapes[shape], seen_till_here)
+                    seen_till_here[shape].set_reference(shape, node["value"])
                 else:
-                    node['value'] = dic['value']['type']
+                    node["value"] = dic["value"]["type"]
 
                 return node
 
             else:
-                return {'type': dic['type']}
+                return {"type": dic["type"]}
 
         return expand(shape)
 
 
 def to_str(value, spec):
-    vtype = spec['type']
-    if vtype == 'boolean':
-        return 'true' if value else 'false'
-    elif vtype == 'integer':
+    vtype = spec["type"]
+    if vtype == "boolean":
+        return "true" if value else "false"
+    elif vtype == "long":
+        return int(value)
+    elif vtype == "integer":
         return str(value)
-    elif vtype == 'float':
+    elif vtype == "float":
         return str(value)
-    elif vtype == 'timestamp':
-        return datetime.datetime.utcfromtimestamp(
-            value).replace(tzinfo=pytz.utc).isoformat()
-    elif vtype == 'string':
+    elif vtype == "double":
+        return str(value)
+    elif vtype == "timestamp":
+        return (
+            datetime.datetime.utcfromtimestamp(value)
+            .replace(tzinfo=pytz.utc)
+            .isoformat()
+        )
+    elif vtype == "string":
         return str(value)
     elif value is None:
-        return 'null'
+        return "null"
     else:
-        raise TypeError('Unknown type {}'.format(vtype))
+        raise TypeError("Unknown type {}".format(vtype))
 
 
 def from_str(value, spec):
-    vtype = spec['type']
-    if vtype == 'boolean':
-        return True if value == 'true' else False
-    elif vtype == 'integer':
+    vtype = spec["type"]
+    if vtype == "boolean":
+        return True if value == "true" else False
+    elif vtype == "integer":
         return int(value)
-    elif vtype == 'float':
+    elif vtype == "float":
         return float(value)
-    elif vtype == 'timestamp':
+    elif vtype == "double":
+        return float(value)
+    elif vtype == "timestamp":
         return value
-    elif vtype == 'string':
+    elif vtype == "string":
         return value
-    raise TypeError('Unknown type {}'.format(vtype))
+    raise TypeError("Unknown type {}".format(vtype))
 
 
 def flatten_json_request_body(prefix, dict_body, spec):
     """Convert a JSON request body into query params."""
-    if len(spec) == 1 and 'type' in spec:
+    if len(spec) == 1 and "type" in spec:
         return {prefix: to_str(dict_body, spec)}
 
     flat = {}
     for key, value in dict_body.items():
-        node_type = spec[key]['type']
-        if node_type == 'list':
+        node_type = spec[key]["type"]
+        if node_type == "list":
             for idx, v in enumerate(value, 1):
-                pref = key + '.member.' + str(idx)
-                flat.update(flatten_json_request_body(
-                    pref, v, spec[key]['member']))
-        elif node_type == 'map':
+                pref = key + ".member." + str(idx)
+                flat.update(flatten_json_request_body(pref, v, spec[key]["member"]))
+        elif node_type == "map":
             for idx, (k, v) in enumerate(value.items(), 1):
-                pref = key + '.entry.' + str(idx)
-                flat.update(flatten_json_request_body(
-                    pref + '.key', k, spec[key]['key']))
-                flat.update(flatten_json_request_body(
-                    pref + '.value', v, spec[key]['value']))
+                pref = key + ".entry." + str(idx)
+                flat.update(
+                    flatten_json_request_body(pref + ".key", k, spec[key]["key"])
+                )
+                flat.update(
+                    flatten_json_request_body(pref + ".value", v, spec[key]["value"])
+                )
         else:
             flat.update(flatten_json_request_body(key, value, spec[key]))
 
     if prefix:
-        prefix = prefix + '.'
+        prefix = prefix + "."
     return dict((prefix + k, v) for k, v in flat.items())
 
 
@@ -791,41 +1049,40 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
 
         od = OrderedDict()
         for k, v in value.items():
-            if k.startswith('@'):
+            if k.startswith("@"):
                 continue
 
             if k not in spec:
                 # this can happen when with an older version of
                 # botocore for which the node in XML template is not
                 # defined in service spec.
-                log.warning(
-                    'Field %s is not defined by the botocore version in use', k)
+                log.warning("Field %s is not defined by the botocore version in use", k)
                 continue
 
-            if spec[k]['type'] == 'list':
+            if spec[k]["type"] == "list":
                 if v is None:
                     od[k] = []
-                elif len(spec[k]['member']) == 1:
-                    if isinstance(v['member'], list):
-                        od[k] = transform(v['member'], spec[k]['member'])
+                elif len(spec[k]["member"]) == 1:
+                    if isinstance(v["member"], list):
+                        od[k] = transform(v["member"], spec[k]["member"])
                     else:
-                        od[k] = [transform(v['member'], spec[k]['member'])]
-                elif isinstance(v['member'], list):
-                    od[k] = [transform(o, spec[k]['member'])
-                             for o in v['member']]
-                elif isinstance(v['member'], OrderedDict):
-                    od[k] = [transform(v['member'], spec[k]['member'])]
+                        od[k] = [transform(v["member"], spec[k]["member"])]
+                elif isinstance(v["member"], list):
+                    od[k] = [transform(o, spec[k]["member"]) for o in v["member"]]
+                elif isinstance(v["member"], (OrderedDict, dict)):
+                    od[k] = [transform(v["member"], spec[k]["member"])]
                 else:
-                    raise ValueError('Malformatted input')
-            elif spec[k]['type'] == 'map':
+                    raise ValueError("Malformatted input")
+            elif spec[k]["type"] == "map":
                 if v is None:
                     od[k] = {}
                 else:
-                    items = ([v['entry']] if not isinstance(v['entry'], list) else
-                             v['entry'])
+                    items = (
+                        [v["entry"]] if not isinstance(v["entry"], list) else v["entry"]
+                    )
                     for item in items:
-                        key = from_str(item['key'], spec[k]['key'])
-                        val = from_str(item['value'], spec[k]['value'])
+                        key = from_str(item["key"], spec[k]["key"])
+                        val = from_str(item["value"], spec[k]["value"])
                         if k not in od:
                             od[k] = {}
                         od[k][key] = val
@@ -839,7 +1096,7 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
     dic = xmltodict.parse(xml)
     output_spec = service_spec.output_spec(operation)
     try:
-        for k in (result_node or (operation + 'Response', operation + 'Result')):
+        for k in result_node or (operation + "Response", operation + "Result"):
             dic = dic[k]
     except KeyError:
         return None

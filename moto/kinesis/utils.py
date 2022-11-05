@@ -3,8 +3,35 @@ import base64
 from .exceptions import InvalidArgumentError
 
 
-def compose_new_shard_iterator(stream_name, shard, shard_iterator_type, starting_sequence_number,
-                               at_timestamp):
+encode_method = base64.encodebytes
+decode_method = base64.decodebytes
+
+
+PAGINATION_MODEL = {
+    "list_shards": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 10000,
+        "unique_attribute": "ShardId",
+        "fail_on_invalid_token": False,
+    },
+}
+
+
+PAGINATION_MODEL = {
+    "list_shards": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 10000,
+        "unique_attribute": "ShardId",
+        "fail_on_invalid_token": False,
+    },
+}
+
+
+def compose_new_shard_iterator(
+    stream_name, shard, shard_iterator_type, starting_sequence_number, at_timestamp
+):
     if shard_iterator_type == "AT_SEQUENCE_NUMBER":
         last_sequence_id = int(starting_sequence_number) - 1
     elif shard_iterator_type == "AFTER_SEQUENCE_NUMBER":
@@ -17,19 +44,18 @@ def compose_new_shard_iterator(stream_name, shard, shard_iterator_type, starting
         last_sequence_id = shard.get_sequence_number_at(at_timestamp)
     else:
         raise InvalidArgumentError(
-            "Invalid ShardIteratorType: {0}".format(shard_iterator_type))
+            "Invalid ShardIteratorType: {0}".format(shard_iterator_type)
+        )
     return compose_shard_iterator(stream_name, shard, last_sequence_id)
 
 
 def compose_shard_iterator(stream_name, shard, last_sequence_id):
-    return base64.encodestring(
-        "{0}:{1}:{2}".format(
-            stream_name,
-            shard.shard_id,
-            last_sequence_id,
-        ).encode("utf-8")
+    return encode_method(
+        "{0}:{1}:{2}".format(stream_name, shard.shard_id, last_sequence_id).encode(
+            "utf-8"
+        )
     ).decode("utf-8")
 
 
 def decompose_shard_iterator(shard_iterator):
-    return base64.decodestring(shard_iterator.encode("utf-8")).decode("utf-8").split(":")
+    return decode_method(shard_iterator.encode("utf-8")).decode("utf-8").split(":")

@@ -1,9 +1,14 @@
+from threading import Timer as ThreadingTimer
+from time import sleep
+
 from freezegun import freeze_time
-import sure  # noqa
+from unittest.mock import Mock, patch
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.swf.models import (
     ActivityType,
     Timeout,
+    Timer,
     WorkflowType,
     WorkflowExecution,
 )
@@ -43,28 +48,31 @@ def test_workflow_execution_creation_child_policy_logic():
     WorkflowExecution(
         domain,
         WorkflowType(
-            "test-workflow", "v1.0",
-            task_list="queue", default_child_policy="ABANDON",
+            "test-workflow",
+            "v1.0",
+            task_list="queue",
+            default_child_policy="ABANDON",
             default_execution_start_to_close_timeout="300",
             default_task_start_to_close_timeout="300",
         ),
-        "ab1234"
+        "ab1234",
     ).child_policy.should.equal("ABANDON")
 
     WorkflowExecution(
         domain,
         WorkflowType(
-            "test-workflow", "v1.0", task_list="queue",
+            "test-workflow",
+            "v1.0",
+            task_list="queue",
             default_execution_start_to_close_timeout="300",
             default_task_start_to_close_timeout="300",
         ),
         "ab1234",
-        child_policy="REQUEST_CANCEL"
+        child_policy="REQUEST_CANCEL",
     ).child_policy.should.equal("REQUEST_CANCEL")
 
     WorkflowExecution.when.called_with(
-        domain,
-        WorkflowType("test-workflow", "v1.0"), "ab1234"
+        domain, WorkflowType("test-workflow", "v1.0"), "ab1234"
     ).should.throw(SWFDefaultUndefinedFault)
 
 
@@ -84,8 +92,10 @@ def test_workflow_execution_generates_a_random_run_id():
 def test_workflow_execution_short_dict_representation():
     domain = get_basic_domain()
     wf_type = WorkflowType(
-        "test-workflow", "v1.0",
-        task_list="queue", default_child_policy="ABANDON",
+        "test-workflow",
+        "v1.0",
+        task_list="queue",
+        default_child_policy="ABANDON",
         default_execution_start_to_close_timeout="300",
         default_task_start_to_close_timeout="300",
     )
@@ -99,8 +109,10 @@ def test_workflow_execution_short_dict_representation():
 def test_workflow_execution_medium_dict_representation():
     domain = get_basic_domain()
     wf_type = WorkflowType(
-        "test-workflow", "v1.0",
-        task_list="queue", default_child_policy="ABANDON",
+        "test-workflow",
+        "v1.0",
+        task_list="queue",
+        default_child_policy="ABANDON",
         default_execution_start_to_close_timeout="300",
         default_task_start_to_close_timeout="300",
     )
@@ -109,9 +121,9 @@ def test_workflow_execution_medium_dict_representation():
     md = wfe.to_medium_dict()
     md["execution"].should.equal(wfe.to_short_dict())
     md["workflowType"].should.equal(wf_type.to_short_dict())
-    md["startTimestamp"].should.be.a('float')
+    md["startTimestamp"].should.be.a("float")
     md["executionStatus"].should.equal("OPEN")
-    md["cancelRequested"].should.be.falsy
+    md["cancelRequested"].should.equal(False)
     md.should_not.contain("tagList")
 
     wfe.tag_list = ["foo", "bar", "baz"]
@@ -122,8 +134,10 @@ def test_workflow_execution_medium_dict_representation():
 def test_workflow_execution_full_dict_representation():
     domain = get_basic_domain()
     wf_type = WorkflowType(
-        "test-workflow", "v1.0",
-        task_list="queue", default_child_policy="ABANDON",
+        "test-workflow",
+        "v1.0",
+        task_list="queue",
+        default_child_policy="ABANDON",
         default_execution_start_to_close_timeout="300",
         default_task_start_to_close_timeout="300",
     )
@@ -134,32 +148,69 @@ def test_workflow_execution_full_dict_representation():
     fd["openCounts"]["openTimers"].should.equal(0)
     fd["openCounts"]["openDecisionTasks"].should.equal(0)
     fd["openCounts"]["openActivityTasks"].should.equal(0)
-    fd["executionConfiguration"].should.equal({
-        "childPolicy": "ABANDON",
-        "executionStartToCloseTimeout": "300",
-        "taskList": {"name": "queue"},
-        "taskStartToCloseTimeout": "300",
-    })
+    fd["executionConfiguration"].should.equal(
+        {
+            "childPolicy": "ABANDON",
+            "executionStartToCloseTimeout": "300",
+            "taskList": {"name": "queue"},
+            "taskStartToCloseTimeout": "300",
+        }
+    )
+
+
+def test_closed_workflow_execution_full_dict_representation():
+    domain = get_basic_domain()
+    wf_type = WorkflowType(
+        "test-workflow",
+        "v1.0",
+        task_list="queue",
+        default_child_policy="ABANDON",
+        default_execution_start_to_close_timeout="300",
+        default_task_start_to_close_timeout="300",
+    )
+    wfe = WorkflowExecution(domain, wf_type, "ab1234")
+    wfe.execution_status = "CLOSED"
+    wfe.close_status = "CANCELED"
+    wfe.close_timestamp = 1420066801.123
+
+    fd = wfe.to_full_dict()
+    medium_dict = wfe.to_medium_dict()
+    medium_dict["closeStatus"] = "CANCELED"
+    medium_dict["closeTimestamp"] = 1420066801.123
+    fd["executionInfo"].should.equal(medium_dict)
+    fd["openCounts"]["openTimers"].should.equal(0)
+    fd["openCounts"]["openDecisionTasks"].should.equal(0)
+    fd["openCounts"]["openActivityTasks"].should.equal(0)
+    fd["executionConfiguration"].should.equal(
+        {
+            "childPolicy": "ABANDON",
+            "executionStartToCloseTimeout": "300",
+            "taskList": {"name": "queue"},
+            "taskStartToCloseTimeout": "300",
+        }
+    )
 
 
 def test_workflow_execution_list_dict_representation():
     domain = get_basic_domain()
     wf_type = WorkflowType(
-        'test-workflow', 'v1.0',
-        task_list='queue', default_child_policy='ABANDON',
-        default_execution_start_to_close_timeout='300',
-        default_task_start_to_close_timeout='300',
+        "test-workflow",
+        "v1.0",
+        task_list="queue",
+        default_child_policy="ABANDON",
+        default_execution_start_to_close_timeout="300",
+        default_task_start_to_close_timeout="300",
     )
-    wfe = WorkflowExecution(domain, wf_type, 'ab1234')
+    wfe = WorkflowExecution(domain, wf_type, "ab1234")
 
     ld = wfe.to_list_dict()
-    ld['workflowType']['version'].should.equal('v1.0')
-    ld['workflowType']['name'].should.equal('test-workflow')
-    ld['executionStatus'].should.equal('OPEN')
-    ld['execution']['workflowId'].should.equal('ab1234')
-    ld['execution'].should.contain('runId')
-    ld['cancelRequested'].should.be.false
-    ld.should.contain('startTimestamp')
+    ld["workflowType"]["version"].should.equal("v1.0")
+    ld["workflowType"]["name"].should.equal("test-workflow")
+    ld["executionStatus"].should.equal("OPEN")
+    ld["execution"]["workflowId"].should.equal("ab1234")
+    ld["execution"].should.contain("runId")
+    ld["cancelRequested"].should.equal(False)
+    ld.should.contain("startTimestamp")
 
 
 def test_workflow_execution_schedule_decision_task():
@@ -231,7 +282,7 @@ def test_workflow_execution_fail():
 @freeze_time("2015-01-01 12:00:00")
 def test_workflow_execution_schedule_activity_task():
     wfe = make_workflow_execution()
-    wfe.latest_activity_task_timestamp.should.be.none
+    wfe.latest_activity_task_timestamp.should.equal(None)
 
     wfe.schedule_activity_task(123, VALID_ACTIVITY_TASK_ATTRIBUTES)
 
@@ -240,10 +291,8 @@ def test_workflow_execution_schedule_activity_task():
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ActivityTaskScheduled")
-    last_event.event_attributes[
-        "decisionTaskCompletedEventId"].should.equal(123)
-    last_event.event_attributes["taskList"][
-        "name"].should.equal("task-list-name")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+    last_event.event_attributes["taskList"]["name"].should.equal("task-list-name")
 
     wfe.activity_tasks.should.have.length_of(1)
     task = wfe.activity_tasks[0]
@@ -254,17 +303,18 @@ def test_workflow_execution_schedule_activity_task():
 
 def test_workflow_execution_schedule_activity_task_without_task_list_should_take_default():
     wfe = make_workflow_execution()
-    wfe.domain.add_type(
-        ActivityType("test-activity", "v1.2", task_list="foobar")
+    wfe.domain.add_type(ActivityType("test-activity", "v1.2", task_list="foobar"))
+    wfe.schedule_activity_task(
+        123,
+        {
+            "activityId": "my-activity-001",
+            "activityType": {"name": "test-activity", "version": "v1.2"},
+            "scheduleToStartTimeout": "600",
+            "scheduleToCloseTimeout": "600",
+            "startToCloseTimeout": "600",
+            "heartbeatTimeout": "300",
+        },
     )
-    wfe.schedule_activity_task(123, {
-        "activityId": "my-activity-001",
-        "activityType": {"name": "test-activity", "version": "v1.2"},
-        "scheduleToStartTimeout": "600",
-        "scheduleToCloseTimeout": "600",
-        "startToCloseTimeout": "600",
-        "heartbeatTimeout": "300",
-    })
 
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
@@ -290,50 +340,51 @@ def test_workflow_execution_schedule_activity_task_should_fail_if_wrong_attribut
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal(
-        "ACTIVITY_TYPE_DOES_NOT_EXIST")
+    last_event.event_attributes["cause"].should.equal("ACTIVITY_TYPE_DOES_NOT_EXIST")
 
     hsh["activityType"]["name"] = "test-activity"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal(
-        "ACTIVITY_TYPE_DEPRECATED")
+    last_event.event_attributes["cause"].should.equal("ACTIVITY_TYPE_DEPRECATED")
 
     hsh["activityType"]["version"] = "v1.2"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal(
-        "DEFAULT_TASK_LIST_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal("DEFAULT_TASK_LIST_UNDEFINED")
 
     hsh["taskList"] = {"name": "foobar"}
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
     last_event.event_attributes["cause"].should.equal(
-        "DEFAULT_SCHEDULE_TO_START_TIMEOUT_UNDEFINED")
+        "DEFAULT_SCHEDULE_TO_START_TIMEOUT_UNDEFINED"
+    )
 
     hsh["scheduleToStartTimeout"] = "600"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
     last_event.event_attributes["cause"].should.equal(
-        "DEFAULT_SCHEDULE_TO_CLOSE_TIMEOUT_UNDEFINED")
+        "DEFAULT_SCHEDULE_TO_CLOSE_TIMEOUT_UNDEFINED"
+    )
 
     hsh["scheduleToCloseTimeout"] = "600"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
     last_event.event_attributes["cause"].should.equal(
-        "DEFAULT_START_TO_CLOSE_TIMEOUT_UNDEFINED")
+        "DEFAULT_START_TO_CLOSE_TIMEOUT_UNDEFINED"
+    )
 
     hsh["startToCloseTimeout"] = "600"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
     last_event.event_attributes["cause"].should.equal(
-        "DEFAULT_HEARTBEAT_TIMEOUT_UNDEFINED")
+        "DEFAULT_HEARTBEAT_TIMEOUT_UNDEFINED"
+    )
 
     wfe.open_counts["openActivityTasks"].should.equal(0)
     wfe.activity_tasks.should.have.length_of(0)
@@ -365,9 +416,9 @@ def test_workflow_execution_schedule_activity_task_failure_triggers_new_decision
                     "activityId": "my-activity-001",
                     "activityType": {
                         "name": "test-activity-does-not-exist",
-                        "version": "v1.2"
+                        "version": "v1.2",
                     },
-                }
+                },
             },
             {
                 "decisionType": "ScheduleActivityTask",
@@ -375,11 +426,12 @@ def test_workflow_execution_schedule_activity_task_failure_triggers_new_decision
                     "activityId": "my-activity-001",
                     "activityType": {
                         "name": "test-activity-does-not-exist",
-                        "version": "v1.2"
+                        "version": "v1.2",
                     },
-                }
+                },
             },
-        ])
+        ],
+    )
 
     wfe.latest_execution_context.should.equal("free-form execution context")
     wfe.open_counts["openActivityTasks"].should.equal(0)
@@ -402,8 +454,7 @@ def test_workflow_execution_schedule_activity_task_with_same_activity_id():
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal(
-        "ACTIVITY_ID_ALREADY_IN_USE")
+    last_event.event_attributes["cause"].should.equal("ACTIVITY_ID_ALREADY_IN_USE")
 
 
 def test_workflow_execution_start_activity_task():
@@ -481,8 +532,7 @@ def test_timeouts_are_processed_in_order_and_reevaluated():
     # - but the last scheduled decision task should *not* timeout (workflow closed)
     with freeze_time("2015-01-01 12:00:00"):
         wfe = make_workflow_execution(
-            execution_start_to_close_timeout=8 * 60,
-            task_start_to_close_timeout=5 * 60,
+            execution_start_to_close_timeout=8 * 60, task_start_to_close_timeout=5 * 60
         )
         # decision will automatically start
         wfe = auto_start_decision_tasks(wfe)
@@ -493,9 +543,123 @@ def test_timeouts_are_processed_in_order_and_reevaluated():
         wfe._process_timeouts()
 
         event_types = [e.event_type for e in wfe.events()[event_idx:]]
-        event_types.should.equal([
-            "DecisionTaskTimedOut",
-            "DecisionTaskScheduled",
-            "DecisionTaskStarted",
-            "WorkflowExecutionTimedOut",
-        ])
+        event_types.should.equal(
+            [
+                "DecisionTaskTimedOut",
+                "DecisionTaskScheduled",
+                "DecisionTaskStarted",
+                "WorkflowExecutionTimedOut",
+            ]
+        )
+
+
+def test_record_marker():
+    wfe = make_workflow_execution()
+    MARKER_EVENT_ATTRIBUTES = {"markerName": "example_marker"}
+
+    wfe.record_marker(123, MARKER_EVENT_ATTRIBUTES)
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("MarkerRecorded")
+    last_event.event_attributes["markerName"].should.equal("example_marker")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_start_timer():
+    wfe = make_workflow_execution()
+    START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "10", "timerId": "abc123"}
+    with patch("moto.swf.models.workflow_execution.ThreadingTimer"):
+
+        wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
+
+        last_event = wfe.events()[-1]
+        last_event.event_type.should.equal("TimerStarted")
+        last_event.event_attributes["startToFireTimeout"].should.equal("10")
+        last_event.event_attributes["timerId"].should.equal("abc123")
+        last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_start_timer_correctly_fires_timer_later():
+    wfe = make_workflow_execution()
+    START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "60", "timerId": "abc123"}
+
+    # Patch thread's event with one that immediately resolves
+    with patch("threading.Event.wait"):
+        wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
+        # Small wait to let both events populate
+        sleep(0.5)
+
+        second_to_last_event = wfe.events()[-2]
+        last_event = wfe.events()[-1]
+        second_to_last_event.event_type.should.equal("TimerFired")
+        second_to_last_event.event_attributes["timerId"].should.equal("abc123")
+        second_to_last_event.event_attributes["startedEventId"].should.equal(1)
+        last_event.event_type.should.equal("DecisionTaskScheduled")
+
+
+def test_start_timer_fails_if_timer_already_started():
+    wfe = make_workflow_execution()
+    existing_timer = Mock(spec=ThreadingTimer)
+    existing_timer.is_alive.return_value = True
+    wfe._timers["abc123"] = Timer(existing_timer, 1)
+    START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "10", "timerId": "abc123"}
+
+    wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("StartTimerFailed")
+    last_event.event_attributes["cause"].should.equal("TIMER_ID_ALREADY_IN_USE")
+    last_event.event_attributes["timerId"].should.equal("abc123")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_cancel_timer():
+    wfe = make_workflow_execution()
+    existing_timer = Mock(spec=ThreadingTimer)
+    existing_timer.is_alive.return_value = True
+    wfe._timers["abc123"] = Timer(existing_timer, 1)
+
+    wfe.cancel_timer(123, "abc123")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("TimerCancelled")
+    last_event.event_attributes["startedEventId"].should.equal(1)
+    last_event.event_attributes["timerId"].should.equal("abc123")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+    existing_timer.cancel.assert_called_once()
+    assert not wfe._timers.get("abc123")
+
+
+def test_cancel_timer_fails_if_timer_not_found():
+    wfe = make_workflow_execution()
+
+    wfe.cancel_timer(123, "abc123")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("CancelTimerFailed")
+    last_event.event_attributes["cause"].should.equal("TIMER_ID_UNKNOWN")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_cancel_workflow():
+    wfe = make_workflow_execution()
+    wfe.open_counts["openDecisionTasks"] = 1
+
+    wfe.cancel(123, "I want to cancel")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("WorkflowExecutionCanceled")
+    last_event.event_attributes["details"].should.equal("I want to cancel")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_cancel_workflow_fails_if_open_decision():
+    wfe = make_workflow_execution()
+    wfe.open_counts["openDecisionTasks"] = 2
+
+    wfe.cancel(123, "I want to cancel")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("CancelWorkflowExecutionFailed")
+    last_event.event_attributes["cause"].should.equal("UNHANDLED_DECISION")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)

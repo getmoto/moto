@@ -1,14 +1,9 @@
-from __future__ import unicode_literals
-
 template = {
     "Resources": {
         "HostedZone": {
             "Type": "AWS::Route53::HostedZone",
-            "Properties": {
-                "Name": "my_zone"
-            }
+            "Properties": {"Name": "my_zone"},
         },
-
         "my_health_check": {
             "Type": "AWS::Route53::HealthCheck",
             "Properties": {
@@ -20,9 +15,8 @@ template = {
                     "ResourcePath": "/",
                     "Type": "HTTP",
                 }
-            }
+            },
         },
-
         "myDNSRecord": {
             "Type": "AWS::Route53::RecordSet",
             "Properties": {
@@ -33,7 +27,7 @@ template = {
                 "TTL": "900",
                 "ResourceRecords": ["my.example.com"],
                 "HealthCheckId": {"Ref": "my_health_check"},
-            }
-        }
-    },
+            },
+        },
+    }
 }

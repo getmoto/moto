@@ -1,140 +1,197 @@
-from __future__ import unicode_literals
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class ElasticBlockStore(BaseResponse):
-
+class ElasticBlockStore(EC2BaseResponse):
     def attach_volume(self):
-        volume_id = self._get_param('VolumeId')
-        instance_id = self._get_param('InstanceId')
-        device_path = self._get_param('Device')
-        if self.is_not_dryrun('AttachVolume'):
+        volume_id = self._get_param("VolumeId")
+        instance_id = self._get_param("InstanceId")
+        device_path = self._get_param("Device")
+        if self.is_not_dryrun("AttachVolume"):
             attachment = self.ec2_backend.attach_volume(
-                volume_id, instance_id, device_path)
+                volume_id, instance_id, device_path
+            )
             template = self.response_template(ATTACHED_VOLUME_RESPONSE)
             return template.render(attachment=attachment)
 
     def copy_snapshot(self):
-        source_snapshot_id = self._get_param('SourceSnapshotId')
-        source_region = self._get_param('SourceRegion')
-        description = self._get_param('Description')
-        if self.is_not_dryrun('CopySnapshot'):
+        source_snapshot_id = self._get_param("SourceSnapshotId")
+        source_region = self._get_param("SourceRegion")
+        description = self._get_param("Description")
+        tags = self._parse_tag_specification()
+        snapshot_tags = tags.get("snapshot", {})
+        if self.is_not_dryrun("CopySnapshot"):
             snapshot = self.ec2_backend.copy_snapshot(
-                source_snapshot_id, source_region, description)
+                source_snapshot_id, source_region, description
+            )
+            snapshot.add_tags(snapshot_tags)
             template = self.response_template(COPY_SNAPSHOT_RESPONSE)
             return template.render(snapshot=snapshot)
 
     def create_snapshot(self):
-        volume_id = self._get_param('VolumeId')
-        description = self._get_param('Description')
-        tags = self._parse_tag_specification("TagSpecification")
-        snapshot_tags = tags.get('snapshot', {})
-        if self.is_not_dryrun('CreateSnapshot'):
+        volume_id = self._get_param("VolumeId")
+        description = self._get_param("Description")
+        tags = self._parse_tag_specification()
+        snapshot_tags = tags.get("snapshot", {})
+        if self.is_not_dryrun("CreateSnapshot"):
             snapshot = self.ec2_backend.create_snapshot(volume_id, description)
             snapshot.add_tags(snapshot_tags)
             template = self.response_template(CREATE_SNAPSHOT_RESPONSE)
             return template.render(snapshot=snapshot)
 
+    def create_snapshots(self):
+        params = self._get_params()
+        instance_spec = params.get("InstanceSpecification")
+        description = params.get("Description", "")
+        tags = self._parse_tag_specification()
+        snapshot_tags = tags.get("snapshot", {})
+
+        if self.is_not_dryrun("CreateSnapshots"):
+            snapshots = self.ec2_backend.create_snapshots(
+                instance_spec, description, snapshot_tags
+            )
+            template = self.response_template(CREATE_SNAPSHOTS_RESPONSE)
+            return template.render(snapshots=snapshots)
+
     def create_volume(self):
-        size = self._get_param('Size')
-        zone = self._get_param('AvailabilityZone')
-        snapshot_id = self._get_param('SnapshotId')
-        tags = self._parse_tag_specification("TagSpecification")
-        volume_tags = tags.get('volume', {})
-        encrypted = self._get_param('Encrypted', if_none=False)
-        if self.is_not_dryrun('CreateVolume'):
+        size = self._get_param("Size")
+        zone = self._get_param("AvailabilityZone")
+        snapshot_id = self._get_param("SnapshotId")
+        volume_type = self._get_param("VolumeType")
+        tags = self._parse_tag_specification()
+        volume_tags = tags.get("volume", {})
+        encrypted = self._get_bool_param("Encrypted", if_none=False)
+        kms_key_id = self._get_param("KmsKeyId")
+        if self.is_not_dryrun("CreateVolume"):
             volume = self.ec2_backend.create_volume(
-                size, zone, snapshot_id, encrypted)
+                size=size,
+                zone_name=zone,
+                snapshot_id=snapshot_id,
+                encrypted=encrypted,
+                kms_key_id=kms_key_id,
+                volume_type=volume_type,
+            )
             volume.add_tags(volume_tags)
             template = self.response_template(CREATE_VOLUME_RESPONSE)
             return template.render(volume=volume)
 
+    def modify_volume(self):
+        volume_id = self._get_param("VolumeId")
+        target_size = self._get_param("Size")
+        target_volume_type = self._get_param("VolumeType")
+
+        if self.is_not_dryrun("ModifyVolume"):
+            volume = self.ec2_backend.modify_volume(
+                volume_id, target_size, target_volume_type
+            )
+            template = self.response_template(MODIFY_VOLUME_RESPONSE)
+            return template.render(volume=volume)
+
+    def describe_volumes_modifications(self):
+        filters = self._filters_from_querystring()
+        volume_ids = self._get_multi_param("VolumeId")
+        modifications = self.ec2_backend.describe_volumes_modifications(
+            volume_ids=volume_ids, filters=filters
+        )
+        template = self.response_template(DESCRIBE_VOLUMES_MODIFICATIONS_RESPONSE)
+        return template.render(modifications=modifications)
+
     def delete_snapshot(self):
-        snapshot_id = self._get_param('SnapshotId')
-        if self.is_not_dryrun('DeleteSnapshot'):
+        snapshot_id = self._get_param("SnapshotId")
+        if self.is_not_dryrun("DeleteSnapshot"):
             self.ec2_backend.delete_snapshot(snapshot_id)
             return DELETE_SNAPSHOT_RESPONSE
 
     def delete_volume(self):
-        volume_id = self._get_param('VolumeId')
-        if self.is_not_dryrun('DeleteVolume'):
+        volume_id = self._get_param("VolumeId")
+        if self.is_not_dryrun("DeleteVolume"):
             self.ec2_backend.delete_volume(volume_id)
             return DELETE_VOLUME_RESPONSE
 
     def describe_snapshots(self):
-        filters = filters_from_querystring(self.querystring)
-        snapshot_ids = self._get_multi_param('SnapshotId')
-        snapshots = self.ec2_backend.describe_snapshots(snapshot_ids=snapshot_ids, filters=filters)
+        filters = self._filters_from_querystring()
+        snapshot_ids = self._get_multi_param("SnapshotId")
+        snapshots = self.ec2_backend.describe_snapshots(
+            snapshot_ids=snapshot_ids, filters=filters
+        )
         template = self.response_template(DESCRIBE_SNAPSHOTS_RESPONSE)
         return template.render(snapshots=snapshots)
 
     def describe_volumes(self):
-        filters = filters_from_querystring(self.querystring)
-        volume_ids = self._get_multi_param('VolumeId')
-        volumes = self.ec2_backend.describe_volumes(volume_ids=volume_ids, filters=filters)
+        filters = self._filters_from_querystring()
+        volume_ids = self._get_multi_param("VolumeId")
+        volumes = self.ec2_backend.describe_volumes(
+            volume_ids=volume_ids, filters=filters
+        )
         template = self.response_template(DESCRIBE_VOLUMES_RESPONSE)
         return template.render(volumes=volumes)
 
     def describe_volume_attribute(self):
         raise NotImplementedError(
-            'ElasticBlockStore.describe_volume_attribute is not yet implemented')
+            "ElasticBlockStore.describe_volume_attribute is not yet implemented"
+        )
 
     def describe_volume_status(self):
         raise NotImplementedError(
-            'ElasticBlockStore.describe_volume_status is not yet implemented')
+            "ElasticBlockStore.describe_volume_status is not yet implemented"
+        )
 
     def detach_volume(self):
-        volume_id = self._get_param('VolumeId')
-        instance_id = self._get_param('InstanceId')
-        device_path = self._get_param('Device')
-        if self.is_not_dryrun('DetachVolume'):
+        volume_id = self._get_param("VolumeId")
+        instance_id = self._get_param("InstanceId")
+        device_path = self._get_param("Device")
+        if self.is_not_dryrun("DetachVolume"):
             attachment = self.ec2_backend.detach_volume(
-                volume_id, instance_id, device_path)
+                volume_id, instance_id, device_path
+            )
             template = self.response_template(DETATCH_VOLUME_RESPONSE)
             return template.render(attachment=attachment)
 
     def enable_volume_io(self):
-        if self.is_not_dryrun('EnableVolumeIO'):
+        if self.is_not_dryrun("EnableVolumeIO"):
             raise NotImplementedError(
-                'ElasticBlockStore.enable_volume_io is not yet implemented')
+                "ElasticBlockStore.enable_volume_io is not yet implemented"
+            )
 
     def import_volume(self):
-        if self.is_not_dryrun('ImportVolume'):
+        if self.is_not_dryrun("ImportVolume"):
             raise NotImplementedError(
-                'ElasticBlockStore.import_volume is not yet implemented')
+                "ElasticBlockStore.import_volume is not yet implemented"
+            )
 
     def describe_snapshot_attribute(self):
-        snapshot_id = self._get_param('SnapshotId')
-        groups = self.ec2_backend.get_create_volume_permission_groups(
-            snapshot_id)
-        template = self.response_template(
-            DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE)
-        return template.render(snapshot_id=snapshot_id, groups=groups)
+        snapshot_id = self._get_param("SnapshotId")
+        groups = self.ec2_backend.get_create_volume_permission_groups(snapshot_id)
+        user_ids = self.ec2_backend.get_create_volume_permission_userids(snapshot_id)
+        template = self.response_template(DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE)
+        return template.render(snapshot_id=snapshot_id, groups=groups, userIds=user_ids)
 
     def modify_snapshot_attribute(self):
-        snapshot_id = self._get_param('SnapshotId')
-        operation_type = self._get_param('OperationType')
-        group = self._get_param('UserGroup.1')
-        user_id = self._get_param('UserId.1')
-        if self.is_not_dryrun('ModifySnapshotAttribute'):
-            if (operation_type == 'add'):
+        snapshot_id = self._get_param("SnapshotId")
+        operation_type = self._get_param("OperationType")
+        groups = self._get_multi_param("UserGroup")
+        user_ids = self._get_multi_param("UserId")
+        if self.is_not_dryrun("ModifySnapshotAttribute"):
+            if operation_type == "add":
                 self.ec2_backend.add_create_volume_permission(
-                    snapshot_id, user_id=user_id, group=group)
-            elif (operation_type == 'remove'):
+                    snapshot_id, user_ids=user_ids, groups=groups
+                )
+            elif operation_type == "remove":
                 self.ec2_backend.remove_create_volume_permission(
-                    snapshot_id, user_id=user_id, group=group)
+                    snapshot_id, user_ids=user_ids, groups=groups
+                )
             return MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE
 
     def modify_volume_attribute(self):
-        if self.is_not_dryrun('ModifyVolumeAttribute'):
+        if self.is_not_dryrun("ModifyVolumeAttribute"):
             raise NotImplementedError(
-                'ElasticBlockStore.modify_volume_attribute is not yet implemented')
+                "ElasticBlockStore.modify_volume_attribute is not yet implemented"
+            )
 
     def reset_snapshot_attribute(self):
-        if self.is_not_dryrun('ResetSnapshotAttribute'):
+        if self.is_not_dryrun("ResetSnapshotAttribute"):
             raise NotImplementedError(
-                'ElasticBlockStore.reset_snapshot_attribute is not yet implemented')
+                "ElasticBlockStore.reset_snapshot_attribute is not yet implemented"
+            )
 
 
 CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -146,21 +203,26 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   {% else %}
     <snapshotId/>
   {% endif %}
-  <encrypted>{{ volume.encrypted }}</encrypted>
+  <encrypted>{{ 'true' if volume.encrypted else 'false' }}</encrypted>
+  {% if volume.encrypted %}
+  <kmsKeyId>{{ volume.kms_key_id }}</kmsKeyId>
+  {% endif %}
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
   <status>creating</status>
   <createTime>{{ volume.create_time}}</createTime>
-  <tagSet>
-    {% for tag in volume.get_tags() %}
-        <item>
-        <resourceId>{{ tag.resource_id }}</resourceId>
-        <resourceType>{{ tag.resource_type }}</resourceType>
-        <key>{{ tag.key }}</key>
-        <value>{{ tag.value }}</value>
-        </item>
-    {% endfor %}
-  </tagSet>
-  <volumeType>standard</volumeType>
+  {% if volume.get_tags() %}
+    <tagSet>
+      {% for tag in volume.get_tags() %}
+          <item>
+          <resourceId>{{ tag.resource_id }}</resourceId>
+          <resourceType>{{ tag.resource_type }}</resourceType>
+          <key>{{ tag.key }}</key>
+          <value>{{ tag.value }}</value>
+          </item>
+      {% endfor %}
+    </tagSet>
+  {% endif %}
+  <volumeType>{{ volume.volume_type }}</volumeType>
 </CreateVolumeResponse>"""
 
 DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -175,7 +237,10 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
              {% else %}
                <snapshotId/>
              {% endif %}
-             <encrypted>{{ volume.encrypted }}</encrypted>
+             <encrypted>{{ 'true' if volume.encrypted else 'false' }}</encrypted>
+             {% if volume.encrypted %}
+             <kmsKeyId>{{ volume.kms_key_id }}</kmsKeyId>
+             {% endif %}
              <availabilityZone>{{ volume.zone.name }}</availabilityZone>
              <status>{{ volume.status }}</status>
              <createTime>{{ volume.create_time}}</createTime>
@@ -191,17 +256,19 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
                     </item>
                 {% endif %}
              </attachmentSet>
-             <tagSet>
-               {% for tag in volume.get_tags() %}
-                 <item>
-                   <resourceId>{{ tag.resource_id }}</resourceId>
-                   <resourceType>{{ tag.resource_type }}</resourceType>
-                   <key>{{ tag.key }}</key>
-                   <value>{{ tag.value }}</value>
-                 </item>
-               {% endfor %}
-             </tagSet>
-             <volumeType>standard</volumeType>
+             {% if volume.get_tags() %}
+               <tagSet>
+                 {% for tag in volume.get_tags() %}
+                   <item>
+                     <resourceId>{{ tag.resource_id }}</resourceId>
+                     <resourceType>{{ tag.resource_type }}</resourceType>
+                     <key>{{ tag.key }}</key>
+                     <value>{{ tag.value }}</value>
+                   </item>
+                 {% endfor %}
+               </tagSet>
+             {% endif %}
+             <volumeType>{{ volume.volume_type }}</volumeType>
           </item>
       {% endfor %}
    </volumeSet>
@@ -240,7 +307,7 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
   <ownerId>{{ snapshot.owner_id }}</ownerId>
   <volumeSize>{{ snapshot.volume.size }}</volumeSize>
   <description>{{ snapshot.description }}</description>
-  <encrypted>{{ snapshot.encrypted }}</encrypted>
+  <encrypted>{{ 'true' if snapshot.encrypted else 'false' }}</encrypted>
   <tagSet>
     {% for tag in snapshot.get_tags() %}
       <item>
@@ -253,9 +320,48 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
   </tagSet>
 </CreateSnapshotResponse>"""
 
+CREATE_SNAPSHOTS_RESPONSE = """<CreateSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <snapshotSet>
+      {% for snapshot in snapshots %}
+      <item>
+          <snapshotId>{{ snapshot.id }}</snapshotId>
+          <volumeId>{{ snapshot.volume.id }}</volumeId>
+          <status>pending</status>
+          <startTime>{{ snapshot.start_time}}</startTime>
+          <progress>60%</progress>
+          <ownerId>{{ snapshot.owner_id }}</ownerId>
+          <volumeSize>{{ snapshot.volume.size }}</volumeSize>
+          <description>{{ snapshot.description }}</description>
+          <encrypted>{{ 'true' if snapshot.encrypted else 'false' }}</encrypted>
+          <tagSet>
+            {% for tag in snapshot.get_tags() %}
+              <item>
+              <resourceId>{{ tag.resource_id }}</resourceId>
+              <resourceType>{{ tag.resource_type }}</resourceType>
+              <key>{{ tag.key }}</key>
+              <value>{{ tag.value }}</value>
+              </item>
+            {% endfor %}
+          </tagSet>
+      </item>
+      {% endfor %}
+  </snapshotSet>
+</CreateSnapshotsResponse>"""
+
 COPY_SNAPSHOT_RESPONSE = """<CopySnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <snapshotId>{{ snapshot.id }}</snapshotId>
+  <tagSet>
+    {% for tag in snapshot.get_tags() %}
+      <item>
+      <resourceId>{{ tag.resource_id }}</resourceId>
+      <resourceType>{{ tag.resource_type }}</resourceType>
+      <key>{{ tag.key }}</key>
+      <value>{{ tag.value }}</value>
+      </item>
+    {% endfor %}
+  </tagSet>
 </CopySnapshotResponse>"""
 
 DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -271,7 +377,7 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
              <ownerId>{{ snapshot.owner_id }}</ownerId>
             <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>
-             <encrypted>{{ snapshot.encrypted }}</encrypted>
+             <encrypted>{{ 'true' if snapshot.encrypted else 'false' }}</encrypted>
              <tagSet>
                {% for tag in snapshot.get_tags() %}
                  <item>
@@ -296,18 +402,18 @@ DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE = """
 <DescribeSnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>a9540c9f-161a-45d8-9cc1-1182b89ad69f</requestId>
     <snapshotId>snap-a0332ee0</snapshotId>
-   {% if not groups %}
-      <createVolumePermission/>
-   {% endif %}
-   {% if groups %}
-      <createVolumePermission>
-         {% for group in groups %}
-            <item>
-               <group>{{ group }}</group>
-            </item>
-         {% endfor %}
-      </createVolumePermission>
-   {% endif %}
+    <createVolumePermission>
+       {% for group in groups %}
+          <item>
+             <group>{{ group }}</group>
+          </item>
+       {% endfor %}
+       {% for userId in userIds %}
+          <item>
+             <userId>{{ userId }}</userId>
+          </item>
+       {% endfor %}
+    </createVolumePermission>
 </DescribeSnapshotAttributeResponse>
 """
 
@@ -317,3 +423,40 @@ MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE = """
     <return>true</return>
 </ModifySnapshotAttributeResponse>
 """
+
+MODIFY_VOLUME_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ModifyVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+    <volumeModification>
+        {% set volume_modification = volume.modifications[-1] %}
+        <modificationState>modifying</modificationState>
+        <originalSize>{{ volume_modification.original_size }}</originalSize>
+        <originalVolumeType>{{ volume_modification.original_volume_type }}</originalVolumeType>
+        <progress>0</progress>
+        <startTime>{{ volume_modification.start_time }}</startTime>
+        <targetSize>{{ volume_modification.target_size }}</targetSize>
+        <targetVolumeType>{{ volume_modification.target_volume_type }}</targetVolumeType>
+        <volumeId>{{ volume.id }}</volumeId>
+    </volumeModification>
+</ModifyVolumeResponse>"""
+
+DESCRIBE_VOLUMES_MODIFICATIONS_RESPONSE = """
+<?xml version="1.0" encoding="UTF-8"?>
+<DescribeVolumesModificationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+    <volumeModificationSet>
+      {% for modification in modifications %}
+        <item>
+            <endTime>{{ modification.end_time }}</endTime>
+            <modificationState>completed</modificationState>
+            <originalSize>{{ modification.original_size }}</originalSize>
+            <originalVolumeType>{{ modification.original_volume_type }}</originalVolumeType>
+            <progress>100</progress>
+            <startTime>{{ modification.start_time }}</startTime>
+            <targetSize>{{ modification.target_size }}</targetSize>
+            <targetVolumeType>{{ modification.target_volume_type }}</targetVolumeType>
+            <volumeId>{{ modification.volume.id }}</volumeId>
+        </item>
+      {% endfor %}
+    </volumeModificationSet>
+</DescribeVolumesModificationsResponse>"""

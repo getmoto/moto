@@ -1,15 +1,11 @@
-from __future__ import unicode_literals
-
-import json
-
 import re
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 
-'''
+"""
 Test the different server responses
-'''
+"""
 
 
 def test_iam_server_get():
@@ -17,7 +13,8 @@ def test_iam_server_get():
     test_client = backend.test_client()
 
     group_data = test_client.action_data(
-        "CreateGroup", GroupName="test group", Path="/")
+        "CreateGroup", GroupName="test group", Path="/"
+    )
     group_id = re.search("<GroupId>(.*)</GroupId>", group_data).groups()[0]
 
     groups_data = test_client.action_data("ListGroups")

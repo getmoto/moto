@@ -2,7 +2,6 @@ from .generic_type import GenericType
 
 
 class ActivityType(GenericType):
-
     @property
     def _configuration_keys(self):
         return [

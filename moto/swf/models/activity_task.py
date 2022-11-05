@@ -1,27 +1,32 @@
-from __future__ import unicode_literals
 from datetime import datetime
-import uuid
 
 from moto.core import BaseModel
 from moto.core.utils import unix_time
+from moto.moto_api._internal import mock_random
 from ..exceptions import SWFWorkflowExecutionClosedError
 
 from .timeout import Timeout
 
 
 class ActivityTask(BaseModel):
-
-    def __init__(self, activity_id, activity_type, scheduled_event_id,
-                 workflow_execution, timeouts, input=None):
+    def __init__(
+        self,
+        activity_id,
+        activity_type,
+        scheduled_event_id,
+        workflow_execution,
+        timeouts,
+        workflow_input=None,
+    ):
         self.activity_id = activity_id
         self.activity_type = activity_type
         self.details = None
-        self.input = input
+        self.input = workflow_input
         self.last_heartbeat_timestamp = unix_time()
         self.scheduled_event_id = scheduled_event_id
         self.started_event_id = None
         self.state = "SCHEDULED"
-        self.task_token = str(uuid.uuid4())
+        self.task_token = str(mock_random.uuid4())
         self.timeouts = timeouts
         self.timeout_type = None
         self.workflow_execution = workflow_execution
@@ -67,9 +72,13 @@ class ActivityTask(BaseModel):
     def first_timeout(self):
         if not self.open or not self.workflow_execution.open:
             return None
-        # TODO: handle the "NONE" case
-        heartbeat_timeout_at = (self.last_heartbeat_timestamp +
-                                int(self.timeouts["heartbeatTimeout"]))
+
+        if self.timeouts["heartbeatTimeout"] == "NONE":
+            return None
+
+        heartbeat_timeout_at = self.last_heartbeat_timestamp + int(
+            self.timeouts["heartbeatTimeout"]
+        )
         _timeout = Timeout(self, heartbeat_timeout_at, "HEARTBEAT")
         if _timeout.reached:
             return _timeout

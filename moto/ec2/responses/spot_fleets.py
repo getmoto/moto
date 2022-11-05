@@ -1,14 +1,13 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 
 
 class SpotFleets(BaseResponse):
-
     def cancel_spot_fleet_requests(self):
         spot_fleet_request_ids = self._get_multi_param("SpotFleetRequestId.")
-        terminate_instances = self._get_param("TerminateInstances")
+        terminate_instances = self._get_bool_param("TerminateInstances")
         spot_fleets = self.ec2_backend.cancel_spot_fleet_requests(
-            spot_fleet_request_ids, terminate_instances)
+            spot_fleet_request_ids, terminate_instances
+        )
         template = self.response_template(CANCEL_SPOT_FLEETS_TEMPLATE)
         return template.render(spot_fleets=spot_fleets)
 
@@ -16,37 +15,49 @@ class SpotFleets(BaseResponse):
         spot_fleet_request_id = self._get_param("SpotFleetRequestId")
 
         spot_requests = self.ec2_backend.describe_spot_fleet_instances(
-            spot_fleet_request_id)
-        template = self.response_template(
-            DESCRIBE_SPOT_FLEET_INSTANCES_TEMPLATE)
-        return template.render(spot_request_id=spot_fleet_request_id, spot_requests=spot_requests)
+            spot_fleet_request_id
+        )
+        template = self.response_template(DESCRIBE_SPOT_FLEET_INSTANCES_TEMPLATE)
+        return template.render(
+            spot_request_id=spot_fleet_request_id, spot_requests=spot_requests
+        )
 
     def describe_spot_fleet_requests(self):
         spot_fleet_request_ids = self._get_multi_param("SpotFleetRequestId.")
 
-        requests = self.ec2_backend.describe_spot_fleet_requests(
-            spot_fleet_request_ids)
+        requests = self.ec2_backend.describe_spot_fleet_requests(spot_fleet_request_ids)
         template = self.response_template(DESCRIBE_SPOT_FLEET_TEMPLATE)
         return template.render(requests=requests)
 
     def modify_spot_fleet_request(self):
         spot_fleet_request_id = self._get_param("SpotFleetRequestId")
         target_capacity = self._get_int_param("TargetCapacity")
-        terminate_instances = self._get_param("ExcessCapacityTerminationPolicy", if_none="Default")
+        terminate_instances = self._get_param(
+            "ExcessCapacityTerminationPolicy", if_none="Default"
+        )
         successful = self.ec2_backend.modify_spot_fleet_request(
-            spot_fleet_request_id, target_capacity, terminate_instances)
+            spot_fleet_request_id, target_capacity, terminate_instances
+        )
         template = self.response_template(MODIFY_SPOT_FLEET_REQUEST_TEMPLATE)
         return template.render(successful=successful)
 
     def request_spot_fleet(self):
-        spot_config = self._get_dict_param("SpotFleetRequestConfig.")
-        spot_price = spot_config.get('spot_price')
-        target_capacity = spot_config['target_capacity']
-        iam_fleet_role = spot_config['iam_fleet_role']
-        allocation_strategy = spot_config['allocation_strategy']
+        spot_config = self._get_multi_param_dict("SpotFleetRequestConfig")
+        spot_price = spot_config.get("SpotPrice")
+        target_capacity = spot_config["TargetCapacity"]
+        iam_fleet_role = spot_config["IamFleetRole"]
+        allocation_strategy = spot_config["AllocationStrategy"]
+        instance_interruption_behaviour = spot_config.get(
+            "InstanceInterruptionBehavior"
+        )
 
-        launch_specs = self._get_list_prefix(
-            "SpotFleetRequestConfig.LaunchSpecifications")
+        launch_specs = spot_config.get("LaunchSpecifications")
+        launch_template_config = list(
+            self._get_params()
+            .get("SpotFleetRequestConfig", {})
+            .get("LaunchTemplateConfigs", {})
+            .values()
+        )
 
         request = self.ec2_backend.request_spot_fleet(
             spot_price=spot_price,
@@ -54,6 +65,8 @@ class SpotFleets(BaseResponse):
             iam_fleet_role=iam_fleet_role,
             allocation_strategy=allocation_strategy,
             launch_specs=launch_specs,
+            launch_template_config=launch_template_config,
+            instance_interruption_behaviour=instance_interruption_behaviour,
         )
 
         template = self.response_template(REQUEST_SPOT_FLEET_TEMPLATE)
@@ -107,6 +120,21 @@ DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http
                             </item>
                             {% endfor %}
                         </groupSet>
+                        <tagSpecificationSet>
+                            {% for resource_type in launch_spec.tag_specifications %}
+                            <item>
+                                <resourceType>{{ resource_type }}</resourceType>
+                                <tag>
+                                {% for key, value in launch_spec.tag_specifications[resource_type].items() %}
+                                    <item>
+                                        <key>{{ key }}</key>
+                                        <value>{{ value }}</value>
+                                    </item>
+                                {% endfor %}
+                                </tag>
+                            </item>
+                            {% endfor %}
+                        </tagSpecificationSet>
                     </item>
                     {% endfor %}
                 </launchSpecifications>
