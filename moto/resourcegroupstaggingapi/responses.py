@@ -1,11 +1,11 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import resourcegroupstaggingapi_backends
 import json
 
 
 class ResourceGroupsTaggingAPIResponse(BaseResponse):
-    SERVICE_NAME = "resourcegroupstaggingapi"
+    def __init__(self):
+        super().__init__(service_name="resourcegroupstaggingapi")
 
     @property
     def backend(self):
@@ -14,7 +14,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         :returns: Resource tagging api backend
         :rtype: moto.resourcegroupstaggingapi.models.ResourceGroupsTaggingAPIBackend
         """
-        return resourcegroupstaggingapi_backends[self.region]
+        return resourcegroupstaggingapi_backends[self.current_account][self.region]
 
     def get_resources(self):
         pagination_token = self._get_param("PaginationToken")

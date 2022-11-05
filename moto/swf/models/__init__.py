@@ -1,8 +1,5 @@
-from __future__ import unicode_literals
-
-from boto3 import Session
-
 from moto.core import BaseBackend
+from moto.core.utils import BackendDict
 
 from ..exceptions import (
     SWFUnknownResourceFault,
@@ -19,6 +16,7 @@ from .domain import Domain  # noqa
 from .generic_type import GenericType  # noqa
 from .history_event import HistoryEvent  # noqa
 from .timeout import Timeout  # noqa
+from .timer import Timer  # noqa
 from .workflow_type import WorkflowType  # noqa
 from .workflow_execution import WorkflowExecution  # noqa
 from time import sleep
@@ -27,15 +25,9 @@ KNOWN_SWF_TYPES = {"activity": ActivityType, "workflow": WorkflowType}
 
 
 class SWFBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.domains = []
-        super(SWFBackend, self).__init__()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def _get_domain(self, name, ignore_empty=False):
         matching = [domain for domain in self.domains if domain.name == name]
@@ -58,7 +50,7 @@ class SWFBackend(BaseBackend):
         return domains
 
     def list_open_workflow_executions(
-        self, domain_name, maximum_page_size, tag_filter, reverse_order, **kwargs
+        self, domain_name, maximum_page_size, tag_filter, reverse_order
     ):
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -79,12 +71,10 @@ class SWFBackend(BaseBackend):
     def list_closed_workflow_executions(
         self,
         domain_name,
-        close_time_filter,
         tag_filter,
         close_status_filter,
         maximum_page_size,
         reverse_order,
-        **kwargs
     ):
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -112,7 +102,13 @@ class SWFBackend(BaseBackend):
     ):
         if self._get_domain(name, ignore_empty=True):
             raise SWFDomainAlreadyExistsFault(name)
-        domain = Domain(name, workflow_execution_retention_period_in_days, description)
+        domain = Domain(
+            name,
+            workflow_execution_retention_period_in_days,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            description=description,
+        )
         self.domains.append(domain)
 
     def deprecate_domain(self, name):
@@ -172,7 +168,7 @@ class SWFBackend(BaseBackend):
         workflow_name,
         workflow_version,
         tag_list=None,
-        input=None,
+        workflow_input=None,
         **kwargs
     ):
         domain = self._get_domain(domain_name)
@@ -180,7 +176,12 @@ class SWFBackend(BaseBackend):
         if wf_type.status == "DEPRECATED":
             raise SWFTypeDeprecatedFault(wf_type)
         wfe = WorkflowExecution(
-            domain, wf_type, workflow_id, tag_list=tag_list, input=input, **kwargs
+            domain,
+            wf_type,
+            workflow_id,
+            tag_list=tag_list,
+            workflow_input=workflow_input,
+            **kwargs
         )
         domain.add_workflow_execution(wfe)
         wfe.start()
@@ -419,7 +420,7 @@ class SWFBackend(BaseBackend):
             activity_task.details = details
 
     def signal_workflow_execution(
-        self, domain_name, signal_name, workflow_id, input=None, run_id=None
+        self, domain_name, signal_name, workflow_id, workflow_input=None, run_id=None
     ):
         # process timeouts on all objects
         self._process_timeouts()
@@ -427,13 +428,7 @@ class SWFBackend(BaseBackend):
         wfe = domain.get_workflow_execution(
             workflow_id, run_id=run_id, raise_if_closed=True
         )
-        wfe.signal(signal_name, input)
+        wfe.signal(signal_name, workflow_input)
 
 
-swf_backends = {}
-for region in Session().get_available_regions("swf"):
-    swf_backends[region] = SWFBackend(region)
-for region in Session().get_available_regions("swf", partition_name="aws-us-gov"):
-    swf_backends[region] = SWFBackend(region)
-for region in Session().get_available_regions("swf", partition_name="aws-cn"):
-    swf_backends[region] = SWFBackend(region)
+swf_backends = BackendDict(SWFBackend, "swf")

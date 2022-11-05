@@ -1,8 +1,5 @@
-from __future__ import unicode_literals
-
-import sure  # noqa
-from nose.tools import assert_raises
-from parameterized import parameterized
+import sure  # noqa # pylint: disable=unused-import
+import pytest
 
 from moto.kms.exceptions import (
     AccessDeniedException,
@@ -22,7 +19,7 @@ from moto.kms.utils import (
     Ciphertext,
 )
 
-ENCRYPTION_CONTEXT_VECTORS = (
+ENCRYPTION_CONTEXT_VECTORS = [
     (
         {"this": "is", "an": "encryption", "context": "example"},
         b"an" b"encryption" b"context" b"example" b"this" b"is",
@@ -31,8 +28,8 @@ ENCRYPTION_CONTEXT_VECTORS = (
         {"a_this": "one", "b_is": "actually", "c_in": "order"},
         b"a_this" b"one" b"b_is" b"actually" b"c_in" b"order",
     ),
-)
-CIPHERTEXT_BLOB_VECTORS = (
+]
+CIPHERTEXT_BLOB_VECTORS = [
     (
         Ciphertext(
             key_id="d25652e4-d2d2-49f7-929a-671ccda580c6",
@@ -57,7 +54,7 @@ CIPHERTEXT_BLOB_VECTORS = (
         b"1234567890123456"
         b"some ciphertext that is much longer now",
     ),
-)
+]
 
 
 def test_generate_data_key():
@@ -74,35 +71,37 @@ def test_generate_master_key():
     len(test).should.equal(MASTER_KEY_LEN)
 
 
-@parameterized(ENCRYPTION_CONTEXT_VECTORS)
+@pytest.mark.parametrize("raw,serialized", ENCRYPTION_CONTEXT_VECTORS)
 def test_serialize_encryption_context(raw, serialized):
     test = _serialize_encryption_context(raw)
     test.should.equal(serialized)
 
 
-@parameterized(CIPHERTEXT_BLOB_VECTORS)
+@pytest.mark.parametrize("raw,_serialized", CIPHERTEXT_BLOB_VECTORS)
 def test_cycle_ciphertext_blob(raw, _serialized):
     test_serialized = _serialize_ciphertext_blob(raw)
     test_deserialized = _deserialize_ciphertext_blob(test_serialized)
     test_deserialized.should.equal(raw)
 
 
-@parameterized(CIPHERTEXT_BLOB_VECTORS)
+@pytest.mark.parametrize("raw,serialized", CIPHERTEXT_BLOB_VECTORS)
 def test_serialize_ciphertext_blob(raw, serialized):
     test = _serialize_ciphertext_blob(raw)
     test.should.equal(serialized)
 
 
-@parameterized(CIPHERTEXT_BLOB_VECTORS)
+@pytest.mark.parametrize("raw,serialized", CIPHERTEXT_BLOB_VECTORS)
 def test_deserialize_ciphertext_blob(raw, serialized):
     test = _deserialize_ciphertext_blob(serialized)
     test.should.equal(raw)
 
 
-@parameterized(((ec[0],) for ec in ENCRYPTION_CONTEXT_VECTORS))
+@pytest.mark.parametrize(
+    "encryption_context", [ec[0] for ec in ENCRYPTION_CONTEXT_VECTORS]
+)
 def test_encrypt_decrypt_cycle(encryption_context):
     plaintext = b"some secret plaintext"
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
+    master_key = Key("nop", "nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
 
     ciphertext_blob = encrypt(
@@ -123,7 +122,7 @@ def test_encrypt_decrypt_cycle(encryption_context):
 
 
 def test_encrypt_unknown_key_id():
-    with assert_raises(NotFoundException):
+    with pytest.raises(NotFoundException):
         encrypt(
             master_keys={},
             key_id="anything",
@@ -133,10 +132,10 @@ def test_encrypt_unknown_key_id():
 
 
 def test_decrypt_invalid_ciphertext_format():
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
+    master_key = Key("nop", "nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
 
-    with assert_raises(InvalidCiphertextException):
+    with pytest.raises(InvalidCiphertextException):
         decrypt(master_keys=master_key_map, ciphertext_blob=b"", encryption_context={})
 
 
@@ -148,12 +147,12 @@ def test_decrypt_unknwown_key_id():
         b"some ciphertext"
     )
 
-    with assert_raises(AccessDeniedException):
+    with pytest.raises(AccessDeniedException):
         decrypt(master_keys={}, ciphertext_blob=ciphertext_blob, encryption_context={})
 
 
 def test_decrypt_invalid_ciphertext():
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
+    master_key = Key("nop", "nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
     ciphertext_blob = (
         master_key.id.encode("utf-8") + b"123456789012"
@@ -161,7 +160,7 @@ def test_decrypt_invalid_ciphertext():
         b"some ciphertext"
     )
 
-    with assert_raises(InvalidCiphertextException):
+    with pytest.raises(InvalidCiphertextException):
         decrypt(
             master_keys=master_key_map,
             ciphertext_blob=ciphertext_blob,
@@ -171,7 +170,7 @@ def test_decrypt_invalid_ciphertext():
 
 def test_decrypt_invalid_encryption_context():
     plaintext = b"some secret plaintext"
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
+    master_key = Key("nop", "nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
 
     ciphertext_blob = encrypt(
@@ -181,7 +180,7 @@ def test_decrypt_invalid_encryption_context():
         encryption_context={"some": "encryption", "context": "here"},
     )
 
-    with assert_raises(InvalidCiphertextException):
+    with pytest.raises(InvalidCiphertextException):
         decrypt(
             master_keys=master_key_map,
             ciphertext_blob=ciphertext_blob,

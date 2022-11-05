@@ -1,12 +1,10 @@
-from __future__ import unicode_literals
-
 import hashlib
 
 import datetime
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
+from moto.utilities.utils import md5_hash
 
 from .utils import get_job_id
 
@@ -92,18 +90,13 @@ class InventoryJob(Job):
 
 
 class Vault(BaseModel):
-    def __init__(self, vault_name, region):
+    def __init__(self, vault_name, account_id, region):
         self.st = datetime.datetime.now()
         self.vault_name = vault_name
         self.region = region
         self.archives = {}
         self.jobs = {}
-
-    @property
-    def arn(self):
-        return "arn:aws:glacier:{0}:012345678901:vaults/{1}".format(
-            self.region, self.vault_name
-        )
+        self.arn = f"arn:aws:glacier:{region}:{account_id}:vaults/{vault_name}"
 
     def to_dict(self):
         archives_size = 0
@@ -120,8 +113,9 @@ class Vault(BaseModel):
         return d
 
     def create_archive(self, body, description):
-        archive_id = hashlib.md5(body).hexdigest()
+        archive_id = md5_hash(body).hexdigest()
         self.archives[archive_id] = {}
+        self.archives[archive_id]["archive_id"] = archive_id
         self.archives[archive_id]["body"] = body
         self.archives[archive_id]["size"] = len(body)
         self.archives[archive_id]["sha256"] = hashlib.sha256(body).hexdigest()
@@ -129,7 +123,7 @@ class Vault(BaseModel):
             "%Y-%m-%dT%H:%M:%S.000Z"
         )
         self.archives[archive_id]["description"] = description
-        return archive_id
+        return self.archives[archive_id]
 
     def get_archive_body(self, archive_id):
         return self.archives[archive_id]["body"]
@@ -189,22 +183,17 @@ class Vault(BaseModel):
 
 
 class GlacierBackend(BaseBackend):
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.vaults = {}
-        self.region_name = region_name
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def get_vault(self, vault_name):
         return self.vaults[vault_name]
 
     def create_vault(self, vault_name):
-        self.vaults[vault_name] = Vault(vault_name, self.region_name)
+        self.vaults[vault_name] = Vault(vault_name, self.account_id, self.region_name)
 
-    def list_vaules(self):
+    def list_vaults(self):
         return self.vaults.values()
 
     def delete_vault(self, vault_name):
@@ -215,15 +204,24 @@ class GlacierBackend(BaseBackend):
         job_id = vault.initiate_job(job_type, tier, archive_id)
         return job_id
 
+    def describe_job(self, vault_name, archive_id):
+        vault = self.get_vault(vault_name)
+        return vault.describe_job(archive_id)
+
     def list_jobs(self, vault_name):
         vault = self.get_vault(vault_name)
         return vault.list_jobs()
 
+    def get_job_output(self, vault_name, job_id):
+        vault = self.get_vault(vault_name)
+        if vault.job_ready(job_id):
+            return vault.get_job_output(job_id)
+        else:
+            return None
 
-glacier_backends = {}
-for region in Session().get_available_regions("glacier"):
-    glacier_backends[region] = GlacierBackend(region)
-for region in Session().get_available_regions("glacier", partition_name="aws-us-gov"):
-    glacier_backends[region] = GlacierBackend(region)
-for region in Session().get_available_regions("glacier", partition_name="aws-cn"):
-    glacier_backends[region] = GlacierBackend(region)
+    def upload_archive(self, vault_name, body, description):
+        vault = self.get_vault(vault_name)
+        return vault.create_archive(body, description)
+
+
+glacier_backends = BackendDict(GlacierBackend, "glacier")

@@ -1,0 +1,7 @@
+coverage
+pytest
+pytest-cov
+pytest-xdist
+sure
+freezegun
+pylint

@@ -1,9 +1,6 @@
-from __future__ import unicode_literals
-
-import random
 import string
-import six
 import re
+from moto.moto_api._internal import mock_random as random
 
 
 def random_password(
@@ -54,9 +51,7 @@ def random_password(
     if exclude_characters:
         password = _exclude_characters(password, exclude_characters)
 
-    password = "".join(
-        six.text_type(random.choice(password)) for x in range(password_length)
-    )
+    password = "".join(str(random.choice(password)) for x in range(password_length))
 
     if require_each_included_type:
         password = _add_password_require_each_included_type(
@@ -66,10 +61,10 @@ def random_password(
     return password
 
 
-def secret_arn(region, secret_id):
-    id_string = "".join(random.choice(string.ascii_letters) for _ in range(5))
-    return "arn:aws:secretsmanager:{0}:1234567890:secret:{1}-{2}".format(
-        region, secret_id, id_string
+def secret_arn(account_id, region, secret_id):
+    id_string = "".join(random.choice(string.ascii_letters) for _ in range(6))
+    return (
+        f"arn:aws:secretsmanager:{region}:{account_id}:secret:{secret_id}-{id_string}"
     )
 
 

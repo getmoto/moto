@@ -1,22 +1,19 @@
-from __future__ import unicode_literals
-from functools import wraps
+from functools import lru_cache
 
-import binascii
 import datetime
 import inspect
-import random
 import re
-import six
-import string
 from botocore.exceptions import ClientError
-from six.moves.urllib.parse import urlparse
+from boto3 import Session
+from moto.settings import allow_unknown_region
+from threading import RLock
+from typing import Any, Optional, List
+from urllib.parse import urlparse
+from uuid import uuid4
 
 
-REQUEST_ID_LONG = string.digits + string.ascii_uppercase
-
-
-def camelcase_to_underscores(argument):
-    """ Converts a camelcase param like theNewAttribute to the equivalent
+def camelcase_to_underscores(argument: Optional[str]) -> str:
+    """Converts a camelcase param like theNewAttribute to the equivalent
     python underscore variable like the_new_attribute"""
     result = ""
     prev_char_title = True
@@ -42,9 +39,9 @@ def camelcase_to_underscores(argument):
 
 
 def underscores_to_camelcase(argument):
-    """ Converts a camelcase param like the_new_attribute to the equivalent
+    """Converts a camelcase param like the_new_attribute to the equivalent
     camelcase version like theNewAttribute. Note that the first letter is
-    NOT capitalized by this function """
+    NOT capitalized by this function"""
     result = ""
     previous_was_underscore = False
     for char in argument:
@@ -57,31 +54,19 @@ def underscores_to_camelcase(argument):
     return result
 
 
+def pascal_to_camelcase(argument):
+    """Converts a PascalCase param to the camelCase equivalent"""
+    return argument[0].lower() + argument[1:]
+
+
+def camelcase_to_pascal(argument):
+    """Converts a camelCase param to the PascalCase equivalent"""
+    return argument[0].upper() + argument[1:]
+
+
 def method_names_from_class(clazz):
-    # On Python 2, methods are different from functions, and the `inspect`
-    # predicates distinguish between them. On Python 3, methods are just
-    # regular functions, and `inspect.ismethod` doesn't work, so we have to
-    # use `inspect.isfunction` instead
-    if six.PY2:
-        predicate = inspect.ismethod
-    else:
-        predicate = inspect.isfunction
+    predicate = inspect.isfunction
     return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
-
-
-def get_random_hex(length=8):
-    chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-    return "".join(six.text_type(random.choice(chars)) for x in range(length))
-
-
-def get_random_message_id():
-    return "{0}-{1}-{2}-{3}-{4}".format(
-        get_random_hex(8),
-        get_random_hex(4),
-        get_random_hex(4),
-        get_random_hex(4),
-        get_random_hex(12),
-    )
 
 
 def convert_regex_to_flask_path(url_path):
@@ -103,29 +88,7 @@ def convert_regex_to_flask_path(url_path):
     return url_path
 
 
-class convert_httpretty_response(object):
-    def __init__(self, callback):
-        self.callback = callback
-
-    @property
-    def __name__(self):
-        # For instance methods, use class and method names. Otherwise
-        # use module and method name
-        if inspect.ismethod(self.callback):
-            outer = self.callback.__self__.__class__.__name__
-        else:
-            outer = self.callback.__module__
-        return "{0}.{1}".format(outer, self.callback.__name__)
-
-    def __call__(self, request, url, headers, **kwargs):
-        result = self.callback(request, url, headers)
-        status, headers, response = result
-        if "server" not in headers:
-            headers["server"] = "amazon.com"
-        return status, headers, response
-
-
-class convert_flask_to_httpretty_response(object):
+class convert_to_flask_response(object):
     def __init__(self, callback):
         self.callback = callback
 
@@ -141,9 +104,11 @@ class convert_flask_to_httpretty_response(object):
 
     def __call__(self, args=None, **kwargs):
         from flask import request, Response
+        from moto.moto_api import recorder
 
         try:
-            result = self.callback(request, request.url, {})
+            recorder._record_request(request)
+            result = self.callback(request, request.url, dict(request.headers))
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple
@@ -174,7 +139,7 @@ class convert_flask_to_responses_response(object):
 
     def __call__(self, request, *args, **kwargs):
         for key, val in request.headers.items():
-            if isinstance(val, six.binary_type):
+            if isinstance(val, bytes):
                 request.headers[key] = val.decode("utf-8")
 
         result = self.callback(request, request.url, request.headers)
@@ -182,127 +147,48 @@ class convert_flask_to_responses_response(object):
         return status, headers, response
 
 
-def iso_8601_datetime_with_milliseconds(datetime):
-    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+def iso_8601_datetime_with_milliseconds(value: datetime) -> str:
+    return value.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
-def iso_8601_datetime_without_milliseconds(datetime):
-    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+# Even Python does not support nanoseconds, other languages like Go do (needed for Terraform)
+def iso_8601_datetime_with_nanoseconds(value: datetime.datetime) -> str:
+    return value.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
 
 
-def iso_8601_datetime_without_milliseconds_s3(datetime):
-    return (
-        None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000") + "Z"
-    )
+def iso_8601_datetime_without_milliseconds(value: datetime.datetime) -> Optional[str]:
+    return value.strftime("%Y-%m-%dT%H:%M:%SZ") if value else None
+
+
+def iso_8601_datetime_without_milliseconds_s3(
+    value: datetime.datetime,
+) -> Optional[str]:
+    return value.strftime("%Y-%m-%dT%H:%M:%S.000Z") if value else None
 
 
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
 
 
-def rfc_1123_datetime(datetime):
-    return datetime.strftime(RFC1123)
+def rfc_1123_datetime(src):
+    return src.strftime(RFC1123)
 
 
-def str_to_rfc_1123_datetime(str):
-    return datetime.datetime.strptime(str, RFC1123)
+def str_to_rfc_1123_datetime(value):
+    return datetime.datetime.strptime(value, RFC1123)
 
 
-def unix_time(dt=None):
+def unix_time(dt: datetime.datetime = None) -> int:
     dt = dt or datetime.datetime.utcnow()
     epoch = datetime.datetime.utcfromtimestamp(0)
     delta = dt - epoch
     return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
 
 
-def unix_time_millis(dt=None):
+def unix_time_millis(dt: datetime = None) -> int:
     return unix_time(dt) * 1000.0
 
 
-def gen_amz_crc32(response, headerdict=None):
-    if not isinstance(response, bytes):
-        response = response.encode()
-
-    crc = str(binascii.crc32(response))
-
-    if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({"x-amz-crc32": crc})
-
-    return crc
-
-
-def gen_amzn_requestid_long(headerdict=None):
-    req_id = "".join([random.choice(REQUEST_ID_LONG) for _ in range(0, 52)])
-
-    if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({"x-amzn-requestid": req_id})
-
-    return req_id
-
-
-def amz_crc32(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        response = f(*args, **kwargs)
-
-        headers = {}
-        status = 200
-
-        if isinstance(response, six.string_types):
-            body = response
-        else:
-            if len(response) == 2:
-                body, new_headers = response
-                status = new_headers.get("status", 200)
-            else:
-                status, new_headers, body = response
-            headers.update(new_headers)
-            # Cast status to string
-            if "status" in headers:
-                headers["status"] = str(headers["status"])
-
-        try:
-            # Doesnt work on python2 for some odd unicode strings
-            gen_amz_crc32(body, headers)
-        except Exception:
-            pass
-
-        return status, headers, body
-
-    return _wrapper
-
-
-def amzn_request_id(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        response = f(*args, **kwargs)
-
-        headers = {}
-        status = 200
-
-        if isinstance(response, six.string_types):
-            body = response
-        else:
-            if len(response) == 2:
-                body, new_headers = response
-                status = new_headers.get("status", 200)
-            else:
-                status, new_headers, body = response
-            headers.update(new_headers)
-
-        request_id = gen_amzn_requestid_long(headers)
-
-        # Update request ID in XML
-        try:
-            body = re.sub(r"(?<=<RequestId>).*(?=<\/RequestId>)", request_id, body)
-        except Exception:  # Will just ignore if it cant work on bytes (which are str's on python2)
-            pass
-
-        return status, headers, body
-
-    return _wrapper
-
-
-def path_url(url):
+def path_url(url: str) -> str:
     parsed_url = urlparse(url)
     path = parsed_url.path
     if not path:
@@ -312,44 +198,20 @@ def path_url(url):
     return path
 
 
-def py2_strip_unicode_keys(blob):
-    """For Python 2 Only -- this will convert unicode keys in nested Dicts, Lists, and Sets to standard strings."""
-    if type(blob) == unicode:  # noqa
-        return str(blob)
-
-    elif type(blob) == dict:
-        for key in list(blob.keys()):
-            value = blob.pop(key)
-            blob[str(key)] = py2_strip_unicode_keys(value)
-
-    elif type(blob) == list:
-        for i in range(0, len(blob)):
-            blob[i] = py2_strip_unicode_keys(blob[i])
-
-    elif type(blob) == set:
-        new_set = set()
-        for value in blob:
-            new_set.add(py2_strip_unicode_keys(value))
-
-        blob = new_set
-
-    return blob
-
-
 def tags_from_query_string(
     querystring_dict, prefix="Tag", key_suffix="Key", value_suffix="Value"
 ):
     response_values = {}
-    for key, value in querystring_dict.items():
+    for key in querystring_dict.keys():
         if key.startswith(prefix) and key.endswith(key_suffix):
             tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
             tag_key = querystring_dict.get(
                 "{prefix}.{index}.{key_suffix}".format(
-                    prefix=prefix, index=tag_index, key_suffix=key_suffix,
+                    prefix=prefix, index=tag_index, key_suffix=key_suffix
                 )
             )[0]
             tag_value_key = "{prefix}.{index}.{value_suffix}".format(
-                prefix=prefix, index=tag_index, value_suffix=value_suffix,
+                prefix=prefix, index=tag_index, value_suffix=value_suffix
             )
             if tag_value_key in querystring_dict:
                 response_values[tag_key] = querystring_dict.get(tag_value_key)[0]
@@ -367,3 +229,197 @@ def tags_from_cloudformation_tags_list(tags_list):
         tags[key] = value
 
     return tags
+
+
+def remap_nested_keys(root, key_transform):
+    """This remap ("recursive map") function is used to traverse and
+    transform the dictionary keys of arbitrarily nested structures.
+    List comprehensions do not recurse, making it tedious to apply
+    transforms to all keys in a tree-like structure.
+
+    A common issue for `moto` is changing the casing of dict keys:
+
+    >>> remap_nested_keys({'KeyName': 'Value'}, camelcase_to_underscores)
+    {'key_name': 'Value'}
+
+    Args:
+        root: The target data to traverse. Supports iterables like
+            :class:`list`, :class:`tuple`, and :class:`dict`.
+        key_transform (callable): This function is called on every
+            dictionary key found in *root*.
+    """
+    if isinstance(root, (list, tuple)):
+        return [remap_nested_keys(item, key_transform) for item in root]
+    if isinstance(root, dict):
+        return {
+            key_transform(k): remap_nested_keys(v, key_transform)
+            for k, v in root.items()
+        }
+    return root
+
+
+def merge_dicts(dict1, dict2, remove_nulls=False):
+    """Given two arbitrarily nested dictionaries, merge the second dict into the first.
+
+    :param dict dict1: the dictionary to be updated.
+    :param dict dict2: a dictionary of keys/values to be merged into dict1.
+
+    :param bool remove_nulls: If true, updated values equal to None or an empty dictionary
+        will be removed from dict1.
+    """
+    for key in dict2:
+        if isinstance(dict2[key], dict):
+            if key in dict1 and key in dict2:
+                merge_dicts(dict1[key], dict2[key], remove_nulls)
+            else:
+                dict1[key] = dict2[key]
+            if dict1[key] == {} and remove_nulls:
+                dict1.pop(key)
+        else:
+            dict1[key] = dict2[key]
+            if dict1[key] is None and remove_nulls:
+                dict1.pop(key)
+
+
+def aws_api_matches(pattern, string):
+    """
+    AWS API can match a value based on a glob, or an exact match
+    """
+    # use a negative lookback regex to match stars that are not prefixed with a backslash
+    # and replace all stars not prefixed w/ a backslash with '.*' to take this from "glob" to PCRE syntax
+    pattern, _ = re.subn(r"(?<!\\)\*", r".*", pattern)
+
+    # ? in the AWS glob form becomes .? in regex
+    # also, don't substitute it if it is prefixed w/ a backslash
+    pattern, _ = re.subn(r"(?<!\\)\?", r".?", pattern)
+
+    # aws api seems to anchor
+    anchored_pattern = f"^{pattern}$"
+
+    if re.match(anchored_pattern, str(string)):
+        return True
+    else:
+        return False
+
+
+def extract_region_from_aws_authorization(string):
+    auth = string or ""
+    region = re.sub(r".*Credential=[^/]+/[^/]+/([^/]+)/.*", r"\1", auth)
+    if region == auth:
+        return None
+    return region
+
+
+backend_lock = RLock()
+
+
+class AccountSpecificBackend(dict):
+    """
+    Dictionary storing the data for a service in a specific account.
+    Data access pattern:
+      account_specific_backend[region: str] = backend: BaseBackend
+    """
+
+    def __init__(
+        self, service_name, account_id, backend, use_boto3_regions, additional_regions
+    ):
+        self.service_name = service_name
+        self.account_id = account_id
+        self.backend = backend
+        self.regions = []
+        if use_boto3_regions:
+            sess = Session()
+            self.regions.extend(sess.get_available_regions(service_name))
+            self.regions.extend(
+                sess.get_available_regions(service_name, partition_name="aws-us-gov")
+            )
+            self.regions.extend(
+                sess.get_available_regions(service_name, partition_name="aws-cn")
+            )
+        self.regions.extend(additional_regions or [])
+        self._id = str(uuid4())
+
+    def __hash__(self):
+        return hash(self._id)
+
+    def __eq__(self, other):
+        return (
+            other
+            and isinstance(other, AccountSpecificBackend)
+            and other._id == self._id
+        )
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def reset(self):
+        for region_specific_backend in self.values():
+            region_specific_backend.reset()
+
+    def __contains__(self, region):
+        return region in self.regions or region in self.keys()
+
+    @lru_cache()
+    def __getitem__(self, region_name):
+        if region_name in self.keys():
+            return super().__getitem__(region_name)
+        # Create the backend for a specific region
+        with backend_lock:
+            if region_name in self.regions and region_name not in self.keys():
+                super().__setitem__(
+                    region_name, self.backend(region_name, account_id=self.account_id)
+                )
+            if region_name not in self.regions and allow_unknown_region():
+                super().__setitem__(
+                    region_name, self.backend(region_name, account_id=self.account_id)
+                )
+        return super().__getitem__(region_name)
+
+
+class BackendDict(dict):
+    """
+    Data Structure to store everything related to a specific service.
+    Format:
+      [account_id: str]: AccountSpecificBackend
+      [account_id: str][region: str] = BaseBackend
+    """
+
+    def __init__(
+        self,
+        backend: Any,
+        service_name: str,
+        use_boto3_regions: bool = True,
+        additional_regions: Optional[List[str]] = None,
+    ):
+        self.backend = backend
+        self.service_name = service_name
+        self._use_boto3_regions = use_boto3_regions
+        self._additional_regions = additional_regions
+        self._id = str(uuid4())
+
+    def __hash__(self):
+        # Required for the LRUcache to work.
+        # service_name is enough to determine uniqueness - other properties are dependent
+        return hash(self._id)
+
+    def __eq__(self, other):
+        return other and isinstance(other, BackendDict) and other._id == self._id
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    @lru_cache()
+    def __getitem__(self, account_id) -> AccountSpecificBackend:
+        self._create_account_specific_backend(account_id)
+        return super().__getitem__(account_id)
+
+    def _create_account_specific_backend(self, account_id) -> None:
+        with backend_lock:
+            if account_id not in self.keys():
+                self[account_id] = AccountSpecificBackend(
+                    service_name=self.service_name,
+                    account_id=account_id,
+                    backend=self.backend,
+                    use_boto3_regions=self._use_boto3_regions,
+                    additional_regions=self._additional_regions,
+                )

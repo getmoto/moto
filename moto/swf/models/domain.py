@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from collections import defaultdict
 
 from moto.core import BaseModel
@@ -9,9 +8,11 @@ from ..exceptions import (
 
 
 class Domain(BaseModel):
-    def __init__(self, name, retention, description=None):
+    def __init__(self, name, retention, account_id, region_name, description=None):
         self.name = name
         self.retention = retention
+        self.account_id = account_id
+        self.region_name = region_name
         self.description = description
         self.status = "REGISTERED"
         self.types = {"activity": defaultdict(dict), "workflow": defaultdict(dict)}
@@ -31,6 +32,9 @@ class Domain(BaseModel):
         hsh = {"name": self.name, "status": self.status}
         if self.description:
             hsh["description"] = self.description
+        hsh[
+            "arn"
+        ] = f"arn:aws:swf:{self.region_name}:{self.account_id}:/domain/{self.name}"
         return hsh
 
     def to_full_dict(self):

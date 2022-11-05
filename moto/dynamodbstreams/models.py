@@ -1,13 +1,10 @@
-from __future__ import unicode_literals
-
 import os
 import json
 import base64
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
-from moto.dynamodb2.models import dynamodb_backends, DynamoJsonEncoder
+from moto.core.utils import BackendDict
+from moto.dynamodb.models import dynamodb_backends, DynamoJsonEncoder
 
 
 class ShardIterator(BaseModel):
@@ -67,18 +64,13 @@ class ShardIterator(BaseModel):
 
 
 class DynamoDBStreamsBackend(BaseBackend):
-    def __init__(self, region):
-        self.region = region
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.shard_iterators = {}
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     @property
     def dynamodb(self):
-        return dynamodb_backends[self.region]
+        return dynamodb_backends[self.account_id][self.region_name]
 
     def _get_table_from_arn(self, arn):
         table_name = arn.split(":", 6)[5].split("/")[1]
@@ -140,14 +132,4 @@ class DynamoDBStreamsBackend(BaseBackend):
         return json.dumps(shard_iterator.get(limit), cls=DynamoJsonEncoder)
 
 
-dynamodbstreams_backends = {}
-for region in Session().get_available_regions("dynamodbstreams"):
-    dynamodbstreams_backends[region] = DynamoDBStreamsBackend(region)
-for region in Session().get_available_regions(
-    "dynamodbstreams", partition_name="aws-us-gov"
-):
-    dynamodbstreams_backends[region] = DynamoDBStreamsBackend(region)
-for region in Session().get_available_regions(
-    "dynamodbstreams", partition_name="aws-cn"
-):
-    dynamodbstreams_backends[region] = DynamoDBStreamsBackend(region)
+dynamodbstreams_backends = BackendDict(DynamoDBStreamsBackend, "dynamodbstreams")

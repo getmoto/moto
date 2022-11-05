@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import datetime
-from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core.utils import BackendDict
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 
 
@@ -85,14 +83,14 @@ class Pipeline(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        datapipeline_backend = datapipeline_backends[region_name]
+        datapipeline_backend = datapipeline_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
-        cloudformation_unique_id = "cf-" + properties["Name"]
+        cloudformation_unique_id = "cf-" + resource_name
         pipeline = datapipeline_backend.create_pipeline(
-            properties["Name"], cloudformation_unique_id
+            resource_name, cloudformation_unique_id
         )
         datapipeline_backend.put_pipeline_definition(
             pipeline.pipeline_id, properties["PipelineObjects"]
@@ -104,7 +102,8 @@ class Pipeline(CloudFormationModel):
 
 
 class DataPipelineBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.pipelines = OrderedDict()
 
     def create_pipeline(self, name, unique_id, **kwargs):
@@ -151,12 +150,4 @@ class DataPipelineBackend(BaseBackend):
         pipeline.activate()
 
 
-datapipeline_backends = {}
-for region in Session().get_available_regions("datapipeline"):
-    datapipeline_backends[region] = DataPipelineBackend()
-for region in Session().get_available_regions(
-    "datapipeline", partition_name="aws-us-gov"
-):
-    datapipeline_backends[region] = DataPipelineBackend()
-for region in Session().get_available_regions("datapipeline", partition_name="aws-cn"):
-    datapipeline_backends[region] = DataPipelineBackend(region)
+datapipeline_backends = BackendDict(DataPipelineBackend, "datapipeline")

@@ -1,14 +1,39 @@
-from __future__ import unicode_literals
-from moto.core.exceptions import RESTError
+import json
+from moto.core.exceptions import JsonRESTError
+from functools import wraps
 
 
-class ManagedBlockchainClientError(RESTError):
-    code = 400
+def exception_handler(f):
+    @wraps(f)
+    def _wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except ManagedBlockchainClientError as err:
+            return err.code, err.get_headers(), err.description
+
+    return _wrapper
+
+
+class ManagedBlockchainClientError(JsonRESTError):
+    def __init__(self, error_type, message):
+        super().__init__(error_type=error_type, message=message)
+        self.error_type = error_type
+        self.message = message
+        self.description = json.dumps({"message": self.message})
+
+    def get_headers(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return [
+            ("Content-Type", "application/json"),
+            ("x-amzn-ErrorType", self.error_type),
+        ]
+
+    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return self.description
 
 
 class BadRequestException(ManagedBlockchainClientError):
     def __init__(self, pretty_called_method, operation_error):
-        super(BadRequestException, self).__init__(
+        super().__init__(
             "BadRequestException",
             "An error occurred (BadRequestException) when calling the {0} operation: {1}".format(
                 pretty_called_method, operation_error
@@ -18,7 +43,7 @@ class BadRequestException(ManagedBlockchainClientError):
 
 class InvalidRequestException(ManagedBlockchainClientError):
     def __init__(self, pretty_called_method, operation_error):
-        super(InvalidRequestException, self).__init__(
+        super().__init__(
             "InvalidRequestException",
             "An error occurred (InvalidRequestException) when calling the {0} operation: {1}".format(
                 pretty_called_method, operation_error
@@ -29,7 +54,7 @@ class InvalidRequestException(ManagedBlockchainClientError):
 class ResourceNotFoundException(ManagedBlockchainClientError):
     def __init__(self, pretty_called_method, operation_error):
         self.code = 404
-        super(ResourceNotFoundException, self).__init__(
+        super().__init__(
             "ResourceNotFoundException",
             "An error occurred (ResourceNotFoundException) when calling the {0} operation: {1}".format(
                 pretty_called_method, operation_error
@@ -40,7 +65,7 @@ class ResourceNotFoundException(ManagedBlockchainClientError):
 class ResourceAlreadyExistsException(ManagedBlockchainClientError):
     def __init__(self, pretty_called_method, operation_error):
         self.code = 409
-        super(ResourceAlreadyExistsException, self).__init__(
+        super().__init__(
             "ResourceAlreadyExistsException",
             "An error occurred (ResourceAlreadyExistsException) when calling the {0} operation: {1}".format(
                 pretty_called_method, operation_error
@@ -51,7 +76,7 @@ class ResourceAlreadyExistsException(ManagedBlockchainClientError):
 class ResourceLimitExceededException(ManagedBlockchainClientError):
     def __init__(self, pretty_called_method, operation_error):
         self.code = 429
-        super(ResourceLimitExceededException, self).__init__(
+        super().__init__(
             "ResourceLimitExceededException",
             "An error occurred (ResourceLimitExceededException) when calling the {0} operation: {1}".format(
                 pretty_called_method, operation_error

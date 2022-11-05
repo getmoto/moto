@@ -1,12 +1,11 @@
-from __future__ import unicode_literals
-
 import bisect
 import datetime
 from collections import defaultdict
 import json
 from moto.core import BaseBackend, BaseModel
-from moto.ec2 import ec2_backends
-from .exceptions import BadSegmentException, AWSError
+from moto.core.exceptions import AWSError
+from moto.core.utils import BackendDict
+from .exceptions import BadSegmentException
 
 
 class TelemetryRecords(BaseModel):
@@ -17,11 +16,11 @@ class TelemetryRecords(BaseModel):
         self.records = records
 
     @classmethod
-    def from_json(cls, json):
-        instance_id = json.get("EC2InstanceId", None)
-        hostname = json.get("Hostname")
-        resource_arn = json.get("ResourceARN")
-        telemetry_records = json["TelemetryRecords"]
+    def from_json(cls, src):
+        instance_id = src.get("EC2InstanceId", None)
+        hostname = src.get("Hostname")
+        resource_arn = src.get("ResourceARN")
+        telemetry_records = src["TelemetryRecords"]
 
         return cls(instance_id, hostname, resource_arn, telemetry_records)
 
@@ -162,7 +161,7 @@ class SegmentCollection(object):
             # Todo consolidate trace segments into a trace.
             # not enough working knowledge of xray to do this
 
-    def summary(self, start_time, end_time, filter_expression=None, sampling=False):
+    def summary(self, start_time, end_time, filter_expression=None):
         # This beast https://docs.aws.amazon.com/xray/latest/api/API_GetTraceSummaries.html#API_GetTraceSummaries_ResponseSyntax
         if filter_expression is not None:
             raise AWSError(
@@ -231,12 +230,20 @@ class SegmentCollection(object):
 
 
 class XRayBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._telemetry_records = []
         self._segment_collection = SegmentCollection()
 
-    def add_telemetry_records(self, json):
-        self._telemetry_records.append(TelemetryRecords.from_json(json))
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "xray"
+        )
+
+    def add_telemetry_records(self, src):
+        self._telemetry_records.append(TelemetryRecords.from_json(src))
 
     def process_segment(self, doc):
         try:
@@ -258,12 +265,10 @@ class XRayBackend(BaseBackend):
                 seg_id=segment.id, code="InternalFailure", message=str(err)
             )
 
-    def get_trace_summary(self, start_time, end_time, filter_expression, summaries):
-        return self._segment_collection.summary(
-            start_time, end_time, filter_expression, summaries
-        )
+    def get_trace_summary(self, start_time, end_time, filter_expression):
+        return self._segment_collection.summary(start_time, end_time, filter_expression)
 
-    def get_trace_ids(self, trace_ids, next_token):
+    def get_trace_ids(self, trace_ids):
         traces, unprocessed_ids = self._segment_collection.get_trace_ids(trace_ids)
 
         result = {"Traces": [], "UnprocessedTraceIds": unprocessed_ids}
@@ -286,6 +291,4 @@ class XRayBackend(BaseBackend):
         return result
 
 
-xray_backends = {}
-for region, ec2_backend in ec2_backends.items():
-    xray_backends[region] = XRayBackend()
+xray_backends = BackendDict(XRayBackend, "xray")

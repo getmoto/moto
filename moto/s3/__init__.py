@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
-from .models import s3_backend
+from .models import s3_backends
+from ..core.models import base_decorator
 
-s3_backends = {"global": s3_backend}
-mock_s3 = s3_backend.decorator
-mock_s3_deprecated = s3_backend.deprecated_decorator
+mock_s3 = base_decorator(s3_backends)

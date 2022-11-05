@@ -1,6 +1,6 @@
-import boto.ec2
 import json
 from moto.core import BaseBackend
+from moto.core.utils import BackendDict
 
 
 class Ec2InstanceConnectBackend(BaseBackend):
@@ -10,6 +10,4 @@ class Ec2InstanceConnectBackend(BaseBackend):
         )
 
 
-ec2instanceconnect_backends = {}
-for region in boto.ec2.regions():
-    ec2instanceconnect_backends[region.name] = Ec2InstanceConnectBackend()
+ec2instanceconnect_backends = BackendDict(Ec2InstanceConnectBackend, "ec2")

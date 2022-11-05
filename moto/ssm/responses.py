@@ -1,14 +1,17 @@
-from __future__ import unicode_literals
 import json
 
 from moto.core.responses import BaseResponse
+from .exceptions import ValidationException
 from .models import ssm_backends
 
 
 class SimpleSystemManagerResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="ssm")
+
     @property
     def ssm_backend(self):
-        return ssm_backends[self.region]
+        return ssm_backends[self.current_account][self.region]
 
     @property
     def request_params(self):
@@ -127,8 +130,29 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         return json.dumps({"DocumentIdentifiers": documents, "NextToken": token})
 
-    def _get_param(self, param, default=None):
-        return self.request_params.get(param, default)
+    def describe_document_permission(self):
+        name = self._get_param("Name")
+
+        result = self.ssm_backend.describe_document_permission(name=name)
+        return json.dumps(result)
+
+    def modify_document_permission(self):
+        account_ids_to_add = self._get_param("AccountIdsToAdd")
+        account_ids_to_remove = self._get_param("AccountIdsToRemove")
+        name = self._get_param("Name")
+        permission_type = self._get_param("PermissionType")
+        shared_document_version = self._get_param("SharedDocumentVersion")
+
+        self.ssm_backend.modify_document_permission(
+            name=name,
+            account_ids_to_add=account_ids_to_add,
+            account_ids_to_remove=account_ids_to_remove,
+            shared_document_version=shared_document_version,
+            permission_type=permission_type,
+        )
+
+    def _get_param(self, param_name, if_none=None):
+        return self.request_params.get(param_name, if_none)
 
     def delete_parameter(self):
         name = self._get_param("Name")
@@ -158,7 +182,15 @@ class SimpleSystemManagerResponse(BaseResponse):
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
 
-        result = self.ssm_backend.get_parameter(name, with_decryption)
+        if (
+            name.startswith("/aws/reference/secretsmanager/")
+            and with_decryption is not True
+        ):
+            raise ValidationException(
+                "WithDecryption flag must be True for retrieving a Secret Manager secret."
+            )
+
+        result = self.ssm_backend.get_parameter(name)
 
         if result is None:
             error = {
@@ -174,17 +206,17 @@ class SimpleSystemManagerResponse(BaseResponse):
         names = self._get_param("Names")
         with_decryption = self._get_param("WithDecryption")
 
-        result = self.ssm_backend.get_parameters(names, with_decryption)
+        result = self.ssm_backend.get_parameters(names)
 
         response = {"Parameters": [], "InvalidParameters": []}
 
-        for parameter in result:
+        for name, parameter in result.items():
             param_data = parameter.response_object(with_decryption, self.region)
             response["Parameters"].append(param_data)
 
-        param_names = [param.name for param in result]
+        valid_param_names = [name for name, parameter in result.items()]
         for name in names:
-            if name not in param_names:
+            if name not in valid_param_names:
                 response["InvalidParameters"].append(name)
         return json.dumps(response)
 
@@ -198,7 +230,6 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         result, next_token = self.ssm_backend.get_parameters_by_path(
             path,
-            with_decryption,
             recursive,
             filters,
             next_token=token,
@@ -232,7 +263,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         for parameter in result[token:]:
             response["Parameters"].append(parameter.describe_response_object(False))
 
-            token = token + 1
+            token += 1
             if len(response["Parameters"]) == page_size:
                 response["NextToken"] = str(end)
                 break
@@ -247,9 +278,19 @@ class SimpleSystemManagerResponse(BaseResponse):
         allowed_pattern = self._get_param("AllowedPattern")
         keyid = self._get_param("KeyId")
         overwrite = self._get_param("Overwrite", False)
+        tags = self._get_param("Tags", [])
+        data_type = self._get_param("DataType", "text")
 
         result = self.ssm_backend.put_parameter(
-            name, description, value, type_, allowed_pattern, keyid, overwrite
+            name,
+            description,
+            value,
+            type_,
+            allowed_pattern,
+            keyid,
+            overwrite,
+            tags,
+            data_type,
         )
 
         if result is None:
@@ -265,8 +306,12 @@ class SimpleSystemManagerResponse(BaseResponse):
     def get_parameter_history(self):
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults", 50)
 
-        result = self.ssm_backend.get_parameter_history(name, with_decryption)
+        result, new_next_token = self.ssm_backend.get_parameter_history(
+            name, next_token, max_results
+        )
 
         if result is None:
             error = {
@@ -281,6 +326,9 @@ class SimpleSystemManagerResponse(BaseResponse):
                 decrypt=with_decryption, include_labels=True
             )
             response["Parameters"].append(param_data)
+
+        if new_next_token is not None:
+            response["NextToken"] = new_next_token
 
         return json.dumps(response)
 
@@ -300,20 +348,26 @@ class SimpleSystemManagerResponse(BaseResponse):
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
         tags = {t["Key"]: t["Value"] for t in self._get_param("Tags")}
-        self.ssm_backend.add_tags_to_resource(resource_id, resource_type, tags)
+        self.ssm_backend.add_tags_to_resource(
+            resource_type=resource_type, resource_id=resource_id, tags=tags
+        )
         return json.dumps({})
 
     def remove_tags_from_resource(self):
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
         keys = self._get_param("TagKeys")
-        self.ssm_backend.remove_tags_from_resource(resource_id, resource_type, keys)
+        self.ssm_backend.remove_tags_from_resource(
+            resource_type=resource_type, resource_id=resource_id, keys=keys
+        )
         return json.dumps({})
 
     def list_tags_for_resource(self):
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
-        tags = self.ssm_backend.list_tags_for_resource(resource_id, resource_type)
+        tags = self.ssm_backend.list_tags_for_resource(
+            resource_type=resource_type, resource_id=resource_id
+        )
         tag_list = [{"Key": k, "Value": v} for (k, v) in tags.items()]
         response = {"TagList": tag_list}
         return json.dumps(response)
@@ -328,3 +382,46 @@ class SimpleSystemManagerResponse(BaseResponse):
         return json.dumps(
             self.ssm_backend.get_command_invocation(**self.request_params)
         )
+
+    def create_maintenance_window(self):
+        name = self._get_param("Name")
+        desc = self._get_param("Description", None)
+        enabled = self._get_bool_param("Enabled", True)
+        duration = self._get_int_param("Duration")
+        cutoff = self._get_int_param("Cutoff")
+        schedule = self._get_param("Schedule")
+        schedule_timezone = self._get_param("ScheduleTimezone")
+        schedule_offset = self._get_int_param("ScheduleOffset")
+        start_date = self._get_param("StartDate")
+        end_date = self._get_param("EndDate")
+        window_id = self.ssm_backend.create_maintenance_window(
+            name=name,
+            description=desc,
+            enabled=enabled,
+            duration=duration,
+            cutoff=cutoff,
+            schedule=schedule,
+            schedule_timezone=schedule_timezone,
+            schedule_offset=schedule_offset,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return json.dumps({"WindowId": window_id})
+
+    def get_maintenance_window(self):
+        window_id = self._get_param("WindowId")
+        window = self.ssm_backend.get_maintenance_window(window_id)
+        return json.dumps(window.to_json())
+
+    def describe_maintenance_windows(self):
+        filters = self._get_param("Filters", None)
+        windows = [
+            window.to_json()
+            for window in self.ssm_backend.describe_maintenance_windows(filters)
+        ]
+        return json.dumps({"WindowIdentities": windows})
+
+    def delete_maintenance_window(self):
+        window_id = self._get_param("WindowId")
+        self.ssm_backend.delete_maintenance_window(window_id)
+        return "{}"

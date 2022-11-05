@@ -1,33 +1,24 @@
-from __future__ import unicode_literals
 import json
 import base64
 
 from moto.core.responses import BaseResponse
-from .models import acm_backends, AWSError, AWSValidationException
+from typing import Dict, List, Tuple, Union
+from .models import acm_backends, AWSCertificateManagerBackend
+from .exceptions import AWSValidationException
+
+
+GENERIC_RESPONSE_TYPE = Union[str, Tuple[str, Dict[str, int]]]
 
 
 class AWSCertificateManagerResponse(BaseResponse):
-    @property
-    def acm_backend(self):
-        """
-        ACM Backend
-
-        :return: ACM Backend object
-        :rtype: moto.acm.models.AWSCertificateManagerBackend
-        """
-        return acm_backends[self.region]
+    def __init__(self) -> None:
+        super().__init__(service_name="acm")
 
     @property
-    def request_params(self):
-        try:
-            return json.loads(self.body)
-        except ValueError:
-            return {}
+    def acm_backend(self) -> AWSCertificateManagerBackend:
+        return acm_backends[self.current_account][self.region]
 
-    def _get_param(self, param, default=None):
-        return self.request_params.get(param, default)
-
-    def add_tags_to_certificate(self):
+    def add_tags_to_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
         tags = self._get_param("Tags")
 
@@ -38,14 +29,11 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            self.acm_backend.add_tags_to_certificate(arn, tags)
-        except AWSError as err:
-            return err.response()
+        self.acm_backend.add_tags_to_certificate(arn, tags)
 
         return ""
 
-    def delete_certificate(self):
+    def delete_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
 
         if arn is None:
@@ -55,14 +43,11 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            self.acm_backend.delete_certificate(arn)
-        except AWSError as err:
-            return err.response()
+        self.acm_backend.delete_certificate(arn)
 
         return ""
 
-    def describe_certificate(self):
+    def describe_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
 
         if arn is None:
@@ -72,14 +57,11 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            cert_bundle = self.acm_backend.get_certificate(arn)
-        except AWSError as err:
-            return err.response()
+        cert_bundle = self.acm_backend.get_certificate(arn)
 
         return json.dumps(cert_bundle.describe())
 
-    def get_certificate(self):
+    def get_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
 
         if arn is None:
@@ -89,10 +71,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            cert_bundle = self.acm_backend.get_certificate(arn)
-        except AWSError as err:
-            return err.response()
+        cert_bundle = self.acm_backend.get_certificate(arn)
 
         result = {
             "Certificate": cert_bundle.cert.decode(),
@@ -100,7 +79,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         }
         return json.dumps(result)
 
-    def import_certificate(self):
+    def import_certificate(self) -> str:
         """
         Returns errors on:
         Certificate, PrivateKey or Chain not being properly formatted
@@ -117,39 +96,37 @@ class AWSCertificateManagerResponse(BaseResponse):
         private_key = self._get_param("PrivateKey")
         chain = self._get_param("CertificateChain")  # Optional
         current_arn = self._get_param("CertificateArn")  # Optional
+        tags = self._get_param("Tags")  # Optional
 
         # Simple parameter decoding. Rather do it here as its a data transport decision not part of the
         # actual data
         try:
             certificate = base64.standard_b64decode(certificate)
         except Exception:
-            return AWSValidationException(
+            raise AWSValidationException(
                 "The certificate is not PEM-encoded or is not valid."
-            ).response()
+            )
         try:
             private_key = base64.standard_b64decode(private_key)
         except Exception:
-            return AWSValidationException(
+            raise AWSValidationException(
                 "The private key is not PEM-encoded or is not valid."
-            ).response()
+            )
         if chain is not None:
             try:
                 chain = base64.standard_b64decode(chain)
             except Exception:
-                return AWSValidationException(
+                raise AWSValidationException(
                     "The certificate chain is not PEM-encoded or is not valid."
-                ).response()
+                )
 
-        try:
-            arn = self.acm_backend.import_cert(
-                certificate, private_key, chain=chain, arn=current_arn
-            )
-        except AWSError as err:
-            return err.response()
+        arn = self.acm_backend.import_cert(
+            certificate, private_key, chain=chain, arn=current_arn, tags=tags
+        )
 
         return json.dumps({"CertificateArn": arn})
 
-    def list_certificates(self):
+    def list_certificates(self) -> str:
         certs = []
         statuses = self._get_param("CertificateStatuses")
         for cert_bundle in self.acm_backend.get_certificates_list(statuses):
@@ -163,19 +140,18 @@ class AWSCertificateManagerResponse(BaseResponse):
         result = {"CertificateSummaryList": certs}
         return json.dumps(result)
 
-    def list_tags_for_certificate(self):
+    def list_tags_for_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
 
         if arn is None:
             msg = "A required parameter for the specified action is not supplied."
-            return {"__type": "MissingParameter", "message": msg}, dict(status=400)
+            return json.dumps({"__type": "MissingParameter", "message": msg}), dict(
+                status=400
+            )
 
-        try:
-            cert_bundle = self.acm_backend.get_certificate(arn)
-        except AWSError as err:
-            return err.response()
+        cert_bundle = self.acm_backend.get_certificate(arn)
 
-        result = {"Tags": []}
+        result: Dict[str, List[Dict[str, str]]] = {"Tags": []}
         # Tag "objects" can not contain the Value part
         for key, value in cert_bundle.tags.items():
             tag_dict = {"Key": key}
@@ -185,7 +161,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def remove_tags_from_certificate(self):
+    def remove_tags_from_certificate(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
         tags = self._get_param("Tags")
 
@@ -196,20 +172,15 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            self.acm_backend.remove_tags_from_certificate(arn, tags)
-        except AWSError as err:
-            return err.response()
+        self.acm_backend.remove_tags_from_certificate(arn, tags)
 
         return ""
 
-    def request_certificate(self):
+    def request_certificate(self) -> GENERIC_RESPONSE_TYPE:
         domain_name = self._get_param("DomainName")
-        domain_validation_options = self._get_param(
-            "DomainValidationOptions"
-        )  # is ignored atm
         idempotency_token = self._get_param("IdempotencyToken")
         subject_alt_names = self._get_param("SubjectAlternativeNames")
+        tags = self._get_param("Tags")  # Optional
 
         if subject_alt_names is not None and len(subject_alt_names) > 10:
             # There is initial AWS limit of 10
@@ -221,19 +192,16 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            arn = self.acm_backend.request_certificate(
-                domain_name,
-                domain_validation_options,
-                idempotency_token,
-                subject_alt_names,
-            )
-        except AWSError as err:
-            return err.response()
+        arn = self.acm_backend.request_certificate(
+            domain_name,
+            idempotency_token,
+            subject_alt_names,
+            tags,
+        )
 
         return json.dumps({"CertificateArn": arn})
 
-    def resend_validation_email(self):
+    def resend_validation_email(self) -> GENERIC_RESPONSE_TYPE:
         arn = self._get_param("CertificateArn")
         domain = self._get_param("Domain")
         # ValidationDomain not used yet.
@@ -249,15 +217,37 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            cert_bundle = self.acm_backend.get_certificate(arn)
+        cert_bundle = self.acm_backend.get_certificate(arn)
 
-            if cert_bundle.common_name != domain:
-                msg = "Parameter Domain does not match certificate domain"
-                _type = "InvalidDomainValidationOptionsException"
-                return json.dumps({"__type": _type, "message": msg}), dict(status=400)
-
-        except AWSError as err:
-            return err.response()
+        if cert_bundle.common_name != domain:
+            msg = "Parameter Domain does not match certificate domain"
+            _type = "InvalidDomainValidationOptionsException"
+            return json.dumps({"__type": _type, "message": msg}), dict(status=400)
 
         return ""
+
+    def export_certificate(self) -> GENERIC_RESPONSE_TYPE:
+        certificate_arn = self._get_param("CertificateArn")
+        passphrase = self._get_param("Passphrase")
+
+        if certificate_arn is None:
+            msg = "A required parameter for the specified action is not supplied."
+            return (
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
+
+        (
+            certificate,
+            certificate_chain,
+            private_key,
+        ) = self.acm_backend.export_certificate(
+            certificate_arn=certificate_arn, passphrase=passphrase
+        )
+        return json.dumps(
+            dict(
+                Certificate=certificate,
+                CertificateChain=certificate_chain,
+                PrivateKey=private_key,
+            )
+        )

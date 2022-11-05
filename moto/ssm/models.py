@@ -1,21 +1,24 @@
-from __future__ import unicode_literals
-
 import re
-from boto3 import Session
+from dataclasses import dataclass
+from typing import Dict
+
 from collections import defaultdict
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
+from moto.core.utils import BackendDict
+from moto.ec2 import ec2_backends
+from moto.secretsmanager import secretsmanager_backends
+from moto.secretsmanager.exceptions import SecretsManagerClientError
+from moto.utilities.utils import load_resource
 
 import datetime
 import time
-import uuid
-import itertools
 import json
 import yaml
 import hashlib
-
-from .utils import parameter_arn
+from moto.moto_api._internal import mock_random as random
+from .utils import parameter_arn, convert_to_params
 from .exceptions import (
     ValidationException,
     InvalidFilterValue,
@@ -32,29 +35,174 @@ from .exceptions import (
     InvalidDocumentVersion,
     DuplicateDocumentVersionName,
     DuplicateDocumentContent,
+    ParameterMaxVersionLimitExceeded,
+    DocumentPermissionLimit,
+    InvalidPermissionType,
+    InvalidResourceId,
+    InvalidResourceType,
 )
+
+
+class ParameterDict(defaultdict):
+    def __init__(self, account_id, region_name):
+        # each value is a list of all of the versions for a parameter
+        # to get the current value, grab the last item of the list
+        super().__init__(list)
+        self.parameters_loaded = False
+        self.account_id = account_id
+        self.region_name = region_name
+
+    def _check_loading_status(self, key):
+        if not self.parameters_loaded and key and str(key).startswith("/aws"):
+            self._load_global_parameters()
+
+    def _load_global_parameters(self):
+        try:
+            latest_amis_linux = load_resource(
+                __name__, f"resources/ami-amazon-linux-latest/{self.region_name}.json"
+            )
+        except FileNotFoundError:
+            latest_amis_linux = []
+        for param in latest_amis_linux:
+            name = param["Name"]
+            super().__getitem__(name).append(
+                Parameter(
+                    account_id=self.account_id,
+                    name=name,
+                    value=param["Value"],
+                    parameter_type=param["Type"],
+                    description=None,
+                    allowed_pattern=None,
+                    keyid=None,
+                    last_modified_date=param["LastModifiedDate"],
+                    version=param["Version"],
+                    data_type=param["DataType"],
+                )
+            )
+        regions = load_resource(__name__, "resources/regions.json")
+        services = load_resource(__name__, "resources/services.json")
+        params = []
+        params.extend(convert_to_params(regions))
+        params.extend(convert_to_params(services))
+
+        for param in params:
+            last_modified_date = time.time()
+            name = param["Name"]
+            value = param["Value"]
+            # Following were lost in translation/conversion - using sensible defaults
+            parameter_type = "String"
+            version = 1
+            super().__getitem__(name).append(
+                Parameter(
+                    account_id=self.account_id,
+                    name=name,
+                    value=value,
+                    parameter_type=parameter_type,
+                    description=None,
+                    allowed_pattern=None,
+                    keyid=None,
+                    last_modified_date=last_modified_date,
+                    version=version,
+                    data_type="text",
+                )
+            )
+        self.parameters_loaded = True
+
+    def _get_secretsmanager_parameter(self, secret_name):
+        secrets_backend = secretsmanager_backends[self.account_id][self.region_name]
+        secret = secrets_backend.describe_secret(secret_name)
+        version_id_to_stage = secret["VersionIdsToStages"]
+        # Sort version ID's so that AWSCURRENT is last
+        sorted_version_ids = [
+            k for k in version_id_to_stage if "AWSCURRENT" not in version_id_to_stage[k]
+        ] + [k for k in version_id_to_stage if "AWSCURRENT" in version_id_to_stage[k]]
+        values = [
+            secrets_backend.get_secret_value(
+                secret_name,
+                version_id=version_id,
+                version_stage=None,
+            )
+            for version_id in sorted_version_ids
+        ]
+        return [
+            Parameter(
+                account_id=self.account_id,
+                name=secret["Name"],
+                value=val.get("SecretString"),
+                parameter_type="SecureString",
+                description=secret.get("Description"),
+                allowed_pattern=None,
+                keyid=None,
+                last_modified_date=secret["LastChangedDate"],
+                version=0,
+                data_type="text",
+                labels=[val.get("VersionId")] + val.get("VersionStages", []),
+                source_result=json.dumps(secret),
+            )
+            for val in values
+        ]
+
+    def __getitem__(self, item):
+        if item.startswith("/aws/reference/secretsmanager/"):
+            return self._get_secretsmanager_parameter("/".join(item.split("/")[4:]))
+        self._check_loading_status(item)
+        return super().__getitem__(item)
+
+    def __contains__(self, k):
+        if k and k.startswith("/aws/reference/secretsmanager/"):
+            try:
+                param = self._get_secretsmanager_parameter("/".join(k.split("/")[4:]))
+                return param is not None
+            except SecretsManagerClientError:
+                raise ParameterNotFound(
+                    f"An error occurred (ParameterNotFound) when referencing Secrets Manager: Secret {k} not found."
+                )
+        self._check_loading_status(k)
+        return super().__contains__(k)
+
+    def get_keys_beginning_with(self, path, recursive):
+        self._check_loading_status(path)
+        for param_name in self:
+            if path != "/" and not param_name.startswith(path):
+                continue
+            if "/" in param_name[len(path) + 1 :] and not recursive:
+                continue
+            yield param_name
+
+
+PARAMETER_VERSION_LIMIT = 100
+PARAMETER_HISTORY_MAX_RESULTS = 50
 
 
 class Parameter(CloudFormationModel):
     def __init__(
         self,
+        account_id,
         name,
         value,
-        type,
+        parameter_type,
         description,
         allowed_pattern,
         keyid,
         last_modified_date,
         version,
+        data_type,
+        tags=None,
+        labels=None,
+        source_result=None,
     ):
+        self.account_id = account_id
         self.name = name
-        self.type = type
+        self.type = parameter_type
         self.description = description
         self.allowed_pattern = allowed_pattern
         self.keyid = keyid
         self.last_modified_date = last_modified_date
         self.version = version
-        self.labels = []
+        self.data_type = data_type
+        self.tags = tags or []
+        self.labels = labels or []
+        self.source_result = source_result
 
         if self.type == "SecureString":
             if not self.keyid:
@@ -82,10 +230,13 @@ class Parameter(CloudFormationModel):
             "Value": self.decrypt(self.value) if decrypt else self.value,
             "Version": self.version,
             "LastModifiedDate": round(self.last_modified_date, 3),
+            "DataType": self.data_type,
         }
+        if self.source_result:
+            r["SourceResult"] = self.source_result
 
         if region:
-            r["ARN"] = parameter_arn(region, self.name)
+            r["ARN"] = parameter_arn(self.account_id, region, self.name)
 
         return r
 
@@ -166,29 +317,191 @@ def generate_ssm_doc_param_list(parameters):
         return None
     param_list = []
     for param_name, param_info in parameters.items():
-        final_dict = {}
+        final_dict = {
+            "Name": param_name,
+        }
 
-        final_dict["Name"] = param_name
-        final_dict["Type"] = param_info["type"]
-        final_dict["Description"] = param_info["description"]
+        description = param_info.get("description")
+        if description:
+            final_dict["Description"] = description
 
-        if (
-            param_info["type"] == "StringList"
-            or param_info["type"] == "StringMap"
-            or param_info["type"] == "MapList"
-        ):
-            final_dict["DefaultValue"] = json.dumps(param_info["default"])
-        else:
-            final_dict["DefaultValue"] = str(param_info["default"])
+        param_type = param_info["type"]
+        final_dict["Type"] = param_type
+
+        default_value = param_info.get("default")
+        if default_value is not None:
+            if param_type in {"StringList", "StringMap", "MapList"}:
+                final_dict["DefaultValue"] = json.dumps(default_value)
+            else:
+                final_dict["DefaultValue"] = str(default_value)
 
         param_list.append(final_dict)
 
     return param_list
 
 
+@dataclass(frozen=True)
+class AccountPermission:
+    account_id: str
+    version: str
+    created_at: datetime
+
+
+class Documents(BaseModel):
+    def __init__(self, ssm_document):
+        version = ssm_document.document_version
+        self.versions = {version: ssm_document}
+        self.default_version = version
+        self.latest_version = version
+        self.permissions = {}  # {AccountID: AccountPermission }
+
+    def get_default_version(self):
+        return self.versions.get(self.default_version)
+
+    def get_latest_version(self):
+        return self.versions.get(self.latest_version)
+
+    def find_by_version_name(self, version_name):
+        return next(
+            (
+                document
+                for document in self.versions.values()
+                if document.version_name == version_name
+            ),
+            None,
+        )
+
+    def find_by_version(self, version):
+        return self.versions.get(version)
+
+    def find_by_version_and_version_name(self, version, version_name):
+        return next(
+            (
+                document
+                for doc_version, document in self.versions.items()
+                if doc_version == version and document.version_name == version_name
+            ),
+            None,
+        )
+
+    def find(self, document_version=None, version_name=None, strict=True):
+
+        if document_version == "$LATEST":
+            ssm_document = self.get_latest_version()
+        elif version_name and document_version:
+            ssm_document = self.find_by_version_and_version_name(
+                document_version, version_name
+            )
+        elif version_name:
+            ssm_document = self.find_by_version_name(version_name)
+        elif document_version:
+            ssm_document = self.find_by_version(document_version)
+        else:
+            ssm_document = self.get_default_version()
+
+        if strict and not ssm_document:
+            raise InvalidDocument("The specified document does not exist.")
+
+        return ssm_document
+
+    def exists(self, document_version=None, version_name=None):
+        return self.find(document_version, version_name, strict=False) is not None
+
+    def add_new_version(self, new_document_version):
+        version = new_document_version.document_version
+        self.latest_version = version
+        self.versions[version] = new_document_version
+
+    def update_default_version(self, version):
+        ssm_document = self.find_by_version(version)
+        if not ssm_document:
+            raise InvalidDocument("The specified document does not exist.")
+        self.default_version = version
+        return ssm_document
+
+    def delete(self, *versions):
+        for version in versions:
+            if version in self.versions:
+                del self.versions[version]
+
+        if self.versions and self.latest_version not in self.versions:
+            ordered_versions = sorted(self.versions.keys())
+            new_latest_version = ordered_versions[-1]
+            self.latest_version = new_latest_version
+
+    def describe(self, document_version=None, version_name=None, tags=None):
+        document = self.find(document_version, version_name)
+        base = {
+            "Hash": document.hash,
+            "HashType": "Sha256",
+            "Name": document.name,
+            "Owner": document.owner,
+            "CreatedDate": document.created_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "Status": document.status,
+            "DocumentVersion": document.document_version,
+            "Description": document.description,
+            "Parameters": document.parameter_list,
+            "PlatformTypes": document.platform_types,
+            "DocumentType": document.document_type,
+            "SchemaVersion": document.schema_version,
+            "LatestVersion": self.latest_version,
+            "DefaultVersion": self.default_version,
+            "DocumentFormat": document.document_format,
+        }
+        if document.version_name:
+            base["VersionName"] = document.version_name
+        if document.target_type:
+            base["TargetType"] = document.target_type
+        if tags:
+            base["Tags"] = tags
+
+        return base
+
+    def modify_permissions(self, accounts_to_add, accounts_to_remove, version):
+        version = version or "$DEFAULT"
+        if accounts_to_add:
+            if "all" in accounts_to_add:
+                self.permissions.clear()
+            else:
+                self.permissions.pop("all", None)
+
+            new_permissions = {
+                account_id: AccountPermission(
+                    account_id, version, datetime.datetime.now()
+                )
+                for account_id in accounts_to_add
+            }
+            self.permissions.update(**new_permissions)
+
+        if accounts_to_remove:
+            if "all" in accounts_to_remove:
+                self.permissions.clear()
+            else:
+                for account_id in accounts_to_remove:
+                    self.permissions.pop(account_id, None)
+
+    def describe_permissions(self):
+
+        permissions_ordered_by_date = sorted(
+            self.permissions.values(), key=lambda p: p.created_at
+        )
+
+        return {
+            "AccountIds": [p.account_id for p in permissions_ordered_by_date],
+            "AccountSharingInfoList": [
+                {"AccountId": p.account_id, "SharedDocumentVersion": p.version}
+                for p in permissions_ordered_by_date
+            ],
+        }
+
+    def is_shared(self):
+        return len(self.permissions) > 0
+
+
 class Document(BaseModel):
     def __init__(
         self,
+        account_id,
         name,
         version_name,
         content,
@@ -197,7 +510,6 @@ class Document(BaseModel):
         requires,
         attachments,
         target_type,
-        tags,
         document_version="1",
     ):
         self.name = name
@@ -208,21 +520,15 @@ class Document(BaseModel):
         self.requires = requires
         self.attachments = attachments
         self.target_type = target_type
-        self.tags = tags
 
         self.status = "Active"
         self.document_version = document_version
-        self.owner = ACCOUNT_ID
-        self.created_date = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        self.owner = account_id
+        self.created_date = datetime.datetime.utcnow()
 
         if document_format == "JSON":
             try:
                 content_json = json.loads(content)
-            except ValueError:
-                # Python2
-                raise InvalidDocumentContent(
-                    "The content for the document is not valid."
-                )
             except json.decoder.JSONDecodeError:
                 raise InvalidDocumentContent(
                     "The content for the document is not valid."
@@ -250,22 +556,45 @@ class Document(BaseModel):
                 content_json.get("parameters")
             )
 
-            if (
-                self.schema_version == "0.3"
-                or self.schema_version == "2.0"
-                or self.schema_version == "2.2"
-            ):
-                self.mainSteps = content_json["mainSteps"]
+            if self.schema_version in {"0.3", "2.0", "2.2"}:
+                self.mainSteps = content_json.get("mainSteps")
             elif self.schema_version == "1.2":
                 self.runtimeConfig = content_json.get("runtimeConfig")
 
         except KeyError:
             raise InvalidDocumentContent("The content for the document is not valid.")
 
+    @property
+    def hash(self):
+        return hashlib.sha256(self.content.encode("utf-8")).hexdigest()
+
+    def list_describe(self, tags=None):
+        base = {
+            "Name": self.name,
+            "Owner": self.owner,
+            "DocumentVersion": self.document_version,
+            "DocumentType": self.document_type,
+            "SchemaVersion": self.schema_version,
+            "DocumentFormat": self.document_format,
+        }
+        if self.version_name:
+            base["VersionName"] = self.version_name
+        if self.platform_types:
+            base["PlatformTypes"] = self.platform_types
+        if self.target_type:
+            base["TargetType"] = self.target_type
+        if self.requires:
+            base["Requires"] = self.requires
+        if tags:
+            base["Tags"] = tags
+
+        return base
+
 
 class Command(BaseModel):
     def __init__(
         self,
+        account_id,
         comment="",
         document_name="",
         timeout_seconds=MAX_TIMEOUT_SECONDS,
@@ -294,12 +623,10 @@ class Command(BaseModel):
         if targets is None:
             targets = []
 
-        self.error_count = 0
-        self.completed_count = len(instance_ids)
-        self.target_count = len(instance_ids)
-        self.command_id = str(uuid.uuid4())
+        self.command_id = str(random.uuid4())
         self.status = "Success"
         self.status_details = "Details placeholder"
+        self.account_id = account_id
 
         self.requested_date_time = datetime.datetime.now()
         self.requested_date_time_iso = self.requested_date_time.isoformat()
@@ -310,7 +637,6 @@ class Command(BaseModel):
 
         self.comment = comment
         self.document_name = document_name
-        self.instance_ids = instance_ids
         self.max_concurrency = max_concurrency
         self.max_errors = max_errors
         self.notification_config = notification_config
@@ -322,14 +648,19 @@ class Command(BaseModel):
         self.targets = targets
         self.backend_region = backend_region
 
-        # Get instance ids from a cloud formation stack target.
-        stack_instance_ids = [
-            self.get_instance_ids_by_stack_ids(target["Values"])
-            for target in self.targets
-            if target["Key"] == "tag:aws:cloudformation:stack-name"
-        ]
+        self.instance_ids = instance_ids
+        self.instance_ids += self._get_instance_ids_from_targets()
+        # Ensure no duplicate instance_ids
+        self.instance_ids = list(set(self.instance_ids))
 
-        self.instance_ids += list(itertools.chain.from_iterable(stack_instance_ids))
+        # NOTE: All of these counts are 0 in the ssm:SendCommand response
+        # received from a real AWS backend.  The counts are correct when
+        # making subsequent calls to ssm:DescribeCommand or ssm:ListCommands.
+        # Not likely to cause any problems, but perhaps an area for future
+        # improvement.
+        self.error_count = 0
+        self.completed_count = len(instance_ids)
+        self.target_count = len(instance_ids)
 
         # Create invocations with a single run command plugin.
         self.invocations = []
@@ -338,27 +669,22 @@ class Command(BaseModel):
                 self.invocation_response(instance_id, "aws:runShellScript")
             )
 
-    def get_instance_ids_by_stack_ids(self, stack_ids):
-        instance_ids = []
-        from moto.cloudformation import cloudformation_backends
-
-        cloudformation_backend = cloudformation_backends[self.backend_region]
-        for stack_id in stack_ids:
-            stack_resources = cloudformation_backend.list_stack_resources(stack_id)
-            instance_resources = [
-                instance.id
-                for instance in stack_resources
-                if instance.type == "AWS::EC2::Instance"
-            ]
-            instance_ids.extend(instance_resources)
-
-        return instance_ids
+    def _get_instance_ids_from_targets(self):
+        target_instance_ids = []
+        ec2_backend = ec2_backends[self.account_id][self.backend_region]
+        ec2_filters = {target["Key"]: target["Values"] for target in self.targets}
+        reservations = ec2_backend.all_reservations(filters=ec2_filters)
+        for reservation in reservations:
+            for instance in reservation.instances:
+                target_instance_ids.append(instance.id)
+        return target_instance_ids
 
     def response_object(self):
         r = {
             "CommandId": self.command_id,
             "Comment": self.comment,
             "CompletedCount": self.completed_count,
+            "DeliveryTimedOutCount": 0,
             "DocumentName": self.document_name,
             "ErrorCount": self.error_count,
             "ExpiresAfter": self.expires_after,
@@ -469,121 +795,153 @@ def _validate_document_info(content, name, document_type, document_format, stric
         raise ValidationException("Invalid document type " + str(document_type))
 
 
-def _document_filter_equal_comparator(keyed_value, filter):
-    for v in filter["Values"]:
+def _document_filter_equal_comparator(keyed_value, _filter):
+    for v in _filter["Values"]:
         if keyed_value == v:
             return True
     return False
 
 
-def _document_filter_list_includes_comparator(keyed_value_list, filter):
-    for v in filter["Values"]:
+def _document_filter_list_includes_comparator(keyed_value_list, _filter):
+    for v in _filter["Values"]:
         if v in keyed_value_list:
             return True
     return False
 
 
-def _document_filter_match(filters, ssm_doc):
-    for filter in filters:
-        if filter["Key"] == "Name" and not _document_filter_equal_comparator(
-            ssm_doc.name, filter
+def _document_filter_match(account_id, filters, ssm_doc):
+    for _filter in filters:
+        if _filter["Key"] == "Name" and not _document_filter_equal_comparator(
+            ssm_doc.name, _filter
         ):
             return False
 
-        elif filter["Key"] == "Owner":
-            if len(filter["Values"]) != 1:
+        elif _filter["Key"] == "Owner":
+            if len(_filter["Values"]) != 1:
                 raise ValidationException("Owner filter can only have one value.")
-            if filter["Values"][0] == "Self":
+            if _filter["Values"][0] == "Self":
                 # Update to running account ID
-                filter["Values"][0] = ACCOUNT_ID
-            if not _document_filter_equal_comparator(ssm_doc.owner, filter):
+                _filter["Values"][0] = account_id
+            if not _document_filter_equal_comparator(ssm_doc.owner, _filter):
                 return False
 
-        elif filter[
+        elif _filter[
             "Key"
         ] == "PlatformTypes" and not _document_filter_list_includes_comparator(
-            ssm_doc.platform_types, filter
+            ssm_doc.platform_types, _filter
         ):
             return False
 
-        elif filter["Key"] == "DocumentType" and not _document_filter_equal_comparator(
-            ssm_doc.document_type, filter
+        elif _filter["Key"] == "DocumentType" and not _document_filter_equal_comparator(
+            ssm_doc.document_type, _filter
         ):
             return False
 
-        elif filter["Key"] == "TargetType" and not _document_filter_equal_comparator(
-            ssm_doc.target_type, filter
+        elif _filter["Key"] == "TargetType" and not _document_filter_equal_comparator(
+            ssm_doc.target_type, _filter
         ):
             return False
 
     return True
 
 
+def _valid_parameter_data_type(data_type):
+    """
+    Parameter DataType field allows only `text` and `aws:ec2:image` values
+
+    """
+    return data_type in ("text", "aws:ec2:image")
+
+
+class FakeMaintenanceWindow:
+    def __init__(
+        self,
+        name,
+        description,
+        enabled,
+        duration,
+        cutoff,
+        schedule,
+        schedule_timezone,
+        schedule_offset,
+        start_date,
+        end_date,
+    ):
+        self.id = FakeMaintenanceWindow.generate_id()
+        self.name = name
+        self.description = description
+        self.enabled = enabled
+        self.duration = duration
+        self.cutoff = cutoff
+        self.schedule = schedule
+        self.schedule_timezone = schedule_timezone
+        self.schedule_offset = schedule_offset
+        self.start_date = start_date
+        self.end_date = end_date
+
+    def to_json(self):
+        return {
+            "WindowId": self.id,
+            "Name": self.name,
+            "Description": self.description,
+            "Enabled": self.enabled,
+            "Duration": self.duration,
+            "Cutoff": self.cutoff,
+            "Schedule": self.schedule,
+            "ScheduleTimezone": self.schedule_timezone,
+            "ScheduleOffset": self.schedule_offset,
+            "StartDate": self.start_date,
+            "EndDate": self.end_date,
+        }
+
+    @staticmethod
+    def generate_id():
+        chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
+        return "mw-" + "".join(str(random.choice(chars)) for _ in range(17))
+
+
 class SimpleSystemManagerBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super(SimpleSystemManagerBackend, self).__init__()
-        # each value is a list of all of the versions for a parameter
-        # to get the current value, grab the last item of the list
-        self._parameters = defaultdict(list)
+    """
+    Moto supports the following default parameters out of the box:
+
+     - /aws/service/global-infrastructure/regions
+     - /aws/service/global-infrastructure/services
+
+    Note that these are hardcoded, so they may be out of date for new services/regions.
+
+    Integration with SecretsManager is also supported.
+    """
+
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
+        self._parameters = ParameterDict(account_id, region_name)
 
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
         self._errors = []
-        self._documents = defaultdict(dict)
+        self._documents: Dict[str, Documents] = {}
 
-        self._region = region_name
+        self.windows: Dict[str, FakeMaintenanceWindow] = dict()
 
-    def reset(self):
-        region_name = self._region
-        self.__dict__ = {}
-        self.__init__(region_name)
-
-    def _generate_document_description(self, document):
-
-        latest = self._documents[document.name]["latest_version"]
-        default_version = self._documents[document.name]["default_version"]
-        base = {
-            "Hash": hashlib.sha256(document.content.encode("utf-8")).hexdigest(),
-            "HashType": "Sha256",
-            "Name": document.name,
-            "Owner": document.owner,
-            "CreatedDate": document.created_date,
-            "Status": document.status,
-            "DocumentVersion": document.document_version,
-            "Description": document.description,
-            "Parameters": document.parameter_list,
-            "PlatformTypes": document.platform_types,
-            "DocumentType": document.document_type,
-            "SchemaVersion": document.schema_version,
-            "LatestVersion": latest,
-            "DefaultVersion": default_version,
-            "DocumentFormat": document.document_format,
-        }
-        if document.version_name:
-            base["VersionName"] = document.version_name
-        if document.target_type:
-            base["TargetType"] = document.target_type
-        if document.tags:
-            base["Tags"] = document.tags
-
-        return base
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint services."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ssm"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ssmmessages"
+        )
 
     def _generate_document_information(self, ssm_document, document_format):
+        content = self._get_document_content(document_format, ssm_document)
         base = {
             "Name": ssm_document.name,
             "DocumentVersion": ssm_document.document_version,
             "Status": ssm_document.status,
-            "Content": ssm_document.content,
+            "Content": content,
             "DocumentType": ssm_document.document_type,
             "DocumentFormat": document_format,
         }
-
-        if document_format == "JSON":
-            base["Content"] = json.dumps(ssm_document.content_json)
-        elif document_format == "YAML":
-            base["Content"] = yaml.dump(ssm_document.content_json)
-        else:
-            raise ValidationException("Invalid document format " + str(document_format))
 
         if ssm_document.version_name:
             base["VersionName"] = ssm_document.version_name
@@ -594,27 +952,32 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         return base
 
-    def _generate_document_list_information(self, ssm_document):
-        base = {
-            "Name": ssm_document.name,
-            "Owner": ssm_document.owner,
-            "DocumentVersion": ssm_document.document_version,
-            "DocumentType": ssm_document.document_type,
-            "SchemaVersion": ssm_document.schema_version,
-            "DocumentFormat": ssm_document.document_format,
-        }
-        if ssm_document.version_name:
-            base["VersionName"] = ssm_document.version_name
-        if ssm_document.platform_types:
-            base["PlatformTypes"] = ssm_document.platform_types
-        if ssm_document.target_type:
-            base["TargetType"] = ssm_document.target_type
-        if ssm_document.tags:
-            base["Tags"] = ssm_document.tags
-        if ssm_document.requires:
-            base["Requires"] = ssm_document.requires
+    @staticmethod
+    def _get_document_content(document_format, ssm_document):
+        if document_format == ssm_document.document_format:
+            content = ssm_document.content
+        elif document_format == "JSON":
+            content = json.dumps(ssm_document.content_json)
+        elif document_format == "YAML":
+            content = yaml.dump(ssm_document.content_json)
+        else:
+            raise ValidationException("Invalid document format " + str(document_format))
+        return content
 
-        return base
+    def _get_documents(self, name):
+        documents = self._documents.get(name)
+        if not documents:
+            raise InvalidDocument("The specified document does not exist.")
+        return documents
+
+    def _get_documents_tags(self, name):
+        docs_tags = self._resource_tags.get("Document")
+        if docs_tags:
+            document_tags = docs_tags.get(name, {})
+            return [
+                {"Key": tag, "Value": value} for tag, value in document_tags.items()
+            ]
+        return []
 
     def create_document(
         self,
@@ -629,6 +992,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         tags,
     ):
         ssm_document = Document(
+            account_id=self.account_id,
             name=name,
             version_name=version_name,
             content=content,
@@ -637,7 +1001,6 @@ class SimpleSystemManagerBackend(BaseBackend):
             requires=requires,
             attachments=attachments,
             target_type=target_type,
-            tags=tags,
         )
 
         _validate_document_info(
@@ -650,24 +1013,27 @@ class SimpleSystemManagerBackend(BaseBackend):
         if self._documents.get(ssm_document.name):
             raise DocumentAlreadyExists("The specified document already exists.")
 
-        self._documents[ssm_document.name] = {
-            "documents": {ssm_document.document_version: ssm_document},
-            "default_version": ssm_document.document_version,
-            "latest_version": ssm_document.document_version,
-        }
+        documents = Documents(ssm_document)
+        self._documents[ssm_document.name] = documents
 
-        return self._generate_document_description(ssm_document)
+        if tags:
+            document_tags = {t["Key"]: t["Value"] for t in tags}
+            self.add_tags_to_resource("Document", name, document_tags)
+
+        return documents.describe(tags=tags)
 
     def delete_document(self, name, document_version, version_name, force):
-        documents = self._documents.get(name, {}).get("documents", {})
+        documents = self._get_documents(name)
+
+        if documents.is_shared():
+            raise InvalidDocumentOperation("Must unshare document first before delete")
+
         keys_to_delete = set()
 
         if documents:
-            default_version = self._documents[name]["default_version"]
-
+            default_doc = documents.get_default_version()
             if (
-                documents[default_version].document_type
-                == "ApplicationConfigurationSchema"
+                default_doc.document_type == "ApplicationConfigurationSchema"
                 and not force
             ):
                 raise InvalidDocumentOperation(
@@ -675,20 +1041,20 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "You must stop sharing the document before you can delete it."
                 )
 
-            if document_version and document_version == default_version:
+            if document_version and document_version == default_doc.document_version:
                 raise InvalidDocumentOperation(
                     "Default version of the document can't be deleted."
                 )
 
             if document_version or version_name:
                 # We delete only a specific version
-                delete_doc = self._find_document(name, document_version, version_name)
+                delete_doc = documents.find(document_version, version_name)
 
                 # we can't delete only the default version
                 if (
                     delete_doc
-                    and delete_doc.document_version == default_version
-                    and len(documents) != 1
+                    and delete_doc.document_version == default_doc.document_version
+                    and len(documents.versions) != 1
                 ):
                     raise InvalidDocumentOperation(
                         "Default version of the document can't be deleted."
@@ -700,64 +1066,19 @@ class SimpleSystemManagerBackend(BaseBackend):
                     raise InvalidDocument("The specified document does not exist.")
             else:
                 # We are deleting all versions
-                keys_to_delete = set(documents.keys())
+                keys_to_delete = set(documents.versions.keys())
 
-            for key in keys_to_delete:
-                del self._documents[name]["documents"][key]
+            documents.delete(*keys_to_delete)
 
-            if len(self._documents[name]["documents"].keys()) == 0:
+            if len(documents.versions) == 0:
+                self._resource_tags.get("Document", {}).pop(name, None)
                 del self._documents[name]
-            else:
-                old_latest = self._documents[name]["latest_version"]
-                if old_latest not in self._documents[name]["documents"].keys():
-                    leftover_keys = self._documents[name]["documents"].keys()
-                    int_keys = []
-                    for key in leftover_keys:
-                        int_keys.append(int(key))
-                    self._documents[name]["latest_version"] = str(sorted(int_keys)[-1])
-        else:
-            raise InvalidDocument("The specified document does not exist.")
-
-    def _find_document(
-        self, name, document_version=None, version_name=None, strict=True
-    ):
-        if not self._documents.get(name):
-            raise InvalidDocument("The specified document does not exist.")
-
-        documents = self._documents[name]["documents"]
-        ssm_document = None
-
-        if not version_name and not document_version:
-            # Retrieve default version
-            default_version = self._documents[name]["default_version"]
-            ssm_document = documents.get(default_version)
-
-        elif version_name and document_version:
-            for doc_version, document in documents.items():
-                if (
-                    doc_version == document_version
-                    and document.version_name == version_name
-                ):
-                    ssm_document = document
-                    break
-
-        else:
-            for doc_version, document in documents.items():
-                if document_version and doc_version == document_version:
-                    ssm_document = document
-                    break
-                if version_name and document.version_name == version_name:
-                    ssm_document = document
-                    break
-
-        if strict and not ssm_document:
-            raise InvalidDocument("The specified document does not exist.")
-
-        return ssm_document
 
     def get_document(self, name, document_version, version_name, document_format):
 
-        ssm_document = self._find_document(name, document_version, version_name)
+        documents = self._get_documents(name)
+        ssm_document = documents.find(document_version, version_name)
+
         if not document_format:
             document_format = ssm_document.document_format
         else:
@@ -766,18 +1087,18 @@ class SimpleSystemManagerBackend(BaseBackend):
         return self._generate_document_information(ssm_document, document_format)
 
     def update_document_default_version(self, name, document_version):
+        documents = self._get_documents(name)
+        ssm_document = documents.update_default_version(document_version)
 
-        ssm_document = self._find_document(name, document_version=document_version)
-        self._documents[name]["default_version"] = document_version
-        base = {
+        result = {
             "Name": ssm_document.name,
             "DefaultVersion": document_version,
         }
 
         if ssm_document.version_name:
-            base["DefaultVersionName"] = ssm_document.version_name
+            result["DefaultVersionName"] = ssm_document.version_name
 
-        return base
+        return result
 
     def update_document(
         self,
@@ -797,25 +1118,29 @@ class SimpleSystemManagerBackend(BaseBackend):
             strict=False,
         )
 
-        if not self._documents.get(name):
+        documents = self._documents.get(name)
+        if not documents:
             raise InvalidDocument("The specified document does not exist.")
+
         if (
-            self._documents[name]["latest_version"] != document_version
+            documents.latest_version != document_version
             and document_version != "$LATEST"
         ):
             raise InvalidDocumentVersion(
                 "The document version is not valid or does not exist."
             )
-        if version_name and self._find_document(
-            name, version_name=version_name, strict=False
-        ):
-            raise DuplicateDocumentVersionName(
-                "The specified version name is a duplicate."
-            )
 
-        old_ssm_document = self._find_document(name)
+        if version_name:
+            if documents.exists(version_name=version_name):
+                raise DuplicateDocumentVersionName(
+                    "The specified version name is a duplicate."
+                )
 
+        old_ssm_document = documents.get_default_version()
+
+        new_version = str(int(documents.latest_version) + 1)
         new_ssm_document = Document(
+            account_id=self.account_id,
             name=name,
             version_name=version_name,
             content=content,
@@ -824,29 +1149,25 @@ class SimpleSystemManagerBackend(BaseBackend):
             requires=old_ssm_document.requires,
             attachments=attachments,
             target_type=target_type,
-            tags=old_ssm_document.tags,
-            document_version=str(int(self._documents[name]["latest_version"]) + 1),
+            document_version=new_version,
         )
 
-        for doc_version, document in self._documents[name]["documents"].items():
+        for document in documents.versions.values():
             if document.content == new_ssm_document.content:
-                raise DuplicateDocumentContent(
-                    "The content of the association document matches another document. "
-                    "Change the content of the document and try again."
-                )
+                if not target_type or target_type == document.target_type:
+                    raise DuplicateDocumentContent(
+                        "The content of the association document matches another document. "
+                        "Change the content of the document and try again."
+                    )
 
-        self._documents[name]["latest_version"] = str(
-            int(self._documents[name]["latest_version"]) + 1
-        )
-        self._documents[name]["documents"][
-            new_ssm_document.document_version
-        ] = new_ssm_document
-
-        return self._generate_document_description(new_ssm_document)
+        documents.add_new_version(new_ssm_document)
+        tags = self._get_documents_tags(name)
+        return documents.describe(document_version=new_version, tags=tags)
 
     def describe_document(self, name, document_version, version_name):
-        ssm_document = self._find_document(name, document_version, version_name)
-        return self._generate_document_description(ssm_document)
+        documents = self._get_documents(name)
+        tags = self._get_documents_tags(name)
+        return documents.describe(document_version, version_name, tags=tags)
 
     def list_documents(
         self, document_filter_list, filters, max_results=10, next_token="0"
@@ -860,27 +1181,94 @@ class SimpleSystemManagerBackend(BaseBackend):
         results = []
         dummy_token_tracker = 0
         # Sort to maintain next token adjacency
-        for document_name, document_bundle in sorted(self._documents.items()):
+        for _, documents in sorted(self._documents.items()):
             if len(results) == max_results:
                 # There's still more to go so we need a next token
                 return results, str(next_token + len(results))
 
             if dummy_token_tracker < next_token:
-                dummy_token_tracker = dummy_token_tracker + 1
+                dummy_token_tracker += 1
                 continue
 
-            default_version = document_bundle["default_version"]
-            ssm_doc = self._documents[document_name]["documents"][default_version]
-            if filters and not _document_filter_match(filters, ssm_doc):
+            ssm_doc = documents.get_default_version()
+            if filters and not _document_filter_match(
+                self.account_id, filters, ssm_doc
+            ):
                 # If we have filters enabled, and we don't match them,
                 continue
             else:
-                results.append(self._generate_document_list_information(ssm_doc))
+                tags = self._get_documents_tags(ssm_doc.name)
+                doc_describe = ssm_doc.list_describe(tags=tags)
+                results.append(doc_describe)
 
         # If we've fallen out of the loop, theres no more documents. No next token.
         return results, ""
 
+    def describe_document_permission(self, name):
+        """
+        Parameters max_results, permission_type, and next_token not yet implemented
+        """
+        document = self._get_documents(name)
+        return document.describe_permissions()
+
+    def modify_document_permission(
+        self,
+        name,
+        account_ids_to_add,
+        account_ids_to_remove,
+        shared_document_version,
+        permission_type,
+    ):
+
+        account_id_regex = re.compile(r"^(all|[0-9]{12})$", re.IGNORECASE)
+        version_regex = re.compile(r"^([$]LATEST|[$]DEFAULT|[$]ALL)$")
+
+        account_ids_to_add = account_ids_to_add or []
+        account_ids_to_remove = account_ids_to_remove or []
+
+        if shared_document_version and not version_regex.match(shared_document_version):
+            raise ValidationException(
+                f"Value '{shared_document_version}' at 'sharedDocumentVersion' failed to satisfy constraint: "
+                f"Member must satisfy regular expression pattern: ([$]LATEST|[$]DEFAULT|[$]ALL)."
+            )
+
+        for account_id in account_ids_to_add:
+            if not account_id_regex.match(account_id):
+                raise ValidationException(
+                    f"Value '[{account_id}]' at 'accountIdsToAdd' failed to satisfy constraint: "
+                    "Member must satisfy regular expression pattern: (all|[0-9]{12}])."
+                )
+
+        for account_id in account_ids_to_remove:
+            if not account_id_regex.match(account_id):
+                raise ValidationException(
+                    f"Value '[{account_id}]' at 'accountIdsToRemove' failed to satisfy constraint: "
+                    "Member must satisfy regular expression pattern: (?i)all|[0-9]{12}]."
+                )
+
+        if "all" in account_ids_to_add and len(account_ids_to_add) > 1:
+            raise DocumentPermissionLimit(
+                "Accounts can either be all or a group of AWS accounts"
+            )
+
+        if "all" in account_ids_to_remove and len(account_ids_to_remove) > 1:
+            raise DocumentPermissionLimit(
+                "Accounts can either be all or a group of AWS accounts"
+            )
+
+        if permission_type != "Share":
+            raise InvalidPermissionType(
+                f"Value '{permission_type}' at 'permissionType' failed to satisfy constraint: "
+                "Member must satisfy enum value set: [Share]."
+            )
+
+        document = self._get_documents(name)
+        document.modify_permissions(
+            account_ids_to_add, account_ids_to_remove, shared_document_version
+        )
+
     def delete_parameter(self, name):
+        self._resource_tags.get("Parameter", {}).pop(name, None)
         return self._parameters.pop(name, None)
 
     def delete_parameters(self, names):
@@ -889,6 +1277,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             try:
                 del self._parameters[name]
                 result.append(name)
+                self._resource_tags.get("Parameter", {}).pop(name, None)
             except KeyError:
                 pass
         return result
@@ -903,28 +1292,28 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         result = []
         for param_name in self._parameters:
-            ssm_parameter = self.get_parameter(param_name, False)
+            ssm_parameter = self.get_parameter(param_name)
             if not self._match_filters(ssm_parameter, parameter_filters):
                 continue
 
             if filters:
-                for filter in filters:
-                    if filter["Key"] == "Name":
+                for _filter in filters:
+                    if _filter["Key"] == "Name":
                         k = ssm_parameter.name
-                        for v in filter["Values"]:
+                        for v in _filter["Values"]:
                             if k.startswith(v):
                                 result.append(ssm_parameter)
                                 break
-                    elif filter["Key"] == "Type":
+                    elif _filter["Key"] == "Type":
                         k = ssm_parameter.type
-                        for v in filter["Values"]:
+                        for v in _filter["Values"]:
                             if k == v:
                                 result.append(ssm_parameter)
                                 break
-                    elif filter["Key"] == "KeyId":
+                    elif _filter["Key"] == "KeyId":
                         k = ssm_parameter.keyid
                         if k:
-                            for v in filter["Values"]:
+                            for v in _filter["Values"]:
                                 if k == v:
                                     result.append(ssm_parameter)
                                     break
@@ -1054,7 +1443,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                     if (
                         "//" in value
                         or not value.startswith("/")
-                        or not re.match("^[a-zA-Z0-9_.-/]*$", value)
+                        or not re.match(r"^[a-zA-Z0-9_.\-/]*$", value)
                     ):
                         raise ValidationException(
                             'The parameter doesn\'t meet the parameter name requirements. The parameter name must begin with a forward slash "/". '
@@ -1118,8 +1507,8 @@ class SimpleSystemManagerBackend(BaseBackend):
             result.append(self._parameters[k])
         return result
 
-    def get_parameters(self, names, with_decryption):
-        result = []
+    def get_parameters(self, names):
+        result = {}
 
         if len(names) > 10:
             raise ValidationException(
@@ -1130,15 +1519,20 @@ class SimpleSystemManagerBackend(BaseBackend):
                 )
             )
 
-        for name in names:
-            if name in self._parameters:
-                result.append(self.get_parameter(name, with_decryption))
+        for name in set(names):
+            if name.split(":")[0] in self._parameters:
+                try:
+                    param = self.get_parameter(name)
+
+                    if param is not None:
+                        result[name] = param
+                except ParameterVersionNotFound:
+                    pass
         return result
 
     def get_parameters_by_path(
         self,
         path,
-        with_decryption,
         recursive,
         filters=None,
         next_token=None,
@@ -1152,16 +1546,11 @@ class SimpleSystemManagerBackend(BaseBackend):
         # path could be with or without a trailing /. we handle this
         # difference here.
         path = path.rstrip("/") + "/"
-        for param_name in self._parameters:
-            if path != "/" and not param_name.startswith(path):
+        for param_name in self._parameters.get_keys_beginning_with(path, recursive):
+            parameter = self.get_parameter(param_name)
+            if not self._match_filters(parameter, filters):
                 continue
-            if "/" in param_name[len(path) + 1 :] and not recursive:
-                continue
-            if not self._match_filters(
-                self.get_parameter(param_name, with_decryption), filters
-            ):
-                continue
-            result.append(self.get_parameter(param_name, with_decryption))
+            result.append(parameter)
 
         return self._get_values_nexttoken(result, max_results, next_token)
 
@@ -1177,10 +1566,36 @@ class SimpleSystemManagerBackend(BaseBackend):
             next_token = None
         return values, next_token
 
-    def get_parameter_history(self, name, with_decryption):
+    def get_parameter_history(self, name, next_token, max_results=50):
+
+        if max_results > PARAMETER_HISTORY_MAX_RESULTS:
+            raise ValidationException(
+                "1 validation error detected: "
+                "Value '{}' at 'maxResults' failed to satisfy constraint: "
+                "Member must have value less than or equal to {}.".format(
+                    max_results, PARAMETER_HISTORY_MAX_RESULTS
+                )
+            )
+
         if name in self._parameters:
-            return self._parameters[name]
-        return None
+            history = self._parameters[name]
+            return self._get_history_nexttoken(history, next_token, max_results)
+
+        return None, None
+
+    def _get_history_nexttoken(self, history, next_token, max_results):
+        if next_token is None:
+            next_token = 0
+        next_token = int(next_token)
+        max_results = int(max_results)
+        history_to_return = history[next_token : next_token + max_results]
+        if (
+            len(history_to_return) == max_results
+            and len(history) > next_token + max_results
+        ):
+            new_next_token = next_token + max_results
+            return history_to_return, str(new_next_token)
+        return history_to_return, None
 
     def _match_filters(self, parameter, filters=None):
         """Return True if the given parameter matches all the filters"""
@@ -1205,6 +1620,19 @@ class SimpleSystemManagerBackend(BaseBackend):
                 values = ["/" + value.strip("/") for value in values]
             elif key == "Type":
                 what = parameter.type
+            elif key == "Label":
+                what = parameter.labels
+                # Label filter can only have option="Equals" (also valid implicitly)
+                if len(what) == 0 or not all(label in values for label in what):
+                    return False
+                else:
+                    continue
+            elif key.startswith("tag:"):
+                what = key[4:] or None
+                for tag in parameter.tags:
+                    if tag["Key"] == what and tag["Value"] in values:
+                        return True
+                return False
 
             if what is None:
                 return False
@@ -1238,7 +1666,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         # True if no false match (or no filters at all)
         return True
 
-    def get_parameter(self, name, with_decryption):
+    def get_parameter(self, name):
         name_parts = name.split(":")
         name_prefix = name_parts[0]
 
@@ -1259,7 +1687,12 @@ class SimpleSystemManagerBackend(BaseBackend):
                     )
                     if len(result) > 0:
                         return result[-1]
-
+                    elif len(parameters) > 0:
+                        raise ParameterVersionNotFound(
+                            "Systems Manager could not find version %s of %s. "
+                            "Verify the version and try again."
+                            % (version_or_label, name_prefix)
+                        )
                 result = list(
                     filter(lambda x: version_or_label in x.labels, parameters)
                 )
@@ -1327,9 +1760,41 @@ class SimpleSystemManagerBackend(BaseBackend):
                         parameter.labels.remove(label)
         return [invalid_labels, version]
 
+    def _check_for_parameter_version_limit_exception(self, name):
+        # https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-versions.html
+        parameter_versions = self._parameters[name]
+        oldest_parameter = parameter_versions[0]
+        if oldest_parameter.labels:
+            raise ParameterMaxVersionLimitExceeded(
+                "You attempted to create a new version of %s by calling the PutParameter API "
+                "with the overwrite flag. Version %d, the oldest version, can't be deleted "
+                "because it has a label associated with it. Move the label to another version "
+                "of the parameter, and try again." % (name, oldest_parameter.version)
+            )
+
     def put_parameter(
-        self, name, description, value, type, allowed_pattern, keyid, overwrite
+        self,
+        name,
+        description,
+        value,
+        parameter_type,
+        allowed_pattern,
+        keyid,
+        overwrite,
+        tags,
+        data_type,
     ):
+        if not value:
+            raise ValidationException(
+                "1 validation error detected: Value '' at 'value' failed to satisfy"
+                " constraint: Member must have length greater than or equal to 1."
+            )
+        if overwrite and tags:
+            raise ValidationException(
+                "Invalid request: tags and overwrite can't be used together. To create a "
+                "parameter with tags, please remove overwrite flag. To update tags for an "
+                "existing parameter, please use AddTagsToResource or RemoveTagsFromResource."
+            )
         if name.lower().lstrip("/").startswith("aws") or name.lower().lstrip(
             "/"
         ).startswith("ssm"):
@@ -1347,6 +1812,15 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "formed as a mix of letters, numbers and the following 3 symbols .-_"
                 )
             raise ValidationException(invalid_prefix_error)
+
+        if not _valid_parameter_data_type(data_type):
+            # The check of the existence of an AMI ID in the account for a parameter of DataType `aws:ec2:image`
+            # is not supported. The parameter will be created.
+            # https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-ec2-aliases.html
+            raise ValidationException(
+                f"The following data type is not supported: {data_type} (Data type names are all lowercase.)"
+            )
+
         previous_parameter_versions = self._parameters[name]
         if len(previous_parameter_versions) == 0:
             previous_parameter = None
@@ -1358,36 +1832,75 @@ class SimpleSystemManagerBackend(BaseBackend):
             if not overwrite:
                 return
 
+            if len(previous_parameter_versions) >= PARAMETER_VERSION_LIMIT:
+                self._check_for_parameter_version_limit_exception(name)
+                previous_parameter_versions.pop(0)
+
         last_modified_date = time.time()
         self._parameters[name].append(
             Parameter(
-                name,
-                value,
-                type,
-                description,
-                allowed_pattern,
-                keyid,
-                last_modified_date,
-                version,
+                account_id=self.account_id,
+                name=name,
+                value=value,
+                parameter_type=parameter_type,
+                description=description,
+                allowed_pattern=allowed_pattern,
+                keyid=keyid,
+                last_modified_date=last_modified_date,
+                version=version,
+                tags=tags or [],
+                data_type=data_type,
             )
         )
+
+        if tags:
+            tags = {t["Key"]: t["Value"] for t in tags}
+            self.add_tags_to_resource("Parameter", name, tags)
+
         return version
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):
+        self._validate_resource_type_and_id(resource_type, resource_id)
         for key, value in tags.items():
             self._resource_tags[resource_type][resource_id][key] = value
 
     def remove_tags_from_resource(self, resource_type, resource_id, keys):
+        self._validate_resource_type_and_id(resource_type, resource_id)
         tags = self._resource_tags[resource_type][resource_id]
         for key in keys:
             if key in tags:
                 del tags[key]
 
     def list_tags_for_resource(self, resource_type, resource_id):
+        self._validate_resource_type_and_id(resource_type, resource_id)
         return self._resource_tags[resource_type][resource_id]
+
+    def _validate_resource_type_and_id(self, resource_type, resource_id):
+        if resource_type == "Parameter":
+            if resource_id not in self._parameters:
+                raise InvalidResourceId()
+            else:
+                return
+        elif resource_type == "Document":
+            if resource_id not in self._documents:
+                raise InvalidResourceId()
+            else:
+                return
+        elif resource_type not in (
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html#SSM.Client.remove_tags_from_resource
+            "ManagedInstance",
+            "MaintenanceWindow",
+            "PatchBaseline",
+            "OpsItem",
+            "OpsMetadata",
+        ):
+            raise InvalidResourceType()
+        else:
+            raise InvalidResourceId()
 
     def send_command(self, **kwargs):
         command = Command(
+            account_id=self.account_id,
             comment=kwargs.get("Comment", ""),
             document_name=kwargs.get("DocumentName"),
             timeout_seconds=kwargs.get("TimeoutSeconds", 3600),
@@ -1408,7 +1921,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             parameters=kwargs.get("Parameters", {}),
             service_role_arn=kwargs.get("ServiceRoleArn", ""),
             targets=kwargs.get("Targets", []),
-            backend_region=self._region,
+            backend_region=self.region_name,
         )
 
         self._commands.append(command)
@@ -1429,9 +1942,10 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         return {"Commands": [command.response_object() for command in commands]}
 
-    def get_command_by_id(self, id):
+    def get_command_by_id(self, command_id):
         command = next(
-            (command for command in self._commands if command.command_id == id), None
+            (command for command in self._commands if command.command_id == command_id),
+            None,
         )
 
         if command is None:
@@ -1456,11 +1970,62 @@ class SimpleSystemManagerBackend(BaseBackend):
         command = self.get_command_by_id(command_id)
         return command.get_invocation(instance_id, plugin_name)
 
+    def create_maintenance_window(
+        self,
+        name,
+        description,
+        enabled,
+        duration,
+        cutoff,
+        schedule,
+        schedule_timezone,
+        schedule_offset,
+        start_date,
+        end_date,
+    ):
+        """
+        Creates a maintenance window. No error handling or input validation has been implemented yet.
+        """
+        window = FakeMaintenanceWindow(
+            name,
+            description,
+            enabled,
+            duration,
+            cutoff,
+            schedule,
+            schedule_timezone,
+            schedule_offset,
+            start_date,
+            end_date,
+        )
+        self.windows[window.id] = window
+        return window.id
 
-ssm_backends = {}
-for region in Session().get_available_regions("ssm"):
-    ssm_backends[region] = SimpleSystemManagerBackend(region)
-for region in Session().get_available_regions("ssm", partition_name="aws-us-gov"):
-    ssm_backends[region] = SimpleSystemManagerBackend(region)
-for region in Session().get_available_regions("ssm", partition_name="aws-cn"):
-    ssm_backends[region] = SimpleSystemManagerBackend(region)
+    def get_maintenance_window(self, window_id):
+        """
+        The window is assumed to exist - no error handling has been implemented yet.
+        The NextExecutionTime-field is not returned.
+        """
+        return self.windows[window_id]
+
+    def describe_maintenance_windows(self, filters):
+        """
+        Returns all windows. No pagination has been implemented yet. Only filtering for Name is supported.
+        The NextExecutionTime-field is not returned.
+
+        """
+        res = [window for window in self.windows.values()]
+        if filters:
+            for f in filters:
+                if f["Key"] == "Name":
+                    res = [w for w in res if w.name in f["Values"]]
+        return res
+
+    def delete_maintenance_window(self, window_id):
+        """
+        Assumes the provided WindowId exists. No error handling has been implemented yet.
+        """
+        del self.windows[window_id]
+
+
+ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

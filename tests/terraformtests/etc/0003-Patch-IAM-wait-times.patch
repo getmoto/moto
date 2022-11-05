@@ -1,0 +1,34 @@
+From e356afa8e19d90c7e343120897f4385d616ae9d2 Mon Sep 17 00:00:00 2001
+From: Bert Blommers <info@bertblommers.nl>
+Date: Sun, 19 Jun 2022 19:39:31 +0000
+Subject: [PATCH] IAM: Reduce wait times
+
+---
+ internal/service/iam/wait.go | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/internal/service/iam/wait.go b/internal/service/iam/wait.go
+index 705d88d664..527f4fa9b8 100644
+--- a/internal/service/iam/wait.go
++++ b/internal/service/iam/wait.go
+@@ -17,7 +17,7 @@ const (
+ 	// as this will negatively impact user experience when configurations
+ 	// have incorrect references or permissions.
+ 	// Reference: https://docs.aws.amazon.com/IAM/latest/UserGuide/troubleshoot_general.html#troubleshoot_general_eventual-consistency
+-	propagationTimeout = 2 * time.Minute
++	propagationTimeout = 2 * time.Second
+
+ 	RoleStatusARNIsUniqueID = "uniqueid"
+ 	RoleStatusARNIsARN      = "arn"
+@@ -72,7 +72,7 @@ func waitDeleteServiceLinkedRole(conn *iam.IAM, deletionTaskID string) error {
+ 		Pending: []string{iam.DeletionTaskStatusTypeInProgress, iam.DeletionTaskStatusTypeNotStarted},
+ 		Target:  []string{iam.DeletionTaskStatusTypeSucceeded},
+ 		Refresh: statusDeleteServiceLinkedRole(conn, deletionTaskID),
+-		Timeout: 5 * time.Minute,
++		Timeout: 15 * time.Second,
+ 		Delay:   10 * time.Second,
+ 	}
+ 
+-- 
+2.25.1
+

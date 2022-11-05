@@ -1,23 +1,24 @@
-from __future__ import unicode_literals
-
 import boto3
 import botocore.exceptions
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import datetime
+from datetime import timezone
 import json
-import pkg_resources
 import yaml
 import hashlib
 import copy
-from moto.core import ACCOUNT_ID
+import pkgutil
+import pytest
+
+from botocore.exceptions import ClientError
+
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from moto import mock_ssm
 
 
 def _get_yaml_template():
-    template_path = "/".join(["test_ssm", "test_templates", "good.yaml"])
-    resource_path = pkg_resources.resource_string("tests", template_path)
-    return resource_path
+    return pkgutil.get_data(__name__, "test_templates/good.yaml")
 
 
 def _validate_document_description(
@@ -43,7 +44,7 @@ def _validate_document_description(
     doc_description["Name"].should.equal(doc_name)
     doc_description["Owner"].should.equal(ACCOUNT_ID)
 
-    difference = datetime.datetime.utcnow() - doc_description["CreatedDate"]
+    difference = datetime.datetime.now(tz=timezone.utc) - doc_description["CreatedDate"]
     if difference.min > datetime.timedelta(minutes=1):
         assert False
 
@@ -225,7 +226,7 @@ def test_create_document():
     doc_description["Name"].should.equal("EmptyParamDoc")
     doc_description["Owner"].should.equal(ACCOUNT_ID)
 
-    difference = datetime.datetime.utcnow() - doc_description["CreatedDate"]
+    difference = datetime.datetime.now(tz=timezone.utc) - doc_description["CreatedDate"]
     if difference.min > datetime.timedelta(minutes=1):
         assert False
 
@@ -767,3 +768,32 @@ def test_list_documents():
         Filters=[{"Key": "TargetType", "Values": ["/AWS::EC2::Instance"]}]
     )
     len(response["DocumentIdentifiers"]).should.equal(1)
+
+
+@mock_ssm
+def test_tags_in_list_tags_from_resource_document():
+    template_file = _get_yaml_template()
+    json_doc = yaml.safe_load(template_file)
+
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    client.create_document(
+        Content=json.dumps(json_doc),
+        Name="TestDocument",
+        DocumentType="Command",
+        DocumentFormat="JSON",
+        Tags=[{"Key": "spam", "Value": "ham"}],
+    )
+
+    tags = client.list_tags_for_resource(
+        ResourceId="TestDocument", ResourceType="Document"
+    )
+    assert tags.get("TagList") == [{"Key": "spam", "Value": "ham"}]
+
+    client.delete_document(Name="TestDocument")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_tags_for_resource(
+            ResourceType="Document", ResourceId="TestDocument"
+        )
+    assert ex.value.response["Error"]["Code"] == "InvalidResourceId"

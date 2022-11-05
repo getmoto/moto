@@ -1,8 +1,6 @@
 import json
 import re
 
-from six import string_types
-
 from moto.iam.exceptions import MalformedPolicyDocument
 
 
@@ -17,6 +15,8 @@ VALID_STATEMENT_ELEMENTS = [
     "Resource",
     "NotResource",
     "Effect",
+    "Principal",
+    "NotPrincipal",
     "Condition",
 ]
 
@@ -83,7 +83,7 @@ VALID_RESOURCE_PATH_STARTING_VALUES = {
 }
 
 
-class IAMPolicyDocumentValidator:
+class BaseIAMPolicyValidator:
     def __init__(self, policy_document):
         self._policy_document = policy_document
         self._policy_json = {}
@@ -117,10 +117,6 @@ class IAMPolicyDocumentValidator:
             self._validate_action_like_exist()
         except Exception:
             raise MalformedPolicyDocument("Policy statement must contain actions.")
-        try:
-            self._validate_resource_exist()
-        except Exception:
-            raise MalformedPolicyDocument("Policy statement must contain resources.")
 
         if self._resource_error != "":
             raise MalformedPolicyDocument(self._resource_error)
@@ -190,7 +186,7 @@ class IAMPolicyDocumentValidator:
     @staticmethod
     def _validate_effect_syntax(statement):
         assert "Effect" in statement
-        assert isinstance(statement["Effect"], string_types)
+        assert isinstance(statement["Effect"], str)
         assert statement["Effect"].lower() in [
             allowed_effect.lower() for allowed_effect in VALID_EFFECTS
         ]
@@ -222,10 +218,10 @@ class IAMPolicyDocumentValidator:
     @staticmethod
     def _validate_string_or_list_of_strings_syntax(statement, key):
         if key in statement:
-            assert isinstance(statement[key], (string_types, list))
+            assert isinstance(statement[key], (str, list))
             if isinstance(statement[key], list):
                 for resource in statement[key]:
-                    assert isinstance(resource, string_types)
+                    assert isinstance(resource, str)
 
     @staticmethod
     def _validate_condition_syntax(statement):
@@ -233,11 +229,8 @@ class IAMPolicyDocumentValidator:
             assert isinstance(statement["Condition"], dict)
             for condition_key, condition_value in statement["Condition"].items():
                 assert isinstance(condition_value, dict)
-                for (
-                    condition_element_key,
-                    condition_element_value,
-                ) in condition_value.items():
-                    assert isinstance(condition_element_value, (list, string_types))
+                for condition_element_value in condition_value.values():
+                    assert isinstance(condition_element_value, (list, str))
 
                 if (
                     IAMPolicyDocumentValidator._strip_condition_key(condition_key)
@@ -262,11 +255,11 @@ class IAMPolicyDocumentValidator:
     @staticmethod
     def _validate_sid_syntax(statement):
         if "Sid" in statement:
-            assert isinstance(statement["Sid"], string_types)
+            assert isinstance(statement["Sid"], str)
 
     def _validate_id_syntax(self):
         if "Id" in self._policy_json:
-            assert isinstance(self._policy_json["Id"], string_types)
+            assert isinstance(self._policy_json["Id"], str)
 
     def _validate_resource_exist(self):
         for statement in self._statements:
@@ -295,7 +288,7 @@ class IAMPolicyDocumentValidator:
     def _validate_action_like_for_prefixes(self, key):
         for statement in self._statements:
             if key in statement:
-                if isinstance(statement[key], string_types):
+                if isinstance(statement[key], str):
                     self._validate_action_prefix(statement[key])
                 else:
                     for action in statement[key]:
@@ -328,7 +321,7 @@ class IAMPolicyDocumentValidator:
     def _validate_resource_like_for_formats(self, key):
         for statement in self._statements:
             if key in statement:
-                if isinstance(statement[key], string_types):
+                if isinstance(statement[key], str):
                     self._validate_resource_format(statement[key])
                 else:
                     for resource in sorted(statement[key], reverse=True):
@@ -343,13 +336,13 @@ class IAMPolicyDocumentValidator:
             resource_partitions = resource.partition(":")
 
             if resource_partitions[1] == "":
-                self._resource_error = 'Resource {resource} must be in ARN format or "*".'.format(
-                    resource=resource
+                self._resource_error = (
+                    f'Resource {resource} must be in ARN format or "*".'
                 )
                 return
 
             resource_partitions = resource_partitions[2].partition(":")
-            if resource_partitions[0] != "aws":
+            if resource_partitions[0] not in ["aws", "*"]:
                 remaining_resource_parts = resource_partitions[2].split(":")
 
                 arn1 = (
@@ -390,15 +383,14 @@ class IAMPolicyDocumentValidator:
 
             service = resource_partitions[0]
 
-            if service in SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS.keys() and not resource_partitions[
-                2
-            ].startswith(
-                ":"
+            if (
+                service in SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS.keys()
+                and not resource_partitions[2].startswith(":")
             ):
-                self._resource_error = SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[
-                    service
-                ].format(
-                    resource=resource
+                self._resource_error = (
+                    SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[service].format(
+                        resource=resource
+                    )
                 )
                 return
 
@@ -438,7 +430,7 @@ class IAMPolicyDocumentValidator:
 
     @staticmethod
     def _legacy_parse_resource_like(statement, key):
-        if isinstance(statement[key], string_types):
+        if isinstance(statement[key], str):
             if statement[key] != "*":
                 assert statement[key].count(":") >= 5 or "::" not in statement[key]
                 assert statement[key].split(":")[2] != ""
@@ -455,11 +447,8 @@ class IAMPolicyDocumentValidator:
         )
 
         if stripped_condition_key.startswith("Date"):
-            for (
-                condition_element_key,
-                condition_element_value,
-            ) in condition_value.items():
-                if isinstance(condition_element_value, string_types):
+            for condition_element_value in condition_value.values():
+                if isinstance(condition_element_value, str):
                     IAMPolicyDocumentValidator._legacy_parse_date_condition_value(
                         condition_element_value
                     )
@@ -520,11 +509,64 @@ class IAMPolicyDocumentValidator:
                     assert 0 <= int(time_zone_minutes) <= 59
             else:
                 seconds_with_decimal_fraction = time_parts[2]
-            seconds_with_decimal_fraction_partition = seconds_with_decimal_fraction.partition(
-                "."
+            seconds_with_decimal_fraction_partition = (
+                seconds_with_decimal_fraction.partition(".")
             )
             seconds = seconds_with_decimal_fraction_partition[0]
             assert 0 <= int(seconds) <= 59
             if seconds_with_decimal_fraction_partition[1] == ".":
                 decimal_seconds = seconds_with_decimal_fraction_partition[2]
                 assert 0 <= int(decimal_seconds) <= 999999999
+
+
+class IAMPolicyDocumentValidator(BaseIAMPolicyValidator):
+    def __init__(self, policy_document):
+        super().__init__(policy_document)
+
+    def validate(self):
+        super().validate()
+        try:
+            self._validate_resource_exist()
+        except Exception:
+            raise MalformedPolicyDocument("Policy statement must contain resources.")
+
+
+class IAMTrustPolicyDocumentValidator(BaseIAMPolicyValidator):
+    def __init__(self, policy_document):
+        super().__init__(policy_document)
+
+    def validate(self):
+        super().validate()
+        try:
+            for statement in self._statements:
+                if isinstance(statement["Action"], str):
+                    IAMTrustPolicyDocumentValidator._validate_trust_policy_action(
+                        statement["Action"]
+                    )
+                else:
+                    for action in statement["Action"]:
+                        IAMTrustPolicyDocumentValidator._validate_trust_policy_action(
+                            action
+                        )
+        except Exception:
+            raise MalformedPolicyDocument(
+                "Trust Policy statement actions can only be sts:AssumeRole, "
+                "sts:AssumeRoleWithSAML,  and sts:AssumeRoleWithWebIdentity"
+            )
+        try:
+            self._validate_resource_not_exist()
+        except Exception:
+            raise MalformedPolicyDocument("Has prohibited field Resource.")
+
+    def _validate_resource_not_exist(self):
+        for statement in self._statements:
+            assert "Resource" not in statement and "NotResource" not in statement
+
+    @staticmethod
+    def _validate_trust_policy_action(action):
+        assert action in (
+            "sts:AssumeRole",
+            "sts:AssumeRoleWithSAML",
+            "sts:AssumeRoleWithWebIdentity",
+            "sts:TagSession",
+        )

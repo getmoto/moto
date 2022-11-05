@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from moto.core.responses import BaseResponse
@@ -7,13 +5,16 @@ from .models import opsworks_backends
 
 
 class OpsWorksResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="opsworks")
+
     @property
     def parameters(self):
         return json.loads(self.body)
 
     @property
     def opsworks_backend(self):
-        return opsworks_backends[self.region]
+        return opsworks_backends[self.current_account][self.region]
 
     def create_stack(self):
         kwargs = dict(
@@ -47,7 +48,7 @@ class OpsWorksResponse(BaseResponse):
     def create_layer(self):
         kwargs = dict(
             stack_id=self.parameters.get("StackId"),
-            type=self.parameters.get("Type"),
+            layer_type=self.parameters.get("Type"),
             name=self.parameters.get("Name"),
             shortname=self.parameters.get("Shortname"),
             attributes=self.parameters.get("Attributes"),
@@ -73,7 +74,7 @@ class OpsWorksResponse(BaseResponse):
         kwargs = dict(
             stack_id=self.parameters.get("StackId"),
             name=self.parameters.get("Name"),
-            type=self.parameters.get("Type"),
+            app_type=self.parameters.get("Type"),
             shortname=self.parameters.get("Shortname"),
             description=self.parameters.get("Description"),
             datasources=self.parameters.get("DataSources"),

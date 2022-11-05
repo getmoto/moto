@@ -1,18 +1,18 @@
-from __future__ import unicode_literals
-
 from collections import namedtuple
 import io
 import os
 import struct
-import uuid
+from moto.moto_api._internal import mock_random
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from .exceptions import (
     InvalidCiphertextException,
     AccessDeniedException,
     NotFoundException,
+    ValidationException,
 )
 
 
@@ -27,9 +27,33 @@ CIPHERTEXT_HEADER_FORMAT = ">{key_id_len}s{iv_len}s{tag_len}s".format(
 )
 Ciphertext = namedtuple("Ciphertext", ("key_id", "iv", "ciphertext", "tag"))
 
+RESERVED_ALIASES = [
+    "alias/aws/acm",
+    "alias/aws/dynamodb",
+    "alias/aws/ebs",
+    "alias/aws/elasticfilesystem",
+    "alias/aws/es",
+    "alias/aws/glue",
+    "alias/aws/kinesisvideo",
+    "alias/aws/lambda",
+    "alias/aws/rds",
+    "alias/aws/redshift",
+    "alias/aws/s3",
+    "alias/aws/secretsmanager",
+    "alias/aws/ssm",
+    "alias/aws/xray",
+]
 
-def generate_key_id():
-    return str(uuid.uuid4())
+
+def generate_key_id(multi_region=False):
+    key = str(mock_random.uuid4())
+    # https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html
+    # "Notice that multi-Region keys have a distinctive key ID that begins with mrk-. You can use the mrk- prefix to
+    # identify MRKs programmatically."
+    if multi_region:
+        key = "mrk-" + key
+
+    return key
 
 
 def generate_data_key(number_of_bytes):
@@ -40,6 +64,18 @@ def generate_data_key(number_of_bytes):
 def generate_master_key():
     """Generate a master key."""
     return generate_data_key(MASTER_KEY_LEN)
+
+
+def generate_private_key():
+    """Generate a private key to be used on asymmetric sign/verify.
+
+    NOTE: KeySpec is not taken into consideration and the key is always RSA_2048
+    this could be improved to support multiple key types
+    """
+    return rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
 
 
 def _serialize_ciphertext_blob(ciphertext):
@@ -102,6 +138,11 @@ def encrypt(master_keys, key_id, plaintext, encryption_context):
             "{id_type} {key_id} is not found.".format(
                 id_type="Alias" if is_alias else "keyId", key_id=key_id
             )
+        )
+
+    if plaintext == b"":
+        raise ValidationException(
+            "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
         )
 
     iv = os.urandom(IV_LEN)

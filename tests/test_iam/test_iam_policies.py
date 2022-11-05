@@ -2,7 +2,8 @@ import json
 
 import boto3
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_iam
 
@@ -316,7 +317,7 @@ invalid_policy_document_test_cases = [
             "Version": "2012-10-17",
             "Statement": {"Effect": "Allow", "Action": "invalid"},
         },
-        "error_message": "Policy statement must contain resources.",
+        "error_message": "Actions/Conditions must be prefaced by a vendor, e.g., iam, sdb, ec2, etc.",
     },
     {
         "document": {
@@ -1611,31 +1612,25 @@ valid_policy_documents = [
 ]
 
 
-def test_create_policy_with_invalid_policy_documents():
-    for test_case in invalid_policy_document_test_cases:
-        yield check_create_policy_with_invalid_policy_document, test_case
-
-
-def test_create_policy_with_valid_policy_documents():
-    for valid_policy_document in valid_policy_documents:
-        yield check_create_policy_with_valid_policy_document, valid_policy_document
-
-
+@pytest.mark.parametrize("invalid_policy_document", invalid_policy_document_test_cases)
 @mock_iam
-def check_create_policy_with_invalid_policy_document(test_case):
+def test_create_policy_with_invalid_policy_document(invalid_policy_document):
     conn = boto3.client("iam", region_name="us-east-1")
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_policy(
             PolicyName="TestCreatePolicy",
-            PolicyDocument=json.dumps(test_case["document"]),
+            PolicyDocument=json.dumps(invalid_policy_document["document"]),
         )
-    ex.exception.response["Error"]["Code"].should.equal("MalformedPolicyDocument")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(test_case["error_message"])
+    ex.value.response["Error"]["Code"].should.equal("MalformedPolicyDocument")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        invalid_policy_document["error_message"]
+    )
 
 
+@pytest.mark.parametrize("valid_policy_document", valid_policy_documents)
 @mock_iam
-def check_create_policy_with_valid_policy_document(valid_policy_document):
+def test_create_policy_with_valid_policy_document(valid_policy_document):
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(
         PolicyName="TestCreatePolicy", PolicyDocument=json.dumps(valid_policy_document)

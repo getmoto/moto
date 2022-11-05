@@ -1,15 +1,15 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 
 from .models import dynamodbstreams_backends
-from six import string_types
 
 
 class DynamoDBStreamsHandler(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="dynamodb-streams")
+
     @property
     def backend(self):
-        return dynamodbstreams_backends[self.region]
+        return dynamodbstreams_backends[self.current_account][self.region]
 
     def describe_stream(self):
         arn = self._get_param("StreamArn")
@@ -25,7 +25,7 @@ class DynamoDBStreamsHandler(BaseResponse):
         shard_iterator_type = self._get_param("ShardIteratorType")
         sequence_number = self._get_param("SequenceNumber")
         # according to documentation sequence_number param should be string
-        if isinstance(sequence_number, string_types):
+        if isinstance(sequence_number, str):
             sequence_number = int(sequence_number)
 
         return self.backend.get_shard_iterator(

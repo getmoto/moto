@@ -1,20 +1,12 @@
-import random
+import json
 import re
 import string
-
-from six.moves.urllib.parse import urlparse
-
-
-def region_from_managedblckchain_url(url):
-    domain = urlparse(url).netloc
-    region = "us-east-1"
-    if "." in domain:
-        region = domain.split(".")[1]
-    return region
+from moto.moto_api._internal import mock_random as random
+from urllib.parse import parse_qs, urlparse
 
 
 def networkid_from_managedblockchain_url(full_url):
-    id_search = re.search("\/n-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+    id_search = re.search(r"\/n-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")
@@ -27,11 +19,20 @@ def get_network_id():
     )
 
 
-def memberid_from_managedblockchain_url(full_url):
-    id_search = re.search("\/m-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+def memberid_from_managedblockchain_request(full_url, body):
+    id_search = re.search(r"\/m-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")
+    else:
+        # >= botocore 1.19.41 can add the memberId as a query parameter, or in the body
+        parsed_url = urlparse(full_url)
+        qs = parse_qs(parsed_url.query)
+        if "memberId" in qs:
+            return_id = qs.get("memberId")[0]
+        elif body:
+            body = json.loads(body)
+            return_id = body["MemberId"]
     return return_id
 
 
@@ -42,7 +43,7 @@ def get_member_id():
 
 
 def proposalid_from_managedblockchain_url(full_url):
-    id_search = re.search("\/p-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+    id_search = re.search(r"\/p-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")
@@ -56,7 +57,7 @@ def get_proposal_id():
 
 
 def invitationid_from_managedblockchain_url(full_url):
-    id_search = re.search("\/in-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+    id_search = re.search(r"\/in-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")
@@ -107,7 +108,7 @@ def admin_password_ok(password):
 
 
 def nodeid_from_managedblockchain_url(full_url):
-    id_search = re.search("\/nd-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+    id_search = re.search(r"\/nd-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")

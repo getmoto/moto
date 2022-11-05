@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import functools
 import json
 import logging
@@ -6,7 +5,19 @@ import copy
 import warnings
 import re
 
-from moto.compat import collections_abc
+import collections.abc as collections_abc
+from typing import (
+    Any,
+    Dict,
+    List,
+    Union,
+    Iterable,
+    Iterator,
+    Optional,
+    Tuple,
+    TypeVar,
+    Type,
+)
 
 # This ugly section of imports is necessary because we
 # build the list of CloudFormationModel subclasses using
@@ -15,42 +26,49 @@ from moto.compat import collections_abc
 # the subclass's module hasn't been imported yet - then that subclass
 # doesn't exist yet, and __subclasses__ won't find it.
 # So we import here to populate the list of subclasses.
-from moto.autoscaling import models as autoscaling_models  # noqa
-from moto.awslambda import models as awslambda_models  # noqa
-from moto.batch import models as batch_models  # noqa
-from moto.cloudwatch import models as cloudwatch_models  # noqa
-from moto.datapipeline import models as datapipeline_models  # noqa
-from moto.dynamodb2 import models as dynamodb2_models  # noqa
+from moto.apigateway import models as apigw_models  # noqa  # pylint: disable=all
+from moto.autoscaling import models as as_models  # noqa  # pylint: disable=all
+from moto.awslambda import models as lambda_models  # noqa  # pylint: disable=all
+from moto.batch import models as batch_models  # noqa  # pylint: disable=all
+from moto.cloudformation.custom_model import CustomModel
+from moto.cloudwatch import models as cw_models  # noqa  # pylint: disable=all
+from moto.datapipeline import models as data_models  # noqa  # pylint: disable=all
+from moto.dynamodb import models as ddb_models  # noqa  # pylint: disable=all
 from moto.ec2 import models as ec2_models
-from moto.ecr import models as ecr_models  # noqa
-from moto.ecs import models as ecs_models  # noqa
-from moto.elb import models as elb_models  # noqa
-from moto.elbv2 import models as elbv2_models  # noqa
-from moto.events import models as events_models  # noqa
-from moto.iam import models as iam_models  # noqa
-from moto.kinesis import models as kinesis_models  # noqa
-from moto.kms import models as kms_models  # noqa
-from moto.rds import models as rds_models  # noqa
-from moto.rds2 import models as rds2_models  # noqa
-from moto.redshift import models as redshift_models  # noqa
-from moto.route53 import models as route53_models  # noqa
-from moto.s3 import models as s3_models, s3_backend  # noqa
-from moto.s3.utils import bucket_and_name_from_url
-from moto.sns import models as sns_models  # noqa
-from moto.sqs import models as sqs_models  # noqa
-from moto.ssm import models as ssm_models  # noqa
+from moto.ec2.models.core import TaggedEC2Resource
+from moto.ecr import models as ecr_models  # noqa  # pylint: disable=all
+from moto.ecs import models as ecs_models  # noqa  # pylint: disable=all
+from moto.efs import models as efs_models  # noqa  # pylint: disable=all
+from moto.elb import models as elb_models  # noqa  # pylint: disable=all
+from moto.elbv2 import models as elbv2_models  # noqa  # pylint: disable=all
+from moto.events import models as events_models  # noqa  # pylint: disable=all
+from moto.iam import models as iam_models  # noqa  # pylint: disable=all
+from moto.kinesis import models as kinesis_models  # noqa  # pylint: disable=all
+from moto.kms import models as kms_models  # noqa  # pylint: disable=all
+from moto.rds import models as rds_models  # noqa  # pylint: disable=all
+from moto.redshift import models as redshift_models  # noqa  # pylint: disable=all
+from moto.route53 import models as route53_models  # noqa  # pylint: disable=all
+from moto.s3 import models as s3_models  # noqa  # pylint: disable=all
+from moto.sagemaker import models as sagemaker_models  # noqa  # pylint: disable=all
+from moto.sns import models as sns_models  # noqa  # pylint: disable=all
+from moto.sqs import models as sqs_models  # noqa  # pylint: disable=all
+from moto.stepfunctions import models as sfn_models  # noqa  # pylint: disable=all
+from moto.ssm import models as ssm_models  # noqa  # pylint: disable=all
 
 # End ugly list of imports
 
-from moto.core import ACCOUNT_ID, CloudFormationModel
+from moto.core import CloudFormationModel
+from moto.s3.models import s3_backends
+from moto.s3.utils import bucket_and_name_from_url
+from moto.ssm import ssm_backends
 from .utils import random_suffix
 from .exceptions import (
     ExportNotFound,
     MissingParameterError,
     UnformattedGetAttTemplateException,
     ValidationError,
+    UnsupportedAttribute,
 )
-from boto.cloudformation.stack import Output
 
 # List of supported CloudFormation models
 MODEL_LIST = CloudFormationModel.__subclasses__()
@@ -59,6 +77,7 @@ NAME_TYPE_MAP = {
     model.cloudformation_type(): model.cloudformation_name_type()
     for model in MODEL_LIST
 }
+CF_MODEL = TypeVar("CF_MODEL", bound=CloudFormationModel)
 
 # Just ignore these models types for now
 NULL_MODELS = [
@@ -71,8 +90,18 @@ DEFAULT_REGION = "us-east-1"
 logger = logging.getLogger("moto")
 
 
-class LazyDict(dict):
-    def __getitem__(self, key):
+class Output(object):
+    def __init__(self, key: str, value: str, description: str):
+        self.description = description
+        self.key = key
+        self.value = value
+
+    def __repr__(self) -> str:
+        return 'Output:"%s"="%s"' % (self.key, self.value)
+
+
+class LazyDict(Dict[str, Any]):
+    def __getitem__(self, key: str) -> Any:
         val = dict.__getitem__(self, key)
         if callable(val):
             val = val()
@@ -80,7 +109,7 @@ class LazyDict(dict):
         return val
 
 
-def clean_json(resource_json, resources_map):
+def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
     """
     Cleanup the a resource dict. For now, this just means replacing any Ref node
     with the corresponding physical_resource_id.
@@ -92,7 +121,7 @@ def clean_json(resource_json, resources_map):
             # Parse resource reference
             resource = resources_map[resource_json["Ref"]]
             if hasattr(resource, "physical_resource_id"):
-                return resource.physical_resource_id
+                return resource.physical_resource_id  # type: ignore[attr-defined]
             else:
                 return resource
 
@@ -101,10 +130,10 @@ def clean_json(resource_json, resources_map):
             map_path = resource_json["Fn::FindInMap"][1:]
             result = resources_map[map_name]
             for path in map_path:
-                if "Fn::Transform" in result:
+                if "Fn::Transform" in result:  # type: ignore[operator]
                     result = resources_map[clean_json(path, resources_map)]
                 else:
-                    result = result[clean_json(path, resources_map)]
+                    result = result[clean_json(path, resources_map)]  # type: ignore[index]
             return result
 
         if "Fn::GetAtt" in resource_json:
@@ -167,7 +196,11 @@ def clean_json(resource_json, resources_map):
                             {"Ref": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[0]},
                             resources_map,
                         )
-                    fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)
+                    if cleaned_ref is not None:
+                        fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)
+                    else:
+                        # The ref was not found in the template - either it didn't exist, or we couldn't parse it
+                        pass
                 for literal in literals:
                     fn_sub_value = fn_sub_value.replace(
                         literal, literal.replace("!", "")
@@ -179,7 +212,7 @@ def clean_json(resource_json, resources_map):
             cleaned_val = clean_json(resource_json["Fn::ImportValue"], resources_map)
             values = [
                 x.value
-                for x in resources_map.cross_stack_resources.values()
+                for x in resources_map.cross_stack_resources.values()  # type: ignore[union-attr]
                 if x.name == cleaned_val
             ]
             if any(values):
@@ -209,24 +242,26 @@ def clean_json(resource_json, resources_map):
         return resource_json
 
 
-def resource_class_from_type(resource_type):
+def resource_class_from_type(resource_type: str) -> Type[CloudFormationModel]:
     if resource_type in NULL_MODELS:
-        return None
+        return None  # type: ignore[return-value]
+    if resource_type.startswith("Custom::"):
+        return CustomModel
     if resource_type not in MODEL_MAP:
         logger.warning("No Moto CloudFormation support for %s", resource_type)
-        return None
+        return None  # type: ignore[return-value]
 
-    return MODEL_MAP.get(resource_type)
+    return MODEL_MAP.get(resource_type)  # type: ignore[return-value]
 
 
-def resource_name_property_from_type(resource_type):
+def resource_name_property_from_type(resource_type: str) -> Optional[str]:
     for model in MODEL_LIST:
         if model.cloudformation_type() == resource_type:
             return model.cloudformation_name_type()
     return NAME_TYPE_MAP.get(resource_type)
 
 
-def generate_resource_name(resource_type, stack_name, logical_id):
+def generate_resource_name(resource_type: str, stack_name: str, logical_id: str) -> str:
     if resource_type in [
         "AWS::ElasticLoadBalancingV2::TargetGroup",
         "AWS::ElasticLoadBalancingV2::LoadBalancer",
@@ -247,13 +282,15 @@ def generate_resource_name(resource_type, stack_name, logical_id):
         return "{0}{1}".format(
             stack_name[:max_stack_name_portion_len], right_hand_part_of_name
         ).lower()
+    elif resource_type == "AWS::IAM::Policy":
+        return "{0}-{1}-{2}".format(stack_name[:5], logical_id[:4], random_suffix())
     else:
         return "{0}-{1}-{2}".format(stack_name, logical_id, random_suffix())
 
 
 def parse_resource(
-    logical_id, resource_json, resources_map, add_name_to_resource_json=True
-):
+    resource_json: Dict[str, Any], resources_map: "ResourceMap"
+) -> Tuple[Type[CloudFormationModel], Any, str]:
     resource_type = resource_json["Type"]
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
@@ -262,72 +299,122 @@ def parse_resource(
                 resource_type
             )
         )
-        return None
+        return None  # type: ignore[return-value]
+
+    if "Properties" not in resource_json:
+        resource_json["Properties"] = {}
 
     resource_json = clean_json(resource_json, resources_map)
-    resource_name = generate_resource_name(
-        resource_type, resources_map.get("AWS::StackName"), logical_id
+
+    return resource_class, resource_json, resource_type
+
+
+def parse_resource_and_generate_name(
+    logical_id: str, resource_json: Dict[str, Any], resources_map: "ResourceMap"
+) -> Tuple[Type[CloudFormationModel], Dict[str, Any], str]:
+    resource_tuple: Tuple[
+        Type[CloudFormationModel], Dict[str, Any], str
+    ] = parse_resource(resource_json, resources_map)
+    if not resource_tuple:
+        return None
+    resource_class, resource_json, resource_type = resource_tuple
+
+    generated_resource_name = generate_resource_name(
+        resource_type, resources_map["AWS::StackName"], logical_id  # type: ignore[arg-type]
     )
+
     resource_name_property = resource_name_property_from_type(resource_type)
     if resource_name_property:
-        if "Properties" not in resource_json:
-            resource_json["Properties"] = dict()
         if (
-            add_name_to_resource_json
-            and resource_name_property not in resource_json["Properties"]
+            "Properties" in resource_json
+            and resource_name_property in resource_json["Properties"]
         ):
-            resource_json["Properties"][resource_name_property] = resource_name
-        if resource_name_property in resource_json["Properties"]:
             resource_name = resource_json["Properties"][resource_name_property]
+        else:
+            resource_name = generated_resource_name
+    else:
+        resource_name = generated_resource_name
 
     return resource_class, resource_json, resource_name
 
 
-def parse_and_create_resource(logical_id, resource_json, resources_map, region_name):
+def parse_and_create_resource(
+    logical_id: str,
+    resource_json: Dict[str, Any],
+    resources_map: "ResourceMap",
+    account_id: str,
+    region_name: str,
+) -> Optional[CF_MODEL]:
     condition = resource_json.get("Condition")
     if condition and not resources_map.lazy_condition_map[condition]:
         # If this has a False condition, don't create the resource
         return None
 
     resource_type = resource_json["Type"]
-    resource_tuple = parse_resource(logical_id, resource_json, resources_map)
+    resource_tuple: Tuple[
+        Type[CloudFormationModel], Dict[str, Any], str
+    ] = parse_resource_and_generate_name(logical_id, resource_json, resources_map)
     if not resource_tuple:
         return None
-    resource_class, resource_json, resource_name = resource_tuple
+    resource_class, resource_json, resource_physical_name = resource_tuple
+    kwargs = {
+        "LogicalId": logical_id,
+        "StackId": resources_map.stack_id,
+        "ResourceType": resource_type,
+    }
     resource = resource_class.create_from_cloudformation_json(
-        resource_name, resource_json, region_name
+        resource_physical_name, resource_json, account_id, region_name, **kwargs
     )
     resource.type = resource_type
     resource.logical_resource_id = logical_id
     return resource
 
 
-def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, new_resource_json, new_resource_name = parse_resource(
-        logical_id, resource_json, resources_map, False
-    )
+def parse_and_update_resource(
+    logical_id: str,
+    resource_json: Dict[str, Any],
+    resources_map: "ResourceMap",
+    account_id: str,
+    region_name: str,
+) -> Optional[CF_MODEL]:
+    resource_tuple: Optional[
+        Tuple[Type[CloudFormationModel], Dict[str, Any], str]
+    ] = parse_resource_and_generate_name(logical_id, resource_json, resources_map)
+    if not resource_tuple:
+        return None
+    resource_class, resource_json, new_resource_name = resource_tuple
     original_resource = resources_map[logical_id]
-    new_resource = resource_class.update_from_cloudformation_json(
-        original_resource=original_resource,
-        new_resource_name=new_resource_name,
-        cloudformation_json=new_resource_json,
-        region_name=region_name,
-    )
-    new_resource.type = resource_json["Type"]
-    new_resource.logical_resource_id = logical_id
-    return new_resource
+    if not hasattr(
+        resource_class.update_from_cloudformation_json, "__isabstractmethod__"
+    ):
+        new_resource = resource_class.update_from_cloudformation_json(
+            original_resource=original_resource,
+            new_resource_name=new_resource_name,
+            cloudformation_json=resource_json,
+            account_id=account_id,
+            region_name=region_name,
+        )
+        new_resource.type = resource_json["Type"]
+        new_resource.logical_resource_id = logical_id
+        return new_resource
+    else:
+        return None
 
 
-def parse_and_delete_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, resource_json, resource_name = parse_resource(
-        logical_id, resource_json, resources_map
-    )
-    resource_class.delete_from_cloudformation_json(
-        resource_name, resource_json, region_name
-    )
+def parse_and_delete_resource(
+    resource_name: str, resource_json: Dict[str, Any], account_id: str, region_name: str
+) -> None:
+    resource_type = resource_json["Type"]
+    resource_class = resource_class_from_type(resource_type)
+    if not hasattr(
+        resource_class.delete_from_cloudformation_json, "__isabstractmethod__"
+    ):
+        resource_class.delete_from_cloudformation_json(
+            resource_name, resource_json, account_id, region_name
+        )
 
 
-def parse_condition(condition, resources_map, condition_map):
+def parse_condition(condition: Union[Dict[str, Any], bool], resources_map: "ResourceMap", condition_map: Dict[str, Any]) -> bool:  # type: ignore[return]
     if isinstance(condition, bool):
         return condition
 
@@ -336,12 +423,14 @@ def parse_condition(condition, resources_map, condition_map):
     condition_values = []
     for value in list(condition.values())[0]:
         # Check if we are referencing another Condition
-        if "Condition" in value:
+        if isinstance(value, dict) and "Condition" in value:
             condition_values.append(condition_map[value["Condition"]])
         else:
             condition_values.append(clean_json(value, resources_map))
 
     if condition_operator == "Fn::Equals":
+        if condition_values[1] in [True, False]:
+            return str(condition_values[0]).lower() == str(condition_values[1]).lower()
         return condition_values[0] == condition_values[1]
     elif condition_operator == "Fn::Not":
         return not parse_condition(condition_values[0], resources_map, condition_map)
@@ -361,16 +450,21 @@ def parse_condition(condition, resources_map, condition_map):
         )
 
 
-def parse_output(output_logical_id, output_json, resources_map):
+def parse_output(
+    output_logical_id: str, output_json: Any, resources_map: "ResourceMap"
+) -> Optional[Output]:
     output_json = clean_json(output_json, resources_map)
-    output = Output()
-    output.key = output_logical_id
-    output.value = clean_json(output_json["Value"], resources_map)
-    output.description = output_json.get("Description")
+    if "Value" not in output_json:
+        return None
+    output = Output(
+        key=output_logical_id,
+        value=clean_json(output_json["Value"], resources_map),
+        description=output_json.get("Description"),
+    )
     return output
 
 
-class ResourceMap(collections_abc.Mapping):
+class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
     """
     This is a lazy loading map for resources. This allows us to create resources
     without needing to create a full dependency tree. Upon creation, each
@@ -379,25 +473,30 @@ class ResourceMap(collections_abc.Mapping):
 
     def __init__(
         self,
-        stack_id,
-        stack_name,
-        parameters,
-        tags,
-        region_name,
-        template,
-        cross_stack_resources,
+        stack_id: str,
+        stack_name: str,
+        parameters: Dict[str, Any],
+        tags: Dict[str, Any],
+        region_name: str,
+        account_id: str,
+        template: Dict[str, Any],
+        cross_stack_resources: Optional[Dict[str, "Export"]],
     ):
         self._template = template
-        self._resource_json_map = template["Resources"] if template != {} else {}
+        self._resource_json_map: Dict[str, Any] = (
+            template["Resources"] if template != {} else {}
+        )
+        self._account_id = account_id
         self._region_name = region_name
         self.input_parameters = parameters
         self.tags = copy.deepcopy(tags)
-        self.resolved_parameters = {}
+        self.resolved_parameters: Dict[str, Any] = {}
         self.cross_stack_resources = cross_stack_resources
+        self.stack_id = stack_id
 
         # Create the default resources
-        self._parsed_resources = {
-            "AWS::AccountId": ACCOUNT_ID,
+        self._parsed_resources: Dict[str, Any] = {
+            "AWS::AccountId": account_id,
             "AWS::Region": self._region_name,
             "AWS::StackId": stack_id,
             "AWS::StackName": stack_name,
@@ -406,7 +505,7 @@ class ResourceMap(collections_abc.Mapping):
             "AWS::Partition": "aws",
         }
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Optional[CF_MODEL]:
         resource_logical_id = key
 
         if resource_logical_id in self._parsed_resources:
@@ -417,23 +516,27 @@ class ResourceMap(collections_abc.Mapping):
             if not resource_json:
                 raise KeyError(resource_logical_id)
             new_resource = parse_and_create_resource(
-                resource_logical_id, resource_json, self, self._region_name
+                resource_logical_id,
+                resource_json,
+                self,
+                account_id=self._account_id,
+                region_name=self._region_name,
             )
             if new_resource is not None:
                 self._parsed_resources[resource_logical_id] = new_resource
             return new_resource
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self.resources)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._resource_json_map)
 
-    def __get_resources_in_dependency_order(self):
+    def __get_resources_in_dependency_order(self) -> List[str]:
         resource_map = copy.deepcopy(self._resource_json_map)
         resources_in_dependency_order = []
 
-        def recursively_get_dependencies(resource):
+        def recursively_get_dependencies(resource: str) -> None:
             resource_info = resource_map[resource]
 
             if "DependsOn" not in resource_info:
@@ -458,28 +561,46 @@ class ResourceMap(collections_abc.Mapping):
         return resources_in_dependency_order
 
     @property
-    def resources(self):
+    def resources(self) -> Iterable[str]:
         return self._resource_json_map.keys()
 
-    def load_mapping(self):
+    def load_mapping(self) -> None:
         self._parsed_resources.update(self._template.get("Mappings", {}))
 
-    def transform_mapping(self):
-        for k, v in self._template.get("Mappings", {}).items():
+    def transform_mapping(self) -> None:
+        for v in self._template.get("Mappings", {}).values():
             if "Fn::Transform" in v:
                 name = v["Fn::Transform"]["Name"]
                 params = v["Fn::Transform"]["Parameters"]
                 if name == "AWS::Include":
                     location = params["Location"]
                     bucket_name, name = bucket_and_name_from_url(location)
-                    key = s3_backend.get_object(bucket_name, name)
+                    key = s3_backends[self._account_id]["global"].get_object(
+                        bucket_name, name
+                    )
                     self._parsed_resources.update(json.loads(key.value))
 
-    def load_parameters(self):
+    def parse_ssm_parameter(self, value: str, value_type: str) -> str:
+        # The Value in SSM parameters is the SSM parameter path
+        # we need to use ssm_backend to retrieve the
+        # actual value from parameter store
+        parameter = ssm_backends[self._account_id][self._region_name].get_parameter(
+            value
+        )
+        actual_value = parameter.value
+        if value_type.find("List") > 0:
+            return actual_value.split(",")
+        return actual_value
+
+    def load_parameters(self) -> None:
         parameter_slots = self._template.get("Parameters", {})
         for parameter_name, parameter in parameter_slots.items():
             # Set the default values.
-            self.resolved_parameters[parameter_name] = parameter.get("Default")
+            value = parameter.get("Default")
+            value_type = parameter.get("Type")
+            if value_type.startswith("AWS::SSM::Parameter::") and value:
+                value = self.parse_ssm_parameter(value, value_type)
+            self.resolved_parameters[parameter_name] = value
 
         # Set any input parameters that were passed
         self.no_echo_parameter_keys = []
@@ -488,10 +609,12 @@ class ResourceMap(collections_abc.Mapping):
                 parameter_slot = parameter_slots[key]
 
                 value_type = parameter_slot.get("Type", "String")
+                if value_type.startswith("AWS::SSM::Parameter::"):
+                    value = self.parse_ssm_parameter(value, value_type)
                 if value_type == "CommaDelimitedList" or value_type.startswith("List"):
                     value = value.split(",")
 
-                def _parse_number_parameter(num_string):
+                def _parse_number_parameter(num_string: str) -> Union[int, float]:
                     """CloudFormation NUMBER types can be an int or float.
                     Try int first and then fall back to float if that fails
                     """
@@ -521,7 +644,7 @@ class ResourceMap(collections_abc.Mapping):
 
         self._parsed_resources.update(self.resolved_parameters)
 
-    def load_conditions(self):
+    def load_conditions(self) -> None:
         conditions = self._template.get("Conditions", {})
         self.lazy_condition_map = LazyDict()
         for condition_name, condition in conditions.items():
@@ -535,13 +658,29 @@ class ResourceMap(collections_abc.Mapping):
         for condition_name in self.lazy_condition_map:
             self.lazy_condition_map[condition_name]
 
-    def load(self):
+    def validate_outputs(self) -> None:
+        outputs = self._template.get("Outputs") or {}
+        for value in outputs.values():
+            value = value.get("Value", {})
+            if "Fn::GetAtt" in value:
+                resource_type = self._resource_json_map.get(value["Fn::GetAtt"][0])[  # type: ignore[index]
+                    "Type"
+                ]
+                attr = value["Fn::GetAtt"][1]
+                resource_class = resource_class_from_type(resource_type)
+                if not resource_class.has_cfn_attr(attr):
+                    # AWS::SQS::Queue --> Queue
+                    short_type = resource_type[resource_type.rindex(":") + 1 :]
+                    raise UnsupportedAttribute(resource=short_type, attr=attr)
+
+    def load(self) -> None:
         self.load_mapping()
         self.transform_mapping()
         self.load_parameters()
         self.load_conditions()
+        self.validate_outputs()
 
-    def create(self, template):
+    def create(self, template: Dict[str, Any]) -> bool:
         # Since this is a lazy map, to create every object we just need to
         # iterate through self.
         # Assumes that self.load() has been called before
@@ -549,123 +688,168 @@ class ResourceMap(collections_abc.Mapping):
         self._resource_json_map = template["Resources"]
         self.tags.update(
             {
-                "aws:cloudformation:stack-name": self.get("AWS::StackName"),
-                "aws:cloudformation:stack-id": self.get("AWS::StackId"),
+                "aws:cloudformation:stack-name": self["AWS::StackName"],
+                "aws:cloudformation:stack-id": self["AWS::StackId"],
             }
         )
+        all_resources_ready = True
         for resource in self.__get_resources_in_dependency_order():
-            if isinstance(self[resource], ec2_models.TaggedEC2Resource):
+            instance = self[resource]
+            if isinstance(instance, TaggedEC2Resource):
                 self.tags["aws:cloudformation:logical-id"] = resource
-                ec2_models.ec2_backends[self._region_name].create_tags(
-                    [self[resource].physical_resource_id], self.tags
-                )
+                ec2_models.ec2_backends[self._account_id][
+                    self._region_name
+                ].create_tags(
+                    [instance.physical_resource_id], self.tags
+                )  # type: ignore[attr-defined]
+            if instance and not instance.is_created():
+                all_resources_ready = False
+        return all_resources_ready
 
-    def diff(self, template, parameters=None):
+    def creation_complete(self) -> bool:
+        all_resources_ready = True
+        for resource in self.__get_resources_in_dependency_order():
+            instance = self[resource]
+            if instance and not instance.is_created():
+                all_resources_ready = False
+        return all_resources_ready
+
+    def build_resource_diff(self, other_template: Dict[str, Any]) -> Dict[str, Any]:
+
+        old = self._resource_json_map
+        new = other_template["Resources"]
+
+        resource_names_by_action = {
+            "Add": set(new) - set(old),
+            "Modify": set(
+                name for name in new if name in old and new[name] != old[name]
+            ),
+            "Remove": set(old) - set(new),
+        }
+
+        return resource_names_by_action
+
+    def build_change_set_actions(
+        self, template: Dict[str, Any]
+    ) -> Dict[str, Dict[str, Dict[str, str]]]:
+
+        resource_names_by_action = self.build_resource_diff(template)
+
+        resources_by_action: Dict[str, Dict[str, Dict[str, str]]] = {
+            "Add": {},
+            "Modify": {},
+            "Remove": {},
+        }
+
+        for resource_name in resource_names_by_action["Add"]:
+            resources_by_action["Add"][resource_name] = {
+                "LogicalResourceId": resource_name,
+                "ResourceType": template["Resources"][resource_name]["Type"],
+            }
+
+        for resource_name in resource_names_by_action["Modify"]:
+            resources_by_action["Modify"][resource_name] = {
+                "LogicalResourceId": resource_name,
+                "ResourceType": template["Resources"][resource_name]["Type"],
+            }
+
+        for resource_name in resource_names_by_action["Remove"]:
+            resources_by_action["Remove"][resource_name] = {
+                "LogicalResourceId": resource_name,
+                "ResourceType": self._resource_json_map[resource_name]["Type"],
+            }
+
+        return resources_by_action
+
+    def update(
+        self, template: Dict[str, Any], parameters: Optional[Dict[str, Any]] = None
+    ) -> None:
+
+        resource_names_by_action = self.build_resource_diff(template)
+
+        for logical_name in resource_names_by_action["Remove"]:
+            resource_json = self._resource_json_map[logical_name]
+            resource = self._parsed_resources[logical_name]
+            # ToDo: Standardize this.
+            if hasattr(resource, "physical_resource_id"):
+                resource_name = self._parsed_resources[
+                    logical_name
+                ].physical_resource_id
+            else:
+                resource_name = None
+            parse_and_delete_resource(
+                resource_name, resource_json, self._account_id, self._region_name
+            )
+            self._parsed_resources.pop(logical_name)
+
+        self._template = template
         if parameters:
             self.input_parameters = parameters
         self.load_mapping()
         self.load_parameters()
         self.load_conditions()
 
-        old_template = self._resource_json_map
-        new_template = template["Resources"]
+        self._resource_json_map = template["Resources"]
 
-        resource_names_by_action = {
-            "Add": set(new_template) - set(old_template),
-            "Modify": set(
-                name
-                for name in new_template
-                if name in old_template and new_template[name] != old_template[name]
-            ),
-            "Remove": set(old_template) - set(new_template),
-        }
-        resources_by_action = {"Add": {}, "Modify": {}, "Remove": {}}
+        for logical_name in resource_names_by_action["Add"]:
 
-        for resource_name in resource_names_by_action["Add"]:
-            resources_by_action["Add"][resource_name] = {
-                "LogicalResourceId": resource_name,
-                "ResourceType": new_template[resource_name]["Type"],
-            }
-
-        for resource_name in resource_names_by_action["Modify"]:
-            resources_by_action["Modify"][resource_name] = {
-                "LogicalResourceId": resource_name,
-                "ResourceType": new_template[resource_name]["Type"],
-            }
-
-        for resource_name in resource_names_by_action["Remove"]:
-            resources_by_action["Remove"][resource_name] = {
-                "LogicalResourceId": resource_name,
-                "ResourceType": old_template[resource_name]["Type"],
-            }
-
-        return resources_by_action
-
-    def update(self, template, parameters=None):
-        resources_by_action = self.diff(template, parameters)
-
-        old_template = self._resource_json_map
-        new_template = template["Resources"]
-        self._resource_json_map = new_template
-
-        for resource_name, resource in resources_by_action["Add"].items():
-            resource_json = new_template[resource_name]
-            new_resource = parse_and_create_resource(
-                resource_name, resource_json, self, self._region_name
-            )
-            self._parsed_resources[resource_name] = new_resource
-
-        for resource_name, resource in resources_by_action["Remove"].items():
-            resource_json = old_template[resource_name]
-            parse_and_delete_resource(
-                resource_name, resource_json, self, self._region_name
-            )
-            self._parsed_resources.pop(resource_name)
+            # call __getitem__ to initialize the resource
+            # TODO: usage of indexer to initalize the resource is questionable
+            _ = self[logical_name]
 
         tries = 1
-        while resources_by_action["Modify"] and tries < 5:
-            for resource_name, resource in resources_by_action["Modify"].copy().items():
-                resource_json = new_template[resource_name]
+        while resource_names_by_action["Modify"] and tries < 5:
+            for logical_name in resource_names_by_action["Modify"].copy():
+                resource_json = self._resource_json_map[logical_name]
                 try:
                     changed_resource = parse_and_update_resource(
-                        resource_name, resource_json, self, self._region_name
+                        logical_name,
+                        resource_json,
+                        self,
+                        account_id=self._account_id,
+                        region_name=self._region_name,
                     )
                 except Exception as e:
                     # skip over dependency violations, and try again in a
                     # second pass
                     last_exception = e
                 else:
-                    self._parsed_resources[resource_name] = changed_resource
-                    del resources_by_action["Modify"][resource_name]
+                    self._parsed_resources[logical_name] = changed_resource
+                    resource_names_by_action["Modify"].remove(logical_name)
             tries += 1
         if tries == 5:
             raise last_exception
 
-    def delete(self):
+    def delete(self) -> None:
         remaining_resources = set(self.resources)
         tries = 1
         while remaining_resources and tries < 5:
             for resource in remaining_resources.copy():
                 parsed_resource = self._parsed_resources.get(resource)
                 try:
-                    if parsed_resource and hasattr(parsed_resource, "delete"):
-                        parsed_resource.delete(self._region_name)
-                    else:
-                        resource_name_attribute = (
-                            parsed_resource.cloudformation_name_type()
-                            if hasattr(parsed_resource, "cloudformation_name_type")
-                            else resource_name_property_from_type(parsed_resource.type)
-                        )
-                        if resource_name_attribute:
+                    if (
+                        not isinstance(parsed_resource, str)
+                        and parsed_resource is not None
+                    ):
+                        if parsed_resource and hasattr(parsed_resource, "delete"):
+                            parsed_resource.delete(self._account_id, self._region_name)
+                        else:
+                            if hasattr(parsed_resource, "physical_resource_id"):
+                                resource_name = parsed_resource.physical_resource_id
+                            else:
+                                resource_name = None
+
                             resource_json = self._resource_json_map[
                                 parsed_resource.logical_resource_id
                             ]
-                            resource_name = resource_json["Properties"][
-                                resource_name_attribute
-                            ]
+
                             parse_and_delete_resource(
-                                resource_name, resource_json, self, self._region_name
+                                resource_name,
+                                resource_json,
+                                self._account_id,
+                                self._region_name,
                             )
+
                         self._parsed_resources.pop(parsed_resource.logical_resource_id)
                 except Exception as e:
                     # skip over dependency violations, and try again in a
@@ -678,17 +862,24 @@ class ResourceMap(collections_abc.Mapping):
             raise last_exception
 
 
-class OutputMap(collections_abc.Mapping):
-    def __init__(self, resources, template, stack_id):
+class OutputMap(collections_abc.Mapping):  # type: ignore[type-arg]
+    def __init__(self, resources: ResourceMap, template: Dict[str, Any], stack_id: str):
         self._template = template
         self._stack_id = stack_id
-        self._output_json_map = template.get("Outputs")
+
+        if "Outputs" in template and template["Outputs"] is None:
+            raise ValidationError(
+                stack_id,  # not sure why we need to supply this when also supplying message
+                message="[/Outputs] 'null' values are not allowed in templates",
+            )
+
+        self._output_json_map: Dict[str, Any] = template.get("Outputs")  # type: ignore[assignment]
 
         # Create the default resources
         self._resource_map = resources
-        self._parsed_outputs = dict()
+        self._parsed_outputs: Dict[str, Output] = dict()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Optional[Output]:
         output_logical_id = key
 
         if output_logical_id in self._parsed_outputs:
@@ -698,24 +889,25 @@ class OutputMap(collections_abc.Mapping):
             new_output = parse_output(
                 output_logical_id, output_json, self._resource_map
             )
-            self._parsed_outputs[output_logical_id] = new_output
+            if new_output:
+                self._parsed_outputs[output_logical_id] = new_output
             return new_output
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self.outputs)
 
-    def __len__(self):
-        return len(self._output_json_map)
+    def __len__(self) -> int:
+        return len(self._output_json_map)  # type: ignore[arg-type]
 
     @property
-    def outputs(self):
+    def outputs(self) -> Iterable[str]:
         return self._output_json_map.keys() if self._output_json_map else []
 
     @property
-    def exports(self):
+    def exports(self) -> List["Export"]:
         exports = []
         if self.outputs:
-            for key, value in self._output_json_map.items():
+            for value in self._output_json_map.values():  # type: ignore[union-attr]
                 if value.get("Export"):
                     cleaned_name = clean_json(
                         value["Export"].get("Name"), self._resource_map
@@ -724,25 +916,21 @@ class OutputMap(collections_abc.Mapping):
                     exports.append(Export(self._stack_id, cleaned_name, cleaned_value))
         return exports
 
-    def create(self):
-        for output in self.outputs:
-            self[output]
-
 
 class Export(object):
-    def __init__(self, exporting_stack_id, name, value):
+    def __init__(self, exporting_stack_id: str, name: str, value: str):
         self._exporting_stack_id = exporting_stack_id
         self._name = name
         self._value = value
 
     @property
-    def exporting_stack_id(self):
+    def exporting_stack_id(self) -> str:
         return self._exporting_stack_id
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def value(self):
+    def value(self) -> str:
         return self._value

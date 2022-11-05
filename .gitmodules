@@ -1,0 +1,3 @@
+[submodule "tests/terraformtests/terraform-provider-aws"]
+	path = tests/terraformtests/terraform-provider-aws
+	url = https://github.com/hashicorp/terraform-provider-aws/

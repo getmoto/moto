@@ -1,5 +1,4 @@
 import json
-import six
 
 from moto.core.responses import BaseResponse
 
@@ -8,9 +7,12 @@ from .models import swf_backends
 
 
 class SWFResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="swf")
+
     @property
     def swf_backend(self):
-        return swf_backends[self.region]
+        return swf_backends[self.current_account][self.region]
 
     # SWF parameters are passed through a JSON body, so let's ease retrieval
     @property
@@ -31,7 +33,7 @@ class SWFResponse(BaseResponse):
             self._check_string(parameter)
 
     def _check_string(self, parameter):
-        if not isinstance(parameter, six.string_types):
+        if not isinstance(parameter, str):
             raise SWFSerializationException(parameter)
 
     def _check_none_or_list_of_strings(self, parameter):
@@ -42,7 +44,7 @@ class SWFResponse(BaseResponse):
         if not isinstance(parameter, list):
             raise SWFSerializationException(parameter)
         for i in parameter:
-            if not isinstance(i, six.string_types):
+            if not isinstance(i, str):
                 raise SWFSerializationException(parameter)
 
     def _check_exclusivity(self, **kwargs):
@@ -157,15 +159,10 @@ class SWFResponse(BaseResponse):
 
         workflow_executions = self.swf_backend.list_closed_workflow_executions(
             domain_name=domain,
-            start_time_filter=start_time_filter,
-            close_time_filter=close_time_filter,
-            execution_filter=execution_filter,
             tag_filter=tag_filter,
-            type_filter=type_filter,
+            close_status_filter=close_status_filter,
             maximum_page_size=maximum_page_size,
             reverse_order=reverse_order,
-            workflow_id=workflow_id,
-            close_status_filter=close_status_filter,
         )
 
         return json.dumps(
@@ -201,13 +198,9 @@ class SWFResponse(BaseResponse):
 
         workflow_executions = self.swf_backend.list_open_workflow_executions(
             domain_name=domain,
-            start_time_filter=start_time_filter,
-            execution_filter=execution_filter,
-            tag_filter=tag_filter,
-            type_filter=type_filter,
             maximum_page_size=maximum_page_size,
+            tag_filter=tag_filter,
             reverse_order=reverse_order,
-            workflow_id=workflow_id,
         )
 
         return json.dumps(
@@ -397,7 +390,7 @@ class SWFResponse(BaseResponse):
             task_list=task_list,
             child_policy=child_policy,
             execution_start_to_close_timeout=execution_start_to_close_timeout,
-            input=input_,
+            workflow_input=input_,
             tag_list=tag_list,
             task_start_to_close_timeout=task_start_to_close_timeout,
         )
@@ -446,9 +439,7 @@ class SWFResponse(BaseResponse):
         if decision:
             return json.dumps(decision.to_full_dict(reverse_order=reverse_order))
         else:
-            return json.dumps(
-                {"previousStartedEventId": 0, "startedEventId": 0, "taskToken": ""}
-            )
+            return json.dumps({"previousStartedEventId": 0, "startedEventId": 0})
 
     def count_pending_decision_tasks(self):
         domain_name = self._params["domain"]
@@ -482,7 +473,7 @@ class SWFResponse(BaseResponse):
         if activity_task:
             return json.dumps(activity_task.to_full_dict())
         else:
-            return json.dumps({"startedEventId": 0, "taskToken": ""})
+            return json.dumps({"startedEventId": 0})
 
     def count_pending_activity_tasks(self):
         domain_name = self._params["domain"]

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core import BaseModel
 from moto.core.utils import underscores_to_camelcase, unix_time
 
@@ -26,6 +24,14 @@ SUPPORTED_HISTORY_EVENT_TYPES = (
     "DecisionTaskTimedOut",
     "WorkflowExecutionTimedOut",
     "WorkflowExecutionSignaled",
+    "MarkerRecorded",
+    "TimerStarted",
+    "TimerCancelled",
+    "TimerFired",
+    "CancelTimerFailed",
+    "StartTimerFailed",
+    "WorkflowExecutionCanceled",
+    "CancelWorkflowExecutionFailed",
 )
 
 

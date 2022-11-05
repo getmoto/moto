@@ -1,14 +1,8 @@
-from __future__ import unicode_literals
-import json
-
-from werkzeug.exceptions import HTTPException
+from moto.core.exceptions import JsonRESTError
 
 
-class BadRequestException(HTTPException):
+class BadRequestException(JsonRESTError):
     code = 400
 
     def __init__(self, message, **kwargs):
-        super(BadRequestException, self).__init__(
-            description=json.dumps({"Message": message, "Code": "BadRequestException"}),
-            **kwargs
-        )
+        super().__init__(error_type="BadRequestException", message=message)

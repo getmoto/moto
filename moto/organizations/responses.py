@@ -1,14 +1,16 @@
-from __future__ import unicode_literals
 import json
 
 from moto.core.responses import BaseResponse
-from .models import organizations_backend
+from .models import organizations_backends
 
 
 class OrganizationsResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="organizations")
+
     @property
     def organizations_backend(self):
-        return organizations_backend
+        return organizations_backends[self.current_account]["global"]
 
     @property
     def request_params(self):
@@ -17,8 +19,8 @@ class OrganizationsResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param, default=None):
-        return self.request_params.get(param, default)
+    def _get_param(self, param_name, if_none=None):
+        return self.request_params.get(param_name, if_none)
 
     def create_organization(self):
         return json.dumps(
@@ -28,12 +30,20 @@ class OrganizationsResponse(BaseResponse):
     def describe_organization(self):
         return json.dumps(self.organizations_backend.describe_organization())
 
+    def delete_organization(self):
+        return json.dumps(self.organizations_backend.delete_organization())
+
     def list_roots(self):
         return json.dumps(self.organizations_backend.list_roots())
 
     def create_organizational_unit(self):
         return json.dumps(
             self.organizations_backend.create_organizational_unit(**self.request_params)
+        )
+
+    def delete_organizational_unit(self):
+        return json.dumps(
+            self.organizations_backend.delete_organizational_unit(**self.request_params)
         )
 
     def update_organizational_unit(self):
@@ -49,11 +59,19 @@ class OrganizationsResponse(BaseResponse):
         )
 
     def list_organizational_units_for_parent(self):
-        return json.dumps(
-            self.organizations_backend.list_organizational_units_for_parent(
-                **self.request_params
-            )
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        parent_id = self._get_param("ParentId")
+        (
+            ous,
+            next_token,
+        ) = self.organizations_backend.list_organizational_units_for_parent(
+            max_results=max_results, next_token=next_token, parent_id=parent_id
         )
+        response = {"OrganizationalUnits": ous}
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)
 
     def list_parents(self):
         return json.dumps(
@@ -63,6 +81,11 @@ class OrganizationsResponse(BaseResponse):
     def create_account(self):
         return json.dumps(
             self.organizations_backend.create_account(**self.request_params)
+        )
+
+    def close_account(self):
+        return json.dumps(
+            self.organizations_backend.close_account(**self.request_params)
         )
 
     def describe_account(self):
@@ -77,13 +100,33 @@ class OrganizationsResponse(BaseResponse):
             )
         )
 
+    def list_create_account_status(self):
+        return json.dumps(
+            self.organizations_backend.list_create_account_status(**self.request_params)
+        )
+
     def list_accounts(self):
-        return json.dumps(self.organizations_backend.list_accounts())
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        accounts, next_token = self.organizations_backend.list_accounts(
+            max_results=max_results, next_token=next_token
+        )
+        response = {"Accounts": accounts}
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)
 
     def list_accounts_for_parent(self):
-        return json.dumps(
-            self.organizations_backend.list_accounts_for_parent(**self.request_params)
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        parent_id = self._get_param("ParentId")
+        accounts, next_token = self.organizations_backend.list_accounts_for_parent(
+            max_results=max_results, next_token=next_token, parent_id=parent_id
         )
+        response = {"Accounts": accounts}
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)
 
     def move_account(self):
         return json.dumps(
@@ -116,9 +159,7 @@ class OrganizationsResponse(BaseResponse):
         )
 
     def list_policies(self):
-        return json.dumps(
-            self.organizations_backend.list_policies(**self.request_params)
-        )
+        return json.dumps(self.organizations_backend.list_policies())
 
     def delete_policy(self):
         self.organizations_backend.delete_policy(**self.request_params)
@@ -200,4 +241,16 @@ class OrganizationsResponse(BaseResponse):
     def disable_policy_type(self):
         return json.dumps(
             self.organizations_backend.disable_policy_type(**self.request_params)
+        )
+
+    def detach_policy(self):
+        return json.dumps(
+            self.organizations_backend.detach_policy(**self.request_params)
+        )
+
+    def remove_account_from_organization(self):
+        return json.dumps(
+            self.organizations_backend.remove_account_from_organization(
+                **self.request_params
+            )
         )

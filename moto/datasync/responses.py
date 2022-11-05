@@ -6,14 +6,17 @@ from .models import datasync_backends
 
 
 class DataSyncResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="datasync")
+
     @property
     def datasync_backend(self):
-        return datasync_backends[self.region]
+        return datasync_backends[self.current_account][self.region]
 
     def list_locations(self):
         locations = list()
         for arn, location in self.datasync_backend.locations.items():
-            locations.append({"LocationArn": location.arn, "LocationUri": location.uri})
+            locations.append({"LocationArn": arn, "LocationUri": location.uri})
         return json.dumps({"Locations": locations})
 
     def _get_location(self, location_arn, typ):
@@ -112,9 +115,7 @@ class DataSyncResponse(BaseResponse):
     def list_tasks(self):
         tasks = list()
         for arn, task in self.datasync_backend.tasks.items():
-            tasks.append(
-                {"Name": task.name, "Status": task.status, "TaskArn": task.arn}
-            )
+            tasks.append({"Name": task.name, "Status": task.status, "TaskArn": arn})
         return json.dumps({"Tasks": tasks})
 
     def delete_task(self):

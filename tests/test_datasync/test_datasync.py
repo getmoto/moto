@@ -1,14 +1,12 @@
-import logging
-
-import boto
 import boto3
 from botocore.exceptions import ClientError
 from moto import mock_datasync
-from nose.tools import assert_raises
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 
 
 def create_locations(client, create_smb=False, create_s3=False):
-    """ 
+    """
     Convenience function for creating locations.
     Locations must exist before tasks can be created.
     """
@@ -101,8 +99,11 @@ def test_describe_location_wrong():
         Password="",
         AgentArns=agent_arns,
     )
-    with assert_raises(ClientError) as e:
-        response = client.describe_location_s3(LocationArn=response["LocationArn"])
+    with pytest.raises(ClientError) as e:
+        client.describe_location_s3(LocationArn=response["LocationArn"])
+    err = e.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.equal("Invalid Location type: SMB")
 
 
 @mock_datasync
@@ -135,12 +136,12 @@ def test_delete_location():
     assert len(response["Locations"]) == 1
     location_arn = locations["smb_arn"]
 
-    response = client.delete_location(LocationArn=location_arn)
+    client.delete_location(LocationArn=location_arn)
     response = client.list_locations()
     assert len(response["Locations"]) == 0
 
-    with assert_raises(ClientError) as e:
-        response = client.delete_location(LocationArn=location_arn)
+    with pytest.raises(ClientError):
+        client.delete_location(LocationArn=location_arn)
 
 
 @mock_datasync
@@ -156,17 +157,24 @@ def test_create_task():
 
 @mock_datasync
 def test_create_task_fail():
-    """ Test that Locations must exist before a Task can be created """
+    """Test that Locations must exist before a Task can be created"""
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_smb=True, create_s3=True)
-    with assert_raises(ClientError) as e:
-        response = client.create_task(
+    with pytest.raises(ClientError) as e:
+        client.create_task(
             SourceLocationArn="1", DestinationLocationArn=locations["s3_arn"]
         )
-    with assert_raises(ClientError) as e:
-        response = client.create_task(
+    err = e.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.equal("Location 1 not found.")
+
+    with pytest.raises(ClientError) as e:
+        client.create_task(
             SourceLocationArn=locations["smb_arn"], DestinationLocationArn="2"
         )
+    err = e.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.equal("Location 2 not found.")
 
 
 @mock_datasync
@@ -174,11 +182,11 @@ def test_list_tasks():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)
 
-    response = client.create_task(
+    client.create_task(
         SourceLocationArn=locations["smb_arn"],
         DestinationLocationArn=locations["s3_arn"],
     )
-    response = client.create_task(
+    client.create_task(
         SourceLocationArn=locations["s3_arn"],
         DestinationLocationArn=locations["smb_arn"],
         Name="task_name",
@@ -220,8 +228,11 @@ def test_describe_task():
 def test_describe_task_not_exist():
     client = boto3.client("datasync", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.describe_task(TaskArn="abc")
+    err = e.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.equal("The request is not valid.")
 
 
 @mock_datasync
@@ -253,16 +264,14 @@ def test_update_task():
     assert response["Name"] == initial_name
     assert response["Options"] == initial_options
 
-    response = client.update_task(
-        TaskArn=task_arn, Name=updated_name, Options=updated_options
-    )
+    client.update_task(TaskArn=task_arn, Name=updated_name, Options=updated_options)
 
     response = client.describe_task(TaskArn=task_arn)
     assert response["TaskArn"] == task_arn
     assert response["Name"] == updated_name
     assert response["Options"] == updated_options
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError):
         client.update_task(TaskArn="doesnt_exist")
 
 
@@ -271,7 +280,7 @@ def test_delete_task():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)
 
-    response = client.create_task(
+    client.create_task(
         SourceLocationArn=locations["smb_arn"],
         DestinationLocationArn=locations["s3_arn"],
         Name="task_name",
@@ -282,12 +291,12 @@ def test_delete_task():
     task_arn = response["Tasks"][0]["TaskArn"]
     assert task_arn is not None
 
-    response = client.delete_task(TaskArn=task_arn)
+    client.delete_task(TaskArn=task_arn)
     response = client.list_tasks()
     assert len(response["Tasks"]) == 0
 
-    with assert_raises(ClientError) as e:
-        response = client.delete_task(TaskArn=task_arn)
+    with pytest.raises(ClientError):
+        client.delete_task(TaskArn=task_arn)
 
 
 @mock_datasync
@@ -325,11 +334,12 @@ def test_start_task_execution_twice():
     task_arn = response["TaskArn"]
 
     response = client.start_task_execution(TaskArn=task_arn)
-    assert "TaskExecutionArn" in response
-    task_execution_arn = response["TaskExecutionArn"]
+    response.should.have.key("TaskExecutionArn")
 
-    with assert_raises(ClientError) as e:
-        response = client.start_task_execution(TaskArn=task_arn)
+    with pytest.raises(ClientError) as exc:
+        client.start_task_execution(TaskArn=task_arn)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
 
 
 @mock_datasync
@@ -392,8 +402,11 @@ def test_describe_task_execution():
 def test_describe_task_execution_not_exist():
     client = boto3.client("datasync", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.describe_task_execution(TaskExecutionArn="abc")
+    err = e.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.equal("The request is not valid.")
 
 
 @mock_datasync
@@ -415,7 +428,7 @@ def test_cancel_task_execution():
     assert response["CurrentTaskExecutionArn"] == task_execution_arn
     assert response["Status"] == "RUNNING"
 
-    response = client.cancel_task_execution(TaskExecutionArn=task_execution_arn)
+    client.cancel_task_execution(TaskExecutionArn=task_execution_arn)
 
     response = client.describe_task(TaskArn=task_arn)
     assert "CurrentTaskExecutionArn" not in response
