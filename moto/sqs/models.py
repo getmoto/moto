@@ -600,8 +600,8 @@ class Queue(CloudFormationModel):
 
     def wait_for_messages(self, timeout):
         with self._condition:
-            self._condition.wait_for(lambda : self.messages, timeout=timeout
-                                     )
+            self._condition.wait_for(lambda: self.messages, timeout=timeout)
+
     @classmethod
     def has_cfn_attr(cls, attr):
         return attr in ["Arn", "QueueName"]
@@ -945,7 +945,7 @@ class SQSBackend(BaseBackend):
                     # so break to avoid an infinite loop.
                     break
 
-                queue.wait_for_messages()
+                queue.wait_for_messages(wait_seconds_timeout)
                 continue
 
             previous_result_count = len(result)
