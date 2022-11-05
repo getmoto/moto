@@ -1679,8 +1679,8 @@ def test_dynamodb_table_creation():
     table_names.should.equal([outputs[0]["OutputValue"]])
 
 
-@mock_cloudformation_deprecated()
-@mock_ssm()
+@mock_cloudformation
+@mock_ssm
 def test_ssm_parameter():
     parameter_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1697,12 +1697,14 @@ def test_ssm_parameter():
             }
         },
     }
+    stack_name = "test_stack"
+    cfn = boto3.client("cloudformation", "us-west-2")
+    cfn.create_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+    # Wait until moto creates the stack
+    waiter = cfn.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
 
-    template_json = json.dumps(parameter_template)
-    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
-    stack = cf_conn.create_stack("test_stack", template_body=template_json)
-
-    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
@@ -1711,8 +1713,8 @@ def test_ssm_parameter():
     parameters[0]["Value"].should.equal("Test SSM Parameter")
 
 
-@mock_cloudformation_deprecated()
-@mock_ssm()
+@mock_cloudformation
+@mock_ssm
 def test_ssm_parameter_update_stack():
     parameter_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1729,12 +1731,14 @@ def test_ssm_parameter_update_stack():
             }
         },
     }
-    template_json = json.dumps(parameter_template)
+    stack_name = "test_stack"
+    cfn = boto3.client("cloudformation", "us-west-2")
+    cfn.create_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+    # Wait until moto creates the stack
+    waiter = cfn.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
 
-    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
-    cf_conn.create_stack("test_stack", template_body=template_json)
-
-    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
@@ -1742,11 +1746,12 @@ def test_ssm_parameter_update_stack():
     parameters[0]["Name"].should.equal("test_ssm")
     parameters[0]["Value"].should.equal("Test SSM Parameter")
 
-    parameter_template["Resources"]["BasicParameter"]["Properties"]["Value"] = "Test SSM Parameter Updated"
-    template_json = json.dumps(parameter_template)
-    cf_conn.update_stack("test_stack", template_json)
+    parameter_template["Resources"]["BasicParameter"]["Properties"][
+        "Value"
+    ] = "Test SSM Parameter Updated"
+    cfn.update_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
 
-    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
@@ -1755,8 +1760,8 @@ def test_ssm_parameter_update_stack():
     parameters[0]["Value"].should.equal("Test SSM Parameter Updated")
 
 
-@mock_cloudformation_deprecated()
-@mock_ssm()
+@mock_cloudformation
+@mock_ssm
 def test_ssm_parameter_update_stack_and_remove_resource():
     parameter_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1773,12 +1778,14 @@ def test_ssm_parameter_update_stack_and_remove_resource():
             }
         },
     }
-    template_json = json.dumps(parameter_template)
+    stack_name = "test_stack"
+    cfn = boto3.client("cloudformation", "us-west-2")
+    cfn.create_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+    # Wait until moto creates the stack
+    waiter = cfn.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
 
-    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
-    cf_conn.create_stack("test_stack", template_body=template_json)
-
-    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
@@ -1787,8 +1794,7 @@ def test_ssm_parameter_update_stack_and_remove_resource():
     parameters[0]["Value"].should.equal("Test SSM Parameter")
 
     parameter_template["Resources"].pop("BasicParameter")
-    template_json = json.dumps(parameter_template)
-    cf_conn.update_stack("test_stack", template_json)
+    cfn.update_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
 
     ssm_client = boto3.client("ssm", region_name="us-west-1")
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
@@ -1797,16 +1803,18 @@ def test_ssm_parameter_update_stack_and_remove_resource():
     parameters.should.have.length_of(0)
 
 
-@mock_cloudformation_deprecated()
-@mock_ssm()
+@mock_cloudformation
+@mock_ssm
 def test_ssm_parameter_update_stack_and_add_resource():
     parameter_template = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
-    template_json = json.dumps(parameter_template)
+    stack_name = "test_stack"
+    cfn = boto3.client("cloudformation", "us-west-2")
+    cfn.create_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+    # Wait until moto creates the stack
+    waiter = cfn.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
 
-    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
-    cf_conn.create_stack("test_stack", template_body=template_json)
-
-    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
@@ -1827,14 +1835,12 @@ def test_ssm_parameter_update_stack_and_add_resource():
             }
         },
     }
-    template_json = json.dumps(parameter_template)
-    cf_conn.update_stack("test_stack", template_json)
+    cfn.update_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
 
-    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
     parameters.should.have.length_of(1)
     parameters[0]["Name"].should.equal("test_ssm")
     parameters[0]["Value"].should.equal("Test SSM Parameter")
-
