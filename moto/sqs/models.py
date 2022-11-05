@@ -7,6 +7,7 @@ import string
 import struct
 from copy import deepcopy
 from typing import Dict
+from threading import Condition
 from xml.sax.saxutils import escape
 
 from moto.core.exceptions import RESTError
@@ -257,6 +258,7 @@ class Queue(CloudFormationModel):
         self._messages = []
         self._pending_messages = set()
         self.deleted_messages = set()
+        self._messages_lock = Condition()
 
         now = unix_time()
         self.created_timestamp = now
@@ -536,7 +538,9 @@ class Queue(CloudFormationModel):
                     if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
                         return
 
-        self._messages.append(message)
+        with self._messages_lock:
+            self._messages.append(message)
+            self._messages_lock.notify_all()
 
         for arn, esm in self.lambda_event_source_mappings.items():
             backend = sqs_backends[self.account_id][self.region]
@@ -590,6 +594,10 @@ class Queue(CloudFormationModel):
                 continue
             new_messages.append(message)
         self._messages = new_messages
+
+    def wait_for_messages(self, timeout):
+        with self._messages_lock:
+            self._messages_lock.wait_for(lambda: self.messages, timeout=timeout)
 
     @classmethod
     def has_cfn_attr(cls, attr):
@@ -930,13 +938,11 @@ class SQSBackend(BaseBackend):
 
             if previous_result_count == len(result):
                 if wait_seconds_timeout == 0:
-                    # There is timeout and we have added no additional results,
+                    # There is no timeout and no additional results,
                     # so break to avoid an infinite loop.
                     break
 
-                import time
-
-                time.sleep(0.01)
+                queue.wait_for_messages(wait_seconds_timeout)
                 continue
 
             previous_result_count = len(result)

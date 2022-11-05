@@ -1,3 +1,4 @@
+import datetime
 import re
 import sure  # noqa # pylint: disable=unused-import
 import threading
@@ -80,3 +81,19 @@ def test_messages_polling():
     # got each message in a separate call to ReceiveMessage, despite the long
     # WaitTimeSeconds
     assert len(messages) == 5
+
+
+def test_no_messages_polling_timeout():
+    backend = server.create_backend_app("sqs")
+    queue_name = "test-queue"
+    test_client = backend.test_client()
+    test_client.put(f"/?Action=CreateQueue&QueueName={queue_name}")
+    wait_seconds = 5
+    start = datetime.datetime.utcnow()
+    test_client.get(
+        f"/123/{queue_name}?Action=ReceiveMessage&MaxNumberOfMessages=1&WaitTimeSeconds={wait_seconds}"
+    )
+    end = datetime.datetime.utcnow()
+    duration = end - start
+    assert duration.seconds >= wait_seconds
+    assert duration.seconds <= wait_seconds + (wait_seconds / 2)
