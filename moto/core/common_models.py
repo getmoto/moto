@@ -1,12 +1,14 @@
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from .base_backend import InstanceTrackerMeta
 
 
 class BaseModel(metaclass=InstanceTrackerMeta):
-    def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
+    def __new__(
+        cls, *args: Any, **kwargs: Any  # pylint: disable=unused-argument
+    ) -> "BaseModel":
         instance = super(BaseModel, cls).__new__(cls)
-        cls.instances.append(instance)
+        cls.instances.append(instance)  # type: ignore[attr-defined]
         return instance
 
 
@@ -37,7 +39,7 @@ class CloudFormationModel(BaseModel):
 
     @classmethod
     @abstractmethod
-    def create_from_cloudformation_json(
+    def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
         cloudformation_json: Dict[str, Any],
@@ -53,7 +55,7 @@ class CloudFormationModel(BaseModel):
 
     @classmethod
     @abstractmethod
-    def update_from_cloudformation_json(
+    def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
         original_resource: Any,
         new_resource_name: str,
@@ -70,7 +72,7 @@ class CloudFormationModel(BaseModel):
 
     @classmethod
     @abstractmethod
-    def delete_from_cloudformation_json(
+    def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
         cloudformation_json: Dict[str, Any],
@@ -92,7 +94,7 @@ class CloudFormationModel(BaseModel):
 
 
 class ConfigQueryModel:
-    def __init__(self, backends):
+    def __init__(self, backends: Any):
         """Inits based on the resource type's backends (1 for each region if applicable)"""
         self.backends = backends
 
@@ -106,7 +108,7 @@ class ConfigQueryModel:
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
         aggregator: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> Tuple[List[Dict[str, Any]], str]:
         """For AWS Config. This will list all of the resources of the given type and optional resource name and region.
 
         This supports both aggregated and non-aggregated listing. The following notes the difference:
@@ -195,5 +197,5 @@ class ConfigQueryModel:
 class CloudWatchMetricProvider(object):
     @staticmethod
     @abstractmethod
-    def get_cloudwatch_metrics(account_id: str) -> Any:
+    def get_cloudwatch_metrics(account_id: str) -> Any:  # type: ignore[misc]
         pass

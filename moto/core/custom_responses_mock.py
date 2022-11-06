@@ -2,8 +2,10 @@ import responses
 import types
 from io import BytesIO
 from http.client import responses as http_responses
+from typing import Any, Dict, List, Tuple, Optional
 from urllib.parse import urlparse
 from werkzeug.wrappers import Request
+from .responses import TYPE_RESPONSE
 
 from moto.utilities.distutils_version import LooseVersion
 
@@ -21,7 +23,7 @@ class CallbackResponse(responses.CallbackResponse):
     Need to subclass so we can change a couple things
     """
 
-    def get_response(self, request):
+    def get_response(self, request: Any) -> responses.HTTPResponse:
         """
         Need to override this so we can pass decode_content=False
         """
@@ -58,20 +60,22 @@ class CallbackResponse(responses.CallbackResponse):
             raise result
 
         status, r_headers, body = result
-        body = responses._handle_body(body)
+        body_io = responses._handle_body(body)
         headers.update(r_headers)
 
         return responses.HTTPResponse(
             status=status,
             reason=http_responses.get(status),
-            body=body,
+            body=body_io,
             headers=headers,
             preload_content=False,
             # Need to not decode_content to mimic requests
             decode_content=False,
         )
 
-    def _url_matches(self, url, other, match_querystring=False):
+    def _url_matches(
+        self, url: Any, other: Any, match_querystring: bool = False
+    ) -> bool:
         """
         Need to override this so we can fix querystrings breaking regex matching
         """
@@ -83,16 +87,18 @@ class CallbackResponse(responses.CallbackResponse):
                 url = responses._clean_unicode(url)
                 if not isinstance(other, str):
                     other = other.encode("ascii").decode("utf8")
-            return self._url_matches_strict(url, other)
+            return self._url_matches_strict(url, other)  # type: ignore[attr-defined]
         elif isinstance(url, responses.Pattern) and url.match(other):
             return True
         else:
             return False
 
 
-def not_implemented_callback(request):  # pylint: disable=unused-argument
+def not_implemented_callback(
+    request: Any,  # pylint: disable=unused-argument
+) -> TYPE_RESPONSE:
     status = 400
-    headers = {}
+    headers: Dict[str, str] = {}
     response = "The method is not implemented"
 
     return status, headers, response
@@ -106,10 +112,12 @@ def not_implemented_callback(request):  # pylint: disable=unused-argument
 #
 # Note that, due to an outdated API we no longer support Responses <= 0.12.1
 # This method should be used for Responses 0.12.1 < .. < 0.17.0
-def _find_first_match(self, request):
+def _find_first_match(
+    self: Any, request: Any
+) -> Tuple[Optional[responses.BaseResponse], List[str]]:
     matches = []
     match_failed_reasons = []
-    all_possibles = self._matches + responses._default_mock._matches
+    all_possibles = self._matches + responses._default_mock._matches  # type: ignore[attr-defined]
     for match in all_possibles:
         match_result, reason = match.matches(request)
         if match_result:
@@ -132,7 +140,7 @@ def _find_first_match(self, request):
     return None, match_failed_reasons
 
 
-def get_response_mock():
+def get_response_mock() -> responses.RequestsMock:
     """
     The responses-library is crucial in ensuring that requests to AWS are intercepted, and routed to the right backend.
     However, as our usecase is different from a 'typical' responses-user, Moto always needs some custom logic to ensure responses behaves in a way that works for us.
@@ -152,13 +160,13 @@ def get_response_mock():
         )
     else:
         responses_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
-        responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)
+        responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)  # type: ignore[assignment]
 
     responses_mock.add_passthru("http")
     return responses_mock
 
 
-def reset_responses_mock(responses_mock):
+def reset_responses_mock(responses_mock: responses.RequestsMock) -> None:
     if LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
         from .responses_custom_registry import CustomRegistry
 

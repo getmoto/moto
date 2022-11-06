@@ -2,11 +2,12 @@ import datetime
 import inspect
 import re
 from botocore.exceptions import ClientError
-from typing import Optional
+from typing import Any, Optional, List, Callable, Dict
 from urllib.parse import urlparse
+from .common_types import TYPE_RESPONSE
 
 
-def camelcase_to_underscores(argument: Optional[str]) -> str:
+def camelcase_to_underscores(argument: str) -> str:
     """Converts a camelcase param like theNewAttribute to the equivalent
     python underscore variable like the_new_attribute"""
     result = ""
@@ -32,7 +33,7 @@ def camelcase_to_underscores(argument: Optional[str]) -> str:
     return result
 
 
-def underscores_to_camelcase(argument):
+def underscores_to_camelcase(argument: str) -> str:
     """Converts a camelcase param like the_new_attribute to the equivalent
     camelcase version like theNewAttribute. Note that the first letter is
     NOT capitalized by this function"""
@@ -48,17 +49,17 @@ def underscores_to_camelcase(argument):
     return result
 
 
-def pascal_to_camelcase(argument):
+def pascal_to_camelcase(argument: str) -> str:
     """Converts a PascalCase param to the camelCase equivalent"""
     return argument[0].lower() + argument[1:]
 
 
-def camelcase_to_pascal(argument):
+def camelcase_to_pascal(argument: str) -> str:
     """Converts a camelCase param to the PascalCase equivalent"""
     return argument[0].upper() + argument[1:]
 
 
-def method_names_from_class(clazz):
+def method_names_from_class(clazz: object) -> List[str]:
     predicate = inspect.isfunction
     return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
 
@@ -70,7 +71,7 @@ def convert_regex_to_flask_path(url_path: str) -> str:
     for token in ["$"]:
         url_path = url_path.replace(token, "")
 
-    def caller(reg):
+    def caller(reg: Any) -> str:
         match_name, match_pattern = reg.groups()
         return '<regex("{0}"):{1}>'.format(match_pattern, match_name)
 
@@ -83,11 +84,11 @@ def convert_regex_to_flask_path(url_path: str) -> str:
 
 
 class convert_to_flask_response(object):
-    def __init__(self, callback):
+    def __init__(self, callback: Callable[..., Any]):
         self.callback = callback
 
     @property
-    def __name__(self):
+    def __name__(self) -> str:
         # For instance methods, use class and method names. Otherwise
         # use module and method name
         if inspect.ismethod(self.callback):
@@ -96,7 +97,7 @@ class convert_to_flask_response(object):
             outer = self.callback.__module__
         return "{0}.{1}".format(outer, self.callback.__name__)
 
-    def __call__(self, args=None, **kwargs):
+    def __call__(self, args: Any = None, **kwargs: Any) -> Any:
         from flask import request, Response
         from moto.moto_api import recorder
 
@@ -118,11 +119,11 @@ class convert_to_flask_response(object):
 
 
 class convert_flask_to_responses_response(object):
-    def __init__(self, callback):
+    def __init__(self, callback: Callable[..., Any]):
         self.callback = callback
 
     @property
-    def __name__(self):
+    def __name__(self) -> str:
         # For instance methods, use class and method names. Otherwise
         # use module and method name
         if inspect.ismethod(self.callback):
@@ -131,7 +132,7 @@ class convert_flask_to_responses_response(object):
             outer = self.callback.__module__
         return "{0}.{1}".format(outer, self.callback.__name__)
 
-    def __call__(self, request, *args, **kwargs):
+    def __call__(self, request: Any, *args: Any, **kwargs: Any) -> TYPE_RESPONSE:
         for key, val in request.headers.items():
             if isinstance(val, bytes):
                 request.headers[key] = val.decode("utf-8")
@@ -141,7 +142,7 @@ class convert_flask_to_responses_response(object):
         return status, headers, response
 
 
-def iso_8601_datetime_with_milliseconds(value: datetime) -> str:
+def iso_8601_datetime_with_milliseconds(value: datetime.datetime) -> str:
     return value.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
@@ -163,22 +164,22 @@ def iso_8601_datetime_without_milliseconds_s3(
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
 
 
-def rfc_1123_datetime(src):
+def rfc_1123_datetime(src: datetime.datetime) -> str:
     return src.strftime(RFC1123)
 
 
-def str_to_rfc_1123_datetime(value):
+def str_to_rfc_1123_datetime(value: str) -> datetime.datetime:
     return datetime.datetime.strptime(value, RFC1123)
 
 
-def unix_time(dt: datetime.datetime = None) -> int:
+def unix_time(dt: Optional[datetime.datetime] = None) -> float:
     dt = dt or datetime.datetime.utcnow()
     epoch = datetime.datetime.utcfromtimestamp(0)
     delta = dt - epoch
     return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
 
 
-def unix_time_millis(dt: datetime = None) -> int:
+def unix_time_millis(dt: Optional[datetime.datetime] = None) -> float:
     return unix_time(dt) * 1000.0
 
 
@@ -193,28 +194,33 @@ def path_url(url: str) -> str:
 
 
 def tags_from_query_string(
-    querystring_dict, prefix="Tag", key_suffix="Key", value_suffix="Value"
-):
+    querystring_dict: Dict[str, Any],
+    prefix: str = "Tag",
+    key_suffix: str = "Key",
+    value_suffix: str = "Value",
+) -> Dict[str, str]:
     response_values = {}
     for key in querystring_dict.keys():
         if key.startswith(prefix) and key.endswith(key_suffix):
             tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
-            tag_key = querystring_dict.get(
+            tag_key = querystring_dict[
                 "{prefix}.{index}.{key_suffix}".format(
                     prefix=prefix, index=tag_index, key_suffix=key_suffix
                 )
-            )[0]
+            ][0]
             tag_value_key = "{prefix}.{index}.{value_suffix}".format(
                 prefix=prefix, index=tag_index, value_suffix=value_suffix
             )
             if tag_value_key in querystring_dict:
-                response_values[tag_key] = querystring_dict.get(tag_value_key)[0]
+                response_values[tag_key] = querystring_dict[tag_value_key][0]
             else:
                 response_values[tag_key] = None
     return response_values
 
 
-def tags_from_cloudformation_tags_list(tags_list):
+def tags_from_cloudformation_tags_list(
+    tags_list: List[Dict[str, str]]
+) -> Dict[str, str]:
     """Return tags in dict form from cloudformation resource tags form (list of dicts)"""
     tags = {}
     for entry in tags_list:
@@ -225,7 +231,7 @@ def tags_from_cloudformation_tags_list(tags_list):
     return tags
 
 
-def remap_nested_keys(root, key_transform):
+def remap_nested_keys(root: Any, key_transform: Callable[[str], str]) -> Any:
     """This remap ("recursive map") function is used to traverse and
     transform the dictionary keys of arbitrarily nested structures.
     List comprehensions do not recurse, making it tedious to apply
@@ -252,7 +258,9 @@ def remap_nested_keys(root, key_transform):
     return root
 
 
-def merge_dicts(dict1, dict2, remove_nulls=False):
+def merge_dicts(
+    dict1: Dict[str, Any], dict2: Dict[str, Any], remove_nulls: bool = False
+) -> None:
     """Given two arbitrarily nested dictionaries, merge the second dict into the first.
 
     :param dict dict1: the dictionary to be updated.
@@ -275,7 +283,7 @@ def merge_dicts(dict1, dict2, remove_nulls=False):
                 dict1.pop(key)
 
 
-def aws_api_matches(pattern, string):
+def aws_api_matches(pattern: str, string: str) -> bool:
     """
     AWS API can match a value based on a glob, or an exact match
     """
@@ -296,7 +304,7 @@ def aws_api_matches(pattern, string):
         return False
 
 
-def extract_region_from_aws_authorization(string):
+def extract_region_from_aws_authorization(string: str) -> Optional[str]:
     auth = string or ""
     region = re.sub(r".*Credential=[^/]+/[^/]+/([^/]+)/.*", r"\1", auth)
     if region == auth:
