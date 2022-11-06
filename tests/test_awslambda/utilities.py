@@ -166,14 +166,18 @@ def create_invalid_lambda(role):
 def get_role_name():
     with mock_iam():
         iam = boto3.client("iam", region_name=_lambda_region)
-        try:
-            return iam.get_role(RoleName="my-role")["Role"]["Arn"]
-        except ClientError:
-            return iam.create_role(
-                RoleName="my-role",
-                AssumeRolePolicyDocument="some policy",
-                Path="/my-path/",
-            )["Role"]["Arn"]
+        while True:
+            try:
+                return iam.get_role(RoleName="my-role")["Role"]["Arn"]
+            except ClientError:
+                try:
+                    return iam.create_role(
+                        RoleName="my-role",
+                        AssumeRolePolicyDocument="some policy",
+                        Path="/my-path/",
+                    )["Role"]["Arn"]
+                except ClientError:
+                    pass
 
 
 def wait_for_log_msg(expected_msg, log_group, wait_time=30):
