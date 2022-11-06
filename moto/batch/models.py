@@ -477,23 +477,6 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.attempts: List[Dict[str, Any]] = []
         self.latest_attempt: Optional[Dict[str, Any]] = None
 
-    @property
-    def container_details(self):
-        details = {}
-        details["command"] = self._get_container_property("command", [])
-        details["privileged"] = self._get_container_property("privileged", False)
-        details["readonlyRootFilesystem"] = self._get_container_property(
-            "readonlyRootFilesystem", False
-        )
-        details["ulimits"] = self._get_container_property("ulimits", {})
-        details["vcpus"] = self._get_container_property("vcpus", 1)
-        details["memory"] = self._get_container_property("memory", 512)
-        details["volumes"] = self._get_container_property("volumes", [])
-        details["environment"] = self._get_container_property("environment", [])
-        if self.log_stream_name:
-            details["logStreamName"] = self.log_stream_name
-        return details
-
     def describe_short(self) -> Dict[str, Any]:
         result = {
             "jobId": self.job_id,
@@ -516,13 +499,29 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         result = self.describe_short()
         result["jobQueue"] = self.job_queue.arn
         result["dependsOn"] = self.depends_on or []
-        result["container"] = self.container_details
+        result["container"] = self._container_details()
         if self.job_stopped:
             result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
         if self.timeout:
             result["timeout"] = self.timeout
         result["attempts"] = self.attempts
         return result
+
+    def _container_details(self) -> Dict[str, Any]:
+        details = {}
+        details["command"] = self._get_container_property("command", [])
+        details["privileged"] = self._get_container_property("privileged", False)
+        details["readonlyRootFilesystem"] = self._get_container_property(
+            "readonlyRootFilesystem", False
+        )
+        details["ulimits"] = self._get_container_property("ulimits", {})
+        details["vcpus"] = self._get_container_property("vcpus", 1)
+        details["memory"] = self._get_container_property("memory", 512)
+        details["volumes"] = self._get_container_property("volumes", [])
+        details["environment"] = self._get_container_property("environment", [])
+        if self.log_stream_name:
+            details["logStreamName"] = self.log_stream_name
+        return details
 
     def _get_container_property(self, p: str, default: Any) -> Any:
         if p == "environment":
