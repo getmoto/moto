@@ -1134,3 +1134,39 @@ def test_multiple_qualifiers():
     fn["FunctionArn"].should.equal(
         f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{fn_name}:6"
     )
+
+
+def test_get_role_name_utility_race_condition():
+    # Play with these variables as needed to reproduce the error.
+    max_workers, num_threads = 3, 15
+
+    errors = []
+    roles = []
+
+    def thread_function(_):
+        while True:
+            # noinspection PyBroadException
+            try:
+                role = get_role_name()
+            except ClientError as e:
+                errors.append(str(e))
+                break
+            except Exception:
+                # boto3 and our own IAMBackend are not thread-safe,
+                # and occasionally throw weird errors, so we just
+                # pass and retry.
+                # https://github.com/boto/boto3/issues/1592
+                pass
+            else:
+                roles.append(role)
+                break
+
+    import concurrent.futures
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        executor.map(thread_function, range(num_threads))
+    # Check all threads are accounted for, all roles are the same entity,
+    # and there are no client errors.
+    assert len(errors) + len(roles) == num_threads
+    assert roles.count(roles[0]) == len(roles)
+    assert len(errors) == 0
