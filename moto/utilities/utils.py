@@ -3,7 +3,7 @@ import hashlib
 import pkgutil
 
 from collections.abc import MutableMapping
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 
 def str2bool(v):
@@ -13,9 +13,7 @@ def str2bool(v):
         return False
 
 
-def load_resource(
-    package: str, resource: str, as_json: bool = True
-) -> Union[Dict[str, Any], str]:
+def load_resource(package: str, resource: str, as_json: bool = True) -> Dict[str, Any]:
     """
     Open a file, and return the contents as JSON.
     Usage:

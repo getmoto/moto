@@ -14,7 +14,7 @@ from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 
 from moto import settings
-from moto.core.utils import BackendDict
+from moto.core.base_backend import BackendDict
 from .botocore_stubber import BotocoreStubber
 from .custom_responses_mock import (
     get_response_mock,

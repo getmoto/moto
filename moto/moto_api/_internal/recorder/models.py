@@ -5,6 +5,7 @@ import os
 
 import requests
 from botocore.awsrequest import AWSPreparedRequest
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 
@@ -14,7 +15,7 @@ class Recorder:
         self._os_enabled = bool(os.environ.get("MOTO_ENABLE_RECORDING", False))
         self._user_enabled = self._os_enabled
 
-    def _record_request(self, request, body=None):
+    def _record_request(self, request: Any, body: Optional[bytes] = None) -> None:
         """
         Record the current request
         """

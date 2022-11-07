@@ -48,10 +48,9 @@ from moto.config.exceptions import (
     MissingRequiredConfigRuleParameterException,
 )
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.common_models import ConfigQueryModel
 from moto.core.responses import AWSServiceSpec
-from moto.core.utils import BackendDict
 from moto.iam.config import role_config_query, policy_config_query
 from moto.moto_api._internal import mock_random as random
 from moto.s3.config import s3_config_query
@@ -1382,7 +1381,7 @@ class ConfigBackend(BaseBackend):
         :param next_token:
         :return:
         """
-        identifiers = []
+        identifiers: List[Dict[str, Any]] = []
         new_token = None
 
         limit = limit or DEFAULT_PAGE_SIZE
@@ -1437,7 +1436,7 @@ class ConfigBackend(BaseBackend):
 
             resource_identifiers.append(item)
 
-        result = {"resourceIdentifiers": resource_identifiers}
+        result: Dict[str, Any] = {"resourceIdentifiers": resource_identifiers}
 
         if new_token:
             result["nextToken"] = new_token
@@ -1469,7 +1468,7 @@ class ConfigBackend(BaseBackend):
         if not self.config_aggregators.get(aggregator_name):
             raise NoSuchConfigurationAggregatorException()
 
-        identifiers = []
+        identifiers: List[Dict[str, Any]] = []
         new_token = None
         filters = filters or {}
 

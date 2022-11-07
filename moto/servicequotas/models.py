@@ -1,7 +1,6 @@
 """ServiceQuotasBackend class with methods for supported APIs."""
 
-from moto.core import BaseBackend
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict
 from typing import Any, Dict, List
 from .exceptions import NoSuchResource
 from .resources.default_quotas.vpc import VPC_DEFAULT_QUOTAS

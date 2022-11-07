@@ -8,8 +8,8 @@ from cryptography.hazmat.primitives import hashes
 
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError

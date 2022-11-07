@@ -3,8 +3,7 @@ from builtins import str
 import json
 import re
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from .exceptions import BadRequestException
 
 

@@ -1,8 +1,7 @@
 import base64
 import re
 import datetime
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto import settings
 from typing import Any, Dict, List, Iterable, Optional, Tuple, Set
 

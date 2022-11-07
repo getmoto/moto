@@ -6,8 +6,7 @@ from copy import deepcopy
 import math
 from datetime import datetime
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import underscores_to_camelcase
 from moto.core.utils import camelcase_to_pascal
 

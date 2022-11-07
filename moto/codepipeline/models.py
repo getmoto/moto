@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from typing import Any, Dict, List, Tuple
-from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.iam.exceptions import IAMNotFoundException
 from moto.iam.models import iam_backends, IAMBackend
 
@@ -12,7 +12,7 @@ from moto.codepipeline.exceptions import (
     InvalidTagsException,
     TooManyTagsException,
 )
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BackendDict, BaseModel
 
 
 class CodePipeline(BaseModel):

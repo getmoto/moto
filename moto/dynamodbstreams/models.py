@@ -2,8 +2,7 @@ import os
 import json
 import base64
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.dynamodb.models import dynamodb_backends, DynamoJsonEncoder
 
 

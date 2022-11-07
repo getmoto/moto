@@ -65,7 +65,7 @@ def ecs_new_arn_format():
     return os.environ.get("MOTO_ECS_NEW_ARN", "true").lower() != "false"
 
 
-def allow_unknown_region():
+def allow_unknown_region() -> bool:
     return os.environ.get("MOTO_ALLOW_NONEXISTENT_REGION", "false").lower() == "true"
 
 

@@ -5,14 +5,9 @@ from typing import Any
 import pytz
 
 from moto import settings
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.core.utils import (
-    unix_time,
-    pascal_to_camelcase,
-    remap_nested_keys,
-    BackendDict,
-)
+from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
 
 from ..ec2.utils import random_private_ip
 from moto.ec2 import ec2_backends

@@ -30,6 +30,7 @@ Every version number class implements the following interface:
 """
 
 import re
+from typing import Optional
 
 
 class Version:
@@ -194,7 +195,7 @@ class LooseVersion(Version):
 
     component_re = re.compile(r"(\d+ | [a-z]+ | \.)", re.VERBOSE)
 
-    def __init__(self, vstring=None):
+    def __init__(self, vstring: Optional[str] = None):
         if vstring:
             self.parse(vstring)
 

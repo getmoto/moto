@@ -1,7 +1,7 @@
 import importlib
 import moto
 import sys
-from moto.core.utils import BackendDict
+from moto.core import BackendDict
 from typing import Iterable, Tuple
 
 

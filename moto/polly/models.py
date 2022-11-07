@@ -1,8 +1,7 @@
 from xml.etree import ElementTree as ET
 import datetime
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 
 from .resources import VOICE_DATA
 from .utils import make_arn_for_lexicon

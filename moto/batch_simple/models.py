@@ -5,7 +5,7 @@ from ..batch.models import (
     ClientException,
     BatchBackend,
 )
-from ..core.utils import BackendDict
+from ..core import BackendDict
 
 import datetime
 from typing import Any, Dict, List, Tuple, Optional

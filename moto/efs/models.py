@@ -8,12 +8,8 @@ import json
 import time
 from copy import deepcopy
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import (
-    camelcase_to_underscores,
-    underscores_to_camelcase,
-    BackendDict,
-)
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.efs.exceptions import (

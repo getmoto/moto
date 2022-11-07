@@ -1,8 +1,7 @@
 """SimpleDBBackend class with methods for supported APIs."""
 import re
 from collections import defaultdict
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from threading import Lock
 
 from .exceptions import InvalidDomainName, UnknownDomainName

@@ -1,8 +1,7 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
 from datetime import datetime, timezone
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.ds.exceptions import (
     ClientException,
     DirectoryLimitExceededException,

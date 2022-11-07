@@ -14,14 +14,13 @@ import urllib.parse
 
 from bisect import insort
 from importlib import reload
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, BackendDict, CloudFormationModel
 from moto.core import CloudWatchMetricProvider
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
     unix_time,
     unix_time_millis,
-    BackendDict,
 )
 from moto.cloudwatch.models import MetricDatum
 from moto.moto_api import state_manager

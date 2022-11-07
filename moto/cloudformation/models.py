@@ -7,11 +7,10 @@ from typing import Any, Dict, List, Optional, Iterable, Tuple, Union, Type
 from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
 from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
-    BackendDict,
 )
 from moto.moto_api._internal import mock_random
 from moto.sns.models import sns_backends
@@ -117,7 +116,7 @@ class FakeStackSet(BaseModel):
         self.execution_role = execution_role or self.execution_role
 
         if accounts and regions:
-            self.update_instances(accounts, regions, self.parameters)
+            self.update_instances(accounts, regions, self.parameters)  # type: ignore[arg-type]
 
         operation = self._create_operation(
             operation_id=operation_id,
@@ -158,7 +157,7 @@ class FakeStackSet(BaseModel):
         )
 
     def update_instances(
-        self, accounts: List[str], regions: List[str], parameters: Dict[str, str]
+        self, accounts: List[str], regions: List[str], parameters: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         operation_id = str(mock_random.uuid4())
 
@@ -208,7 +207,7 @@ class FakeStackInstances(BaseModel):
         self,
         accounts: List[str],
         regions: List[str],
-        parameters: Optional[Dict[str, str]],
+        parameters: Optional[List[Dict[str, Any]]],
     ) -> Any:
         for account in accounts:
             for region in regions:
@@ -651,7 +650,7 @@ class CloudFormationBackend(BaseBackend):
         stackset_name: str,
         accounts: List[str],
         regions: List[str],
-        parameters: Dict[str, str],
+        parameters: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         stack_set = self.get_stack_set(stackset_name)
         return stack_set.update_instances(accounts, regions, parameters)

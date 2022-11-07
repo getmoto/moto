@@ -3,8 +3,8 @@ import datetime
 import json
 
 from collections import OrderedDict
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core.utils import unix_time
 from .comparisons import get_comparison_func
 
 

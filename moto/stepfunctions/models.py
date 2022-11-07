@@ -3,8 +3,8 @@ import re
 from datetime import datetime
 from dateutil.tz import tzlocal
 
-from moto.core import BaseBackend, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
+from moto.core import BaseBackend, BackendDict, CloudFormationModel
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from .exceptions import (
     ExecutionAlreadyExists,
