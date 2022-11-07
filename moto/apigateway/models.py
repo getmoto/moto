@@ -15,7 +15,7 @@ try:
     from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
 except ImportError:
     # OpenAPI Spec Validator < 0.5.0
-    from openapi_spec_validator.exceptions import OpenAPIValidationError
+    from openapi_spec_validator.exceptions import OpenAPIValidationError  # type: ignore
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url, BackendDict
@@ -67,7 +67,7 @@ from moto.moto_api._internal import mock_random as random
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
 
-class Deployment(CloudFormationModel, dict):  # type: ignore[type-arg]
+class Deployment(CloudFormationModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(self, deployment_id: str, name: str, description: str = ""):
         super().__init__()
         self["id"] = deployment_id
@@ -102,7 +102,7 @@ class Deployment(CloudFormationModel, dict):  # type: ignore[type-arg]
         )
 
 
-class IntegrationResponse(BaseModel, dict):  # type: ignore[type-arg]
+class IntegrationResponse(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         status_code: Union[str, int],
@@ -125,7 +125,7 @@ class IntegrationResponse(BaseModel, dict):  # type: ignore[type-arg]
             self["contentHandling"] = content_handling
 
 
-class Integration(BaseModel, dict):  # type: ignore[type-arg]
+class Integration(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         integration_type: str,
@@ -180,7 +180,7 @@ class Integration(BaseModel, dict):  # type: ignore[type-arg]
         return self.get("integrationResponses", {}).pop(status_code, None)
 
 
-class MethodResponse(BaseModel, dict):  # type: ignore[type-arg]
+class MethodResponse(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         status_code: str,
@@ -193,7 +193,7 @@ class MethodResponse(BaseModel, dict):  # type: ignore[type-arg]
         self["responseParameters"] = response_parameters
 
 
-class Method(CloudFormationModel, dict):  # type: ignore[type-arg]
+class Method(CloudFormationModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self, method_type: str, authorization_type: Optional[str], **kwargs: Any
     ):
@@ -457,7 +457,7 @@ class Resource(CloudFormationModel):
         return self.resource_methods[method_type].pop("methodIntegration")
 
 
-class Authorizer(BaseModel, dict):  # type: ignore[type-arg]
+class Authorizer(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         authorizer_id: Optional[str],
@@ -511,7 +511,7 @@ class Authorizer(BaseModel, dict):  # type: ignore[type-arg]
         return self
 
 
-class Stage(BaseModel, dict):  # type: ignore[type-arg]
+class Stage(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         name: Optional[str] = None,
@@ -664,7 +664,7 @@ class Stage(BaseModel, dict):  # type: ignore[type-arg]
             raise Exception('Patch operation "%s" not implemented' % op["op"])
 
 
-class ApiKey(BaseModel, dict):  # type: ignore[type-arg]
+class ApiKey(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         name: Optional[str] = None,
@@ -708,7 +708,7 @@ class ApiKey(BaseModel, dict):  # type: ignore[type-arg]
         return v.lower() == "true"
 
 
-class UsagePlan(BaseModel, dict):  # type: ignore[type-arg]
+class UsagePlan(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         name: Optional[str] = None,
@@ -750,7 +750,7 @@ class UsagePlan(BaseModel, dict):  # type: ignore[type-arg]
                     self["throttle"]["burstLimit"] = value
 
 
-class RequestValidator(BaseModel, dict):  # type: ignore[type-arg]
+class RequestValidator(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     PROP_ID = "id"
     PROP_NAME = "name"
     PROP_VALIDATE_REQUEST_BODY = "validateRequestBody"
@@ -802,7 +802,7 @@ class RequestValidator(BaseModel, dict):  # type: ignore[type-arg]
         }
 
 
-class UsagePlanKey(BaseModel, dict):  # type: ignore[type-arg]
+class UsagePlanKey(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(self, plan_id: Dict[str, Any], plan_type: str, name: str, value: str):
         super().__init__()
         self["id"] = plan_id
@@ -811,7 +811,7 @@ class UsagePlanKey(BaseModel, dict):  # type: ignore[type-arg]
         self["value"] = value
 
 
-class VpcLink(BaseModel, dict):  # type: ignore[type-arg]
+class VpcLink(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         name: str,
@@ -1205,7 +1205,7 @@ class RestAPI(CloudFormationModel):
         self.gateway_responses.pop(response_type, None)
 
 
-class DomainName(BaseModel, dict):  # type: ignore[type-arg]
+class DomainName(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(self, domain_name: str, **kwargs: Any):
         super().__init__()
         self["domainName"] = domain_name
@@ -1241,7 +1241,7 @@ class DomainName(BaseModel, dict):  # type: ignore[type-arg]
             self["endpointConfiguration"] = kwargs.get("endpoint_configuration")
 
 
-class Model(BaseModel, dict):  # type: ignore[type-arg]
+class Model(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(self, model_id: str, name: str, **kwargs: Any):
         super().__init__()
         self["id"] = model_id
@@ -1254,7 +1254,7 @@ class Model(BaseModel, dict):  # type: ignore[type-arg]
             self["contentType"] = kwargs.get("content_type")
 
 
-class BasePathMapping(BaseModel, dict):  # type: ignore[type-arg]
+class BasePathMapping(BaseModel, Dict[str, Any]):  # type: ignore[misc]
 
     # operations
     OPERATION_REPLACE = "replace"
@@ -1287,7 +1287,7 @@ class BasePathMapping(BaseModel, dict):  # type: ignore[type-arg]
                     self["stage"] = value
 
 
-class GatewayResponse(BaseModel, dict):  # type: ignore[type-arg]
+class GatewayResponse(BaseModel, Dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         response_type: str,
@@ -1378,7 +1378,7 @@ class APIGatewayBackend(BaseBackend):
         """
         if fail_on_warnings:
             try:
-                validate_spec(api_doc)
+                validate_spec(api_doc)  # type: ignore[arg-type]
             except OpenAPIValidationError as e:
                 raise InvalidOpenAPIDocumentException(e)
         name = api_doc["info"]["title"]
@@ -1413,7 +1413,7 @@ class APIGatewayBackend(BaseBackend):
 
         if fail_on_warnings:
             try:
-                validate_spec(api_doc)
+                validate_spec(api_doc)  # type: ignore[arg-type]
             except OpenAPIValidationError as e:
                 raise InvalidOpenAPIDocumentException(e)
 
