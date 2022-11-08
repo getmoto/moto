@@ -182,7 +182,6 @@ class AthenaBackend(BaseBackend):
                       PendingDeprecationWarning)
         return self.get_query_execution(exec_id)
 
-
     def get_query_execution(self, exec_id: str) -> Execution:
         return self.executions[exec_id]
 
