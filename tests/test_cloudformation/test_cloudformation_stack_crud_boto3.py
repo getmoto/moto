@@ -312,9 +312,24 @@ dummy_unknown_template_json = json.dumps(dummy_unknown_template)
 def test_create_stack():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
-
     stack = cf_conn.describe_stacks()["Stacks"][0]
     stack.should.have.key("StackName").equal("test_stack")
+
+    template = cf_conn.get_template(StackName="test_stack")["TemplateBody"]
+    template.should.equal(dummy_template)
+
+
+@mock_cloudformation
+def test_create_stack_with_termination_protection():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_json,
+        EnableTerminationProtection=True,
+    )
+    stack = cf_conn.describe_stacks()["Stacks"][0]
+    stack.should.have.key("StackName").equal("test_stack")
+    stack.should.have.key("EnableTerminationProtection").equal(True)
 
     template = cf_conn.get_template(StackName="test_stack")["TemplateBody"]
     template.should.equal(dummy_template)
