@@ -13,7 +13,7 @@ class TypeHttpParser(IntegrationParser):
     def invoke(
         self, request: requests.PreparedRequest, integration: Integration
     ) -> Tuple[int, Union[str, bytes]]:
-        uri = integration["uri"]
-        requests_func = getattr(requests, integration["httpMethod"].lower())
+        uri = integration.uri
+        requests_func = getattr(requests, integration.http_method.lower())  # type: ignore[union-attr]
         response = requests_func(uri)
         return response.status_code, response.text

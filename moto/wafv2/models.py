@@ -81,17 +81,17 @@ class WAFV2Backend(BaseBackend):
             raise WAFNonexistentItemException
         stage = self._find_apigw_stage(resource_arn)
         if stage:
-            stage["webAclArn"] = web_acl_arn
+            stage.web_acl_arn = web_acl_arn
 
     def disassociate_web_acl(self, resource_arn):
         stage = self._find_apigw_stage(resource_arn)
         if stage:
-            stage.pop("webAclArn", None)
+            stage.web_acl_arn = None
 
     def get_web_acl_for_resource(self, resource_arn):
         stage = self._find_apigw_stage(resource_arn)
-        if stage and stage.get("webAclArn"):
-            wacl_arn = stage.get("webAclArn")
+        if stage and stage.web_acl_arn is not None:
+            wacl_arn = stage.web_acl_arn
             return self.wacls.get(wacl_arn)
         return None
 
