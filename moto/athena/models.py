@@ -192,29 +192,10 @@ class AthenaBackend(BaseBackend):
     def get_query_results(self, exec_id: str) -> dict:
         return {
             "ResultSet": {
-                "Rows": [
-                    {
-                        "Data": [
-                            {"VarCharValue": "string"},
-                        ]
-                    },
-                ],
+                "Rows": [],
                 "ResultSetMetadata": {
-                    "ColumnInfo": [
-                        {
-                            "CatalogName": "string",
-                            "SchemaName": "string",
-                            "TableName": "string",
-                            "Name": "string",
-                            "Label": "string",
-                            "Type": "string",
-                            "Precision": 123,
-                            "Scale": 123,
-                            "Nullable": "NOT_NULL",
-                            "CaseSensitive": False,
-                        },
-                    ]
-                },
+                    "ColumnInfo": []
+                }
             }
         }
 
