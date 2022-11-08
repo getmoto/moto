@@ -4,7 +4,7 @@ from typing import Dict
 
 from collections import defaultdict
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
@@ -174,7 +174,7 @@ PARAMETER_VERSION_LIMIT = 100
 PARAMETER_HISTORY_MAX_RESULTS = 50
 
 
-class Parameter(BaseModel):
+class Parameter(CloudFormationModel):
     def __init__(
         self,
         account_id,
@@ -258,6 +258,62 @@ class Parameter(BaseModel):
             r["Labels"] = self.labels
 
         return r
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ssm-parameter.html
+        return "AWS::SSM::Parameter"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+    ):
+        ssm_backend = ssm_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        parameter_args = {
+            "name": properties.get("Name"),
+            "description": properties.get("Description", None),
+            "value": properties.get("Value", None),
+            "parameter_type": properties.get("Type", None),
+            "allowed_pattern": properties.get("AllowedPattern", None),
+            "keyid": properties.get("KeyId", None),
+            "overwrite": properties.get("Overwrite", False),
+            "tags": properties.get("Tags", None),
+            "data_type": properties.get("DataType", "text"),
+        }
+        ssm_backend.put_parameter(**parameter_args)
+        parameter = ssm_backend.get_parameter(properties.get("Name"))
+        return parameter
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
+    ):
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, account_id, region_name
+        )
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, account_id, region_name
+    ):
+        ssm_backend = ssm_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        ssm_backend.delete_parameter(properties.get("Name"))
 
 
 MAX_TIMEOUT_SECONDS = 3600

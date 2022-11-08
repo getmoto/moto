@@ -68,6 +68,8 @@ def test_submit_job_by_name():
     job["jobQueue"].should.equal(queue_arn)
     job["jobDefinition"].should.equal(job_definition_arn)
     job["status"].should.equal("SUCCEEDED")
+    job.should.contain("container")
+    job["container"].should.contain("command")
 
 
 @mock_batch_simple
