@@ -86,9 +86,7 @@ class AthenaResponse(BaseResponse):
 
     def list_query_executions(self) -> dict:
         executions = self.athena_backend.list_query_executions()
-        return json.dumps(
-            {"QueryExecutionIds": [i for i in executions.keys()]}
-        )
+        return json.dumps({"QueryExecutionIds": [i for i in executions.keys()]})
 
     def stop_query_execution(self) -> str:
         exec_id = self._get_param("QueryExecutionId")

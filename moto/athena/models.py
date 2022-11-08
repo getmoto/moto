@@ -176,10 +176,12 @@ class AthenaBackend(BaseBackend):
         return execution.id
 
     def get_execution(self, exec_id: str) -> Execution:
-        warnings.warn("`get_execution` has been replaced by `get_query_execution`"
-                      "to align with the Athena API, "
-                      "and will be removed in a future version.",
-                      PendingDeprecationWarning)
+        warnings.warn(
+            "`get_execution` has been replaced by `get_query_execution`"
+            "to align with the Athena API, "
+            "and will be removed in a future version.",
+            PendingDeprecationWarning,
+        )
         return self.get_query_execution(exec_id)
 
     def get_query_execution(self, exec_id: str) -> Execution:
@@ -189,14 +191,7 @@ class AthenaBackend(BaseBackend):
         return self.executions
 
     def get_query_results(self, exec_id: str) -> dict:
-        return {
-            "ResultSet": {
-                "Rows": [],
-                "ResultSetMetadata": {
-                    "ColumnInfo": []
-                }
-            }
-        }
+        return {"ResultSet": {"Rows": [], "ResultSetMetadata": {"ColumnInfo": []}}}
 
     def stop_query_execution(self, exec_id: str) -> None:
         execution = self.executions[exec_id]
