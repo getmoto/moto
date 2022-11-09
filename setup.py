@@ -29,7 +29,7 @@ def get_version():
 install_requires = [
     "boto3>=1.9.201",
     "botocore>=1.12.201",
-    "cryptography>=3.3.1",
+    "cryptography>=38.0.3",
     "requests>=2.5",
     "xmltodict",
     "werkzeug>=0.5,!=2.2.0,!=2.2.1",
