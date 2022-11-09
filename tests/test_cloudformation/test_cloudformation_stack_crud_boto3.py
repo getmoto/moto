@@ -314,6 +314,7 @@ def test_create_stack():
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
     stack = cf_conn.describe_stacks()["Stacks"][0]
     stack.should.have.key("StackName").equal("test_stack")
+    stack.should.have.key("EnableTerminationProtection").equal(False)
 
     template = cf_conn.get_template(StackName="test_stack")["TemplateBody"]
     template.should.equal(dummy_template)
