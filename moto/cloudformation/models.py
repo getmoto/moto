@@ -242,6 +242,7 @@ class FakeStack(BaseModel):
         tags: Optional[Dict[str, str]] = None,
         role_arn: Optional[str] = None,
         cross_stack_resources: Optional[Dict[str, Export]] = None,
+        enable_termination_protection: Optional[bool] = False,
     ):
         self.stack_id = stack_id
         self.name = name
@@ -262,6 +263,9 @@ class FakeStack(BaseModel):
         self.policy = ""
 
         self.cross_stack_resources: Dict[str, Export] = cross_stack_resources or {}
+        self.enable_termination_protection: bool = (
+            enable_termination_protection or False
+        )
         self.resource_map = self._create_resource_map()
 
         self.custom_resources: Dict[str, CustomModel] = dict()
@@ -701,6 +705,7 @@ class CloudFormationBackend(BaseBackend):
         notification_arns: Optional[List[str]] = None,
         tags: Optional[Dict[str, str]] = None,
         role_arn: Optional[str] = None,
+        enable_termination_protection: Optional[bool] = False,
     ) -> FakeStack:
         stack_id = generate_stack_id(name, self.region_name, self.account_id)
         new_stack = FakeStack(
@@ -714,6 +719,7 @@ class CloudFormationBackend(BaseBackend):
             tags=tags,
             role_arn=role_arn,
             cross_stack_resources=self.exports,
+            enable_termination_protection=enable_termination_protection,
         )
         self.stacks[stack_id] = new_stack
         self._validate_export_uniqueness(new_stack)

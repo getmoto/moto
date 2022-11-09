@@ -123,6 +123,7 @@ class CloudFormationResponse(BaseResponse):
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
         role_arn = self._get_param("RoleARN")
+        enable_termination_protection = self._get_param("EnableTerminationProtection")
         parameters_list = self._get_list_prefix("Parameters.member")
         tags = dict(
             (item["key"], item["value"])
@@ -148,6 +149,7 @@ class CloudFormationResponse(BaseResponse):
             notification_arns=stack_notification_arns,
             tags=tags,
             role_arn=role_arn,
+            enable_termination_protection=enable_termination_protection,
         )
         if self.request_json:
             return json.dumps(
@@ -835,6 +837,7 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
             </member>
           {% endfor %}
         </Tags>
+        <EnableTerminationProtection>{{ stack.enable_termination_protection }}</EnableTerminationProtection>
       </member>
       {% endfor %}
     </Stacks>
