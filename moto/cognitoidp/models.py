@@ -538,7 +538,7 @@ class CognitoIdpUserPool(BaseModel):
             "token_use": token_use,
             "auth_time": now,
             "exp": now + expires_in,
-            "email": flatten_attrs(self._get_user(username).attributes).get("email"),
+            "username": username,
         }
         payload.update(extra_data or {})
         headers = {"kid": "dummy"}  # KID as present in jwks-public.json
