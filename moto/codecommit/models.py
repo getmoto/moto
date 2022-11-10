@@ -19,14 +19,10 @@ class CodeCommit(BaseModel):
         self.repository_metadata["repositoryName"] = repository_name
         self.repository_metadata[
             "cloneUrlSsh"
-        ] = "ssh://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
-            region, repository_name
-        )
+        ] = f"ssh://git-codecommit.{region}.amazonaws.com/v1/repos/{repository_name}"
         self.repository_metadata[
             "cloneUrlHttp"
-        ] = "https://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
-            region, repository_name
-        )
+        ] = f"https://git-codecommit.{region}.amazonaws.com/v1/repos/{repository_name}"
         self.repository_metadata["creationDate"] = current_date
         self.repository_metadata["lastModifiedDate"] = current_date
         self.repository_metadata["repositoryDescription"] = repository_description

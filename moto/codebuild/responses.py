@@ -58,9 +58,7 @@ def _validate_required_params_environment(environment: Dict[str, Any]) -> None:
         "LINUX_GPU_CONTAINER",
         "ARM_CONTAINER",
     ]:
-        raise InvalidInputException(
-            "Invalid type provided: {0}".format(environment["type"])
-        )
+        raise InvalidInputException(f"Invalid type provided: {environment['type']}")
 
     if environment["computeType"] not in [
         "BUILD_GENERAL1_SMALL",
@@ -69,7 +67,7 @@ def _validate_required_params_environment(environment: Dict[str, Any]) -> None:
         "BUILD_GENERAL1_2XLARGE",
     ]:
         raise InvalidInputException(
-            "Invalid compute type provided: {0}".format(environment["computeType"])
+            f"Invalid compute type provided: {environment['computeType']}"
         )
 
 
@@ -90,7 +88,7 @@ def _validate_required_params_id(build_id: str, build_ids: List[str]) -> None:
         raise InvalidInputException("Invalid build ID provided")
 
     if build_id not in build_ids:
-        raise ResourceNotFoundException("Build {0} does not exist".format(build_id))
+        raise ResourceNotFoundException(f"Build {build_id} does not exist")
 
 
 class CodeBuildResponse(BaseResponse):
@@ -105,10 +103,9 @@ class CodeBuildResponse(BaseResponse):
             self._get_param("projectName")
             not in self.codebuild_backend.codebuild_projects.keys()
         ):
+            name = self._get_param("projectName")
             raise ResourceNotFoundException(
-                "The provided project arn:aws:codebuild:{0}:{1}:project/{2} does not exist".format(
-                    self.region, self.current_account, self._get_param("projectName")
-                )
+                f"The provided project arn:aws:codebuild:{self.region}:{self.current_account}:project/{name} does not exist"
             )
 
         ids = self.codebuild_backend.list_builds_for_project(
@@ -127,10 +124,9 @@ class CodeBuildResponse(BaseResponse):
         _validate_required_params_project_name(self._get_param("name"))
 
         if self._get_param("name") in self.codebuild_backend.codebuild_projects.keys():
+            name = self._get_param("name")
             raise ResourceAlreadyExistsException(
-                "Project already exists: arn:aws:codebuild:{0}:{1}:project/{2}".format(
-                    self.region, self.current_account, self._get_param("name")
-                )
+                f"Project already exists: arn:aws:codebuild:{self.region}:{self.current_account}:project/{name}"
             )
 
         project_metadata = self.codebuild_backend.create_project(
@@ -154,10 +150,9 @@ class CodeBuildResponse(BaseResponse):
             self._get_param("projectName")
             not in self.codebuild_backend.codebuild_projects.keys()
         ):
+            name = self._get_param("projectName")
             raise ResourceNotFoundException(
-                "Project cannot be found: arn:aws:codebuild:{0}:{1}:project/{2}".format(
-                    self.region, self.current_account, self._get_param("projectName")
-                )
+                f"Project cannot be found: arn:aws:codebuild:{self.region}:{self.current_account}:project/{name}"
             )
 
         metadata = self.codebuild_backend.start_build(

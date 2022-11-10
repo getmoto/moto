@@ -383,7 +383,7 @@ class CognitoIdpUserPool(BaseModel):
         user_pool_id = generate_id(
             get_cognito_idp_user_pool_id_strategy(), region, name, extended_config
         )
-        self.id = "{}_{}".format(self.region, user_pool_id)[: self.MAX_ID_LENGTH]
+        self.id = f"{self.region}_{user_pool_id}"[: self.MAX_ID_LENGTH]
         self.arn = f"arn:aws:cognito-idp:{self.region}:{account_id}:userpool/{self.id}"
 
         self.name = name
@@ -530,9 +530,7 @@ class CognitoIdpUserPool(BaseModel):
     ) -> Tuple[str, int]:
         now = int(time.time())
         payload = {
-            "iss": "https://cognito-idp.{}.amazonaws.com/{}".format(
-                self.region, self.id
-            ),
+            "iss": f"https://cognito-idp.{self.region}.amazonaws.com/{self.id}",
             "sub": self._get_user(username).id,
             "aud": client_id,
             "token_use": token_use,
@@ -1654,7 +1652,7 @@ class CognitoIdpBackend(BaseBackend):
 
         if identifier in user_pool.resource_servers:
             raise InvalidParameterException(
-                "%s already exists in user pool %s." % (identifier, user_pool_id)
+                f"{identifier} already exists in user pool {user_pool_id}."
             )
 
         resource_server = CognitoResourceServer(user_pool_id, identifier, name, scopes)

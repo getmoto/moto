@@ -73,7 +73,7 @@ def convert_regex_to_flask_path(url_path: str) -> str:
 
     def caller(reg: Any) -> str:
         match_name, match_pattern = reg.groups()
-        return '<regex("{0}"):{1}>'.format(match_pattern, match_name)
+        return f'<regex("{match_pattern}"):{match_name}>'
 
     url_path = re.sub(r"\(\?P<(.*?)>(.*?)\)", caller, url_path)
 
@@ -95,7 +95,7 @@ class convert_to_flask_response(object):
             outer = self.callback.__self__.__class__.__name__
         else:
             outer = self.callback.__module__
-        return "{0}.{1}".format(outer, self.callback.__name__)
+        return f"{outer}.{self.callback.__name__}"
 
     def __call__(self, args: Any = None, **kwargs: Any) -> Any:
         from flask import request, Response
@@ -130,7 +130,7 @@ class convert_flask_to_responses_response(object):
             outer = self.callback.__self__.__class__.__name__
         else:
             outer = self.callback.__module__
-        return "{0}.{1}".format(outer, self.callback.__name__)
+        return f"{outer}.{self.callback.__name__}"
 
     def __call__(self, request: Any, *args: Any, **kwargs: Any) -> TYPE_RESPONSE:
         for key, val in request.headers.items():
@@ -203,14 +203,8 @@ def tags_from_query_string(
     for key in querystring_dict.keys():
         if key.startswith(prefix) and key.endswith(key_suffix):
             tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
-            tag_key = querystring_dict[
-                "{prefix}.{index}.{key_suffix}".format(
-                    prefix=prefix, index=tag_index, key_suffix=key_suffix
-                )
-            ][0]
-            tag_value_key = "{prefix}.{index}.{value_suffix}".format(
-                prefix=prefix, index=tag_index, value_suffix=value_suffix
-            )
+            tag_key = querystring_dict[f"{prefix}.{tag_index}.{key_suffix}"][0]
+            tag_value_key = f"{prefix}.{tag_index}.{value_suffix}"
             if tag_value_key in querystring_dict:
                 response_values[tag_key] = querystring_dict[tag_value_key][0]
             else:

@@ -281,7 +281,7 @@ class Dashboard(BaseModel):
         return len(self.body)
 
     def __repr__(self) -> str:
-        return "<CloudWatchDashboard {0}>".format(self.name)
+        return f"<CloudWatchDashboard {self.name}>"
 
 
 class Statistics:

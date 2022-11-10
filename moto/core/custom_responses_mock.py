@@ -43,9 +43,7 @@ class CallbackResponse(responses.CallbackResponse):
                 content_length=request.headers.get("Content-Length"),
                 content_type=request.headers.get("Content-Type"),
                 method=request.method,
-                base_url="{scheme}://{netloc}".format(
-                    scheme=url.scheme, netloc=url.netloc
-                ),
+                base_url=f"{url.scheme}://{url.netloc}",
                 headers=[(k, v) for k, v in request.headers.items()],
             )
             request = req

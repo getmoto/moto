@@ -185,11 +185,10 @@ class TooManyAccountSources(JsonRESTError):
     def __init__(self, length: int):
         locations = ["com.amazonaws.xyz"] * length
 
+        locs = ", ".join(locations)
         message = (
-            "Value '[{locations}]' at 'accountAggregationSources' failed to satisfy constraint: "
-            "Member must have length less than or equal to 1".format(
-                locations=", ".join(locations)
-            )
+            f"Value '[{locs}]' at 'accountAggregationSources' failed to satisfy constraint: "
+            "Member must have length less than or equal to 1"
         )
         super().__init__("ValidationException", message)
 
