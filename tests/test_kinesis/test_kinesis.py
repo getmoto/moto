@@ -8,9 +8,51 @@ from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 
 from moto import mock_kinesis
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 import sure  # noqa # pylint: disable=unused-import
+
+
+@mock_kinesis
+def test_stream_creation_on_demand():
+    client = boto3.client("kinesis", region_name="eu-west-1")
+    client.create_stream(
+        StreamName="my_stream", StreamModeDetails={"StreamMode": "ON_DEMAND"}
+    )
+
+    # AWS starts with 4 shards by default
+    shard_list = client.list_shards(StreamName="my_stream")["Shards"]
+    shard_list.should.have.length_of(4)
+
+    # Cannot update-shard-count when we're in on-demand mode
+    with pytest.raises(ClientError) as exc:
+        client.update_shard_count(
+            StreamName="my_stream", TargetShardCount=3, ScalingType="UNIFORM_SCALING"
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        f"Request is invalid. Stream my_stream under account {ACCOUNT_ID} is in On-Demand mode."
+    )
+
+
+@mock_kinesis
+def test_update_stream_mode():
+    client = boto3.client("kinesis", region_name="eu-west-1")
+    resp = client.create_stream(
+        StreamName="my_stream", StreamModeDetails={"StreamMode": "ON_DEMAND"}
+    )
+    arn = client.describe_stream(StreamName="my_stream")["StreamDescription"][
+        "StreamARN"
+    ]
+
+    client.update_stream_mode(
+        StreamARN=arn, StreamModeDetails={"StreamMode": "PROVISIONED"}
+    )
+
+    resp = client.describe_stream_summary(StreamName="my_stream")
+    stream = resp["StreamDescriptionSummary"]
+    stream.should.have.key("StreamModeDetails").equals({"StreamMode": "PROVISIONED"})
 
 
 @mock_kinesis
@@ -652,7 +694,7 @@ def test_add_list_remove_tags_boto3():
     client.create_stream(StreamName=stream_name, ShardCount=1)
     client.add_tags_to_stream(
         StreamName=stream_name,
-        Tags={"tag1": "val1", "tag2": "val2", "tag3": "val3", "tag4": "val4",},
+        Tags={"tag1": "val1", "tag2": "val2", "tag3": "val3", "tag4": "val4"},
     )
 
     tags = client.list_tags_for_stream(StreamName=stream_name)["Tags"]

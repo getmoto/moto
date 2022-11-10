@@ -23,8 +23,8 @@ def test_activity_task_creation():
     )
     task.workflow_execution.should.equal(wfe)
     task.state.should.equal("SCHEDULED")
-    task.task_token.should_not.be.empty
-    task.started_event_id.should.be.none
+    task.task_token.should.match("[-a-z0-9]+")
+    task.started_event_id.should.equal(None)
 
     task.start(123)
     task.state.should.equal("STARTED")

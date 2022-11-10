@@ -1,8 +1,8 @@
-def name(secret, names):
+def name_filter(secret, names):
     return _matcher(names, [secret.name])
 
 
-def description(secret, descriptions):
+def description_filter(secret, descriptions):
     return _matcher(descriptions, [secret.description])
 
 

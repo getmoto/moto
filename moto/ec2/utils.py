@@ -1,16 +1,16 @@
 import base64
-import hashlib
 import fnmatch
-import random
 import re
 import ipaddress
 
+from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from moto.core import ACCOUNT_ID
 from moto.iam import iam_backends
+from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import md5_hash
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",
@@ -18,6 +18,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "transit-gateway-route-table": "tgw-rtb",
     "transit-gateway-attachment": "tgw-attach",
     "dhcp-options": "dopt",
+    "fleet": "fleet",
     "flow-logs": "fl",
     "image": "ami",
     "instance": "i",
@@ -53,6 +54,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "vpn-gateway": "vgw",
     "iam-instance-profile-association": "iip-assoc",
     "carrier-gateway": "cagw",
+    "key-pair": "key",
 }
 
 
@@ -72,7 +74,7 @@ def random_ami_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["image"])
 
 
-def random_instance_id():
+def random_instance_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["instance"], size=17)
 
 
@@ -86,6 +88,10 @@ def random_security_group_id():
 
 def random_security_group_rule_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group-rule"], size=17)
+
+
+def random_fleet_id():
+    return f"fleet-{random_resource_id(size=8)}-{random_resource_id(size=4)}-{random_resource_id(size=4)}-{random_resource_id(size=4)}-{random_resource_id(size=12)}"
 
 
 def random_flow_log_id():
@@ -140,6 +146,10 @@ def random_customer_gateway_id():
 
 def random_volume_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["volume"])
+
+
+def random_key_pair_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["key-pair"])
 
 
 def random_vpc_id():
@@ -297,83 +307,17 @@ def create_dns_entries(service_name, vpc_endpoint_id):
     return dns_entries
 
 
+def utc_date_and_time():
+    x = datetime.utcnow()
+    # Better performing alternative to x.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return "{}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}.000Z".format(
+        x.year, x.month, x.day, x.hour, x.minute, x.second
+    )
+
+
 def split_route_id(route_id):
     values = route_id.split("~")
     return values[0], values[1]
-
-
-def dhcp_configuration_from_querystring(querystring, option="DhcpConfiguration"):
-    """
-    turn:
-        {u'AWSAccessKeyId': [u'the_key'],
-         u'Action': [u'CreateDhcpOptions'],
-         u'DhcpConfiguration.1.Key': [u'domain-name'],
-         u'DhcpConfiguration.1.Value.1': [u'example.com'],
-         u'DhcpConfiguration.2.Key': [u'domain-name-servers'],
-         u'DhcpConfiguration.2.Value.1': [u'10.0.0.6'],
-         u'DhcpConfiguration.2.Value.2': [u'10.0.0.7'],
-         u'Signature': [u'uUMHYOoLM6r+sT4fhYjdNT6MHw22Wj1mafUpe0P0bY4='],
-         u'SignatureMethod': [u'HmacSHA256'],
-         u'SignatureVersion': [u'2'],
-         u'Timestamp': [u'2014-03-18T21:54:01Z'],
-         u'Version': [u'2013-10-15']}
-    into:
-        {u'domain-name': [u'example.com'], u'domain-name-servers': [u'10.0.0.6', u'10.0.0.7']}
-    """
-
-    key_needle = re.compile("{0}.[0-9]+.Key".format(option), re.UNICODE)
-    response_values = {}
-
-    for key, value in querystring.items():
-        if key_needle.match(key):
-            values = []
-            key_index = key.split(".")[1]
-            value_index = 1
-            while True:
-                value_key = "{0}.{1}.Value.{2}".format(option, key_index, value_index)
-                if value_key in querystring:
-                    values.extend(querystring[value_key])
-                else:
-                    break
-                value_index += 1
-            response_values[value[0]] = values
-    return response_values
-
-
-def filters_from_querystring(querystring_dict):
-    response_values = {}
-    last_tag_key = None
-    for key, value in sorted(querystring_dict.items()):
-        match = re.search(r"Filter.(\d).Name", key)
-        if match:
-            filter_index = match.groups()[0]
-            value_prefix = "Filter.{0}.Value".format(filter_index)
-            filter_values = [
-                filter_value[0]
-                for filter_key, filter_value in querystring_dict.items()
-                if filter_key.startswith(value_prefix)
-            ]
-            if value[0] == "tag-key":
-                last_tag_key = "tag:" + filter_values[0]
-            elif last_tag_key and value[0] == "tag-value":
-                response_values[last_tag_key] = filter_values
-            response_values[value[0]] = filter_values
-    return response_values
-
-
-def dict_from_querystring(parameter, querystring_dict):
-    use_dict = {}
-    for key, value in querystring_dict.items():
-        match = re.search(r"{0}.(\d).(\w+)".format(parameter), key)
-        if match:
-            use_dict_index = match.groups()[0]
-            use_dict_element_property = match.groups()[1]
-
-            if not use_dict.get(use_dict_index):
-                use_dict[use_dict_index] = {}
-            use_dict[use_dict_index][use_dict_element_property] = value[0]
-
-    return use_dict
 
 
 def get_attribute_value(parameter, querystring_dict):
@@ -390,9 +334,7 @@ def get_object_value(obj, attr):
     keys = attr.split(".")
     val = obj
     for key in keys:
-        if key == "owner_id":
-            return ACCOUNT_ID
-        elif hasattr(val, key):
+        if hasattr(val, key):
             val = getattr(val, key)
         elif isinstance(val, dict):
             val = val[key]
@@ -401,6 +343,8 @@ def get_object_value(obj, attr):
                 item_val = get_object_value(item, key)
                 if item_val:
                     return item_val
+        elif key == "owner_id" and hasattr(val, "account_id"):
+            val = getattr(val, "account_id")
         else:
             return None
     return val
@@ -478,6 +422,7 @@ filter_dict_attribute_mapping = {
     "owner-id": "owner_id",
     "subnet-id": "subnet_id",
     "dns-name": "public_dns",
+    "key-name": "key_name",
 }
 
 
@@ -716,7 +661,7 @@ def rsa_public_key_fingerprint(rsa_public_key):
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    fingerprint_hex = hashlib.md5(key_data).hexdigest()
+    fingerprint_hex = md5_hash(key_data).hexdigest()
     fingerprint = re.sub(r"([a-f0-9]{2})(?!$)", r"\1:", fingerprint_hex)
     return fingerprint
 
@@ -741,19 +686,21 @@ def filter_iam_instance_profile_associations(iam_instance_associations, filter_d
     return result
 
 
-def filter_iam_instance_profiles(iam_instance_profile_arn, iam_instance_profile_name):
+def filter_iam_instance_profiles(
+    account_id, iam_instance_profile_arn, iam_instance_profile_name
+):
     instance_profile = None
     instance_profile_by_name = None
     instance_profile_by_arn = None
     if iam_instance_profile_name:
-        instance_profile_by_name = iam_backends["global"].get_instance_profile(
-            iam_instance_profile_name
-        )
+        instance_profile_by_name = iam_backends[account_id][
+            "global"
+        ].get_instance_profile(iam_instance_profile_name)
         instance_profile = instance_profile_by_name
     if iam_instance_profile_arn:
-        instance_profile_by_arn = iam_backends["global"].get_instance_profile_by_arn(
-            iam_instance_profile_arn
-        )
+        instance_profile_by_arn = iam_backends[account_id][
+            "global"
+        ].get_instance_profile_by_arn(iam_instance_profile_arn)
         instance_profile = instance_profile_by_arn
     # We would prefer instance profile that we found by arn
     if iam_instance_profile_arn and iam_instance_profile_name:
@@ -838,3 +785,17 @@ def gen_moto_amis(described_images, drop_images_missing_keys=True):
                 raise err
 
     return result
+
+
+def convert_tag_spec(tag_spec_set, tag_key="Tag"):
+    # IN:   [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
+    #  (or) [{"ResourceType": _type, "Tags": [{"Key": k, "Value": v}, ..]}] <-- special cfn case
+    # OUT:  {_type: {k: v, ..}}
+    tags = {}
+    for tag_spec in tag_spec_set:
+        if tag_spec["ResourceType"] not in tags:
+            tags[tag_spec["ResourceType"]] = {}
+        tags[tag_spec["ResourceType"]].update(
+            {tag["Key"]: tag["Value"] for tag in tag_spec[tag_key]}
+        )
+    return tags

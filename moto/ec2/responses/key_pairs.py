@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class KeyPairs(BaseResponse):
+class KeyPairs(EC2BaseResponse):
     def create_key_pair(self):
         name = self._get_param("KeyName")
         if self.is_not_dryrun("CreateKeyPair"):
@@ -20,7 +19,7 @@ class KeyPairs(BaseResponse):
 
     def describe_key_pairs(self):
         names = self._get_multi_param("KeyName")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         keypairs = self.ec2_backend.describe_key_pairs(names, filters)
         template = self.response_template(DESCRIBE_KEY_PAIRS_RESPONSE)
         return template.render(keypairs=keypairs)
@@ -39,6 +38,7 @@ DESCRIBE_KEY_PAIRS_RESPONSE = """<DescribeKeyPairsResponse xmlns="http://ec2.ama
     <keySet>
     {% for keypair in keypairs %}
       <item>
+           <keyPairId>{{ keypair.id }}</keyPairId>
            <keyName>{{ keypair.name }}</keyName>
            <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
       </item>
@@ -48,6 +48,7 @@ DESCRIBE_KEY_PAIRS_RESPONSE = """<DescribeKeyPairsResponse xmlns="http://ec2.ama
 
 
 CREATE_KEY_PAIR_RESPONSE = """<CreateKeyPairResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+   <keyPairId>{{ keypair.id }}</keyPairId>
    <keyName>{{ keypair.name }}</keyName>
    <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
    <keyMaterial>{{ keypair.material }}</keyMaterial>
@@ -62,6 +63,7 @@ DELETE_KEY_PAIR_RESPONSE = """<DeleteKeyPairResponse xmlns="http://ec2.amazonaws
 IMPORT_KEYPAIR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <ImportKeyPairResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>471f9fdd-8fe2-4a84-86b0-bd3d3e350979</requestId>
+    <keyPairId>{{ keypair.id }}</keyPairId>
     <keyName>{{ keypair.name }}</keyName>
     <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
   </ImportKeyPairResponse>"""

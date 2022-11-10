@@ -24,7 +24,7 @@ def test_localhost_without_bucket():
     expect(bucket_name_from_url("https://www.localhost:5000/def")).should.equal(None)
 
 
-def test_force_ignore_subdomain_for_bucketnames(monkeypatch):
+def test_force_ignore_subdomain_for_bucketnames():
     with patch("moto.s3.utils.S3_IGNORE_SUBDOMAIN_BUCKETNAME", True):
         expect(
             bucket_name_from_url("https://subdomain.localhost:5000/abc/resource")

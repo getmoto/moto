@@ -3,7 +3,7 @@ import sure  # noqa  # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_iam
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 import pytest
 
 from datetime import datetime
@@ -155,7 +155,7 @@ def test_delete_open_id_connect_provider():
     client.get_open_id_connect_provider.when.called_with(
         OpenIDConnectProviderArn=open_id_arn
     ).should.throw(
-        ClientError, "OpenIDConnect Provider not found for arn {}".format(open_id_arn),
+        ClientError, "OpenIDConnect Provider not found for arn {}".format(open_id_arn)
     )
 
     # deleting a non existing provider should be successful

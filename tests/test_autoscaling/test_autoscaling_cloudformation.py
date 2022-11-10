@@ -31,9 +31,7 @@ Outputs:
         EXAMPLE_AMI_ID
     )
 
-    cf_client.create_stack(
-        StackName=stack_name, TemplateBody=cf_template,
-    )
+    cf_client.create_stack(StackName=stack_name, TemplateBody=cf_template)
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
     stack["Outputs"][0]["OutputValue"].should.be.equal("test_launch_configuration")
 
@@ -57,9 +55,7 @@ Outputs:
         EXAMPLE_AMI_ID
     )
 
-    cf_client.update_stack(
-        StackName=stack_name, TemplateBody=cf_template,
-    )
+    cf_client.update_stack(StackName=stack_name, TemplateBody=cf_template)
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
     stack["Outputs"][0]["OutputValue"].should.be.equal("test_launch_configuration")
 
@@ -173,7 +169,7 @@ def test_autoscaling_group_from_launch_template():
 
     template_response = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
     )
     launch_template_id = template_response["LaunchTemplate"]["LaunchTemplateId"]
     stack_name = "test-auto-scaling-group"
@@ -225,7 +221,7 @@ Outputs:
 
     template_response = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template_new",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "m5.large",},
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "m5.large"},
     )
     launch_template_id = template_response["LaunchTemplate"]["LaunchTemplateId"]
 
@@ -304,6 +300,18 @@ def test_autoscaling_group_with_elb():
                             "PropagateAtLaunch": False,
                         },
                     ],
+                },
+            },
+            "ScheduledAction": {
+                "Type": "AWS::AutoScaling::ScheduledAction",
+                "Properties": {
+                    "AutoScalingGroupName": "test-scaling-group",
+                    "DesiredCapacity": 10,
+                    "EndTime": "2022-08-01T00:00:00Z",
+                    "MaxSize": 15,
+                    "MinSize": 5,
+                    "Recurrence": "* * * * *",
+                    "StartTime": "2022-07-01T00:00:00Z",
                 },
             },
             "my-launch-config": {
@@ -390,6 +398,12 @@ def test_autoscaling_group_with_elb():
         tag_keys = [t["Key"] for t in instance["Tags"]]
         tag_keys.should.contain("propagated-test-tag")
         tag_keys.should_not.contain("not-propagated-test-tag")
+
+    # confirm scheduled scaling action was created
+    response = client.describe_scheduled_actions(
+        AutoScalingGroupName="test-scaling-group"
+    )["ScheduledUpdateGroupActions"]
+    response.should.have.length_of(1)
 
 
 @mock_autoscaling

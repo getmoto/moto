@@ -29,21 +29,32 @@ lambda
 
 - [ ] add_layer_version_permission
 - [X] add_permission
-- [ ] create_alias
+- [X] create_alias
 - [ ] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
-- [ ] delete_alias
+- [X] create_function_url_config
+  
+        The Qualifier-parameter is not yet implemented.
+        Function URLs are not yet mocked, so invoking them will fail
+        
+
+- [X] delete_alias
 - [ ] delete_code_signing_config
 - [X] delete_event_source_mapping
 - [X] delete_function
 - [ ] delete_function_code_signing_config
 - [X] delete_function_concurrency
 - [ ] delete_function_event_invoke_config
-- [ ] delete_layer_version
+- [X] delete_function_url_config
+  
+        The Qualifier-parameter is not yet implemented
+        
+
+- [X] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
-- [ ] get_alias
+- [X] get_alias
 - [X] get_code_signing_config
 - [X] get_event_source_mapping
 - [X] get_function
@@ -51,17 +62,27 @@ lambda
 - [X] get_function_concurrency
 - [ ] get_function_configuration
 - [ ] get_function_event_invoke_config
-- [ ] get_layer_version
+- [X] get_function_url_config
+  
+        The Qualifier-parameter is not yet implemented
+        
+
+- [X] get_layer_version
 - [ ] get_layer_version_by_arn
 - [ ] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
 - [X] invoke
+  
+        Invoking a Function with PackageType=Image is not yet supported.
+        
+
 - [ ] invoke_async
 - [ ] list_aliases
 - [ ] list_code_signing_configs
 - [X] list_event_source_mappings
 - [ ] list_function_event_invoke_configs
+- [ ] list_function_url_configs
 - [X] list_functions
 - [ ] list_functions_by_code_signing_config
 - [ ] list_layer_versions
@@ -79,10 +100,19 @@ lambda
 - [X] remove_permission
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_alias
+- [X] update_alias
+  
+        The RevisionId parameter is not yet implemented
+        
+
 - [ ] update_code_signing_config
 - [X] update_event_source_mapping
 - [X] update_function_code
 - [X] update_function_configuration
 - [ ] update_function_event_invoke_config
+- [X] update_function_url_config
+  
+        The Qualifier-parameter is not yet implemented
+        
+
 

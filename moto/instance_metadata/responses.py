@@ -6,7 +6,15 @@ from moto.core.responses import BaseResponse
 
 
 class InstanceMetadataResponse(BaseResponse):
-    def metadata_response(self, request, full_url, headers):
+    def __init__(self):
+        super().__init__(service_name=None)
+
+    def backends(self):
+        pass
+
+    def metadata_response(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         """
         Mock response for localhost metadata
 

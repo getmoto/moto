@@ -26,7 +26,7 @@ sagemaker
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_association
-- [ ] add_tags
+- [X] add_tags
 - [X] associate_trial_component
 - [ ] batch_describe_model_package
 - [ ] create_action
@@ -41,6 +41,8 @@ sagemaker
 - [ ] create_data_quality_job_definition
 - [ ] create_device_fleet
 - [ ] create_domain
+- [ ] create_edge_deployment_plan
+- [ ] create_edge_deployment_stage
 - [ ] create_edge_packaging_job
 - [X] create_endpoint
 - [X] create_endpoint_config
@@ -86,6 +88,8 @@ sagemaker
 - [ ] delete_data_quality_job_definition
 - [ ] delete_device_fleet
 - [ ] delete_domain
+- [ ] delete_edge_deployment_plan
+- [ ] delete_edge_deployment_stage
 - [X] delete_endpoint
 - [X] delete_endpoint_config
 - [X] delete_experiment
@@ -107,7 +111,7 @@ sagemaker
 - [ ] delete_pipeline
 - [ ] delete_project
 - [ ] delete_studio_lifecycle_config
-- [ ] delete_tags
+- [X] delete_tags
 - [X] delete_trial
 - [X] delete_trial_component
 - [ ] delete_user_profile
@@ -127,11 +131,13 @@ sagemaker
 - [ ] describe_device
 - [ ] describe_device_fleet
 - [ ] describe_domain
+- [ ] describe_edge_deployment_plan
 - [ ] describe_edge_packaging_job
 - [X] describe_endpoint
 - [X] describe_endpoint_config
 - [X] describe_experiment
 - [ ] describe_feature_group
+- [ ] describe_feature_metadata
 - [ ] describe_flow_definition
 - [ ] describe_human_task_ui
 - [ ] describe_hyper_parameter_tuning_job
@@ -186,6 +192,7 @@ sagemaker
 - [ ] list_device_fleets
 - [ ] list_devices
 - [ ] list_domains
+- [ ] list_edge_deployment_plans
 - [ ] list_edge_packaging_jobs
 - [ ] list_endpoint_configs
 - [ ] list_endpoints
@@ -196,6 +203,7 @@ sagemaker
 - [ ] list_hyper_parameter_tuning_jobs
 - [ ] list_image_versions
 - [ ] list_images
+- [ ] list_inference_recommendations_job_steps
 - [ ] list_inference_recommendations_jobs
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
@@ -217,9 +225,10 @@ sagemaker
 - [ ] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
+- [ ] list_stage_devices
 - [ ] list_studio_lifecycle_configs
 - [ ] list_subscribed_workteams
-- [ ] list_tags
+- [X] list_tags
 - [X] list_training_jobs
 - [ ] list_training_jobs_for_hyper_parameter_tuning_job
 - [ ] list_transform_jobs
@@ -236,11 +245,13 @@ sagemaker
 - [X] search
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
+- [ ] start_edge_deployment_stage
 - [ ] start_monitoring_schedule
 - [X] start_notebook_instance
 - [ ] start_pipeline_execution
 - [ ] stop_auto_ml_job
 - [ ] stop_compilation_job
+- [ ] stop_edge_deployment_stage
 - [ ] stop_edge_packaging_job
 - [ ] stop_hyper_parameter_tuning_job
 - [ ] stop_inference_recommendations_job
@@ -260,8 +271,10 @@ sagemaker
 - [ ] update_devices
 - [ ] update_domain
 - [ ] update_endpoint
-- [ ] update_endpoint_weights_and_capacities
+- [X] update_endpoint_weights_and_capacities
 - [ ] update_experiment
+- [ ] update_feature_group
+- [ ] update_feature_metadata
 - [ ] update_image
 - [ ] update_model_package
 - [ ] update_monitoring_schedule

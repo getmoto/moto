@@ -9,20 +9,20 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError, ParamValidationError
 
 from moto import mock_emrcontainers, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest.mock import patch
 
 from moto.emrcontainers import REGION as DEFAULT_REGION
 
 
-@pytest.fixture(scope="function")
-def client():
+@pytest.fixture(scope="function", name="client")
+def fixture_client():
     with mock_emrcontainers():
         yield boto3.client("emr-containers", region_name=DEFAULT_REGION)
 
 
-@pytest.fixture(scope="function")
-def virtual_cluster_factory(client):
+@pytest.fixture(scope="function", name="virtual_cluster_factory")
+def fixture_virtual_cluster_factory(client):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 
@@ -47,8 +47,8 @@ def virtual_cluster_factory(client):
     yield cluster_list
 
 
-@pytest.fixture()
-def job_factory(client, virtual_cluster_factory):
+@pytest.fixture(name="job_factory")
+def fixture_job_factory(client, virtual_cluster_factory):
     virtual_cluster_id = virtual_cluster_factory[0]
     default_job_driver = {
         "sparkSubmitJobDriver": {
@@ -202,7 +202,9 @@ class TestListVirtualClusters:
     tomorrow = today + timedelta(days=1)
 
     @pytest.fixture(autouse=True)
-    def _setup_environment(self, client, virtual_cluster_factory):
+    def _setup_environment(
+        self, client, virtual_cluster_factory
+    ):  # pylint: disable=unused-argument
         self.client = client
 
     @pytest.mark.parametrize(
@@ -405,7 +407,7 @@ class TestCancelJobRun:
         err = exc.value.response["Error"]
 
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == f"Job run 123456789abcdefghij doesn't exist."
+        assert err["Message"] == "Job run 123456789abcdefghij doesn't exist."
 
     def test_wrong_job_state(self):
         with pytest.raises(ClientError) as exc:
@@ -428,7 +430,9 @@ class TestListJobRuns:
     tomorrow = today + timedelta(days=1)
 
     @pytest.fixture(autouse=True)
-    def _setup_environment(self, client, virtual_cluster_factory, job_factory):
+    def _setup_environment(
+        self, client, virtual_cluster_factory, job_factory
+    ):  # pylint: disable=unused-argument
         self.client = client
         self.virtual_cluster_id = virtual_cluster_factory[0]
 
@@ -577,4 +581,4 @@ class TestDescribeJobRun:
         err = exc.value.response["Error"]
 
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == f"Job run 123456789abcdefghij doesn't exist."
+        assert err["Message"] == "Job run 123456789abcdefghij doesn't exist."

@@ -6,8 +6,10 @@ from email.mime.base import MIMEBase
 from email.utils import parseaddr
 from email.mime.multipart import MIMEMultipart
 from email.encoders import encode_7or8bit
+from typing import Mapping
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from moto.sns.models import sns_backends
 from .exceptions import (
     MessageRejectedError,
@@ -23,6 +25,7 @@ from .exceptions import (
     RuleSetDoesNotExist,
     RuleAlreadyExists,
     MissingRenderingAttributeException,
+    ConfigurationSetAlreadyExists,
 )
 from .utils import get_random_message_id, is_valid_address
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
@@ -47,8 +50,9 @@ class SESFeedback(BaseModel):
     FORWARDING_ENABLED = "feedback_forwarding_enabled"
 
     @staticmethod
-    def generate_message(msg_type):
+    def generate_message(account_id, msg_type):
         msg = dict(COMMON_MAIL)
+        msg["mail"]["sendingAccountId"] = account_id
         if msg_type == SESFeedback.BOUNCE:
             msg["bounce"] = BOUNCE
         elif msg_type == SESFeedback.COMPLAINT:
@@ -71,6 +75,15 @@ class Message(BaseModel):
 class TemplateMessage(BaseModel):
     def __init__(self, message_id, source, template, template_data, destinations):
         self.id = message_id
+        self.source = source
+        self.template = template
+        self.template_data = template_data
+        self.destinations = destinations
+
+
+class BulkTemplateMessage(BaseModel):
+    def __init__(self, message_ids, source, template, template_data, destinations):
+        self.ids = message_ids
         self.source = source
         self.template = template
         self.template_data = template_data
@@ -106,7 +119,23 @@ def are_all_variables_present(template, template_data):
 
 
 class SESBackend(BaseBackend):
-    def __init__(self):
+    """
+    Responsible for mocking calls to SES.
+
+    Sent messages are persisted in the backend. If you need to verify that a message was sent successfully, you can use the internal API to check:
+
+    .. sourcecode:: python
+
+        from moto.core import DEFAULT_ACCOUNT_ID
+        from moto.ses import ses_backends
+        ses_backend = ses_backends[DEFAULT_ACCOUNT_ID]["global"]
+        messages = ses_backend.sent_messages # sent_messages is a List of Message objects
+
+    Note that, as this is an internal API, the exact format may differ per versions.
+    """
+
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.addresses = []
         self.email_addresses = []
         self.domains = []
@@ -132,7 +161,8 @@ class SESBackend(BaseBackend):
 
     def verify_email_identity(self, address):
         _, address = parseaddr(address)
-        self.addresses.append(address)
+        if address not in self.addresses:
+            self.addresses.append(address)
 
     def verify_email_address(self, address):
         _, address = parseaddr(address)
@@ -176,6 +206,38 @@ class SESBackend(BaseBackend):
         self.sent_messages.append(message)
         self.sent_message_count += recipient_count
         return message
+
+    def send_bulk_templated_email(
+        self, source, template, template_data, destinations, region
+    ):
+        recipient_count = len(destinations)
+        if recipient_count > RECIPIENT_LIMIT:
+            raise MessageRejectedError("Too many destinations.")
+
+        total_recipient_count = sum(
+            map(lambda d: sum(map(len, d["Destination"].values())), destinations)
+        )
+        if total_recipient_count > RECIPIENT_LIMIT:
+            raise MessageRejectedError("Too many destinations.")
+
+        if not self._is_verified_address(source):
+            self.rejected_messages_count += 1
+            raise MessageRejectedError("Email address not verified %s" % source)
+
+        if not self.templates.get(template[0]):
+            raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
+
+        self.__process_sns_feedback__(source, destinations, region)
+
+        message_id = get_random_message_id()
+        message = TemplateMessage(
+            message_id, source, template, template_data, destinations
+        )
+        self.sent_messages.append(message)
+        self.sent_message_count += total_recipient_count
+
+        ids = list(map(lambda x: get_random_message_id(), range(len(destinations))))
+        return BulkTemplateMessage(ids, source, template, template_data, destinations)
 
     def send_templated_email(
         self, source, template, template_data, destinations, region
@@ -231,7 +293,7 @@ class SESBackend(BaseBackend):
 
     def __generate_feedback__(self, msg_type):
         """Generates the SNS message for the feedback"""
-        return SESFeedback.generate_message(msg_type)
+        return SESFeedback.generate_message(self.account_id, msg_type)
 
     def __process_sns_feedback__(self, source, destinations, region):
         domain = str(source)
@@ -244,7 +306,9 @@ class SESBackend(BaseBackend):
                 if sns_topic is not None:
                     message = self.__generate_feedback__(msg_type)
                     if message:
-                        sns_backends[region].publish(message, arn=sns_topic)
+                        sns_backends[self.account_id][region].publish(
+                            message, arn=sns_topic
+                        )
 
     def send_raw_email(self, source, destinations, raw_data, region):
         if source is not None:
@@ -313,7 +377,18 @@ class SESBackend(BaseBackend):
         return {}
 
     def create_configuration_set(self, configuration_set_name):
+        if configuration_set_name in self.config_set:
+            raise ConfigurationSetAlreadyExists(
+                f"Configuration set <{configuration_set_name}> already exists"
+            )
         self.config_set[configuration_set_name] = 1
+        return {}
+
+    def describe_configuration_set(self, configuration_set_name):
+        if configuration_set_name not in self.config_set:
+            raise ConfigurationSetDoesNotExist(
+                f"Configuration set <{configuration_set_name}> does not exist"
+            )
         return {}
 
     def create_configuration_set_event_destination(
@@ -410,24 +485,24 @@ class SESBackend(BaseBackend):
             text_part = str.replace(str(text_part), "{{%s}}" % key, value)
             html_part = str.replace(str(html_part), "{{%s}}" % key, value)
 
-        email = MIMEMultipart("alternative")
+        email_obj = MIMEMultipart("alternative")
 
         mime_text = MIMEBase("text", "plain;charset=UTF-8")
         mime_text.set_payload(text_part.encode("utf-8"))
         encode_7or8bit(mime_text)
-        email.attach(mime_text)
+        email_obj.attach(mime_text)
 
         mime_html = MIMEBase("text", "html;charset=UTF-8")
         mime_html.set_payload(html_part.encode("utf-8"))
         encode_7or8bit(mime_html)
-        email.attach(mime_html)
+        email_obj.attach(mime_html)
 
         now = datetime.datetime.now().isoformat()
 
         rendered_template = "Date: %s\r\nSubject: %s\r\n%s" % (
             now,
             subject_part,
-            email.as_string(),
+            email_obj.as_string(),
         )
         return rendered_template
 
@@ -462,8 +537,8 @@ class SESBackend(BaseBackend):
         for receipt_rule in rule_set:
             if receipt_rule["name"] == rule_name:
                 return receipt_rule
-        else:
-            raise RuleDoesNotExist("Invalid Rule Name.")
+
+        raise RuleDoesNotExist("Invalid Rule Name.")
 
     def update_receipt_rule(self, rule_set_name, rule):
         rule_set = self.receipt_rule_set.get(rule_set_name)
@@ -522,5 +597,18 @@ class SESBackend(BaseBackend):
 
         return attributes_by_identity
 
+    def get_identity_verification_attributes(self, identities=None):
+        if identities is None:
+            identities = []
 
-ses_backend = SESBackend()
+        attributes_by_identity = {}
+        for identity in identities:
+            if identity in (self.domains + self.addresses):
+                attributes_by_identity[identity] = "Success"
+
+        return attributes_by_identity
+
+
+ses_backends: Mapping[str, SESBackend] = BackendDict(
+    SESBackend, "ses", use_boto3_regions=False, additional_regions=["global"]
+)

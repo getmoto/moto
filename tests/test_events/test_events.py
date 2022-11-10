@@ -10,7 +10,7 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_logs
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.events import mock_events
 
@@ -62,7 +62,7 @@ def get_random_rule():
     return RULES[random.randint(0, len(RULES) - 1)]
 
 
-def generate_environment():
+def generate_environment(add_targets=True):
     client = boto3.client("events", "us-west-2")
 
     for rule in RULES:
@@ -73,12 +73,13 @@ def generate_environment():
             Tags=rule.get("Tags", []),
         )
 
-        targets = []
-        for target in TARGETS:
-            if rule["Name"] in TARGETS[target].get("Rules"):
-                targets.append({"Id": target, "Arn": TARGETS[target]["Arn"]})
+        if add_targets:
+            targets = []
+            for target in TARGETS:
+                if rule["Name"] in TARGETS[target].get("Rules"):
+                    targets.append({"Id": target, "Arn": TARGETS[target]["Arn"]})
 
-        client.put_targets(Rule=rule["Name"], Targets=targets)
+            client.put_targets(Rule=rule["Name"], Targets=targets)
 
     return client
 
@@ -249,7 +250,7 @@ def test_enable_disable_rule():
         client.enable_rule(Name="junk")
 
     err = ex.value.response["Error"]
-    err["Code"] == "ResourceNotFoundException"
+    err["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_events
@@ -285,7 +286,6 @@ def test_list_rule_names_by_target_using_limit():
     client = generate_environment()
 
     response = client.list_rule_names_by_target(TargetArn=test_1_target["Arn"], Limit=1)
-    print(response)
     response.should.have.key("NextToken")
     response["RuleNames"].should.have.length_of(1)
     #
@@ -298,11 +298,30 @@ def test_list_rule_names_by_target_using_limit():
 
 @mock_events
 def test_delete_rule():
-    client = generate_environment()
+    client = generate_environment(add_targets=False)
 
     client.delete_rule(Name=RULES[0]["Name"])
     rules = client.list_rules()
     assert len(rules["Rules"]) == len(RULES) - 1
+
+
+@mock_events
+def test_delete_rule_with_targets():
+    # given
+    client = generate_environment()
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.delete_rule(Name=RULES[0]["Name"])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DeleteRule")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule can't be deleted since it has targets."
+    )
 
 
 @mock_events
@@ -340,9 +359,7 @@ def test_remove_targets():
 @mock_events
 def test_update_rule_with_targets():
     client = boto3.client("events", "us-west-2")
-    client.put_rule(
-        Name="test1", ScheduleExpression="rate(5 minutes)", EventPattern="",
-    )
+    client.put_rule(Name="test1", ScheduleExpression="rate(5 minutes)", EventPattern="")
 
     client.put_targets(
         Rule="test1",
@@ -358,9 +375,7 @@ def test_update_rule_with_targets():
     targets_before = len(targets)
     assert targets_before == 1
 
-    client.put_rule(
-        Name="test1", ScheduleExpression="rate(1 minute)", EventPattern="",
-    )
+    client.put_rule(Name="test1", ScheduleExpression="rate(1 minute)", EventPattern="")
 
     targets = client.list_targets_by_rule(Rule="test1")["Targets"]
 
@@ -944,7 +959,7 @@ def test_create_rule_with_tags():
 
 @mock_events
 def test_delete_rule_with_tags():
-    client = generate_environment()
+    client = generate_environment(add_targets=False)
     rule_name = "test2"
     rule_arn = client.describe_rule(Name=rule_name).get("Arn")
     client.delete_rule(Name=rule_name)
@@ -1345,12 +1360,8 @@ def test_list_archives_with_name_prefix():
     # given
     client = boto3.client("events", "eu-central-1")
     source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
-    client.create_archive(
-        ArchiveName="test", EventSourceArn=source_arn,
-    )
-    client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=source_arn,
-    )
+    client.create_archive(ArchiveName="test", EventSourceArn=source_arn)
+    client.create_archive(ArchiveName="test-archive", EventSourceArn=source_arn)
 
     # when
     archives = client.list_archives(NamePrefix="test-")["Archives"]
@@ -1366,12 +1377,8 @@ def test_list_archives_with_source_arn():
     client = boto3.client("events", "eu-central-1")
     source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
     source_arn_2 = client.create_event_bus(Name="test-bus")["EventBusArn"]
-    client.create_archive(
-        ArchiveName="test", EventSourceArn=source_arn,
-    )
-    client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=source_arn_2,
-    )
+    client.create_archive(ArchiveName="test", EventSourceArn=source_arn)
+    client.create_archive(ArchiveName="test-archive", EventSourceArn=source_arn_2)
 
     # when
     archives = client.list_archives(EventSourceArn=source_arn)["Archives"]
@@ -1386,12 +1393,8 @@ def test_list_archives_with_state():
     # given
     client = boto3.client("events", "eu-central-1")
     source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
-    client.create_archive(
-        ArchiveName="test", EventSourceArn=source_arn,
-    )
-    client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=source_arn,
-    )
+    client.create_archive(ArchiveName="test", EventSourceArn=source_arn)
+    client.create_archive(ArchiveName="test-archive", EventSourceArn=source_arn)
 
     # when
     archives = client.list_archives(State="DISABLED")["Archives"]
@@ -1494,9 +1497,7 @@ def test_update_archive_error_invalid_event_pattern():
 
     # when
     with pytest.raises(ClientError) as e:
-        client.update_archive(
-            ArchiveName=name, EventPattern="invalid",
-        )
+        client.update_archive(ArchiveName=name, EventPattern="invalid")
 
     # then
     ex = e.value
@@ -1652,7 +1653,7 @@ def test_start_replay():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
 
     # when
@@ -1718,7 +1719,9 @@ def test_start_replay_error_invalid_event_bus_arn():
             ),
             EventStartTime=datetime(2021, 2, 1),
             EventEndTime=datetime(2021, 2, 2),
-            Destination={"Arn": "invalid",},
+            Destination={
+                "Arn": "invalid",
+            },
         )
 
     # then
@@ -1805,7 +1808,7 @@ def test_start_replay_error_invalid_end_time():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
 
     # when
@@ -1838,7 +1841,7 @@ def test_start_replay_error_duplicate():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName=name,
@@ -1877,7 +1880,7 @@ def test_describe_replay():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName=name,
@@ -1935,7 +1938,7 @@ def test_list_replays():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName=name,
@@ -1969,7 +1972,7 @@ def test_list_replays_with_name_prefix():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName="test",
@@ -2002,7 +2005,7 @@ def test_list_replays_with_source_arn():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName="test",
@@ -2034,7 +2037,7 @@ def test_list_replays_with_state():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName="test",
@@ -2109,7 +2112,7 @@ def test_cancel_replay():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName=name,
@@ -2162,7 +2165,7 @@ def test_cancel_replay_error_illegal_state():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName=name,
@@ -2213,7 +2216,7 @@ def test_start_replay_send_to_log_group():
         ],
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     event_time = datetime(2021, 1, 1, 12, 23, 34)
     client.put_events(
@@ -2243,14 +2246,14 @@ def test_start_replay_send_to_log_group():
     )
     event_original = json.loads(events[0]["message"])
     event_original["version"].should.equal("0")
-    event_original["id"].should_not.be.empty
+    event_original["id"].should_not.equal(None)
     event_original["detail-type"].should.equal("type")
     event_original["source"].should.equal("source")
     event_original["time"].should.equal(
         iso_8601_datetime_without_milliseconds(event_time)
     )
     event_original["region"].should.equal("eu-central-1")
-    event_original["resources"].should.be.empty
+    event_original["resources"].should.equal([])
     event_original["detail"].should.equal({"key": "value"})
     event_original.should_not.have.key("replay-name")
 
@@ -2261,7 +2264,7 @@ def test_start_replay_send_to_log_group():
     event_replay["source"].should.equal("source")
     event_replay["time"].should.equal(event_original["time"])
     event_replay["region"].should.equal("eu-central-1")
-    event_replay["resources"].should.be.empty
+    event_replay["resources"].should.equal([])
     event_replay["detail"].should.equal({"key": "value"})
     event_replay["replay-name"].should.equal("test-replay")
 

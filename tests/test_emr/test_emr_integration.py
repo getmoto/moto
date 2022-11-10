@@ -3,9 +3,13 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import settings
-from moto.ec2 import mock_ec2, ec2_backend
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.ec2 import mock_ec2, ec2_backends
 from moto.emr import mock_emr
 from moto.emr.utils import EmrSecurityGroupManager
+
+
+ec2_backend = ec2_backends[ACCOUNT_ID]["us-east-1"]
 
 
 @mock_emr
@@ -90,7 +94,7 @@ class TestEmrSecurityGroupManager(object):
 
     mocks = []
 
-    def setup(self):
+    def setup_method(self):
         self.mocks = [mock_ec2()]
         for mock in self.mocks:
             mock.start()
@@ -101,7 +105,7 @@ class TestEmrSecurityGroupManager(object):
         self.ec2 = ec2
         self.ec2_client = ec2_client
 
-    def teardown(self):
+    def teardown_method(self):
         for mock in self.mocks:
             mock.stop()
 

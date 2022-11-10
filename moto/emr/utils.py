@@ -1,12 +1,12 @@
 import copy
 import datetime
-import random
 import re
 import string
 from moto.core.utils import (
     camelcase_to_underscores,
     iso_8601_datetime_with_milliseconds,
 )
+from moto.moto_api._internal import mock_random as random
 
 
 def random_id(size=13):
@@ -14,15 +14,15 @@ def random_id(size=13):
     return "".join(str(random.choice(chars)) for x in range(size))
 
 
-def random_cluster_id(size=13):
+def random_cluster_id():
     return "j-{0}".format(random_id())
 
 
-def random_step_id(size=13):
+def random_step_id():
     return "s-{0}".format(random_id())
 
 
-def random_instance_group_id(size=13):
+def random_instance_group_id():
     return "i-{0}".format(random_id())
 
 

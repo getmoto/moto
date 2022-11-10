@@ -2,9 +2,10 @@ import os
 
 import boto3
 from dateutil.tz import tzlocal
+import re
 
 from moto import mock_secretsmanager, mock_lambda, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from botocore.exceptions import ClientError, ParamValidationError
 import string
 import pytz
@@ -24,6 +25,22 @@ def test_get_secret_value():
     conn.create_secret(Name="java-util-test-password", SecretString="foosecret")
     result = conn.get_secret_value(SecretId="java-util-test-password")
     assert result["SecretString"] == "foosecret"
+
+
+@mock_secretsmanager
+def test_secret_arn():
+    region = "us-west-2"
+    conn = boto3.client("secretsmanager", region_name=region)
+
+    create_dict = conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString="secret_string",
+    )
+    assert re.match(
+        f"arn:aws:secretsmanager:{region}:{ACCOUNT_ID}:secret:{DEFAULT_SECRET_NAME}-"
+        + r"\w{6}",
+        create_dict["ARN"],
+    )
 
 
 @mock_secretsmanager
@@ -137,6 +154,33 @@ def test_get_secret_version_that_does_not_exist():
 
 
 @mock_secretsmanager
+def test_get_secret_version_stage_mismatch():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    result = conn.create_secret(Name="test-secret", SecretString="secret")
+    secret_arn = result["ARN"]
+
+    rotated_secret = conn.rotate_secret(
+        SecretId=secret_arn, RotationRules={"AutomaticallyAfterDays": 42}
+    )
+
+    desc_secret = conn.describe_secret(SecretId=secret_arn)
+    versions_to_stages = desc_secret["VersionIdsToStages"]
+    version_for_test = rotated_secret["VersionId"]
+    stages_for_version = versions_to_stages[version_for_test]
+
+    assert "AWSPENDING" not in stages_for_version
+    with pytest.raises(ClientError) as cm:
+        conn.get_secret_value(
+            SecretId=secret_arn, VersionId=version_for_test, VersionStage="AWSPENDING"
+        )
+
+    assert (
+        "You provided a VersionStage that is not associated to the provided VersionId."
+    ) == cm.value.response["Error"]["Message"]
+
+
+@mock_secretsmanager
 def test_create_secret():
     conn = boto3.client("secretsmanager", region_name="us-east-1")
 
@@ -222,6 +266,25 @@ def test_delete_secret():
     secret_details = conn.describe_secret(SecretId="test-secret")
 
     assert secret_details["ARN"]
+    assert secret_details["Name"] == "test-secret"
+    assert secret_details["DeletedDate"] > datetime.fromtimestamp(1, pytz.utc)
+
+
+@mock_secretsmanager
+def test_delete_secret_by_arn():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+
+    deleted_secret = conn.delete_secret(SecretId=secret["ARN"])
+
+    assert deleted_secret["ARN"] == secret["ARN"]
+    assert deleted_secret["Name"] == "test-secret"
+    assert deleted_secret["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
+
+    secret_details = conn.describe_secret(SecretId="test-secret")
+
+    assert secret_details["ARN"] == secret["ARN"]
     assert secret_details["Name"] == "test-secret"
     assert secret_details["DeletedDate"] > datetime.fromtimestamp(1, pytz.utc)
 
@@ -730,7 +793,7 @@ def lambda_handler(event, context):
             SecretId=arn,
             ClientRequestToken=token,
             SecretString='UpdatedValue',
-            VersionStages=["AWSPENDING"],
+            VersionStages=["AWSPENDING"]
         )
 
     elif step == 'finishSecret':
@@ -744,12 +807,12 @@ def lambda_handler(event, context):
             SecretId=arn,
             VersionStage='AWSCURRENT',
             MoveToVersionId=token,
-            RemoveFromVersionId=current_version,
+            RemoveFromVersionId=current_version
         )
         client.update_secret_version_stage(
             SecretId=arn,
             VersionStage='AWSPENDING',
-            RemoveFromVersionId=token,
+            RemoveFromVersionId=token
         )
     """
     return _process_lambda(func_str)
@@ -764,7 +827,7 @@ if settings.TEST_SERVER_MODE:
 
         # Passing a `RotationLambdaARN` value to `rotate_secret` should invoke lambda
         lambda_conn = boto3.client(
-            "lambda", region_name="us-west-2", endpoint_url="http://localhost:5000",
+            "lambda", region_name="us-west-2", endpoint_url="http://localhost:5000"
         )
         func = lambda_conn.create_function(
             FunctionName="testFunction",
@@ -784,21 +847,21 @@ if settings.TEST_SERVER_MODE:
             endpoint_url="http://localhost:5000",
         )
         secret = secrets_conn.create_secret(
-            Name=DEFAULT_SECRET_NAME, SecretString="InitialValue",
+            Name=DEFAULT_SECRET_NAME, SecretString="InitialValue"
         )
         initial_version = secret["VersionId"]
 
         rotated_secret = secrets_conn.rotate_secret(
             SecretId=DEFAULT_SECRET_NAME,
             RotationLambdaARN=func["FunctionArn"],
-            RotationRules=dict(AutomaticallyAfterDays=30,),
+            RotationRules=dict(AutomaticallyAfterDays=30),
         )
 
         # Ensure we received an updated VersionId from `rotate_secret`
         assert rotated_secret["VersionId"] != initial_version
 
         updated_secret = secrets_conn.get_secret_value(
-            SecretId=DEFAULT_SECRET_NAME, VersionStage="AWSCURRENT",
+            SecretId=DEFAULT_SECRET_NAME, VersionStage="AWSCURRENT"
         )
         rotated_version = updated_secret["VersionId"]
 
@@ -1072,6 +1135,54 @@ def test_after_put_secret_value_version_stages_can_get_current():
 
 
 @mock_secretsmanager
+def test_after_put_secret_value_version_stages_can_get_current_with_custom_version_stage():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    # Creation.
+    first_version_id = "eb41453f-25bb-4025-b7f4-850cfca0ce71"
+    first_secret_string = "first_secret_string"
+    conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString=first_secret_string,
+        ClientRequestToken=first_version_id,
+    )
+
+    # Use PutSecretValue to push a new version with new version stages.
+    second_version_id = "eb41453f-25bb-4025-b7f4-850cfca0ce72"
+    conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString="second_secret_string",
+        VersionStages=["SAMPLESTAGE1", "SAMPLESTAGE0"],
+        ClientRequestToken=second_version_id,
+    )
+    # Create a third version with one of the old stages
+    third_version_id = "eb41453f-25bb-4025-b7f4-850cfca0ce73"
+    third_secret_string = "third_secret_string"
+    conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString=third_secret_string,
+        VersionStages=["SAMPLESTAGE1"],
+        ClientRequestToken=third_version_id,
+    )
+
+    # Get current with the stage label of the third version.
+    get_dict = conn.get_secret_value(
+        SecretId=DEFAULT_SECRET_NAME, VersionStage="SAMPLESTAGE1"
+    )
+    versions = conn.list_secret_version_ids(SecretId=DEFAULT_SECRET_NAME)["Versions"]
+    versions_by_key = {version["VersionId"]: version for version in versions}
+    # Check if indeed the third version is returned
+    assert get_dict
+    assert get_dict["VersionId"] == third_version_id
+    assert get_dict["SecretString"] == third_secret_string
+    assert get_dict["VersionStages"] == ["SAMPLESTAGE1"]
+    # Check if all the versions have the proper labels
+    assert versions_by_key[first_version_id]["VersionStages"] == ["AWSCURRENT"]
+    assert versions_by_key[second_version_id]["VersionStages"] == ["SAMPLESTAGE0"]
+    assert versions_by_key[third_version_id]["VersionStages"] == ["SAMPLESTAGE1"]
+
+
+@mock_secretsmanager
 def test_after_put_secret_value_version_stages_pending_can_get_current():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -1280,23 +1391,25 @@ def test_tag_resource(pass_arn):
     created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
     secret_id = created_secret["ARN"] if pass_arn else "test-secret"
     conn.tag_resource(
-        SecretId=secret_id, Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+        SecretId=secret_id, Tags=[{"Key": "FirstTag", "Value": "SomeValue"}]
     )
-
     conn.tag_resource(
-        SecretId=secret_id, Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
+        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeOtherValue"}]
+    )
+    conn.tag_resource(
+        SecretId=secret_id, Tags=[{"Key": "SecondTag", "Value": "AnotherValue"}]
     )
 
     secrets = conn.list_secrets()
     assert secrets["SecretList"][0].get("Tags") == [
-        {"Key": "FirstTag", "Value": "SomeValue"},
+        {"Key": "FirstTag", "Value": "SomeOtherValue"},
         {"Key": "SecondTag", "Value": "AnotherValue"},
     ]
 
     with pytest.raises(ClientError) as cm:
         conn.tag_resource(
             SecretId="dummy-test-secret",
-            Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+            Tags=[{"Key": "FirstTag", "Value": "SomeValue"}],
         )
 
     assert (
@@ -1326,9 +1439,7 @@ def test_untag_resource(pass_arn):
     ]
 
     with pytest.raises(ClientError) as cm:
-        conn.untag_resource(
-            SecretId="dummy-test-secret", TagKeys=["FirstTag"],
-        )
+        conn.untag_resource(SecretId="dummy-test-secret", TagKeys=["FirstTag"])
 
     assert (
         "Secrets Manager can't find the specified secret."
@@ -1379,7 +1490,7 @@ def test_update_secret_with_client_request_token():
     )
     assert client_request_token == updated_secret["VersionId"]
     updated_secret = client.update_secret(
-        SecretId=secret_name, SecretString="third-secret",
+        SecretId=secret_name, SecretString="third-secret"
     )
     assert client_request_token != updated_secret["VersionId"]
     invalid_request_token = "test-token"

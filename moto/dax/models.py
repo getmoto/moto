@@ -1,6 +1,9 @@
 """DAXBackend class with methods for supported APIs."""
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.core.utils import BackendDict, get_random_hex, unix_time
+from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict, unix_time
+from moto.moto_api import state_manager
+from moto.moto_api._internal import mock_random as random
+from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.paginator import paginate
 
@@ -63,9 +66,10 @@ class DaxEndpoint:
         return dct
 
 
-class DaxCluster(BaseModel):
+class DaxCluster(BaseModel, ManagedState):
     def __init__(
         self,
+        account_id,
         region,
         name,
         description,
@@ -73,14 +77,20 @@ class DaxCluster(BaseModel):
         replication_factor,
         iam_role_arn,
         sse_specification,
+        encryption_type,
     ):
+        # Configure ManagedState
+        super().__init__(
+            model_name="dax::cluster",
+            transitions=[("creating", "available"), ("deleting", "deleted")],
+        )
+        # Set internal properties
         self.name = name
         self.description = description
-        self.arn = f"arn:aws:dax:{region}:{ACCOUNT_ID}:cache/{self.name}"
+        self.arn = f"arn:aws:dax:{region}:{account_id}:cache/{self.name}"
         self.node_type = node_type
         self.replication_factor = replication_factor
-        self.status = "creating"
-        self.cluster_hex = get_random_hex(6)
+        self.cluster_hex = random.get_random_hex(6)
         self.endpoint = DaxEndpoint(
             name=name, cluster_hex=self.cluster_hex, region=region
         )
@@ -90,13 +100,13 @@ class DaxCluster(BaseModel):
         self.iam_role_arn = iam_role_arn
         self.parameter_group = DaxParameterGroup()
         self.security_groups = [
-            {"SecurityGroupIdentifier": f"sg-{get_random_hex(10)}", "Status": "active"}
+            {
+                "SecurityGroupIdentifier": f"sg-{random.get_random_hex(10)}",
+                "Status": "active",
+            }
         ]
         self.sse_specification = sse_specification
-
-        # Internal counter to keep track of when this cluster is available/deleted
-        # Used in conjunction with `advance()`
-        self._tick = 0
+        self.encryption_type = encryption_type
 
     def _create_new_node(self, idx):
         return DaxNode(endpoint=self.endpoint, name=self.name, index=idx)
@@ -119,19 +129,6 @@ class DaxCluster(BaseModel):
     def is_deleted(self):
         return self.status == "deleted"
 
-    def advance(self):
-        if self.status == "creating":
-            if self._tick < 3:
-                self._tick += 1
-            else:
-                self.status = "available"
-                self._tick = 0
-        if self.status == "deleting":
-            if self._tick < 3:
-                self._tick += 1
-            else:
-                self.status = "deleted"
-
     def to_json(self):
         use_full_repr = self.status == "available"
         dct = {
@@ -152,7 +149,7 @@ class DaxCluster(BaseModel):
                 if self.sse_specification.get("Enabled") is True
                 else "DISABLED"
             },
-            "ClusterEndpointEncryptionType": "NONE",
+            "ClusterEndpointEncryptionType": self.encryption_type,
             "SecurityGroups": self.security_groups,
         }
         if use_full_repr:
@@ -161,10 +158,14 @@ class DaxCluster(BaseModel):
 
 
 class DAXBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._clusters = dict()
         self._tagger = TaggingService()
+
+        state_manager.register_default_transition(
+            model_name="dax::cluster", transition={"progression": "manual", "times": 4}
+        )
 
     @property
     def clusters(self):
@@ -175,33 +176,23 @@ class DAXBackend(BaseBackend):
         }
         return self._clusters
 
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
-
     def create_cluster(
         self,
         cluster_name,
         node_type,
         description,
         replication_factor,
-        availability_zones,
-        subnet_group_name,
-        security_group_ids,
-        preferred_maintenance_window,
-        notification_topic_arn,
         iam_role_arn,
-        parameter_group_name,
         tags,
         sse_specification,
-        cluster_endpoint_encryption_type,
+        encryption_type,
     ):
         """
         The following parameters are not yet processed:
-        AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName, ClusterEndpointEncryptionType
+        AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName
         """
         cluster = DaxCluster(
+            account_id=self.account_id,
             region=self.region_name,
             name=cluster_name,
             description=description,
@@ -209,6 +200,7 @@ class DAXBackend(BaseBackend):
             replication_factor=replication_factor,
             iam_role_arn=iam_role_arn,
             sse_specification=sse_specification,
+            encryption_type=encryption_type,
         )
         self.clusters[cluster_name] = cluster
         self._tagger.tag_resource(cluster.arn, tags)
@@ -247,9 +239,10 @@ class DAXBackend(BaseBackend):
             raise ClusterNotFoundFault()
         return self._tagger.list_tags_for_resource(self.clusters[name].arn)
 
-    def increase_replication_factor(
-        self, cluster_name, new_replication_factor, availability_zones
-    ):
+    def increase_replication_factor(self, cluster_name, new_replication_factor):
+        """
+        The AvailabilityZones-parameter is not yet implemented
+        """
         if cluster_name not in self.clusters:
             raise ClusterNotFoundFault()
         self.clusters[cluster_name].increase_replication_factor(new_replication_factor)
@@ -259,7 +252,6 @@ class DAXBackend(BaseBackend):
         self,
         cluster_name,
         new_replication_factor,
-        availability_zones,
         node_ids_to_remove,
     ):
         """

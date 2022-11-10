@@ -27,6 +27,7 @@ ec2
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] accept_address_transfer
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
 - [X] accept_transit_gateway_peering_attachment
@@ -49,6 +50,7 @@ ec2
 - [X] associate_route_table
 - [X] associate_subnet_cidr_block
 - [ ] associate_transit_gateway_multicast_domain
+- [ ] associate_transit_gateway_policy_table
 - [X] associate_transit_gateway_route_table
 - [ ] associate_trunk_interface
 - [X] associate_vpc_cidr_block
@@ -79,12 +81,14 @@ ec2
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
 - [ ] create_client_vpn_route
+- [ ] create_coip_cidr
+- [ ] create_coip_pool
 - [X] create_customer_gateway
 - [ ] create_default_subnet
-- [ ] create_default_vpc
+- [X] create_default_vpc
 - [X] create_dhcp_options
 - [X] create_egress_only_internet_gateway
-- [ ] create_fleet
+- [X] create_fleet
 - [X] create_flow_logs
 - [ ] create_fpga_image
 - [X] create_image
@@ -98,6 +102,8 @@ ec2
 - [X] create_launch_template
 - [ ] create_launch_template_version
 - [ ] create_local_gateway_route
+- [ ] create_local_gateway_route_table
+- [ ] create_local_gateway_route_table_virtual_interface_group_association
 - [ ] create_local_gateway_route_table_vpc_association
 - [X] create_managed_prefix_list
 - [X] create_nat_gateway
@@ -135,9 +141,11 @@ ec2
 - [ ] create_transit_gateway_connect_peer
 - [ ] create_transit_gateway_multicast_domain
 - [X] create_transit_gateway_peering_attachment
+- [ ] create_transit_gateway_policy_table
 - [ ] create_transit_gateway_prefix_list_reference
 - [X] create_transit_gateway_route
 - [X] create_transit_gateway_route_table
+- [ ] create_transit_gateway_route_table_announcement
 - [X] create_transit_gateway_vpc_attachment
 - [X] create_volume
 - [X] create_vpc
@@ -151,10 +159,12 @@ ec2
 - [X] delete_carrier_gateway
 - [ ] delete_client_vpn_endpoint
 - [ ] delete_client_vpn_route
+- [ ] delete_coip_cidr
+- [ ] delete_coip_pool
 - [X] delete_customer_gateway
 - [ ] delete_dhcp_options
 - [X] delete_egress_only_internet_gateway
-- [ ] delete_fleets
+- [X] delete_fleets
 - [X] delete_flow_logs
 - [ ] delete_fpga_image
 - [ ] delete_instance_event_window
@@ -163,9 +173,11 @@ ec2
 - [ ] delete_ipam_pool
 - [ ] delete_ipam_scope
 - [X] delete_key_pair
-- [ ] delete_launch_template
+- [X] delete_launch_template
 - [ ] delete_launch_template_versions
 - [ ] delete_local_gateway_route
+- [ ] delete_local_gateway_route_table
+- [ ] delete_local_gateway_route_table_virtual_interface_group_association
 - [ ] delete_local_gateway_route_table_vpc_association
 - [X] delete_managed_prefix_list
 - [X] delete_nat_gateway
@@ -197,9 +209,11 @@ ec2
 - [ ] delete_transit_gateway_connect_peer
 - [ ] delete_transit_gateway_multicast_domain
 - [X] delete_transit_gateway_peering_attachment
+- [ ] delete_transit_gateway_policy_table
 - [ ] delete_transit_gateway_prefix_list_reference
 - [X] delete_transit_gateway_route
 - [X] delete_transit_gateway_route_table
+- [ ] delete_transit_gateway_route_table_announcement
 - [X] delete_transit_gateway_vpc_attachment
 - [X] delete_volume
 - [X] delete_vpc
@@ -218,6 +232,7 @@ ec2
 - [ ] deregister_transit_gateway_multicast_group_members
 - [ ] deregister_transit_gateway_multicast_group_sources
 - [ ] describe_account_attributes
+- [ ] describe_address_transfers
 - [X] describe_addresses
 - [ ] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
@@ -248,8 +263,8 @@ ec2
 - [ ] describe_fast_launch_images
 - [ ] describe_fast_snapshot_restores
 - [ ] describe_fleet_history
-- [ ] describe_fleet_instances
-- [ ] describe_fleets
+- [X] describe_fleet_instances
+- [X] describe_fleets
 - [X] describe_flow_logs
 - [ ] describe_fpga_image_attribute
 - [ ] describe_fpga_images
@@ -333,6 +348,8 @@ ec2
 - [ ] describe_transit_gateway_connects
 - [ ] describe_transit_gateway_multicast_domains
 - [X] describe_transit_gateway_peering_attachments
+- [ ] describe_transit_gateway_policy_tables
+- [ ] describe_transit_gateway_route_table_announcements
 - [ ] describe_transit_gateway_route_tables
 - [X] describe_transit_gateway_vpc_attachments
 - [X] describe_transit_gateways
@@ -340,7 +357,7 @@ ec2
 - [ ] describe_volume_attribute
 - [ ] describe_volume_status
 - [X] describe_volumes
-- [ ] describe_volumes_modifications
+- [X] describe_volumes_modifications
 - [X] describe_vpc_attribute
 - [ ] describe_vpc_classic_link
 - [ ] describe_vpc_classic_link_dns_support
@@ -378,6 +395,7 @@ ec2
 - [X] detach_network_interface
 - [X] detach_volume
 - [X] detach_vpn_gateway
+- [ ] disable_address_transfer
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
@@ -396,9 +414,11 @@ ec2
 - [X] disassociate_route_table
 - [X] disassociate_subnet_cidr_block
 - [ ] disassociate_transit_gateway_multicast_domain
+- [ ] disassociate_transit_gateway_policy_table
 - [X] disassociate_transit_gateway_route_table
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
+- [ ] enable_address_transfer
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
@@ -427,6 +447,7 @@ ec2
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_instance_types_from_instance_requirements
+- [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
@@ -443,6 +464,8 @@ ec2
 - [ ] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
 - [ ] get_transit_gateway_multicast_domain_associations
+- [ ] get_transit_gateway_policy_table_associations
+- [ ] get_transit_gateway_policy_table_entries
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations
@@ -474,6 +497,7 @@ ec2
 - [ ] modify_instance_credit_specification
 - [ ] modify_instance_event_start_time
 - [ ] modify_instance_event_window
+- [ ] modify_instance_maintenance_options
 - [ ] modify_instance_metadata_options
 - [ ] modify_instance_placement
 - [ ] modify_ipam
@@ -481,6 +505,7 @@ ec2
 - [ ] modify_ipam_resource_cidr
 - [ ] modify_ipam_scope
 - [ ] modify_launch_template
+- [ ] modify_local_gateway_route
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
@@ -496,10 +521,10 @@ ec2
 - [X] modify_transit_gateway
 - [ ] modify_transit_gateway_prefix_list_reference
 - [X] modify_transit_gateway_vpc_attachment
-- [ ] modify_volume
+- [X] modify_volume
 - [ ] modify_volume_attribute
 - [X] modify_vpc_attribute
-- [ ] modify_vpc_endpoint
+- [X] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
 - [X] modify_vpc_endpoint_service_configuration
   
@@ -561,10 +586,27 @@ ec2
 - [X] revoke_security_group_egress
 - [X] revoke_security_group_ingress
 - [X] run_instances
+  
+        The Placement-parameter is validated to verify the availability-zone exists for the current region.
+
+        The InstanceType-parameter can be validated, to see if it is a known instance-type.
+        Enable this validation by setting the environment variable `MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION=true`
+
+        The ImageId-parameter can be validated, to see if it is a known AMI.
+        Enable this validation by setting the environment variable `MOTO_ENABLE_AMI_VALIDATION=true`
+
+        The KeyPair-parameter can be validated, to see if it is a known key-pair.
+        Enable this validation by setting the environment variable `MOTO_ENABLE_KEYPAIR_VALIDATION=true`
+        
+
 - [ ] run_scheduled_instances
 - [ ] search_local_gateway_routes
 - [ ] search_transit_gateway_multicast_groups
 - [X] search_transit_gateway_routes
+  
+        The following filters are currently supported: type, state, route-search.exact-match
+        
+
 - [ ] send_diagnostic_interrupt
 - [X] start_instances
 - [ ] start_network_insights_access_scope_analysis

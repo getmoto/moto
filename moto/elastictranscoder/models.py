@@ -1,12 +1,13 @@
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-import random
+from moto.moto_api._internal import mock_random as random
 import string
 
 
 class Pipeline(BaseModel):
     def __init__(
         self,
+        account_id,
         region,
         name,
         input_bucket,
@@ -19,9 +20,7 @@ class Pipeline(BaseModel):
         b = "".join(random.choice(string.ascii_lowercase) for _ in range(6))
         self.id = "{}-{}".format(a, b)
         self.name = name
-        self.arn = "arn:aws:elastictranscoder:{}:{}:pipeline/{}".format(
-            region, ACCOUNT_ID, self.id
-        )
+        self.arn = f"arn:aws:elastictranscoder:{region}:{account_id}:pipeline/{self.id}"
         self.status = "Active"
         self.input_bucket = input_bucket
         self.output_bucket = output_bucket or content_config["Bucket"]
@@ -62,15 +61,9 @@ class Pipeline(BaseModel):
 
 
 class ElasticTranscoderBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.pipelines = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_pipeline(
         self,
@@ -78,12 +71,15 @@ class ElasticTranscoderBackend(BaseBackend):
         input_bucket,
         output_bucket,
         role,
-        aws_kms_key_arn,
-        notifications,
         content_config,
         thumbnail_config,
     ):
+        """
+        The following parameters are not yet implemented:
+        AWSKMSKeyArn, Notifications
+        """
         pipeline = Pipeline(
+            self.account_id,
             self.region_name,
             name,
             input_bucket,
@@ -102,17 +98,11 @@ class ElasticTranscoderBackend(BaseBackend):
     def read_pipeline(self, pipeline_id):
         return self.pipelines[pipeline_id]
 
-    def update_pipeline(
-        self,
-        pipeline_id,
-        name,
-        input_bucket,
-        role,
-        aws_kms_key_arn,
-        notifications,
-        content_config,
-        thumbnail_config,
-    ):
+    def update_pipeline(self, pipeline_id, name, input_bucket, role):
+        """
+        The following parameters are not yet implemented:
+        AWSKMSKeyArn, Notifications, ContentConfig, ThumbnailConfig
+        """
         pipeline = self.read_pipeline(pipeline_id)
         pipeline.update(name, input_bucket, role)
         warnings = []

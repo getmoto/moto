@@ -33,7 +33,15 @@ medialive
 - [ ] cancel_input_device_transfer
 - [ ] claim_device
 - [X] create_channel
+  
+        The RequestID and Reserved parameters are not yet implemented
+        
+
 - [X] create_input
+  
+        The VPC and RequestId parameters are not yet implemented
+        
+
 - [ ] create_input_security_group
 - [ ] create_multiplex
 - [ ] create_multiplex_program
@@ -68,8 +76,10 @@ medialive
 - [ ] list_reservations
 - [ ] list_tags_for_resource
 - [ ] purchase_offering
+- [ ] reboot_input_device
 - [ ] reject_input_device_transfer
 - [X] start_channel
+- [ ] start_input_device_maintenance_window
 - [ ] start_multiplex
 - [X] stop_channel
 - [ ] stop_multiplex

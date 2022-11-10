@@ -13,7 +13,7 @@ from string import Template
 from moto import (
     mock_autoscaling,
     mock_cloudformation,
-    mock_dynamodb2,
+    mock_dynamodb,
     mock_ec2,
     mock_events,
     mock_kms,
@@ -22,14 +22,12 @@ from moto import (
     mock_s3,
     mock_sqs,
     mock_elbv2,
+    mock_ssm,
 )
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
-from tests.test_cloudformation.fixtures import (
-    fn_join,
-    single_instance_with_ebs_volume,
-)
+from tests.test_cloudformation.fixtures import fn_join, single_instance_with_ebs_volume
 
 
 @mock_cloudformation
@@ -279,11 +277,12 @@ def lambda_handler(event, context):
             "lambdaTest": {
                 "Type": "AWS::Lambda::LayerVersion",
                 "Properties": {
-                    "Content": {"S3Bucket": bucket_name, "S3Key": "test.zip",},
+                    "Content": {"S3Bucket": bucket_name, "S3Key": "test.zip"},
                     "LayerName": "testLayer",
                     "Description": "Test Layer",
                     "CompatibleRuntimes": ["python2.7", "python3.6"],
                     "LicenseInfo": "MIT",
+                    "CompatibleArchitectures": [],
                 },
             },
         },
@@ -308,6 +307,7 @@ def lambda_handler(event, context):
                 "CompatibleRuntimes": ["python2.7", "python3.6"],
                 "Description": "Test Layer",
                 "LicenseInfo": "MIT",
+                "CompatibleArchitectures": [],
             }
         ]
     )
@@ -590,11 +590,11 @@ def test_invalid_action_type_listener_rule():
             },
             "mytargetgroup1": {
                 "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-                "Properties": {"Name": "mytargetgroup1",},
+                "Properties": {"Name": "mytargetgroup1"},
             },
             "mytargetgroup2": {
                 "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-                "Properties": {"Name": "mytargetgroup2",},
+                "Properties": {"Name": "mytargetgroup2"},
             },
             "listener": {
                 "Type": "AWS::ElasticLoadBalancingV2::Listener",
@@ -662,11 +662,11 @@ def test_update_stack_listener_and_rule():
             },
             "mytargetgroup1": {
                 "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-                "Properties": {"Name": "mytargetgroup1",},
+                "Properties": {"Name": "mytargetgroup1"},
             },
             "mytargetgroup2": {
                 "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-                "Properties": {"Name": "mytargetgroup2",},
+                "Properties": {"Name": "mytargetgroup2"},
             },
             "listener": {
                 "Type": "AWS::ElasticLoadBalancingV2::Listener",
@@ -739,7 +739,7 @@ def test_update_stack_listener_and_rule():
     ]
 
     listener_rule[0]["Conditions"].should.equal(
-        [{"Field": "host-header", "Values": ["*"],}]
+        [{"Field": "host-header", "Values": ["*"]}]
     )
 
 
@@ -956,7 +956,8 @@ def test_stack_elbv2_resources_integration():
                             "TargetGroupArn": target_groups[0]["TargetGroupArn"],
                             "Weight": 2,
                         },
-                    ]
+                    ],
+                    "TargetGroupStickinessConfig": {"Enabled": False},
                 },
             }
         ],
@@ -989,7 +990,7 @@ def test_stack_elbv2_resources_integration():
     name["OutputValue"].should.equal(load_balancers[0]["LoadBalancerName"])
 
 
-@mock_dynamodb2
+@mock_dynamodb
 @mock_cloudformation
 def test_stack_dynamodb_resources_integration():
     dynamodb_template = {
@@ -1074,7 +1075,7 @@ def test_stack_dynamodb_resources_integration():
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
     table_desc = dynamodb_client.describe_table(TableName="myTableName")["Table"]
     table_desc["StreamSpecification"].should.equal(
-        {"StreamEnabled": True, "StreamViewType": "KEYS_ONLY",}
+        {"StreamEnabled": True, "StreamViewType": "KEYS_ONLY"}
     )
 
     dynamodb_conn = boto3.resource("dynamodb", region_name="us-east-1")
@@ -1129,9 +1130,7 @@ def test_create_log_group_using_fntransform():
     }
 
     cf_conn = boto3.client("cloudformation", "us-west-2")
-    cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(template),
-    )
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
 
     logs_conn = boto3.client("logs", region_name="us-west-2")
     log_group = logs_conn.describe_log_groups()["logGroups"][0]
@@ -1145,7 +1144,7 @@ def test_create_cloudwatch_logs_resource_policy():
         {
             "Statement": [
                 {
-                    "Action": ["logs:CreateLogStream", "logs:PutLogEvents",],
+                    "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
                     "Effect": "Allow",
                     "Principal": {"Service": "es.amazonaws.com"},
                     "Resource": "*",
@@ -1437,6 +1436,18 @@ def test_autoscaling_propagate_tags():
                     "InstanceType": "t2.medium",
                 },
             },
+            "ScheduledAction": {
+                "Type": "AWS::AutoScaling::ScheduledAction",
+                "Properties": {
+                    "AutoScalingGroupName": "test-scaling-group",
+                    "DesiredCapacity": 10,
+                    "EndTime": "2022-08-01T00:00:00Z",
+                    "MaxSize": 15,
+                    "MinSize": 5,
+                    "Recurrence": "* * * * *",
+                    "StartTime": "2022-07-01T00:00:00Z",
+                },
+            },
         },
     }
     boto3.client("cloudformation", "us-east-1").create_stack(
@@ -1633,10 +1644,10 @@ def test_stack_events_get_attribute_integration():
 
 
 @mock_cloudformation
-@mock_dynamodb2
+@mock_dynamodb
 def test_dynamodb_table_creation():
     CFN_TEMPLATE = {
-        "Outputs": {"MyTableName": {"Value": {"Ref": "MyTable"}},},
+        "Outputs": {"MyTableName": {"Value": {"Ref": "MyTable"}}},
         "Resources": {
             "MyTable": {
                 "Type": "AWS::DynamoDB::Table",
@@ -1666,3 +1677,170 @@ def test_dynamodb_table_creation():
     ddb = boto3.client("dynamodb", "us-west-2")
     table_names = ddb.list_tables()["TableNames"]
     table_names.should.equal([outputs[0]["OutputValue"]])
+
+
+@mock_cloudformation
+@mock_ssm
+def test_ssm_parameter():
+    parameter_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "BasicParameter": {
+                "Type": "AWS::SSM::Parameter",
+                "Properties": {
+                    "Name": "test_ssm",
+                    "Type": "String",
+                    "Value": "Test SSM Parameter",
+                    "Description": "Test SSM Description",
+                    "AllowedPattern": "^[a-zA-Z]{1,10}$",
+                },
+            }
+        },
+    }
+    stack_name = "test_stack"
+    cfn = boto3.client("cloudformation", "us-west-2")
+    cfn.create_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+    # Wait until moto creates the stack
+    waiter = cfn.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(1)
+    parameters[0]["Name"].should.equal("test_ssm")
+    parameters[0]["Value"].should.equal("Test SSM Parameter")
+
+
+@mock_cloudformation
+@mock_ssm
+def test_ssm_parameter_update_stack():
+    parameter_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "BasicParameter": {
+                "Type": "AWS::SSM::Parameter",
+                "Properties": {
+                    "Name": "test_ssm",
+                    "Type": "String",
+                    "Value": "Test SSM Parameter",
+                    "Description": "Test SSM Description",
+                    "AllowedPattern": "^[a-zA-Z]{1,10}$",
+                },
+            }
+        },
+    }
+    stack_name = "test_stack"
+    cfn = boto3.client("cloudformation", "us-west-2")
+    cfn.create_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+    # Wait until moto creates the stack
+    waiter = cfn.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(1)
+    parameters[0]["Name"].should.equal("test_ssm")
+    parameters[0]["Value"].should.equal("Test SSM Parameter")
+
+    parameter_template["Resources"]["BasicParameter"]["Properties"][
+        "Value"
+    ] = "Test SSM Parameter Updated"
+    cfn.update_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(1)
+    parameters[0]["Name"].should.equal("test_ssm")
+    parameters[0]["Value"].should.equal("Test SSM Parameter Updated")
+
+
+@mock_cloudformation
+@mock_ssm
+def test_ssm_parameter_update_stack_and_remove_resource():
+    parameter_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "BasicParameter": {
+                "Type": "AWS::SSM::Parameter",
+                "Properties": {
+                    "Name": "test_ssm",
+                    "Type": "String",
+                    "Value": "Test SSM Parameter",
+                    "Description": "Test SSM Description",
+                    "AllowedPattern": "^[a-zA-Z]{1,10}$",
+                },
+            }
+        },
+    }
+    stack_name = "test_stack"
+    cfn = boto3.client("cloudformation", "us-west-2")
+    cfn.create_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+    # Wait until moto creates the stack
+    waiter = cfn.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(1)
+    parameters[0]["Name"].should.equal("test_ssm")
+    parameters[0]["Value"].should.equal("Test SSM Parameter")
+
+    parameter_template["Resources"].pop("BasicParameter")
+    cfn.update_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+
+    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(0)
+
+
+@mock_cloudformation
+@mock_ssm
+def test_ssm_parameter_update_stack_and_add_resource():
+    parameter_template = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
+    stack_name = "test_stack"
+    cfn = boto3.client("cloudformation", "us-west-2")
+    cfn.create_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+    # Wait until moto creates the stack
+    waiter = cfn.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(0)
+
+    parameter_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "BasicParameter": {
+                "Type": "AWS::SSM::Parameter",
+                "Properties": {
+                    "Name": "test_ssm",
+                    "Type": "String",
+                    "Value": "Test SSM Parameter",
+                    "Description": "Test SSM Description",
+                    "AllowedPattern": "^[a-zA-Z]{1,10}$",
+                },
+            }
+        },
+    }
+    cfn.update_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
+
+    ssm_client = boto3.client("ssm", region_name="us-west-2")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(1)
+    parameters[0]["Name"].should.equal("test_ssm")
+    parameters[0]["Value"].should.equal("Test SSM Parameter")

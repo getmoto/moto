@@ -1,11 +1,10 @@
 import re
 import string
 from datetime import datetime
-import random
-from uuid import uuid4
 
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time, BackendDict
+from moto.moto_api._internal import mock_random as random
 from moto.organizations import organizations_backends
 from moto.ram.exceptions import (
     MalformedArnException,
@@ -38,25 +37,26 @@ class ResourceShare(BaseModel):
         "transit-gateway",  # Amazon EC2 transit gateway
     ]
 
-    def __init__(self, region, **kwargs):
+    def __init__(self, account_id, region, **kwargs):
+        self.account_id = account_id
         self.region = region
 
         self.allow_external_principals = kwargs.get("allowExternalPrincipals", True)
-        self.arn = "arn:aws:ram:{0}:{1}:resource-share/{2}".format(
-            self.region, ACCOUNT_ID, uuid4()
+        self.arn = (
+            f"arn:aws:ram:{self.region}:{account_id}:resource-share/{random.uuid4()}"
         )
         self.creation_time = datetime.utcnow()
         self.feature_set = "STANDARD"
         self.last_updated_time = datetime.utcnow()
         self.name = kwargs["name"]
-        self.owning_account_id = ACCOUNT_ID
+        self.owning_account_id = account_id
         self.principals = []
         self.resource_arns = []
         self.status = "ACTIVE"
 
     @property
     def organizations_backend(self):
-        return organizations_backends["global"]
+        return organizations_backends[self.account_id]["global"]
 
     def add_principals(self, principals):
         for principal in principals:
@@ -87,10 +87,13 @@ class ResourceShare(BaseModel):
                 )
 
                 if root_id:
-                    ous = self.organizations_backend.list_organizational_units_for_parent(
-                        ParentId=root_id
+                    (
+                        ous,
+                        _,
+                    ) = self.organizations_backend.list_organizational_units_for_parent(
+                        parent_id=root_id
                     )
-                    if any(principal == ou["Arn"] for ou in ous["OrganizationalUnits"]):
+                    if any(principal == ou["Arn"] for ou in ous):
                         continue
 
                 raise UnknownResourceException(
@@ -152,22 +155,16 @@ class ResourceShare(BaseModel):
 
 
 class ResourceAccessManagerBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.resource_shares = []
 
     @property
     def organizations_backend(self):
-        return organizations_backends["global"]
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
+        return organizations_backends[self.account_id]["global"]
 
     def create_resource_share(self, **kwargs):
-        resource = ResourceShare(self.region_name, **kwargs)
+        resource = ResourceShare(self.account_id, self.region_name, **kwargs)
         resource.add_principals(kwargs.get("principals", []))
         resource.add_resources(kwargs.get("resourceArns", []))
 
@@ -200,8 +197,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         arn = kwargs["resourceShareArn"]
 
         resource = next(
-            (resource for resource in self.resource_shares if arn == resource.arn),
-            None,
+            (resource for resource in self.resource_shares if arn == resource.arn), None
         )
 
         if not resource:
@@ -217,8 +213,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
     def delete_resource_share(self, arn):
         resource = next(
-            (resource for resource in self.resource_shares if arn == resource.arn),
-            None,
+            (resource for resource in self.resource_shares if arn == resource.arn), None
         )
 
         if not resource:

@@ -30,14 +30,14 @@ class CallbackResponse(responses.CallbackResponse):
             if request.body is None:
                 body = None
             elif isinstance(request.body, str):
-                body = BytesIO(request.body.encode("UTF-8"))
+                body = request.body.encode("UTF-8")
             elif hasattr(request.body, "read"):
-                body = BytesIO(request.body.read())
+                body = request.body.read()
             else:
-                body = BytesIO(request.body)
+                body = request.body
             req = Request.from_values(
                 path="?".join([url.path, url.query]),
-                input_stream=body,
+                input_stream=BytesIO(body) if body else None,
                 content_length=request.headers.get("Content-Length"),
                 content_type=request.headers.get("Content-Type"),
                 method=request.method,
@@ -48,6 +48,10 @@ class CallbackResponse(responses.CallbackResponse):
             )
             request = req
         headers = self.get_headers()
+
+        from moto.moto_api import recorder
+
+        recorder._record_request(request, body)
 
         result = self.callback(request)
         if isinstance(result, Exception):
@@ -86,7 +90,7 @@ class CallbackResponse(responses.CallbackResponse):
             return False
 
 
-def not_implemented_callback(request):
+def not_implemented_callback(request):  # pylint: disable=unused-argument
     status = 400
     headers = {}
     response = "The method is not implemented"
@@ -99,28 +103,14 @@ def not_implemented_callback(request):
 #  - First request matches on the appropriate S3 URL
 #  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
 # Fix: Always return the first match
-def _find_first_match_legacy(self, request):
-    matches = [match for match in self._matches if match.matches(request)]
-
-    # Look for implemented callbacks first
-    implemented_matches = [
-        m
-        for m in matches
-        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
-    ]
-    if implemented_matches:
-        return implemented_matches[0]
-    elif matches:
-        # We had matches, but all were of type not_implemented_callback
-        return matches[0]
-    return None
-
-
-# Internal API changed: this method should be used for Responses 0.12.1 < .. < 0.17.0
+#
+# Note that, due to an outdated API we no longer support Responses <= 0.12.1
+# This method should be used for Responses 0.12.1 < .. < 0.17.0
 def _find_first_match(self, request):
     matches = []
     match_failed_reasons = []
-    for match in self._matches:
+    all_possibles = self._matches + responses._default_mock._matches
+    for match in all_possibles:
         match_result, reason = match.matches(request)
         if match_result:
             matches.append(match)
@@ -154,12 +144,7 @@ def get_response_mock():
     """
     responses_mock = None
 
-    if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
-        responses_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
-        responses_mock._find_match = types.MethodType(
-            _find_first_match_legacy, responses_mock
-        )
-    elif LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
+    if LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
         from .responses_custom_registry import CustomRegistry
 
         responses_mock = responses.RequestsMock(
@@ -174,9 +159,7 @@ def get_response_mock():
 
 
 def reset_responses_mock(responses_mock):
-    if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
-        responses_mock.reset()
-    elif LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
+    if LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
         from .responses_custom_registry import CustomRegistry
 
         responses_mock.reset()

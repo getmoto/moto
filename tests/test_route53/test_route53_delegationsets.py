@@ -36,7 +36,6 @@ def test_create_reusable_delegation_set_from_hosted_zone():
         Name="testdns.aws.com.", CallerReference=str(hash("foo"))
     )
     hosted_zone_id = response["HostedZone"]["Id"]
-    print(response)
     hosted_zone_name_servers = set(response["DelegationSet"]["NameServers"])
 
     resp = client.create_reusable_delegation_set(

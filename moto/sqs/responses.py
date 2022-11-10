@@ -2,17 +2,12 @@ import re
 
 from moto.core.exceptions import RESTError
 from moto.core.responses import BaseResponse
-from moto.core.utils import (
-    amz_crc32,
-    amzn_request_id,
-    underscores_to_camelcase,
-    camelcase_to_pascal,
-)
+from moto.core.utils import underscores_to_camelcase, camelcase_to_pascal
+from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 from urllib.parse import urlparse
 
 from .exceptions import (
     EmptyBatchRequest,
-    InvalidAddress,
     InvalidAttributeName,
     ReceiptHandleIsInvalid,
     BatchEntryIdsNotDistinct,
@@ -29,9 +24,12 @@ class SQSResponse(BaseResponse):
 
     region_regex = re.compile(r"://(.+?)\.queue\.amazonaws\.com")
 
+    def __init__(self):
+        super().__init__(service_name="sqs")
+
     @property
     def sqs_backend(self):
-        return sqs_backends[self.region]
+        return sqs_backends[self.current_account][self.region]
 
     @property
     def attribute(self):
@@ -53,7 +51,8 @@ class SQSResponse(BaseResponse):
             if queue_url.startswith("http://") or queue_url.startswith("https://"):
                 return queue_url.split("/")[-1]
             else:
-                raise InvalidAddress(queue_url)
+                # The parameter could be the name itself, which AWS also accepts
+                return queue_url
         except TypeError:
             # Fallback to reading from the URL for botocore
             return self.path.split("/")[-1]
@@ -423,7 +422,7 @@ class SQSResponse(BaseResponse):
         except ValueError:
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
-        messages = self.sqs_backend.receive_messages(
+        messages = self.sqs_backend.receive_message(
             queue_name, message_count, wait_time, visibility_timeout, message_attributes
         )
 
@@ -792,8 +791,8 @@ ERROR_TOO_LONG_RESPONSE = """<ErrorResponse xmlns="http://queue.amazonaws.com/do
     <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
 </ErrorResponse>"""
 
-ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = "Invalid request, maximum visibility timeout is {0}".format(
-    MAXIMUM_VISIBILTY_TIMEOUT
+ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = (
+    f"Invalid request, maximum visibility timeout is {MAXIMUM_VISIBILTY_TIMEOUT}"
 )
 
 ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">

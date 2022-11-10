@@ -3,7 +3,7 @@ import sure  # noqa # pylint: disable=unused-import
 import time
 
 from moto import mock_glacier
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_glacier
@@ -124,7 +124,6 @@ def test_get_job_output_boto3():
         except Exception:
             time.sleep(1)
 
-    output.shouldnt.be.none
     output.should.have.key("status").equal(200)
     output.should.have.key("contentType").equal("application/octet-stream")
     output.should.have.key("body")

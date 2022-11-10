@@ -1,14 +1,11 @@
 import json
-
 import boto3
 from botocore.exceptions import ClientError
 from botocore.exceptions import ParamValidationError
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import pytest
-
 import sure  # noqa # pylint: disable=unused-import
-
 from moto import mock_ses
 
 
@@ -20,6 +17,18 @@ def test_verify_email_identity():
     identities = conn.list_identities()
     address = identities["Identities"][0]
     address.should.equal("test@example.com")
+
+
+@mock_ses
+def test_verify_email_identity_idempotency():
+    conn = boto3.client("ses", region_name="us-east-1")
+    address = "test@example.com"
+    conn.verify_email_identity(EmailAddress=address)
+    conn.verify_email_identity(EmailAddress=address)
+
+    identities = conn.list_identities()
+    address_list = identities["Identities"]
+    address_list.should.equal([address])
 
 
 @mock_ses
@@ -89,7 +98,7 @@ def test_send_email_when_verify_source():
     conn = boto3.client("ses", region_name="us-east-1")
 
     kwargs = dict(
-        Destination={"ToAddresses": ["test_to@example.com"],},
+        Destination={"ToAddresses": ["test_to@example.com"]},
         Message={
             "Subject": {"Data": "test subject"},
             "Body": {"Text": {"Data": "test body"}},
@@ -120,7 +129,7 @@ def test_send_unverified_email_with_chevrons():
     # Sending an email to an unverified source should fail
     with pytest.raises(ClientError) as ex:
         conn.send_email(
-            Source=f"John Smith <foobar@example.com>",  # << Unverified source address
+            Source="John Smith <foobar@example.com>",  # << Unverified source address
             Destination={
                 "ToAddresses": ["blah@example.com"],
                 "CcAddresses": [],
@@ -160,6 +169,101 @@ def test_send_email_invalid_address():
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidParameterValue")
     err["Message"].should.equal("Missing domain")
+
+
+@mock_ses
+def test_send_bulk_templated_email():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        Source="test@example.com",
+        Destinations=[
+            {
+                "Destination": {
+                    "ToAddresses": ["test_to@example.com"],
+                    "CcAddresses": ["test_cc@example.com"],
+                    "BccAddresses": ["test_bcc@example.com"],
+                }
+            },
+            {
+                "Destination": {
+                    "ToAddresses": ["test_to1@example.com"],
+                    "CcAddresses": ["test_cc1@example.com"],
+                    "BccAddresses": ["test_bcc1@example.com"],
+                }
+            },
+        ],
+        Template="test_template",
+        DefaultTemplateData='{"name": "test"}',
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_bulk_templated_email(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Email address not verified test@example.com"
+    )
+
+    conn.verify_domain_identity(Domain="example.com")
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_bulk_templated_email(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+
+    conn.create_template(
+        Template={
+            "TemplateName": "test_template",
+            "SubjectPart": "lalala",
+            "HtmlPart": "",
+            "TextPart": "",
+        }
+    )
+
+    conn.send_bulk_templated_email(**kwargs)
+
+    too_many_destinations = list(
+        {
+            "Destination": {
+                "ToAddresses": ["to%s@example.com" % i],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            }
+        }
+        for i in range(51)
+    )
+
+    with pytest.raises(ClientError) as ex:
+        args = dict(kwargs, Destinations=too_many_destinations)
+        conn.send_bulk_templated_email(**args)
+
+    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
+    ex.value.response["Error"]["Message"].should.equal("Too many destinations.")
+
+    too_many_destinations = list("to%s@example.com" % i for i in range(51))
+
+    with pytest.raises(ClientError) as ex:
+        args = dict(
+            kwargs,
+            Destinations=[
+                {
+                    "Destination": {
+                        "ToAddresses": too_many_destinations,
+                        "CcAddresses": [],
+                        "BccAddresses": [],
+                    }
+                }
+            ],
+        )
+        conn.send_bulk_templated_email(**args)
+
+    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
+    ex.value.response["Error"]["Message"].should.equal("Too many destinations.")
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    sent_count.should.equal(6)
 
 
 @mock_ses
@@ -388,7 +492,7 @@ def test_send_email_notification_with_encoded_sender():
     response = conn.send_email(
         Source=sender,
         Destination={"ToAddresses": ["your.friend@hotmail.com"]},
-        Message={"Subject": {"Data": "hi",}, "Body": {"Text": {"Data": "there",}},},
+        Message={"Subject": {"Data": "hi"}, "Body": {"Text": {"Data": "there"}}},
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
@@ -398,12 +502,16 @@ def test_create_configuration_set():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
 
+    with pytest.raises(ClientError) as ex:
+        conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
+    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetAlreadyExists")
+
     conn.create_configuration_set_event_destination(
         ConfigurationSetName="test",
         EventDestination={
             "Name": "snsEvent",
             "Enabled": True,
-            "MatchingEventTypes": ["send",],
+            "MatchingEventTypes": ["send"],
             "SNSDestination": {
                 "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
             },
@@ -416,7 +524,7 @@ def test_create_configuration_set():
             EventDestination={
                 "Name": "snsEvent",
                 "Enabled": True,
-                "MatchingEventTypes": ["send",],
+                "MatchingEventTypes": ["send"],
                 "SNSDestination": {
                     "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
                 },
@@ -431,7 +539,7 @@ def test_create_configuration_set():
             EventDestination={
                 "Name": "snsEvent",
                 "Enabled": True,
-                "MatchingEventTypes": ["send",],
+                "MatchingEventTypes": ["send"],
                 "SNSDestination": {
                     "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
                 },
@@ -439,6 +547,25 @@ def test_create_configuration_set():
         )
 
     ex.value.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
+
+
+@mock_ses
+def test_describe_configuration_set():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    name = "test"
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": name}))
+
+    with pytest.raises(ClientError) as ex:
+        conn.describe_configuration_set(
+            ConfigurationSetName="failtest",
+        )
+    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
+
+    config_set = conn.describe_configuration_set(
+        ConfigurationSetName=name,
+    )
+    config_set["ConfigurationSet"]["Name"].should.equal(name)
 
 
 @mock_ses
@@ -1129,7 +1256,7 @@ def test_render_template():
     result["RenderedTemplate"].should.contain("Your favorite animal is Lion")
 
     kwargs = dict(
-        TemplateName="MyTestTemplate", TemplateData=json.dumps({"name": "John"}),
+        TemplateName="MyTestTemplate", TemplateData=json.dumps({"name": "John"})
     )
 
     with pytest.raises(ClientError) as ex:
@@ -1197,7 +1324,7 @@ def test_get_send_statistics():
 
     kwargs = dict(
         Source="test@example.com",
-        Destination={"ToAddresses": ["test_to@example.com"],},
+        Destination={"ToAddresses": ["test_to@example.com"]},
         Message={
             "Subject": {"Data": "test subject"},
             "Body": {"Html": {"Data": "<span>test body</span>"}},
@@ -1222,7 +1349,7 @@ def test_get_send_statistics():
             "Subject": {"Data": "test subject"},
             "Body": {"Text": {"Data": "test body"}},
         },
-        Destination={"ToAddresses": ["test_to@example.com"],},
+        Destination={"ToAddresses": ["test_to@example.com"]},
     )
 
     # tests to delivery attempts in get_send_statistics
@@ -1331,3 +1458,23 @@ def test_get_identity_mail_from_domain_attributes():
     attributes["MailFromDomainAttributes"].should.have.length_of(2)
     attributes["MailFromDomainAttributes"]["bar@foo.com"].should.have.length_of(1)
     attributes["MailFromDomainAttributes"]["lorem.com"].should.have.length_of(1)
+
+
+@mock_ses
+def test_get_identity_verification_attributes():
+    conn = boto3.client("ses", region_name="eu-central-1")
+
+    conn.verify_email_identity(EmailAddress="foo@bar.com")
+    conn.verify_domain_identity(Domain="foo.com")
+
+    attributes = conn.get_identity_verification_attributes(
+        Identities=["foo.com", "foo@bar.com", "bar@bar.com"]
+    )
+
+    attributes["VerificationAttributes"].should.have.length_of(2)
+    attributes["VerificationAttributes"]["foo.com"]["VerificationStatus"].should.equal(
+        "Success"
+    )
+    attributes["VerificationAttributes"]["foo@bar.com"][
+        "VerificationStatus"
+    ].should.equal("Success")

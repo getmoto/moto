@@ -32,10 +32,10 @@ install_requires = [
     "cryptography>=3.3.1",
     "requests>=2.5",
     "xmltodict",
-    "werkzeug",
+    "werkzeug>=0.5,!=2.2.0,!=2.2.1",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
-    "responses>=0.9.0",
+    "responses>=0.13.0",
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
     "Jinja2>=2.10.1",
     "importlib_metadata ; python_version < '3.8'",
@@ -52,8 +52,10 @@ _dep_graphql = "graphql-core"
 _dep_jsondiff = "jsondiff>=1.1.2"
 _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
 _dep_idna = "idna<4,>=2.5"
-_dep_cfn_lint = "cfn-lint>=0.4.0"
+_dep_cfn_lint = "cfn-lint>=0.40.0"
 _dep_sshpubkeys = "sshpubkeys>=3.1.0"
+_dep_openapi = "openapi-spec-validator>=0.2.8"
+_dep_pyparsing = "pyparsing>=3.0.7"
 _setuptools = "setuptools"
 
 all_extra_deps = [
@@ -67,9 +69,11 @@ all_extra_deps = [
     _dep_idna,
     _dep_cfn_lint,
     _dep_sshpubkeys,
+    _dep_pyparsing,
+    _dep_openapi,
     _setuptools,
 ]
-all_server_deps = all_extra_deps + ["flask", "flask-cors"]
+all_server_deps = all_extra_deps + ["flask!=2.2.0,!=2.2.1", "flask-cors"]
 
 extras_per_service = {}
 for service_name in [
@@ -80,14 +84,14 @@ for service_name in [
     extras_per_service[service_name] = []
 extras_per_service.update(
     {
-        "apigateway": [_dep_PyYAML, _dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "apigateway": [_dep_PyYAML, _dep_python_jose, _dep_python_jose_ecdsa_pin, _dep_openapi],
         "apigatewayv2": [_dep_PyYAML],
         "appsync": [_dep_graphql],
         "awslambda": [_dep_docker],
         "batch": [_dep_docker],
-        "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
         "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
         "ec2": [_dep_sshpubkeys],
+        "glue": [_dep_pyparsing],
         "iotdata": [_dep_jsondiff],
         "s3": [_dep_PyYAML],
         "ses": [],
@@ -102,13 +106,18 @@ extras_per_service.update(
 )
 
 # When a Table has a Stream, we'll always need to import AWSLambda to search for a corresponding function to send the table data to
-extras_per_service["dynamodb2"] = extras_per_service["awslambda"]
+extras_per_service["dynamodb"] = extras_per_service["awslambda"]
+extras_per_service["dynamodb2"] = extras_per_service["dynamodb"]
 extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
+# EBS depends on EC2 to create snapshots
+extras_per_service["ebs"] = extras_per_service["ec2"]
 # EFS depends on EC2 to find subnets etc
 extras_per_service["efs"] = extras_per_service["ec2"]
 # DirectoryService needs EC2 to verify VPCs and subnets.
 extras_per_service["ds"] = extras_per_service["ec2"]
 extras_per_service["route53resolver"] = extras_per_service["ec2"]
+# CloudFormation imports everything, so install everything
+extras_per_service["cloudformation"] = all_extra_deps
 extras_require = {
     "all": all_extra_deps,
     "server": all_server_deps,
@@ -133,7 +142,7 @@ setup(
     install_requires=install_requires,
     extras_require=extras_require,
     include_package_data=True,
-    license="Apache",
+    license="Apache License 2.0",
     test_suite="tests",
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -142,8 +151,13 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],
-    project_urls={"Documentation": "http://docs.getmoto.org/en/latest/"},
+    project_urls={
+        "Documentation": "http://docs.getmoto.org/en/latest/",
+        "Issue tracker": "https://github.com/spulec/moto/issues",
+        "Changelog": "https://github.com/spulec/moto/blob/master/CHANGELOG.md"
+    },
 )

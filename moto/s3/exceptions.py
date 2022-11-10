@@ -524,7 +524,7 @@ class InvalidContinuationToken(S3ClientError):
 
 
 class InvalidObjectState(BucketError):
-    code = 400
+    code = 403
 
     def __init__(self, storage_class, **kwargs):
         kwargs.setdefault("template", "storage_error")
@@ -602,9 +602,7 @@ class InvalidTagError(S3ClientError):
     code = 400
 
     def __init__(self, value, *args, **kwargs):
-        super().__init__(
-            "InvalidTag", value, *args, **kwargs,
-        )
+        super().__init__("InvalidTag", value, *args, **kwargs)
 
 
 class ObjectLockConfigurationNotFoundError(S3ClientError):

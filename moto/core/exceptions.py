@@ -1,5 +1,6 @@
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
+from typing import Any, Optional
 import json
 
 # TODO: add "<Type>Sender</Type>" to error responses below?
@@ -49,7 +50,9 @@ class RESTError(HTTPException):
         "error": ERROR_RESPONSE,
     }
 
-    def __init__(self, error_type, message, template="error", **kwargs):
+    def __init__(
+        self, error_type: str, message: str, template: str = "error", **kwargs: Any
+    ):
         super().__init__()
         self.error_type = error_type
         self.message = message
@@ -64,13 +67,13 @@ class RESTError(HTTPException):
             )
             self.content_type = "application/xml"
 
-    def get_headers(self, *args, **kwargs):
+    def get_headers(self, *args, **kwargs):  # pylint: disable=unused-argument
         return {
             "X-Amzn-ErrorType": self.error_type or "UnknownError",
             "Content-Type": self.content_type,
         }
 
-    def get_body(self, *args, **kwargs):
+    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
         return self.description
 
 
@@ -79,14 +82,16 @@ class DryRunClientError(RESTError):
 
 
 class JsonRESTError(RESTError):
-    def __init__(self, error_type, message, template="error_json", **kwargs):
+    def __init__(
+        self, error_type: str, message: str, template: str = "error_json", **kwargs: Any
+    ):
         super().__init__(error_type, message, template, **kwargs)
         self.description = json.dumps(
             {"__type": self.error_type, "message": self.message}
         )
         self.content_type = "application/json"
 
-    def get_body(self, *args, **kwargs):
+    def get_body(self, *args, **kwargs) -> str:
         return self.description
 
 
@@ -132,20 +137,15 @@ class AuthFailureError(RESTError):
         )
 
 
-class AWSError(Exception):
-    TYPE = None
+class AWSError(JsonRESTError):
+    TYPE: Optional[str] = None
     STATUS = 400
 
-    def __init__(self, message, exception_type=None, status=None):
-        self.message = message
-        self.type = exception_type or self.TYPE
-        self.status = status or self.STATUS
-
-    def response(self):
-        return (
-            json.dumps({"__type": self.type, "message": self.message}),
-            dict(status=self.status),
-        )
+    def __init__(
+        self, message: str, exception_type: str = None, status: Optional[int] = None
+    ):
+        super().__init__(exception_type or self.TYPE, message)
+        self.code = status or self.STATUS
 
 
 class InvalidNextTokenException(JsonRESTError):
@@ -160,8 +160,7 @@ class InvalidNextTokenException(JsonRESTError):
 
 
 class InvalidToken(AWSError):
-    TYPE = "InvalidToken"
-    STATUS = 400
+    code = 400
 
     def __init__(self, message="Invalid token"):
-        super().__init__("Invalid Token: {}".format(message))
+        super().__init__("Invalid Token: {}".format(message), "InvalidToken")

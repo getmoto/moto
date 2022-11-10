@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class AmisResponse(BaseResponse):
+class AmisResponse(EC2BaseResponse):
     def create_image(self):
         name = self.querystring.get("Name")[0]
         description = self._get_param("Description", if_none="")
@@ -13,7 +12,6 @@ class AmisResponse(BaseResponse):
                 instance_id,
                 name,
                 description,
-                context=self,
                 tag_specifications=tag_specifications,
             )
             template = self.response_template(CREATE_IMAGE_RESPONSE)
@@ -41,15 +39,11 @@ class AmisResponse(BaseResponse):
     def describe_images(self):
         self.error_on_dryrun()
         ami_ids = self._get_multi_param("ImageId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         owners = self._get_multi_param("Owner")
         exec_users = self._get_multi_param("ExecutableBy")
         images = self.ec2_backend.describe_images(
-            ami_ids=ami_ids,
-            filters=filters,
-            exec_users=exec_users,
-            owners=owners,
-            context=self,
+            ami_ids=ami_ids, filters=filters, exec_users=exec_users, owners=owners
         )
         template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)

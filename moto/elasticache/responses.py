@@ -6,10 +6,13 @@ from .models import elasticache_backends
 class ElastiCacheResponse(BaseResponse):
     """Handler for ElastiCache requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="elasticache")
+
     @property
     def elasticache_backend(self):
         """Return backend instance specific for this region."""
-        return elasticache_backends[self.region]
+        return elasticache_backends[self.current_account][self.region]
 
     def create_user(self):
         params = self._get_params()

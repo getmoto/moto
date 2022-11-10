@@ -1,0 +1,49 @@
+From 01a50d07400ee7513b31ec10e9832a2d8290b4e2 Mon Sep 17 00:00:00 2001
+From: Bert Blommers <info@bertblommers.nl>
+Date: Sat, 22 Oct 2022 13:25:17 +0000
+Subject: [PATCH] Patch: Comprehend timings
+
+---
+ internal/service/comprehend/common_model.go |  2 +-
+ internal/service/comprehend/consts.go       | 12 ++++++------
+ 2 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/internal/service/comprehend/common_model.go b/internal/service/comprehend/common_model.go
+index 034314bdcc..03a29aa3c2 100644
+--- a/internal/service/comprehend/common_model.go
++++ b/internal/service/comprehend/common_model.go
+@@ -60,7 +60,7 @@ func waitNetworkInterfaceCreated(ctx context.Context, conn *ec2.EC2, initialENII
+ 		Pending:    []string{},
+ 		Target:     []string{ec2.NetworkInterfaceStatusInUse},
+ 		Refresh:    statusNetworkInterfaces(ctx, conn, initialENIIds, securityGroups, subnets),
+-		Delay:      4 * time.Minute,
++		Delay:      4 * time.Second,
+ 		MinTimeout: 10 * time.Second,
+ 		Timeout:    timeout,
+ 	}
+diff --git a/internal/service/comprehend/consts.go b/internal/service/comprehend/consts.go
+index e57884a12d..df5fd0678b 100644
+--- a/internal/service/comprehend/consts.go
++++ b/internal/service/comprehend/consts.go
+@@ -7,12 +7,12 @@ import (
+ const iamPropagationTimeout = 2 * time.Minute
+
+ // Avoid service throttling
+-const entityRegcognizerCreatedDelay = 10 * time.Minute
++const entityRegcognizerCreatedDelay = 10 * time.Second
+ const entityRegcognizerStoppedDelay = 0
+-const entityRegcognizerDeletedDelay = 5 * time.Minute
+-const entityRegcognizerPollInterval = 1 * time.Minute
++const entityRegcognizerDeletedDelay = 5 * time.Second
++const entityRegcognizerPollInterval = 1 * time.Second
+
+-const documentClassifierCreatedDelay = 15 * time.Minute
++const documentClassifierCreatedDelay = 15 * time.Second
+ const documentClassifierStoppedDelay = 0
+-const documentClassifierDeletedDelay = 5 * time.Minute
+-const documentClassifierPollInterval = 1 * time.Minute
++const documentClassifierDeletedDelay = 5 * time.Second
++const documentClassifierPollInterval = 1 * time.Second
+-- 
+2.25.1
+

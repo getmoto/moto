@@ -1,46 +1,51 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import budgets_backend
+from .models import budgets_backends, BudgetsBackend
 
 
 class BudgetsResponse(BaseResponse):
-    def create_budget(self):
+    def __init__(self) -> None:
+        super().__init__(service_name="budgets")
+
+    @property
+    def backend(self) -> BudgetsBackend:
+        return budgets_backends[self.current_account]["global"]
+
+    def create_budget(self) -> str:
         account_id = self._get_param("AccountId")
         budget = self._get_param("Budget")
         notifications = self._get_param("NotificationsWithSubscribers", [])
-        budgets_backend.create_budget(
+        self.backend.create_budget(
             account_id=account_id, budget=budget, notifications=notifications
         )
         return json.dumps(dict())
 
-    def describe_budget(self):
+    def describe_budget(self) -> str:
         account_id = self._get_param("AccountId")
         budget_name = self._get_param("BudgetName")
-        budget = budgets_backend.describe_budget(
+        budget = self.backend.describe_budget(
             account_id=account_id, budget_name=budget_name
         )
         return json.dumps(dict(Budget=budget))
 
-    def describe_budgets(self):
+    def describe_budgets(self) -> str:
         account_id = self._get_param("AccountId")
-        budgets = budgets_backend.describe_budgets(account_id=account_id)
+        budgets = self.backend.describe_budgets(account_id=account_id)
         return json.dumps(dict(Budgets=budgets, nextToken=None))
 
-    def delete_budget(self):
+    def delete_budget(self) -> str:
         account_id = self._get_param("AccountId")
         budget_name = self._get_param("BudgetName")
-        budgets_backend.delete_budget(
-            account_id=account_id, budget_name=budget_name,
-        )
+        self.backend.delete_budget(account_id=account_id, budget_name=budget_name)
         return json.dumps(dict())
 
-    def create_notification(self):
+    def create_notification(self) -> str:
         account_id = self._get_param("AccountId")
         budget_name = self._get_param("BudgetName")
         notification = self._get_param("Notification")
         subscribers = self._get_param("Subscribers")
-        budgets_backend.create_notification(
+        self.backend.create_notification(
             account_id=account_id,
             budget_name=budget_name,
             notification=notification,
@@ -48,19 +53,19 @@ class BudgetsResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def delete_notification(self):
+    def delete_notification(self) -> str:
         account_id = self._get_param("AccountId")
         budget_name = self._get_param("BudgetName")
         notification = self._get_param("Notification")
-        budgets_backend.delete_notification(
-            account_id=account_id, budget_name=budget_name, notification=notification,
+        self.backend.delete_notification(
+            account_id=account_id, budget_name=budget_name, notification=notification
         )
         return json.dumps(dict())
 
-    def describe_notifications_for_budget(self):
+    def describe_notifications_for_budget(self) -> str:
         account_id = self._get_param("AccountId")
         budget_name = self._get_param("BudgetName")
-        notifications = budgets_backend.describe_notifications_for_budget(
-            account_id=account_id, budget_name=budget_name,
+        notifications = self.backend.describe_notifications_for_budget(
+            account_id=account_id, budget_name=budget_name
         )
         return json.dumps(dict(Notifications=notifications, NextToken=None))

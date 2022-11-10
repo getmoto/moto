@@ -12,6 +12,8 @@
 events
 ======
 
+.. autoclass:: moto.events.models.EventsBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -30,6 +32,7 @@ events
 - [X] create_api_destination
   
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateApiDestination.html
 
@@ -39,6 +42,7 @@ events
 
 - [X] create_archive
 - [X] create_connection
+- [ ] create_endpoint
 - [X] create_event_bus
 - [ ] create_partner_event_source
 - [ ] deactivate_event_source
@@ -46,6 +50,7 @@ events
 - [X] delete_api_destination
   
         Deletes the specified API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteApiDestination.html
 
@@ -64,6 +69,7 @@ events
 - [X] delete_connection
   
         Deletes a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteConnection.html
 
@@ -77,12 +83,14 @@ events
             dict
         
 
+- [ ] delete_endpoint
 - [X] delete_event_bus
 - [ ] delete_partner_event_source
 - [X] delete_rule
 - [X] describe_api_destination
   
         Retrieves details about an API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
         Args:
@@ -96,6 +104,7 @@ events
 - [X] describe_connection
   
         Retrieves details about a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeConnection.html
 
@@ -109,6 +118,7 @@ events
             dict
         
 
+- [ ] describe_endpoint
 - [X] describe_event_bus
 - [ ] describe_event_source
 - [ ] describe_partner_event_source
@@ -119,6 +129,7 @@ events
 - [X] list_api_destinations
 - [X] list_archives
 - [X] list_connections
+- [ ] list_endpoints
 - [X] list_event_buses
 - [ ] list_event_sources
 - [ ] list_partner_event_source_accounts
@@ -142,6 +153,7 @@ events
 - [X] update_api_destination
   
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UpdateApiDestination.html
 
@@ -151,4 +163,5 @@ events
 
 - [X] update_archive
 - [X] update_connection
+- [ ] update_endpoint
 

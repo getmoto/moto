@@ -100,7 +100,7 @@ apigateway
 - [X] get_request_validator
 - [X] get_request_validators
 - [X] get_resource
-- [ ] get_resources
+- [X] get_resources
 - [X] get_rest_api
 - [ ] get_rest_apis
 - [ ] get_sdk
@@ -122,13 +122,21 @@ apigateway
 
 - [ ] import_api_keys
 - [ ] import_documentation_parts
-- [ ] import_rest_api
+- [X] import_rest_api
+  
+        Only a subset of the OpenAPI spec 3.x is currently implemented.
+        
+
 - [X] put_gateway_response
 - [X] put_integration
 - [X] put_integration_response
 - [X] put_method
 - [X] put_method_response
-- [ ] put_rest_api
+- [X] put_rest_api
+  
+        Only a subset of the OpenAPI spec 3.x is currently implemented.
+        
+
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
 - [ ] test_invoke_method
@@ -141,12 +149,12 @@ apigateway
 - [ ] update_deployment
 - [ ] update_documentation_part
 - [ ] update_documentation_version
-- [X] update_domain_name
+- [ ] update_domain_name
 - [ ] update_gateway_response
 - [ ] update_integration
 - [ ] update_integration_response
-- [X] update_method
-- [X] update_method_response
+- [ ] update_method
+- [ ] update_method_response
 - [ ] update_model
 - [X] update_request_validator
 - [ ] update_resource

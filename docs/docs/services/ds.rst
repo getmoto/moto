@@ -70,9 +70,11 @@ ds
 - [ ] describe_event_topics
 - [ ] describe_ldaps_settings
 - [ ] describe_regions
+- [ ] describe_settings
 - [ ] describe_shared_directories
 - [ ] describe_snapshots
 - [ ] describe_trusts
+- [ ] describe_update_directory
 - [ ] disable_client_authentication
 - [ ] disable_ldaps
 - [ ] disable_radius
@@ -110,8 +112,10 @@ ds
 - [ ] start_schema_extension
 - [ ] unshare_directory
 - [ ] update_conditional_forwarder
+- [ ] update_directory_setup
 - [ ] update_number_of_domain_controllers
 - [ ] update_radius
+- [ ] update_settings
 - [ ] update_trust
 - [ ] verify_trust
 

@@ -12,12 +12,13 @@ DEFAULT_CONTAINER_PROVIDER_TYPE = "EKS"
 class EMRContainersResponse(BaseResponse):
     """Handler for EMRContainers requests and responses."""
 
-    SERVICE_NAME = "emr-containers"
+    def __init__(self):
+        super().__init__(service_name="emr-containers")
 
     @property
     def emrcontainers_backend(self):
         """Return backend instance specific for this region."""
-        return emrcontainers_backends[self.region]
+        return emrcontainers_backends[self.current_account][self.region]
 
     def create_virtual_cluster(self):
         name = self._get_param("name")
@@ -101,7 +102,7 @@ class EMRContainersResponse(BaseResponse):
         virtual_cluster_id = self._get_param("virtualClusterId")
 
         job = self.emrcontainers_backend.cancel_job_run(
-            job_id=job_id, virtual_cluster_id=virtual_cluster_id,
+            job_id=job_id, virtual_cluster_id=virtual_cluster_id
         )
         return 200, {}, json.dumps(dict(job))
 
@@ -132,7 +133,7 @@ class EMRContainersResponse(BaseResponse):
         virtual_cluster_id = self._get_param("virtualClusterId")
 
         job_run = self.emrcontainers_backend.describe_job_run(
-            job_id=job_id, virtual_cluster_id=virtual_cluster_id,
+            job_id=job_id, virtual_cluster_id=virtual_cluster_id
         )
 
         response = {"jobRun": job_run}

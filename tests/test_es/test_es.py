@@ -66,14 +66,14 @@ def test_create_elasticsearch_domain():
             "Iops": 1,
         },
         AccessPolicies="some unvalidated accesspolicy",
-        SnapshotOptions={"AutomatedSnapshotStartHour": 1,},
+        SnapshotOptions={"AutomatedSnapshotStartHour": 1},
         VPCOptions={"SubnetIds": ["s1"], "SecurityGroupIds": ["sg1"]},
         CognitoOptions={"Enabled": False},
         EncryptionAtRestOptions={"Enabled": False},
         NodeToNodeEncryptionOptions={"Enabled": False},
         AdvancedOptions={"option": "value"},
         LogPublishingOptions={"log1": {"Enabled": False}},
-        DomainEndpointOptions={"EnforceHTTPS": True, "CustomEndpointEnabled": False,},
+        DomainEndpointOptions={"EnforceHTTPS": True, "CustomEndpointEnabled": False},
         AdvancedSecurityOptions={"Enabled": False},
         AutoTuneOptions={"DesiredState": "ENABLED"},
     )
@@ -176,7 +176,7 @@ def test_describe_invalid_domain():
     meta["HTTPStatusCode"].should.equal(400)
     err = exc.value.response["Error"]
     err["Message"].should.equal(
-        f"1 validation error detected: Value 'moto.org' at 'domainName' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-z][a-z0-9\\-]+"
+        "1 validation error detected: Value 'moto.org' at 'domainName' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-z][a-z0-9\\-]+"
     )
     err["Code"].should.equal("ValidationException")
 

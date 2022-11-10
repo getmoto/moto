@@ -5,6 +5,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, settings
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest import SkipTest
 
 
@@ -147,7 +148,7 @@ def test_describe_vpc_endpoint_services_filters():
     """Verify that different type of filters return the expected results."""
     from moto.ec2.models import ec2_backends  # pylint: disable=import-outside-toplevel
 
-    ec2_backend = ec2_backends["us-west-1"]
+    ec2_backend = ec2_backends[ACCOUNT_ID]["us-west-1"]
     test_data = fake_endpoint_services()
 
     # Allow access to _filter_endpoint_services as it provides the best
@@ -156,7 +157,7 @@ def test_describe_vpc_endpoint_services_filters():
 
     # Test a service name filter, using s3 as the service name.
     filtered_services = ec2_backend._filter_endpoint_services(
-        ["com.amazonaws.us-west-1.s3"], [], test_data,
+        ["com.amazonaws.us-west-1.s3"], [], test_data
     )
     assert len(filtered_services) == 2
     validate_s3_service_endpoint_gateway(filtered_services[0])
@@ -164,14 +165,14 @@ def test_describe_vpc_endpoint_services_filters():
 
     # Test a service type filter.
     filtered_services = ec2_backend._filter_endpoint_services(
-        [], [{"Name": "service-type", "Value": ["Gateway"]}], test_data,
+        [], [{"Name": "service-type", "Value": ["Gateway"]}], test_data
     )
     assert len(filtered_services) == 1
     validate_s3_service_endpoint_gateway(filtered_services[0])
 
     # Test a tag key/value filter.
     filtered_services = ec2_backend._filter_endpoint_services(
-        [], [{"Name": "tag-key", "Value": ["Name"]}], test_data,
+        [], [{"Name": "tag-key", "Value": ["Name"]}], test_data
     )
     assert len(filtered_services) == 2
     validate_s3_service_endpoint_gateway(filtered_services[0])
@@ -179,7 +180,7 @@ def test_describe_vpc_endpoint_services_filters():
 
     # Test a tag key filter.
     filtered_services = ec2_backend._filter_endpoint_services(
-        [], [{"Name": "tag:Environ", "Value": ["test"]}], test_data,
+        [], [{"Name": "tag:Environ", "Value": ["test"]}], test_data
     )
     assert len(filtered_services) == 1
     validate_s3_service_endpoint_interface(filtered_services[0])

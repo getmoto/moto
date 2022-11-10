@@ -1,6 +1,6 @@
 import boto3
 
-import sure  # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 

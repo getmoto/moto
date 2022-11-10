@@ -40,7 +40,7 @@ s3
 - [ ] delete_bucket_inventory_configuration
 - [X] delete_bucket_lifecycle
 - [ ] delete_bucket_metrics_configuration
-- [ ] delete_bucket_ownership_controls
+- [X] delete_bucket_ownership_controls
 - [X] delete_bucket_policy
 - [X] delete_bucket_replication
 - [X] delete_bucket_tagging
@@ -63,7 +63,7 @@ s3
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification
 - [X] get_bucket_notification_configuration
-- [ ] get_bucket_ownership_controls
+- [X] get_bucket_ownership_controls
 - [X] get_bucket_policy
 - [ ] get_bucket_policy_status
 - [X] get_bucket_replication
@@ -102,15 +102,31 @@ s3
 - [X] put_bucket_lifecycle
 - [ ] put_bucket_lifecycle_configuration
 - [X] put_bucket_logging
+  
+        The logging functionality itself is not yet implemented - we only store the configuration for now.
+        
+
 - [ ] put_bucket_metrics_configuration
 - [ ] put_bucket_notification
 - [X] put_bucket_notification_configuration
-- [ ] put_bucket_ownership_controls
+  
+        The configuration can be persisted, but at the moment we only send notifications to the following targets:
+
+         - AWSLambda
+         - SQS
+
+        For the following events:
+
+         - 's3:ObjectCreated:Copy'
+         - 's3:ObjectCreated:Put'
+        
+
+- [X] put_bucket_ownership_controls
 - [X] put_bucket_policy
 - [X] put_bucket_replication
 - [ ] put_bucket_request_payment
 - [X] put_bucket_tagging
-- [ ] put_bucket_versioning
+- [X] put_bucket_versioning
 - [ ] put_bucket_website
 - [X] put_object
 - [X] put_object_acl

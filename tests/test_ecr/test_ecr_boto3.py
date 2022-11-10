@@ -17,12 +17,12 @@ from dateutil.tz import tzlocal
 from moto import mock_ecr
 from unittest import SkipTest
 
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 def _create_image_digest(contents=None):
     if not contents:
-        contents = "docker_image{0}".format(int(random() * 10 ** 6))
+        contents = "docker_image{0}".format(int(random() * 10**6))
     return "sha256:%s" % hashlib.sha256(contents.encode("utf-8")).hexdigest()
 
 
@@ -396,7 +396,7 @@ def test_put_image_with_push_date():
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
-            imageTag="latest",
+            imageTag="first",
         )
 
     with freeze_time("2019-05-31 00:00:00"):
@@ -404,7 +404,7 @@ def test_put_image_with_push_date():
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
-            imageTag="latest",
+            imageTag="second",
         )
 
     describe_response = client.describe_images(repositoryName="test_repository")
@@ -459,6 +459,46 @@ def test_put_image_with_multiple_tags():
 
     len(response2["imageDetails"][0]["imageTags"]).should.be(2)
     response2["imageDetails"][0]["imageTags"].should.be.equal(["v1", "latest"])
+
+
+@mock_ecr
+def test_put_multiple_images_with_same_tag():
+    repo_name = "testrepo"
+    image_tag = "my-tag"
+
+    client = boto3.client("ecr", "us-east-1")
+    client.create_repository(repositoryName=repo_name)
+
+    image_1 = client.put_image(
+        repositoryName=repo_name,
+        imageTag=image_tag,
+        imageManifest=json.dumps(_create_image_manifest()),
+    )["image"]["imageId"]["imageDigest"]
+
+    # We should overwrite the first image
+    image_2 = client.put_image(
+        repositoryName=repo_name,
+        imageTag=image_tag,
+        imageManifest=json.dumps(_create_image_manifest()),
+    )["image"]["imageId"]["imageDigest"]
+
+    assert image_1 != image_2
+
+    images = client.describe_images(repositoryName=repo_name)["imageDetails"]
+
+    images.should.have.length_of(1)
+    images[0]["imageDigest"].should.equal(image_2)
+
+    # Image with different tags are allowed
+    image_3 = client.put_image(
+        repositoryName=repo_name,
+        imageTag="different-tag",
+        imageManifest=json.dumps(_create_image_manifest()),
+    )["image"]["imageId"]["imageDigest"]
+
+    images = client.describe_images(repositoryName=repo_name)["imageDetails"]
+    images.should.have.length_of(2)
+    set([img["imageDigest"] for img in images]).should.equal({image_2, image_3})
 
 
 @mock_ecr
@@ -1250,12 +1290,46 @@ def test_batch_delete_image_with_mismatched_digest_and_tag():
 
 
 @mock_ecr
+def test_delete_batch_image_with_multiple_images():
+    client = boto3.client("ecr", region_name="us-east-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+
+    # Populate mock repo with images
+    for i in range(10):
+        client.put_image(
+            repositoryName=repo_name, imageManifest=f"manifest{i}", imageTag=f"tag{i}"
+        )
+
+    # Pull down image digests for each image in the mock repo
+    repo_images = client.describe_images(repositoryName=repo_name)["imageDetails"]
+    image_digests = [{"imageDigest": image["imageDigest"]} for image in repo_images]
+
+    # Pick a couple of images to delete
+    images_to_delete = image_digests[5:7]
+
+    # Delete the images
+    response = client.batch_delete_image(
+        repositoryName=repo_name, imageIds=images_to_delete
+    )
+    response["imageIds"].should.have.length_of(2)
+    response["failures"].should.equal([])
+
+    # Verify other images still exist
+    repo_images = client.describe_images(repositoryName=repo_name)["imageDetails"]
+    image_tags = [img["imageTags"][0] for img in repo_images]
+    image_tags.should.equal(
+        ["tag0", "tag1", "tag2", "tag3", "tag4", "tag7", "tag8", "tag9"]
+    )
+
+
+@mock_ecr
 def test_list_tags_for_resource():
     # given
     client = boto3.client("ecr", region_name="eu-central-1")
     repo_name = "test-repo"
     arn = client.create_repository(
-        repositoryName=repo_name, tags=[{"Key": "key-1", "Value": "value-1"}],
+        repositoryName=repo_name, tags=[{"Key": "key-1", "Value": "value-1"}]
     )["repository"]["repositoryArn"]
 
     # when
@@ -1297,7 +1371,7 @@ def test_list_tags_for_resource_error_invalid_param():
 
     # when
     with pytest.raises(ClientError) as e:
-        client.list_tags_for_resource(resourceArn="invalid",)
+        client.list_tags_for_resource(resourceArn="invalid")
 
     # then
     ex = e.value
@@ -1316,7 +1390,7 @@ def test_tag_resource():
     client = boto3.client("ecr", region_name="eu-central-1")
     repo_name = "test-repo"
     arn = client.create_repository(
-        repositoryName=repo_name, tags=[{"Key": "key-1", "Value": "value-1"}],
+        repositoryName=repo_name, tags=[{"Key": "key-1", "Value": "value-1"}]
     )["repository"]["repositoryArn"]
 
     # when
@@ -1418,7 +1492,7 @@ def test_put_image_tag_mutability():
 
     # when
     response = client.put_image_tag_mutability(
-        repositoryName=repo_name, imageTagMutability="IMMUTABLE",
+        repositoryName=repo_name, imageTagMutability="IMMUTABLE"
     )
 
     # then
@@ -1440,7 +1514,7 @@ def test_put_image_tag_mutability_error_not_exists():
     # when
     with pytest.raises(ClientError) as e:
         client.put_image_tag_mutability(
-            repositoryName=repo_name, imageTagMutability="IMMUTABLE",
+            repositoryName=repo_name, imageTagMutability="IMMUTABLE"
         )
 
     # then
@@ -1465,7 +1539,7 @@ def test_put_image_tag_mutability_error_invalid_param():
     # when
     with pytest.raises(ClientError) as e:
         client.put_image_tag_mutability(
-            repositoryName=repo_name, imageTagMutability="invalid",
+            repositoryName=repo_name, imageTagMutability="invalid"
         )
 
     # then
@@ -1517,7 +1591,7 @@ def test_put_image_scanning_configuration_error_not_exists():
     # when
     with pytest.raises(ClientError) as e:
         client.put_image_scanning_configuration(
-            repositoryName=repo_name, imageScanningConfiguration={"scanOnPush": True},
+            repositoryName=repo_name, imageScanningConfiguration={"scanOnPush": True}
         )
 
     # then
@@ -1551,7 +1625,7 @@ def test_set_repository_policy():
 
     # when
     response = client.set_repository_policy(
-        repositoryName=repo_name, policyText=json.dumps(policy),
+        repositoryName=repo_name, policyText=json.dumps(policy)
     )
 
     # then
@@ -1581,7 +1655,7 @@ def test_set_repository_policy_error_not_exists():
     # when
     with pytest.raises(ClientError) as e:
         client.set_repository_policy(
-            repositoryName=repo_name, policyText=json.dumps(policy),
+            repositoryName=repo_name, policyText=json.dumps(policy)
         )
 
     # then
@@ -1610,7 +1684,7 @@ def test_set_repository_policy_error_invalid_param():
     # when
     with pytest.raises(ClientError) as e:
         client.set_repository_policy(
-            repositoryName=repo_name, policyText=json.dumps(policy),
+            repositoryName=repo_name, policyText=json.dumps(policy)
         )
 
     # then
@@ -1642,7 +1716,7 @@ def test_get_repository_policy():
         ],
     }
     client.set_repository_policy(
-        repositoryName=repo_name, policyText=json.dumps(policy),
+        repositoryName=repo_name, policyText=json.dumps(policy)
     )
 
     # when
@@ -1718,7 +1792,7 @@ def test_delete_repository_policy():
         ],
     }
     client.set_repository_policy(
-        repositoryName=repo_name, policyText=json.dumps(policy),
+        repositoryName=repo_name, policyText=json.dumps(policy)
     )
 
     # when
@@ -1806,7 +1880,7 @@ def test_put_lifecycle_policy():
 
     # when
     response = client.put_lifecycle_policy(
-        repositoryName=repo_name, lifecyclePolicyText=json.dumps(policy),
+        repositoryName=repo_name, lifecyclePolicyText=json.dumps(policy)
     )
 
     # then
@@ -1874,7 +1948,7 @@ def test_get_lifecycle_policy():
         ]
     }
     client.put_lifecycle_policy(
-        repositoryName=repo_name, lifecyclePolicyText=json.dumps(policy),
+        repositoryName=repo_name, lifecyclePolicyText=json.dumps(policy)
     )
 
     # when
@@ -1954,7 +2028,7 @@ def test_delete_lifecycle_policy():
         ]
     }
     client.put_lifecycle_policy(
-        repositoryName=repo_name, lifecyclePolicyText=json.dumps(policy),
+        repositoryName=repo_name, lifecyclePolicyText=json.dumps(policy)
     )
 
     # when
@@ -2019,7 +2093,12 @@ def test_delete_lifecycle_policy_error_policy_not_exists():
 
 
 @mock_ecr
-def test_put_registry_policy():
+@pytest.mark.parametrize(
+    "actions",
+    ["ecr:CreateRepository", ["ecr:CreateRepository", "ecr:ReplicateImage"]],
+    ids=["single-action", "multiple-actions"],
+)
+def test_put_registry_policy(actions):
     # given
     client = boto3.client("ecr", region_name="eu-central-1")
     policy = {
@@ -2030,7 +2109,7 @@ def test_put_registry_policy():
                 "Principal": {
                     "AWS": ["arn:aws:iam::111111111111:root", "222222222222"]
                 },
-                "Action": ["ecr:CreateRepository", "ecr:ReplicateImage"],
+                "Action": actions,
                 "Resource": "*",
             }
         ],
@@ -2355,7 +2434,7 @@ def test_describe_image_scan_findings():
                 "attributes": [
                     {"key": "package_version", "value": "9.9.9"},
                     {"key": "package_name", "value": "moto_fake"},
-                    {"key": "CVSS2_VECTOR", "value": "AV:N/AC:L/Au:N/C:P/I:P/A:P",},
+                    {"key": "CVSS2_VECTOR", "value": "AV:N/AC:L/Au:N/C:P/I:P/A:P"},
                     {"key": "CVSS2_SCORE", "value": "7.5"},
                 ],
             }
@@ -2450,9 +2529,7 @@ def test_put_replication_configuration():
     # given
     client = boto3.client("ecr", region_name="eu-central-1")
     config = {
-        "rules": [
-            {"destinations": [{"region": "eu-west-1", "registryId": ACCOUNT_ID},]},
-        ]
+        "rules": [{"destinations": [{"region": "eu-west-1", "registryId": ACCOUNT_ID}]}]
     }
 
     # when

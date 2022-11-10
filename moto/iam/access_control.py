@@ -22,7 +22,6 @@ from botocore.auth import SigV4Auth, S3SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
 
-from moto.core import ACCOUNT_ID
 from moto.core.exceptions import (
     SignatureDoesNotMatchError,
     AccessDeniedError,
@@ -39,22 +38,28 @@ from moto.s3.exceptions import (
     BucketSignatureDoesNotMatchError,
     S3SignatureDoesNotMatchError,
 )
-from moto.sts import sts_backend
-from .models import iam_backend, Policy
+from moto.sts.models import sts_backends
+from .models import iam_backends, Policy
 
 log = logging.getLogger(__name__)
 
 
-def create_access_key(access_key_id, headers):
+def create_access_key(account_id, access_key_id, headers):
     if access_key_id.startswith("AKIA") or "X-Amz-Security-Token" not in headers:
-        return IAMUserAccessKey(access_key_id, headers)
+        return IAMUserAccessKey(account_id, access_key_id, headers)
     else:
-        return AssumedRoleAccessKey(access_key_id, headers)
+        return AssumedRoleAccessKey(account_id, access_key_id, headers)
 
 
-class IAMUserAccessKey(object):
-    def __init__(self, access_key_id, headers):
-        iam_users = iam_backend.list_users("/", None, None)
+class IAMUserAccessKey:
+    @property
+    def backend(self):
+        return iam_backends[self.account_id]["global"]
+
+    def __init__(self, account_id, access_key_id, headers):
+        self.account_id = account_id
+        iam_users = self.backend.list_users("/", None, None)
+
         for iam_user in iam_users:
             for access_key in iam_user.access_keys:
                 if access_key.access_key_id == access_key_id:
@@ -69,7 +74,7 @@ class IAMUserAccessKey(object):
     @property
     def arn(self):
         return "arn:aws:iam::{account_id}:user/{iam_user_name}".format(
-            account_id=ACCOUNT_ID, iam_user_name=self._owner_user_name
+            account_id=self.account_id, iam_user_name=self._owner_user_name
         )
 
     def create_credentials(self):
@@ -78,28 +83,30 @@ class IAMUserAccessKey(object):
     def collect_policies(self):
         user_policies = []
 
-        inline_policy_names = iam_backend.list_user_policies(self._owner_user_name)
+        inline_policy_names = self.backend.list_user_policies(self._owner_user_name)
         for inline_policy_name in inline_policy_names:
-            inline_policy = iam_backend.get_user_policy(
+            inline_policy = self.backend.get_user_policy(
                 self._owner_user_name, inline_policy_name
             )
             user_policies.append(inline_policy)
 
-        attached_policies, _ = iam_backend.list_attached_user_policies(
+        attached_policies, _ = self.backend.list_attached_user_policies(
             self._owner_user_name
         )
         user_policies += attached_policies
 
-        user_groups = iam_backend.get_groups_for_user(self._owner_user_name)
+        user_groups = self.backend.get_groups_for_user(self._owner_user_name)
         for user_group in user_groups:
-            inline_group_policy_names = iam_backend.list_group_policies(user_group.name)
+            inline_group_policy_names = self.backend.list_group_policies(
+                user_group.name
+            )
             for inline_group_policy_name in inline_group_policy_names:
-                inline_user_group_policy = iam_backend.get_group_policy(
+                inline_user_group_policy = self.backend.get_group_policy(
                     user_group.name, inline_group_policy_name
                 )
                 user_policies.append(inline_user_group_policy)
 
-            attached_group_policies, _ = iam_backend.list_attached_group_policies(
+            attached_group_policies, _ = self.backend.list_attached_group_policies(
                 user_group.name
             )
             user_policies += attached_group_policies
@@ -108,8 +115,13 @@ class IAMUserAccessKey(object):
 
 
 class AssumedRoleAccessKey(object):
-    def __init__(self, access_key_id, headers):
-        for assumed_role in sts_backend.assumed_roles:
+    @property
+    def backend(self):
+        return iam_backends[self.account_id]["global"]
+
+    def __init__(self, account_id, access_key_id, headers):
+        self.account_id = account_id
+        for assumed_role in sts_backends[account_id]["global"].assumed_roles:
             if assumed_role.access_key_id == access_key_id:
                 self._access_key_id = access_key_id
                 self._secret_access_key = assumed_role.secret_access_key
@@ -123,10 +135,12 @@ class AssumedRoleAccessKey(object):
 
     @property
     def arn(self):
-        return "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-            account_id=ACCOUNT_ID,
-            role_name=self._owner_role_name,
-            session_name=self._session_name,
+        return (
+            "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
+                account_id=self.account_id,
+                role_name=self._owner_role_name,
+                session_name=self._session_name,
+            )
         )
 
     def create_credentials(self):
@@ -137,14 +151,14 @@ class AssumedRoleAccessKey(object):
     def collect_policies(self):
         role_policies = []
 
-        inline_policy_names = iam_backend.list_role_policies(self._owner_role_name)
+        inline_policy_names = self.backend.list_role_policies(self._owner_role_name)
         for inline_policy_name in inline_policy_names:
-            _, inline_policy = iam_backend.get_role_policy(
+            _, inline_policy = self.backend.get_role_policy(
                 self._owner_role_name, inline_policy_name
             )
             role_policies.append(inline_policy)
 
-        attached_policies, _ = iam_backend.list_attached_role_policies(
+        attached_policies, _ = self.backend.list_attached_role_policies(
             self._owner_role_name
         )
         role_policies += attached_policies
@@ -159,7 +173,7 @@ class CreateAccessKeyFailure(Exception):
 
 
 class IAMRequestBase(object, metaclass=ABCMeta):
-    def __init__(self, method, path, data, headers):
+    def __init__(self, account_id, method, path, data, headers):
         log.debug(
             "Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
                 class_name=self.__class__.__name__,
@@ -169,6 +183,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
                 headers=headers,
             )
         )
+        self.account_id = account_id
         self._method = method
         self._path = path
         self._data = data
@@ -190,7 +205,9 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         )
         try:
             self._access_key = create_access_key(
-                access_key_id=credential_data[0], headers=headers
+                account_id=self.account_id,
+                access_key_id=credential_data[0],
+                headers=headers,
             )
         except CreateAccessKeyFailure as e:
             self._raise_invalid_access_key(e.reason)
@@ -336,12 +353,14 @@ class IAMPolicy(object):
 
         self._policy_json = json.loads(policy_document)
 
-    def is_action_permitted(self, action):
+    def is_action_permitted(self, action, resource="*"):
         permitted = False
         if isinstance(self._policy_json["Statement"], list):
             for policy_statement in self._policy_json["Statement"]:
                 iam_policy_statement = IAMPolicyStatement(policy_statement)
-                permission_result = iam_policy_statement.is_action_permitted(action)
+                permission_result = iam_policy_statement.is_action_permitted(
+                    action, resource
+                )
                 if permission_result == PermissionResult.DENIED:
                     return permission_result
                 elif permission_result == PermissionResult.PERMITTED:
@@ -360,7 +379,7 @@ class IAMPolicyStatement(object):
     def __init__(self, statement):
         self._statement = statement
 
-    def is_action_permitted(self, action):
+    def is_action_permitted(self, action, resource="*"):
         is_action_concerned = False
 
         if "NotAction" in self._statement:
@@ -371,7 +390,8 @@ class IAMPolicyStatement(object):
                 is_action_concerned = True
 
         if is_action_concerned:
-            if self._statement["Effect"] == "Allow":
+            same_resource = self._match(self._statement["Resource"], resource)
+            if self._statement["Effect"] == "Allow" and same_resource:
                 return PermissionResult.PERMITTED
             else:  # Deny
                 return PermissionResult.DENIED

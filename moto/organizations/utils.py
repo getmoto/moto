@@ -1,10 +1,8 @@
-import random
 import re
 import string
-from moto.core import ACCOUNT_ID
+from moto.moto_api._internal import mock_random as random
 
 
-MASTER_ACCOUNT_ID = ACCOUNT_ID
 MASTER_ACCOUNT_EMAIL = "master@example.com"
 DEFAULT_POLICY_ID = "p-FullAWSAccess"
 ORGANIZATION_ARN_FORMAT = "arn:aws:organizations::{0}:organization/{1}"
@@ -32,6 +30,30 @@ OU_ID_REGEX = r"ou-[a-z0-9]{%s}-[a-z0-9]{%s}" % (ROOT_ID_SIZE, OU_ID_SUFFIX_SIZE
 ACCOUNT_ID_REGEX = r"[0-9]{%s}" % ACCOUNT_ID_SIZE
 CREATE_ACCOUNT_STATUS_ID_REGEX = r"car-[a-z0-9]{%s}" % CREATE_ACCOUNT_STATUS_ID_SIZE
 POLICY_ID_REGEX = r"%s|p-[a-z0-9]{%s}" % (DEFAULT_POLICY_ID, POLICY_ID_SIZE)
+
+PAGINATION_MODEL = {
+    "list_accounts": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "result_key": "Accounts",
+        "unique_attribute": "JoinedTimestamp",
+    },
+    "list_accounts_for_parent": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 20,
+        "result_key": "Accounts",
+        "unique_attribute": "JoinedTimestamp",
+    },
+    "list_organizational_units_for_parent": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 20,
+        "result_key": "OrganizationalUnits",
+        "unique_attribute": "Id",
+    },
+}
 
 
 def make_random_org_id():

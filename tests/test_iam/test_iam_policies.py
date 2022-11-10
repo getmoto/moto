@@ -3,7 +3,7 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 import pytest
-import sure  # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_iam
 
@@ -317,7 +317,7 @@ invalid_policy_document_test_cases = [
             "Version": "2012-10-17",
             "Statement": {"Effect": "Allow", "Action": "invalid"},
         },
-        "error_message": "Policy statement must contain resources.",
+        "error_message": "Actions/Conditions must be prefaced by a vendor, e.g., iam, sdb, ec2, etc.",
     },
     {
         "document": {

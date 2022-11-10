@@ -1,7 +1,7 @@
 from .test_config_rules import managed_config_rule, TEST_REGION
 from botocore.exceptions import ClientError
 from moto import mock_config, mock_iam, mock_lambda
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from io import BytesIO
 from uuid import uuid4
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -58,7 +58,7 @@ def create_lambda_for_config_rule():
             lambda_role = iam_client.get_role(RoleName=role_name)["Role"]["Arn"]
         except ClientError:
             lambda_role = iam_client.create_role(
-                RoleName=role_name, AssumeRolePolicyDocument="test policy", Path="/",
+                RoleName=role_name, AssumeRolePolicyDocument="test policy", Path="/"
             )["Role"]["Arn"]
 
     # Create the lambda function and identify its location.

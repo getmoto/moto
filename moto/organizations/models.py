@@ -2,9 +2,9 @@ import datetime
 import re
 import json
 
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, BackendDict
 from moto.organizations import utils
 from moto.organizations.exceptions import (
     InvalidInputException,
@@ -20,14 +20,16 @@ from moto.organizations.exceptions import (
     PolicyTypeNotEnabledException,
     TargetNotFoundException,
 )
+from moto.utilities.paginator import paginate
+from .utils import PAGINATION_MODEL
 
 
 class FakeOrganization(BaseModel):
-    def __init__(self, feature_set):
+    def __init__(self, account_id, feature_set):
         self.id = utils.make_random_org_id()
         self.root_id = utils.make_random_root_id()
         self.feature_set = feature_set
-        self.master_account_id = utils.MASTER_ACCOUNT_ID
+        self.master_account_id = account_id
         self.master_account_email = utils.MASTER_ACCOUNT_EMAIL
         self.available_policy_types = [
             # This policy is available, but not applied
@@ -103,6 +105,11 @@ class FakeAccount(BaseModel):
             "JoinedMethod": self.joined_method,
             "JoinedTimestamp": unix_time(self.create_time),
         }
+
+    def close(self):
+        # TODO: The CloseAccount spec allows the account to pass through a
+        # "PENDING_CLOSURE" state before reaching the SUSPNEDED state.
+        self.status = "SUSPENDED"
 
 
 class FakeOrganizationalUnit(BaseModel):
@@ -328,7 +335,8 @@ class FakeDelegatedAdministrator(BaseModel):
 
 
 class OrganizationsBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._reset()
 
     def _reset(self):
@@ -347,7 +355,7 @@ class OrganizationsBackend(BaseBackend):
         return root
 
     def create_organization(self, **kwargs):
-        self.org = FakeOrganization(kwargs["FeatureSet"])
+        self.org = FakeOrganization(self.account_id, kwargs.get("FeatureSet") or "ALL")
         root_ou = FakeRoot(self.org)
         self.ou.append(root_ou)
         master_account = FakeAccount(
@@ -379,7 +387,7 @@ class OrganizationsBackend(BaseBackend):
             raise AWSOrganizationsNotInUseException
         return self.org.describe()
 
-    def delete_organization(self, **kwargs):
+    def delete_organization(self):
         if [account for account in self.accounts if account.name != "master"]:
             raise RESTError(
                 "OrganizationNotEmptyException",
@@ -396,6 +404,13 @@ class OrganizationsBackend(BaseBackend):
         self.ou.append(new_ou)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_ou.id)
         return new_ou.describe()
+
+    def delete_organizational_unit(self, **kwargs):
+        ou_to_delete = self.get_organizational_unit_by_id(
+            kwargs["OrganizationalUnitId"]
+        )
+        self.ou.remove(ou_to_delete)
+        return {}
 
     def update_organizational_unit(self, **kwargs):
         for ou in self.ou:
@@ -427,21 +442,27 @@ class OrganizationsBackend(BaseBackend):
         ou = self.get_organizational_unit_by_id(kwargs["OrganizationalUnitId"])
         return ou.describe()
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_organizational_units_for_parent(self, **kwargs):
-        parent_id = self.validate_parent_id(kwargs["ParentId"])
-        return dict(
-            OrganizationalUnits=[
-                {"Id": ou.id, "Arn": ou.arn, "Name": ou.name}
-                for ou in self.ou
-                if ou.parent_id == parent_id
-            ]
-        )
+        parent_id = self.validate_parent_id(kwargs["parent_id"])
+        return [
+            {"Id": ou.id, "Arn": ou.arn, "Name": ou.name}
+            for ou in self.ou
+            if ou.parent_id == parent_id
+        ]
 
     def create_account(self, **kwargs):
         new_account = FakeAccount(self.org, **kwargs)
         self.accounts.append(new_account)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_account.id)
         return new_account.create_account_status
+
+    def close_account(self, **kwargs):
+        for account in self.accounts:
+            if account.id == kwargs["AccountId"]:
+                account.close()
+                return
+        raise AccountNotFoundException
 
     def get_account_by_id(self, account_id):
         account = next(
@@ -495,18 +516,22 @@ class OrganizationsBackend(BaseBackend):
             next_token = str(len(accounts_resp))
         return dict(CreateAccountStatuses=accounts_resp, NextToken=next_token)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_accounts(self):
-        return dict(Accounts=[account.describe() for account in self.accounts])
+        accounts = [account.describe() for account in self.accounts]
+        accounts = sorted(accounts, key=lambda x: x["JoinedTimestamp"])
+        return accounts
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_accounts_for_parent(self, **kwargs):
-        parent_id = self.validate_parent_id(kwargs["ParentId"])
-        return dict(
-            Accounts=[
-                account.describe()
-                for account in self.accounts
-                if account.parent_id == parent_id
-            ]
-        )
+        parent_id = self.validate_parent_id(kwargs["parent_id"])
+        accounts = [
+            account.describe()
+            for account in self.accounts
+            if account.parent_id == parent_id
+        ]
+        accounts = sorted(accounts, key=lambda x: x["JoinedTimestamp"])
+        return accounts
 
     def move_account(self, **kwargs):
         new_parent_id = self.validate_parent_id(kwargs["DestinationParentId"])
@@ -612,7 +637,7 @@ class OrganizationsBackend(BaseBackend):
         else:
             raise InvalidInputException("You specified an invalid value.")
 
-    def list_policies(self, **kwargs):
+    def list_policies(self):
         return dict(
             Policies=[p.describe()["Policy"]["PolicySummary"] for p in self.policies]
         )
@@ -757,7 +782,7 @@ class OrganizationsBackend(BaseBackend):
     def register_delegated_administrator(self, **kwargs):
         account_id = kwargs["AccountId"]
 
-        if account_id == ACCOUNT_ID:
+        if account_id == self.account_id:
             raise ConstraintViolationException(
                 "You cannot register master account/yourself as delegated administrator for your organization."
             )
@@ -816,13 +841,13 @@ class OrganizationsBackend(BaseBackend):
         account_id = kwargs["AccountId"]
         service = kwargs["ServicePrincipal"]
 
-        if account_id == ACCOUNT_ID:
+        if account_id == self.account_id:
             raise ConstraintViolationException(
                 "You cannot register master account/yourself as delegated administrator for your organization."
             )
 
         admin = next(
-            (admin for admin in self.admins if admin.account.id == account_id), None,
+            (admin for admin in self.admins if admin.account.id == account_id), None
         )
         if admin is None:
             account = next(
@@ -878,7 +903,7 @@ class OrganizationsBackend(BaseBackend):
                 )
         elif re.match(account_id_regex, target_id):
             account = next(
-                (account for account in self.accounts if account.id == target_id), None,
+                (account for account in self.accounts if account.id == target_id), None
             )
             if account is not None:
                 if policy in account.attached_policies:
@@ -896,4 +921,9 @@ class OrganizationsBackend(BaseBackend):
         self.accounts.remove(account)
 
 
-organizations_backend = OrganizationsBackend()
+organizations_backends = BackendDict(
+    OrganizationsBackend,
+    "organizations",
+    use_boto3_regions=False,
+    additional_regions=["global"],
+)

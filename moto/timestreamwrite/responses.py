@@ -6,19 +6,19 @@ from .models import timestreamwrite_backends
 
 class TimestreamWriteResponse(BaseResponse):
     def __init__(self):
-        super().__init__()
+        super().__init__(service_name="timestream-write")
 
     @property
     def timestreamwrite_backend(self):
         """Return backend instance specific for this region."""
-        return timestreamwrite_backends[self.region]
+        return timestreamwrite_backends[self.current_account][self.region]
 
     def create_database(self):
         database_name = self._get_param("DatabaseName")
         kms_key_id = self._get_param("KmsKeyId")
-        tags = self._get_list_prefix("Tags.member")
+        tags = self._get_param("Tags")
         database = self.timestreamwrite_backend.create_database(
-            database_name=database_name, kms_key_id=kms_key_id, tags=tags,
+            database_name=database_name, kms_key_id=kms_key_id, tags=tags
         )
         return json.dumps(dict(Database=database.description()))
 
@@ -50,8 +50,16 @@ class TimestreamWriteResponse(BaseResponse):
         database_name = self._get_param("DatabaseName")
         table_name = self._get_param("TableName")
         retention_properties = self._get_param("RetentionProperties")
+        tags = self._get_param("Tags")
+        magnetic_store_write_properties = self._get_param(
+            "MagneticStoreWriteProperties"
+        )
         table = self.timestreamwrite_backend.create_table(
-            database_name, table_name, retention_properties
+            database_name,
+            table_name,
+            retention_properties,
+            tags,
+            magnetic_store_write_properties,
         )
         return json.dumps(dict(Table=table.description()))
 
@@ -76,8 +84,14 @@ class TimestreamWriteResponse(BaseResponse):
         database_name = self._get_param("DatabaseName")
         table_name = self._get_param("TableName")
         retention_properties = self._get_param("RetentionProperties")
+        magnetic_store_write_properties = self._get_param(
+            "MagneticStoreWriteProperties"
+        )
         table = self.timestreamwrite_backend.update_table(
-            database_name, table_name, retention_properties
+            database_name,
+            table_name,
+            retention_properties,
+            magnetic_store_write_properties,
         )
         return json.dumps(dict(Table=table.description()))
 
@@ -86,8 +100,32 @@ class TimestreamWriteResponse(BaseResponse):
         table_name = self._get_param("TableName")
         records = self._get_param("Records")
         self.timestreamwrite_backend.write_records(database_name, table_name, records)
-        return "{}"
+        resp = {
+            "RecordsIngested": {
+                "Total": len(records),
+                "MemoryStore": len(records),
+                "MagneticStore": 0,
+            }
+        }
+        return json.dumps(resp)
 
     def describe_endpoints(self):
         resp = self.timestreamwrite_backend.describe_endpoints()
         return json.dumps(resp)
+
+    def list_tags_for_resource(self):
+        resource_arn = self._get_param("ResourceARN")
+        tags = self.timestreamwrite_backend.list_tags_for_resource(resource_arn)
+        return json.dumps(tags)
+
+    def tag_resource(self):
+        resource_arn = self._get_param("ResourceARN")
+        tags = self._get_param("Tags")
+        self.timestreamwrite_backend.tag_resource(resource_arn, tags)
+        return "{}"
+
+    def untag_resource(self):
+        resource_arn = self._get_param("ResourceARN")
+        tag_keys = self._get_param("TagKeys")
+        self.timestreamwrite_backend.untag_resource(resource_arn, tag_keys)
+        return "{}"

@@ -35,6 +35,13 @@ Additional Resources
    docs/faq
    docs/iam
    docs/aws_config
+   docs/multi_account
+
+.. toctree::
+  :hidden:
+  :caption: Configuration
+
+  docs/configuration/index
 
 .. toctree::
   :maxdepth: 1
@@ -42,6 +49,7 @@ Additional Resources
   :caption: Implemented Services
 
   docs/services/index
+  docs/services/patching_other_services
 
 .. toctree::
   :maxdepth: 1
@@ -66,3 +74,4 @@ Additional Resources
   docs/contributing/development_tips/urls
   docs/contributing/development_tips/tests
   docs/contributing/development_tips/utilities
+  docs/contributing/development_tips/new_state_transitions

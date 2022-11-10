@@ -25,15 +25,9 @@ KNOWN_SWF_TYPES = {"activity": ActivityType, "workflow": WorkflowType}
 
 
 class SWFBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.domains = []
-        super().__init__()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def _get_domain(self, name, ignore_empty=False):
         matching = [domain for domain in self.domains if domain.name == name]
@@ -56,7 +50,7 @@ class SWFBackend(BaseBackend):
         return domains
 
     def list_open_workflow_executions(
-        self, domain_name, maximum_page_size, tag_filter, reverse_order, **kwargs
+        self, domain_name, maximum_page_size, tag_filter, reverse_order
     ):
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -77,12 +71,10 @@ class SWFBackend(BaseBackend):
     def list_closed_workflow_executions(
         self,
         domain_name,
-        close_time_filter,
         tag_filter,
         close_status_filter,
         maximum_page_size,
         reverse_order,
-        **kwargs
     ):
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -113,8 +105,9 @@ class SWFBackend(BaseBackend):
         domain = Domain(
             name,
             workflow_execution_retention_period_in_days,
-            self.region_name,
-            description,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            description=description,
         )
         self.domains.append(domain)
 

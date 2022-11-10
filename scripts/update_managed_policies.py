@@ -32,7 +32,12 @@ try:
     response_iterator = paginator.paginate(Scope="AWS")
     for response in response_iterator:
         for policy in response["Policies"]:
-            policies[policy["PolicyName"]] = policy
+            policy.pop("AttachmentCount", None)
+            policy.pop("IsAttachable", None)
+            policy.pop("IsDefaultVersion", None)
+            policy.pop("PolicyId", None)
+            policy_name = policy.pop("PolicyName")
+            policies[policy_name] = policy
 except NoCredentialsError:
     print("USAGE:")
     print("Put your AWS credentials into ~/.aws/credentials and run:")
@@ -48,14 +53,14 @@ except NoCredentialsError:
     sys.exit(1)
 
 for policy_name in policies:
+    # We don't need the ARN afterwards
+    policy_arn = policies[policy_name].pop("Arn")
     response = client.get_policy_version(
-        PolicyArn=policies[policy_name]["Arn"],
+        PolicyArn=policy_arn,
         VersionId=policies[policy_name]["DefaultVersionId"],
     )
     for key in response["PolicyVersion"]:
-        if (
-            key != "CreateDate"
-        ):  # the policy's CreateDate should not be overwritten by its version's CreateDate
+        if key in ["DefaultVersionId", "Path", "Document", "UpdateDate"]:
             policies[policy_name][key] = response["PolicyVersion"][key]
 
 with open(output_file, "w") as f:
@@ -67,8 +72,8 @@ with open(output_file, "w") as f:
         json.dumps(
             policies,
             sort_keys=True,
-            indent=4,
-            separators=(",", ": "),
+            indent=1,
+            separators=(",", ":"),
             default=json_serial,
         )
     )

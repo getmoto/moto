@@ -21,13 +21,11 @@ from gzip import GzipFile
 import io
 import json
 from time import time
-from uuid import uuid4
 import warnings
 
 import requests
 
 from moto.core import BaseBackend, BaseModel
-from moto.core import ACCOUNT_ID
 from moto.core.utils import BackendDict
 from moto.firehose.exceptions import (
     ConcurrentModificationException,
@@ -37,7 +35,8 @@ from moto.firehose.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
-from moto.s3 import s3_backend
+from moto.moto_api._internal import mock_random
+from moto.s3.models import s3_backends
 from moto.utilities.tagging_service import TaggingService
 
 MAX_TAGS_PER_DELIVERY_STREAM = 50
@@ -117,6 +116,7 @@ class DeliveryStream(
 
     def __init__(
         self,
+        account_id,
         region,
         delivery_stream_name,
         delivery_stream_type,
@@ -151,7 +151,7 @@ class DeliveryStream(
             del self.destinations[0][destination_name]["S3Configuration"]
 
         self.delivery_stream_status = "ACTIVE"
-        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:deliverystream/{delivery_stream_name}"
+        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
 
         self.create_timestamp = datetime.now(timezone.utc).isoformat()
         self.version_id = "1"  # Used to track updates of destination configs
@@ -163,16 +163,10 @@ class DeliveryStream(
 class FirehoseBackend(BaseBackend):
     """Implementation of Firehose APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.delivery_streams = {}
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initializes all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -203,7 +197,7 @@ class FirehoseBackend(BaseBackend):
 
         if delivery_stream_name in self.delivery_streams:
             raise ResourceInUseException(
-                f"Firehose {delivery_stream_name} under accountId {ACCOUNT_ID} "
+                f"Firehose {delivery_stream_name} under accountId {self.account_id} "
                 f"already exists"
             )
 
@@ -249,6 +243,7 @@ class FirehoseBackend(BaseBackend):
         # by delivery stream name.  This instance will update the state and
         # create the ARN.
         delivery_stream = DeliveryStream(
+            self.account_id,
             region,
             delivery_stream_name,
             delivery_stream_type,
@@ -272,7 +267,7 @@ class FirehoseBackend(BaseBackend):
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
             raise ResourceNotFoundException(
-                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
+                f"Firehose {delivery_stream_name} under account {self.account_id} "
                 f"not found."
             )
 
@@ -282,7 +277,7 @@ class FirehoseBackend(BaseBackend):
         self.delivery_streams.pop(delivery_stream_name)
 
     def describe_delivery_stream(
-        self, delivery_stream_name, limit, exclusive_start_destination_id,
+        self, delivery_stream_name, limit, exclusive_start_destination_id
     ):  # pylint: disable=unused-argument
         """Return description of specified delivery stream and its status.
 
@@ -292,7 +287,7 @@ class FirehoseBackend(BaseBackend):
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
             raise ResourceNotFoundException(
-                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
+                f"Firehose {delivery_stream_name} under account {self.account_id} "
                 f"not found."
             )
 
@@ -369,15 +364,14 @@ class FirehoseBackend(BaseBackend):
         return result
 
     def list_tags_for_delivery_stream(
-        self, delivery_stream_name, exclusive_start_tag_key, limit,
+        self, delivery_stream_name, exclusive_start_tag_key, limit
     ):
         """Return list of tags."""
         result = {"Tags": [], "HasMoreTags": False}
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
             raise ResourceNotFoundException(
-                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
-                f"not found."
+                f"Firehose {delivery_stream_name} under account {self.account_id} not found."
             )
 
         tags = self.tagger.list_tags_for_resource(delivery_stream.delivery_stream_arn)[
@@ -413,7 +407,7 @@ class FirehoseBackend(BaseBackend):
         url = http_destination["EndpointConfiguration"]["Url"]
         headers = {"Content-Type": "application/json"}
         record_to_send = {
-            "requestId": str(uuid4()),
+            "requestId": str(mock_random.uuid4()),
             "timestamp": int(time()),
             "records": [{"data": record["Data"]} for record in records],
         }
@@ -424,7 +418,7 @@ class FirehoseBackend(BaseBackend):
             raise RuntimeError(
                 "Firehose PutRecord(Batch) to HTTP destination failed"
             ) from exc
-        return [{"RecordId": str(uuid4())} for _ in range(len(records))]
+        return [{"RecordId": str(mock_random.uuid4())} for _ in range(len(records))]
 
     @staticmethod
     def _format_s3_object_path(delivery_stream_name, version_id, prefix):
@@ -439,7 +433,7 @@ class FirehoseBackend(BaseBackend):
         return (
             f"{prefix}{now.strftime('%Y/%m/%d/%H')}/"
             f"{delivery_stream_name}-{version_id}-"
-            f"{now.strftime('%Y-%m-%d-%H-%M-%S')}-{str(uuid4())}"
+            f"{now.strftime('%Y-%m-%d-%H-%M-%S')}-{str(mock_random.uuid4())}"
         )
 
     def put_s3_records(self, delivery_stream_name, version_id, s3_destination, records):
@@ -453,20 +447,22 @@ class FirehoseBackend(BaseBackend):
 
         batched_data = b"".join([b64decode(r["Data"]) for r in records])
         try:
-            s3_backend.put_object(bucket_name, object_path, batched_data)
+            s3_backends[self.account_id]["global"].put_object(
+                bucket_name, object_path, batched_data
+            )
         except Exception as exc:
             # This could be better ...
             raise RuntimeError(
                 "Firehose PutRecord(Batch to S3 destination failed"
             ) from exc
-        return [{"RecordId": str(uuid4())} for _ in range(len(records))]
+        return [{"RecordId": str(mock_random.uuid4())} for _ in range(len(records))]
 
     def put_record_batch(self, delivery_stream_name, records):
         """Write multiple data records into a Kinesis Data firehose stream."""
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
             raise ResourceNotFoundException(
-                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
+                f"Firehose {delivery_stream_name} under account {self.account_id} "
                 f"not found."
             )
 
@@ -498,7 +494,7 @@ class FirehoseBackend(BaseBackend):
                 # This isn't implmented as these services aren't implemented,
                 # so ignore the data, but return a "proper" response.
                 request_responses = [
-                    {"RecordId": str(uuid4())} for _ in range(len(records))
+                    {"RecordId": str(mock_random.uuid4())} for _ in range(len(records))
                 ]
 
         return {
@@ -512,7 +508,7 @@ class FirehoseBackend(BaseBackend):
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
             raise ResourceNotFoundException(
-                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
+                f"Firehose {delivery_stream_name} under account {self.account_id} "
                 f"not found."
             )
 
@@ -534,8 +530,7 @@ class FirehoseBackend(BaseBackend):
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
             raise ResourceNotFoundException(
-                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
-                f"not found."
+                f"Firehose {delivery_stream_name} under account {self.account_id} not found."
             )
 
         # If a tag key doesn't exist for the stream, boto3 ignores it.
@@ -564,8 +559,7 @@ class FirehoseBackend(BaseBackend):
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
             raise ResourceNotFoundException(
-                f"Firehose {delivery_stream_name} under accountId "
-                f"{ACCOUNT_ID} not found."
+                f"Firehose {delivery_stream_name} under accountId {self.account_id} not found."
             )
 
         if destination_name == "Splunk":
@@ -653,7 +647,7 @@ class FirehoseBackend(BaseBackend):
             "logGroup": log_group_name,
             "logStream": log_stream_name,
             "messageType": "DATA_MESSAGE",
-            "owner": ACCOUNT_ID,
+            "owner": self.account_id,
             "subscriptionFilters": [filter_name],
         }
 

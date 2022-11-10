@@ -1,19 +1,33 @@
 from moto.core import BaseBackend
+from moto.core.utils import BackendDict
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import load_resource
 import datetime
-import random
 
 
 checks_json = "resources/describe_trusted_advisor_checks.json"
 ADVISOR_CHECKS = load_resource(__name__, checks_json)
 
 
-class SupportCase(object):
+class SupportCase(ManagedState):
     def __init__(self, **kwargs):
+        # Configure ManagedState
+        super().__init__(
+            "support::case",
+            transitions=[
+                ("opened", "pending-customer-action"),
+                ("pending-customer-action", "reopened"),
+                ("reopened", "resolved"),
+                ("resolved", "unassigned"),
+                ("unassigned", "work-in-progress"),
+                ("work-in-progress", "opened"),
+            ],
+        )
         self.case_id = kwargs.get("case_id")
         self.display_id = "foo_display_id"
         self.subject = kwargs.get("subject")
-        self.status = "opened"
         self.service_code = kwargs.get("service_code")
         self.category_code = kwargs.get("category_code")
         self.severity_code = kwargs.get("severity_code")
@@ -48,18 +62,19 @@ class SupportCase(object):
 
 
 class SupportBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.check_status = {}
         self.cases = {}
 
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
+        state_manager.register_default_transition(
+            model_name="support::case", transition={"progression": "manual", "times": 1}
+        )
 
-    def describe_trusted_advisor_checks(self, language):
+    def describe_trusted_advisor_checks(self):
+        """
+        The Language-parameter is not yet implemented
+        """
         # The checks are a static response
         checks = ADVISOR_CHECKS["checks"]
         return checks
@@ -102,23 +117,7 @@ class SupportBackend(BaseBackend):
         Fake an advancement through case statuses
         """
 
-        if self.cases[case_id].status == "opened":
-            self.cases[case_id].status = "pending-customer-action"
-
-        elif self.cases[case_id].status == "pending-customer-action":
-            self.cases[case_id].status = "reopened"
-
-        elif self.cases[case_id].status == "reopened":
-            self.cases[case_id].status = "resolved"
-
-        elif self.cases[case_id].status == "resolved":
-            self.cases[case_id].status = "unassigned"
-
-        elif self.cases[case_id].status == "unassigned":
-            self.cases[case_id].status = "work-in-progress"
-
-        elif self.cases[case_id].status == "work-in-progress":
-            self.cases[case_id].status = "opened"
+        self.cases[case_id].advance()
 
     def advance_case_severity_codes(self, case_id):
         """
@@ -159,9 +158,11 @@ class SupportBackend(BaseBackend):
         communication_body,
         cc_email_addresses,
         language,
-        issue_type,
         attachment_set_id,
     ):
+        """
+        The IssueType-parameter is not yet implemented
+        """
         # Random case ID
         random_case_id = "".join(
             random.choice("0123456789ABCDEFGHIJKLMabcdefghijklm") for i in range(16)
@@ -185,15 +186,14 @@ class SupportBackend(BaseBackend):
     def describe_cases(
         self,
         case_id_list,
-        display_id,
-        after_time,
-        before_time,
         include_resolved_cases,
         next_token,
-        max_results,
-        language,
         include_communications,
     ):
+        """
+        The following parameters have not yet been implemented:
+        DisplayID, AfterTime, BeforeTime, MaxResults, Language
+        """
         cases = []
         requested_case_ids = case_id_list or self.cases.keys()
 
@@ -230,7 +230,6 @@ class SupportBackend(BaseBackend):
         return case_values
 
 
-support_backends = {}
-
-# Only currently supported in us-east-1
-support_backends["us-east-1"] = SupportBackend("us-east-1")
+support_backends = BackendDict(
+    SupportBackend, "support", use_boto3_regions=False, additional_regions=["us-east-1"]
+)

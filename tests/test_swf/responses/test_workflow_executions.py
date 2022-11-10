@@ -157,7 +157,7 @@ def test_get_workflow_execution_history_boto3():
     run_id = hsh["runId"]
 
     resp = client.get_workflow_execution_history(
-        domain="test-domain", execution={"runId": run_id, "workflowId": "uid-abcd1234"},
+        domain="test-domain", execution={"runId": run_id, "workflowId": "uid-abcd1234"}
     )
     types = [evt["eventType"] for evt in resp["events"]]
     types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
@@ -305,7 +305,7 @@ def test_terminate_workflow_execution_boto3():
     )
 
     resp = client.get_workflow_execution_history(
-        domain="test-domain", execution={"runId": run_id, "workflowId": "uid-abcd1234"},
+        domain="test-domain", execution={"runId": run_id, "workflowId": "uid-abcd1234"}
     )
     evt = resp["events"][-1]
     evt["eventType"].should.equal("WorkflowExecutionTerminated")

@@ -87,6 +87,21 @@ def test_describe_launch_template_versions():
 
 
 @mock_ec2
+def test_describe_launch_template_versions_by_name_when_absent():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = "foo"
+
+    # test using name
+    with pytest.raises(
+        ClientError,
+        match=f"The specified launch template, with template name {template_name}, does not exist",
+    ):
+
+        cli.describe_launch_template_versions(LaunchTemplateName=template_name)
+
+
+@mock_ec2
 def test_create_launch_template_version():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -305,6 +320,20 @@ def test_describe_launch_template_versions_with_min_and_max():
 
 
 @mock_ec2
+def test_describe_launch_templates_with_non_existent_name():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+
+    with pytest.raises(ClientError) as ex:
+        cli.describe_launch_templates(LaunchTemplateNames=[template_name])
+
+    str(ex.value).should.equal(
+        "An error occurred (InvalidLaunchTemplateName.NotFoundException) when calling the DescribeLaunchTemplates operation: At least one of the launch templates specified in the request does not exist."
+    )
+
+
+@mock_ec2
 def test_describe_launch_templates():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -317,7 +346,7 @@ def test_describe_launch_templates():
 
     template_name2 = str(uuid4())
     r = cli.create_launch_template(
-        LaunchTemplateName=template_name2, LaunchTemplateData={"ImageId": "ami-abc123"},
+        LaunchTemplateName=template_name2, LaunchTemplateData={"ImageId": "ami-abc123"}
     )
     lt_ids.append(r["LaunchTemplate"]["LaunchTemplateId"])
 
@@ -410,6 +439,74 @@ def test_create_launch_template_with_tag_spec():
     )
 
 
+@mock_ec2
+def test_delete_launch_template__dryrun():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+    cli.create_launch_template(
+        LaunchTemplateName=template_name,
+        LaunchTemplateData={"ImageId": "ami-abc123"},
+        TagSpecifications=[
+            {"ResourceType": "instance", "Tags": [{"Key": "key", "Value": "value"}]}
+        ],
+    )
+
+    cli.describe_launch_templates(LaunchTemplateNames=[template_name])[
+        "LaunchTemplates"
+    ].should.have.length_of(1)
+
+    with pytest.raises(ClientError) as exc:
+        cli.delete_launch_template(DryRun=True, LaunchTemplateName=template_name)
+    err = exc.value.response["Error"]
+    err.should.have.key("Code").equals("DryRunOperation")
+
+    # Template still exists
+    cli.describe_launch_templates(LaunchTemplateNames=[template_name])[
+        "LaunchTemplates"
+    ].should.have.length_of(1)
+
+
+@mock_ec2
+def test_delete_launch_template__by_name():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+    cli.create_launch_template(
+        LaunchTemplateName=template_name, LaunchTemplateData={"ImageId": "ami-abc123"}
+    )
+
+    cli.describe_launch_templates(LaunchTemplateNames=[template_name])[
+        "LaunchTemplates"
+    ].should.have.length_of(1)
+
+    cli.delete_launch_template(LaunchTemplateName=template_name)
+
+    cli.describe_launch_templates(LaunchTemplateNames=[template_name])[
+        "LaunchTemplates"
+    ].should.have.length_of(0)
+
+
+@mock_ec2
+def test_delete_launch_template__by_id():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+    template_id = cli.create_launch_template(
+        LaunchTemplateName=template_name, LaunchTemplateData={"ImageId": "ami-abc123"}
+    )["LaunchTemplate"]["LaunchTemplateId"]
+
+    cli.describe_launch_templates(LaunchTemplateNames=[template_name])[
+        "LaunchTemplates"
+    ].should.have.length_of(1)
+
+    cli.delete_launch_template(LaunchTemplateId=template_id)
+
+    cli.describe_launch_templates(LaunchTemplateNames=[template_name])[
+        "LaunchTemplates"
+    ].should.have.length_of(0)
+
+
 def retrieve_all_templates(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_launch_templates(Filters=filters)
     all_templates = resp["LaunchTemplates"]
@@ -419,3 +516,71 @@ def retrieve_all_templates(client, filters=[]):  # pylint: disable=W0102
         all_templates.extend(resp["LaunchTemplates"])
         next_token = resp.get("NextToken")
     return all_templates
+
+
+@mock_ec2
+def test_launch_template_create_with_tags():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+    resp = cli.create_launch_template(
+        LaunchTemplateName=template_name,
+        # the absolute minimum needed to create a template without other resources
+        LaunchTemplateData={
+            "TagSpecifications": [
+                {
+                    "ResourceType": "instance",
+                    "Tags": [{"Key": "test", "Value": "value"}],
+                }
+            ]
+        },
+        TagSpecifications=[
+            {
+                "ResourceType": "launch-template",
+                "Tags": [{"Key": "test1", "Value": "value1"}],
+            }
+        ],
+    )
+
+    resp.should.have.key("LaunchTemplate")
+    lt = resp["LaunchTemplate"]
+    lt["LaunchTemplateName"].should.equal(template_name)
+    lt["DefaultVersionNumber"].should.equal(1)
+    lt["LatestVersionNumber"].should.equal(1)
+    lt["Tags"].should.have.length_of(1)
+    lt["Tags"][0].should.equal({"Key": "test1", "Value": "value1"})
+
+
+@mock_ec2
+def test_launch_template_describe_with_tags():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+    cli.create_launch_template(
+        LaunchTemplateName=template_name,
+        # the absolute minimum needed to create a template without other resources
+        LaunchTemplateData={
+            "TagSpecifications": [
+                {
+                    "ResourceType": "instance",
+                    "Tags": [{"Key": "test", "Value": "value"}],
+                }
+            ]
+        },
+        TagSpecifications=[
+            {
+                "ResourceType": "launch-template",
+                "Tags": [{"Key": "test1", "Value": "value1"}],
+            }
+        ],
+    )
+
+    lt = cli.describe_launch_templates(LaunchTemplateNames=[template_name])[
+        "LaunchTemplates"
+    ][0]
+
+    lt["LaunchTemplateName"].should.equal(template_name)
+    lt["DefaultVersionNumber"].should.equal(1)
+    lt["LatestVersionNumber"].should.equal(1)
+    lt["Tags"].should.have.length_of(1)
+    lt["Tags"][0].should.equal({"Key": "test1", "Value": "value1"})

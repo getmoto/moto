@@ -4,13 +4,13 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, settings
-from moto.ec2.models import OWNER_ID
+from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
 from random import randint
 from unittest import SkipTest
 
 
 @mock_ec2
-def test_default_network_acl_created_with_vpc_boto3():
+def test_default_network_acl_created_with_vpc():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -22,7 +22,7 @@ def test_default_network_acl_created_with_vpc_boto3():
 
 
 @mock_ec2
-def test_network_create_and_list_acls_boto3():
+def test_network_create_and_list_acls():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -39,7 +39,7 @@ def test_network_create_and_list_acls_boto3():
 
 
 @mock_ec2
-def test_new_subnet_associates_with_default_network_acl_boto3():
+def test_new_subnet_associates_with_default_network_acl():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode will have conflicting CidrBlocks")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -56,7 +56,7 @@ def test_new_subnet_associates_with_default_network_acl_boto3():
 
 
 @mock_ec2
-def test_network_acl_entries_boto3():
+def test_network_acl_entries():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -91,7 +91,7 @@ def test_network_acl_entries_boto3():
 
 
 @mock_ec2
-def test_delete_network_acl_entry_boto3():
+def test_delete_network_acl_entry():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -120,7 +120,7 @@ def test_delete_network_acl_entry_boto3():
 
 
 @mock_ec2
-def test_replace_network_acl_entry_boto3():
+def test_replace_network_acl_entry():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -160,7 +160,7 @@ def test_replace_network_acl_entry_boto3():
 
 
 @mock_ec2
-def test_delete_network_acl_boto3():
+def test_delete_network_acl():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -180,7 +180,7 @@ def test_delete_network_acl_boto3():
 
 
 @mock_ec2
-def test_network_acl_tagging_boto3():
+def test_network_acl_tagging():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -226,7 +226,7 @@ def test_default_network_acl_default_entries():
     if not settings.TEST_SERVER_MODE:
         # Can't know whether the first ACL is the default in ServerMode
         default_network_acl = next(iter(ec2.network_acls.all()), None)
-        default_network_acl.is_default.should.be.ok
+        default_network_acl.is_default.should.equal(True)
         default_network_acl.entries.should.have.length_of(4)
 
     vpc = client.create_vpc(CidrBlock="10.0.0.0/16")
@@ -265,7 +265,7 @@ def test_delete_default_network_acl_default_entry():
         )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     default_network_acl = next(iter(ec2.network_acls.all()), None)
-    default_network_acl.is_default.should.be.ok
+    default_network_acl.is_default.should.equal(True)
 
     default_network_acl.entries.should.have.length_of(4)
     first_default_network_acl_entry = default_network_acl.entries[0]
@@ -282,7 +282,7 @@ def test_delete_default_network_acl_default_entry():
 def test_duplicate_network_acl_entry():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     default_network_acl = next(iter(ec2.network_acls.all()), None)
-    default_network_acl.is_default.should.be.ok
+    default_network_acl.is_default.should.equal(True)
 
     rule_number = randint(0, 9999)
     egress = True
@@ -334,6 +334,84 @@ def test_describe_network_acls():
         Filters=[{"Name": "owner-id", "Values": [OWNER_ID]}]
     )["NetworkAcls"]
     [na["NetworkAclId"] for na in resp3].should.contain(network_acl_id)
+
+    # Assertions for filters
+    network_acl_id = conn.create_network_acl(VpcId=vpc_id)["NetworkAcl"]["NetworkAclId"]
+    cidr_block = "0.0.0.0/24"
+    protocol = "17"  # UDP
+    rule_number = 420
+    rule_action = "allow"
+    conn.create_network_acl_entry(
+        NetworkAclId=network_acl_id,
+        CidrBlock=cidr_block,
+        Protocol=protocol,
+        RuleNumber=rule_number,
+        RuleAction=rule_action,
+        Egress=False,
+    )
+
+    # Ensure filtering by entry CIDR block
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.cidr", "Values": [cidr_block]}]
+    )
+    resp4["NetworkAcls"].should.have.length_of(1)
+    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
+    [entry["CidrBlock"] for entry in resp4["NetworkAcls"][0]["Entries"]].should.contain(
+        cidr_block
+    )
+
+    # Ensure filtering by entry protocol
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.protocol", "Values": [protocol]}]
+    )
+    resp4["NetworkAcls"].should.have.length_of(1)
+    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
+    [entry["Protocol"] for entry in resp4["NetworkAcls"][0]["Entries"]].should.contain(
+        protocol
+    )
+
+    # Ensure filtering by entry rule number
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.rule-number", "Values": [str(rule_number)]}]
+    )
+    resp4["NetworkAcls"].should.have.length_of(1)
+    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
+    [
+        entry["RuleNumber"] for entry in resp4["NetworkAcls"][0]["Entries"]
+    ].should.contain(rule_number)
+
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.rule-number", "Values": [str(rule_number + 1)]}]
+    )
+    resp4["NetworkAcls"].should.have.length_of(0)
+
+    # Ensure filtering by egress flag
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.egress", "Values": ["false"]}]
+    )
+    [entry["NetworkAclId"] for entry in resp4["NetworkAcls"]].should.contain(
+        network_acl_id
+    )
+    # the ACL with network_acl_id contains no entries with Egress=True
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.egress", "Values": ["true"]}]
+    )
+    [entry["NetworkAclId"] for entry in resp4["NetworkAcls"]].shouldnt.contain(
+        network_acl_id
+    )
+
+    # Ensure filtering by rule action
+    resp4 = conn.describe_network_acls(
+        Filters=[
+            {"Name": "entry.rule-action", "Values": [rule_action]},
+            {"Name": "id", "Values": [network_acl_id]},
+        ]
+    )
+    resp4["NetworkAcls"].should.have.length_of(1)
+    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
+    [
+        entry["RuleAction"] for entry in resp4["NetworkAcls"][0]["Entries"]
+    ].should.contain(rule_action)
 
     with pytest.raises(ClientError) as ex:
         conn.describe_network_acls(NetworkAclIds=["1"])

@@ -1,8 +1,8 @@
-import uuid
 from threading import Timer as ThreadingTimer, Lock
 
 from moto.core import BaseModel
 from moto.core.utils import camelcase_to_underscores, unix_time
+from moto.moto_api._internal import mock_random
 
 from ..constants import DECISIONS_FIELDS
 from ..exceptions import (
@@ -43,7 +43,7 @@ class WorkflowExecution(BaseModel):
     def __init__(self, domain, workflow_type, workflow_id, **kwargs):
         self.domain = domain
         self.workflow_id = workflow_id
-        self.run_id = uuid.uuid4().hex
+        self.run_id = mock_random.uuid4().hex
         # WorkflowExecutionInfo
         self.cancel_requested = False
         # TODO: check valid values among:
@@ -715,7 +715,7 @@ class WorkflowExecution(BaseModel):
             timer_id=timer_id,
         ).event_id
         background_timer = ThreadingTimer(
-            float(time_to_wait), self._fire_timer, args=(started_event_id, timer_id,)
+            float(time_to_wait), self._fire_timer, args=(started_event_id, timer_id)
         )
         workflow_timer = Timer(background_timer, started_event_id)
         self._timers[timer_id] = workflow_timer

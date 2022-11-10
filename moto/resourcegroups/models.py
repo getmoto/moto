@@ -3,14 +3,20 @@ from builtins import str
 import json
 import re
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from .exceptions import BadRequestException
 
 
 class FakeResourceGroup(BaseModel):
     def __init__(
-        self, name, resource_query, description=None, tags=None, configuration=None
+        self,
+        account_id,
+        name,
+        resource_query,
+        description=None,
+        tags=None,
+        configuration=None,
     ):
         self.errors = []
         description = description or ""
@@ -24,9 +30,7 @@ class FakeResourceGroup(BaseModel):
         if self._validate_tags(value=tags):
             self._tags = tags
         self._raise_errors()
-        self.arn = "arn:aws:resource-groups:us-west-1:{AccountId}:{name}".format(
-            name=name, AccountId=ACCOUNT_ID
-        )
+        self.arn = f"arn:aws:resource-groups:us-west-1:{account_id}:{name}"
         self.configuration = configuration
 
     @staticmethod
@@ -221,9 +225,8 @@ class ResourceGroups:
 
 
 class ResourceGroupsBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.groups = ResourceGroups()
 
     @staticmethod
@@ -306,6 +309,7 @@ class ResourceGroupsBackend(BaseBackend):
     ):
         tags = tags or {}
         group = FakeResourceGroup(
+            account_id=self.account_id,
             name=name,
             resource_query=resource_query,
             description=description,
@@ -330,14 +334,11 @@ class ResourceGroupsBackend(BaseBackend):
     def get_tags(self, arn):
         return self.groups.by_arn[arn].tags
 
-    # def list_group_resources(self):
-    #     ...
-
-    def list_groups(self, filters=None, max_results=None, next_token=None):
+    def list_groups(self):
+        """
+        Pagination or the Filters-parameter is not yet implemented
+        """
         return self.groups.by_name
-
-    # def search_resources(self):
-    #     ...
 
     def tag(self, arn, tags):
         all_tags = self.groups.by_arn[arn].tags

@@ -39,7 +39,7 @@ def test_create_integration_response():
     int_res.should.have.key("ContentHandlingStrategy").equals("CONVERT_TO_BINARY")
     int_res.should.have.key("IntegrationResponseId")
     int_res.should.have.key("IntegrationResponseKey").equals("int_res_key")
-    int_res.should.have.key("ResponseParameters").equals({"x-header": "header-value"},)
+    int_res.should.have.key("ResponseParameters").equals({"x-header": "header-value"})
     int_res.should.have.key("ResponseTemplates").equals({"t": "template"})
     int_res.should.have.key("TemplateSelectionExpression").equals("tse")
 
@@ -69,7 +69,7 @@ def test_get_integration_response():
     int_res.should.have.key("ContentHandlingStrategy").equals("CONVERT_TO_BINARY")
     int_res.should.have.key("IntegrationResponseId")
     int_res.should.have.key("IntegrationResponseKey").equals("int_res_key")
-    int_res.should.have.key("ResponseParameters").equals({"x-header": "header-value"},)
+    int_res.should.have.key("ResponseParameters").equals({"x-header": "header-value"})
     int_res.should.have.key("ResponseTemplates").equals({"t": "template"})
     int_res.should.have.key("TemplateSelectionExpression").equals("tse")
 
@@ -102,7 +102,7 @@ def test_delete_integration_response():
     ]
 
     int_res_id = client.create_integration_response(
-        ApiId=api_id, IntegrationId=int_id, IntegrationResponseKey="int_res_key",
+        ApiId=api_id, IntegrationId=int_id, IntegrationResponseKey="int_res_key"
     )["IntegrationResponseId"]
 
     client.delete_integration_response(
@@ -126,7 +126,7 @@ def test_update_integration_response_single_attr():
     ]
 
     int_res_id = client.create_integration_response(
-        ApiId=api_id, IntegrationId=int_id, IntegrationResponseKey="int_res_key",
+        ApiId=api_id, IntegrationId=int_id, IntegrationResponseKey="int_res_key"
     )["IntegrationResponseId"]
 
     res = client.update_integration_response(
@@ -169,6 +169,6 @@ def test_update_integration_response_multiple_attrs():
     res.should.have.key("ContentHandlingStrategy").equals("CONVERT_TO_BINARY")
     res.should.have.key("IntegrationResponseId")
     res.should.have.key("IntegrationResponseKey").equals("int_res_key2")
-    res.should.have.key("ResponseParameters").equals({"x-header": "header-value"},)
+    res.should.have.key("ResponseParameters").equals({"x-header": "header-value"})
     res.should.have.key("ResponseTemplates").equals({"t": "template"})
     res.should.have.key("TemplateSelectionExpression").equals("tse")

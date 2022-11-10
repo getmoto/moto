@@ -10,8 +10,8 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_ds
-from moto.core.utils import get_random_hex
 from moto.ec2 import mock_ec2
+from moto.moto_api._internal import mock_random
 
 from .test_ds_simple_ad_directory import TEST_REGION, create_vpc, create_subnets
 
@@ -27,7 +27,7 @@ def create_test_microsoft_ad(ds_client, ec2_client, vpc_settings=None, tags=None
         tags = []
 
     result = ds_client.create_microsoft_ad(
-        Name=f"test-{get_random_hex(6)}.test",
+        Name=f"test-{mock_random.get_random_hex(6)}.test",
         Password="4MicrosoftADPassword",
         VpcSettings=vpc_settings,
         Tags=tags,
@@ -44,7 +44,7 @@ def test_ds_create_microsoft_ad_validations():
     this verifies that it is invoked from create_microsoft_ad().
     """
     client = boto3.client("ds", region_name=TEST_REGION)
-    random_num = get_random_hex(6)
+    random_num = mock_random.get_random_hex(6)
 
     # Verify ValidationException error messages are accumulated properly.
     bad_name = f"bad_name_{random_num}"
@@ -77,9 +77,9 @@ def test_ds_create_microsoft_ad_validations():
         f"Member must satisfy enum value set: [Enterprise, Standard]" in err["Message"]
     )
     assert (
-        fr"Value '{bad_name}' at 'name' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: "
-        fr"^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+$" in err["Message"]
+        rf"Value '{bad_name}' at 'name' failed to satisfy constraint: "
+        rf"Member must satisfy regular expression pattern: "
+        rf"^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+$" in err["Message"]
     )
 
     too_long = (
@@ -120,10 +120,10 @@ def test_ds_create_microsoft_ad_validations():
     assert err["Code"] == "ValidationException"
     assert "1 validation error detected" in err["Message"]
     assert (
-        fr"Value '['{bad_vpc_settings['SubnetIds'][0]}']' at "
-        fr"'vpcSettings.subnetIds' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: "
-        fr"^(subnet-[0-9a-f]{{8}}|subnet-[0-9a-f]{{17}})$" in err["Message"]
+        rf"Value '['{bad_vpc_settings['SubnetIds'][0]}']' at "
+        rf"'vpcSettings.subnetIds' failed to satisfy constraint: "
+        rf"Member must satisfy regular expression pattern: "
+        rf"^(subnet-[0-9a-f]{{8}}|subnet-[0-9a-f]{{17}})$" in err["Message"]
     )
 
 

@@ -3,14 +3,15 @@ import json
 import re
 
 from collections import OrderedDict
+from typing import Any, Dict, List, Optional
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from .exceptions import InvalidNameException, ResourceNotFoundError
 from .utils import get_random_identity_id
 
 
-class CognitoIdentity(BaseModel):
-    def __init__(self, region, identity_pool_name, **kwargs):
+class CognitoIdentityPool(BaseModel):
+    def __init__(self, region: str, identity_pool_name: str, **kwargs: Any):
         self.identity_pool_name = identity_pool_name
 
         if not re.fullmatch(r"[\w\s+=,.@-]+", identity_pool_name):
@@ -32,7 +33,7 @@ class CognitoIdentity(BaseModel):
 
         self.tags = kwargs.get("tags") or {}
 
-    def to_json(self):
+    def to_json(self) -> str:
         return json.dumps(
             {
                 "IdentityPoolId": self.identity_pool_id,
@@ -43,57 +44,38 @@ class CognitoIdentity(BaseModel):
                 "OpenIdConnectProviderARNs": self.open_id_connect_provider_arns,
                 "CognitoIdentityProviders": self.cognito_identity_providers,
                 "SamlProviderARNs": self.saml_provider_arns,
+                "IdentityPoolTags": self.tags,
             }
         )
 
 
 class CognitoIdentityBackend(BaseBackend):
-    def __init__(self, region):
-        super().__init__()
-        self.region = region
-        self.identity_pools = OrderedDict()
-        self.pools_identities = {}
+    def __init__(self, region_name: str, account_id: str):
+        super().__init__(region_name, account_id)
+        self.identity_pools: Dict[str, CognitoIdentityPool] = OrderedDict()
+        self.pools_identities: Dict[str, Dict[str, Any]] = {}
 
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
-
-    def describe_identity_pool(self, identity_pool_id):
+    def describe_identity_pool(self, identity_pool_id: str) -> str:
         identity_pool = self.identity_pools.get(identity_pool_id, None)
 
         if not identity_pool:
             raise ResourceNotFoundError(identity_pool_id)
 
-        response = json.dumps(
-            {
-                "AllowUnauthenticatedIdentities": identity_pool.allow_unauthenticated_identities,
-                "CognitoIdentityProviders": identity_pool.cognito_identity_providers,
-                "DeveloperProviderName": identity_pool.developer_provider_name,
-                "IdentityPoolId": identity_pool.identity_pool_id,
-                "IdentityPoolName": identity_pool.identity_pool_name,
-                "IdentityPoolTags": identity_pool.tags,
-                "OpenIdConnectProviderARNs": identity_pool.open_id_connect_provider_arns,
-                "SamlProviderARNs": identity_pool.saml_provider_arns,
-                "SupportedLoginProviders": identity_pool.supported_login_providers,
-            }
-        )
-
-        return response
+        return identity_pool.to_json()
 
     def create_identity_pool(
         self,
-        identity_pool_name,
-        allow_unauthenticated_identities,
-        supported_login_providers,
-        developer_provider_name,
-        open_id_connect_provider_arns,
-        cognito_identity_providers,
-        saml_provider_arns,
-        tags=None,
-    ):
-        new_identity = CognitoIdentity(
-            self.region,
+        identity_pool_name: str,
+        allow_unauthenticated_identities: bool,
+        supported_login_providers: Dict[str, str],
+        developer_provider_name: str,
+        open_id_connect_provider_arns: List[str],
+        cognito_identity_providers: List[Dict[str, Any]],
+        saml_provider_arns: List[str],
+        tags: Dict[str, str],
+    ) -> str:
+        new_identity = CognitoIdentityPool(
+            self.region_name,
             identity_pool_name,
             allow_unauthenticated_identities=allow_unauthenticated_identities,
             supported_login_providers=supported_login_providers,
@@ -112,22 +94,23 @@ class CognitoIdentityBackend(BaseBackend):
                 }
             }
         )
-        response = new_identity.to_json()
-        return response
+        return new_identity.to_json()
 
     def update_identity_pool(
         self,
-        identity_pool_id,
-        identity_pool_name,
-        allow_unauthenticated,
-        allow_classic,
-        login_providers,
-        provider_name,
-        provider_arns,
-        identity_providers,
-        saml_providers,
-        tags=None,
-    ):
+        identity_pool_id: str,
+        identity_pool_name: str,
+        allow_unauthenticated: Optional[bool],
+        login_providers: Optional[Dict[str, str]],
+        provider_name: Optional[str],
+        provider_arns: Optional[List[str]],
+        identity_providers: Optional[List[Dict[str, Any]]],
+        saml_providers: Optional[List[str]],
+        tags: Optional[Dict[str, str]],
+    ) -> str:
+        """
+        The AllowClassic-parameter has not yet been implemented
+        """
         pool = self.identity_pools[identity_pool_id]
         pool.identity_pool_name = pool.identity_pool_name or identity_pool_name
         if allow_unauthenticated is not None:
@@ -145,20 +128,19 @@ class CognitoIdentityBackend(BaseBackend):
         if tags:
             pool.tags = tags
 
-        response = pool.to_json()
-        return response
+        return pool.to_json()
 
-    def get_id(self, identity_pool_id: str):
-        identity_id = {"IdentityId": get_random_identity_id(self.region)}
+    def get_id(self, identity_pool_id: str) -> str:
+        identity_id = {"IdentityId": get_random_identity_id(self.region_name)}
         self.pools_identities[identity_pool_id]["Identities"].append(identity_id)
         return json.dumps(identity_id)
 
-    def get_credentials_for_identity(self, identity_id):
+    def get_credentials_for_identity(self, identity_id: str) -> str:
         duration = 90
         now = datetime.datetime.utcnow()
         expiration = now + datetime.timedelta(seconds=duration)
         expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
-        response = json.dumps(
+        return json.dumps(
             {
                 "Credentials": {
                     "AccessKeyId": "TESTACCESSKEY12345",
@@ -169,23 +151,28 @@ class CognitoIdentityBackend(BaseBackend):
                 "IdentityId": identity_id,
             }
         )
-        return response
 
-    def get_open_id_token_for_developer_identity(self, identity_id):
-        response = json.dumps(
-            {"IdentityId": identity_id, "Token": get_random_identity_id(self.region)}
+    def get_open_id_token_for_developer_identity(self, identity_id: str) -> str:
+        return json.dumps(
+            {
+                "IdentityId": identity_id,
+                "Token": get_random_identity_id(self.region_name),
+            }
         )
-        return response
 
-    def get_open_id_token(self, identity_id):
-        response = json.dumps(
-            {"IdentityId": identity_id, "Token": get_random_identity_id(self.region)}
+    def get_open_id_token(self, identity_id: str) -> str:
+        return json.dumps(
+            {
+                "IdentityId": identity_id,
+                "Token": get_random_identity_id(self.region_name),
+            }
         )
-        return response
 
-    def list_identities(self, identity_pool_id, max_results=123):
-        response = json.dumps(self.pools_identities[identity_pool_id])
-        return response
+    def list_identities(self, identity_pool_id: str) -> str:
+        """
+        The MaxResults-parameter has not yet been implemented
+        """
+        return json.dumps(self.pools_identities[identity_pool_id])
 
 
 cognitoidentity_backends = BackendDict(CognitoIdentityBackend, "cognito-identity")

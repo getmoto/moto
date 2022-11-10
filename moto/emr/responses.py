@@ -55,6 +55,9 @@ class ElasticMapReduceResponse(BaseResponse):
 
     aws_service_spec = AWSServiceSpec("data/emr/2009-03-31/service-2.json")
 
+    def __init__(self):
+        super().__init__(service_name="emr")
+
     def get_region_from_url(self, request, full_url):
         parsed = urlparse(full_url)
         for regex in self.region_regex:
@@ -65,7 +68,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
     @property
     def backend(self):
-        return emr_backends[self.region]
+        return emr_backends[self.current_account][self.region]
 
     @generate_boto3_response("AddInstanceGroups")
     def add_instance_groups(self):
@@ -532,7 +535,7 @@ class ElasticMapReduceResponse(BaseResponse):
     def remove_auto_scaling_policy(self):
         cluster_id = self._get_param("ClusterId")
         instance_group_id = self._get_param("InstanceGroupId")
-        instance_group = self.backend.put_auto_scaling_policy(instance_group_id, None)
+        instance_group = self.backend.remove_auto_scaling_policy(instance_group_id)
         template = self.response_template(REMOVE_AUTO_SCALING_POLICY)
         return template.render(cluster_id=cluster_id, instance_group=instance_group)
 

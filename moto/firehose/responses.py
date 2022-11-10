@@ -8,10 +8,13 @@ from .models import firehose_backends
 class FirehoseResponse(BaseResponse):
     """Handler for Firehose requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="firehose")
+
     @property
     def firehose_backend(self):
         """Return backend instance specific to this region."""
-        return firehose_backends[self.region]
+        return firehose_backends[self.current_account][self.region]
 
     def create_delivery_stream(self):
         """Prepare arguments and respond to CreateDeliveryStream request."""
@@ -34,7 +37,7 @@ class FirehoseResponse(BaseResponse):
     def delete_delivery_stream(self):
         """Prepare arguments and respond to DeleteDeliveryStream request."""
         self.firehose_backend.delete_delivery_stream(
-            self._get_param("DeliveryStreamName"), self._get_param("AllowForceDelete"),
+            self._get_param("DeliveryStreamName"), self._get_param("AllowForceDelete")
         )
         return json.dumps({})
 
@@ -82,14 +85,14 @@ class FirehoseResponse(BaseResponse):
     def tag_delivery_stream(self):
         """Prepare arguments and respond to TagDeliveryStream request."""
         self.firehose_backend.tag_delivery_stream(
-            self._get_param("DeliveryStreamName"), self._get_param("Tags"),
+            self._get_param("DeliveryStreamName"), self._get_param("Tags")
         )
         return json.dumps({})
 
     def untag_delivery_stream(self):
         """Prepare arguments and respond to UntagDeliveryStream()."""
         self.firehose_backend.untag_delivery_stream(
-            self._get_param("DeliveryStreamName"), self._get_param("TagKeys"),
+            self._get_param("DeliveryStreamName"), self._get_param("TagKeys")
         )
         return json.dumps({})
 

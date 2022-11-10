@@ -1,7 +1,9 @@
 import json
 import os
+import pathlib
 
 from functools import lru_cache
+from typing import Optional
 
 
 TEST_SERVER_MODE = os.environ.get("TEST_SERVER_MODE", "0").lower() == "true"
@@ -16,6 +18,19 @@ S3_IGNORE_SUBDOMAIN_BUCKETNAME = os.environ.get(
 
 # How many seconds to wait before we "validate" a new certificate in ACM.
 ACM_VALIDATION_WAIT = int(os.environ.get("MOTO_ACM_VALIDATION_WAIT", "60"))
+
+EC2_ENABLE_INSTANCE_TYPE_VALIDATION = bool(
+    os.environ.get("MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION", False)
+)
+
+ENABLE_KEYPAIR_VALIDATION = bool(
+    os.environ.get("MOTO_ENABLE_KEYPAIR_VALIDATION", False)
+)
+
+ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False))
+
+
+PRETTIFY_RESPONSES = bool(os.environ.get("MOTO_PRETTIFY_RESPONSES", False))
 
 
 def get_sf_execution_history_type():
@@ -54,46 +69,46 @@ def allow_unknown_region():
     return os.environ.get("MOTO_ALLOW_NONEXISTENT_REGION", "false").lower() == "true"
 
 
-def moto_server_port():
+def moto_server_port() -> str:
     return os.environ.get("MOTO_PORT") or "5000"
 
 
 @lru_cache()
-def moto_server_host():
+def moto_server_host() -> str:
     if is_docker():
         return get_docker_host()
     else:
         return "http://host.docker.internal"
 
 
-def moto_lambda_image():
+def moto_lambda_image() -> str:
     return os.environ.get("MOTO_DOCKER_LAMBDA_IMAGE", "lambci/lambda")
 
 
-def moto_network_name():
+def moto_network_name() -> str:
     return os.environ.get("MOTO_DOCKER_NETWORK_NAME")
 
 
-def moto_network_mode():
+def moto_network_mode() -> str:
     return os.environ.get("MOTO_DOCKER_NETWORK_MODE")
 
 
-def test_server_mode_endpoint():
+def test_server_mode_endpoint() -> str:
     return os.environ.get(
         "TEST_SERVER_MODE_ENDPOINT", f"http://localhost:{moto_server_port()}"
     )
 
 
-def is_docker():
-    path = "/proc/self/cgroup"
+def is_docker() -> bool:
+    path = pathlib.Path("/proc/self/cgroup")
     return (
         os.path.exists("/.dockerenv")
-        or os.path.isfile(path)
-        and any("docker" in line for line in open(path))
+        or path.is_file()
+        and any("docker" in line for line in path.read_text())
     )
 
 
-def get_docker_host():
+def get_docker_host() -> str:
     try:
         cmd = "curl -s --unix-socket /run/docker.sock http://docker/containers/$HOSTNAME/json"
         container_info = os.popen(cmd).read()
@@ -104,13 +119,17 @@ def get_docker_host():
         else:
             _ip = network_settings["IPAddress"]
             if network_name:
-                print(
+                print(  # noqa
                     f"WARNING - Moto couldn't find network '{network_name}' - defaulting to {_ip}"
                 )
         return f"http://{_ip}"
     except Exception as e:  # noqa
-        print(
+        print(  # noqa
             "WARNING - Unable to parse Docker API response. Defaulting to 'host.docker.internal'"
         )
-        print(f"{type(e)}::{e}")
+        print(f"{type(e)}::{e}")  # noqa
         return "http://host.docker.internal"
+
+
+def get_cognito_idp_user_pool_id_strategy() -> Optional[str]:
+    return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY")

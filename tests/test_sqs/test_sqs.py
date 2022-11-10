@@ -1,7 +1,9 @@
 import json
+import os
 import time
 import uuid
 import hashlib
+import sys
 
 import boto3
 import botocore.exceptions
@@ -9,11 +11,12 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_sqs, settings
+from moto.utilities.distutils_version import LooseVersion
 
 from unittest import SkipTest, mock
 
 import pytest
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sqs.models import (
     Queue,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
@@ -174,14 +177,11 @@ def test_create_queue():
 
     q_name = str(uuid4())[0:6]
     new_queue = sqs.create_queue(QueueName=q_name)
-    new_queue.should_not.be.none
     new_queue.should.have.property("url").should.contain(q_name)
 
     queue = sqs.get_queue_by_name(QueueName=q_name)
-    queue.attributes.get("QueueArn").should_not.be.none
     queue.attributes.get("QueueArn").split(":")[-1].should.equal(q_name)
     queue.attributes.get("QueueArn").split(":")[3].should.equal("us-east-1")
-    queue.attributes.get("VisibilityTimeout").should_not.be.none
     queue.attributes.get("VisibilityTimeout").should.equal("30")
 
 
@@ -190,14 +190,13 @@ def test_create_queue_kms():
     sqs = boto3.resource("sqs", region_name="us-east-1")
 
     q_name = str(uuid4())[0:6]
-    new_queue = sqs.create_queue(
+    sqs.create_queue(
         QueueName=q_name,
         Attributes={
             "KmsMasterKeyId": "master-key-id",
             "KmsDataKeyReusePeriodSeconds": "600",
         },
     )
-    new_queue.should_not.be.none
 
     queue = sqs.get_queue_by_name(QueueName=q_name)
 
@@ -210,12 +209,12 @@ def test_create_queue_with_tags():
     client = boto3.client("sqs", region_name="us-east-1")
     q_name = str(uuid4())[0:6]
     response = client.create_queue(
-        QueueName=q_name, tags={"tag_key_1": "tag_value_1", "tag_key_2": ""},
+        QueueName=q_name, tags={"tag_key_1": "tag_value_1", "tag_key_2": ""}
     )
     queue_url = response["QueueUrl"]
 
     client.list_queue_tags(QueueUrl=queue_url)["Tags"].should.equal(
-        {"tag_key_1": "tag_value_1", "tag_key_2": "",}
+        {"tag_key_1": "tag_value_1", "tag_key_2": ""}
     )
 
 
@@ -599,9 +598,7 @@ def test_send_message_with_message_group_id_standard_queue():
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
     with pytest.raises(ClientError) as ex:
-        queue.send_message(
-            MessageBody="mydata", MessageGroupId="group_id_1",
-        )
+        queue.send_message(MessageBody="mydata", MessageGroupId="group_id_1")
 
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidParameterValue")
@@ -636,6 +633,22 @@ def test_set_queue_attributes():
     queue.attributes["VisibilityTimeout"].should.equal("45")
 
 
+def _get_common_url(region):
+    # Different versions of botocore return different URLs
+    # See https://github.com/boto/botocore/issues/2705
+    boto3_version = sys.modules["botocore"].__version__
+    if LooseVersion(boto3_version) >= LooseVersion("1.29.0"):
+        return f"https://sqs.{region}.amazonaws.com"
+    common_name_enabled = (
+        os.environ.get("BOTO_DISABLE_COMMONNAME", "false").lower() == "false"
+    )
+    return (
+        f"https://{region}.queue.amazonaws.com"
+        if common_name_enabled
+        else f"https://sqs.{region}.amazonaws.com"
+    )
+
+
 @mock_sqs
 def test_create_queues_in_multiple_region():
     w1 = boto3.client("sqs", region_name="us-west-1")
@@ -646,19 +659,13 @@ def test_create_queues_in_multiple_region():
     w2_name = str(uuid4())[0:6]
     w2.create_queue(QueueName=w2_name)
 
-    base_url = (
-        "http://localhost:5000"
-        if settings.TEST_SERVER_MODE
-        else "https://us-west-1.queue.amazonaws.com"
-    )
+    boto_common_url = _get_common_url("us-west-1")
+    base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else boto_common_url
     w1.list_queues()["QueueUrls"].should.contain(f"{base_url}/{ACCOUNT_ID}/{w1_name}")
     w1.list_queues()["QueueUrls"].shouldnt.contain(f"{base_url}/{ACCOUNT_ID}/{w2_name}")
 
-    base_url = (
-        "http://localhost:5000"
-        if settings.TEST_SERVER_MODE
-        else "https://us-west-2.queue.amazonaws.com"
-    )
+    boto_common_url = _get_common_url("us-west-2")
+    base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else boto_common_url
     w2.list_queues()["QueueUrls"].shouldnt.contain(f"{base_url}/{ACCOUNT_ID}/{w1_name}")
     w2.list_queues()["QueueUrls"].should.contain(f"{base_url}/{ACCOUNT_ID}/{w2_name}")
 
@@ -673,11 +680,8 @@ def test_get_queue_with_prefix():
     q_name2 = f"{prefix}-test"
     conn.create_queue(QueueName=q_name2)
 
-    base_url = (
-        "http://localhost:5000"
-        if settings.TEST_SERVER_MODE
-        else "https://us-west-1.queue.amazonaws.com"
-    )
+    boto_common_url = _get_common_url("us-west-1")
+    base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else boto_common_url
     expected_url1 = f"{base_url}/{ACCOUNT_ID}/{q_name1}"
     expected_url2 = f"{base_url}/{ACCOUNT_ID}/{q_name2}"
 
@@ -976,7 +980,7 @@ def test_send_receive_message_with_attributes_with_labels():
     response = queue.send_message(
         MessageBody="test message",
         MessageAttributes={
-            "somevalue": {"StringValue": "somevalue", "DataType": "String.custom",}
+            "somevalue": {"StringValue": "somevalue", "DataType": "String.custom"}
         },
     )
 
@@ -1406,7 +1410,7 @@ def test_receive_messages_with_wait_seconds_timeout_of_zero():
 
 
 @mock_sqs
-def test_send_message_with_xml_characters_boto3():
+def test_send_message_with_xml_characters():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -1421,7 +1425,7 @@ def test_send_message_with_xml_characters_boto3():
 
 
 @mock_sqs
-def test_send_message_with_delay_boto3():
+def test_send_message_with_delay():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
@@ -1441,7 +1445,7 @@ def test_send_message_with_delay_boto3():
 
 
 @mock_sqs
-def test_send_large_message_fails_boto3():
+def test_send_large_message_fails():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
@@ -1456,7 +1460,7 @@ def test_send_large_message_fails_boto3():
 
 
 @mock_sqs
-def test_message_becomes_inflight_when_received_boto3():
+def test_message_becomes_inflight_when_received():
     sqs = boto3.resource("sqs", region_name="eu-west-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
@@ -1484,7 +1488,7 @@ def test_message_becomes_inflight_when_received_boto3():
 
 
 @mock_sqs
-def test_receive_message_with_explicit_visibility_timeout_boto3():
+def test_receive_message_with_explicit_visibility_timeout():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
@@ -1506,7 +1510,7 @@ def test_receive_message_with_explicit_visibility_timeout_boto3():
 
 
 @mock_sqs
-def test_change_message_visibility_boto3():
+def test_change_message_visibility():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
@@ -1555,7 +1559,7 @@ def test_change_message_visibility_on_unknown_receipt_handle():
 
     with pytest.raises(ClientError) as exc:
         conn.change_message_visibility(
-            QueueUrl=queue.url, ReceiptHandle="unknown-stuff", VisibilityTimeout=432,
+            QueueUrl=queue.url, ReceiptHandle="unknown-stuff", VisibilityTimeout=432
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("ReceiptHandleIsInvalid")
@@ -1563,7 +1567,7 @@ def test_change_message_visibility_on_unknown_receipt_handle():
 
 
 @mock_sqs
-def test_queue_length_boto3():
+def test_queue_length():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
@@ -1577,7 +1581,7 @@ def test_queue_length_boto3():
 
 
 @mock_sqs
-def test_delete_batch_operation_boto3():
+def test_delete_batch_operation():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
@@ -1599,7 +1603,7 @@ def test_delete_batch_operation_boto3():
 
 
 @mock_sqs
-def test_change_message_visibility_on_old_message_boto3():
+def test_change_message_visibility_on_old_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
@@ -1638,10 +1642,10 @@ def test_change_message_visibility_on_old_message_boto3():
 
 
 @mock_sqs
-def test_change_message_visibility_on_visible_message_boto3():
+def test_change_message_visibility_on_visible_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "2"}
     )
 
     queue.send_message(MessageBody="test message")
@@ -1697,7 +1701,7 @@ def test_purge_queue_before_delete_message():
 
 
 @mock_sqs
-def test_delete_message_after_visibility_timeout_boto3():
+def test_delete_message_after_visibility_timeout():
     VISIBILITY_TIMEOUT = 1
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -1786,7 +1790,7 @@ def test_delete_message_using_old_receipt_handle():
 def test_send_message_batch():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(
-        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"},
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
     )
     queue_url = response["QueueUrl"]
 
@@ -2837,9 +2841,7 @@ def test_send_messages_to_fifo_without_message_group_id():
     )
 
     with pytest.raises(Exception) as e:
-        queue.send_messages(
-            Entries=[{"Id": "id_1", "MessageBody": "body_1",},]
-        )
+        queue.send_messages(Entries=[{"Id": "id_1", "MessageBody": "body_1"}])
     ex = e.value
     ex.response["Error"]["Code"].should.equal("MissingParameter")
     ex.response["Error"]["Message"].should.equal(
@@ -2850,7 +2852,7 @@ def test_send_messages_to_fifo_without_message_group_id():
 @mock_sqs
 def test_maximum_message_size_attribute_default():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
-    queue = sqs.create_queue(QueueName=str(uuid4()),)
+    queue = sqs.create_queue(QueueName=str(uuid4()))
     int(queue.attributes["MaximumMessageSize"]).should.equal(MAXIMUM_MESSAGE_LENGTH)
     with pytest.raises(Exception) as e:
         queue.send_message(MessageBody="a" * (MAXIMUM_MESSAGE_LENGTH + 1))
@@ -2926,7 +2928,7 @@ def test_fifo_queue_deduplication_with_id(
 
 @mock_sqs
 @pytest.mark.parametrize(
-    "msg_1, msg_2, expected_count", [("msg1", "msg1", 1), ("msg1", "msg2", 2),],
+    "msg_1, msg_2, expected_count", [("msg1", "msg1", 1), ("msg1", "msg2", 2)]
 )
 def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
 
@@ -3002,7 +3004,7 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
         Attributes={
             "FifoQueue": "true",
             "RedrivePolicy": json.dumps(
-                {"deadLetterTargetArn": dead_letter_queue_arn, "maxReceiveCount": 1},
+                {"deadLetterTargetArn": dead_letter_queue_arn, "maxReceiveCount": 1}
             ),
             "VisibilityTimeout": "1",
         },
@@ -3026,7 +3028,7 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
 
 
 @mock_sqs
-def test_receive_message_should_not_accept_invalid_urls():
+def test_receive_message_using_name__should_return_name_as_url():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
     name = str(uuid4())[0:6]
@@ -3037,17 +3039,10 @@ def test_receive_message_should_not_accept_invalid_urls():
     working_url.should.match(f"/{ACCOUNT_ID}/{name}")
 
     queue = sqs.Queue(name)
-    with pytest.raises(ClientError) as e:
-        queue.send_message(MessageBody="this is a test message")
-    err = e.value.response["Error"]
-    err["Code"].should.equal("InvalidAddress")
-    err["Message"].should.equal(f"The address {name} is not valid for this endpoint.")
+    queue.send_message(MessageBody="this is a test message")
 
-    with pytest.raises(ClientError) as e:
-        conn.receive_message(QueueUrl=name)
-    err = e.value.response["Error"]
-    err["Code"].should.equal("InvalidAddress")
-    err["Message"].should.equal(f"The address {name} is not valid for this endpoint.")
+    resp = queue.receive_messages()
+    resp[0].queue_url.should.equal(name)
 
 
 @mock_sqs
@@ -3107,7 +3102,7 @@ def test_receive_message_again_preserves_attributes():
     assert first_messages[0]["MessageAttributes"].get("Custom2") is None
 
     second_messages = conn.receive_message(
-        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"],
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"]
     )["Messages"]
     assert len(second_messages[0]["MessageAttributes"]) == 2
     assert second_messages[0]["MessageAttributes"].get("Custom1") is not None

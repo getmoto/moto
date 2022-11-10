@@ -1,5 +1,6 @@
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex, BackendDict
+from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random
 from .exceptions import DomainNotFound
 
 
@@ -22,9 +23,8 @@ class Domain(BaseModel):
         domain_endpoint_options,
         advanced_security_options,
         auto_tune_options,
-        tag_list,
     ):
-        self.domain_id = get_random_hex(8)
+        self.domain_id = mock_random.get_random_hex(8)
         self.region_name = region_name
         self.domain_name = domain_name
         self.es_version = es_version
@@ -77,15 +77,9 @@ class Domain(BaseModel):
 class ElasticsearchServiceBackend(BaseBackend):
     """Implementation of ElasticsearchService APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.domains = dict()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_elasticsearch_domain(
         self,
@@ -104,7 +98,6 @@ class ElasticsearchServiceBackend(BaseBackend):
         domain_endpoint_options,
         advanced_security_options,
         auto_tune_options,
-        tag_list,
     ):
         # TODO: Persist/Return other attributes
         new_domain = Domain(
@@ -124,7 +117,6 @@ class ElasticsearchServiceBackend(BaseBackend):
             domain_endpoint_options=domain_endpoint_options,
             advanced_security_options=advanced_security_options,
             auto_tune_options=auto_tune_options,
-            tag_list=tag_list,
         )
         self.domains[domain_name] = new_domain
         return new_domain.to_json()
@@ -139,7 +131,7 @@ class ElasticsearchServiceBackend(BaseBackend):
             raise DomainNotFound(domain_name)
         return self.domains[domain_name].to_json()
 
-    def list_domain_names(self, engine_type):
+    def list_domain_names(self):
         """
         The engine-type parameter is not yet supported.
         Pagination is not yet implemented.

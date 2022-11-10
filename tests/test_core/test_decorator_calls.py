@@ -1,11 +1,10 @@
 import boto3
-import os
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 import unittest
 
 from botocore.exceptions import ClientError
-from moto import mock_ec2, mock_s3, settings
+from moto import mock_ec2, mock_kinesis, mock_s3, settings
 from unittest import SkipTest
 
 """
@@ -19,17 +18,17 @@ def test_basic_decorator():
     client.describe_addresses()["Addresses"].should.equal([])
 
 
-@pytest.fixture
-def aws_credentials():
+@pytest.fixture(name="aws_credentials")
+def fixture_aws_credentials(monkeypatch):
     """Mocked AWS Credentials for moto."""
-    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
 
 
 @pytest.mark.network
-def test_context_manager(aws_credentials):
+def test_context_manager(aws_credentials):  # pylint: disable=unused-argument
     client = boto3.client("ec2", region_name="us-west-1")
     with pytest.raises(ClientError) as exc:
         client.describe_addresses()
@@ -127,7 +126,7 @@ class TestWithSetup_UppercaseU(unittest.TestCase):
 
 @mock_s3
 class TestWithSetup_LowercaseU:
-    def setup(self, *args):
+    def setup_method(self, *args):  # pylint: disable=unused-argument
         # This method will be executed automatically using pytest
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
@@ -144,7 +143,7 @@ class TestWithSetup_LowercaseU:
 
 @mock_s3
 class TestWithSetupMethod:
-    def setup_method(self, *args):
+    def setup_method(self, *args):  # pylint: disable=unused-argument
         # This method will be executed automatically using pytest
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
@@ -157,6 +156,25 @@ class TestWithSetupMethod:
         s3 = boto3.client("s3", region_name="us-east-1")
         with pytest.raises(ClientError):
             s3.head_bucket(Bucket="unknown_bucket")
+
+
+@mock_kinesis
+class TestKinesisUsingSetupMethod:
+    def setup_method(self, *args):  # pylint: disable=unused-argument
+        self.stream_name = "test_stream"
+        self.boto3_kinesis_client = boto3.client("kinesis", region_name="us-east-1")
+        self.boto3_kinesis_client.create_stream(
+            StreamName=self.stream_name, ShardCount=1
+        )
+
+    def test_stream_creation(self):
+        pass
+
+    def test_stream_recreation(self):
+        # The setup-method will run again for this test
+        # The fact that it passes, means the state was reset
+        # Otherwise it would complain about a stream already existing
+        pass
 
 
 @mock_s3

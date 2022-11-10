@@ -134,6 +134,16 @@ def util_function():
     return zip_output.read()
 
 
+def get_test_zip_file_print_event():
+    pfunc = """
+def lambda_handler(event, context):
+    print(event)
+    print("FINISHED_PRINTING_EVENT")
+    return event
+"""
+    return _process_lambda(pfunc)
+
+
 def create_invalid_lambda(role):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -156,21 +166,25 @@ def create_invalid_lambda(role):
 def get_role_name():
     with mock_iam():
         iam = boto3.client("iam", region_name=_lambda_region)
-        try:
-            return iam.get_role(RoleName="my-role")["Role"]["Arn"]
-        except ClientError:
-            return iam.create_role(
-                RoleName="my-role",
-                AssumeRolePolicyDocument="some policy",
-                Path="/my-path/",
-            )["Role"]["Arn"]
+        while True:
+            try:
+                return iam.get_role(RoleName="my-role")["Role"]["Arn"]
+            except ClientError:
+                try:
+                    return iam.create_role(
+                        RoleName="my-role",
+                        AssumeRolePolicyDocument="some policy",
+                        Path="/my-path/",
+                    )["Role"]["Arn"]
+                except ClientError:
+                    pass
 
 
-def wait_for_log_msg(expected_msg, log_group):
+def wait_for_log_msg(expected_msg, log_group, wait_time=30):
     logs_conn = boto3.client("logs", region_name="us-east-1")
     received_messages = []
     start = time.time()
-    while (time.time() - start) < 30:
+    while (time.time() - start) < wait_time:
         try:
             result = logs_conn.describe_log_streams(logGroupName=log_group)
             log_streams = result.get("logStreams")
@@ -182,7 +196,7 @@ def wait_for_log_msg(expected_msg, log_group):
 
         for log_stream in log_streams:
             result = logs_conn.get_log_events(
-                logGroupName=log_group, logStreamName=log_stream["logStreamName"],
+                logGroupName=log_group, logStreamName=log_stream["logStreamName"]
             )
             received_messages.extend(
                 [event["message"] for event in result.get("events")]

@@ -1,12 +1,12 @@
 from collections import OrderedDict
-from uuid import uuid4
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random
 
 
 class Input(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.arn = kwargs.get("arn")
         self.attached_channels = kwargs.get("attached_channels", [])
         self.destinations = kwargs.get("destinations", [])
@@ -54,7 +54,7 @@ class Input(BaseModel):
 
 
 class Channel(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.arn = kwargs.get("arn")
         self.cdi_input_specification = kwargs.get("cdi_input_specification")
         self.channel_class = kwargs.get("channel_class", "STANDARD")
@@ -113,16 +113,10 @@ class Channel(BaseModel):
 
 
 class MediaLiveBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._channels = OrderedDict()
         self._inputs = OrderedDict()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_channel(
         self,
@@ -134,12 +128,13 @@ class MediaLiveBackend(BaseBackend):
         input_specification,
         log_level,
         name,
-        request_id,
-        reserved,
         role_arn,
         tags,
     ):
-        channel_id = uuid4().hex
+        """
+        The RequestID and Reserved parameters are not yet implemented
+        """
+        channel_id = mock_random.uuid4().hex
         arn = "arn:aws:medialive:channel:{}".format(channel_id)
         channel = Channel(
             arn=arn,
@@ -225,14 +220,15 @@ class MediaLiveBackend(BaseBackend):
         input_security_groups,
         media_connect_flows,
         name,
-        request_id,
         role_arn,
         sources,
         tags,
         input_type,
-        vpc,
     ):
-        input_id = uuid4().hex
+        """
+        The VPC and RequestId parameters are not yet implemented
+        """
+        input_id = mock_random.uuid4().hex
         arn = "arn:aws:medialive:input:{}".format(input_id)
         a_input = Input(
             arn=arn,

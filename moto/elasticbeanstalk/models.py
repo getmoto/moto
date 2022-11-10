@@ -1,15 +1,13 @@
 import weakref
 
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from .exceptions import InvalidParameterValueError, ResourceNotFoundException
 from .utils import make_arn
 
 
 class FakeEnvironment(BaseModel):
-    def __init__(
-        self, application, environment_name, solution_stack_name, tags,
-    ):
+    def __init__(self, application, environment_name, solution_stack_name, tags):
         self.application = weakref.proxy(
             application
         )  # weakref to break circular dependencies
@@ -24,7 +22,9 @@ class FakeEnvironment(BaseModel):
     @property
     def environment_arn(self):
         resource_path = "%s/%s" % (self.application_name, self.environment_name)
-        return make_arn(self.region, ACCOUNT_ID, "environment", resource_path)
+        return make_arn(
+            self.region, self.application.account_id, "environment", resource_path
+        )
 
     @property
     def platform_arn(self):
@@ -40,10 +40,13 @@ class FakeApplication(BaseModel):
         self.backend = weakref.proxy(backend)  # weakref to break cycles
         self.application_name = application_name
         self.environments = dict()
+        self.account_id = self.backend.account_id
+        self.region = self.backend.region_name
+        self.arn = make_arn(
+            self.region, self.account_id, "application", self.application_name
+        )
 
-    def create_environment(
-        self, environment_name, solution_stack_name, tags,
-    ):
+    def create_environment(self, environment_name, solution_stack_name, tags):
         if environment_name in self.environments:
             raise InvalidParameterValueError
 
@@ -57,26 +60,11 @@ class FakeApplication(BaseModel):
 
         return env
 
-    @property
-    def region(self):
-        return self.backend.region
-
-    @property
-    def arn(self):
-        return make_arn(self.region, ACCOUNT_ID, "application", self.application_name)
-
 
 class EBBackend(BaseBackend):
-    def __init__(self, region):
-        self.region = region
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.applications = dict()
-
-    def reset(self):
-        # preserve region
-        region = self.region
-        self._reset_model_refs()
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -92,15 +80,13 @@ class EBBackend(BaseBackend):
             raise InvalidParameterValueError(
                 "Application {} already exists.".format(application_name)
             )
-        new_app = FakeApplication(backend=self, application_name=application_name,)
+        new_app = FakeApplication(backend=self, application_name=application_name)
         self.applications[application_name] = new_app
         return new_app
 
     def create_environment(self, app, environment_name, stack_name, tags):
         return app.create_environment(
-            environment_name=environment_name,
-            solution_stack_name=stack_name,
-            tags=tags,
+            environment_name=environment_name, solution_stack_name=stack_name, tags=tags
         )
 
     def describe_environments(self):

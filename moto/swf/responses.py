@@ -7,9 +7,12 @@ from .models import swf_backends
 
 
 class SWFResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="swf")
+
     @property
     def swf_backend(self):
-        return swf_backends[self.region]
+        return swf_backends[self.current_account][self.region]
 
     # SWF parameters are passed through a JSON body, so let's ease retrieval
     @property
@@ -156,15 +159,10 @@ class SWFResponse(BaseResponse):
 
         workflow_executions = self.swf_backend.list_closed_workflow_executions(
             domain_name=domain,
-            start_time_filter=start_time_filter,
-            close_time_filter=close_time_filter,
-            execution_filter=execution_filter,
             tag_filter=tag_filter,
-            type_filter=type_filter,
+            close_status_filter=close_status_filter,
             maximum_page_size=maximum_page_size,
             reverse_order=reverse_order,
-            workflow_id=workflow_id,
-            close_status_filter=close_status_filter,
         )
 
         return json.dumps(
@@ -200,13 +198,9 @@ class SWFResponse(BaseResponse):
 
         workflow_executions = self.swf_backend.list_open_workflow_executions(
             domain_name=domain,
-            start_time_filter=start_time_filter,
-            execution_filter=execution_filter,
-            tag_filter=tag_filter,
-            type_filter=type_filter,
             maximum_page_size=maximum_page_size,
+            tag_filter=tag_filter,
             reverse_order=reverse_order,
-            workflow_id=workflow_id,
         )
 
         return json.dumps(

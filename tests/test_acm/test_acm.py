@@ -11,21 +11,24 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from freezegun import freeze_time
 from moto import mock_acm, mock_elb, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest import SkipTest, mock
 
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
-_GET_RESOURCE = lambda x: open(os.path.join(RESOURCE_FOLDER, x), "rb").read()
-CA_CRT = _GET_RESOURCE("ca.pem")
-CA_KEY = _GET_RESOURCE("ca.key")
-SERVER_CRT = _GET_RESOURCE("star_moto_com.pem")
+
+
+def get_resource(filename):
+    return open(os.path.join(RESOURCE_FOLDER, filename), "rb").read()
+
+
+CA_CRT = get_resource("ca.pem")
+CA_KEY = get_resource("ca.key")
+SERVER_CRT = get_resource("star_moto_com.pem")
 SERVER_COMMON_NAME = "*.moto.com"
-SERVER_CRT_BAD = _GET_RESOURCE("star_moto_com-bad.pem")
-SERVER_KEY = _GET_RESOURCE("star_moto_com.key")
-BAD_ARN = "arn:aws:acm:us-east-2:{}:certificate/_0000000-0000-0000-0000-000000000000".format(
-    ACCOUNT_ID
-)
+SERVER_CRT_BAD = get_resource("star_moto_com-bad.pem")
+SERVER_KEY = get_resource("star_moto_com.key")
+BAD_ARN = f"arn:aws:acm:us-east-2:{ACCOUNT_ID}:certificate/_0000000-0000-0000-0000-000000000000"
 
 
 def _import_cert(client):
@@ -57,7 +60,7 @@ def test_import_certificate_with_tags():
         Certificate=SERVER_CRT,
         PrivateKey=SERVER_KEY,
         CertificateChain=CA_CRT,
-        Tags=[{"Key": "Environment", "Value": "QA"}, {"Key": "KeyOnly"},],
+        Tags=[{"Key": "Environment", "Value": "QA"}, {"Key": "KeyOnly"}],
     )
     arn = resp["CertificateArn"]
 
@@ -157,7 +160,10 @@ def test_describe_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
 
-    resp = client.describe_certificate(CertificateArn=arn)
+    try:
+        resp = client.describe_certificate(CertificateArn=arn)
+    except OverflowError:
+        pytest.skip("This test requires 64-bit time_t")
     resp["Certificate"]["CertificateArn"].should.equal(arn)
     resp["Certificate"]["DomainName"].should.equal(SERVER_COMMON_NAME)
     resp["Certificate"]["Issuer"].should.equal("Moto")
@@ -406,7 +412,7 @@ def test_request_certificate_with_tags():
         DomainName="google.com",
         IdempotencyToken=token,
         SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
-        Tags=[{"Key": "Environment", "Value": "Prod"}, {"Key": "KeyOnly"},],
+        Tags=[{"Key": "Environment", "Value": "Prod"}, {"Key": "KeyOnly"}],
     )
     arn_2 = resp["CertificateArn"]
 
@@ -427,6 +433,18 @@ def test_request_certificate_with_tags():
             {"Key": "WithEmptyStr", "Value": ""},
         ],
     )
+    arn_3 = resp["CertificateArn"]
+
+    assert arn_1 != arn_3  # if tags are matched, ACM would have returned same arn
+
+    resp = client.request_certificate(
+        DomainName="google.com",
+        IdempotencyToken=token,
+        SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+    )
+    arn_4 = resp["CertificateArn"]
+
+    assert arn_1 != arn_4  # if tags are matched, ACM would have returned same arn
 
 
 @mock_acm
@@ -436,7 +454,7 @@ def test_operations_with_invalid_tags():
     # request certificate with invalid tags
     with pytest.raises(ClientError) as ex:
         client.request_certificate(
-            DomainName="example.com", Tags=[{"Key": "X" * 200, "Value": "Valid"}],
+            DomainName="example.com", Tags=[{"Key": "X" * 200, "Value": "Valid"}]
         )
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
     ex.value.response["Error"]["Message"].should.contain(
@@ -588,7 +606,7 @@ def test_request_certificate_issued_status_with_wait_in_envvar():
     client = boto3.client("acm", region_name="eu-central-1")
 
     with freeze_time("2012-01-01 12:00:00"):
-        resp = client.request_certificate(DomainName="google.com",)
+        resp = client.request_certificate(DomainName="google.com")
     arn = resp["CertificateArn"]
 
     with freeze_time("2012-01-01 12:00:00"):

@@ -1,4 +1,3 @@
-from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
 from .models import elastictranscoder_backends
 import json
@@ -6,11 +5,12 @@ import re
 
 
 class ElasticTranscoderResponse(BaseResponse):
-    SERVICE_NAME = "elastictranscoder"
+    def __init__(self):
+        super().__init__(service_name="elastictranscoder")
 
     @property
     def elastictranscoder_backend(self):
-        return elastictranscoder_backends[self.region]
+        return elastictranscoder_backends[self.current_account][self.region]
 
     def pipelines(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -35,8 +35,6 @@ class ElasticTranscoderResponse(BaseResponse):
         input_bucket = self._get_param("InputBucket")
         output_bucket = self._get_param("OutputBucket")
         role = self._get_param("Role")
-        aws_kms_key_arn = self._get_param("AwsKmsKeyArn")
-        notifications = self._get_param("Notifications")
         content_config = self._get_param("ContentConfig")
         thumbnail_config = self._get_param("ThumbnailConfig")
         if not role:
@@ -58,8 +56,6 @@ class ElasticTranscoderResponse(BaseResponse):
             input_bucket=input_bucket,
             output_bucket=output_bucket,
             role=role,
-            aws_kms_key_arn=aws_kms_key_arn,
-            notifications=notifications,
             content_config=content_config,
             thumbnail_config=thumbnail_config,
         )
@@ -87,9 +83,7 @@ class ElasticTranscoderResponse(BaseResponse):
             self.elastictranscoder_backend.read_pipeline(pipeline_id)
             return None
         except KeyError:
-            msg = "The specified pipeline was not found: account={}, pipelineId={}.".format(
-                ACCOUNT_ID, pipeline_id
-            )
+            msg = f"The specified pipeline was not found: account={self.current_account}, pipelineId={pipeline_id}."
             return (
                 404,
                 {"status": 404, "x-amzn-ErrorType": "ResourceNotFoundException"},
@@ -109,22 +103,11 @@ class ElasticTranscoderResponse(BaseResponse):
         name = self._get_param("Name")
         input_bucket = self._get_param("InputBucket")
         role = self._get_param("Role")
-        aws_kms_key_arn = self._get_param("AwsKmsKeyArn")
-        notifications = self._get_param("Notifications")
-        content_config = self._get_param("ContentConfig")
-        thumbnail_config = self._get_param("ThumbnailConfig")
         err = self.validate_pipeline_id(_id)
         if err:
             return err
         pipeline, warnings = self.elastictranscoder_backend.update_pipeline(
-            pipeline_id=_id,
-            name=name,
-            input_bucket=input_bucket,
-            role=role,
-            aws_kms_key_arn=aws_kms_key_arn,
-            notifications=notifications,
-            content_config=content_config,
-            thumbnail_config=thumbnail_config,
+            pipeline_id=_id, name=name, input_bucket=input_bucket, role=role
         )
 
         return (

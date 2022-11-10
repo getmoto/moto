@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, dhcp_configuration_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class DHCPOptions(BaseResponse):
+class DHCPOptions(EC2BaseResponse):
     def associate_dhcp_options(self):
         dhcp_opt_id = self._get_param("DhcpOptionsId")
         vpc_id = self._get_param("VpcId")
@@ -16,7 +15,8 @@ class DHCPOptions(BaseResponse):
         return template.render()
 
     def create_dhcp_options(self):
-        dhcp_config = dhcp_configuration_from_querystring(self.querystring)
+        dhcp_config = self._get_multi_param("DhcpConfiguration")
+        dhcp_config = {f["Key"]: f["Value"] for f in dhcp_config}
 
         # TODO validate we only got the options we know about
 
@@ -45,7 +45,7 @@ class DHCPOptions(BaseResponse):
 
     def describe_dhcp_options(self):
         dhcp_opt_ids = self._get_multi_param("DhcpOptionsId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         dhcp_opts = self.ec2_backend.describe_dhcp_options(dhcp_opt_ids, filters)
         template = self.response_template(DESCRIBE_DHCP_OPTIONS_RESPONSE)
         return template.render(dhcp_options=dhcp_opts)

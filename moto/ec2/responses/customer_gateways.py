@@ -1,12 +1,10 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class CustomerGateways(BaseResponse):
+class CustomerGateways(EC2BaseResponse):
     def create_customer_gateway(self):
-        # raise NotImplementedError('CustomerGateways(AmazonVPC).create_customer_gateway is not yet implemented')
         gateway_type = self._get_param("Type")
-        ip_address = self._get_param("IpAddress")
+        ip_address = self._get_param("IpAddress") or self._get_param("PublicIp")
         bgp_asn = self._get_param("BgpAsn")
         tags = self._get_multi_param("TagSpecification")
         tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
@@ -26,7 +24,7 @@ class CustomerGateways(BaseResponse):
 
     def describe_customer_gateways(self):
         self.error_on_dryrun()
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         customer_gateway_ids = self._get_multi_param("CustomerGatewayId")
         customer_gateways = self.ec2_backend.get_all_customer_gateways(
             filters, customer_gateway_ids

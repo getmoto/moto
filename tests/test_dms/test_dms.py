@@ -80,7 +80,7 @@ def test_start_replication_task():
         ReplicationTaskArn=task_arn, StartReplicationTaskType="start-replication"
     )
     tasks = client.describe_replication_tasks(
-        Filters=[{"Name": "replication-task-arn", "Values": [task_arn],}]
+        Filters=[{"Name": "replication-task-arn", "Values": [task_arn]}]
     )
 
     tasks["ReplicationTasks"][0]["Status"].should.equal("running")
@@ -159,7 +159,7 @@ def test_stop_replication_task():
     )
     client.stop_replication_task(ReplicationTaskArn=task_arn)
     tasks = client.describe_replication_tasks(
-        Filters=[{"Name": "replication-task-arn", "Values": [task_arn],}]
+        Filters=[{"Name": "replication-task-arn", "Values": [task_arn]}]
     )
 
     tasks["ReplicationTasks"][0]["Status"].should.equal("stopped")
@@ -180,7 +180,7 @@ def test_delete_replication_task():
     task_arn = response["ReplicationTask"]["ReplicationTaskArn"]
     client.delete_replication_task(ReplicationTaskArn=task_arn)
     tasks = client.describe_replication_tasks(
-        Filters=[{"Name": "replication-task-arn", "Values": [task_arn],}]
+        Filters=[{"Name": "replication-task-arn", "Values": [task_arn]}]
     )
 
     tasks["ReplicationTasks"].should.have.length_of(0)

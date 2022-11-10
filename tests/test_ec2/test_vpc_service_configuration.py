@@ -4,7 +4,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2, mock_elbv2
-from moto.core.utils import get_random_hex
+from moto.moto_api._internal import mock_random
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -390,7 +390,7 @@ def create_load_balancer(region_name, zone, lb_type):
     subnet = ec2.create_subnet(
         VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone=zone
     )
-    lb_name = f"lb_vpce-{get_random_hex(length=10)}"
+    lb_name = f"lb_vpce-{mock_random.get_random_hex(length=10)}"
     response = elbv2.create_load_balancer(
         Name=lb_name, Subnets=[subnet.id], Scheme="internal", Type=lb_type
     )

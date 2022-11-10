@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class RouteTables(BaseResponse):
+class RouteTables(EC2BaseResponse):
     def associate_route_table(self):
         route_table_id = self._get_param("RouteTableId")
         gateway_id = self._get_param("GatewayId")
@@ -76,7 +75,7 @@ class RouteTables(BaseResponse):
 
     def describe_route_tables(self):
         route_table_ids = self._get_multi_param("RouteTableId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         route_tables = self.ec2_backend.describe_route_tables(route_table_ids, filters)
         template = self.response_template(DESCRIBE_ROUTE_TABLES_RESPONSE)
         return template.render(route_tables=route_tables)
@@ -252,14 +251,16 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
             {% endfor %}
           </routeSet>
           <associationSet>
+            {% if route_table.main_association_id is not none %}
               <item>
-                <routeTableAssociationId>{{ route_table.main_association }}</routeTableAssociationId>
+                <routeTableAssociationId>{{ route_table.main_association_id }}</routeTableAssociationId>
                 <routeTableId>{{ route_table.id }}</routeTableId>
                 <main>true</main>
                 <associationState>
                   <state>associated</state>
                 </associationState>
               </item>
+            {% endif %}
             {% for association_id,subnet_id in route_table.associations.items() %}
               <item>
                 <routeTableAssociationId>{{ association_id }}</routeTableAssociationId>
@@ -325,5 +326,8 @@ REPLACE_ROUTE_TABLE_ASSOCIATION_RESPONSE = """
 <ReplaceRouteTableAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <newAssociationId>{{ association_id }}</newAssociationId>
+   <associationState>
+     <state>associated</state>
+   </associationState>
 </ReplaceRouteTableAssociationResponse>
 """

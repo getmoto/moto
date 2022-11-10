@@ -7,7 +7,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudwatch
 from moto.cloudwatch.utils import make_arn_for_alarm
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_cloudwatch
@@ -57,7 +57,7 @@ def test_list_tags_for_resource_with_unknown_resource():
     )
 
     # then
-    response["Tags"].should.be.empty
+    response["Tags"].should.equal([])
 
 
 @mock_cloudwatch
@@ -103,6 +103,28 @@ def test_tag_resource():
 
 
 @mock_cloudwatch
+def test_tag_resource_on_resource_without_tags():
+    cw = boto3.client("cloudwatch", region_name="eu-central-1")
+    cw.put_metric_alarm(
+        AlarmName="testalarm",
+        EvaluationPeriods=1,
+        ComparisonOperator="GreaterThanThreshold",
+        Period=60,
+        MetricName="test",
+        Namespace="test",
+    )
+    alarms = cw.describe_alarms()
+    alarm_arn = alarms["MetricAlarms"][0]["AlarmArn"]
+
+    # List 0 tags - none have been added
+    cw.list_tags_for_resource(ResourceARN=alarm_arn)["Tags"].should.equal([])
+
+    # Tag the Alarm for the first time
+    cw.tag_resource(ResourceARN=alarm_arn, Tags=[{"Key": "tk", "Value": "tv"}])
+    assert len(cw.list_tags_for_resource(ResourceARN=alarm_arn)["Tags"]) == 1
+
+
+@mock_cloudwatch
 def test_tag_resource_error_not_exists():
     # given
     region_name = "eu-central-1"
@@ -114,7 +136,7 @@ def test_tag_resource_error_not_exists():
             ResourceARN=make_arn_for_alarm(
                 region=region_name, account_id=ACCOUNT_ID, alarm_name="unknown"
             ),
-            Tags=[{"Key": "key-1", "Value": "value-1"},],
+            Tags=[{"Key": "key-1", "Value": "value-1"}],
         )
 
     # then

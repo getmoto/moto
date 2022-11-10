@@ -11,8 +11,8 @@ def test_decision_task_creation():
     dt = DecisionTask(wfe, 123)
     dt.workflow_execution.should.equal(wfe)
     dt.state.should.equal("SCHEDULED")
-    dt.task_token.should_not.be.empty
-    dt.started_event_id.should.be.none
+    dt.task_token.should.match("[-a-z0-9]+")
+    dt.started_event_id.should.equal(None)
 
 
 def test_decision_task_full_dict_representation():

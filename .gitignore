@@ -3,6 +3,7 @@ dist/*
 .cache
 .tox
 .coverage
+coverage.xml
 cover/
 *.pyc
 *~
@@ -27,3 +28,4 @@ htmlcov/
 .~c9_*
 .coverage*
 docs/_build
+moto_recording

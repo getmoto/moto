@@ -11,7 +11,7 @@ from .exceptions import (
 
 
 class Container(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.arn = kwargs.get("arn")
         self.name = kwargs.get("name")
         self.endpoint = kwargs.get("endpoint")
@@ -38,15 +38,9 @@ class Container(BaseModel):
 
 
 class MediaStoreBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._containers = OrderedDict()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_container(self, name, tags):
         arn = "arn:aws:mediastore:container:{}".format(name)
@@ -74,7 +68,10 @@ class MediaStoreBackend(BaseBackend):
         container.status = "ACTIVE"
         return container
 
-    def list_containers(self, next_token, max_results):
+    def list_containers(self):
+        """
+        Pagination is not yet implemented
+        """
         containers = list(self._containers.values())
         response_containers = [c.to_dict() for c in containers]
         return response_containers, None

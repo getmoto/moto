@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_emr
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 run_job_flow_args = dict(
@@ -48,7 +48,7 @@ input_instance_groups = [
     {
         "InstanceCount": 6,
         "InstanceRole": "TASK",
-        "InstanceType": "c1.large",
+        "InstanceType": "c3.large",
         "Market": "SPOT",
         "Name": "task-1",
         "BidPrice": "0.07",
@@ -74,6 +74,7 @@ input_instance_groups = [
 
 
 @mock_emr
+@pytest.mark.filterwarnings("ignore")
 def test_describe_cluster():
     region_name = "us-east-1"
     client = boto3.client("emr", region_name=region_name)
@@ -117,6 +118,7 @@ def test_describe_cluster():
     args["Tags"] = [{"Key": "tag1", "Value": "val1"}, {"Key": "tag2", "Value": "val2"}]
     args["SecurityConfiguration"] = "my-security-configuration"
     args["AutoScalingRole"] = "EMR_AutoScaling_DefaultRole"
+    args["AutoTerminationPolicy"] = {"IdleTimeout": 123}
 
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
 
@@ -250,6 +252,7 @@ def test_describe_job_flows():
 
 
 @mock_emr
+@pytest.mark.filterwarnings("ignore")
 def test_describe_job_flow():
     client = boto3.client("emr", region_name="us-east-1")
 
@@ -544,8 +547,10 @@ def test_run_job_flow_with_instance_groups_with_autoscaling():
         if "AutoScalingPolicy" in y:
             x["AutoScalingPolicy"]["Status"]["State"].should.equal("ATTACHED")
             returned_policy = deepcopy(x["AutoScalingPolicy"])
-            auto_scaling_policy_with_cluster_id = _patch_cluster_id_placeholder_in_autoscaling_policy(
-                y["AutoScalingPolicy"], cluster_id
+            auto_scaling_policy_with_cluster_id = (
+                _patch_cluster_id_placeholder_in_autoscaling_policy(
+                    y["AutoScalingPolicy"], cluster_id
+                )
             )
             del returned_policy["Status"]
             returned_policy.should.equal(auto_scaling_policy_with_cluster_id)
@@ -571,8 +576,10 @@ def test_put_remove_auto_scaling_policy():
         AutoScalingPolicy=auto_scaling_policy,
     )
 
-    auto_scaling_policy_with_cluster_id = _patch_cluster_id_placeholder_in_autoscaling_policy(
-        auto_scaling_policy, cluster_id
+    auto_scaling_policy_with_cluster_id = (
+        _patch_cluster_id_placeholder_in_autoscaling_policy(
+            auto_scaling_policy, cluster_id
+        )
     )
     del resp["AutoScalingPolicy"]["Status"]
     resp["AutoScalingPolicy"].should.equal(auto_scaling_policy_with_cluster_id)
@@ -603,10 +610,8 @@ def test_put_remove_auto_scaling_policy():
     ("AutoScalingPolicy" not in core_instance_group).should.equal(True)
 
 
-def _patch_cluster_id_placeholder_in_autoscaling_policy(
-    auto_scaling_policy, cluster_id
-):
-    policy_copy = deepcopy(auto_scaling_policy)
+def _patch_cluster_id_placeholder_in_autoscaling_policy(policy, cluster_id):
+    policy_copy = deepcopy(policy)
     for rule in policy_copy["Rules"]:
         for dimension in rule["Trigger"]["CloudWatchAlarmDefinition"]["Dimensions"]:
             dimension["Value"] = cluster_id
@@ -713,9 +718,7 @@ def test_terminate_protected_job_flow_raises_error():
         JobFlowIds=[cluster_id], TerminationProtected=True
     )
     with pytest.raises(ClientError) as ex:
-        client.terminate_job_flows(
-            JobFlowIds=[cluster_id,]
-        )
+        client.terminate_job_flows(JobFlowIds=[cluster_id])
     error = ex.value.response["Error"]
     error["Code"].should.equal("ValidationException")
     error["Message"].should.equal(
@@ -1011,6 +1014,10 @@ def test_steps():
 
     steps = client.list_steps(ClusterId=cluster_id)["Steps"]
     steps.should.have.length_of(2)
+    # Steps should be returned in reverse order.
+    sorted(
+        steps, key=lambda o: o["Status"]["Timeline"]["CreationDateTime"], reverse=True
+    ).should.equal(steps)
     for x in steps:
         y = expected[x["Name"]]
         x["ActionOnFailure"].should.equal("TERMINATE_CLUSTER")
@@ -1042,7 +1049,7 @@ def test_steps():
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
         # x['Status']['Timeline']['StartDateTime'].should.be.a('datetime.datetime')
 
-    step_id = steps[0]["Id"]
+    step_id = steps[-1]["Id"]  # Last step is first created step.
     steps = client.list_steps(ClusterId=cluster_id, StepIds=[step_id])["Steps"]
     steps.should.have.length_of(1)
     steps[0]["Id"].should.equal(step_id)

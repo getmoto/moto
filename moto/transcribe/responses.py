@@ -1,14 +1,17 @@
 import json
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amzn_request_id
+from moto.utilities.aws_headers import amzn_request_id
 from .models import transcribe_backends
 
 
 class TranscribeResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="transcribe")
+
     @property
     def transcribe_backend(self):
-        return transcribe_backends[self.region]
+        return transcribe_backends[self.current_account][self.region]
 
     @property
     def request_params(self):

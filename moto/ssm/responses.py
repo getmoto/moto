@@ -1,13 +1,17 @@
 import json
 
 from moto.core.responses import BaseResponse
+from .exceptions import ValidationException
 from .models import ssm_backends
 
 
 class SimpleSystemManagerResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="ssm")
+
     @property
     def ssm_backend(self):
-        return ssm_backends[self.region]
+        return ssm_backends[self.current_account][self.region]
 
     @property
     def request_params(self):
@@ -128,16 +132,8 @@ class SimpleSystemManagerResponse(BaseResponse):
 
     def describe_document_permission(self):
         name = self._get_param("Name")
-        max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken")
-        permission_type = self._get_param("PermissionType")
 
-        result = self.ssm_backend.describe_document_permission(
-            name=name,
-            max_results=max_results,
-            next_token=next_token,
-            permission_type=permission_type,
-        )
+        result = self.ssm_backend.describe_document_permission(name=name)
         return json.dumps(result)
 
     def modify_document_permission(self):
@@ -155,8 +151,8 @@ class SimpleSystemManagerResponse(BaseResponse):
             permission_type=permission_type,
         )
 
-    def _get_param(self, param, default=None):
-        return self.request_params.get(param, default)
+    def _get_param(self, param_name, if_none=None):
+        return self.request_params.get(param_name, if_none)
 
     def delete_parameter(self):
         name = self._get_param("Name")
@@ -186,7 +182,15 @@ class SimpleSystemManagerResponse(BaseResponse):
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
 
-        result = self.ssm_backend.get_parameter(name, with_decryption)
+        if (
+            name.startswith("/aws/reference/secretsmanager/")
+            and with_decryption is not True
+        ):
+            raise ValidationException(
+                "WithDecryption flag must be True for retrieving a Secret Manager secret."
+            )
+
+        result = self.ssm_backend.get_parameter(name)
 
         if result is None:
             error = {
@@ -202,7 +206,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         names = self._get_param("Names")
         with_decryption = self._get_param("WithDecryption")
 
-        result = self.ssm_backend.get_parameters(names, with_decryption)
+        result = self.ssm_backend.get_parameters(names)
 
         response = {"Parameters": [], "InvalidParameters": []}
 
@@ -226,7 +230,6 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         result, next_token = self.ssm_backend.get_parameters_by_path(
             path,
-            with_decryption,
             recursive,
             filters,
             next_token=token,
@@ -307,7 +310,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         max_results = self._get_param("MaxResults", 50)
 
         result, new_next_token = self.ssm_backend.get_parameter_history(
-            name, with_decryption, next_token, max_results
+            name, next_token, max_results
         )
 
         if result is None:

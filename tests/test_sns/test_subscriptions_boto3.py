@@ -7,10 +7,10 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_sns, mock_sqs
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sns.models import (
     DEFAULT_PAGE_SIZE,
     DEFAULT_EFFECTIVE_DELIVERY_POLICY,
-    DEFAULT_ACCOUNT_ID,
 )
 
 
@@ -35,11 +35,12 @@ def test_double_subscription():
     resp = client.create_topic(Name="some-topic")
     arn = resp["TopicArn"]
 
-    do_subscribe_sqs = lambda sqs_arn: client.subscribe(
-        TopicArn=arn, Protocol="sqs", Endpoint=sqs_arn
+    resp1 = client.subscribe(
+        TopicArn=arn, Protocol="sqs", Endpoint="arn:aws:sqs:elasticmq:000000000000:foo"
     )
-    resp1 = do_subscribe_sqs("arn:aws:sqs:elasticmq:000000000000:foo")
-    resp2 = do_subscribe_sqs("arn:aws:sqs:elasticmq:000000000000:foo")
+    resp2 = client.subscribe(
+        TopicArn=arn, Protocol="sqs", Endpoint="arn:aws:sqs:elasticmq:000000000000:foo"
+    )
 
     resp1["SubscriptionArn"].should.equal(resp2["SubscriptionArn"])
 
@@ -222,7 +223,7 @@ def test_subscribe_attributes():
     attributes["TopicArn"].should.equal(arn)
     attributes["Protocol"].should.equal("http")
     attributes["SubscriptionArn"].should.equal(resp["SubscriptionArn"])
-    attributes["Owner"].should.equal(str(DEFAULT_ACCOUNT_ID))
+    attributes["Owner"].should.equal(str(ACCOUNT_ID))
     attributes["RawMessageDelivery"].should.equal("false")
     json.loads(attributes["EffectiveDeliveryPolicy"]).should.equal(
         DEFAULT_EFFECTIVE_DELIVERY_POLICY
@@ -257,6 +258,8 @@ def test_creating_subscription_with_attributes():
         }
     )
 
+    subscription_role_arn = "arn:aws:iam:000000000:role/test-role"
+
     conn.subscribe(
         TopicArn=topic_arn,
         Protocol="http",
@@ -265,6 +268,7 @@ def test_creating_subscription_with_attributes():
             "RawMessageDelivery": "true",
             "DeliveryPolicy": delivery_policy,
             "FilterPolicy": filter_policy,
+            "SubscriptionRoleArn": subscription_role_arn,
         },
     )
 
@@ -283,6 +287,7 @@ def test_creating_subscription_with_attributes():
     attrs["Attributes"]["RawMessageDelivery"].should.equal("true")
     attrs["Attributes"]["DeliveryPolicy"].should.equal(delivery_policy)
     attrs["Attributes"]["FilterPolicy"].should.equal(filter_policy)
+    attrs["Attributes"]["SubscriptionRoleArn"].should.equal(subscription_role_arn)
 
     # Now unsubscribe the subscription
     conn.unsubscribe(SubscriptionArn=subscription["SubscriptionArn"])
@@ -544,7 +549,7 @@ def test_confirm_subscription():
 def test_get_subscription_attributes_error_not_exists():
     # given
     client = boto3.client("sns", region_name="us-east-1")
-    sub_arn = f"arn:aws:sqs:us-east-1:{DEFAULT_ACCOUNT_ID}:test-queue:66d97e76-31e5-444f-8fa7-b60b680d0d39"
+    sub_arn = f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue:66d97e76-31e5-444f-8fa7-b60b680d0d39"
 
     # when
     with pytest.raises(ClientError) as e:

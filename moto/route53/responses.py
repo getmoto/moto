@@ -1,32 +1,36 @@
 """Handles Route53 API requests, invokes method and returns response."""
-from functools import wraps
 from urllib.parse import parse_qs, urlparse
 
 from jinja2 import Template
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.route53.exceptions import Route53ClientError, InvalidChangeBatch
-from moto.route53.models import route53_backend
+from moto.route53.exceptions import InvalidChangeBatch
+from moto.route53.models import route53_backends
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Route53ClientError as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class Route53(BaseResponse):
     """Handler for Route53 requests and responses."""
 
-    @error_handler
+    def __init__(self):
+        super().__init__(service_name="route53")
+
+    @staticmethod
+    def _convert_to_bool(bool_str):
+        if isinstance(bool_str, bool):
+            return bool_str
+
+        if isinstance(bool_str, str):
+            return str(bool_str).lower() == "true"
+
+        return False
+
+    @property
+    def backend(self):
+        return route53_backends[self.current_account]["global"]
+
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -40,14 +44,19 @@ class Route53(BaseResponse):
             if "HostedZoneConfig" in zone_request:
                 zone_config = zone_request["HostedZoneConfig"]
                 comment = zone_config["Comment"]
-                private_zone = zone_config.get("PrivateZone", False)
+                if zone_request.get("VPC", {}).get("VPCId", None):
+                    private_zone = True
+                else:
+                    private_zone = self._convert_to_bool(
+                        zone_config.get("PrivateZone", False)
+                    )
             else:
                 comment = None
                 private_zone = False
 
             # It is possible to create a Private Hosted Zone without
             # associating VPC at the time of creation.
-            if private_zone == "true":
+            if self._convert_to_bool(private_zone):
                 if zone_request.get("VPC", None) is not None:
                     vpcid = zone_request["VPC"].get("VPCId", None)
                     vpcregion = zone_request["VPC"].get("VPCRegion", None)
@@ -58,7 +67,7 @@ class Route53(BaseResponse):
                 name += "."
             delegation_set_id = zone_request.get("DelegationSetId")
 
-            new_zone = route53_backend.create_hosted_zone(
+            new_zone = self.backend.create_hosted_zone(
                 name,
                 comment=comment,
                 private_zone=private_zone,
@@ -70,7 +79,7 @@ class Route53(BaseResponse):
             return 201, headers, template.render(zone=new_zone)
 
         elif request.method == "GET":
-            all_zones = route53_backend.list_hosted_zones()
+            all_zones = self.backend.list_hosted_zones()
             template = Template(LIST_HOSTED_ZONES_RESPONSE)
             return 200, headers, template.render(zones=all_zones)
 
@@ -80,7 +89,7 @@ class Route53(BaseResponse):
         query_params = parse_qs(parsed_url.query)
         dnsname = query_params.get("dnsname")
 
-        dnsname, zones = route53_backend.list_hosted_zones_by_name(dnsname)
+        dnsname, zones = self.backend.list_hosted_zones_by_name(dnsname)
 
         template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
         return 200, headers, template.render(zones=zones, dnsname=dnsname, xmlns=XMLNS)
@@ -90,32 +99,88 @@ class Route53(BaseResponse):
         parsed_url = urlparse(full_url)
         query_params = parse_qs(parsed_url.query)
         vpc_id = query_params.get("vpcid")[0]
-        vpc_region = query_params.get("vpcregion")[0]
-        zones = route53_backend.list_hosted_zones_by_vpc(vpc_id, vpc_region)
+        zones = self.backend.list_hosted_zones_by_vpc(vpc_id)
         template = Template(LIST_HOSTED_ZONES_BY_VPC_RESPONSE)
         return 200, headers, template.render(zones=zones, xmlns=XMLNS)
 
     def get_hosted_zone_count_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        num_zones = route53_backend.get_hosted_zone_count()
+        num_zones = self.backend.get_hosted_zone_count()
         template = Template(GET_HOSTED_ZONE_COUNT_RESPONSE)
         return 200, headers, template.render(zone_count=num_zones, xmlns=XMLNS)
 
-    @error_handler
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
 
         if request.method == "GET":
-            the_zone = route53_backend.get_hosted_zone(zoneid)
+            the_zone = self.backend.get_hosted_zone(zoneid)
             template = Template(GET_HOSTED_ZONE_RESPONSE)
             return 200, headers, template.render(zone=the_zone)
         elif request.method == "DELETE":
-            route53_backend.delete_hosted_zone(zoneid)
+            self.backend.delete_hosted_zone(zoneid)
             return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
+        elif request.method == "POST":
+            elements = xmltodict.parse(self.body)
+            comment = elements.get("UpdateHostedZoneCommentRequest", {}).get(
+                "Comment", None
+            )
+            zone = self.backend.update_hosted_zone_comment(zoneid, comment)
+            template = Template(UPDATE_HOSTED_ZONE_COMMENT_RESPONSE)
+            return 200, headers, template.render(zone=zone)
 
-    @error_handler
+    def get_dnssec_response(self, request, full_url, headers):
+        # returns static response
+        # TODO: implement enable/disable dnssec apis
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        method = request.method
+
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        if method == "GET":
+            self.backend.get_dnssec(zoneid)
+            return 200, headers, GET_DNSSEC
+
+    def associate_vpc_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        elements = xmltodict.parse(self.body)
+        comment = vpc = elements.get("AssociateVPCWithHostedZoneRequest", {}).get(
+            "Comment", {}
+        )
+        vpc = elements.get("AssociateVPCWithHostedZoneRequest", {}).get("VPC", {})
+        vpcid = vpc.get("VPCId", None)
+        vpcregion = vpc.get("VPCRegion", None)
+
+        self.backend.associate_vpc_with_hosted_zone(zoneid, vpcid, vpcregion)
+
+        template = Template(ASSOCIATE_VPC_RESPONSE)
+        return 200, headers, template.render(comment=comment)
+
+    def disassociate_vpc_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        elements = xmltodict.parse(self.body)
+        comment = vpc = elements.get("DisassociateVPCFromHostedZoneRequest", {}).get(
+            "Comment", {}
+        )
+        vpc = elements.get("DisassociateVPCFromHostedZoneRequest", {}).get("VPC", {})
+        vpcid = vpc.get("VPCId", None)
+
+        self.backend.disassociate_vpc_from_hosted_zone(zoneid, vpcid)
+
+        template = Template(DISASSOCIATE_VPC_RESPONSE)
+        return 200, headers, template.render(comment=comment)
+
     def rrset_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -154,7 +219,7 @@ class Route53(BaseResponse):
             if effective_rr_count > 1000:
                 raise InvalidChangeBatch
 
-            error_msg = route53_backend.change_resource_record_sets(zoneid, change_list)
+            error_msg = self.backend.change_resource_record_sets(zoneid, change_list)
             if error_msg:
                 return 400, headers, error_msg
 
@@ -175,7 +240,7 @@ class Route53(BaseResponse):
                 next_name,
                 next_type,
                 is_truncated,
-            ) = route53_backend.list_resource_record_sets(
+            ) = self.backend.list_resource_record_sets(
                 zoneid,
                 start_type=start_type,
                 start_name=start_name,
@@ -190,7 +255,7 @@ class Route53(BaseResponse):
             )
             return 200, headers, template
 
-    def health_check_response(self, request, full_url, headers):
+    def health_check_response1(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
         parsed_url = urlparse(full_url)
@@ -215,25 +280,63 @@ class Route53(BaseResponse):
                 "disabled": config.get("Disabled"),
                 "enable_sni": config.get("EnableSNI"),
                 "children": config.get("ChildHealthChecks", {}).get("ChildHealthCheck"),
+                "regions": config.get("Regions", {}).get("Region"),
             }
-            health_check = route53_backend.create_health_check(
+            health_check = self.backend.create_health_check(
                 caller_reference, health_check_args
             )
             template = Template(CREATE_HEALTH_CHECK_RESPONSE)
             return 201, headers, template.render(health_check=health_check, xmlns=XMLNS)
         elif method == "DELETE":
             health_check_id = parsed_url.path.split("/")[-1]
-            route53_backend.delete_health_check(health_check_id)
+            self.backend.delete_health_check(health_check_id)
             template = Template(DELETE_HEALTH_CHECK_RESPONSE)
             return 200, headers, template.render(xmlns=XMLNS)
         elif method == "GET":
             template = Template(LIST_HEALTH_CHECKS_RESPONSE)
-            health_checks = route53_backend.list_health_checks()
+            health_checks = self.backend.list_health_checks()
             return (
                 200,
                 headers,
                 template.render(health_checks=health_checks, xmlns=XMLNS),
             )
+
+    def health_check_response2(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        method = request.method
+        health_check_id = parsed_url.path.split("/")[-1]
+
+        if method == "GET":
+            health_check = self.backend.get_health_check(health_check_id)
+            template = Template(GET_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(health_check=health_check)
+        elif method == "DELETE":
+            self.backend.delete_health_check(health_check_id)
+            template = Template(DELETE_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(xmlns=XMLNS)
+        elif method == "POST":
+            config = xmltodict.parse(self.body)["UpdateHealthCheckRequest"]
+            health_check_args = {
+                "ip_address": config.get("IPAddress"),
+                "port": config.get("Port"),
+                "resource_path": config.get("ResourcePath"),
+                "fqdn": config.get("FullyQualifiedDomainName"),
+                "search_string": config.get("SearchString"),
+                "failure_threshold": config.get("FailureThreshold"),
+                "health_threshold": config.get("HealthThreshold"),
+                "inverted": config.get("Inverted"),
+                "disabled": config.get("Disabled"),
+                "enable_sni": config.get("EnableSNI"),
+                "children": config.get("ChildHealthChecks", {}).get("ChildHealthCheck"),
+                "regions": config.get("Regions", {}).get("Region"),
+            }
+            health_check = self.backend.update_health_check(
+                health_check_id, health_check_args
+            )
+            template = Template(UPDATE_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(health_check=health_check)
 
     def not_implemented_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -255,7 +358,7 @@ class Route53(BaseResponse):
         type_ = parsed_url.path.split("/")[-2]
 
         if request.method == "GET":
-            tags = route53_backend.list_tags_for_resource(id_)
+            tags = self.backend.list_tags_for_resource(id_)
             template = Template(LIST_TAGS_FOR_RESOURCE_RESPONSE)
             return (
                 200,
@@ -271,7 +374,7 @@ class Route53(BaseResponse):
             elif "RemoveTagKeys" in tags:
                 tags = tags["RemoveTagKeys"]
 
-            route53_backend.change_tags_for_resource(id_, tags)
+            self.backend.change_tags_for_resource(id_, tags)
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
             return 200, headers, template.render()
 
@@ -284,7 +387,6 @@ class Route53(BaseResponse):
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id, xmlns=XMLNS)
 
-    @error_handler
     def list_or_create_query_logging_config_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -293,7 +395,7 @@ class Route53(BaseResponse):
             hosted_zone_id = json_body["HostedZoneId"]
             log_group_arn = json_body["CloudWatchLogsLogGroupArn"]
 
-            query_logging_config = route53_backend.create_query_logging_config(
+            query_logging_config = self.backend.create_query_logging_config(
                 self.region, hosted_zone_id, log_group_arn
             )
 
@@ -312,7 +414,7 @@ class Route53(BaseResponse):
 
             # The paginator picks up named arguments, returns tuple.
             # pylint: disable=unbalanced-tuple-unpacking
-            (all_configs, next_token,) = route53_backend.list_query_logging_configs(
+            (all_configs, next_token,) = self.backend.list_query_logging_configs(
                 hosted_zone_id=hosted_zone_id,
                 next_token=next_token,
                 max_results=max_results,
@@ -329,14 +431,13 @@ class Route53(BaseResponse):
                 ),
             )
 
-    @error_handler
     def get_or_delete_query_logging_config_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
         query_logging_config_id = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
 
         if request.method == "GET":
-            query_logging_config = route53_backend.get_query_logging_config(
+            query_logging_config = self.backend.get_query_logging_config(
                 query_logging_config_id
             )
             template = Template(GET_QUERY_LOGGING_CONFIG_RESPONSE)
@@ -347,13 +448,13 @@ class Route53(BaseResponse):
             )
 
         elif request.method == "DELETE":
-            route53_backend.delete_query_logging_config(query_logging_config_id)
+            self.backend.delete_query_logging_config(query_logging_config_id)
             return 200, headers, ""
 
     def reusable_delegation_sets(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
-            delegation_sets = route53_backend.list_reusable_delegation_sets()
+            delegation_sets = self.backend.list_reusable_delegation_sets()
             template = self.response_template(LIST_REUSABLE_DELEGATION_SETS_TEMPLATE)
             return (
                 200,
@@ -370,8 +471,8 @@ class Route53(BaseResponse):
             root_elem = elements["CreateReusableDelegationSetRequest"]
             caller_reference = root_elem.get("CallerReference")
             hosted_zone_id = root_elem.get("HostedZoneId")
-            delegation_set = route53_backend.create_reusable_delegation_set(
-                caller_reference=caller_reference, hosted_zone_id=hosted_zone_id,
+            delegation_set = self.backend.create_reusable_delegation_set(
+                caller_reference=caller_reference, hosted_zone_id=hosted_zone_id
             )
             template = self.response_template(CREATE_REUSABLE_DELEGATION_SET_TEMPLATE)
             return (
@@ -380,19 +481,18 @@ class Route53(BaseResponse):
                 template.render(delegation_set=delegation_set),
             )
 
-    @error_handler
     def reusable_delegation_set(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
         ds_id = parsed_url.path.rstrip("/").rsplit("/")[-1]
         if request.method == "GET":
-            delegation_set = route53_backend.get_reusable_delegation_set(
+            delegation_set = self.backend.get_reusable_delegation_set(
                 delegation_set_id=ds_id
             )
             template = self.response_template(GET_REUSABLE_DELEGATION_SET_TEMPLATE)
             return 200, {}, template.render(delegation_set=delegation_set)
         if request.method == "DELETE":
-            route53_backend.delete_reusable_delegation_set(delegation_set_id=ds_id)
+            self.backend.delete_reusable_delegation_set(delegation_set_id=ds_id)
             template = self.response_template(DELETE_REUSABLE_DELEGATION_SET_TEMPLATE)
             return 200, {}, template.render()
 
@@ -483,7 +583,10 @@ CHANGE_RRSET_RESPONSE = """<ChangeResourceRecordSetsResponse xmlns="https://rout
 </ChangeResourceRecordSetsResponse>"""
 
 DELETE_HOSTED_ZONE_RESPONSE = """<DeleteHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
-   <ChangeInfo>
+    <ChangeInfo>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>/change/C2682N5HXP0BZ4</Id>
    </ChangeInfo>
 </DeleteHostedZoneResponse>"""
 
@@ -501,46 +604,60 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
         {% if zone.comment %}
             <Comment>{{ zone.comment }}</Comment>
         {% endif %}
-        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+        <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
    </HostedZone>
+   {% if not zone.private_zone %}
    <DelegationSet>
       <Id>{{ zone.delegation_set.id }}</Id>
       <NameServers>
         {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
       </NameServers>
    </DelegationSet>
+   {% endif %}
+   {% if zone.private_zone %}
    <VPCs>
+      {% for vpc in zone.vpcs %}
       <VPC>
-         <VPCId>{{zone.vpcid}}</VPCId>
-         <VPCRegion>{{zone.vpcregion}}</VPCRegion>
+         <VPCId>{{vpc.vpc_id}}</VPCId>
+         <VPCRegion>{{vpc.vpc_region}}</VPCRegion>
       </VPC>
+      {% endfor %}
    </VPCs>
-
+   {% endif %}
 </GetHostedZoneResponse>"""
 
 CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+    {% if zone.private_zone %}
+    <VPC>
+      <VPCId>{{zone.vpcid}}</VPCId>
+      <VPCRegion>{{zone.vpcregion}}</VPCRegion>
+    </VPC>
+    {% endif %}
    <HostedZone>
       <Id>/hostedzone/{{ zone.id }}</Id>
       <Name>{{ zone.name }}</Name>
-      <ResourceRecordSetCount>0</ResourceRecordSetCount>
+      <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
       <Config>
         {% if zone.comment %}
             <Comment>{{ zone.comment }}</Comment>
         {% endif %}
-        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+        <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
    </HostedZone>
+   {% if not zone.private_zone %}
    <DelegationSet>
       <Id>{{ zone.delegation_set.id }}</Id>
       <NameServers>
          {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
       </NameServers>
    </DelegationSet>
-   <VPC>
-      <VPCId>{{zone.vpcid}}</VPCId>
-      <VPCRegion>{{zone.vpcregion}}</VPCRegion>
-   </VPC>
+   {% endif %}
+   <ChangeInfo>
+      <Id>/change/C1PA6795UKMFR9</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-15T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
 </CreateHostedZoneResponse>"""
 
 LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
@@ -553,7 +670,7 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
             {% if zone.comment %}
                 <Comment>{{ zone.comment }}</Comment>
             {% endif %}
-           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+           <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
          </Config>
          <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
       </HostedZone>
@@ -575,7 +692,7 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
             {% if zone.comment %}
                 <Comment>{{ zone.comment }}</Comment>
             {% endif %}
-           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+           <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
          </Config>
          <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
       </HostedZone>
@@ -607,6 +724,12 @@ CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CreateHealthCheckResponse xmlns="{{ xmlns }}">
   {{ health_check.to_xml() }}
 </CreateHealthCheckResponse>"""
+
+UPDATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<UpdateHealthCheckResponse>
+  {{ health_check.to_xml() }}
+</UpdateHealthCheckResponse>
+"""
 
 LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListHealthChecksResponse xmlns="{{ xmlns }}">
@@ -700,4 +823,57 @@ GET_REUSABLE_DELEGATION_SET_TEMPLATE = """<GetReusableDelegationSetResponse>
   </NameServers>
 </DelegationSet>
 </GetReusableDelegationSetResponse>
+"""
+
+GET_DNSSEC = """<?xml version="1.0"?>
+<GetDNSSECResponse>
+    <Status>
+        <ServeSignature>NOT_SIGNING</ServeSignature>
+    </Status>
+    <KeySigningKeys/>
+</GetDNSSECResponse>
+"""
+
+GET_HEALTH_CHECK_RESPONSE = """<?xml version="1.0"?>
+<GetHealthCheckResponse>
+    {{ health_check.to_xml() }}
+</GetHealthCheckResponse>
+"""
+
+UPDATE_HOSTED_ZONE_COMMENT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<UpdateHostedZoneCommentResponse>
+   <HostedZone>
+      <Config>
+         {% if zone.comment %}
+         <Comment>{{ zone.comment }}</Comment>
+         {% endif %}
+         <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
+      </Config>
+      <Id>/hostedzone/{{ zone.id }}</Id>
+      <Name>{{ zone.name }}</Name>
+      <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
+   </HostedZone>
+</UpdateHostedZoneCommentResponse>
+"""
+
+ASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<AssociateVPCWithHostedZoneResponse>
+   <ChangeInfo>
+      <Comment>{{ comment or "" }}</Comment>
+      <Id>/change/a1b2c3d4</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
+</AssociateVPCWithHostedZoneResponse>
+"""
+
+DISASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<DisassociateVPCFromHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <ChangeInfo>
+      <Comment>{{ comment or "" }}</Comment>
+      <Id>/change/a1b2c3d4</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
+</DisassociateVPCFromHostedZoneResponse>
 """

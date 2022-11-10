@@ -1,16 +1,21 @@
-from moto.core import ACCOUNT_ID
-from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.utils import add_tag_specification, filters_from_querystring
+from moto.ec2.utils import add_tag_specification
+from ._base_response import EC2BaseResponse
 
 
-class VPCs(BaseResponse):
+class VPCs(EC2BaseResponse):
     def _get_doc_date(self):
         return (
             "2013-10-15"
             if "Boto/" in self.headers.get("user-agent", "")
             else "2016-11-15"
         )
+
+    def create_default_vpc(self):
+        vpc = self.ec2_backend.create_default_vpc()
+        doc_date = self._get_doc_date()
+        template = self.response_template(CREATE_VPC_RESPONSE)
+        return template.render(vpc=vpc, doc_date=doc_date)
 
     def create_vpc(self):
         cidr_block = self._get_param("CidrBlock")
@@ -19,13 +24,19 @@ class VPCs(BaseResponse):
         amazon_provided_ipv6_cidr_block = self._get_param(
             "AmazonProvidedIpv6CidrBlock"
         ) in ["true", "True"]
+        ipv6_cidr_block_network_border_group = self._get_param(
+            "Ipv6CidrBlockNetworkBorderGroup"
+        )
+        # if network group is not specified, use the region of the VPC
+        if not ipv6_cidr_block_network_border_group:
+            ipv6_cidr_block_network_border_group = self.region
         if tags:
             tags = tags[0].get("Tag")
-
         vpc = self.ec2_backend.create_vpc(
             cidr_block,
             instance_tenancy,
             amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
+            ipv6_cidr_block_network_border_group=ipv6_cidr_block_network_border_group,
             tags=tags,
         )
         doc_date = self._get_doc_date()
@@ -41,7 +52,7 @@ class VPCs(BaseResponse):
     def describe_vpcs(self):
         self.error_on_dryrun()
         vpc_ids = self._get_multi_param("VpcId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = (
             "2013-10-15"
@@ -49,7 +60,7 @@ class VPCs(BaseResponse):
             else "2016-11-15"
         )
         template = self.response_template(DESCRIBE_VPCS_RESPONSE)
-        return template.render(vpcs=vpcs, doc_date=doc_date)
+        return template.render(vpcs=vpcs, doc_date=doc_date, region=self.region)
 
     def modify_vpc_tenancy(self):
         vpc_id = self._get_param("VpcId")
@@ -68,7 +79,7 @@ class VPCs(BaseResponse):
 
     def describe_vpc_classic_link_dns_support(self):
         vpc_ids = self._get_multi_param("VpcIds")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = self._get_doc_date()
         template = self.response_template(
@@ -78,8 +89,8 @@ class VPCs(BaseResponse):
 
     def enable_vpc_classic_link_dns_support(self):
         vpc_id = self._get_param("VpcId")
-        classic_link_dns_supported = self.ec2_backend.enable_vpc_classic_link_dns_support(
-            vpc_id=vpc_id
+        classic_link_dns_supported = (
+            self.ec2_backend.enable_vpc_classic_link_dns_support(vpc_id=vpc_id)
         )
         doc_date = self._get_doc_date()
         template = self.response_template(ENABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)
@@ -89,8 +100,8 @@ class VPCs(BaseResponse):
 
     def disable_vpc_classic_link_dns_support(self):
         vpc_id = self._get_param("VpcId")
-        classic_link_dns_supported = self.ec2_backend.disable_vpc_classic_link_dns_support(
-            vpc_id=vpc_id
+        classic_link_dns_supported = (
+            self.ec2_backend.disable_vpc_classic_link_dns_support(vpc_id=vpc_id)
         )
         doc_date = self._get_doc_date()
         template = self.response_template(DISABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)
@@ -100,7 +111,7 @@ class VPCs(BaseResponse):
 
     def describe_vpc_classic_link(self):
         vpc_ids = self._get_multi_param("VpcId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = self._get_doc_date()
         template = self.response_template(DESCRIBE_VPC_CLASSIC_LINK_RESPONSE)
@@ -126,8 +137,11 @@ class VPCs(BaseResponse):
 
     def modify_vpc_attribute(self):
         vpc_id = self._get_param("VpcId")
-
-        for attribute in ("EnableDnsSupport", "EnableDnsHostnames"):
+        for attribute in (
+            "EnableDnsSupport",
+            "EnableDnsHostnames",
+            "EnableNetworkAddressUsageMetrics",
+        ):
             if self.querystring.get("%s.Value" % attribute):
                 attr_name = camelcase_to_underscores(attribute)
                 attr_value = self.querystring.get("%s.Value" % attribute)[0]
@@ -205,6 +219,22 @@ class VPCs(BaseResponse):
         template = self.response_template(CREATE_VPC_END_POINT)
         return template.render(vpc_end_point=vpc_end_point)
 
+    def modify_vpc_endpoint(self):
+        vpc_id = self._get_param("VpcEndpointId")
+        add_subnets = self._get_multi_param("AddSubnetId")
+        add_route_tables = self._get_multi_param("AddRouteTableId")
+        remove_route_tables = self._get_multi_param("RemoveRouteTableId")
+        policy_doc = self._get_param("PolicyDocument")
+        self.ec2_backend.modify_vpc_endpoint(
+            vpc_id=vpc_id,
+            policy_doc=policy_doc,
+            add_subnets=add_subnets,
+            add_route_tables=add_route_tables,
+            remove_route_tables=remove_route_tables,
+        )
+        template = self.response_template(MODIFY_VPC_END_POINT)
+        return template.render()
+
     def describe_vpc_endpoint_services(self):
         vpc_end_point_services = self.ec2_backend.describe_vpc_endpoint_services(
             dry_run=self._get_bool_param("DryRun"),
@@ -219,16 +249,18 @@ class VPCs(BaseResponse):
 
     def describe_vpc_endpoints(self):
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         vpc_end_points = self.ec2_backend.describe_vpc_endpoints(
             vpc_end_point_ids=vpc_end_points_ids, filters=filters
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
-        return template.render(vpc_end_points=vpc_end_points, account_id=ACCOUNT_ID)
+        return template.render(
+            vpc_end_points=vpc_end_points, account_id=self.current_account
+        )
 
     def delete_vpc_endpoints(self):
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
-        response = self.ec2_backend.delete_vpc_endpoints(vpce_ids=vpc_end_points_ids,)
+        response = self.ec2_backend.delete_vpc_endpoints(vpce_ids=vpc_end_points_ids)
         template = self.response_template(DELETE_VPC_ENDPOINT_RESPONSE)
         return template.render(response=response)
 
@@ -255,7 +287,7 @@ class VPCs(BaseResponse):
 
     def describe_managed_prefix_lists(self):
         prefix_list_ids = self._get_multi_param("PrefixListId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         managed_prefix_lists = self.ec2_backend.describe_managed_prefix_lists(
             prefix_list_ids=prefix_list_ids, filters=filters
         )
@@ -266,7 +298,7 @@ class VPCs(BaseResponse):
         prefix_list_id = self._get_param("PrefixListId")
         target_version = self._get_param("TargetVersion")
         managed_prefix_list = self.ec2_backend.get_managed_prefix_list_entries(
-            prefix_list_id=prefix_list_id,
+            prefix_list_id=prefix_list_id
         )
         entries = []
         if managed_prefix_list:
@@ -291,7 +323,7 @@ class VPCs(BaseResponse):
 
     def describe_prefix_lists(self):
         prefix_list_ids = self._get_multi_param("PrefixListId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         managed_pls = self.ec2_backend.describe_managed_prefix_lists(
             prefix_list_ids=prefix_list_ids, filters=filters
         )
@@ -444,6 +476,8 @@ DESCRIBE_VPCS_RESPONSE = """
                     <ipv6CidrBlockState>
                         <state>{{assoc.cidr_block_state.state}}</state>
                     </ipv6CidrBlockState>
+                    <networkBorderGroup>{{ assoc.ipv6_cidr_block_network_border_group }}</networkBorderGroup>
+                    <ipv6Pool>{{ assoc.ipv6_pool }}</ipv6Pool>
                 </item>
               {% endfor %}
             </ipv6CidrBlockAssociationSet>
@@ -594,6 +628,10 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
     </vpcEndpoint>
 </CreateVpcEndpointResponse>"""
 
+MODIFY_VPC_END_POINT = """<ModifyVpcEndpointResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <return>true</return>
+</ModifyVpcEndpointResponse>"""
+
 DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
     <serviceNameSet>
@@ -669,7 +707,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                 <serviceName>{{ vpc_end_point.service_name }}</serviceName>
                 <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
                 <vpcEndpointId>{{ vpc_end_point.id }}</vpcEndpointId>
-                <vpcEndpointType>{{ vpc_end_point.type }}</vpcEndpointType>
+                <vpcEndpointType>{{ vpc_end_point.endpoint_type }}</vpcEndpointType>
                 {% if vpc_end_point.subnet_ids %}
                     <subnetIdSet>
                         {% for subnet_id in vpc_end_point.subnet_ids %}

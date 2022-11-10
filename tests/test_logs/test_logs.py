@@ -1,8 +1,6 @@
 import json
-import os
 import time
 import sure  # noqa # pylint: disable=unused-import
-from unittest import SkipTest
 from datetime import timedelta, datetime
 from uuid import UUID
 
@@ -18,36 +16,24 @@ from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
 
-@pytest.fixture
-def json_policy_doc():
-    """Returns a policy document in JSON format.
+"""Returns a policy document in JSON format.
 
-    The ARN is bogus, but that shouldn't matter for the test.
-    """
-    return json.dumps(
-        {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Sid": "Route53LogsToCloudWatchLogs",
-                    "Effect": "Allow",
-                    "Principal": {"Service": ["route53.amazonaws.com"]},
-                    "Action": "logs:PutLogEvents",
-                    "Resource": "log_arn",
-                }
-            ],
-        }
-    )
-
-
-@pytest.fixture(scope="function")
-def aws_credentials():
-    """Mocked AWS Credentials for moto."""
-    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
-    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+The ARN is bogus, but that shouldn't matter for the test.
+"""
+json_policy_doc = json.dumps(
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "Route53LogsToCloudWatchLogs",
+                "Effect": "Allow",
+                "Principal": {"Service": ["route53.amazonaws.com"]},
+                "Action": "logs:PutLogEvents",
+                "Resource": "log_arn",
+            }
+        ],
+    }
+)
 
 
 @mock_logs
@@ -91,7 +77,7 @@ def test_describe_metric_filters_happy_metric_name():
     assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     response = conn.describe_metric_filters(
-        metricName="metricName1", metricNamespace="metricNamespace1",
+        metricName="metricName1", metricNamespace="metricNamespace1"
     )
 
     assert len(response["metricFilters"]) == 1
@@ -122,9 +108,9 @@ def test_put_metric_filters_validation():
     ]
 
     test_cases = [
-        build_put_case(name="Invalid filter name", filter_name=invalid_filter_name,),
+        build_put_case(name="Invalid filter name", filter_name=invalid_filter_name),
         build_put_case(
-            name="Invalid filter pattern", filter_pattern=invalid_filter_pattern,
+            name="Invalid filter pattern", filter_pattern=invalid_filter_pattern
         ),
         build_put_case(
             name="Invalid filter metric transformations",
@@ -149,14 +135,14 @@ def test_describe_metric_filters_validation():
 
     test_cases = [
         build_describe_case(
-            name="Invalid filter name prefix", filter_name_prefix=length_over_512,
+            name="Invalid filter name prefix", filter_name_prefix=length_over_512
         ),
         build_describe_case(
-            name="Invalid log group name", log_group_name=length_over_512,
+            name="Invalid log group name", log_group_name=length_over_512
         ),
-        build_describe_case(name="Invalid metric name", metric_name=length_over_255,),
+        build_describe_case(name="Invalid metric name", metric_name=length_over_255),
         build_describe_case(
-            name="Invalid metric namespace", metric_namespace=length_over_255,
+            name="Invalid metric namespace", metric_namespace=length_over_255
         ),
     ]
 
@@ -191,26 +177,32 @@ def test_describe_metric_filters_multiple_happy():
 
 @mock_logs
 def test_delete_metric_filter():
-    conn = boto3.client("logs", "us-west-2")
+    client = boto3.client("logs", "us-west-2")
 
-    response = put_metric_filter(conn, 1)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    lg_name = "/hello-world/my-cool-endpoint"
+    client.create_log_group(logGroupName=lg_name)
+    client.put_metric_filter(
+        logGroupName=lg_name,
+        filterName="my-cool-filter",
+        filterPattern="{ $.val = * }",
+        metricTransformations=[
+            {
+                "metricName": "my-metric",
+                "metricNamespace": "my-namespace",
+                "metricValue": "$.value",
+            }
+        ],
+    )
 
-    response = put_metric_filter(conn, 2)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = conn.delete_metric_filter(
-        filterName="filterName", logGroupName="logGroupName1"
+    response = client.delete_metric_filter(
+        filterName="filterName", logGroupName=lg_name
     )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-    response = conn.describe_metric_filters(
+    response = client.describe_metric_filters(
         filterNamePrefix="filter", logGroupName="logGroupName2"
     )
-    assert response["metricFilters"][0]["filterName"] == "filterName2"
-
-    response = conn.describe_metric_filters(logGroupName="logGroupName2")
-    assert response["metricFilters"][0]["filterName"] == "filterName2"
+    response.should.have.key("metricFilters").equals([])
 
 
 @mock_logs
@@ -429,54 +421,6 @@ def test_put_logs():
 
 
 @mock_logs
-def test_filter_logs_interleaved():
-    conn = boto3.client("logs", TEST_REGION)
-    log_group_name = "dummy"
-    log_stream_name = "stream"
-    conn.create_log_group(logGroupName=log_group_name)
-    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
-    messages = [
-        {"timestamp": 0, "message": "hello"},
-        {"timestamp": 0, "message": "world"},
-    ]
-    conn.put_log_events(
-        logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
-    )
-    res = conn.filter_log_events(
-        logGroupName=log_group_name, logStreamNames=[log_stream_name], interleaved=True
-    )
-    events = res["events"]
-    for original_message, resulting_event in zip(messages, events):
-        resulting_event["eventId"].should.equal(str(resulting_event["eventId"]))
-        resulting_event["timestamp"].should.equal(original_message["timestamp"])
-        resulting_event["message"].should.equal(original_message["message"])
-
-
-@mock_logs
-def test_filter_logs_raises_if_filter_pattern():
-    if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
-        raise SkipTest("Does not work in server mode due to error in Workzeug")
-    conn = boto3.client("logs", TEST_REGION)
-    log_group_name = "dummy"
-    log_stream_name = "stream"
-    conn.create_log_group(logGroupName=log_group_name)
-    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
-    messages = [
-        {"timestamp": 0, "message": "hello"},
-        {"timestamp": 0, "message": "world"},
-    ]
-    conn.put_log_events(
-        logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
-    )
-    with pytest.raises(NotImplementedError):
-        conn.filter_log_events(
-            logGroupName=log_group_name,
-            logStreamNames=[log_stream_name],
-            filterPattern='{$.message = "hello"}',
-        )
-
-
-@mock_logs
 def test_put_log_events_in_wrong_order():
     conn = boto3.client("logs", "us-east-1")
     log_group_name = "test"
@@ -546,103 +490,6 @@ def test_put_log_events_in_the_future(minutes):
     resp.should.have.key("rejectedLogEventsInfo").should.equal(
         {"tooNewLogEventStartIndex": 0}
     )
-
-
-@mock_logs
-def test_put_log_events_now():
-    conn = boto3.client("logs", "us-east-1")
-    log_group_name = "test"
-    log_stream_name = "teststream"
-    conn.create_log_group(logGroupName=log_group_name)
-    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
-
-    ts_1 = int(unix_time_millis())
-    ts_2 = int(unix_time_millis(datetime.utcnow() + timedelta(minutes=5)))
-    ts_3 = int(unix_time_millis(datetime.utcnow() + timedelta(days=1)))
-
-    messages = [
-        {"message": f"Message {idx}", "timestamp": ts}
-        for idx, ts in enumerate([ts_1, ts_2, ts_3])
-    ]
-
-    resp = conn.put_log_events(
-        logGroupName=log_group_name,
-        logStreamName=log_stream_name,
-        logEvents=messages,
-        sequenceToken="49599396607703531511419593985621160512859251095480828066",
-    )
-
-    # Message 2 was too new
-    resp.should.have.key("rejectedLogEventsInfo").should.equal(
-        {"tooNewLogEventStartIndex": 2}
-    )
-    # Message 0 and 1 were persisted though
-    events = conn.filter_log_events(
-        logGroupName=log_group_name, logStreamNames=[log_stream_name], limit=20
-    )["events"]
-    messages = [e["message"] for e in events]
-    messages.should.contain("Message 0")
-    messages.should.contain("Message 1")
-    messages.shouldnt.contain("Message 2")
-
-
-@mock_logs
-def test_filter_logs_paging():
-    conn = boto3.client("logs", TEST_REGION)
-    log_group_name = "/aws/dummy"
-    log_stream_name = "stream/stage"
-    conn.create_log_group(logGroupName=log_group_name)
-    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
-    timestamp = int(unix_time_millis(datetime.utcnow()))
-    messages = []
-    for i in range(25):
-        messages.append(
-            {"message": "Message number {}".format(i), "timestamp": timestamp}
-        )
-        timestamp += 100
-
-    conn.put_log_events(
-        logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
-    )
-    res = conn.filter_log_events(
-        logGroupName=log_group_name, logStreamNames=[log_stream_name], limit=20
-    )
-    events = res["events"]
-    events.should.have.length_of(20)
-    res["nextToken"].should.equal("/aws/dummy@stream/stage@" + events[-1]["eventId"])
-
-    res = conn.filter_log_events(
-        logGroupName=log_group_name,
-        logStreamNames=[log_stream_name],
-        limit=20,
-        nextToken=res["nextToken"],
-    )
-    events += res["events"]
-    events.should.have.length_of(25)
-    res.should_not.have.key("nextToken")
-
-    for original_message, resulting_event in zip(messages, events):
-        resulting_event["eventId"].should.equal(str(resulting_event["eventId"]))
-        resulting_event["timestamp"].should.equal(original_message["timestamp"])
-        resulting_event["message"].should.equal(original_message["message"])
-
-    res = conn.filter_log_events(
-        logGroupName=log_group_name,
-        logStreamNames=[log_stream_name],
-        limit=20,
-        nextToken="invalid-token",
-    )
-    res["events"].should.have.length_of(0)
-    res.should_not.have.key("nextToken")
-
-    res = conn.filter_log_events(
-        logGroupName=log_group_name,
-        logStreamNames=[log_stream_name],
-        limit=20,
-        nextToken="wrong-group@stream@999",
-    )
-    res["events"].should.have.length_of(0)
-    res.should_not.have.key("nextToken")
 
 
 @mock_logs
@@ -732,7 +579,7 @@ def test_put_resource_policy():
     with freeze_time(timedelta(minutes=1)):
         new_document = '{"Statement":[{"Action":"logs:*","Effect":"Allow","Principal":"*","Resource":"*"}]}'
         policy_info = client.put_resource_policy(
-            policyName=policy_name, policyDocument=new_document,
+            policyName=policy_name, policyDocument=new_document
         )["resourcePolicy"]
         assert policy_info["policyName"] == policy_name
         assert policy_info["policyDocument"] == new_document
@@ -740,7 +587,7 @@ def test_put_resource_policy():
 
 
 @mock_logs
-def test_put_resource_policy_too_many(json_policy_doc):
+def test_put_resource_policy_too_many():
     client = boto3.client("logs", TEST_REGION)
 
     # Create the maximum number of resource policies.
@@ -768,7 +615,7 @@ def test_put_resource_policy_too_many(json_policy_doc):
 
 
 @mock_logs
-def test_delete_resource_policy(json_policy_doc):
+def test_delete_resource_policy():
     client = boto3.client("logs", TEST_REGION)
 
     # Create a bunch of resource policies so we can give delete a workout.
@@ -800,7 +647,7 @@ def test_delete_resource_policy(json_policy_doc):
 
 
 @mock_logs
-def test_describe_resource_policies(json_policy_doc):
+def test_describe_resource_policies():
     client = boto3.client("logs", TEST_REGION)
 
     # Create the maximum number of resource policies so there's something
@@ -1122,7 +969,7 @@ def test_describe_subscription_filters_errors():
 
     # when
     with pytest.raises(ClientError) as exc:
-        client.describe_subscription_filters(logGroupName="not-existing-log-group",)
+        client.describe_subscription_filters(logGroupName="not-existing-log-group")
 
     # then
     exc_value = exc.value
@@ -1189,7 +1036,7 @@ def test_describe_log_streams_simple_paging():
     # Get stream 1-4
     resp = client.describe_log_streams(logGroupName=group_name, limit=4)
     resp["logStreams"].should.have.length_of(4)
-    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+    [stream["logStreamName"] for stream in resp["logStreams"]].should.equal(
         ["stream0", "stream1", "stream2", "stream3"]
     )
     resp.should.have.key("nextToken")
@@ -1199,7 +1046,7 @@ def test_describe_log_streams_simple_paging():
         logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
     )
     resp["logStreams"].should.have.length_of(4)
-    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+    [stream["logStreamName"] for stream in resp["logStreams"]].should.equal(
         ["stream4", "stream5", "stream6", "stream7"]
     )
     resp.should.have.key("nextToken")
@@ -1209,7 +1056,7 @@ def test_describe_log_streams_simple_paging():
         logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
     )
     resp["logStreams"].should.have.length_of(2)
-    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+    [stream["logStreamName"] for stream in resp["logStreams"]].should.equal(
         ["stream8", "stream9"]
     )
     resp.should_not.have.key("nextToken")
@@ -1446,7 +1293,7 @@ def test_describe_log_streams_no_prefix():
 
 @mock_s3
 @mock_logs
-def test_create_export_task_happy_path(aws_credentials):
+def test_create_export_task_happy_path():
     log_group_name = "/aws/codebuild/blah1"
     destination = "mybucket"
     fromTime = 1611316574
@@ -1464,7 +1311,7 @@ def test_create_export_task_happy_path(aws_credentials):
 
 
 @mock_logs
-def test_create_export_task_raises_ClientError_when_bucket_not_found(aws_credentials):
+def test_create_export_task_raises_ClientError_when_bucket_not_found():
     log_group_name = "/aws/codebuild/blah1"
     destination = "368a7022dea3dd621"
     fromTime = 1611316574
@@ -1482,9 +1329,7 @@ def test_create_export_task_raises_ClientError_when_bucket_not_found(aws_credent
 
 @mock_s3
 @mock_logs
-def test_create_export_raises_ResourceNotFoundException_log_group_not_found(
-    aws_credentials,
-):
+def test_create_export_raises_ResourceNotFoundException_log_group_not_found():
     log_group_name = "/aws/codebuild/blah1"
     destination = "mybucket"
     fromTime = 1611316574

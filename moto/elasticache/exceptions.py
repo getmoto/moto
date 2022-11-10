@@ -51,7 +51,7 @@ class UserAlreadyExists(ElastiCacheException):
 
     def __init__(self, **kwargs):
         super().__init__(
-            "UserAlreadyExists", message="User user1 already exists.", **kwargs,
+            "UserAlreadyExists", message="User user1 already exists.", **kwargs
         )
 
 
@@ -60,6 +60,4 @@ class UserNotFound(ElastiCacheException):
     code = 404
 
     def __init__(self, user_id, **kwargs):
-        super().__init__(
-            "UserNotFound", message=f"User {user_id} not found.", **kwargs,
-        )
+        super().__init__("UserNotFound", message=f"User {user_id} not found.", **kwargs)

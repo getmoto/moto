@@ -17,7 +17,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_organizations
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.organizations import utils
 from .organizations_test_utils import (
     validate_organization,
@@ -40,7 +40,7 @@ def test_create_organization():
     response = client.list_accounts()
     len(response["Accounts"]).should.equal(1)
     response["Accounts"][0]["Name"].should.equal("master")
-    response["Accounts"][0]["Id"].should.equal(utils.MASTER_ACCOUNT_ID)
+    response["Accounts"][0]["Id"].should.equal(ACCOUNT_ID)
     response["Accounts"][0]["Email"].should.equal(utils.MASTER_ACCOUNT_EMAIL)
 
     response = client.list_policies(Filter="SERVICE_CONTROL_POLICY")
@@ -55,6 +55,15 @@ def test_create_organization():
     root_ou["Name"].should.equal("Root")
     master_account = [t for t in response["Targets"] if t["Type"] == "ACCOUNT"][0]
     master_account["Name"].should.equal("master")
+
+
+@mock_organizations
+def test_create_organization_without_feature_set():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization()
+    response = client.describe_organization()
+    validate_organization(response)
+    response["Organization"]["FeatureSet"].should.equal("ALL")
 
 
 @mock_organizations
@@ -102,6 +111,31 @@ def test_create_organizational_unit():
 
 
 @mock_organizations
+def test_delete_organizational_unit():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_name = "ou01"
+    response = client.create_organizational_unit(ParentId=root_id, Name=ou_name)
+    validate_organizational_unit(org, response)
+
+    # delete organizational unit
+    ou_id = response["OrganizationalUnit"]["Id"]
+    response = client.delete_organizational_unit(OrganizationalUnitId=ou_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    # verify the deletion
+    with pytest.raises(ClientError) as e:
+        client.describe_organizational_unit(OrganizationalUnitId=ou_id)
+    ex = e.value
+    ex.operation_name.should.equal("DescribeOrganizationalUnit")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain(
+        "OrganizationalUnitNotFoundException"
+    )
+
+
+@mock_organizations
 def test_describe_organizational_unit():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -144,6 +178,25 @@ def test_list_organizational_units_for_parent():
 
 
 @mock_organizations
+def test_list_organizational_units_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    for i in range(20):
+        name = "ou" + str(i)
+        client.create_organizational_unit(ParentId=root_id, Name=name)
+    response = client.list_organizational_units_for_parent(ParentId=root_id)
+    response.should_not.have.key("NextToken")
+    len(response["OrganizationalUnits"]).should.be.greater_than_or_equal_to(i)
+
+    paginator = client.get_paginator("list_organizational_units_for_parent")
+    page_iterator = paginator.paginate(MaxResults=5, ParentId=root_id)
+    for page in page_iterator:
+        len(page["OrganizationalUnits"]).should.be.lower_than_or_equal_to(5)
+    page["OrganizationalUnits"][-1]["Name"].should.contain("19")
+
+
+@mock_organizations
 def test_list_organizational_units_for_parent_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
@@ -171,6 +224,54 @@ def test_create_account():
     ]
     validate_create_account_status(create_status)
     create_status["AccountName"].should.equal(mockname)
+
+
+@mock_organizations
+def test_close_account_returns_nothing():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    create_status = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]
+    created_account_id = create_status["AccountId"]
+
+    resp = client.close_account(AccountId=created_account_id)
+
+    del resp["ResponseMetadata"]
+
+    assert resp == {}
+
+
+@mock_organizations
+def test_close_account_puts_account_in_suspended_status():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    create_status = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]
+    created_account_id = create_status["AccountId"]
+
+    client.close_account(AccountId=created_account_id)
+
+    account = client.describe_account(AccountId=created_account_id)["Account"]
+    account["Status"].should.equal("SUSPENDED")
+
+
+@mock_organizations
+def test_close_account_id_not_in_org_raises_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    uncreated_fake_account_id = "123456789101"
+
+    with pytest.raises(ClientError) as e:
+        client.close_account(AccountId=uncreated_fake_account_id)
+    ex = e.value
+    ex.operation_name.should.equal("CloseAccount")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an account that doesn't exist."
+    )
 
 
 @mock_organizations
@@ -230,6 +331,25 @@ def test_list_accounts():
 
 
 @mock_organizations
+def test_list_accounts_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    for i in range(25):
+        name = mockname + str(i)
+        email = name + "@" + mockdomain
+        client.create_account(AccountName=name, Email=email)
+    response = client.list_accounts()
+    response.should_not.have.key("NextToken")
+    len(response["Accounts"]).should.be.greater_than_or_equal_to(i)
+
+    paginator = client.get_paginator("list_accounts")
+    page_iterator = paginator.paginate(MaxResults=5)
+    for page in page_iterator:
+        len(page["Accounts"]).should.be.lower_than_or_equal_to(5)
+    page["Accounts"][-1]["Name"].should.contain("24")
+
+
+@mock_organizations
 def test_list_accounts_for_parent():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")["Organization"]
@@ -239,6 +359,28 @@ def test_list_accounts_for_parent():
     ]["AccountId"]
     response = client.list_accounts_for_parent(ParentId=root_id)
     account_id.should.be.within([account["Id"] for account in response["Accounts"]])
+
+
+@mock_organizations
+def test_list_accounts_for_parent_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    response = client.list_accounts_for_parent(ParentId=root_id)
+    response.should_not.have.key("NextToken")
+    num_existing_accounts = len(response["Accounts"])
+    for i in range(num_existing_accounts, 21):
+        name = mockname + str(i)
+        email = name + "@" + mockdomain
+        client.create_account(AccountName=name, Email=email)
+    response = client.list_accounts_for_parent(ParentId=root_id)
+    len(response["Accounts"]).should.be.greater_than_or_equal_to(i)
+
+    paginator = client.get_paginator("list_accounts_for_parent")
+    page_iterator = paginator.paginate(MaxResults=5, ParentId=root_id)
+    for page in page_iterator:
+        len(page["Accounts"]).should.be.lower_than_or_equal_to(5)
+    page["Accounts"][-1]["Name"].should.contain("20")
 
 
 @mock_organizations
@@ -325,7 +467,7 @@ def test_list_children():
     response02 = client.list_children(ParentId=root_id, ChildType="ORGANIZATIONAL_UNIT")
     response03 = client.list_children(ParentId=ou01_id, ChildType="ACCOUNT")
     response04 = client.list_children(ParentId=ou01_id, ChildType="ORGANIZATIONAL_UNIT")
-    response01["Children"][0]["Id"].should.equal(utils.MASTER_ACCOUNT_ID)
+    response01["Children"][0]["Id"].should.equal(ACCOUNT_ID)
     response01["Children"][0]["Type"].should.equal("ACCOUNT")
     response01["Children"][1]["Id"].should.equal(account01_id)
     response01["Children"][1]["Type"].should.equal("ACCOUNT")
@@ -411,7 +553,7 @@ def test_get_paginated_list_create_account_status():
     for createAccountStatus in createAccountStatuses:
         validate_create_account_status(createAccountStatus)
     next_token = response["NextToken"]
-    next_token.should_not.be.none
+    next_token.should_not.equal(None)
     response2 = client.list_create_account_status(NextToken=next_token)
     createAccountStatuses.extend(response2["CreateAccountStatuses"])
     createAccountStatuses.should.have.length_of(6)
@@ -1109,7 +1251,7 @@ def test_tag_resource_errors():
 
     with pytest.raises(ClientError) as e:
         client.tag_resource(
-            ResourceId="0A000000X000", Tags=[{"Key": "key", "Value": "value"},],
+            ResourceId="0A000000X000", Tags=[{"Key": "key", "Value": "value"}]
         )
     ex = e.value
     ex.operation_name.should.equal("TagResource")
@@ -1132,17 +1274,17 @@ def test_tag_resource_errors():
 
 
 def test__get_resource_for_tagging_existing_root():
-    org = FakeOrganization("ALL")
+    org = FakeOrganization(ACCOUNT_ID, "ALL")
     root = FakeRoot(org)
 
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     org_backend.ou.append(root)
     response = org_backend._get_resource_for_tagging(root.id)
     response.id.should.equal(root.id)
 
 
 def test__get_resource_for_tagging_existing_non_root():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("r-abcd")
     ex = e.value
@@ -1152,9 +1294,9 @@ def test__get_resource_for_tagging_existing_non_root():
 
 
 def test__get_resource_for_tagging_existing_ou():
-    org = FakeOrganization("ALL")
+    org = FakeOrganization(ACCOUNT_ID, "ALL")
     ou = FakeOrganizationalUnit(org)
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
 
     org_backend.ou.append(ou)
     response = org_backend._get_resource_for_tagging(ou.id)
@@ -1162,7 +1304,7 @@ def test__get_resource_for_tagging_existing_ou():
 
 
 def test__get_resource_for_tagging_non_existing_ou():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("ou-9oyc-lv2q36ln")
     ex = e.value
@@ -1172,8 +1314,8 @@ def test__get_resource_for_tagging_non_existing_ou():
 
 
 def test__get_resource_for_tagging_existing_account():
-    org = FakeOrganization("ALL")
-    org_backend = OrganizationsBackend()
+    org = FakeOrganization(ACCOUNT_ID, "ALL")
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     account = FakeAccount(org, AccountName="test", Email="test@test.test")
 
     org_backend.accounts.append(account)
@@ -1182,7 +1324,7 @@ def test__get_resource_for_tagging_existing_account():
 
 
 def test__get_resource_for_tagging_non_existing_account():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("100326223992")
     ex = e.value
@@ -1192,8 +1334,8 @@ def test__get_resource_for_tagging_non_existing_account():
 
 
 def test__get_resource_for_tagging_existing_policy():
-    org = FakeOrganization("ALL")
-    org_backend = OrganizationsBackend()
+    org = FakeOrganization(ACCOUNT_ID, "ALL")
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     policy = FakePolicy(org, Type="SERVICE_CONTROL_POLICY")
 
     org_backend.policies.append(policy)
@@ -1202,7 +1344,7 @@ def test__get_resource_for_tagging_existing_policy():
 
 
 def test__get_resource_for_tagging_non_existing_policy():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("p-y1vas4da")
     ex = e.value
@@ -1212,7 +1354,7 @@ def test__get_resource_for_tagging_non_existing_policy():
 
 
 def test__get_resource_to_tag_incorrect_resource():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(InvalidInputException) as e:
         org_backend._get_resource_for_tagging("10032622399200")
     ex = e.value
@@ -1984,7 +2126,7 @@ def test_aiservices_opt_out_policy():
     summary["Name"].should.equal("ai-opt-out")
     summary["Description"].should.equal("Opt out of all AI services")
     summary["Type"].should.equal("AISERVICES_OPT_OUT_POLICY")
-    summary["AwsManaged"].should_not.be.ok
+    summary["AwsManaged"].should.equal(False)
     json.loads(response["Policy"]["Content"]).should.equal(ai_policy)
 
     # when

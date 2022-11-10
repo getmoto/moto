@@ -1,25 +1,26 @@
 import base64
 import hashlib
 import json
-import random
 import re
 import string
 
 import struct
 from copy import deepcopy
 from typing import Dict
+from threading import Condition
 from xml.sax.saxutils import escape
 
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
-    get_random_message_id,
     unix_time,
     unix_time_millis,
     tags_from_cloudformation_tags_list,
     BackendDict,
 )
+from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import md5_hash
 from .utils import generate_receipt_handle
 from .exceptions import (
     MessageAttributesInvalid,
@@ -36,8 +37,6 @@ from .exceptions import (
     OverLimit,
     InvalidAttributeValue,
 )
-
-from moto.core import ACCOUNT_ID
 
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
@@ -85,14 +84,14 @@ class Message(BaseModel):
 
     @property
     def body_md5(self):
-        md5 = hashlib.md5()
+        md5 = md5_hash()
         md5.update(self._body.encode("utf-8"))
         return md5.hexdigest()
 
     @property
     def attribute_md5(self):
 
-        md5 = hashlib.md5()
+        md5 = md5_hash()
 
         for attrName in sorted(self.message_attributes.keys()):
             self.validate_attribute_name(attrName)
@@ -143,10 +142,10 @@ class Message(BaseModel):
             )
 
     @staticmethod
-    def utf8(string):
-        if isinstance(string, str):
-            return string.encode("utf-8")
-        return string
+    def utf8(value):
+        if isinstance(value, str):
+            return value.encode("utf-8")
+        return value
 
     @property
     def body(self):
@@ -249,21 +248,21 @@ class Queue(CloudFormationModel):
         "SendMessage",
     )
 
-    def __init__(self, name, region, **kwargs):
+    def __init__(self, name, region, account_id, **kwargs):
         self.name = name
         self.region = region
+        self.account_id = account_id
         self.tags = {}
         self.permissions = {}
 
         self._messages = []
         self._pending_messages = set()
         self.deleted_messages = set()
+        self._messages_lock = Condition()
 
         now = unix_time()
         self.created_timestamp = now
-        self.queue_arn = "arn:aws:sqs:{0}:{1}:{2}".format(
-            self.region, ACCOUNT_ID, self.name
-        )
+        self.queue_arn = f"arn:aws:sqs:{region}:{account_id}:{name}"
         self.dead_letter_queue = None
 
         self.lambda_event_source_mappings = {}
@@ -388,7 +387,8 @@ class Queue(CloudFormationModel):
             self.redrive_policy["maxReceiveCount"]
         )
 
-        for queue in sqs_backends[self.region].queues.values():
+        sqs_backend = sqs_backends[self.account_id][self.region]
+        for queue in sqs_backend.queues.values():
             if queue.queue_arn == self.redrive_policy["deadLetterTargetArn"]:
                 self.dead_letter_queue = queue
 
@@ -417,7 +417,7 @@ class Queue(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = deepcopy(cloudformation_json["Properties"])
         # remove Tags from properties and convert tags list to dict
@@ -427,19 +427,24 @@ class Queue(CloudFormationModel):
         # Could be passed as an integer - just treat it as a string
         resource_name = str(resource_name)
 
-        sqs_backend = sqs_backends[region_name]
+        sqs_backend = sqs_backends[account_id][region_name]
         return sqs_backend.create_queue(
             name=resource_name, tags=tags_dict, region=region_name, **properties
         )
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
         queue_name = original_resource.name
 
-        sqs_backend = sqs_backends[region_name]
+        sqs_backend = sqs_backends[account_id][region_name]
         queue = sqs_backend.get_queue(queue_name)
         if "VisibilityTimeout" in properties:
             queue.visibility_timeout = int(properties["VisibilityTimeout"])
@@ -452,12 +457,12 @@ class Queue(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # ResourceName will be the full queue URL - we only need the name
         # https://sqs.us-west-1.amazonaws.com/123456789012/queue_name
         queue_name = resource_name.split("/")[-1]
-        sqs_backend = sqs_backends[region_name]
+        sqs_backend = sqs_backends[account_id][region_name]
         sqs_backend.delete_queue(queue_name)
 
     @property
@@ -474,7 +479,7 @@ class Queue(CloudFormationModel):
 
     @property
     def physical_resource_id(self):
-        return f"https://sqs.{self.region}.amazonaws.com/{ACCOUNT_ID}/{self.name}"
+        return f"https://sqs.{self.region}.amazonaws.com/{self.account_id}/{self.name}"
 
     @property
     def attributes(self):
@@ -508,7 +513,7 @@ class Queue(CloudFormationModel):
 
     def url(self, request_url):
         return "{0}://{1}/{2}/{3}".format(
-            request_url.scheme, request_url.netloc, ACCOUNT_ID, self.name
+            request_url.scheme, request_url.netloc, self.account_id, self.name
         )
 
     @property
@@ -533,10 +538,12 @@ class Queue(CloudFormationModel):
                     if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
                         return
 
-        self._messages.append(message)
+        with self._messages_lock:
+            self._messages.append(message)
+            self._messages_lock.notify_all()
 
         for arn, esm in self.lambda_event_source_mappings.items():
-            backend = sqs_backends[self.region]
+            backend = sqs_backends[self.account_id][self.region]
 
             """
             Lambda polls the queue and invokes your function synchronously with an event
@@ -544,7 +551,7 @@ class Queue(CloudFormationModel):
             your function once for each batch. When your function successfully processes
             a batch, Lambda deletes its messages from the queue.
             """
-            messages = backend.receive_messages(
+            messages = backend.receive_message(
                 self.name,
                 esm.batch_size,
                 self.receive_message_wait_time_seconds,
@@ -553,7 +560,7 @@ class Queue(CloudFormationModel):
 
             from moto.awslambda import lambda_backends
 
-            result = lambda_backends[self.region].send_sqs_batch(
+            result = lambda_backends[self.account_id][self.region].send_sqs_batch(
                 arn, messages, self.queue_arn
             )
 
@@ -588,9 +595,13 @@ class Queue(CloudFormationModel):
             new_messages.append(message)
         self._messages = new_messages
 
+    def wait_for_messages(self, timeout):
+        with self._messages_lock:
+            self._messages_lock.wait_for(lambda: self.messages, timeout=timeout)
+
     @classmethod
-    def has_cfn_attr(cls, attribute_name):
-        return attribute_name in ["Arn", "QueueName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn", "QueueName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -630,16 +641,9 @@ def _filter_message_attributes(message, input_message_attributes):
 
 
 class SQSBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.queues: Dict[str, Queue] = {}
-        super().__init__()
-
-    def reset(self):
-        region_name = self.region_name
-        self._reset_model_refs()
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -656,7 +660,9 @@ class SQSBackend(BaseBackend):
             except KeyError:
                 pass
 
-            new_queue = Queue(name, region=self.region_name, **kwargs)
+            new_queue = Queue(
+                name, region=self.region_name, account_id=self.account_id, **kwargs
+            )
 
             queue_attributes = queue.attributes
             new_queue_attributes = new_queue.attributes
@@ -671,7 +677,9 @@ class SQSBackend(BaseBackend):
                 kwargs.pop("region")
             except KeyError:
                 pass
-            queue = Queue(name, region=self.region_name, **kwargs)
+            queue = Queue(
+                name, region=self.region_name, account_id=self.account_id, **kwargs
+            )
             self.queues[name] = queue
 
         if tags:
@@ -762,7 +770,7 @@ class SQSBackend(BaseBackend):
         else:
             delay_seconds = queue.delay_seconds
 
-        message_id = get_random_message_id()
+        message_id = str(random.uuid4())
         message = Message(message_id, message_body, system_attributes)
 
         # if content based deduplication is set then set sha256 hash of the message
@@ -855,7 +863,7 @@ class SQSBackend(BaseBackend):
             unique_ids.add(_id)
         return None
 
-    def receive_messages(
+    def receive_message(
         self,
         queue_name,
         count,
@@ -863,20 +871,13 @@ class SQSBackend(BaseBackend):
         visibility_timeout,
         message_attribute_names=None,
     ):
-        """
-        Attempt to retrieve visible messages from a queue.
+        # Attempt to retrieve visible messages from a queue.
 
-        If a message was read by client and not deleted it is considered to be
-        "inflight" and cannot be read. We make attempts to obtain ``count``
-        messages but we may return less if messages are in-flight or there
-        are simple not enough messages in the queue.
+        # If a message was read by client and not deleted it is considered to be
+        # "inflight" and cannot be read. We make attempts to obtain ``count``
+        # messages but we may return less if messages are in-flight or there
+        # are simple not enough messages in the queue.
 
-        :param string queue_name: The name of the queue to read from.
-        :param int count: The maximum amount of messages to retrieve.
-        :param int visibility_timeout: The number of seconds the message should remain invisible to other queue readers.
-        :param int wait_seconds_timeout:  The duration (in seconds) for which the call waits for a message to arrive in
-         the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds
-        """
         if message_attribute_names is None:
             message_attribute_names = []
         queue = self.get_queue(queue_name)
@@ -937,13 +938,11 @@ class SQSBackend(BaseBackend):
 
             if previous_result_count == len(result):
                 if wait_seconds_timeout == 0:
-                    # There is timeout and we have added no additional results,
+                    # There is no timeout and no additional results,
                     # so break to avoid an infinite loop.
                     break
 
-                import time
-
-                time.sleep(0.01)
+                queue.wait_for_messages(wait_seconds_timeout)
                 continue
 
             previous_result_count = len(result)

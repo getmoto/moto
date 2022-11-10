@@ -30,17 +30,19 @@ cloudfront
 - [ ] create_cloud_front_origin_access_identity
 - [X] create_distribution
   
-        This has been tested against an S3-distribution with the simplest possible configuration.
-        Please raise an issue if we're not persisting/returning the correct attributes for your use-case.
+        Not all configuration options are supported yet.  Please raise an issue if
+        we're not persisting/returning the correct attributes for your
+        use-case.
         
 
-- [ ] create_distribution_with_tags
+- [X] create_distribution_with_tags
 - [ ] create_field_level_encryption_config
 - [ ] create_field_level_encryption_profile
 - [ ] create_function
-- [ ] create_invalidation
+- [X] create_invalidation
 - [ ] create_key_group
 - [ ] create_monitoring_subscription
+- [ ] create_origin_access_control
 - [ ] create_origin_request_policy
 - [ ] create_public_key
 - [ ] create_realtime_log_config
@@ -60,6 +62,7 @@ cloudfront
 - [ ] delete_function
 - [ ] delete_key_group
 - [ ] delete_monitoring_subscription
+- [ ] delete_origin_access_control
 - [ ] delete_origin_request_policy
 - [ ] delete_public_key
 - [ ] delete_realtime_log_config
@@ -81,6 +84,8 @@ cloudfront
 - [ ] get_key_group
 - [ ] get_key_group_config
 - [ ] get_monitoring_subscription
+- [ ] get_origin_access_control
+- [ ] get_origin_access_control_config
 - [ ] get_origin_request_policy
 - [ ] get_origin_request_policy_config
 - [ ] get_public_key
@@ -107,25 +112,36 @@ cloudfront
 - [ ] list_field_level_encryption_configs
 - [ ] list_field_level_encryption_profiles
 - [ ] list_functions
-- [ ] list_invalidations
+- [X] list_invalidations
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_key_groups
+- [ ] list_origin_access_controls
 - [ ] list_origin_request_policies
 - [ ] list_public_keys
 - [ ] list_realtime_log_configs
 - [ ] list_response_headers_policies
 - [ ] list_streaming_distributions
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] publish_function
 - [ ] tag_resource
 - [ ] test_function
 - [ ] untag_resource
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
-- [ ] update_distribution
+- [X] update_distribution
+  
+        The IfMatch-value is ignored - any value is considered valid.
+        Calling this function without a value is invalid, per AWS' behaviour
+        
+
 - [ ] update_field_level_encryption_config
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
 - [ ] update_key_group
+- [ ] update_origin_access_control
 - [ ] update_origin_request_policy
 - [ ] update_public_key
 - [ ] update_realtime_log_config

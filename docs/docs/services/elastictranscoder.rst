@@ -28,6 +28,11 @@ elastictranscoder
 - [ ] cancel_job
 - [ ] create_job
 - [X] create_pipeline
+  
+        The following parameters are not yet implemented:
+        AWSKMSKeyArn, Notifications
+        
+
 - [ ] create_preset
 - [X] delete_pipeline
 - [ ] delete_preset
@@ -40,6 +45,11 @@ elastictranscoder
 - [ ] read_preset
 - [ ] test_role
 - [X] update_pipeline
+  
+        The following parameters are not yet implemented:
+        AWSKMSKeyArn, Notifications, ContentConfig, ThumbnailConfig
+        
+
 - [ ] update_pipeline_notifications
 - [ ] update_pipeline_status
 

@@ -28,7 +28,7 @@ dax
 - [X] create_cluster
   
         The following parameters are not yet processed:
-        AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName, ClusterEndpointEncryptionType
+        AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName
         
 
 - [ ] create_parameter_group
@@ -48,6 +48,10 @@ dax
 - [ ] describe_parameters
 - [ ] describe_subnet_groups
 - [X] increase_replication_factor
+  
+        The AvailabilityZones-parameter is not yet implemented
+        
+
 - [X] list_tags
   
         Pagination is not yet implemented

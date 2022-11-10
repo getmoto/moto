@@ -12,6 +12,8 @@
 cloudformation
 ==============
 
+.. autoclass:: moto.cloudformation.models.CloudFormationBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -91,7 +93,7 @@ cloudformation
 - [ ] stop_stack_set_operation
 - [ ] test_type
 - [X] update_stack
-- [ ] update_stack_instances
+- [X] update_stack_instances
 - [X] update_stack_set
 - [ ] update_termination_protection
 - [X] validate_template

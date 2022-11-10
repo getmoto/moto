@@ -10,7 +10,7 @@ import pytest
 
 from moto import mock_s3
 from moto.config import mock_config
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 import sure  # noqa # pylint: disable=unused-import
 
@@ -1614,8 +1614,6 @@ def test_batch_get_aggregate_resource_config():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
     for that individual service's "get_config_resource" function.
     """
-    from moto.config.models import DEFAULT_ACCOUNT_ID
-
     client = boto3.client("config", region_name="us-west-2")
 
     # Without an aggregator:
@@ -1680,7 +1678,7 @@ def test_batch_get_aggregate_resource_config():
     # Now try with resources that exist and ones that don't:
     identifiers = [
         {
-            "SourceAccountId": DEFAULT_ACCOUNT_ID,
+            "SourceAccountId": ACCOUNT_ID,
             "SourceRegion": "us-west-2",
             "ResourceType": "AWS::S3::Bucket",
             "ResourceId": "bucket{}".format(x),
@@ -1689,7 +1687,7 @@ def test_batch_get_aggregate_resource_config():
     ]
     identifiers += [
         {
-            "SourceAccountId": DEFAULT_ACCOUNT_ID,
+            "SourceAccountId": ACCOUNT_ID,
             "SourceRegion": "eu-west-1",
             "ResourceType": "AWS::S3::Bucket",
             "ResourceId": "eu-bucket{}".format(x),
@@ -1725,7 +1723,7 @@ def test_batch_get_aggregate_resource_config():
     # Verify that if the resource name and ID are correct that things are good:
     identifiers = [
         {
-            "SourceAccountId": DEFAULT_ACCOUNT_ID,
+            "SourceAccountId": ACCOUNT_ID,
             "SourceRegion": "us-west-2",
             "ResourceType": "AWS::S3::Bucket",
             "ResourceId": "bucket1",
@@ -1744,7 +1742,7 @@ def test_batch_get_aggregate_resource_config():
     # Verify that if the resource name and ID mismatch that we don't get a result:
     identifiers = [
         {
-            "SourceAccountId": DEFAULT_ACCOUNT_ID,
+            "SourceAccountId": ACCOUNT_ID,
             "SourceRegion": "us-west-2",
             "ResourceType": "AWS::S3::Bucket",
             "ResourceId": "bucket1",
@@ -1764,7 +1762,7 @@ def test_batch_get_aggregate_resource_config():
     # Verify that if the region is incorrect that we don't get a result:
     identifiers = [
         {
-            "SourceAccountId": DEFAULT_ACCOUNT_ID,
+            "SourceAccountId": ACCOUNT_ID,
             "SourceRegion": "eu-west-1",
             "ResourceType": "AWS::S3::Bucket",
             "ResourceId": "bucket1",
@@ -1845,7 +1843,7 @@ def test_put_evaluations():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal(
-        {"FailedEvaluations": [], "ResponseMetadata": {"HTTPStatusCode": 200,},}
+        {"FailedEvaluations": [], "ResponseMetadata": {"HTTPStatusCode": 200}}
     )
 
 

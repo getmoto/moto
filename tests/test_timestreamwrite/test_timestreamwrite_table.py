@@ -1,7 +1,11 @@
+import time
 import boto3
+import pytest
 import sure  # noqa # pylint: disable=unused-import
+
+from botocore.exceptions import ClientError
 from moto import mock_timestreamwrite, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_timestreamwrite
@@ -33,6 +37,38 @@ def test_create_table():
 
 
 @mock_timestreamwrite
+def test_create_table__with_magnetic_store_write_properties():
+    ts = boto3.client("timestream-write", region_name="us-east-1")
+    ts.create_database(DatabaseName="mydatabase")
+
+    resp = ts.create_table(
+        DatabaseName="mydatabase",
+        TableName="mytable",
+        MagneticStoreWriteProperties={
+            "EnableMagneticStoreWrites": True,
+            "MagneticStoreRejectedDataLocation": {
+                "S3Configuration": {"BucketName": "hithere"}
+            },
+        },
+    )
+    table = resp["Table"]
+    table.should.have.key("Arn").equal(
+        f"arn:aws:timestream:us-east-1:{ACCOUNT_ID}:database/mydatabase/table/mytable"
+    )
+    table.should.have.key("TableName").equal("mytable")
+    table.should.have.key("DatabaseName").equal("mydatabase")
+    table.should.have.key("TableStatus").equal("ACTIVE")
+    table.should.have.key("MagneticStoreWriteProperties").should.equal(
+        {
+            "EnableMagneticStoreWrites": True,
+            "MagneticStoreRejectedDataLocation": {
+                "S3Configuration": {"BucketName": "hithere"}
+            },
+        }
+    )
+
+
+@mock_timestreamwrite
 def test_create_table_without_retention_properties():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase")
@@ -45,7 +81,12 @@ def test_create_table_without_retention_properties():
     table.should.have.key("TableName").equal("mytable")
     table.should.have.key("DatabaseName").equal("mydatabase")
     table.should.have.key("TableStatus").equal("ACTIVE")
-    table.shouldnt.have.key("RetentionProperties")
+    table.should.have.key("RetentionProperties").equals(
+        {
+            "MemoryStoreRetentionPeriodInHours": 123,
+            "MagneticStoreRetentionPeriodInDays": 123,
+        }
+    )
 
 
 @mock_timestreamwrite
@@ -75,6 +116,18 @@ def test_describe_table():
             "MagneticStoreRetentionPeriodInDays": 12,
         }
     )
+
+
+@mock_timestreamwrite
+def test_describe_unknown_database():
+    ts = boto3.client("timestream-write", region_name="us-east-1")
+    ts.create_database(DatabaseName="mydatabase")
+
+    with pytest.raises(ClientError) as exc:
+        ts.describe_table(DatabaseName="mydatabase", TableName="unknown")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal("The table unknown does not exist.")
 
 
 @mock_timestreamwrite
@@ -168,6 +221,40 @@ def test_update_table():
 
 
 @mock_timestreamwrite
+def test_update_table__with_magnetic_store_write_properties():
+    ts = boto3.client("timestream-write", region_name="us-east-1")
+    ts.create_database(DatabaseName="mydatabase")
+
+    ts.create_table(DatabaseName="mydatabase", TableName="mytable")
+
+    resp = ts.update_table(
+        DatabaseName="mydatabase",
+        TableName="mytable",
+        MagneticStoreWriteProperties={
+            "EnableMagneticStoreWrites": True,
+            "MagneticStoreRejectedDataLocation": {
+                "S3Configuration": {"BucketName": "hithere"}
+            },
+        },
+    )
+    table = resp["Table"]
+    table.should.have.key("Arn").equal(
+        f"arn:aws:timestream:us-east-1:{ACCOUNT_ID}:database/mydatabase/table/mytable"
+    )
+    table.should.have.key("TableName").equal("mytable")
+    table.should.have.key("DatabaseName").equal("mydatabase")
+    table.should.have.key("TableStatus").equal("ACTIVE")
+    table.should.have.key("MagneticStoreWriteProperties").should.equal(
+        {
+            "EnableMagneticStoreWrites": True,
+            "MagneticStoreRejectedDataLocation": {
+                "S3Configuration": {"BucketName": "hithere"}
+            },
+        }
+    )
+
+
+@mock_timestreamwrite
 def test_write_records():
     # The query-feature is not available at the moment,
     # so there's no way for us to verify writing records is successful
@@ -176,33 +263,58 @@ def test_write_records():
     ts.create_database(DatabaseName="mydatabase")
     ts.create_table(DatabaseName="mydatabase", TableName="mytable")
 
-    ts.write_records(
+    # Sample records from https://docs.aws.amazon.com/timestream/latest/developerguide/code-samples.write.html
+    dimensions = [
+        {"Name": "region", "Value": "us-east-1"},
+        {"Name": "az", "Value": "az1"},
+        {"Name": "hostname", "Value": "host1"},
+    ]
+
+    cpu_utilization = {
+        "Dimensions": dimensions,
+        "MeasureName": "cpu_utilization",
+        "MeasureValue": "13.5",
+        "MeasureValueType": "DOUBLE",
+        "Time": str(time.time()),
+    }
+
+    memory_utilization = {
+        "Dimensions": dimensions,
+        "MeasureName": "memory_utilization",
+        "MeasureValue": "40",
+        "MeasureValueType": "DOUBLE",
+        "Time": str(time.time()),
+    }
+
+    sample_records = [cpu_utilization, memory_utilization]
+
+    resp = ts.write_records(
         DatabaseName="mydatabase",
         TableName="mytable",
-        Records=[{"Dimensions": [], "MeasureName": "mn1", "MeasureValue": "mv1"}],
-    )
+        Records=sample_records,
+    ).get("RecordsIngested", {})
+    resp["Total"].should.equal(len(sample_records))
+    (resp["MemoryStore"] + resp["MagneticStore"]).should.equal(resp["Total"])
 
     if not settings.TEST_SERVER_MODE:
         from moto.timestreamwrite.models import timestreamwrite_backends
 
-        backend = timestreamwrite_backends["us-east-1"]
+        backend = timestreamwrite_backends[ACCOUNT_ID]["us-east-1"]
         records = backend.databases["mydatabase"].tables["mytable"].records
-        records.should.equal(
-            [{"Dimensions": [], "MeasureName": "mn1", "MeasureValue": "mv1"}]
-        )
+        records.should.equal(sample_records)
+
+        disk_utilization = {
+            "Dimensions": dimensions,
+            "MeasureName": "disk_utilization",
+            "MeasureValue": "100",
+            "MeasureValueType": "DOUBLE",
+            "Time": str(time.time()),
+        }
+        sample_records.append(disk_utilization)
 
         ts.write_records(
             DatabaseName="mydatabase",
             TableName="mytable",
-            Records=[
-                {"Dimensions": [], "MeasureName": "mn2", "MeasureValue": "mv2"},
-                {"Dimensions": [], "MeasureName": "mn3", "MeasureValue": "mv3"},
-            ],
+            Records=[disk_utilization],
         )
-        records.should.equal(
-            [
-                {"Dimensions": [], "MeasureName": "mn1", "MeasureValue": "mv1"},
-                {"Dimensions": [], "MeasureName": "mn2", "MeasureValue": "mv2"},
-                {"Dimensions": [], "MeasureName": "mn3", "MeasureValue": "mv3"},
-            ]
-        )
+        records.should.equal(sample_records)

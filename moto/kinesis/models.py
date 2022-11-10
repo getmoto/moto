@@ -4,15 +4,15 @@ import re
 import itertools
 
 from operator import attrgetter
-from hashlib import md5
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, BackendDict
-from moto.core import ACCOUNT_ID
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import md5_hash
 from .exceptions import (
     ConsumerNotFound,
     StreamNotFoundError,
+    StreamCannotBeUpdatedError,
     ShardNotFoundError,
     ResourceInUseError,
     ResourceNotFoundError,
@@ -21,6 +21,9 @@ from .exceptions import (
     InvalidDecreaseRetention,
     InvalidIncreaseRetention,
     ValidationException,
+    RecordSizeExceedsLimit,
+    TotalRecordsSizeExceedsLimit,
+    TooManyRecords,
 )
 from .utils import (
     compose_shard_iterator,
@@ -31,12 +34,12 @@ from .utils import (
 
 
 class Consumer(BaseModel):
-    def __init__(self, consumer_name, region_name, stream_arn):
+    def __init__(self, consumer_name, account_id, region_name, stream_arn):
         self.consumer_name = consumer_name
         self.created = unix_time()
         self.stream_arn = stream_arn
         stream_name = stream_arn.split("/")[-1]
-        self.consumer_arn = f"arn:aws:kinesis:{region_name}:{ACCOUNT_ID}:stream/{stream_name}/consumer/{consumer_name}"
+        self.consumer_arn = f"arn:aws:kinesis:{region_name}:{account_id}:stream/{stream_name}/consumer/{consumer_name}"
 
     def to_json(self, include_stream_arn=False):
         resp = {
@@ -164,21 +167,31 @@ class Shard(BaseModel):
 
 
 class Stream(CloudFormationModel):
-    def __init__(self, stream_name, shard_count, retention_period_hours, region_name):
+    def __init__(
+        self,
+        stream_name,
+        shard_count,
+        stream_mode,
+        retention_period_hours,
+        account_id,
+        region_name,
+    ):
         self.stream_name = stream_name
         self.creation_datetime = datetime.datetime.now().strftime(
             "%Y-%m-%dT%H:%M:%S.%f000"
         )
         self.region = region_name
-        self.account_number = ACCOUNT_ID
+        self.account_id = account_id
+        self.arn = f"arn:aws:kinesis:{region_name}:{account_id}:stream/{stream_name}"
         self.shards = {}
         self.tags = {}
         self.status = "ACTIVE"
         self.shard_count = None
+        self.stream_mode = stream_mode or {"StreamMode": "PROVISIONED"}
+        if self.stream_mode.get("StreamMode", "") == "ON_DEMAND":
+            shard_count = 4
         self.init_shards(shard_count)
-        self.retention_period_hours = (
-            retention_period_hours if retention_period_hours else 24
-        )
+        self.retention_period_hours = retention_period_hours or 24
         self.shard_level_metrics = []
         self.encryption_type = "NONE"
         self.key_id = None
@@ -193,10 +206,10 @@ class Stream(CloudFormationModel):
     def init_shards(self, shard_count):
         self.shard_count = shard_count
 
-        step = 2 ** 128 // shard_count
+        step = 2**128 // shard_count
         hash_ranges = itertools.chain(
             map(lambda i: (i, i * step, (i + 1) * step - 1), range(shard_count - 1)),
-            [(shard_count - 1, (shard_count - 1) * step, 2 ** 128)],
+            [(shard_count - 1, (shard_count - 1) * step, 2**128)],
         )
         for index, start, end in hash_ranges:
             shard = Shard(index, start, end)
@@ -211,12 +224,12 @@ class Stream(CloudFormationModel):
             pass
         else:
             raise InvalidArgumentError(
-                message=f"NewStartingHashKey {new_starting_hash_key} used in SplitShard() on shard {shard_to_split} in stream {self.stream_name} under account {ACCOUNT_ID} is not both greater than one plus the shard's StartingHashKey {shard.starting_hash} and less than the shard's EndingHashKey {(shard.ending_hash - 1)}."
+                message=f"NewStartingHashKey {new_starting_hash_key} used in SplitShard() on shard {shard_to_split} in stream {self.stream_name} under account {self.account_id} is not both greater than one plus the shard's StartingHashKey {shard.starting_hash} and less than the shard's EndingHashKey {(shard.ending_hash - 1)}."
             )
 
         if not shard.is_open:
             raise InvalidArgumentError(
-                message=f"Shard {shard.shard_id} in stream {self.stream_name} under account {ACCOUNT_ID} has already been merged or split, and thus is not eligible for merging or splitting."
+                message=f"Shard {shard.shard_id} in stream {self.stream_name} under account {self.account_id} has already been merged or split, and thus is not eligible for merging or splitting."
             )
 
         last_id = sorted(self.shards.values(), key=attrgetter("_shard_id"))[
@@ -245,9 +258,7 @@ class Stream(CloudFormationModel):
 
         for index in records:
             record = records[index]
-            self.put_record(
-                record.partition_key, record.explicit_hash_key, None, record.data
-            )
+            self.put_record(record.partition_key, record.explicit_hash_key, record.data)
 
     def merge_shards(self, shard_to_merge, adjacent_shard_to_merge):
         shard1 = self.shards[shard_to_merge]
@@ -289,6 +300,10 @@ class Stream(CloudFormationModel):
             )
 
     def update_shard_count(self, target_shard_count):
+        if self.stream_mode.get("StreamMode", "") == "ON_DEMAND":
+            raise StreamCannotBeUpdatedError(
+                stream_name=self.stream_name, account_id=self.account_id
+            )
         current_shard_count = len([s for s in self.shards.values() if s.is_open])
         if current_shard_count == target_shard_count:
             return
@@ -335,19 +350,11 @@ class Stream(CloudFormationModel):
 
         self.shard_count = target_shard_count
 
-    @property
-    def arn(self):
-        return "arn:aws:kinesis:{region}:{account_number}:stream/{stream_name}".format(
-            region=self.region,
-            account_number=self.account_number,
-            stream_name=self.stream_name,
-        )
-
     def get_shard(self, shard_id):
         if shard_id in self.shards:
             return self.shards[shard_id]
         else:
-            raise ShardNotFoundError(shard_id, stream="")
+            raise ShardNotFoundError(shard_id, stream="", account_id=self.account_id)
 
     def get_shard_for_key(self, partition_key, explicit_hash_key):
         if not isinstance(partition_key, str):
@@ -361,19 +368,17 @@ class Stream(CloudFormationModel):
 
             key = int(explicit_hash_key)
 
-            if key >= 2 ** 128:
+            if key >= 2**128:
                 raise InvalidArgumentError("explicit_hash_key")
 
         else:
-            key = int(md5(partition_key.encode("utf-8")).hexdigest(), 16)
+            key = int(md5_hash(partition_key.encode("utf-8")).hexdigest(), 16)
 
         for shard in self.shards.values():
             if shard.starting_hash <= key < shard.ending_hash:
                 return shard
 
-    def put_record(
-        self, partition_key, explicit_hash_key, sequence_number_for_ordering, data
-    ):
+    def put_record(self, partition_key, explicit_hash_key, data):
         shard = self.get_shard_for_key(partition_key, explicit_hash_key)
 
         sequence_number = shard.put_record(partition_key, data, explicit_hash_key)
@@ -403,8 +408,13 @@ class Stream(CloudFormationModel):
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
                 "StreamStatus": self.status,
+                "StreamModeDetails": self.stream_mode,
+                "RetentionPeriodHours": self.retention_period_hours,
                 "StreamCreationTimestamp": self.creation_datetime,
+                "EnhancedMonitoring": [{"ShardLevelMetrics": self.shard_level_metrics}],
                 "OpenShardCount": self.shard_count,
+                "EncryptionType": self.encryption_type,
+                "KeyId": self.key_id,
             }
         }
 
@@ -419,7 +429,7 @@ class Stream(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         shard_count = properties.get("ShardCount", 1)
@@ -429,9 +439,9 @@ class Stream(CloudFormationModel):
             for tag_item in properties.get("Tags", [])
         }
 
-        backend = kinesis_backends[region_name]
+        backend = kinesis_backends[account_id][region_name]
         stream = backend.create_stream(
-            resource_name, shard_count, retention_period_hours
+            resource_name, shard_count, retention_period_hours=retention_period_hours
         )
         if any(tags):
             backend.add_tags_to_stream(stream.stream_name, tags)
@@ -439,7 +449,12 @@ class Stream(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
@@ -472,9 +487,9 @@ class Stream(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        backend = kinesis_backends[region_name]
+        backend = kinesis_backends[account_id][region_name]
         backend.delete_stream(resource_name)
 
     @staticmethod
@@ -488,8 +503,8 @@ class Stream(CloudFormationModel):
         )
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -504,14 +519,9 @@ class Stream(CloudFormationModel):
 
 
 class KinesisBackend(BaseBackend):
-    def __init__(self, region):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.streams = OrderedDict()
-        self.region_name = region
-
-    def reset(self):
-        region = self.region_name
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -520,20 +530,27 @@ class KinesisBackend(BaseBackend):
             service_region, zones, "kinesis", special_service_name="kinesis-streams"
         )
 
-    def create_stream(self, stream_name, shard_count, retention_period_hours):
+    def create_stream(
+        self, stream_name, shard_count, stream_mode=None, retention_period_hours=None
+    ):
         if stream_name in self.streams:
             raise ResourceInUseError(stream_name)
         stream = Stream(
-            stream_name, shard_count, retention_period_hours, self.region_name
+            stream_name,
+            shard_count,
+            stream_mode=stream_mode,
+            retention_period_hours=retention_period_hours,
+            account_id=self.account_id,
+            region_name=self.region_name,
         )
         self.streams[stream_name] = stream
         return stream
 
-    def describe_stream(self, stream_name):
+    def describe_stream(self, stream_name) -> Stream:
         if stream_name in self.streams:
             return self.streams[stream_name]
         else:
-            raise StreamNotFoundError(stream_name)
+            raise StreamNotFoundError(stream_name, self.account_id)
 
     def describe_stream_summary(self, stream_name):
         return self.describe_stream(stream_name)
@@ -544,7 +561,7 @@ class KinesisBackend(BaseBackend):
     def delete_stream(self, stream_name):
         if stream_name in self.streams:
             return self.streams.pop(stream_name)
-        raise StreamNotFoundError(stream_name)
+        raise StreamNotFoundError(stream_name, self.account_id)
 
     def get_shard_iterator(
         self,
@@ -560,7 +577,7 @@ class KinesisBackend(BaseBackend):
             shard = stream.get_shard(shard_id)
         except ShardNotFoundError:
             raise ResourceNotFoundError(
-                message=f"Shard {shard_id} in stream {stream_name} under account {ACCOUNT_ID} does not exist"
+                message=f"Shard {shard_id} in stream {stream_name} under account {self.account_id} does not exist"
             )
 
         shard_iterator = compose_new_shard_iterator(
@@ -594,13 +611,12 @@ class KinesisBackend(BaseBackend):
         stream_name,
         partition_key,
         explicit_hash_key,
-        sequence_number_for_ordering,
         data,
     ):
         stream = self.describe_stream(stream_name)
 
         sequence_number, shard_id = stream.put_record(
-            partition_key, explicit_hash_key, sequence_number_for_ordering, data
+            partition_key, explicit_hash_key, data
         )
 
         return sequence_number, shard_id
@@ -610,13 +626,24 @@ class KinesisBackend(BaseBackend):
 
         response = {"FailedRecordCount": 0, "Records": []}
 
+        if len(records) > 500:
+            raise TooManyRecords
+        data_sizes = [len(r.get("Data", "")) for r in records]
+        if sum(data_sizes) >= 5000000:
+            raise TotalRecordsSizeExceedsLimit
+        idx_over_limit = next(
+            (idx for idx, x in enumerate(data_sizes) if x >= 1048576), None
+        )
+        if idx_over_limit is not None:
+            raise RecordSizeExceedsLimit(position=idx_over_limit + 1)
+
         for record in records:
             partition_key = record.get("PartitionKey")
             explicit_hash_key = record.get("ExplicitHashKey")
             data = record.get("Data")
 
             sequence_number, shard_id = stream.put_record(
-                partition_key, explicit_hash_key, None, data
+                partition_key, explicit_hash_key, data
             )
             response["Records"].append(
                 {"SequenceNumber": sequence_number, "ShardId": shard_id}
@@ -635,7 +662,9 @@ class KinesisBackend(BaseBackend):
             )
 
         if shard_to_split not in stream.shards:
-            raise ShardNotFoundError(shard_id=shard_to_split, stream=stream_name)
+            raise ShardNotFoundError(
+                shard_id=shard_to_split, stream=stream_name, account_id=self.account_id
+            )
 
         if not re.match(r"0|([1-9]\d{0,38})", new_starting_hash_key):
             raise ValidationException(
@@ -650,10 +679,14 @@ class KinesisBackend(BaseBackend):
         stream = self.describe_stream(stream_name)
 
         if shard_to_merge not in stream.shards:
-            raise ShardNotFoundError(shard_to_merge, stream=stream_name)
+            raise ShardNotFoundError(
+                shard_to_merge, stream=stream_name, account_id=self.account_id
+            )
 
         if adjacent_shard_to_merge not in stream.shards:
-            raise ShardNotFoundError(adjacent_shard_to_merge, stream=stream_name)
+            raise ShardNotFoundError(
+                adjacent_shard_to_merge, stream=stream_name, account_id=self.account_id
+            )
 
         stream.merge_shards(shard_to_merge, adjacent_shard_to_merge)
 
@@ -759,7 +792,9 @@ class KinesisBackend(BaseBackend):
         return stream.consumers
 
     def register_stream_consumer(self, stream_arn, consumer_name):
-        consumer = Consumer(consumer_name, self.region_name, stream_arn)
+        consumer = Consumer(
+            consumer_name, self.account_id, self.region_name, stream_arn
+        )
         stream = self._find_stream_by_arn(stream_arn)
         stream.consumers.append(consumer)
         return consumer
@@ -775,7 +810,9 @@ class KinesisBackend(BaseBackend):
                 consumer = stream.get_consumer_by_arn(consumer_arn)
                 if consumer:
                     return consumer
-        raise ConsumerNotFound(consumer=consumer_name or consumer_arn)
+        raise ConsumerNotFound(
+            consumer=consumer_name or consumer_arn, account_id=self.account_id
+        )
 
     def deregister_stream_consumer(self, stream_arn, consumer_name, consumer_arn):
         if stream_arn:
@@ -798,6 +835,10 @@ class KinesisBackend(BaseBackend):
         stream = self.describe_stream(stream_name)
         stream.encryption_type = "NONE"
         stream.key_id = None
+
+    def update_stream_mode(self, stream_arn, stream_mode):
+        stream = self._find_stream_by_arn(stream_arn)
+        stream.stream_mode = stream_mode
 
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")

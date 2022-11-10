@@ -9,11 +9,9 @@ import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2
 from tests import EXAMPLE_AMI_ID
 
-import logging
-
 
 @mock_ec2
-def test_eip_allocate_classic_boto3():
+def test_eip_allocate_classic():
     """Allocate/release Classic EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -63,7 +61,7 @@ def test_describe_addresses_dryrun():
 
 
 @mock_ec2
-def test_eip_allocate_vpc_boto3():
+def test_eip_allocate_vpc():
     """Allocate/release VPC EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -104,23 +102,22 @@ def test_specific_eip_allocate_vpc():
     vpc = client.allocate_address(Domain="vpc", Address="127.38.43.222")
     vpc["Domain"].should.be.equal("vpc")
     vpc["PublicIp"].should.be.equal("127.38.43.222")
-    logging.debug("vpc alloc_id:".format(vpc["AllocationId"]))
 
 
 @mock_ec2
-def test_eip_allocate_invalid_domain_boto3():
+def test_eip_allocate_invalid_domain():
     """Allocate EIP invalid domain"""
     client = boto3.client("ec2", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
         client.allocate_address(Domain="bogus")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
 
 
 @mock_ec2
-def test_eip_associate_classic_boto3():
+def test_eip_associate_classic():
     """Associate/Disassociate EIP to classic instance"""
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -130,12 +127,12 @@ def test_eip_associate_classic_boto3():
 
     eip = client.allocate_address()
     eip = ec2.ClassicAddress(eip["PublicIp"])
-    eip.instance_id.should.be.empty
+    eip.instance_id.should.equal("")
 
     with pytest.raises(ClientError) as ex:
         client.associate_address(PublicIp=eip.public_ip)
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("MissingParameter")
     ex.value.response["Error"]["Message"].should.equal(
         "Invalid request, expect InstanceId/NetworkId parameter."
@@ -178,7 +175,7 @@ def test_eip_associate_classic_boto3():
 
 
 @mock_ec2
-def test_eip_associate_vpc_boto3():
+def test_eip_associate_vpc():
     """Associate/Disassociate EIP to VPC instance"""
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -193,7 +190,7 @@ def test_eip_associate_vpc_boto3():
     with pytest.raises(ClientError) as ex:
         client.associate_address(AllocationId=eip.allocation_id)
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("MissingParameter")
     ex.value.response["Error"]["Message"].should.equal(
         "Invalid request, expect InstanceId/NetworkId parameter."
@@ -207,7 +204,7 @@ def test_eip_associate_vpc_boto3():
 
     eip.reload()
     eip.instance_id.should.be.equal("")
-    eip.association_id.should.be.none
+    eip.association_id.should.equal(None)
 
     with pytest.raises(ClientError) as ex:
         eip.release(DryRun=True)
@@ -222,7 +219,7 @@ def test_eip_associate_vpc_boto3():
 
 
 @mock_ec2
-def test_eip_boto3_vpc_association():
+def test_eip_vpc_association():
     """Associate EIP to VPC instance in a new subnet with boto3"""
     service = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -242,17 +239,17 @@ def test_eip_boto3_vpc_association():
     allocation_id = client.allocate_address(Domain="vpc")["AllocationId"]
     address = service.VpcAddress(allocation_id)
     address.load()
-    address.association_id.should.be.none
-    address.instance_id.should.be.empty
-    address.network_interface_id.should.be.empty
+    address.association_id.should.equal(None)
+    address.instance_id.should.equal("")
+    address.network_interface_id.should.equal("")
     client.associate_address(
         InstanceId=instance.id, AllocationId=allocation_id, AllowReassociation=False
     )
     instance.load()
     address.reload()
-    address.association_id.should_not.be.none
-    instance.public_ip_address.should_not.be.none
-    instance.public_dns_name.should_not.be.none
+    address.association_id.should_not.equal(None)
+    instance.public_ip_address.should_not.equal(None)
+    instance.public_dns_name.should_not.equal(None)
     address.network_interface_id.should.equal(
         instance.network_interfaces_attribute[0].get("NetworkInterfaceId")
     )
@@ -262,14 +259,14 @@ def test_eip_boto3_vpc_association():
     client.disassociate_address(AssociationId=address.association_id)
     instance.reload()
     address.reload()
-    instance.public_ip_address.should.be.none
-    address.network_interface_id.should.be.empty
-    address.association_id.should.be.none
-    address.instance_id.should.be.empty
+    instance.public_ip_address.should.equal(None)
+    address.network_interface_id.should.equal("")
+    address.association_id.should.equal(None)
+    address.instance_id.should.equal("")
 
 
 @mock_ec2
-def test_eip_associate_network_interface_boto3():
+def test_eip_associate_network_interface():
     """Associate/Disassociate EIP to NIC"""
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -279,12 +276,12 @@ def test_eip_associate_network_interface_boto3():
 
     eip = client.allocate_address(Domain="vpc")
     eip = ec2.ClassicAddress(eip["PublicIp"])
-    eip.network_interface_id.should.be.empty
+    eip.network_interface_id.should.equal("")
 
     with pytest.raises(ClientError) as ex:
         client.associate_address(NetworkInterfaceId=eni.id)
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("MissingParameter")
     ex.value.response["Error"]["Message"].should.equal(
         "Invalid request, expect PublicIp/AllocationId parameter."
@@ -298,13 +295,13 @@ def test_eip_associate_network_interface_boto3():
     client.disassociate_address(AssociationId=eip.association_id)
 
     eip.reload()
-    eip.network_interface_id.should.be.empty
-    eip.association_id.should.be.none
+    eip.network_interface_id.should.equal("")
+    eip.association_id.should.equal(None)
     eip.release()
 
 
 @mock_ec2
-def test_eip_reassociate_boto3():
+def test_eip_reassociate():
     """reassociate EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -329,7 +326,7 @@ def test_eip_reassociate_boto3():
             InstanceId=instance2.id, PublicIp=eip.public_ip, AllowReassociation=False
         )
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("Resource.AlreadyAssociated")
 
     client.associate_address(
@@ -345,7 +342,7 @@ def test_eip_reassociate_boto3():
 
 
 @mock_ec2
-def test_eip_reassociate_nic_boto3():
+def test_eip_reassociate_nic():
     """reassociate EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -368,7 +365,7 @@ def test_eip_reassociate_nic_boto3():
     with pytest.raises(ClientError) as ex:
         client.associate_address(NetworkInterfaceId=eni2.id, PublicIp=eip.public_ip)
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("Resource.AlreadyAssociated")
 
     client.associate_address(
@@ -382,8 +379,8 @@ def test_eip_reassociate_nic_boto3():
 
 
 @mock_ec2
-def test_eip_associate_invalid_args_boto3():
-    """Associate EIP, invalid args """
+def test_eip_associate_invalid_args():
+    """Associate EIP, invalid args"""
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -395,62 +392,62 @@ def test_eip_associate_invalid_args_boto3():
     with pytest.raises(ClientError) as ex:
         client.associate_address(InstanceId=instance.id)
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("MissingParameter")
 
     instance.terminate()
 
 
 @mock_ec2
-def test_eip_disassociate_bogus_association_boto3():
+def test_eip_disassociate_bogus_association():
     """Disassociate bogus EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
         client.disassociate_address(AssociationId="bogus")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("InvalidAssociationID.NotFound")
 
 
 @mock_ec2
-def test_eip_release_bogus_eip_boto3():
+def test_eip_release_bogus_eip():
     """Release bogus EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
         client.release_address(AllocationId="bogus")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("InvalidAllocationID.NotFound")
 
 
 @mock_ec2
-def test_eip_disassociate_arg_error_boto3():
+def test_eip_disassociate_arg_error():
     """Invalid arguments disassociate address"""
     client = boto3.client("ec2", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
         client.disassociate_address()
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("MissingParameter")
 
 
 @mock_ec2
-def test_eip_release_arg_error_boto3():
+def test_eip_release_arg_error():
     """Invalid arguments release address"""
     client = boto3.client("ec2", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
         client.release_address()
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("MissingParameter")
 
 
 @mock_ec2
-def test_eip_describe_boto3():
+def test_eip_describe():
     """Listing of allocated Elastic IP Addresses."""
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -496,14 +493,14 @@ def test_eip_describe_boto3():
 
 
 @mock_ec2
-def test_eip_describe_none_boto3():
+def test_eip_describe_none():
     """Error when search for bogus IP"""
     client = boto3.client("ec2", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
         client.describe_addresses(PublicIps=["256.256.256.256"])
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     ex.value.response["Error"]["Code"].should.equal("InvalidAddress.NotFound")
 
 
@@ -675,3 +672,33 @@ def test_describe_addresses_tags():
     assert addresses_with_tags.get("Addresses")[0].get("Tags") == [
         {"Key": "ManagedBy", "Value": "MyCode"}
     ]
+
+
+@mock_ec2
+def test_describe_addresses_with_vpc_associated_eni():
+    """Extra attributes for EIP associated with a ENI inside a VPC"""
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    eni = ec2.create_network_interface(SubnetId=subnet.id)
+
+    eip = client.allocate_address(Domain="vpc")
+    association_id = client.associate_address(
+        NetworkInterfaceId=eni.id, PublicIp=eip["PublicIp"]
+    )["AssociationId"]
+
+    result = client.describe_addresses(
+        Filters=[{"Name": "association-id", "Values": [association_id]}]
+    )
+
+    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    result["Addresses"].should.have.length_of(1)
+
+    address = result["Addresses"][0]
+
+    address["NetworkInterfaceId"].should.be.equal(eni.id)
+    address["PrivateIpAddress"].should.be.equal(eni.private_ip_address)
+    address["AssociationId"].should.be.equal(association_id)
+    address["NetworkInterfaceOwnerId"].should.be.equal(eni.owner_id)

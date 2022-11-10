@@ -2,6 +2,7 @@ import boto3
 import os
 import pytest
 import sure  # noqa # pylint: disable=unused-import
+import requests
 
 from botocore.client import ClientError
 from functools import wraps
@@ -49,12 +50,12 @@ def test_default_key_buffer_size():
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
     assert get_s3_default_key_buffer_size() == 2
     fk = s3model.FakeKey("a", os.urandom(1))  # 1 byte string
-    assert fk._value_buffer._rolled == False
+    assert fk._value_buffer._rolled is False
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
     assert get_s3_default_key_buffer_size() == 1
     fk = s3model.FakeKey("a", os.urandom(3))  # 3 byte string
-    assert fk._value_buffer._rolled == True
+    assert fk._value_buffer._rolled is True
 
     # if no MOTO_S3_DEFAULT_KEY_BUFFER_SIZE env variable is present the buffer size should be less than
     # S3_UPLOAD_PART_MIN_SIZE to prevent in memory caching of multi part uploads
@@ -193,29 +194,48 @@ def test_multipart_upload_out_of_order():
 def test_multipart_upload_with_headers():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
+    bucket_name = "fancymultiparttest"
+    key_name = "the-key"
+    s3.create_bucket(Bucket=bucket_name)
 
     part1 = b"0" * REDUCED_PART_SIZE
     mp = client.create_multipart_upload(
-        Bucket="foobar", Key="the-key", Metadata={"meta": "data"}
+        Bucket=bucket_name,
+        Key=key_name,
+        Metadata={"meta": "data"},
+        StorageClass="STANDARD_IA",
+        ACL="authenticated-read",
     )
     up1 = client.upload_part(
         Body=BytesIO(part1),
         PartNumber=1,
-        Bucket="foobar",
-        Key="the-key",
+        Bucket=bucket_name,
+        Key=key_name,
         UploadId=mp["UploadId"],
     )
 
     client.complete_multipart_upload(
-        Bucket="foobar",
-        Key="the-key",
+        Bucket=bucket_name,
+        Key=key_name,
         MultipartUpload={"Parts": [{"ETag": up1["ETag"], "PartNumber": 1}]},
         UploadId=mp["UploadId"],
     )
     # we should get both parts as the key contents
-    response = client.get_object(Bucket="foobar", Key="the-key")
+    response = client.get_object(Bucket=bucket_name, Key=key_name)
     response["Metadata"].should.equal({"meta": "data"})
+    response["StorageClass"].should.equal("STANDARD_IA")
+
+    grants = client.get_object_acl(Bucket=bucket_name, Key=key_name)["Grants"]
+    grants.should.have.length_of(2)
+    grants.should.contain(
+        {
+            "Grantee": {
+                "Type": "Group",
+                "URI": "http://acs.amazonaws.com/groups/global/AuthenticatedUsers",
+            },
+            "Permission": "READ",
+        }
+    )
 
 
 @pytest.mark.parametrize(
@@ -467,7 +487,7 @@ def test_multipart_upload_with_tags():
     u = boto3.resource("s3").MultipartUpload(bucket, key, response["UploadId"])
     parts = [
         {
-            "ETag": u.Part(i).upload(Body=os.urandom(5 * (2 ** 20)))["ETag"],
+            "ETag": u.Part(i).upload(Body=os.urandom(5 * (2**20)))["ETag"],
             "PartNumber": i,
         }
         for i in range(1, 3)
@@ -655,7 +675,7 @@ def test_multipart_version():
         },
     )
 
-    response["VersionId"].should.should_not.be.none
+    response["VersionId"].should.match("[-a-z0-9]+")
 
 
 @mock_s3
@@ -715,7 +735,7 @@ def test_multipart_list_parts():
         # Get uploaded parts using default values
         uploaded_parts = []
 
-        uploaded = s3.list_parts(Bucket=bucket_name, Key="the-key", UploadId=mpu_id,)
+        uploaded = s3.list_parts(Bucket=bucket_name, Key="the-key", UploadId=mpu_id)
 
         assert uploaded["PartNumberMarker"] == 0
 
@@ -854,7 +874,7 @@ def test_complete_multipart_with_empty_partlist():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket=bucket)
 
-    response = client.create_multipart_upload(Bucket=bucket, Key=key,)
+    response = client.create_multipart_upload(Bucket=bucket, Key=key)
     uid = response["UploadId"]
 
     upload = boto3.resource("s3").MultipartUpload(bucket, key, uid)
@@ -866,3 +886,126 @@ def test_complete_multipart_with_empty_partlist():
     err["Message"].should.equal(
         "The XML you provided was not well-formed or did not validate against our published schema"
     )
+
+
+@mock_s3
+def test_ssm_key_headers_in_create_multipart():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    bucket_name = "ssm-headers-bucket"
+    s3_client.create_bucket(Bucket=bucket_name)
+
+    kms_key_id = "random-id"
+    key_name = "test-file.txt"
+
+    create_multipart_response = s3_client.create_multipart_upload(
+        Bucket=bucket_name,
+        Key=key_name,
+        ServerSideEncryption="aws:kms",
+        SSEKMSKeyId=kms_key_id,
+    )
+    assert create_multipart_response["ServerSideEncryption"] == "aws:kms"
+    assert create_multipart_response["SSEKMSKeyId"] == kms_key_id
+
+    upload_part_response = s3_client.upload_part(
+        Body=b"bytes",
+        Bucket=bucket_name,
+        Key=key_name,
+        PartNumber=1,
+        UploadId=create_multipart_response["UploadId"],
+    )
+    assert upload_part_response["ServerSideEncryption"] == "aws:kms"
+    assert upload_part_response["SSEKMSKeyId"] == kms_key_id
+
+    parts = {"Parts": [{"PartNumber": 1, "ETag": upload_part_response["ETag"]}]}
+    complete_multipart_response = s3_client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=key_name,
+        UploadId=create_multipart_response["UploadId"],
+        MultipartUpload=parts,
+    )
+    assert complete_multipart_response["ServerSideEncryption"] == "aws:kms"
+    assert complete_multipart_response["SSEKMSKeyId"] == kms_key_id
+
+
+@mock_s3
+@reduced_min_part_size
+def test_generate_presigned_url_on_multipart_upload_without_acl():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    bucket_name = "testing"
+    client.create_bucket(Bucket=bucket_name)
+
+    object_key = "test_multipart_object"
+    multipart_response = client.create_multipart_upload(
+        Bucket=bucket_name, Key=object_key
+    )
+    upload_id = multipart_response["UploadId"]
+
+    parts = []
+    n_parts = 10
+    for i in range(1, n_parts + 1):
+        part_size = REDUCED_PART_SIZE + i
+        body = b"1" * part_size
+        part = client.upload_part(
+            Bucket=bucket_name,
+            Key=object_key,
+            PartNumber=i,
+            UploadId=upload_id,
+            Body=body,
+            ContentLength=len(body),
+        )
+        parts.append({"PartNumber": i, "ETag": part["ETag"]})
+
+    client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=object_key,
+        UploadId=upload_id,
+        MultipartUpload={"Parts": parts},
+    )
+
+    url = client.generate_presigned_url(
+        "head_object", Params={"Bucket": bucket_name, "Key": object_key}
+    )
+    res = requests.get(url)
+    res.status_code.should.equal(200)
+
+
+@mock_s3
+@reduced_min_part_size
+def test_head_object_returns_part_count():
+    bucket = "telstra-energy-test"
+    key = "test-single-multi-part"
+
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket=bucket)
+
+    mp_id = client.create_multipart_upload(Bucket=bucket, Key=key)["UploadId"]
+
+    num_parts = 2
+    parts = []
+
+    for p in range(1, num_parts + 1):
+        response = client.upload_part(
+            Body=b"x" * (REDUCED_PART_SIZE + p),
+            Bucket=bucket,
+            Key=key,
+            PartNumber=p,
+            UploadId=mp_id,
+        )
+
+        parts.append({"ETag": response["ETag"], "PartNumber": p})
+
+    client.complete_multipart_upload(
+        Bucket=bucket,
+        Key=key,
+        MultipartUpload={"Parts": parts},
+        UploadId=mp_id,
+    )
+
+    resp = client.head_object(Bucket=bucket, Key=key, PartNumber=1)
+    resp.should.have.key("PartsCount").equals(num_parts)
+
+    # Header is not returned when we do not pass PartNumber
+    resp = client.head_object(Bucket=bucket, Key=key)
+    resp.shouldnt.have.key("PartsCount")

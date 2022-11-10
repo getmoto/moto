@@ -10,7 +10,7 @@ from moto import mock_s3control
 def test_get_access_point_policy():
     client = boto3.client("s3control", region_name="us-west-2")
     client.create_access_point(
-        AccountId="111111111111", Name="ap_name", Bucket="mybucket",
+        AccountId="111111111111", Name="ap_name", Bucket="mybucket"
     )
 
     policy = """{
@@ -39,7 +39,7 @@ def test_get_access_point_policy():
 def test_get_unknown_access_point_policy():
     client = boto3.client("s3control", region_name="ap-southeast-1")
     client.create_access_point(
-        AccountId="111111111111", Name="ap_name", Bucket="mybucket",
+        AccountId="111111111111", Name="ap_name", Bucket="mybucket"
     )
 
     with pytest.raises(ClientError) as exc:
@@ -54,7 +54,7 @@ def test_get_unknown_access_point_policy():
 def test_get_access_point_policy_status():
     client = boto3.client("s3control", region_name="us-west-2")
     client.create_access_point(
-        AccountId="111111111111", Name="ap_name", Bucket="mybucket",
+        AccountId="111111111111", Name="ap_name", Bucket="mybucket"
     )
 
     policy = """{
@@ -85,7 +85,7 @@ def test_get_access_point_policy_status():
 def test_delete_access_point_policy():
     client = boto3.client("s3control", region_name="us-west-2")
     client.create_access_point(
-        AccountId="111111111111", Name="ap_name", Bucket="mybucket",
+        AccountId="111111111111", Name="ap_name", Bucket="mybucket"
     )
 
     policy = """some json policy"""
@@ -105,7 +105,7 @@ def test_delete_access_point_policy():
 def test_get_unknown_access_point_policy_status():
     client = boto3.client("s3control", region_name="ap-southeast-1")
     client.create_access_point(
-        AccountId="111111111111", Name="ap_name", Bucket="mybucket",
+        AccountId="111111111111", Name="ap_name", Bucket="mybucket"
     )
 
     with pytest.raises(ClientError) as exc:

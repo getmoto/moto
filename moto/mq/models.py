@@ -1,8 +1,9 @@
 import base64
 import xmltodict
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.core.utils import BackendDict, get_random_hex, unix_time
+from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict, unix_time
+from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
 from .configuration import DEFAULT_CONFIGURATION_DATA
@@ -57,9 +58,9 @@ class ConfigurationRevision(BaseModel):
 
 
 class Configuration(BaseModel):
-    def __init__(self, region, name, engine_type, engine_version):
-        self.id = f"c-{get_random_hex(6)}"
-        self.arn = f"arn:aws:mq:{region}:{ACCOUNT_ID}:configuration:{self.id}"
+    def __init__(self, account_id, region, name, engine_type, engine_version):
+        self.id = f"c-{mock_random.get_random_hex(6)}"
+        self.arn = f"arn:aws:mq:{region}:{account_id}:configuration:{self.id}"
         self.created = unix_time()
 
         self.name = name
@@ -140,6 +141,7 @@ class Broker(BaseModel):
     def __init__(
         self,
         name,
+        account_id,
         region,
         authentication_strategy,
         auto_minor_version_upgrade,
@@ -159,8 +161,8 @@ class Broker(BaseModel):
         users,
     ):
         self.name = name
-        self.id = get_random_hex(6)
-        self.arn = f"arn:aws:mq:{region}:{ACCOUNT_ID}:broker:{self.id}"
+        self.id = mock_random.get_random_hex(6)
+        self.arn = f"arn:aws:mq:{region}:{account_id}:broker:{self.id}"
         self.state = "RUNNING"
         self.created = unix_time()
 
@@ -216,7 +218,7 @@ class Broker(BaseModel):
             self.configurations = None
         else:
             current_config = configuration or {
-                "id": f"c-{get_random_hex(6)}",
+                "id": f"c-{mock_random.get_random_hex(6)}",
                 "revision": 1,
             }
             self.configurations = {
@@ -350,17 +352,11 @@ class MQBackend(BaseBackend):
     No EC2 integration exists yet - subnet ID's and security group values are not validated. Default values may not exist.
     """
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.brokers = dict()
         self.configs = dict()
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_broker(
         self,
@@ -368,7 +364,6 @@ class MQBackend(BaseBackend):
         auto_minor_version_upgrade,
         broker_name,
         configuration,
-        creator_request_id,
         deployment_mode,
         encryption_options,
         engine_type,
@@ -386,6 +381,7 @@ class MQBackend(BaseBackend):
     ):
         broker = Broker(
             name=broker_name,
+            account_id=self.account_id,
             region=self.region_name,
             authentication_strategy=authentication_strategy,
             auto_minor_version_upgrade=auto_minor_version_upgrade,
@@ -451,6 +447,7 @@ class MQBackend(BaseBackend):
         if engine_type.upper() != "ACTIVEMQ":
             raise UnknownEngineType(engine_type)
         config = Configuration(
+            account_id=self.account_id,
             region=self.region_name,
             name=name,
             engine_type=engine_type,

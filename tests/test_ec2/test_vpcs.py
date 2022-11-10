@@ -5,13 +5,61 @@ import boto3
 
 import sure  # noqa # pylint: disable=unused-import
 import random
+import sys
 
-from moto import mock_ec2
+from moto import mock_ec2, settings
+from unittest import SkipTest
 from uuid import uuid4
 from .test_tags import retrieve_all_tagged
 
 SAMPLE_DOMAIN_NAME = "example.com"
 SAMPLE_NAME_SERVERS = ["10.0.0.6", "10.0.0.7"]
+
+
+@mock_ec2
+def test_creating_a_vpc_in_empty_region_does_not_make_this_vpc_the_default():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Lets not start deleting VPC's while other tests are using it")
+    # Delete VPC that's created by default
+    client = boto3.client("ec2", region_name="eu-north-1")
+    all_vpcs = retrieve_all_vpcs(client)
+    for vpc in all_vpcs:
+        client.delete_vpc(VpcId=vpc["VpcId"])
+    # create vpc
+    client.create_vpc(CidrBlock="10.0.0.0/16")
+    # verify this is not the default
+    all_vpcs = retrieve_all_vpcs(client)
+    all_vpcs.should.have.length_of(1)
+    all_vpcs[0].should.have.key("IsDefault").equals(False)
+
+
+@mock_ec2
+def test_create_default_vpc():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Lets not start deleting VPC's while other tests are using it")
+    # Delete VPC that's created by default
+    client = boto3.client("ec2", region_name="eu-north-1")
+    all_vpcs = retrieve_all_vpcs(client)
+    for vpc in all_vpcs:
+        client.delete_vpc(VpcId=vpc["VpcId"])
+    # create default vpc
+    client.create_default_vpc()
+    # verify this is the default
+    all_vpcs = retrieve_all_vpcs(client)
+    all_vpcs.should.have.length_of(1)
+    all_vpcs[0].should.have.key("IsDefault").equals(True)
+
+
+@mock_ec2
+def test_create_multiple_default_vpcs():
+    client = boto3.client("ec2", region_name="eu-north-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_default_vpc()
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("DefaultVpcAlreadyExists")
+    err["Message"].should.equal(
+        "A Default VPC already exists for this account in this region."
+    )
 
 
 @mock_ec2
@@ -37,7 +85,7 @@ def test_create_and_delete_vpc():
 
 
 @mock_ec2
-def test_vpc_defaults_boto3():
+def test_vpc_defaults():
     ec2 = boto3.resource("ec2", region_name="eu-north-1")
     client = boto3.client("ec2", region_name="eu-north-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -62,7 +110,7 @@ def test_vpc_defaults_boto3():
 
 
 @mock_ec2
-def test_vpc_isdefault_filter_boto3():
+def test_vpc_isdefault_filter():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -78,7 +126,7 @@ def test_vpc_isdefault_filter_boto3():
 
 
 @mock_ec2
-def test_multiple_vpcs_default_filter_boto3():
+def test_multiple_vpcs_default_filter():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     ec2.create_vpc(CidrBlock="10.8.0.0/16")
@@ -91,7 +139,7 @@ def test_multiple_vpcs_default_filter_boto3():
 
 
 @mock_ec2
-def test_vpc_state_available_filter_boto3():
+def test_vpc_state_available_filter():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -120,7 +168,7 @@ def retrieve_all_vpcs(client, filters=[]):  # pylint: disable=W0102
 
 
 @mock_ec2
-def test_vpc_tagging_boto3():
+def test_vpc_tagging():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -138,7 +186,7 @@ def test_vpc_tagging_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_id_boto3():
+def test_vpc_get_by_id():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -159,7 +207,7 @@ def test_vpc_get_by_id_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_cidr_block_boto3():
+def test_vpc_get_by_cidr_block():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     random_ip = ".".join(map(str, (random.randint(0, 99) for _ in range(4))))
@@ -175,7 +223,7 @@ def test_vpc_get_by_cidr_block_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_dhcp_options_id_boto3():
+def test_vpc_get_by_dhcp_options_id():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     dhcp_options = ec2.create_dhcp_options(
@@ -201,7 +249,7 @@ def test_vpc_get_by_dhcp_options_id_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_tag_boto3():
+def test_vpc_get_by_tag():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -221,7 +269,7 @@ def test_vpc_get_by_tag_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_tag_key_superset_boto3():
+def test_vpc_get_by_tag_key_superset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -243,7 +291,7 @@ def test_vpc_get_by_tag_key_superset_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_tag_key_subset_boto3():
+def test_vpc_get_by_tag_key_subset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -266,7 +314,7 @@ def test_vpc_get_by_tag_key_subset_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_tag_value_superset_boto3():
+def test_vpc_get_by_tag_value_superset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -288,7 +336,7 @@ def test_vpc_get_by_tag_value_superset_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_tag_value_subset_boto3():
+def test_vpc_get_by_tag_value_subset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -313,6 +361,10 @@ def test_vpc_get_by_tag_value_subset_boto3():
 
 @mock_ec2
 def test_default_vpc():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     # Create the default VPC
@@ -320,20 +372,30 @@ def test_default_vpc():
     default_vpc.cidr_block.should.equal("172.31.0.0/16")
     default_vpc.instance_tenancy.should.equal("default")
     default_vpc.reload()
-    default_vpc.is_default.should.be.ok
+    default_vpc.is_default.should.equal(True)
 
     # Test default values for VPC attributes
     response = default_vpc.describe_attribute(Attribute="enableDnsSupport")
     attr = response.get("EnableDnsSupport")
-    attr.get("Value").should.be.ok
+    attr.get("Value").should.equal(True)
 
     response = default_vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
-    attr.get("Value").should.be.ok
+    attr.get("Value").should.equal(True)
+
+    response = default_vpc.describe_attribute(
+        Attribute="enableNetworkAddressUsageMetrics"
+    )
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").should.equal(False)
 
 
 @mock_ec2
 def test_non_default_vpc():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     # Create the default VPC - this already exists when backend instantiated!
@@ -342,7 +404,7 @@ def test_non_default_vpc():
     # Create the non default VPC
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     vpc.reload()
-    vpc.is_default.shouldnt.be.ok
+    vpc.is_default.should.equal(False)
 
     # Test default instance_tenancy
     vpc.instance_tenancy.should.equal("default")
@@ -350,11 +412,15 @@ def test_non_default_vpc():
     # Test default values for VPC attributes
     response = vpc.describe_attribute(Attribute="enableDnsSupport")
     attr = response.get("EnableDnsSupport")
-    attr.get("Value").should.be.ok
+    attr.get("Value").should.equal(True)
 
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
-    attr.get("Value").shouldnt.be.ok
+    attr.get("Value").should.equal(False)
+
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").should.equal(False)
 
     # Check Primary CIDR Block Associations
     cidr_block_association_set = next(iter(vpc.cidr_block_association_set), None)
@@ -373,7 +439,7 @@ def test_vpc_dedicated_tenancy():
     # Create the non default VPC
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16", InstanceTenancy="dedicated")
     vpc.reload()
-    vpc.is_default.shouldnt.be.ok
+    vpc.is_default.should.equal(False)
 
     vpc.instance_tenancy.should.equal("dedicated")
 
@@ -445,7 +511,31 @@ def test_vpc_modify_enable_dns_hostnames():
 
 
 @mock_ec2
-def test_vpc_associate_dhcp_options_boto3():
+def test_vpc_modify_enable_network_address_usage_metrics():
+    if sys.version_info < (3, 7):
+        raise SkipTest(
+            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
+        )
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock="172.31.0.0/16")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    # Test default values for VPC attributes
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").shouldnt.be.ok
+
+    vpc.modify_attribute(EnableNetworkAddressUsageMetrics={"Value": True})
+
+    response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
+    attr = response.get("EnableNetworkAddressUsageMetrics")
+    attr.get("Value").should.equal(True)
+
+
+@mock_ec2
+def test_vpc_associate_dhcp_options():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
     dhcp_options = ec2.create_dhcp_options(
@@ -798,7 +888,7 @@ def test_enable_vpc_classic_link():
     vpc = ec2.create_vpc(CidrBlock="10.1.0.0/16")
 
     response = ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
-    assert response.get("Return").should.be.true
+    assert response.get("Return").should.equal(True)
 
 
 @mock_ec2
@@ -833,7 +923,7 @@ def test_describe_classic_link_enabled():
 
     ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
     response = ec2.meta.client.describe_vpc_classic_link(VpcIds=[vpc.id])
-    assert response.get("Vpcs")[0].get("ClassicLinkEnabled").should.be.true
+    assert response.get("Vpcs")[0].get("ClassicLinkEnabled").should.equal(True)
 
 
 @mock_ec2
@@ -876,7 +966,7 @@ def test_enable_vpc_classic_link_dns_support():
     vpc = ec2.create_vpc(CidrBlock="10.1.0.0/16")
 
     response = ec2.meta.client.enable_vpc_classic_link_dns_support(VpcId=vpc.id)
-    assert response.get("Return").should.be.true
+    assert response.get("Return").should.equal(True)
 
 
 @mock_ec2
@@ -900,7 +990,7 @@ def test_describe_classic_link_dns_support_enabled():
 
     ec2.meta.client.enable_vpc_classic_link_dns_support(VpcId=vpc.id)
     response = ec2.meta.client.describe_vpc_classic_link_dns_support(VpcIds=[vpc.id])
-    assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported").should.be.true
+    assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported").should.equal(True)
 
 
 @mock_ec2
@@ -947,20 +1037,20 @@ def test_describe_vpc_gateway_end_points():
         VpcId=vpc["VpcId"],
         ServiceName="com.amazonaws.us-east-1.s3",
         RouteTableIds=[route_table["RouteTableId"]],
-        VpcEndpointType="gateway",
+        VpcEndpointType="Gateway",
     )["VpcEndpoint"]
     our_id = vpc_end_point["VpcEndpointId"]
 
     all_endpoints = retrieve_all_endpoints(ec2)
     [e["VpcEndpointId"] for e in all_endpoints].should.contain(our_id)
     our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
-    vpc_end_point["PrivateDnsEnabled"].should.be.true
-    our_endpoint["PrivateDnsEnabled"].should.be.true
+    vpc_end_point["PrivateDnsEnabled"].should.equal(True)
+    our_endpoint["PrivateDnsEnabled"].should.equal(True)
 
     our_endpoint["VpcId"].should.equal(vpc["VpcId"])
     our_endpoint["RouteTableIds"].should.equal([route_table["RouteTableId"]])
 
-    our_endpoint.should.have.key("VpcEndpointType").equal("gateway")
+    our_endpoint.should.have.key("VpcEndpointType").equal("Gateway")
     our_endpoint.should.have.key("ServiceName").equal("com.amazonaws.us-east-1.s3")
     our_endpoint.should.have.key("State").equal("available")
 
@@ -970,9 +1060,14 @@ def test_describe_vpc_gateway_end_points():
     endpoint_by_id["VpcEndpointId"].should.equal(our_id)
     endpoint_by_id["VpcId"].should.equal(vpc["VpcId"])
     endpoint_by_id["RouteTableIds"].should.equal([route_table["RouteTableId"]])
-    endpoint_by_id["VpcEndpointType"].should.equal("gateway")
+    endpoint_by_id["VpcEndpointType"].should.equal("Gateway")
     endpoint_by_id["ServiceName"].should.equal("com.amazonaws.us-east-1.s3")
     endpoint_by_id["State"].should.equal("available")
+
+    gateway_endpoints = ec2.describe_vpc_endpoints(
+        Filters=[{"Name": "vpc-endpoint-type", "Values": ["Gateway"]}]
+    )["VpcEndpoints"]
+    [e["VpcEndpointId"] for e in gateway_endpoints].should.contain(our_id)
 
     with pytest.raises(ClientError) as ex:
         ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])
@@ -1004,8 +1099,8 @@ def test_describe_vpc_interface_end_points():
     all_endpoints = retrieve_all_endpoints(ec2)
     [e["VpcEndpointId"] for e in all_endpoints].should.contain(our_id)
     our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
-    vpc_end_point["PrivateDnsEnabled"].should.be.true
-    our_endpoint["PrivateDnsEnabled"].should.be.true
+    vpc_end_point["PrivateDnsEnabled"].should.equal(True)
+    our_endpoint["PrivateDnsEnabled"].should.equal(True)
 
     our_endpoint["VpcId"].should.equal(vpc["VpcId"])
     our_endpoint.should_not.have.key("RouteTableIds")
@@ -1042,6 +1137,50 @@ def retrieve_all_endpoints(ec2):
         all_endpoints.extend(resp["VpcEndpoints"])
         next_token = resp.get("NextToken")
     return all_endpoints
+
+
+@mock_ec2
+def test_modify_vpc_endpoint():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id1 = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    subnet_id2 = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.2.0/24")["Subnet"][
+        "SubnetId"
+    ]
+
+    rt_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SubnetIds=[subnet_id1],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=vpc_id,
+        AddSubnetIds=[subnet_id2],
+    )
+
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    endpoint["SubnetIds"].should.equal([subnet_id1, subnet_id2])
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, AddRouteTableIds=[rt_id])
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    endpoint.should.have.key("RouteTableIds").equals([rt_id])
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, RemoveRouteTableIds=[rt_id])
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    endpoint.shouldnt.have.key("RouteTableIds")
+
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=vpc_id,
+        PolicyDocument="doc",
+    )
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    endpoint.should.have.key("PolicyDocument").equals("doc")
 
 
 @mock_ec2

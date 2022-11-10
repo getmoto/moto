@@ -7,7 +7,7 @@ import sure  # noqa # pylint: disable=unused-import
 import json
 import os
 
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2 import utils as ec2_utils
 from uuid import UUID
 
@@ -40,6 +40,20 @@ def test_create_cluster():
 
 
 @mock_ecs
+def test_create_cluster_with_setting():
+    client = boto3.client("ecs", region_name="us-east-1")
+    cluster = client.create_cluster(
+        clusterName="test_ecs_cluster",
+        settings=[{"name": "containerInsights", "value": "disabled"}],
+    )["cluster"]
+    cluster["clusterName"].should.equal("test_ecs_cluster")
+    cluster["status"].should.equal("ACTIVE")
+    cluster.should.have.key("settings").equals(
+        [{"name": "containerInsights", "value": "disabled"}]
+    )
+
+
+@mock_ecs
 def test_list_clusters():
     client = boto3.client("ecs", region_name="us-east-2")
     _ = client.create_cluster(clusterName="test_cluster0")
@@ -59,7 +73,7 @@ def test_describe_clusters():
     tag_list = [{"key": "tagName", "value": "TagValue"}]
     _ = client.create_cluster(clusterName="c_with_tags", tags=tag_list)
     _ = client.create_cluster(clusterName="c_without")
-    clusters = client.describe_clusters(clusters=["c_with_tags"], include=["TAGS",])[
+    clusters = client.describe_clusters(clusters=["c_with_tags"], include=["TAGS"])[
         "clusters"
     ]
     clusters.should.have.length_of(1)
@@ -68,7 +82,7 @@ def test_describe_clusters():
     cluster.should.have.key("tags")
     cluster["tags"].should.equal(tag_list)
 
-    clusters = client.describe_clusters(clusters=["c_without"], include=["TAGS",])[
+    clusters = client.describe_clusters(clusters=["c_without"], include=["TAGS"])[
         "clusters"
     ]
     clusters.should.have.length_of(1)
@@ -112,7 +126,7 @@ def test_delete_cluster():
     response["cluster"]["activeServicesCount"].should.equal(0)
 
     response = client.list_clusters()
-    len(response["clusterArns"]).should.equal(0)
+    response["clusterArns"].should.have.length_of(0)
 
 
 @mock_ecs
@@ -130,7 +144,7 @@ def test_register_task_definition():
     definition = dict(
         family="test_ecs_task",
         containerDefinitions=[
-            {"name": "hello_world", "image": "hello-world:latest", "memory": 400,}
+            {"name": "hello_world", "image": "hello-world:latest", "memory": 400}
         ],
     )
 
@@ -627,7 +641,8 @@ def test_create_service_scheduling_strategy():
 @mock_ecs
 def test_list_services():
     client = boto3.client("ecs", region_name="us-east-1")
-    _ = client.create_cluster(clusterName="test_ecs_cluster")
+    _ = client.create_cluster(clusterName="test_ecs_cluster1")
+    _ = client.create_cluster(clusterName="test_ecs_cluster2")
     _ = client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
@@ -645,47 +660,65 @@ def test_list_services():
         ],
     )
     _ = client.create_service(
-        cluster="test_ecs_cluster",
+        cluster="test_ecs_cluster1",
         serviceName="test_ecs_service1",
         taskDefinition="test_ecs_task",
         schedulingStrategy="REPLICA",
+        launchType="EC2",
         desiredCount=2,
     )
     _ = client.create_service(
-        cluster="test_ecs_cluster",
+        cluster="test_ecs_cluster1",
         serviceName="test_ecs_service2",
         taskDefinition="test_ecs_task",
         schedulingStrategy="DAEMON",
+        launchType="FARGATE",
         desiredCount=2,
     )
-    unfiltered_response = client.list_services(cluster="test_ecs_cluster")
-    len(unfiltered_response["serviceArns"]).should.equal(2)
-    unfiltered_response["serviceArns"][0].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service1".format(
+    _ = client.create_service(
+        cluster="test_ecs_cluster2",
+        serviceName="test_ecs_service3",
+        taskDefinition="test_ecs_task",
+        schedulingStrategy="REPLICA",
+        launchType="FARGATE",
+        desiredCount=2,
+    )
+
+    test_ecs_service1_arn = (
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster1/test_ecs_service1".format(
             ACCOUNT_ID
         )
     )
-    unfiltered_response["serviceArns"][1].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service2".format(
+    test_ecs_service2_arn = (
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster1/test_ecs_service2".format(
             ACCOUNT_ID
         )
     )
 
-    filtered_response = client.list_services(
-        cluster="test_ecs_cluster", schedulingStrategy="REPLICA"
+    cluster1_services = client.list_services(cluster="test_ecs_cluster1")
+    len(cluster1_services["serviceArns"]).should.equal(2)
+    cluster1_services["serviceArns"][0].should.equal(test_ecs_service1_arn)
+    cluster1_services["serviceArns"][1].should.equal(test_ecs_service2_arn)
+
+    cluster1_replica_services = client.list_services(
+        cluster="test_ecs_cluster1", schedulingStrategy="REPLICA"
     )
-    len(filtered_response["serviceArns"]).should.equal(1)
-    filtered_response["serviceArns"][0].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service1".format(
-            ACCOUNT_ID
-        )
+    len(cluster1_replica_services["serviceArns"]).should.equal(1)
+    cluster1_replica_services["serviceArns"][0].should.equal(test_ecs_service1_arn)
+
+    cluster1_fargate_services = client.list_services(
+        cluster="test_ecs_cluster1", launchType="FARGATE"
     )
+    len(cluster1_fargate_services["serviceArns"]).should.equal(1)
+    cluster1_fargate_services["serviceArns"][0].should.equal(test_ecs_service2_arn)
 
 
 @mock_ecs
 def test_describe_services():
     client = boto3.client("ecs", region_name="us-east-1")
-    _ = client.create_cluster(clusterName="test_ecs_cluster")
+    cluster_arn = client.create_cluster(clusterName="test_ecs_cluster")["cluster"][
+        "clusterArn"
+    ]
     _ = client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
@@ -721,6 +754,14 @@ def test_describe_services():
         taskDefinition="test_ecs_task",
         desiredCount=2,
     )
+
+    # Verify we can describe services using the cluster ARN
+    response = client.describe_services(
+        cluster=cluster_arn, services=["test_ecs_service1"]
+    )
+    response.should.have.key("services").length_of(1)
+
+    # Verify we can describe services using both names and ARN's
     response = client.describe_services(
         cluster="test_ecs_cluster",
         services=[
@@ -785,7 +826,7 @@ def test_describe_services_new_arn():
     _ = client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
-            {"name": "hello_world", "image": "docker/hello-world:latest",}
+            {"name": "hello_world", "image": "docker/hello-world:latest"}
         ],
     )
     _ = client.create_service(
@@ -886,9 +927,7 @@ def test_describe_services_error_unknown_cluster():
 
     # when
     with pytest.raises(ClientError) as e:
-        client.describe_services(
-            cluster=cluster_name, services=["test"],
-        )
+        client.describe_services(cluster=cluster_name, services=["test"])
 
     # then
     ex = e.value
@@ -1075,6 +1114,43 @@ def test_delete_service():
 
 
 @mock_ecs
+def test_delete_service__using_arns():
+    client = boto3.client("ecs", region_name="us-east-1")
+    cluster_arn = client.create_cluster(clusterName="test_ecs_cluster")["cluster"][
+        "clusterArn"
+    ]
+    _ = client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    service_arn = client.create_service(
+        cluster="test_ecs_cluster",
+        serviceName="test_ecs_service",
+        taskDefinition="test_ecs_task",
+        desiredCount=2,
+    )["service"]["serviceArn"]
+    _ = client.update_service(
+        cluster="test_ecs_cluster", service="test_ecs_service", desiredCount=0
+    )
+    response = client.delete_service(cluster=cluster_arn, service=service_arn)
+    response["service"]["clusterArn"].should.equal(
+        "arn:aws:ecs:us-east-1:{}:cluster/test_ecs_cluster".format(ACCOUNT_ID)
+    )
+
+
+@mock_ecs
 def test_delete_service_force():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName="test_ecs_cluster")
@@ -1150,7 +1226,7 @@ def test_delete_service_exceptions():
     )
 
     _ = client.create_service(
-        serviceName="test_ecs_service", taskDefinition="test_ecs_task", desiredCount=1,
+        serviceName="test_ecs_service", taskDefinition="test_ecs_task", desiredCount=1
     )
 
     client.delete_service.when.called_with(service="test_ecs_service").should.throw(
@@ -1594,6 +1670,13 @@ def test_run_task():
         cluster="test_ecs_cluster",
         overrides={},
         taskDefinition="test_ecs_task",
+        startedBy="moto",
+    )
+    len(response["tasks"]).should.equal(1)
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
         count=2,
         startedBy="moto",
         tags=[
@@ -1620,6 +1703,88 @@ def test_run_task():
     response["tasks"][0]["startedBy"].should.equal("moto")
     response["tasks"][0]["stoppedReason"].should.equal("")
     response["tasks"][0]["tags"][0].get("value").should.equal("tagValue0")
+
+
+@mock_ec2
+@mock_ecs
+def test_run_task_awsvpc_network():
+
+    # Setup
+    client = boto3.client("ecs", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    # ECS setup
+    setup_resources = setup_ecs(client, ec2)
+
+    # Execute
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        startedBy="moto",
+        launchType="FARGATE",
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": [setup_resources[0].id],
+                "securityGroups": [setup_resources[1].id],
+            }
+        },
+    )
+
+    # Verify
+    len(response["tasks"]).should.equal(1)
+    response["tasks"][0]["lastStatus"].should.equal("RUNNING")
+    response["tasks"][0]["desiredStatus"].should.equal("RUNNING")
+    response["tasks"][0]["startedBy"].should.equal("moto")
+    response["tasks"][0]["stoppedReason"].should.equal("")
+
+    eni = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "description", "Values": ["moto ECS"]}]
+    )["NetworkInterfaces"][0]
+    try:
+        # should be UUID
+        UUID(response["tasks"][0]["attachments"][0]["id"])
+    except ValueError:
+        assert False
+    response["tasks"][0]["attachments"][0]["status"].should.equal("ATTACHED")
+    response["tasks"][0]["attachments"][0]["type"].should.equal(
+        "ElasticNetworkInterface"
+    )
+    details = response["tasks"][0]["attachments"][0]["details"]
+
+    assert {"name": "subnetId", "value": setup_resources[0].id} in details
+    assert {"name": "privateDnsName", "value": eni["PrivateDnsName"]} in details
+    assert {"name": "privateIPv4Address", "value": eni["PrivateIpAddress"]} in details
+    assert {"name": "networkInterfaceId", "value": eni["NetworkInterfaceId"]} in details
+    assert {"name": "macAddress", "value": eni["MacAddress"]} in details
+
+
+@mock_ec2
+@mock_ecs
+def test_run_task_awsvpc_network_error():
+
+    # Setup
+    client = boto3.client("ecs", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    # ECS setup
+    setup_ecs(client, ec2)
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.run_task(
+            cluster="test_ecs_cluster",
+            overrides={},
+            taskDefinition="test_ecs_task",
+            startedBy="moto",
+            launchType="FARGATE",
+        )
+        err = exc.value.response["Error"]
+        assert err["Code"].equals("InvalidParameterException")
+        assert err["Message"].equals(
+            "Network Configuration must be provided when networkMode 'awsvpc' is specified."
+        )
 
 
 @mock_ec2
@@ -3206,7 +3371,7 @@ def test_describe_task_sets():
     assert "tags" not in task_sets[0]
 
     task_sets = client.describe_task_sets(
-        cluster=cluster_name, service=service_name, include=["TAGS"],
+        cluster=cluster_name, service=service_name, include=["TAGS"]
     )["taskSets"]
 
     cluster_arn = client.describe_clusters(clusters=[cluster_name])["clusters"][0][
@@ -3267,29 +3432,29 @@ def test_delete_task_set():
     )
 
     task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name, service=service_name, taskDefinition=task_def_name
     )["taskSet"]
 
     task_sets = client.describe_task_sets(
-        cluster=cluster_name, service=service_name, taskSets=[task_set["taskSetArn"]],
+        cluster=cluster_name, service=service_name, taskSets=[task_set["taskSetArn"]]
     )["taskSets"]
 
     assert len(task_sets) == 1
 
     response = client.delete_task_set(
-        cluster=cluster_name, service=service_name, taskSet=task_set["taskSetArn"],
+        cluster=cluster_name, service=service_name, taskSet=task_set["taskSetArn"]
     )
     assert response["taskSet"]["taskSetArn"] == task_set["taskSetArn"]
 
     task_sets = client.describe_task_sets(
-        cluster=cluster_name, service=service_name, taskSets=[task_set["taskSetArn"]],
+        cluster=cluster_name, service=service_name, taskSets=[task_set["taskSetArn"]]
     )["taskSets"]
 
     assert len(task_sets) == 0
 
     with pytest.raises(ClientError):
         _ = client.delete_task_set(
-            cluster=cluster_name, service=service_name, taskSet=task_set["taskSetArn"],
+            cluster=cluster_name, service=service_name, taskSet=task_set["taskSetArn"]
         )
 
 
@@ -3325,7 +3490,7 @@ def test_update_service_primary_task_set():
     )
 
     task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name, service=service_name, taskDefinition=task_def_name
     )["taskSet"]
 
     service = client.describe_services(cluster=cluster_name, services=[service_name],)[
@@ -3345,7 +3510,7 @@ def test_update_service_primary_task_set():
     assert service["taskDefinition"] == service["taskSets"][0]["taskDefinition"]
 
     another_task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name, service=service_name, taskDefinition=task_def_name
     )["taskSet"]
     service = client.describe_services(cluster=cluster_name, services=[service_name],)[
         "services"
@@ -3397,11 +3562,11 @@ def test_update_task_set():
     )
 
     task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name, service=service_name, taskDefinition=task_def_name
     )["taskSet"]
 
     another_task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name, service=service_name, taskDefinition=task_def_name
     )["taskSet"]
     assert another_task_set["scale"]["unit"] == "PERCENT"
     assert another_task_set["scale"]["value"] == 100.0
@@ -3414,7 +3579,7 @@ def test_update_task_set():
     )
 
     updated_task_set = client.describe_task_sets(
-        cluster=cluster_name, service=service_name, taskSets=[task_set["taskSetArn"]],
+        cluster=cluster_name, service=service_name, taskSets=[task_set["taskSetArn"]]
     )["taskSets"][0]
     assert updated_task_set["scale"]["value"] == 25.0
     assert updated_task_set["scale"]["unit"] == "PERCENT"
@@ -3460,11 +3625,11 @@ def test_list_tasks_with_filters():
     }
 
     _ = ecs.register_task_definition(
-        family="test_task_def_1", containerDefinitions=[test_container_def],
+        family="test_task_def_1", containerDefinitions=[test_container_def]
     )
 
     _ = ecs.register_task_definition(
-        family="test_task_def_2", containerDefinitions=[test_container_def],
+        family="test_task_def_2", containerDefinitions=[test_container_def]
     )
 
     _ = ecs.start_task(
@@ -3557,3 +3722,42 @@ def test_list_tasks_with_filters():
         cluster="test_cluster_1", containerInstance=container_id_1, startedBy="bar"
     )
     len(resp["taskArns"]).should.equal(1)
+
+
+def setup_ecs(client, ec2):
+    """test helper"""
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    sg = ec2.create_security_group(
+        VpcId=vpc.id, GroupName="test-ecs", Description="moto ecs"
+    )
+    test_cluster_name = "test_ecs_cluster"
+    client.create_cluster(clusterName=test_cluster_name)
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+    client.register_container_instance(
+        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
+    )
+    client.register_task_definition(
+        family="test_ecs_task",
+        networkMode="awsvpc",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+
+    return subnet, sg

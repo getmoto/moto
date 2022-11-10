@@ -4,7 +4,7 @@ import base64
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-from moto.dynamodb2.models import dynamodb_backends, DynamoJsonEncoder
+from moto.dynamodb.models import dynamodb_backends, DynamoJsonEncoder
 
 
 class ShardIterator(BaseModel):
@@ -64,18 +64,13 @@ class ShardIterator(BaseModel):
 
 
 class DynamoDBStreamsBackend(BaseBackend):
-    def __init__(self, region):
-        self.region = region
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.shard_iterators = {}
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     @property
     def dynamodb(self):
-        return dynamodb_backends[self.region]
+        return dynamodb_backends[self.account_id][self.region_name]
 
     def _get_table_from_arn(self, arn):
         table_name = arn.split(":", 6)[5].split("/")[1]

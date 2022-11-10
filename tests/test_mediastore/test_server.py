@@ -14,7 +14,7 @@ def test_mediastore_lists_containers():
     test_client = backend.test_client()
 
     res = test_client.get(
-        "/", headers={"X-Amz-Target": "MediaStore_20170901.ListContainers"},
+        "/", headers={"X-Amz-Target": "MediaStore_20170901.ListContainers"}
     )
 
     result = res.data.decode("utf-8")

@@ -27,19 +27,27 @@ ecs
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] create_capacity_provider
+- [X] create_capacity_provider
 - [X] create_cluster
+  
+        The following parameters are not yet implemented: configuration, capacityProviders, defaultCapacityProviderStrategy
+        
+
 - [X] create_service
 - [X] create_task_set
 - [X] delete_account_setting
 - [X] delete_attributes
-- [ ] delete_capacity_provider
+- [X] delete_capacity_provider
 - [X] delete_cluster
 - [X] delete_service
 - [X] delete_task_set
+  
+        The Force-parameter is not yet implemented
+        
+
 - [X] deregister_container_instance
 - [X] deregister_task_definition
-- [ ] describe_capacity_providers
+- [X] describe_capacity_providers
 - [X] describe_clusters
   
         Only include=TAGS is currently supported.
@@ -54,6 +62,10 @@ ecs
 - [ ] execute_command
 - [X] list_account_settings
 - [X] list_attributes
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_clusters
   
         maxSize and pagination not implemented
@@ -65,6 +77,10 @@ ecs
   Currently implemented only for task definitions and services
 
 - [X] list_task_definition_families
+  
+        The Status and pagination parameters are not yet implemented
+        
+
 - [X] list_task_definitions
 - [X] list_tasks
 - [X] put_account_setting

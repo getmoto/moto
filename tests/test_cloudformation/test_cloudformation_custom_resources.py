@@ -65,8 +65,8 @@ def test_create_custom_lambda_resource():
     success, logs = wait_for_log_msg(
         expected_msg="Status code: 200", log_group=log_group_name
     )
-    with sure.ensure(f"Logs should indicate success: \n{logs}"):
-        success.should.equal(True)
+    assert success, f"Logs should indicate success: \n{logs}"
+
     # Verify the correct Output was returned
     outputs = get_outputs(cf, stack_name)
     outputs.should.have.length_of(1)
@@ -105,7 +105,9 @@ def test_create_custom_lambda_resource__verify_cfnresponse_failed():
     )
     execution_failed.should.equal(True)
 
-    printed_events = [l for l in logs if l.startswith("{'RequestType': 'Create'")]
+    printed_events = [
+        line for line in logs if line.startswith("{'RequestType': 'Create'")
+    ]
     printed_events.should.have.length_of(1)
     original_event = json.loads(printed_events[0].replace("'", '"'))
     original_event.should.have.key("RequestType").equals("Create")

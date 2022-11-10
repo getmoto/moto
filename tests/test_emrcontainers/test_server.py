@@ -1,4 +1,4 @@
-"""Test different server responses."""
+import json
 import sure  # noqa # pylint: disable=unused-import
 import moto.server as server
 
@@ -13,4 +13,4 @@ def test_list_virtual_clusters():
 
     res = test_client.get("/virtualclusters")
 
-    b'{"virtualClusters": [], "nextToken": null}' in res.data
+    json.loads(res.data).should.have.key("virtualClusters")

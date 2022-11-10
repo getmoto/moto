@@ -3,9 +3,9 @@ import re
 from datetime import datetime
 from dateutil.tz import tzlocal
 
-from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
+from moto.core import BaseBackend, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
-from uuid import uuid4
+from moto.moto_api._internal import mock_random
 from .exceptions import (
     ExecutionAlreadyExists,
     ExecutionDoesNotExist,
@@ -124,8 +124,8 @@ class StateMachine(CloudFormationModel):
         return properties
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in [
+    def has_cfn_attr(cls, attr):
+        return attr in [
             "Name",
             "DefinitionString",
             "RoleArn",
@@ -159,24 +159,29 @@ class StateMachine(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         name = properties.get("StateMachineName", resource_name)
         definition = properties.get("DefinitionString", "")
         role_arn = properties.get("RoleArn", "")
         tags = cfn_to_api_tags(properties.get("Tags", []))
-        sf_backend = stepfunction_backends[region_name]
+        sf_backend = stepfunction_backends[account_id][region_name]
         return sf_backend.create_state_machine(name, definition, role_arn, tags=tags)
 
     @classmethod
-    def delete_from_cloudformation_json(cls, resource_name, _, region_name):
-        sf_backend = stepfunction_backends[region_name]
+    def delete_from_cloudformation_json(cls, resource_name, _, account_id, region_name):
+        sf_backend = stepfunction_backends[account_id][region_name]
         sf_backend.delete_state_machine(resource_name)
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json.get("Properties", {})
         name = properties.get("StateMachineName", original_resource.name)
@@ -186,10 +191,10 @@ class StateMachine(CloudFormationModel):
             new_properties = original_resource.get_cfn_properties(properties)
             cloudformation_json["Properties"] = new_properties
             new_resource = cls.create_from_cloudformation_json(
-                name, cloudformation_json, region_name
+                name, cloudformation_json, account_id, region_name
             )
             cls.delete_from_cloudformation_json(
-                original_resource.arn, cloudformation_json, region_name
+                original_resource.arn, cloudformation_json, account_id, region_name
             )
             return new_resource
 
@@ -198,9 +203,9 @@ class StateMachine(CloudFormationModel):
             definition = properties.get("DefinitionString")
             role_arn = properties.get("RoleArn")
             tags = cfn_to_api_tags(properties.get("Tags", []))
-            sf_backend = stepfunction_backends[region_name]
+            sf_backend = stepfunction_backends[account_id][region_name]
             state_machine = sf_backend.update_state_machine(
-                original_resource.arn, definition=definition, role_arn=role_arn,
+                original_resource.arn, definition=definition, role_arn=role_arn
             )
             state_machine.add_tags(tags)
             return state_machine
@@ -366,71 +371,71 @@ class StepFunctionBackend(BaseBackend):
     ]
     # control characters (U+0000-001F , U+007F-009F )
     invalid_unicodes_for_name = [
-        u"\u0000",
-        u"\u0001",
-        u"\u0002",
-        u"\u0003",
-        u"\u0004",
-        u"\u0005",
-        u"\u0006",
-        u"\u0007",
-        u"\u0008",
-        u"\u0009",
-        u"\u000A",
-        u"\u000B",
-        u"\u000C",
-        u"\u000D",
-        u"\u000E",
-        u"\u000F",
-        u"\u0010",
-        u"\u0011",
-        u"\u0012",
-        u"\u0013",
-        u"\u0014",
-        u"\u0015",
-        u"\u0016",
-        u"\u0017",
-        u"\u0018",
-        u"\u0019",
-        u"\u001A",
-        u"\u001B",
-        u"\u001C",
-        u"\u001D",
-        u"\u001E",
-        u"\u001F",
-        u"\u007F",
-        u"\u0080",
-        u"\u0081",
-        u"\u0082",
-        u"\u0083",
-        u"\u0084",
-        u"\u0085",
-        u"\u0086",
-        u"\u0087",
-        u"\u0088",
-        u"\u0089",
-        u"\u008A",
-        u"\u008B",
-        u"\u008C",
-        u"\u008D",
-        u"\u008E",
-        u"\u008F",
-        u"\u0090",
-        u"\u0091",
-        u"\u0092",
-        u"\u0093",
-        u"\u0094",
-        u"\u0095",
-        u"\u0096",
-        u"\u0097",
-        u"\u0098",
-        u"\u0099",
-        u"\u009A",
-        u"\u009B",
-        u"\u009C",
-        u"\u009D",
-        u"\u009E",
-        u"\u009F",
+        "\u0000",
+        "\u0001",
+        "\u0002",
+        "\u0003",
+        "\u0004",
+        "\u0005",
+        "\u0006",
+        "\u0007",
+        "\u0008",
+        "\u0009",
+        "\u000A",
+        "\u000B",
+        "\u000C",
+        "\u000D",
+        "\u000E",
+        "\u000F",
+        "\u0010",
+        "\u0011",
+        "\u0012",
+        "\u0013",
+        "\u0014",
+        "\u0015",
+        "\u0016",
+        "\u0017",
+        "\u0018",
+        "\u0019",
+        "\u001A",
+        "\u001B",
+        "\u001C",
+        "\u001D",
+        "\u001E",
+        "\u001F",
+        "\u007F",
+        "\u0080",
+        "\u0081",
+        "\u0082",
+        "\u0083",
+        "\u0084",
+        "\u0085",
+        "\u0086",
+        "\u0087",
+        "\u0088",
+        "\u0089",
+        "\u008A",
+        "\u008B",
+        "\u008C",
+        "\u008D",
+        "\u008E",
+        "\u008F",
+        "\u0090",
+        "\u0091",
+        "\u0092",
+        "\u0093",
+        "\u0094",
+        "\u0095",
+        "\u0096",
+        "\u0097",
+        "\u0098",
+        "\u0099",
+        "\u009A",
+        "\u009B",
+        "\u009C",
+        "\u009D",
+        "\u009E",
+        "\u009F",
     ]
     accepted_role_arn_format = re.compile(
         "arn:aws:iam::(?P<account_id>[0-9]{12}):role/.+"
@@ -442,23 +447,16 @@ class StepFunctionBackend(BaseBackend):
         "arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):execution:.+"
     )
 
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.state_machines = []
         self.executions = []
-        self.region_name = region_name
         self._account_id = None
 
     def create_state_machine(self, name, definition, roleArn, tags=None):
         self._validate_name(name)
         self._validate_role_arn(roleArn)
-        arn = (
-            "arn:aws:states:"
-            + self.region_name
-            + ":"
-            + str(self._get_account_id())
-            + ":stateMachine:"
-            + name
-        )
+        arn = f"arn:aws:states:{self.region_name}:{self.account_id}:stateMachine:{name}"
         try:
             return self.describe_state_machine(arn)
         except StateMachineDoesNotExist:
@@ -499,8 +497,8 @@ class StepFunctionBackend(BaseBackend):
         state_machine = self.describe_state_machine(state_machine_arn)
         execution = state_machine.start_execution(
             region_name=self.region_name,
-            account_id=self._get_account_id(),
-            execution_name=name or str(uuid4()),
+            account_id=self.account_id,
+            execution_name=name or str(mock_random.uuid4()),
             execution_input=execution_input,
         )
         return execution
@@ -546,6 +544,13 @@ class StepFunctionBackend(BaseBackend):
             )
         return execution.get_execution_history(state_machine.roleArn)
 
+    def list_tags_for_resource(self, arn):
+        try:
+            state_machine = self.describe_state_machine(arn)
+            return state_machine.tags or []
+        except StateMachineDoesNotExist:
+            return []
+
     def tag_resource(self, resource_arn, tags):
         try:
             state_machine = self.describe_state_machine(resource_arn)
@@ -559,11 +564,6 @@ class StepFunctionBackend(BaseBackend):
             state_machine.remove_tags(tag_keys)
         except StateMachineDoesNotExist:
             raise ResourceNotFound(resource_arn)
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def _validate_name(self, name):
         if any(invalid_char in name for invalid_char in self.invalid_chars_for_name):
@@ -610,9 +610,6 @@ class StepFunctionBackend(BaseBackend):
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
         return self.describe_state_machine(state_machine_arn)
-
-    def _get_account_id(self):
-        return ACCOUNT_ID
 
 
 stepfunction_backends = BackendDict(StepFunctionBackend, "stepfunctions")

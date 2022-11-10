@@ -15,6 +15,7 @@ from botocore.handlers import disable_signing
 from freezegun import freeze_time
 import requests
 
+from moto.moto_api import state_manager
 from moto.s3.responses import DEFAULT_REGION_NAME
 from unittest import SkipTest
 import pytest
@@ -132,6 +133,32 @@ def test_empty_key():
     resp = client.get_object(Bucket="foobar", Key="the-key")
     resp.should.have.key("ContentLength").equal(0)
     resp["Body"].read().should.equal(b"")
+
+
+@mock_s3
+def test_key_name_encoding_in_listing():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="foobar")
+
+    name = "6T7\x159\x12\r\x08.txt"
+
+    key = s3.Object("foobar", name)
+    key.put(Body=b"")
+
+    key_received = client.list_objects(Bucket="foobar")["Contents"][0]["Key"]
+    key_received.should.equal(name)
+
+    key_received = client.list_objects_v2(Bucket="foobar")["Contents"][0]["Key"]
+    key_received.should.equal(name)
+
+    name = "example/file.text"
+    client.put_object(Bucket="foobar", Key=name, Body=b"")
+
+    key_received = client.list_objects(
+        Bucket="foobar", Prefix="example/", Delimiter="/", MaxKeys=1, EncodingType="url"
+    )["Contents"][0]["Key"]
+    key_received.should.equal(name)
 
 
 @mock_s3
@@ -332,16 +359,16 @@ def test_delete_versioned_objects():
     s3.put_object(Bucket=bucket, Key=key, Body=b"")
 
     s3.put_bucket_versioning(
-        Bucket=bucket, VersioningConfiguration={"Status": "Enabled"},
+        Bucket=bucket, VersioningConfiguration={"Status": "Enabled"}
     )
 
     objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.shouldnt.be.empty
-    versions.shouldnt.be.empty
-    delete_markers.should.be.none
+    objects.should.have.length_of(1)
+    versions.should.have.length_of(1)
+    delete_markers.should.equal(None)
 
     s3.delete_object(Bucket=bucket, Key=key)
 
@@ -349,33 +376,31 @@ def test_delete_versioned_objects():
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.should.be.none
-    versions.shouldnt.be.empty
-    delete_markers.shouldnt.be.empty
+    objects.should.equal(None)
+    versions.should.have.length_of(1)
+    delete_markers.should.have.length_of(1)
+
+    s3.delete_object(Bucket=bucket, Key=key, VersionId=versions[0].get("VersionId"))
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.should.equal(None)
+    versions.should.equal(None)
+    delete_markers.should.have.length_of(1)
 
     s3.delete_object(
-        Bucket=bucket, Key=key, VersionId=versions[0].get("VersionId"),
+        Bucket=bucket, Key=key, VersionId=delete_markers[0].get("VersionId")
     )
 
     objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.should.be.none
-    versions.should.be.none
-    delete_markers.shouldnt.be.empty
-
-    s3.delete_object(
-        Bucket=bucket, Key=key, VersionId=delete_markers[0].get("VersionId"),
-    )
-
-    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
-    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
-    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
-
-    objects.should.be.none
-    versions.should.be.none
-    delete_markers.should.be.none
+    objects.should.equal(None)
+    versions.should.equal(None)
+    delete_markers.should.equal(None)
 
 
 @mock_s3
@@ -514,7 +539,7 @@ def test_restore_key():
     bucket.create()
 
     key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
-    key.restore.should.be.none
+    key.restore.should.equal(None)
     key.restore_object(RestoreRequest={"Days": 1})
     if settings.TEST_SERVER_MODE:
         key.restore.should.contain('ongoing-request="false"')
@@ -531,6 +556,38 @@ def test_restore_key():
         key.restore.should.equal(
             'ongoing-request="false", expiry-date="Tue, 03 Jan 2012 12:00:00 GMT"'
         )
+
+
+@freeze_time("2012-01-01 12:00:00")
+@mock_s3
+def test_restore_key_transition():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set transition directly in ServerMode")
+
+    state_manager.set_transition(
+        model_name="s3::keyrestore", transition={"progression": "manual", "times": 1}
+    )
+
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = s3.Bucket("foobar")
+    bucket.create()
+
+    key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
+    key.restore.should.equal(None)
+    key.restore_object(RestoreRequest={"Days": 1})
+
+    # first call: there should be an ongoing request
+    key.restore.should.contain('ongoing-request="true"')
+
+    # second call: request should be done
+    key.load()
+    key.restore.should.contain('ongoing-request="false"')
+
+    # third call: request should still be done
+    key.load()
+    key.restore.should.contain('ongoing-request="false"')
+
+    state_manager.unset_transition(model_name="s3::keyrestore")
 
 
 @mock_s3
@@ -558,7 +615,7 @@ def test_get_versioning_status():
     bucket.create()
 
     v = s3.BucketVersioning("foobar")
-    v.status.should.be.none
+    v.status.should.equal(None)
 
     v.enable()
     v.status.should.equal("Enabled")
@@ -752,6 +809,24 @@ def test_upload_from_file_to_presigned_url():
 
 
 @mock_s3
+def test_upload_file_with_checksum_algorithm():
+    random_bytes = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\n\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\n"
+    with open("rb.tmp", mode="wb") as f:
+        f.write(random_bytes)
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = "mybucket"
+    s3_client.create_bucket(Bucket=bucket)
+    s3_client.upload_file(
+        "rb.tmp", bucket, "my_key.csv", ExtraArgs={"ChecksumAlgorithm": "SHA256"}
+    )
+    os.remove("rb.tmp")
+
+    actual_content = s3.Object(bucket, "my_key.csv").get()["Body"].read()
+    assert random_bytes == actual_content
+
+
+@mock_s3
 def test_put_chunked_with_v4_signature_in_body():
     bucket_name = "mybucket"
     file_name = "file"
@@ -876,22 +951,17 @@ def test_bucket_location_nondefault():
     )
 
 
-# Test uses current Region to determine whether to throw an error
-# Region is retrieved based on current URL
-# URL will always be localhost in Server Mode, so can't run it there
-if not settings.TEST_SERVER_MODE:
+@mock_s3
+def test_s3_location_should_error_outside_useast1():
+    s3 = boto3.client("s3", region_name="eu-west-1")
 
-    @mock_s3
-    def test_s3_location_should_error_outside_useast1():
-        s3 = boto3.client("s3", region_name="eu-west-1")
+    bucket_name = "asdfasdfsdfdsfasda"
 
-        bucket_name = "asdfasdfsdfdsfasda"
-
-        with pytest.raises(ClientError) as e:
-            s3.create_bucket(Bucket=bucket_name)
-        e.value.response["Error"]["Message"].should.equal(
-            "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to."
-        )
+    with pytest.raises(ClientError) as e:
+        s3.create_bucket(Bucket=bucket_name)
+    e.value.response["Error"]["Message"].should.equal(
+        "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to."
+    )
 
 
 @mock_s3
@@ -1032,7 +1102,7 @@ def test_website_redirect_location():
 
     s3.put_object(Bucket="mybucket", Key="steve", Body=b"is awesome")
     resp = s3.get_object(Bucket="mybucket", Key="steve")
-    resp.get("WebsiteRedirectLocation").should.be.none
+    resp.get("WebsiteRedirectLocation").should.equal(None)
 
     url = "https://github.com/spulec/moto"
     s3.put_object(
@@ -1078,7 +1148,7 @@ def test_list_objects_truncated_response():
 
     assert listed_object["Key"] == "one"
     assert resp["MaxKeys"] == 1
-    assert resp["IsTruncated"] == True
+    assert resp["IsTruncated"] is True
     assert resp.get("Prefix") is None
     assert resp.get("Delimiter") is None
     assert "NextMarker" in resp
@@ -1091,7 +1161,7 @@ def test_list_objects_truncated_response():
 
     assert listed_object["Key"] == "three"
     assert resp["MaxKeys"] == 1
-    assert resp["IsTruncated"] == True
+    assert resp["IsTruncated"] is True
     assert resp.get("Prefix") is None
     assert resp.get("Delimiter") is None
     assert "NextMarker" in resp
@@ -1104,7 +1174,7 @@ def test_list_objects_truncated_response():
 
     assert listed_object["Key"] == "two"
     assert resp["MaxKeys"] == 1
-    assert resp["IsTruncated"] == False
+    assert resp["IsTruncated"] is False
     assert resp.get("Prefix") is None
     assert resp.get("Delimiter") is None
     assert "NextMarker" not in resp
@@ -1123,7 +1193,7 @@ def test_list_keys_xml_escaped():
     assert resp["KeyCount"] == 1
     assert resp["MaxKeys"] == 1000
     assert resp["Prefix"] == key_name
-    assert resp["IsTruncated"] == False
+    assert resp["IsTruncated"] is False
     assert "Delimiter" not in resp
     assert "StartAfter" not in resp
     assert "NextContinuationToken" not in resp
@@ -1201,7 +1271,7 @@ def test_list_objects_v2_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["Prefix"] == ""
     assert resp["KeyCount"] == 1
-    assert resp["IsTruncated"] == True
+    assert resp["IsTruncated"] is True
     assert "Delimiter" not in resp
     assert "StartAfter" not in resp
     assert "Owner" not in listed_object  # owner info was not requested
@@ -1218,7 +1288,7 @@ def test_list_objects_v2_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["Prefix"] == ""
     assert resp["KeyCount"] == 1
-    assert resp["IsTruncated"] == True
+    assert resp["IsTruncated"] is True
     assert "Delimiter" not in resp
     assert "StartAfter" not in resp
     assert "Owner" not in listed_object
@@ -1235,7 +1305,7 @@ def test_list_objects_v2_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["Prefix"] == ""
     assert resp["KeyCount"] == 1
-    assert resp["IsTruncated"] == False
+    assert resp["IsTruncated"] is False
     assert "Delimiter" not in resp
     assert "Owner" not in listed_object
     assert "StartAfter" not in resp
@@ -1258,7 +1328,7 @@ def test_list_objects_v2_truncated_response_start_after():
     assert resp["MaxKeys"] == 1
     assert resp["Prefix"] == ""
     assert resp["KeyCount"] == 1
-    assert resp["IsTruncated"] == True
+    assert resp["IsTruncated"] is True
     assert resp["StartAfter"] == "one"
     assert "Delimiter" not in resp
     assert "Owner" not in listed_object
@@ -1276,7 +1346,7 @@ def test_list_objects_v2_truncated_response_start_after():
     assert resp["MaxKeys"] == 1
     assert resp["Prefix"] == ""
     assert resp["KeyCount"] == 1
-    assert resp["IsTruncated"] == False
+    assert resp["IsTruncated"] is False
     # When ContinuationToken is given, StartAfter is ignored. This also means
     # AWS does not return it in the response.
     assert "StartAfter" not in resp
@@ -1543,7 +1613,7 @@ def test_delete_versioned_bucket_returns_meta():
     del_resp2 = client.delete_object(
         Bucket="blah", Key="test1", VersionId=del_resp["VersionId"]
     )
-    assert del_resp2["DeleteMarker"] == True
+    assert del_resp2["DeleteMarker"] is True
     assert "VersionId" not in del_resp2
 
 
@@ -1599,9 +1669,7 @@ def test_get_object_if_match():
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3.get_object(
-            Bucket=bucket_name, Key=key, IfMatch='"hello"',
-        )
+        s3.get_object(Bucket=bucket_name, Key=key, IfMatch='"hello"')
     e = err.value
     e.response["Error"]["Code"].should.equal("PreconditionFailed")
     e.response["Error"]["Condition"].should.equal("If-Match")
@@ -1618,9 +1686,7 @@ def test_get_object_if_none_match():
     etag = s3.put_object(Bucket=bucket_name, Key=key, Body="test")["ETag"]
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3.get_object(
-            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
-        )
+        s3.get_object(Bucket=bucket_name, Key=key, IfNoneMatch=etag)
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
 
@@ -1676,9 +1742,7 @@ def test_head_object_if_match():
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3.head_object(
-            Bucket=bucket_name, Key=key, IfMatch='"hello"',
-        )
+        s3.head_object(Bucket=bucket_name, Key=key, IfMatch='"hello"')
     e = err.value
     e.response["Error"].should.equal({"Code": "412", "Message": "Precondition Failed"})
 
@@ -1694,9 +1758,7 @@ def test_head_object_if_none_match():
     etag = s3.put_object(Bucket=bucket_name, Key=key, Body="test")["ETag"]
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3.head_object(
-            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
-        )
+        s3.head_object(Bucket=bucket_name, Key=key, IfNoneMatch=etag)
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
 
@@ -2400,6 +2462,20 @@ def test_list_object_versions_with_delimiter():
     all_keys.should.equal(
         {"key11-without-data", "key12-without-data", "key13-without-data"}
     )
+
+    # Delimiter with Prefix being the entire key
+    response = s3.list_object_versions(
+        Bucket=bucket_name, Prefix="key1-with-data", Delimiter="-"
+    )
+    response.should.have.key("Versions").length_of(3)
+    response.shouldnt.have.key("CommonPrefixes")
+
+    # Delimiter without prefix
+    response = s3.list_object_versions(Bucket=bucket_name, Delimiter="-with-")
+    response["CommonPrefixes"].should.have.length_of(8)
+    response["CommonPrefixes"].should.contain({"Prefix": "key1-with-"})
+    # Should return all keys -without-data
+    response.should.have.key("Versions").length_of(24)
 
 
 @mock_s3
@@ -3169,21 +3245,22 @@ if settings.TEST_SERVER_MODE:
 
 
 @mock_s3
-def test_get_object_versions_with_prefix():
+@pytest.mark.parametrize("prefix", ["file", "file+else", "file&another"])
+def test_get_object_versions_with_prefix(prefix):
     bucket_name = "testbucket-3113"
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_versioning = s3_resource.BucketVersioning(bucket_name)
     bucket_versioning.enable()
-    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
-    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
-    s3_client.put_object(Bucket=bucket_name, Body=b"alttest", Key="altfile.txt")
-    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=f"{prefix}.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=f"{prefix}.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"alttest", Key=f"alt{prefix}.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=f"{prefix}.txt")
 
-    versions = s3_client.list_object_versions(Bucket=bucket_name, Prefix="file")
+    versions = s3_client.list_object_versions(Bucket=bucket_name, Prefix=prefix)
     versions["Versions"].should.have.length_of(3)
-    versions["Prefix"].should.equal("file")
+    versions["Prefix"].should.equal(prefix)
 
 
 @mock_s3
@@ -3327,3 +3404,44 @@ def test_head_versioned_key_in_not_versioned_bucket():
 
     response = ex.value.response
     assert response["Error"]["Code"] == "400"
+
+
+@mock_s3
+def test_prefix_encoding():
+    bucket_name = "encoding-bucket"
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket=bucket_name)
+
+    client.put_object(Bucket=bucket_name, Key="foo%2Fbar/data", Body=b"")
+
+    data = client.list_objects_v2(Bucket=bucket_name, Prefix="foo%2Fbar")
+    assert data["Contents"][0]["Key"].startswith(data["Prefix"])
+
+    data = client.list_objects_v2(Bucket=bucket_name, Prefix="foo%2Fbar", Delimiter="/")
+    assert data["CommonPrefixes"] == [{"Prefix": "foo%2Fbar/"}]
+
+    client.put_object(Bucket=bucket_name, Key="foo/bar/data", Body=b"")
+
+    data = client.list_objects_v2(Bucket=bucket_name, Delimiter="/")
+    folders = list(
+        map(lambda common_prefix: common_prefix["Prefix"], data["CommonPrefixes"])
+    )
+    assert ["foo%2Fbar/", "foo/"] == folders
+
+
+@mock_s3
+@pytest.mark.parametrize("algorithm", ["CRC32", "CRC32C", "SHA1", "SHA256"])
+def test_checksum_response(algorithm):
+    bucket_name = "checksum-bucket"
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket=bucket_name)
+    if (
+        algorithm != "CRC32C"
+    ):  # awscrt is required to allow botocore checksum with CRC32C
+        response = client.put_object(
+            Bucket=bucket_name,
+            Key="test-key",
+            Body=b"data",
+            ChecksumAlgorithm=algorithm,
+        )
+        assert f"Checksum{algorithm}" in response

@@ -1,7 +1,7 @@
 import boto3
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest import SkipTest
 
 
@@ -168,7 +168,7 @@ def test_create_transit_gateway_vpn_attachment():
 
     vpn_gateway = ec2.create_vpn_gateway(Type="ipsec.1").get("VpnGateway", {})
     customer_gateway = ec2.create_customer_gateway(
-        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534,
+        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534
     ).get("CustomerGateway", {})
     vpn_connection = ec2.create_vpn_connection(
         Type="ipsec.1",
@@ -444,6 +444,43 @@ def test_search_transit_gateway_routes_by_state():
     )["Routes"]
 
     routes.should.equal([])
+
+
+@mock_ec2
+def test_search_transit_gateway_routes_by_routesearch():
+    client = boto3.client("ec2", region_name="us-west-2")
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
+
+    tgw = client.create_transit_gateway(Description="description")
+    tgw_id = tgw["TransitGateway"]["TransitGatewayId"]
+    route_table = client.create_transit_gateway_route_table(TransitGatewayId=tgw_id)
+    transit_gateway_route_id = route_table["TransitGatewayRouteTable"][
+        "TransitGatewayRouteTableId"
+    ]
+
+    attachment = client.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=tgw_id, VpcId=vpc["VpcId"], SubnetIds=[subnet["SubnetId"]]
+    )
+    transit_gateway_attachment_id = attachment["TransitGatewayVpcAttachment"][
+        "TransitGatewayAttachmentId"
+    ]
+
+    exported_cidr_ranges = ["172.17.0.0/24", "192.160.0.0/24"]
+    for route in exported_cidr_ranges:
+        client.create_transit_gateway_route(
+            DestinationCidrBlock=route,
+            TransitGatewayRouteTableId=transit_gateway_route_id,
+            TransitGatewayAttachmentId=transit_gateway_attachment_id,
+        )
+
+    for route in exported_cidr_ranges:
+        expected_route = client.search_transit_gateway_routes(
+            TransitGatewayRouteTableId=transit_gateway_route_id,
+            Filters=[{"Name": "route-search.exact-match", "Values": [route]}],
+        )
+
+        expected_route["Routes"][0]["DestinationCidrBlock"].should.equal(route)
 
 
 @mock_ec2

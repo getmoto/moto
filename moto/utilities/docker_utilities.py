@@ -1,6 +1,6 @@
-import docker
 import functools
 import requests.adapters
+from typing import Tuple
 
 from moto import settings
 
@@ -9,7 +9,7 @@ _orig_adapter_send = requests.adapters.HTTPAdapter.send
 
 
 class DockerModel:
-    def __init__(self):
+    def __init__(self) -> None:
         self.__docker_client = None
 
     @property
@@ -17,6 +17,8 @@ class DockerModel:
         if self.__docker_client is None:
             # We should only initiate the Docker Client at runtime.
             # The docker.from_env() call will fall if Docker is not running
+            import docker
+
             self.__docker_client = docker.from_env()
 
             # Unfortunately mocking replaces this method w/o fallback enabled, so we
@@ -35,7 +37,7 @@ class DockerModel:
         return self.__docker_client
 
 
-def parse_image_ref(image_name):
+def parse_image_ref(image_name: str) -> Tuple[str, str]:
     # podman does not support short container image name out of box - try to make a full name
     # See ParseDockerRef() in https://github.com/distribution/distribution/blob/main/reference/normalize.go
     parts = image_name.split("/")

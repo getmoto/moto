@@ -29,25 +29,14 @@ class Object(BaseModel):
 
 
 class MediaStoreDataBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._objects = OrderedDict()
 
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
-
-    def put_object(
-        self,
-        body,
-        path,
-        content_type=None,
-        cache_control=None,
-        storage_class="TEMPORAL",
-        upload_availability="STANDARD",
-    ):
+    def put_object(self, body, path, storage_class="TEMPORAL"):
+        """
+        The following parameters are not yet implemented: ContentType, CacheControl, UploadAvailability
+        """
         new_object = Object(
             path=path, body=body, etag="etag", storage_class=storage_class
         )
@@ -61,7 +50,7 @@ class MediaStoreDataBackend(BaseBackend):
         del self._objects[path]
         return {}
 
-    def get_object(self, path, object_range=None):
+    def get_object(self, path):
         """
         The Range-parameter is not yet supported.
         """
@@ -71,7 +60,7 @@ class MediaStoreDataBackend(BaseBackend):
             raise ClientError(error, "Object with id={} not found".format(path))
         return objects_found[0]
 
-    def list_items(self, path, max_results=1000, next_token=None):
+    def list_items(self):
         """
         The Path- and MaxResults-parameters are not yet supported.
         """

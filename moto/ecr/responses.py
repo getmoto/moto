@@ -4,13 +4,16 @@ from datetime import datetime
 import time
 
 from moto.core.responses import BaseResponse
-from .models import ecr_backends, DEFAULT_REGISTRY_ID
+from .models import ecr_backends
 
 
 class ECRResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="ecr")
+
     @property
     def ecr_backend(self):
-        return ecr_backends[self.region]
+        return ecr_backends[self.current_account][self.region]
 
     @property
     def request_params(self):
@@ -19,8 +22,8 @@ class ECRResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param, if_none=None):
-        return self.request_params.get(param, if_none)
+    def _get_param(self, param_name, if_none=None):
+        return self.request_params.get(param_name, if_none)
 
     def create_repository(self):
         repository_name = self._get_param("repositoryName")
@@ -106,10 +109,9 @@ class ECRResponse(BaseResponse):
         repository_str = self._get_param("repositoryName")
         registry_id = self._get_param("registryId")
         image_ids = self._get_param("imageIds")
-        accepted_media_types = self._get_param("acceptedMediaTypes")
 
         response = self.ecr_backend.batch_get_image(
-            repository_str, registry_id, image_ids, accepted_media_types
+            repository_str, registry_id, image_ids
         )
         return json.dumps(response)
 
@@ -125,14 +127,14 @@ class ECRResponse(BaseResponse):
 
         return json.dumps(
             self.ecr_backend.delete_repository_policy(
-                registry_id=registry_id, repository_name=repository_name,
+                registry_id=registry_id, repository_name=repository_name
             )
         )
 
     def get_authorization_token(self):
         registry_ids = self._get_param("registryIds")
         if not registry_ids:
-            registry_ids = [DEFAULT_REGISTRY_ID]
+            registry_ids = [self.current_account]
         auth_data = []
         for registry_id in registry_ids:
             password = "{}-auth-token".format(registry_id)
@@ -160,7 +162,7 @@ class ECRResponse(BaseResponse):
 
         return json.dumps(
             self.ecr_backend.get_repository_policy(
-                registry_id=registry_id, repository_name=repository_name,
+                registry_id=registry_id, repository_name=repository_name
             )
         )
 
@@ -252,7 +254,7 @@ class ECRResponse(BaseResponse):
 
         return json.dumps(
             self.ecr_backend.get_lifecycle_policy(
-                registry_id=registry_id, repository_name=repository_name,
+                registry_id=registry_id, repository_name=repository_name
             )
         )
 
@@ -262,7 +264,7 @@ class ECRResponse(BaseResponse):
 
         return json.dumps(
             self.ecr_backend.delete_lifecycle_policy(
-                registry_id=registry_id, repository_name=repository_name,
+                registry_id=registry_id, repository_name=repository_name
             )
         )
 

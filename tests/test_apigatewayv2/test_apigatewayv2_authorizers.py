@@ -11,7 +11,11 @@ def test_create_authorizer_minimum():
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
 
     resp = client.create_authorizer(
-        ApiId=api_id, AuthorizerType="REQUEST", IdentitySource=[], Name="auth1"
+        ApiId=api_id,
+        AuthorizerType="REQUEST",
+        IdentitySource=[],
+        Name="auth1",
+        AuthorizerPayloadFormatVersion="2.0",
     )
 
     resp.should.have.key("AuthorizerId")
@@ -51,6 +55,28 @@ def test_create_authorizer():
         {"Audience": ["a1"], "Issuer": "moto.com"}
     )
     resp.should.have.key("Name").equals("auth1")
+    resp.should.have.key("AuthorizerPayloadFormatVersion").equals("2.0")
+
+
+@mock_apigatewayv2
+def test_create_authorizer_without_payloadformatversion():
+    client = boto3.client("apigatewayv2", region_name="eu-west-1")
+    api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
+
+    with pytest.raises(ClientError) as exc:
+        client.create_authorizer(
+            ApiId=api_id,
+            AuthorizerType="REQUEST",
+            AuthorizerUri="auth_uri",
+            IdentitySource=[""],
+            Name="auth1",
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("BadRequestException")
+    err["Message"].should.equal(
+        "AuthorizerPayloadFormatVersion is a required parameter for REQUEST authorizer"
+    )
 
 
 @mock_apigatewayv2
@@ -59,7 +85,11 @@ def test_get_authorizer():
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
 
     authorizer_id = client.create_authorizer(
-        ApiId=api_id, AuthorizerType="REQUEST", IdentitySource=[], Name="auth1"
+        ApiId=api_id,
+        AuthorizerType="REQUEST",
+        IdentitySource=[],
+        Name="auth1",
+        AuthorizerPayloadFormatVersion="2.0",
     )["AuthorizerId"]
 
     resp = client.get_authorizer(ApiId=api_id, AuthorizerId=authorizer_id)
@@ -67,12 +97,13 @@ def test_get_authorizer():
     resp.should.have.key("AuthorizerId")
     resp.should.have.key("AuthorizerType").equals("REQUEST")
     resp.should.have.key("Name").equals("auth1")
+    resp.should.have.key("AuthorizerPayloadFormatVersion").equals("2.0")
 
 
 @mock_apigatewayv2
 def test_delete_authorizer():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
-    api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
+    api_id = client.create_api(Name="test-api", ProtocolType="WEBSOCKET")["ApiId"]
 
     authorizer_id = client.create_authorizer(
         ApiId=api_id, AuthorizerType="REQUEST", IdentitySource=[], Name="auth1"
@@ -141,7 +172,11 @@ def test_update_authorizer_all_attributes():
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
 
     auth_id = client.create_authorizer(
-        ApiId=api_id, AuthorizerType="REQUEST", IdentitySource=[], Name="auth1"
+        ApiId=api_id,
+        AuthorizerType="REQUEST",
+        IdentitySource=[],
+        Name="auth1",
+        AuthorizerPayloadFormatVersion="2.0",
     )["AuthorizerId"]
 
     auth_id = client.update_authorizer(

@@ -1,8 +1,6 @@
-import uuid
-from moto.core.responses import BaseResponse
-from moto.ec2.models import OWNER_ID
 from moto.ec2.exceptions import FilterNotImplementedError
-from moto.ec2.utils import filters_from_querystring
+from moto.moto_api._internal import mock_random
+from ._base_response import EC2BaseResponse
 
 from xml.etree import ElementTree
 from xml.dom import minidom
@@ -12,7 +10,7 @@ def xml_root(name):
     root = ElementTree.Element(
         name, {"xmlns": "http://ec2.amazonaws.com/doc/2016-11-15/"}
     )
-    request_id = str(uuid.uuid4()) + "example"
+    request_id = str(mock_random.uuid4()) + "example"
     ElementTree.SubElement(root, "requestId").text = request_id
 
     return root
@@ -91,11 +89,11 @@ def parse_lists(data):
     return data
 
 
-class LaunchTemplates(BaseResponse):
+class LaunchTemplates(EC2BaseResponse):
     def create_launch_template(self):
         name = self._get_param("LaunchTemplateName")
         version_description = self._get_param("VersionDescription")
-        tag_spec = self._parse_tag_specification("TagSpecification")
+        tag_spec = self._parse_tag_specification()
 
         raw_template_data = self._get_dict_param("LaunchTemplateData.")
         parsed_template_data = parse_object(raw_template_data)
@@ -119,7 +117,7 @@ class LaunchTemplates(BaseResponse):
                 parsed_template_data["TagSpecifications"].extend(converted_tag_spec)
 
             template = self.ec2_backend.create_launch_template(
-                name, version_description, parsed_template_data
+                name, version_description, parsed_template_data, tag_spec
             )
             version = template.default_version()
 
@@ -129,13 +127,12 @@ class LaunchTemplates(BaseResponse):
                 "launchTemplate",
                 {
                     "createTime": version.create_time,
-                    "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(
-                        OWNER_ID=OWNER_ID
-                    ),
+                    "createdBy": f"arn:aws:iam::{self.current_account}:root",
                     "defaultVersionNumber": template.default_version_number,
                     "latestVersionNumber": version.number,
                     "launchTemplateId": template.id,
                     "launchTemplateName": template.name,
+                    "tags": template.tags,
                 },
             )
 
@@ -163,9 +160,7 @@ class LaunchTemplates(BaseResponse):
                 "launchTemplateVersion",
                 {
                     "createTime": version.create_time,
-                    "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(
-                        OWNER_ID=OWNER_ID
-                    ),
+                    "createdBy": f"arn:aws:iam::{self.current_account}:root",
                     "defaultVersion": template.is_default(version),
                     "launchTemplateData": version.data,
                     "launchTemplateId": template.id,
@@ -176,8 +171,25 @@ class LaunchTemplates(BaseResponse):
             )
             return pretty_xml(tree)
 
-    # def delete_launch_template(self):
-    #     pass
+    def delete_launch_template(self):
+        name = self._get_param("LaunchTemplateName")
+        tid = self._get_param("LaunchTemplateId")
+
+        if self.is_not_dryrun("DeleteLaunchTemplate"):
+            template = self.ec2_backend.delete_launch_template(name, tid)
+
+            tree = xml_root("DeleteLaunchTemplatesResponse")
+            xml_serialize(
+                tree,
+                "launchTemplate",
+                {
+                    "defaultVersionNumber": template.default_version_number,
+                    "launchTemplateId": template.id,
+                    "launchTemplateName": template.name,
+                },
+            )
+
+            return pretty_xml(tree)
 
     # def delete_launch_template_versions(self):
     #     pass
@@ -195,7 +207,7 @@ class LaunchTemplates(BaseResponse):
         min_version = self._get_int_param("MinVersion")
         max_version = self._get_int_param("MaxVersion")
 
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         if filters:
             raise FilterNotImplementedError(
                 "all filters", "DescribeLaunchTemplateVersions"
@@ -237,9 +249,7 @@ class LaunchTemplates(BaseResponse):
                     "item",
                     {
                         "createTime": version.create_time,
-                        "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(
-                            OWNER_ID=OWNER_ID
-                        ),
+                        "createdBy": f"arn:aws:iam::{self.current_account}:root",
                         "defaultVersion": True,
                         "launchTemplateData": version.data,
                         "launchTemplateId": template.id,
@@ -255,7 +265,7 @@ class LaunchTemplates(BaseResponse):
         max_results = self._get_int_param("MaxResults", 15)
         template_names = self._get_multi_param("LaunchTemplateName")
         template_ids = self._get_multi_param("LaunchTemplateId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
 
         if self.is_not_dryrun("DescribeLaunchTemplates"):
             tree = ElementTree.Element("DescribeLaunchTemplatesResponse")
@@ -275,13 +285,12 @@ class LaunchTemplates(BaseResponse):
                     "item",
                     {
                         "createTime": template.create_time,
-                        "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(
-                            OWNER_ID=OWNER_ID
-                        ),
+                        "createdBy": f"arn:aws:iam::{self.current_account}:root",
                         "defaultVersionNumber": template.default_version_number,
                         "latestVersionNumber": template.latest_version_number,
                         "launchTemplateId": template.id,
                         "launchTemplateName": template.name,
+                        "tags": template.tags,
                     },
                 )
 

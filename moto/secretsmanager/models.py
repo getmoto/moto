@@ -1,29 +1,36 @@
 import time
 import json
-import uuid
 import datetime
 
 from typing import List, Tuple
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.moto_api._internal import mock_random
 from .exceptions import (
     SecretNotFoundException,
     SecretHasNoValueException,
     InvalidParameterException,
     ResourceExistsException,
     ResourceNotFoundException,
+    SecretStageVersionMismatchException,
     InvalidRequestException,
     ClientError,
 )
 from .utils import random_password, secret_arn, get_secret_name_from_arn
-from .list_secrets.filters import filter_all, tag_key, tag_value, description, name
+from .list_secrets.filters import (
+    filter_all,
+    tag_key,
+    tag_value,
+    description_filter,
+    name_filter,
+)
 
 
 _filter_functions = {
     "all": filter_all,
-    "name": name,
-    "description": description,
+    "name": name_filter,
+    "description": description_filter,
     "tag-key": tag_key,
     "tag-value": tag_value,
 }
@@ -45,13 +52,14 @@ def _matches(secret, filters):
 
 
 class SecretsManager(BaseModel):
-    def __init__(self, region_name, **kwargs):
+    def __init__(self, region_name):
         self.region = region_name
 
 
 class FakeSecret:
     def __init__(
         self,
+        account_id,
         region_name,
         secret_id,
         secret_string=None,
@@ -66,7 +74,7 @@ class FakeSecret:
     ):
         self.secret_id = secret_id
         self.name = secret_id
-        self.arn = secret_arn(region_name, secret_id)
+        self.arn = secret_arn(account_id, region_name, secret_id)
         self.secret_string = secret_string
         self.secret_binary = secret_binary
         self.description = description
@@ -110,6 +118,12 @@ class FakeSecret:
 
         self.versions[version_id] = secret_version
         self.default_version_id = version_id
+
+    def remove_version_stages_from_old_versions(self, version_stages):
+        for version_stage in version_stages:
+            for old_version in self.versions.values():
+                if version_stage in old_version["version_stages"]:
+                    old_version["version_stages"].remove(version_stage)
 
     def delete(self, deleted_date):
         self.deleted_date = deleted_date
@@ -174,21 +188,19 @@ class SecretsStore(dict):
         new_key = get_secret_name_from_arn(key)
         return dict.__contains__(self, new_key)
 
+    def get(self, key, *args, **kwargs):
+        new_key = get_secret_name_from_arn(key)
+        return super().get(new_key, *args, **kwargs)
+
     def pop(self, key, *args, **kwargs):
         new_key = get_secret_name_from_arn(key)
         return super().pop(new_key, *args, **kwargs)
 
 
 class SecretsManagerBackend(BaseBackend):
-    def __init__(self, region_name=None, **kwargs):
-        super().__init__()
-        self.region = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.secrets = SecretsStore()
-
-    def reset(self):
-        region_name = self.region
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -215,12 +227,20 @@ class SecretsManagerBackend(BaseBackend):
         if version_id:
             self._client_request_token_validator(version_id)
         else:
-            version_id = str(uuid.uuid4())
+            version_id = str(mock_random.uuid4())
         return version_id
 
     def get_secret_value(self, secret_id, version_id, version_stage):
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
+
+        if version_id and version_stage:
+            versions_dict = self.secrets[secret_id].versions
+            if (
+                version_id in versions_dict
+                and version_stage not in versions_dict[version_id]["version_stages"]
+            ):
+                raise SecretStageVersionMismatchException()
 
         if not version_id and version_stage:
             # set version_id to match version_stage
@@ -271,9 +291,7 @@ class SecretsManagerBackend(BaseBackend):
         ):
             raise SecretHasNoValueException(version_stage or "AWSCURRENT")
 
-        response = json.dumps(response_data)
-
-        return response
+        return response_data
 
     def update_secret(
         self,
@@ -282,7 +300,6 @@ class SecretsManagerBackend(BaseBackend):
         secret_binary=None,
         client_request_token=None,
         kms_key_id=None,
-        **kwargs
     ):
 
         # error if secret does not exist
@@ -377,10 +394,12 @@ class SecretsManagerBackend(BaseBackend):
             if "AWSCURRENT" in version_stages:
                 secret.reset_default_version(secret_version, version_id)
             else:
+                secret.remove_version_stages_from_old_versions(version_stages)
                 secret.versions[version_id] = secret_version
         else:
             secret = FakeSecret(
-                region_name=self.region,
+                account_id=self.account_id,
+                region_name=self.region_name,
                 secret_id=secret_id,
                 secret_string=secret_string,
                 secret_binary=secret_binary,
@@ -432,7 +451,7 @@ class SecretsManagerBackend(BaseBackend):
 
         secret = self.secrets[secret_id]
 
-        return json.dumps(secret.to_dict())
+        return secret.to_dict()
 
     def rotate_secret(
         self,
@@ -499,7 +518,7 @@ class SecretsManagerBackend(BaseBackend):
             self._client_request_token_validator(client_request_token)
             new_version_id = client_request_token
         else:
-            new_version_id = str(uuid.uuid4())
+            new_version_id = str(mock_random.uuid4())
 
         # We add the new secret version as "pending". The previous version remains
         # as "current" for now. Once we've passed the new secret through the lambda
@@ -522,13 +541,14 @@ class SecretsManagerBackend(BaseBackend):
         if secret.rotation_lambda_arn:
             from moto.awslambda.models import lambda_backends
 
-            lambda_backend = lambda_backends[self.region]
+            lambda_backend = lambda_backends[self.account_id][self.region_name]
 
             request_headers = {}
             response_headers = {}
 
-            func = lambda_backend.get_function(secret.rotation_lambda_arn)
-            if not func:
+            try:
+                func = lambda_backend.get_function(secret.rotation_lambda_arn)
+            except Exception:
                 msg = "Resource not found for ARN '{}'.".format(
                     secret.rotation_lambda_arn
                 )
@@ -627,32 +647,6 @@ class SecretsManagerBackend(BaseBackend):
     def list_secrets(
         self, filters: List, max_results: int = 100, next_token: str = None
     ) -> Tuple[List, str]:
-        """
-        Returns secrets from secretsmanager.
-        The result is paginated and page items depends on the token value, because token contains start element
-        number of secret list.
-        Response example:
-        {
-            SecretList: [
-                {
-                    ARN: 'arn:aws:secretsmanager:us-east-1:1234567890:secret:test1-gEcah',
-                    Name: 'test1',
-                    ...
-                },
-                {
-                    ARN: 'arn:aws:secretsmanager:us-east-1:1234567890:secret:test2-KZwml',
-                    Name: 'test2',
-                    ...
-                }
-            ],
-            NextToken: '2'
-        }
-
-        :param filters: (List) Filter parameters.
-        :param max_results: (int) Max number of results per page.
-        :param next_token: (str) Page token.
-        :return: (Tuple[List,str]) Returns result list and next token.
-        """
         secret_list = []
         for secret in self.secrets.values():
             if _matches(secret, filters):
@@ -687,7 +681,7 @@ class SecretsManagerBackend(BaseBackend):
             if not force_delete_without_recovery:
                 raise SecretNotFoundException()
             else:
-                secret = FakeSecret(self.region, secret_id)
+                secret = FakeSecret(self.account_id, self.region_name, secret_id)
                 arn = secret.arn
                 name = secret.name
                 deletion_date = datetime.datetime.utcnow()
@@ -735,6 +729,16 @@ class SecretsManagerBackend(BaseBackend):
         old_tags = secret.tags
 
         for tag in tags:
+            existing_key_name = next(
+                (
+                    old_key
+                    for old_key in old_tags
+                    if old_key.get("Key") == tag.get("Key")
+                ),
+                None,
+            )
+            if existing_key_name:
+                old_tags.remove(existing_key_name)
             old_tags.append(tag)
 
         return secret_id

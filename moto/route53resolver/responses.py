@@ -11,21 +11,25 @@ from moto.route53resolver.validations import validate_args
 class Route53ResolverResponse(BaseResponse):
     """Handler for Route53Resolver requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="route53-resolver")
+
     @property
     def route53resolver_backend(self):
         """Return backend instance specific for this region."""
-        return route53resolver_backends[self.region]
+        return route53resolver_backends[self.current_account][self.region]
 
     def associate_resolver_rule(self):
         """Associate a Resolver rule with a VPC."""
         resolver_rule_id = self._get_param("ResolverRuleId")
         name = self._get_param("Name")
         vpc_id = self._get_param("VPCId")
-        resolver_rule_association = self.route53resolver_backend.associate_resolver_rule(
-            region=self.region,
-            resolver_rule_id=resolver_rule_id,
-            name=name,
-            vpc_id=vpc_id,
+        resolver_rule_association = (
+            self.route53resolver_backend.associate_resolver_rule(
+                resolver_rule_id=resolver_rule_id,
+                name=name,
+                vpc_id=vpc_id,
+            )
         )
         return json.dumps(
             {"ResolverRuleAssociation": resolver_rule_association.description()}
@@ -75,7 +79,7 @@ class Route53ResolverResponse(BaseResponse):
         """Delete a Resolver endpoint."""
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
         resolver_endpoint = self.route53resolver_backend.delete_resolver_endpoint(
-            resolver_endpoint_id=resolver_endpoint_id,
+            resolver_endpoint_id=resolver_endpoint_id
         )
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
 
@@ -83,7 +87,7 @@ class Route53ResolverResponse(BaseResponse):
         """Delete a Resolver rule."""
         resolver_rule_id = self._get_param("ResolverRuleId")
         resolver_rule = self.route53resolver_backend.delete_resolver_rule(
-            resolver_rule_id=resolver_rule_id,
+            resolver_rule_id=resolver_rule_id
         )
         return json.dumps({"ResolverRule": resolver_rule.description()})
 
@@ -91,8 +95,10 @@ class Route53ResolverResponse(BaseResponse):
         """Remove the association between a Resolver rule and a VPC."""
         vpc_id = self._get_param("VPCId")
         resolver_rule_id = self._get_param("ResolverRuleId")
-        resolver_rule_association = self.route53resolver_backend.disassociate_resolver_rule(
-            vpc_id=vpc_id, resolver_rule_id=resolver_rule_id,
+        resolver_rule_association = (
+            self.route53resolver_backend.disassociate_resolver_rule(
+                vpc_id=vpc_id, resolver_rule_id=resolver_rule_id
+            )
         )
         return json.dumps(
             {"ResolverRuleAssociation": resolver_rule_association.description()}
@@ -102,7 +108,7 @@ class Route53ResolverResponse(BaseResponse):
         """Return info about a specific Resolver endpoint."""
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
         resolver_endpoint = self.route53resolver_backend.get_resolver_endpoint(
-            resolver_endpoint_id=resolver_endpoint_id,
+            resolver_endpoint_id=resolver_endpoint_id
         )
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
 
@@ -110,15 +116,17 @@ class Route53ResolverResponse(BaseResponse):
         """Return info about a specific Resolver rule."""
         resolver_rule_id = self._get_param("ResolverRuleId")
         resolver_rule = self.route53resolver_backend.get_resolver_rule(
-            resolver_rule_id=resolver_rule_id,
+            resolver_rule_id=resolver_rule_id
         )
         return json.dumps({"ResolverRule": resolver_rule.description()})
 
     def get_resolver_rule_association(self):
         """Return info about association between a Resolver rule and a VPC."""
         resolver_rule_association_id = self._get_param("ResolverRuleAssociationId")
-        resolver_rule_association = self.route53resolver_backend.get_resolver_rule_association(
-            resolver_rule_association_id=resolver_rule_association_id
+        resolver_rule_association = (
+            self.route53resolver_backend.get_resolver_rule_association(
+                resolver_rule_association_id=resolver_rule_association_id
+            )
         )
         return json.dumps(
             {"ResolverRuleAssociation": resolver_rule_association.description()}
@@ -219,7 +227,7 @@ class Route53ResolverResponse(BaseResponse):
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
         tags, next_token = self.route53resolver_backend.list_tags_for_resource(
-            resource_arn=resource_arn, next_token=next_token, max_results=max_results,
+            resource_arn=resource_arn, next_token=next_token, max_results=max_results
         )
 
         response = {"Tags": tags}
@@ -248,6 +256,29 @@ class Route53ResolverResponse(BaseResponse):
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
         name = self._get_param("Name")
         resolver_endpoint = self.route53resolver_backend.update_resolver_endpoint(
-            resolver_endpoint_id=resolver_endpoint_id, name=name,
+            resolver_endpoint_id=resolver_endpoint_id, name=name
+        )
+        return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
+
+    def associate_resolver_endpoint_ip_address(self):
+        ip_address = self._get_param("IpAddress")
+        resolver_endpoint_id = self._get_param("ResolverEndpointId")
+        resolver_endpoint = (
+            self.route53resolver_backend.associate_resolver_endpoint_ip_address(
+                resolver_endpoint_id=resolver_endpoint_id,
+                value=ip_address,
+            )
+        )
+        return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
+
+    def disassociate_resolver_endpoint_ip_address(self):
+        ip_address = self._get_param("IpAddress")
+        resolver_endpoint_id = self._get_param("ResolverEndpointId")
+
+        resolver_endpoint = (
+            self.route53resolver_backend.disassociate_resolver_endpoint_ip_address(
+                resolver_endpoint_id=resolver_endpoint_id,
+                value=ip_address,
+            )
         )
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})

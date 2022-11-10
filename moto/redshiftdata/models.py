@@ -1,10 +1,9 @@
 import re
-import uuid
 from datetime import datetime
-import random
 
 from moto.core import BaseBackend
 from moto.core.utils import BackendDict, iso_8601_datetime_without_milliseconds
+from moto.moto_api._internal import mock_random as random
 from moto.redshiftdata.exceptions import ValidationException, ResourceNotFoundException
 
 
@@ -20,7 +19,7 @@ class Statement:
     ):
         now = iso_8601_datetime_without_milliseconds(datetime.now())
 
-        self.id = str(uuid.uuid4())
+        self.id = str(random.uuid4())
         self.cluster_identifier = cluster_identifier
         self.created_at = now
         self.database = database
@@ -59,9 +58,7 @@ class Statement:
 
 
 class StatementResult:
-    def __init__(
-        self, column_metadata, records, total_number_rows, next_token=None,
-    ):
+    def __init__(self, column_metadata, records, total_number_rows, next_token=None):
         self.column_metadata = column_metadata
         self.records = records
         self.total_number_rows = total_number_rows
@@ -91,9 +88,7 @@ class ColumnMetadata:
 
 
 class Record:
-    def __init__(
-        self, **kwargs,
-    ):
+    def __init__(self, **kwargs):
         self.kwargs = kwargs
 
     def __iter__(self):
@@ -104,14 +99,9 @@ class Record:
 
 
 class RedshiftDataAPIServiceBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.statements = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def cancel_statement(self, statement_id):
         _validate_uuid(statement_id)
@@ -145,7 +135,7 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
             raise ResourceNotFoundException()
 
     def execute_statement(
-        self, cluster_identifier, database, db_user, parameters, secret_arn, sql,
+        self, cluster_identifier, database, db_user, parameters, secret_arn, sql
     ):
         """
         Runs an SQL statement

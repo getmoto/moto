@@ -1,4 +1,5 @@
 import datetime
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.organizations import utils
 
 
@@ -47,7 +48,7 @@ def validate_organization(response):
         ]
     )
     org["Id"].should.match(utils.ORG_ID_REGEX)
-    org["MasterAccountId"].should.equal(utils.MASTER_ACCOUNT_ID)
+    org["MasterAccountId"].should.equal(DEFAULT_ACCOUNT_ID)
     org["MasterAccountArn"].should.equal(
         utils.MASTER_ACCOUNT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"])
     )
@@ -63,7 +64,7 @@ def validate_organization(response):
 
 def validate_roots(org, response):
     response.should.have.key("Roots").should.be.a(list)
-    response["Roots"].should_not.be.empty
+    response["Roots"].shouldnt.equal([])
     root = response["Roots"][0]
     root.should.have.key("Id").should.match(utils.ROOT_ID_REGEX)
     root.should.have.key("Arn").should.equal(

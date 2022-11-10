@@ -3,17 +3,8 @@ import sys
 from contextlib import ContextDecorator
 
 
-def lazy_load(
-    module_name, element, boto3_name=None, backend=None, warn_repurpose=False
-):
+def lazy_load(module_name, element, boto3_name=None, backend=None):
     def f(*args, **kwargs):
-        if warn_repurpose:
-            import warnings
-
-            warnings.warn(
-                f"Module {element} has been deprecated, and will be repurposed in a later release. "
-                "Please see https://github.com/spulec/moto/issues/4526 for more information."
-            )
         module = importlib.import_module(module_name, "moto")
         return getattr(module, element)(*args, **kwargs)
 
@@ -25,6 +16,7 @@ def lazy_load(
 
 
 mock_acm = lazy_load(".acm", "mock_acm")
+mock_amp = lazy_load(".amp", "mock_amp")
 mock_apigateway = lazy_load(".apigateway", "mock_apigateway")
 mock_apigatewayv2 = lazy_load(".apigatewayv2", "mock_apigatewayv2")
 mock_appsync = lazy_load(".appsync", "mock_appsync")
@@ -37,29 +29,39 @@ mock_lambda = lazy_load(
     ".awslambda", "mock_lambda", boto3_name="lambda", backend="lambda_backends"
 )
 mock_batch = lazy_load(".batch", "mock_batch")
+mock_batch_simple = lazy_load(
+    ".batch_simple",
+    "mock_batch_simple",
+    boto3_name="batch",
+    backend="batch_simple_backends",
+)
 mock_budgets = lazy_load(".budgets", "mock_budgets")
+mock_ce = lazy_load(".ce", "mock_ce")
 mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
 mock_cloudfront = lazy_load(".cloudfront", "mock_cloudfront")
-mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail", boto3_name="cloudtrail")
+mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail")
 mock_cloudwatch = lazy_load(".cloudwatch", "mock_cloudwatch")
 mock_codecommit = lazy_load(".codecommit", "mock_codecommit")
+mock_codebuild = lazy_load(".codebuild", "mock_codebuild")
 mock_codepipeline = lazy_load(".codepipeline", "mock_codepipeline")
 mock_cognitoidentity = lazy_load(
     ".cognitoidentity", "mock_cognitoidentity", boto3_name="cognito-identity"
 )
 mock_cognitoidp = lazy_load(".cognitoidp", "mock_cognitoidp", boto3_name="cognito-idp")
+mock_comprehend = lazy_load(".comprehend", "mock_comprehend")
 mock_config = lazy_load(".config", "mock_config")
+mock_databrew = lazy_load(".databrew", "mock_databrew")
 mock_datapipeline = lazy_load(".datapipeline", "mock_datapipeline")
 mock_datasync = lazy_load(".datasync", "mock_datasync")
 mock_dax = lazy_load(".dax", "mock_dax")
 mock_dms = lazy_load(".dms", "mock_dms")
-mock_ds = lazy_load(".ds", "mock_ds", boto3_name="ds")
-mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb", warn_repurpose=True)
-mock_dynamodb2 = lazy_load(".dynamodb2", "mock_dynamodb2", backend="dynamodb_backends2")
+mock_ds = lazy_load(".ds", "mock_ds")
+mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb")
 mock_dynamodbstreams = lazy_load(".dynamodbstreams", "mock_dynamodbstreams")
 mock_elasticbeanstalk = lazy_load(
     ".elasticbeanstalk", "mock_elasticbeanstalk", backend="eb_backends"
 )
+mock_ebs = lazy_load(".ebs", "mock_ebs")
 mock_ec2 = lazy_load(".ec2", "mock_ec2")
 mock_ec2instanceconnect = lazy_load(".ec2instanceconnect", "mock_ec2instanceconnect")
 mock_ecr = lazy_load(".ecr", "mock_ecr")
@@ -80,6 +82,7 @@ mock_es = lazy_load(".es", "mock_es")
 mock_events = lazy_load(".events", "mock_events")
 mock_firehose = lazy_load(".firehose", "mock_firehose")
 mock_forecast = lazy_load(".forecast", "mock_forecast")
+mock_greengrass = lazy_load(".greengrass", "mock_greengrass")
 mock_glacier = lazy_load(".glacier", "mock_glacier")
 mock_glue = lazy_load(".glue", "mock_glue")
 mock_guardduty = lazy_load(".guardduty", "mock_guardduty")
@@ -103,16 +106,22 @@ mock_mediastore = lazy_load(".mediastore", "mock_mediastore")
 mock_mediastoredata = lazy_load(
     ".mediastoredata", "mock_mediastoredata", boto3_name="mediastore-data"
 )
+mock_meteringmarketplace = lazy_load(".meteringmarketplace", "mock_meteringmarketplace")
 mock_mq = lazy_load(".mq", "mock_mq", boto3_name="mq")
 mock_opsworks = lazy_load(".opsworks", "mock_opsworks")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
+mock_personalize = lazy_load(".personalize", "mock_personalize")
+mock_pinpoint = lazy_load(".pinpoint", "mock_pinpoint")
 mock_polly = lazy_load(".polly", "mock_polly")
+mock_quicksight = lazy_load(".quicksight", "mock_quicksight")
 mock_ram = lazy_load(".ram", "mock_ram")
-mock_rds = lazy_load(".rds", "mock_rds", warn_repurpose=True)
-mock_rds2 = lazy_load(".rds2", "mock_rds2", boto3_name="rds")
+mock_rds = lazy_load(".rds", "mock_rds")
 mock_redshift = lazy_load(".redshift", "mock_redshift")
 mock_redshiftdata = lazy_load(
     ".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data"
+)
+mock_rekognition = lazy_load(
+    ".rekognition", "mock_rekognition", boto3_name="rekognition"
 )
 mock_resourcegroups = lazy_load(
     ".resourcegroups", "mock_resourcegroups", boto3_name="resource-groups"
@@ -129,8 +138,12 @@ mock_s3control = lazy_load(".s3control", "mock_s3control")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker")
 mock_sdb = lazy_load(".sdb", "mock_sdb")
 mock_secretsmanager = lazy_load(".secretsmanager", "mock_secretsmanager")
+mock_servicequotas = lazy_load(
+    ".servicequotas", "mock_servicequotas", boto3_name="service-quotas"
+)
 mock_ses = lazy_load(".ses", "mock_ses")
 mock_servicediscovery = lazy_load(".servicediscovery", "mock_servicediscovery")
+mock_signer = lazy_load(".signer", "mock_signer", boto3_name="signer")
 mock_sns = lazy_load(".sns", "mock_sns")
 mock_sqs = lazy_load(".sqs", "mock_sqs")
 mock_ssm = lazy_load(".ssm", "mock_ssm")
@@ -150,17 +163,16 @@ mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_textract = lazy_load(".textract", "mock_textract")
+mock_emrserverless = lazy_load(
+    ".emrserverless", "mock_emrserverless", boto3_name="emr-serverless"
+)
 
 
 class MockAll(ContextDecorator):
     def __init__(self):
         self.mocks = []
         for mock in dir(sys.modules["moto"]):
-            if (
-                mock.startswith("mock_")
-                and not mock.endswith("_deprecated")
-                and not mock == ("mock_all")
-            ):
+            if mock.startswith("mock_") and not mock == ("mock_all"):
                 self.mocks.append(globals()[mock]())
 
     def __enter__(self):
@@ -178,7 +190,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "3.0.6.dev"
+__version__ = "4.0.10.dev"
 
 
 try:

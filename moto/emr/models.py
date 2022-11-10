@@ -5,7 +5,7 @@ import warnings
 
 import pytz
 from dateutil.parser import parse as dtparse
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.emr.exceptions import (
     InvalidRequestException,
@@ -40,7 +40,7 @@ class FakeBootstrapAction(BaseModel):
 
 class FakeInstance(BaseModel):
     def __init__(
-        self, ec2_instance_id, instance_group, instance_fleet_id=None, instance_id=None,
+        self, ec2_instance_id, instance_group, instance_fleet_id=None, instance_id=None
     ):
         self.id = instance_id or random_instance_group_id()
         self.ec2_instance_id = ec2_instance_id
@@ -280,7 +280,7 @@ class FakeCluster(BaseModel):
     @property
     def arn(self):
         return "arn:aws:elasticmapreduce:{0}:{1}:cluster/{2}".format(
-            self.emr_backend.region_name, ACCOUNT_ID, self.id
+            self.emr_backend.region_name, self.emr_backend.account_id, self.id
         )
 
     @property
@@ -390,17 +390,11 @@ class FakeSecurityConfiguration(BaseModel):
 
 
 class ElasticMapReduceBackend(BaseBackend):
-    def __init__(self, region_name):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.clusters = {}
         self.instance_groups = {}
         self.security_configurations = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -417,7 +411,7 @@ class ElasticMapReduceBackend(BaseBackend):
         """
         from moto.ec2 import ec2_backends
 
-        return ec2_backends[self.region_name]
+        return ec2_backends[self.account_id][self.region_name]
 
     def add_applications(self, cluster_id, applications):
         cluster = self.describe_cluster(cluster_id)
@@ -435,12 +429,13 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def add_instances(self, cluster_id, instances, instance_group):
         cluster = self.clusters[cluster_id]
+        instances["is_instance_type_default"] = not instances.get("instance_type")
         response = self.ec2_backend.add_instances(
             EXAMPLE_AMI_ID, instances["instance_count"], "", [], **instances
         )
         for instance in response.instances:
             instance = FakeInstance(
-                ec2_instance_id=instance.id, instance_group=instance_group,
+                ec2_instance_id=instance.id, instance_group=instance_group
             )
             cluster.add_instance(instance)
 
@@ -560,7 +555,11 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def list_steps(self, cluster_id, marker=None, step_ids=None, step_states=None):
         max_items = 50
-        steps = self.clusters[cluster_id].steps
+        steps = sorted(
+            self.clusters[cluster_id].steps,
+            key=lambda o: o.creation_datetime,
+            reverse=True,
+        )
         if step_ids:
             steps = [s for s in steps if s.id in step_ids]
         if step_states:
@@ -670,14 +669,8 @@ class ElasticMapReduceBackend(BaseBackend):
         instance_group.auto_scaling_policy = auto_scaling_policy
         return instance_group
 
-    def remove_auto_scaling_policy(self, cluster_id, instance_group_id):
-        instance_groups = self.get_instance_groups(
-            instance_group_ids=[instance_group_id]
-        )
-        if len(instance_groups) == 0:
-            return None
-        instance_group = instance_groups[0]
-        instance_group.auto_scaling_policy = None
+    def remove_auto_scaling_policy(self, instance_group_id):
+        self.put_auto_scaling_policy(instance_group_id, auto_scaling_policy=None)
 
     def create_security_configuration(self, name, security_configuration):
         if name in self.security_configurations:

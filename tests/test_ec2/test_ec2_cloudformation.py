@@ -246,7 +246,7 @@ def test_attach_vpn_gateway():
             },
             "DEVLAB1DCGateway": {
                 "Type": "AWS::EC2::VPNGateway",
-                "Properties": {"Type": "ipsec.1",},
+                "Properties": {"Type": "ipsec.1"},
             },
             "DEVLAB1VPGAttaching": {
                 "Type": "AWS::EC2::VPCGatewayAttachment",
@@ -694,3 +694,250 @@ def get_secgroup_by_tag(ec2, sg_):
     return ec2.describe_security_groups(
         Filters=[{"Name": "tag:sg-name", "Values": [sg_]}]
     )["SecurityGroups"][0]
+
+
+@mock_cloudformation
+@mock_ec2
+def test_vpc_endpoint_creation():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    ec2_client = boto3.client("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
+    )
+
+    subnet_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Parameters": {
+            "EndpointSubnetId": {"Type": "String"},
+            "EndpointVpcId": {"Type": "String"},
+            "EndpointServiceName": {"Type": "String"},
+        },
+        "Resources": {
+            "GwlbVpcEndpoint": {
+                "Type": "AWS::EC2::VPCEndpoint",
+                "Properties": {
+                    "ServiceName": {"Ref": "EndpointServiceName"},
+                    "SubnetIds": [{"Ref": "EndpointSubnetId"}],
+                    "VpcEndpointType": "GatewayLoadBalancer",
+                    "VpcId": {"Ref": "EndpointVpcId"},
+                },
+            }
+        },
+        "Outputs": {
+            "EndpointId": {
+                "Description": "Id of the endpoint created",
+                "Value": {"Ref": "GwlbVpcEndpoint"},
+            },
+        },
+    }
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    template_json = json.dumps(subnet_template)
+    stack_name = str(uuid4())[0:6]
+    cf.create_stack(
+        StackName=stack_name,
+        TemplateBody=template_json,
+        Parameters=[
+            {"ParameterKey": "EndpointSubnetId", "ParameterValue": subnet1.id},
+            {"ParameterKey": "EndpointVpcId", "ParameterValue": vpc.id},
+            {"ParameterKey": "EndpointServiceName", "ParameterValue": "serv_name"},
+        ],
+    )
+    resources = cf.list_stack_resources(StackName=stack_name)["StackResourceSummaries"]
+    resources.should.have.length_of(1)
+    resources[0].should.have.key("LogicalResourceId").equals("GwlbVpcEndpoint")
+    vpc_endpoint_id = resources[0]["PhysicalResourceId"]
+
+    outputs = cf.describe_stacks(StackName=stack_name)["Stacks"][0]["Outputs"]
+    outputs.should.have.length_of(1)
+    outputs[0].should.equal({"OutputKey": "EndpointId", "OutputValue": vpc_endpoint_id})
+
+    endpoint = ec2_client.describe_vpc_endpoints(VpcEndpointIds=[vpc_endpoint_id])[
+        "VpcEndpoints"
+    ][0]
+    endpoint.should.have.key("VpcId").equals(vpc.id)
+    endpoint.should.have.key("ServiceName").equals("serv_name")
+    endpoint.should.have.key("State").equals("available")
+    endpoint.should.have.key("SubnetIds").equals([subnet1.id])
+    endpoint.should.have.key("VpcEndpointType").equals("GatewayLoadBalancer")
+
+
+@mock_cloudformation
+@mock_ec2
+def test_launch_template_create():
+
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+
+    launch_template_name = str(uuid4())[0:6]
+    logical_id = str(uuid4())[0:6]
+    stack_name = str(uuid4())[0:6]
+
+    lt_tags = [{"Key": "lt-tag-key", "Value": "lt-tag-value"}]
+
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                logical_id: {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateName": launch_template_name,
+                        "VersionDescription": "some template",
+                        "LaunchTemplateData": {
+                            "TagSpecifications": [
+                                {
+                                    "ResourceType": "instance",
+                                    "Tags": [
+                                        {"Key": "i-tag-key", "Value": "i-tag-value"}
+                                    ],
+                                }
+                            ]
+                        },
+                        "TagSpecifications": [
+                            {
+                                "ResourceType": "launch-template",
+                                "Tags": lt_tags,
+                            }
+                        ],
+                    },
+                }
+            },
+            "Outputs": {
+                "LaunchTemplateId": {
+                    "Description": "The ID of the created launch template",
+                    "Value": {"Ref": logical_id},
+                },
+            },
+        }
+    )
+
+    cf.create_stack(StackName=stack_name, TemplateBody=template_json)
+
+    resources = cf.list_stack_resources(StackName=stack_name)["StackResourceSummaries"]
+    resources.should.have.length_of(1)
+    resources[0].should.have.key("LogicalResourceId").equals(logical_id)
+    launch_template_id = resources[0]["PhysicalResourceId"]
+
+    outputs = cf.describe_stacks(StackName=stack_name)["Stacks"][0]["Outputs"]
+    outputs.should.have.length_of(1)
+    outputs[0].should.equal(
+        {"OutputKey": "LaunchTemplateId", "OutputValue": launch_template_id}
+    )
+
+    launch_template = ec2.describe_launch_templates(
+        LaunchTemplateNames=[launch_template_name]
+    )["LaunchTemplates"][0]
+    launch_template.should.have.key("LaunchTemplateName").equals(launch_template_name)
+    launch_template.should.have.key("LaunchTemplateId").equals(launch_template_id)
+    launch_template.should.have.key("Tags").equals(lt_tags)
+
+    launch_template_version = ec2.describe_launch_template_versions(
+        LaunchTemplateName=launch_template_name
+    )["LaunchTemplateVersions"][0]
+    launch_template_version.should.have.key("LaunchTemplateName").equals(
+        launch_template_name
+    )
+    launch_template_version.should.have.key("LaunchTemplateId").equals(
+        launch_template_id
+    )
+    launch_template_version["LaunchTemplateData"]["TagSpecifications"][
+        0
+    ].should.have.key("ResourceType").equals("instance")
+
+
+@mock_cloudformation
+@mock_ec2
+def test_launch_template_update():
+
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+
+    launch_template_name = str(uuid4())[0:6]
+    logical_id = str(uuid4())[0:6]
+    stack_name = str(uuid4())[0:6]
+
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                logical_id: {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateName": launch_template_name,
+                        "VersionDescription": "some template",
+                        "LaunchTemplateData": {"UserData": ""},
+                    },
+                }
+            },
+        }
+    )
+
+    cf.create_stack(StackName=stack_name, TemplateBody=template_json)
+
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                logical_id: {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateName": launch_template_name,
+                        "VersionDescription": "a better template",
+                        "LaunchTemplateData": {"UserData": ""},
+                    },
+                }
+            },
+        }
+    )
+
+    cf.update_stack(StackName=stack_name, TemplateBody=template_json)
+
+    resources = cf.list_stack_resources(StackName=stack_name)["StackResourceSummaries"]
+    resources.should.have.length_of(1)
+
+    launch_template_versions = ec2.describe_launch_template_versions(
+        LaunchTemplateName=launch_template_name
+    )["LaunchTemplateVersions"]
+    launch_template_versions.should.have.length_of(2)
+    launch_template_versions[0].should.have.key("VersionDescription").equals(
+        "some template"
+    )
+    launch_template_versions[1].should.have.key("VersionDescription").equals(
+        "a better template"
+    )
+
+
+@mock_cloudformation
+@mock_ec2
+def test_launch_template_delete():
+
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+
+    launch_template_name = str(uuid4())[0:6]
+    logical_id = str(uuid4())[0:6]
+    stack_name = str(uuid4())[0:6]
+
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                logical_id: {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateName": launch_template_name,
+                        "VersionDescription": "some template",
+                        "LaunchTemplateData": {"UserData": ""},
+                    },
+                }
+            },
+        }
+    )
+    cf.create_stack(StackName=stack_name, TemplateBody=template_json)
+
+    cf.delete_stack(StackName=stack_name)
+
+    ec2.describe_launch_templates(LaunchTemplateNames=[launch_template_name])[
+        "LaunchTemplates"
+    ].should.have.length_of(0)

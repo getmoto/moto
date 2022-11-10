@@ -1,10 +1,10 @@
 import json
-from werkzeug.exceptions import BadRequest
+from moto.core.exceptions import JsonRESTError
 
 
-class RedshiftClientError(BadRequest):
+class RedshiftClientError(JsonRESTError):
     def __init__(self, code, message):
-        super().__init__()
+        super().__init__(error_type=code, message=message)
         self.description = json.dumps(
             {
                 "Error": {"Code": code, "Message": message, "Type": "Sender"},

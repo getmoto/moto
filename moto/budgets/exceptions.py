@@ -5,9 +5,9 @@ from moto.core.exceptions import JsonRESTError
 class DuplicateRecordException(JsonRESTError):
     code = 400
 
-    def __init__(self, record_type, record_name):
+    def __init__(self, record_type: str, record_name: str):
         super().__init__(
-            __class__.__name__,
+            __class__.__name__,  # type: ignore[name-defined]
             f"Error creating {record_type}: {record_name} - the {record_type} already exists.",
         )
 
@@ -15,14 +15,14 @@ class DuplicateRecordException(JsonRESTError):
 class NotFoundException(JsonRESTError):
     code = 400
 
-    def __init__(self, message):
-        super().__init__(__class__.__name__, message)
+    def __init__(self, message: str):
+        super().__init__(__class__.__name__, message)  # type: ignore[name-defined]
 
 
 class BudgetMissingLimit(JsonRESTError):
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidParameterException",
             "Unable to create/update budget - please provide one of the followings: Budget Limit/ Planned Budget Limit/ Auto Adjust Data",

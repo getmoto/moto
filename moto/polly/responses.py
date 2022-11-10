@@ -11,9 +11,12 @@ LEXICON_NAME_REGEX = re.compile(r"^[0-9A-Za-z]{1,20}$")
 
 
 class PollyResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="polly")
+
     @property
     def polly_backend(self):
-        return polly_backends[self.region]
+        return polly_backends[self.current_account][self.region]
 
     @property
     def json(self):
@@ -34,7 +37,6 @@ class PollyResponse(BaseResponse):
     # DescribeVoices
     def voices(self):
         language_code = self._get_param("LanguageCode")
-        next_token = self._get_param("NextToken")
 
         if language_code is not None and language_code not in LANGUAGE_CODES:
             msg = (
@@ -45,7 +47,7 @@ class PollyResponse(BaseResponse):
             )
             return msg, dict(status=400)
 
-        voices = self.polly_backend.describe_voices(language_code, next_token)
+        voices = self.polly_backend.describe_voices(language_code)
 
         return json.dumps({"Voices": voices})
 
@@ -83,9 +85,7 @@ class PollyResponse(BaseResponse):
 
     # ListLexicons
     def _get_lexicons_list(self):
-        next_token = self._get_param("NextToken")
-
-        result = {"Lexicons": self.polly_backend.list_lexicons(next_token)}
+        result = {"Lexicons": self.polly_backend.list_lexicons()}
 
         return json.dumps(result)
 

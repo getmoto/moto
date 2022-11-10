@@ -28,6 +28,14 @@ class EC2ClientError(RESTError):
         super().__init__(*args, **kwargs)
 
 
+class DefaultVpcAlreadyExists(EC2ClientError):
+    def __init__(self):
+        super().__init__(
+            "DefaultVpcAlreadyExists",
+            "A Default VPC already exists for this account in this region.",
+        )
+
+
 class DependencyViolationError(EC2ClientError):
     def __init__(self, message):
         super().__init__("DependencyViolation", message)
@@ -92,7 +100,7 @@ class InvalidVPCIdError(EC2ClientError):
     def __init__(self, vpc_id):
 
         super().__init__(
-            "InvalidVpcID.NotFound", "VpcID {0} does not exist.".format(vpc_id),
+            "InvalidVpcID.NotFound", "VpcID {0} does not exist.".format(vpc_id)
         )
 
 
@@ -231,20 +239,35 @@ class InvalidRouteError(EC2ClientError):
         )
 
 
+class RouteAlreadyExistsError(EC2ClientError):
+    def __init__(self, cidr):
+        super().__init__(
+            "RouteAlreadyExists",
+            "The route identified by {0} already exists".format(cidr),
+        )
+
+
 class InvalidInstanceIdError(EC2ClientError):
     def __init__(self, instance_id):
-        super().__init__(
-            "InvalidInstanceID.NotFound",
-            "The instance ID '{0}' does not exist".format(instance_id),
-        )
+        if isinstance(instance_id, str):
+            instance_id = [instance_id]
+        if len(instance_id) > 1:
+            msg = f"The instance IDs '{', '.join(instance_id)}' do not exist"
+        else:
+            msg = f"The instance ID '{instance_id[0]}' does not exist"
+        super().__init__("InvalidInstanceID.NotFound", msg)
 
 
 class InvalidInstanceTypeError(EC2ClientError):
-    def __init__(self, instance_type):
-        super().__init__(
-            "InvalidInstanceType.NotFound",
-            "The instance type '{0}' does not exist".format(instance_type),
-        )
+    def __init__(self, instance_type, error_type="InvalidInstanceType.NotFound"):
+        if isinstance(instance_type, str):
+            msg = f"The instance type '{instance_type}' does not exist"
+        else:
+            msg = (
+                f"The following supplied instance types do not exist: "
+                f"[{', '.join(instance_type)}]"
+            )
+        super().__init__(error_type, msg)
 
 
 class InvalidAMIIdError(EC2ClientError):
@@ -252,6 +275,14 @@ class InvalidAMIIdError(EC2ClientError):
         super().__init__(
             "InvalidAMIID.NotFound",
             "The image id '[{0}]' does not exist".format(ami_id),
+        )
+
+
+class UnvailableAMIIdError(EC2ClientError):
+    def __init__(self, ami_id):
+        super().__init__(
+            "InvalidAMIID.Unavailable",
+            "The image id '[{0}]' is no longer available".format(ami_id),
         )
 
 
@@ -274,10 +305,9 @@ class MalformedAMIIdError(EC2ClientError):
 
 
 class InvalidSnapshotIdError(EC2ClientError):
-    def __init__(self, snapshot_id):
-        super().__init__(
-            "InvalidSnapshot.NotFound", ""
-        )  # Note: AWS returns empty message for this, as of 2014.08.22.
+    def __init__(self):
+        # Note: AWS returns empty message for this, as of 2014.08.22.
+        super().__init__("InvalidSnapshot.NotFound", "")
 
 
 class InvalidSnapshotInUse(EC2ClientError):
@@ -401,8 +431,8 @@ class InvalidServiceName(EC2ClientError):
 
 
 class InvalidFilter(EC2ClientError):
-    def __init__(self, filter_name):
-        super().__init__("InvalidFilter", f"The filter '{filter_name}' is invalid")
+    def __init__(self, filter_name, error_type="InvalidFilter"):
+        super().__init__(error_type, f"The filter '{filter_name}' is invalid")
 
 
 class InvalidNextToken(EC2ClientError):
@@ -415,7 +445,7 @@ class InvalidDependantParameterError(EC2ClientError):
         super().__init__(
             "InvalidParameter",
             "{0} can't be empty if {1} is {2}.".format(
-                dependant_parameter, parameter, parameter_value,
+                dependant_parameter, parameter, parameter_value
             ),
         )
 
@@ -425,16 +455,14 @@ class InvalidDependantParameterTypeError(EC2ClientError):
         super().__init__(
             "InvalidParameter",
             "{0} type must be {1} if {2} is provided.".format(
-                dependant_parameter, parameter_value, parameter,
+                dependant_parameter, parameter_value, parameter
             ),
         )
 
 
 class InvalidAggregationIntervalParameterError(EC2ClientError):
     def __init__(self, parameter):
-        super().__init__(
-            "InvalidParameter", "Invalid {0}".format(parameter),
-        )
+        super().__init__("InvalidParameter", "Invalid {0}".format(parameter))
 
 
 class InvalidParameterValueError(EC2ClientError):
@@ -442,6 +470,13 @@ class InvalidParameterValueError(EC2ClientError):
         super().__init__(
             "InvalidParameterValue",
             "Value {0} is invalid for parameter.".format(parameter_value),
+        )
+
+
+class EmptyTagSpecError(EC2ClientError):
+    def __init__(self):
+        super().__init__(
+            "InvalidParameterValue", "Tag specification must have at least one tag"
         )
 
 
@@ -578,6 +613,14 @@ class InvalidAvailabilityZoneError(EC2ClientError):
         )
 
 
+class AvailabilityZoneNotFromRegionError(EC2ClientError):
+    def __init__(self, availability_zone_value):
+        super().__init__(
+            "InvalidParameterValue",
+            "Invalid Availability Zone ({0})".format(availability_zone_value),
+        )
+
+
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
     def __init__(self, rule_number):
         super().__init__(
@@ -663,11 +706,27 @@ class OperationNotPermitted4(EC2ClientError):
         )
 
 
-class InvalidLaunchTemplateNameError(EC2ClientError):
+class InvalidLaunchTemplateNameAlreadyExistsError(EC2ClientError):
     def __init__(self):
         super().__init__(
             "InvalidLaunchTemplateName.AlreadyExistsException",
             "Launch template name already in use.",
+        )
+
+
+class InvalidLaunchTemplateNameNotFoundError(EC2ClientError):
+    def __init__(self):
+        super().__init__(
+            "InvalidLaunchTemplateName.NotFoundException",
+            "At least one of the launch templates specified in the request does not exist.",
+        )
+
+
+class InvalidLaunchTemplateNameNotFoundWithNameError(EC2ClientError):
+    def __init__(self, name):
+        super().__init__(
+            "InvalidLaunchTemplateName.NotFoundException",
+            f"The specified launch template, with template name {name}, does not exist",
         )
 
 

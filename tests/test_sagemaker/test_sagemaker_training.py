@@ -5,7 +5,7 @@ import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_sagemaker
-from moto.sts.models import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 FAKE_ROLE_ARN = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
 TEST_REGION_NAME = "us-east-1"
@@ -385,7 +385,7 @@ def test_list_training_jobs_paginated_with_fragmented_targets():
     assert training_jobs_with_2.get("NextToken").should_not.be.none
 
     training_jobs_with_2_next = client.list_training_jobs(
-        NameContains="2", MaxResults=1, NextToken=training_jobs_with_2.get("NextToken"),
+        NameContains="2", MaxResults=1, NextToken=training_jobs_with_2.get("NextToken")
     )
     assert len(training_jobs_with_2_next["TrainingJobSummaries"]).should.equal(0)
     assert training_jobs_with_2_next.get("NextToken").should_not.be.none
@@ -397,3 +397,59 @@ def test_list_training_jobs_paginated_with_fragmented_targets():
     )
     assert len(training_jobs_with_2_next_next["TrainingJobSummaries"]).should.equal(0)
     assert training_jobs_with_2_next_next.get("NextToken").should.be.none
+
+
+@mock_sagemaker
+def test_add_tags_to_training_job():
+    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+    name = "blah"
+    resource_arn = f"arn:aws:sagemaker:us-east-1:000000000000:training-job/{name}"
+    test_training_job = MyTrainingJobModel(
+        training_job_name=name, role_arn=resource_arn
+    )
+    test_training_job.save()
+
+    tags = [
+        {"Key": "myKey", "Value": "myValue"},
+    ]
+    response = client.add_tags(ResourceArn=resource_arn, Tags=tags)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = client.list_tags(ResourceArn=resource_arn)
+    assert response["Tags"] == tags
+
+
+@mock_sagemaker
+def test_delete_tags_from_training_job():
+    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+    name = "blah"
+    resource_arn = f"arn:aws:sagemaker:us-east-1:000000000000:training-job/{name}"
+    test_training_job = MyTrainingJobModel(
+        training_job_name=name, role_arn=resource_arn
+    )
+    test_training_job.save()
+
+    tags = [
+        {"Key": "myKey", "Value": "myValue"},
+    ]
+    response = client.add_tags(ResourceArn=resource_arn, Tags=tags)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    tag_keys = [tag["Key"] for tag in tags]
+    response = client.delete_tags(ResourceArn=resource_arn, TagKeys=tag_keys)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = client.list_tags(ResourceArn=resource_arn)
+    assert response["Tags"] == []
+
+
+@mock_sagemaker
+def test_describe_unknown_training_job():
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.describe_training_job(TrainingJobName="unknown")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        f"Could not find training job 'arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:training-job/unknown'."
+    )

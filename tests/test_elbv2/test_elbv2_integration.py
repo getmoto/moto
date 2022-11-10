@@ -33,14 +33,14 @@ def test_modify_listener_using_iam_certificate():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = client.create_target_group(
-        Name="a-target", Protocol="HTTPS", Port=8443, VpcId=vpc.id,
+        Name="a-target", Protocol="HTTPS", Port=8443, VpcId=vpc.id
     )
     target_group = response.get("TargetGroups")[0]
     target_group_arn = target_group["TargetGroupArn"]
 
     # HTTPS listener
     response = acm.request_certificate(
-        DomainName="google.com", SubjectAlternativeNames=["google.com"],
+        DomainName="google.com", SubjectAlternativeNames=["google.com"]
     )
     google_arn = response["CertificateArn"]
     response = client.create_listener(
@@ -62,7 +62,7 @@ def test_modify_listener_using_iam_certificate():
 
     listener = client.modify_listener(
         ListenerArn=listener_arn,
-        Certificates=[{"CertificateArn": iam_arn,},],
+        Certificates=[{"CertificateArn": iam_arn}],
         DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
     )["Listeners"][0]
     listener["Certificates"].should.equal([{"CertificateArn": iam_arn}])

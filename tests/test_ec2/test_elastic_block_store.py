@@ -4,14 +4,14 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_ec2
-from moto.ec2.models import OWNER_ID
+from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
 from moto.kms import mock_kms
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
 
 
 @mock_ec2
-def test_create_and_delete_volume_boto3():
+def test_create_and_delete_volume():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     volume = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
@@ -47,7 +47,43 @@ def test_create_and_delete_volume_boto3():
 
 
 @mock_ec2
-def test_delete_attached_volume_boto3():
+def test_modify_volumes():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    old_size = 80
+    new_size = 160
+    new_type = "io2"
+
+    volume_id = ec2.create_volume(Size=old_size, AvailabilityZone="us-east-1a").id
+
+    # Ensure no modification records exist
+    modifications = client.describe_volumes_modifications()
+    modifications["VolumesModifications"].should.have.length_of(0)
+
+    # Ensure volume size can be modified
+    response = client.modify_volume(VolumeId=volume_id, Size=new_size)
+    response["VolumeModification"]["OriginalSize"].should.equal(old_size)
+    response["VolumeModification"]["TargetSize"].should.equal(new_size)
+    client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["Size"].should.equal(
+        new_size
+    )
+
+    # Ensure volume type can be modified
+    response = client.modify_volume(VolumeId=volume_id, VolumeType=new_type)
+    response["VolumeModification"]["OriginalVolumeType"].should.equal("gp2")
+    response["VolumeModification"]["TargetVolumeType"].should.equal(new_type)
+    client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0][
+        "VolumeType"
+    ].should.equal(new_type)
+
+    # Ensure volume modifications are tracked
+    modifications = client.describe_volumes_modifications()
+    modifications["VolumesModifications"].should.have.length_of(2)
+
+
+@mock_ec2
+def test_delete_attached_volume():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -87,7 +123,7 @@ def test_delete_attached_volume_boto3():
 
 
 @mock_ec2
-def test_create_encrypted_volume_dryrun_boto3():
+def test_create_encrypted_volume_dryrun():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         ec2.create_volume(Size=80, AvailabilityZone="us-east-1a", DryRun=True)
@@ -99,7 +135,7 @@ def test_create_encrypted_volume_dryrun_boto3():
 
 
 @mock_ec2
-def test_create_encrypted_volume_boto3():
+def test_create_encrypted_volume():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     volume = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a", Encrypted=True)
@@ -109,7 +145,7 @@ def test_create_encrypted_volume_boto3():
 
 
 @mock_ec2
-def test_filter_volume_by_id_boto3():
+def test_filter_volume_by_id():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     volume1 = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
@@ -131,7 +167,7 @@ def test_filter_volume_by_id_boto3():
 
 
 @mock_ec2
-def test_volume_filters_boto3():
+def test_volume_filters():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -254,7 +290,7 @@ def test_volume_filters_boto3():
 
 
 @mock_ec2
-def test_volume_attach_and_detach_boto3():
+def test_volume_attach_and_detach():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -320,7 +356,7 @@ def test_volume_attach_and_detach_boto3():
 
 
 @mock_ec2
-def test_create_snapshot_boto3():
+def test_create_snapshot():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     volume = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
@@ -344,7 +380,7 @@ def test_create_snapshot_boto3():
     ]
     snapshots.should.have.length_of(1)
     snapshots[0]["Description"].should.equal("a test snapshot")
-    snapshots[0]["StartTime"].should_not.be.none
+    snapshots[0]["StartTime"].shouldnt.equal(None)
     snapshots[0]["Encrypted"].should.be(False)
 
     # Create snapshot without description
@@ -365,7 +401,7 @@ def test_create_snapshot_boto3():
 
 @mock_ec2
 @pytest.mark.parametrize("encrypted", [True, False])
-def test_create_encrypted_snapshot_boto3(encrypted):
+def test_create_encrypted_snapshot(encrypted):
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     volume = ec2.create_volume(
@@ -383,12 +419,12 @@ def test_create_encrypted_snapshot_boto3(encrypted):
     ]
     snapshots.should.have.length_of(1)
     snapshots[0]["Description"].should.equal("a test snapshot")
-    snapshots[0]["StartTime"].should_not.be.none
+    snapshots[0]["StartTime"].shouldnt.equal(None)
     snapshots[0]["Encrypted"].should.be(encrypted)
 
 
 @mock_ec2
-def test_filter_snapshot_by_id_boto3():
+def test_filter_snapshot_by_id():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     volume1 = ec2.create_volume(Size=36, AvailabilityZone="us-east-1a")
@@ -405,7 +441,7 @@ def test_filter_snapshot_by_id_boto3():
     ]
     snapshots2.should.have.length_of(2)
     for s in snapshots2:
-        s["StartTime"].should_not.be.none
+        s["StartTime"].shouldnt.equal(None)
         s["VolumeId"].should.be.within([volume2.id, volume3.id])
 
     with pytest.raises(ClientError) as ex:
@@ -416,7 +452,7 @@ def test_filter_snapshot_by_id_boto3():
 
 
 @mock_ec2
-def test_snapshot_filters_boto3():
+def test_snapshot_filters():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     volume1 = ec2.create_volume(Size=20, AvailabilityZone="us-east-1a", Encrypted=False)
@@ -519,7 +555,7 @@ def test_modify_snapshot_attribute():
         ec2_client.modify_snapshot_attribute(**dict(ADD_GROUP_ARGS, **{"DryRun": True}))
 
     cm.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
 
     ec2_client.modify_snapshot_attribute(**ADD_GROUP_ARGS)
@@ -545,7 +581,7 @@ def test_modify_snapshot_attribute():
             **dict(REMOVE_GROUP_ARGS, **{"DryRun": True})
         )
     cm.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
 
     ec2_client.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
@@ -574,7 +610,7 @@ def test_modify_snapshot_attribute():
             GroupNames=["everyone"],
         )
     cm.value.response["Error"]["Code"].should.equal("InvalidAMIAttributeItemValue")
-    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Error: Add with invalid snapshot ID
@@ -586,7 +622,7 @@ def test_modify_snapshot_attribute():
             GroupNames=["all"],
         )
     cm.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
-    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Error: Remove with invalid snapshot ID
@@ -598,7 +634,7 @@ def test_modify_snapshot_attribute():
             GroupNames=["all"],
         )
     cm.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
-    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Test adding user id
@@ -656,7 +692,7 @@ def test_modify_snapshot_attribute():
 
 @mock_ec2
 @pytest.mark.parametrize("encrypted", [True, False])
-def test_create_volume_from_snapshot_boto3(encrypted):
+def test_create_volume_from_snapshot(encrypted):
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     volume = ec2.create_volume(
@@ -675,7 +711,7 @@ def test_create_volume_from_snapshot_boto3(encrypted):
 
 
 @mock_ec2
-def test_modify_attribute_blockDeviceMapping_boto3():
+def test_modify_attribute_blockDeviceMapping():
     """
     Reproduces the missing feature explained at [0], where we want to mock a
     call to modify an instance attribute of type: blockDeviceMapping.
@@ -714,7 +750,7 @@ def test_modify_attribute_blockDeviceMapping_boto3():
 
 
 @mock_ec2
-def test_volume_tag_escaping_boto3():
+def test_volume_tag_escaping():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     volume = ec2.create_volume(Size=10, AvailabilityZone="us-east-1a")
@@ -796,7 +832,7 @@ def test_copy_snapshot():
     cm.value.response["Error"]["Message"].should.equal(
         "The volume 'vol-abcd1234' does not exist."
     )
-    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Copy from non-existent source region.
@@ -806,8 +842,8 @@ def test_copy_snapshot():
             SourceRegion="eu-west-2",
         )
     cm.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
-    cm.value.response["Error"]["Message"].should.be.none
-    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["Error"]["Message"].should.equal(None)
+    cm.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
     cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
@@ -852,13 +888,13 @@ def test_create_encrypted_volume_without_kms_key_should_use_default_key():
     )
     default_ebs_key_arn = kms.describe_key(KeyId="alias/aws/ebs")["KeyMetadata"]["Arn"]
     volume.kms_key_id.should.equal(default_ebs_key_arn)
-    volume.encrypted.should.be.true
+    volume.encrypted.should.equal(True)
     # Subsequent encrypted volumes should use the now-created default key.
     volume = resource.create_volume(
         AvailabilityZone="us-east-1a", Encrypted=True, Size=10
     )
     volume.kms_key_id.should.equal(default_ebs_key_arn)
-    volume.encrypted.should.be.true
+    volume.encrypted.should.equal(True)
 
 
 @mock_ec2
@@ -868,24 +904,24 @@ def test_create_volume_with_kms_key():
         AvailabilityZone="us-east-1a", Encrypted=True, KmsKeyId="key", Size=10
     )
     volume.kms_key_id.should.equal("key")
-    volume.encrypted.should.be.true
+    volume.encrypted.should.equal(True)
 
 
 @mock_ec2
 def test_kms_key_id_property_hidden_when_volume_not_encrypted():
     client = boto3.client("ec2", region_name="us-east-1")
     resp = client.create_volume(AvailabilityZone="us-east-1a", Encrypted=False, Size=10)
-    resp["Encrypted"].should.be.false
+    resp["Encrypted"].should.equal(False)
     resp.should_not.have.key("KmsKeyId")
     resp = client.describe_volumes(VolumeIds=[resp["VolumeId"]])
-    resp["Volumes"][0]["Encrypted"].should.be.false
+    resp["Volumes"][0]["Encrypted"].should.equal(False)
     resp["Volumes"][0].should_not.have.key("KmsKeyId")
     resource = boto3.resource("ec2", region_name="us-east-1")
     volume = resource.create_volume(
         AvailabilityZone="us-east-1a", Encrypted=False, Size=10
     )
-    volume.encrypted.should.be.false
-    volume.kms_key_id.should.be.none
+    volume.encrypted.should.equal(False)
+    volume.kms_key_id.should.equal(None)
 
 
 @mock_ec2

@@ -11,6 +11,7 @@ import pytz
 from freezegun import freeze_time
 
 from moto import mock_glue, settings
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from . import helpers
 
 
@@ -22,8 +23,9 @@ FROZEN_CREATE_TIME = datetime(2015, 1, 1, 0, 0, 0)
 def test_create_database():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
+    database_catalog_id = ACCOUNT_ID
     database_input = helpers.create_database_input(database_name)
-    helpers.create_database(client, database_name, database_input)
+    helpers.create_database(client, database_name, database_input, database_catalog_id)
 
     response = helpers.get_database(client, database_name)
     database = response["Database"]
@@ -38,7 +40,7 @@ def test_create_database():
         database_input.get("CreateTableDefaultPermissions")
     )
     database.get("TargetDatabase").should.equal(database_input.get("TargetDatabase"))
-    database.get("CatalogId").should.equal(database_input.get("CatalogId"))
+    database.get("CatalogId").should.equal(database_catalog_id)
 
 
 @mock_glue
@@ -91,6 +93,48 @@ def test_get_databases_several_items():
 
 
 @mock_glue
+def test_update_database():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "existingdatabase"
+    database_catalog_id = ACCOUNT_ID
+    helpers.create_database(
+        client, database_name, {"Name": database_name}, database_catalog_id
+    )
+
+    response = helpers.get_database(client, database_name)
+    database = response["Database"]
+    database.get("CatalogId").should.equal(database_catalog_id)
+    database.get("Description").should.be.none
+    database.get("LocationUri").should.be.none
+
+    database_input = {
+        "Name": database_name,
+        "Description": "desc",
+        "LocationUri": "s3://bucket/existingdatabase/",
+    }
+    client.update_database(
+        CatalogId=database_catalog_id, Name=database_name, DatabaseInput=database_input
+    )
+
+    response = helpers.get_database(client, database_name)
+    database = response["Database"]
+    database.get("CatalogId").should.equal(database_catalog_id)
+    database.get("Description").should.equal("desc")
+    database.get("LocationUri").should.equal("s3://bucket/existingdatabase/")
+
+
+@mock_glue
+def test_update_unknown_database():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.update_database(Name="x", DatabaseInput={"Name": "x"})
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.equal("Database x not found.")
+
+
+@mock_glue
 def test_delete_database():
     client = boto3.client("glue", region_name="us-east-1")
     database_name_1, database_name_2 = "firstdatabase", "seconddatabase"
@@ -118,6 +162,7 @@ def test_delete_unknown_database():
 
 
 @mock_glue
+@freeze_time(FROZEN_CREATE_TIME)
 def test_create_table():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -129,6 +174,9 @@ def test_create_table():
 
     response = helpers.get_table(client, database_name, table_name)
     table = response["Table"]
+
+    if not settings.TEST_SERVER_MODE:
+        table["CreateTime"].should.equal(FROZEN_CREATE_TIME)
 
     table["Name"].should.equal(table_input["Name"])
     table["StorageDescriptor"].should.equal(table_input["StorageDescriptor"])
@@ -177,6 +225,84 @@ def test_get_tables():
             table_inputs[table_name]["StorageDescriptor"]
         )
         table["PartitionKeys"].should.equal(table_inputs[table_name]["PartitionKeys"])
+
+
+@mock_glue
+def test_get_tables_expression():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    helpers.create_database(client, database_name)
+
+    table_names = [
+        "mytableprefix_123",
+        "mytableprefix_something_test",
+        "something_mytablepostfix",
+        "test_catchthis123_test",
+        "asduas6781catchthisasdas",
+        "fakecatchthisfake",
+        "trailingtest.",
+        "trailingtest...",
+    ]
+    table_inputs = {}
+
+    for table_name in table_names:
+        table_input = helpers.create_table_input(database_name, table_name)
+        table_inputs[table_name] = table_input
+        helpers.create_table(client, database_name, table_name, table_input)
+
+    prefix_expression = "mytableprefix_\\w+"
+    postfix_expression = "\\w+_mytablepostfix"
+    string_expression = "\\w+catchthis\\w+"
+
+    # even though * is an invalid regex, sadly glue api treats it as a glob-like wildcard
+    star_expression1 = "*"
+    star_expression2 = "mytable*"
+    star_expression3 = "*table*"
+    star_expression4 = "*catch*is*"
+    star_expression5 = ".*catch*is*"
+    star_expression6 = "trailing*.*"
+
+    response_prefix = helpers.get_tables(client, database_name, prefix_expression)
+    response_postfix = helpers.get_tables(client, database_name, postfix_expression)
+    response_string_match = helpers.get_tables(client, database_name, string_expression)
+    response_star_expression1 = helpers.get_tables(
+        client, database_name, star_expression1
+    )
+    response_star_expression2 = helpers.get_tables(
+        client, database_name, star_expression2
+    )
+    response_star_expression3 = helpers.get_tables(
+        client, database_name, star_expression3
+    )
+    response_star_expression4 = helpers.get_tables(
+        client, database_name, star_expression4
+    )
+    response_star_expression5 = helpers.get_tables(
+        client, database_name, star_expression5
+    )
+    response_star_expression6 = helpers.get_tables(
+        client, database_name, star_expression6
+    )
+
+    tables_prefix = response_prefix["TableList"]
+    tables_postfix = response_postfix["TableList"]
+    tables_string_match = response_string_match["TableList"]
+    tables_star_expression1 = response_star_expression1["TableList"]
+    tables_star_expression2 = response_star_expression2["TableList"]
+    tables_star_expression3 = response_star_expression3["TableList"]
+    tables_star_expression4 = response_star_expression4["TableList"]
+    tables_star_expression5 = response_star_expression5["TableList"]
+    tables_star_expression6 = response_star_expression6["TableList"]
+
+    tables_prefix.should.have.length_of(2)
+    tables_postfix.should.have.length_of(1)
+    tables_string_match.should.have.length_of(3)
+    tables_star_expression1.should.have.length_of(8)
+    tables_star_expression2.should.have.length_of(2)
+    tables_star_expression3.should.have.length_of(3)
+    tables_star_expression4.should.have.length_of(3)
+    tables_star_expression5.should.have.length_of(3)
+    tables_star_expression6.should.have.length_of(2)
 
 
 @mock_glue
@@ -742,7 +868,7 @@ def test_batch_update_partition():
         )
 
     response = client.batch_update_partition(
-        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values,
+        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values
     )
 
     for value in values:
@@ -810,7 +936,7 @@ def test_batch_update_partition_missing_partition():
     )
 
     response = client.batch_update_partition(
-        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values,
+        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values
     )
 
     response.should.have.key("Errors")
@@ -838,7 +964,7 @@ def test_delete_partition():
 
     response = client.get_partitions(DatabaseName=database_name, TableName=table_name)
     partitions = response["Partitions"]
-    partitions.should.be.empty
+    partitions.should.equal([])
 
 
 @mock_glue

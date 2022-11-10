@@ -5,20 +5,23 @@ from .models import kinesis_backends
 
 
 class KinesisResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="kinesis")
+
     @property
     def parameters(self):
         return json.loads(self.body)
 
     @property
     def kinesis_backend(self):
-        return kinesis_backends[self.region]
+        return kinesis_backends[self.current_account][self.region]
 
     def create_stream(self):
         stream_name = self.parameters.get("StreamName")
         shard_count = self.parameters.get("ShardCount")
-        retention_period_hours = self.parameters.get("RetentionPeriodHours")
+        stream_mode = self.parameters.get("StreamModeDetails")
         self.kinesis_backend.create_stream(
-            stream_name, shard_count, retention_period_hours
+            stream_name, shard_count, stream_mode=stream_mode
         )
         return ""
 
@@ -98,14 +101,12 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         partition_key = self.parameters.get("PartitionKey")
         explicit_hash_key = self.parameters.get("ExplicitHashKey")
-        sequence_number_for_ordering = self.parameters.get("SequenceNumberForOrdering")
         data = self.parameters.get("Data")
 
         sequence_number, shard_id = self.kinesis_backend.put_record(
             stream_name,
             partition_key,
             explicit_hash_key,
-            sequence_number_for_ordering,
             data,
         )
 
@@ -153,7 +154,7 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         target_shard_count = self.parameters.get("TargetShardCount")
         current_shard_count = self.kinesis_backend.update_shard_count(
-            stream_name=stream_name, target_shard_count=target_shard_count,
+            stream_name=stream_name, target_shard_count=target_shard_count
         )
         return json.dumps(
             dict(
@@ -204,7 +205,7 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         shard_level_metrics = self.parameters.get("ShardLevelMetrics")
         current, desired = self.kinesis_backend.enable_enhanced_monitoring(
-            stream_name=stream_name, shard_level_metrics=shard_level_metrics,
+            stream_name=stream_name, shard_level_metrics=shard_level_metrics
         )
         return json.dumps(
             dict(
@@ -218,7 +219,7 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         shard_level_metrics = self.parameters.get("ShardLevelMetrics")
         current, desired = self.kinesis_backend.disable_enhanced_monitoring(
-            stream_name=stream_name, to_be_disabled=shard_level_metrics,
+            stream_name=stream_name, to_be_disabled=shard_level_metrics
         )
         return json.dumps(
             dict(
@@ -237,7 +238,7 @@ class KinesisResponse(BaseResponse):
         stream_arn = self.parameters.get("StreamARN")
         consumer_name = self.parameters.get("ConsumerName")
         consumer = self.kinesis_backend.register_stream_consumer(
-            stream_arn=stream_arn, consumer_name=consumer_name,
+            stream_arn=stream_arn, consumer_name=consumer_name
         )
         return json.dumps(dict(Consumer=consumer.to_json()))
 
@@ -276,5 +277,11 @@ class KinesisResponse(BaseResponse):
 
     def stop_stream_encryption(self):
         stream_name = self.parameters.get("StreamName")
-        self.kinesis_backend.stop_stream_encryption(stream_name=stream_name,)
+        self.kinesis_backend.stop_stream_encryption(stream_name=stream_name)
         return json.dumps(dict())
+
+    def update_stream_mode(self):
+        stream_arn = self.parameters.get("StreamARN")
+        stream_mode = self.parameters.get("StreamModeDetails")
+        self.kinesis_backend.update_stream_mode(stream_arn, stream_mode)
+        return "{}"

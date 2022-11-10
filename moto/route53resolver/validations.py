@@ -92,7 +92,7 @@ def validate_name(value):
             return "have length less than or equal to 64"
         name_pattern = r"^(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)$"
         if not re.match(name_pattern, value):
-            return fr"satisfy regular expression pattern: {name_pattern}"
+            return rf"satisfy regular expression pattern: {name_pattern}"
     return ""
 
 

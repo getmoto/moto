@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_eks, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.eks.exceptions import (
     InvalidParameterException,
@@ -33,7 +33,7 @@ from moto.eks.models import (
     NODEGROUP_NOT_FOUND_MSG,
 )
 from moto.eks.responses import DEFAULT_MAX_RESULTS
-from moto.utilities.utils import random_string
+from moto.moto_api._internal import mock_random
 
 from .test_eks_constants import (
     BatchCountSize,
@@ -72,8 +72,8 @@ from .test_eks_utils import (
 )
 
 
-@pytest.fixture(scope="function")
-def ClusterBuilder():
+@pytest.fixture(scope="function", name="ClusterBuilder")
+def fixture_ClusterBuilder():
     class ClusterTestDataFactory:
         def __init__(self, client, count, minimal):
             # Generate 'count' number of random Cluster objects.
@@ -104,8 +104,8 @@ def ClusterBuilder():
     yield _execute
 
 
-@pytest.fixture(scope="function")
-def FargateProfileBuilder(ClusterBuilder):
+@pytest.fixture(scope="function", name="FargateProfileBuilder")
+def fixture_FargateProfileBuilder(ClusterBuilder):
     class FargateProfileTestDataFactory:
         def __init__(self, client, cluster, count, minimal):
             self.cluster_name = cluster.existing_cluster_name
@@ -142,8 +142,8 @@ def FargateProfileBuilder(ClusterBuilder):
     return _execute
 
 
-@pytest.fixture(scope="function")
-def NodegroupBuilder(ClusterBuilder):
+@pytest.fixture(scope="function", name="NodegroupBuilder")
+def fixture_NodegroupBuilder(ClusterBuilder):
     class NodegroupTestDataFactory:
         def __init__(self, client, cluster, count, minimal):
             self.cluster_name = cluster.existing_cluster_name
@@ -186,13 +186,44 @@ def NodegroupBuilder(ClusterBuilder):
 # in the list at initialization, which means the mock
 # decorator must be used manually in this one case.
 ###
+
+
 @mock_eks
 def test_list_clusters_returns_empty_by_default():
     client = boto3.client(SERVICE, region_name=REGION)
 
     result = client.list_clusters()[ResponseAttributes.CLUSTERS]
 
-    result.should.be.empty
+    result.should.equal([])
+
+
+@mock_eks
+def test_list_tags_returns_empty_by_default(ClusterBuilder):
+    client, generated_test_data = ClusterBuilder(BatchCountSize.SINGLE)
+    cluster_arn = generated_test_data.cluster_describe_output[ClusterAttributes.ARN]
+    result = client.list_tags_for_resource(resourceArn=cluster_arn)
+    assert len(result["tags"]) == 0
+
+
+@mock_eks
+def test_list_tags_returns_all(ClusterBuilder):
+    client, generated_test_data = ClusterBuilder(BatchCountSize.SINGLE)
+    cluster_arn = generated_test_data.cluster_describe_output[ClusterAttributes.ARN]
+    client.tag_resource(resourceArn=cluster_arn, tags={"key1": "val1", "key2": "val2"})
+    result = client.list_tags_for_resource(resourceArn=cluster_arn)
+    assert len(result["tags"]) == 2
+    result.should.have.key("tags").equals({"key1": "val1", "key2": "val2"})
+
+
+@mock_eks
+def test_list_tags_returns_all_after_delete(ClusterBuilder):
+    client, generated_test_data = ClusterBuilder(BatchCountSize.SINGLE)
+    cluster_arn = generated_test_data.cluster_describe_output[ClusterAttributes.ARN]
+    client.tag_resource(resourceArn=cluster_arn, tags={"key1": "val1", "key2": "val2"})
+    client.untag_resource(resourceArn=cluster_arn, tagKeys=["key1"])
+    result = client.list_tags_for_resource(resourceArn=cluster_arn)
+    assert len(result["tags"]) == 1
+    result.should.have.key("tags").equals({"key2": "val2"})
 
 
 @mock_eks
@@ -262,7 +293,7 @@ def test_create_cluster_throws_exception_when_cluster_exists(ClusterBuilder):
     client, generated_test_data = ClusterBuilder(BatchCountSize.SMALL)
     expected_exception = ResourceInUseException
     expected_msg = CLUSTER_EXISTS_MSG.format(
-        clusterName=generated_test_data.existing_cluster_name,
+        clusterName=generated_test_data.existing_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -347,7 +378,7 @@ def test_describe_cluster_throws_exception_when_cluster_not_found(ClusterBuilder
     client, generated_test_data = ClusterBuilder(BatchCountSize.SMALL)
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -384,7 +415,7 @@ def test_delete_cluster_throws_exception_when_cluster_not_found(ClusterBuilder):
     client, generated_test_data = ClusterBuilder(BatchCountSize.SMALL)
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -403,7 +434,7 @@ def test_list_nodegroups_returns_empty_by_default(ClusterBuilder):
         clusterName=generated_test_data.existing_cluster_name
     )[ResponseAttributes.NODEGROUPS]
 
-    result.should.be.empty
+    result.should.equal([])
 
 
 @mock_eks
@@ -485,14 +516,14 @@ def test_list_nodegroups_returns_custom_second_page_results(NodegroupBuilder):
 @mock_eks
 def test_create_nodegroup_throws_exception_when_cluster_not_found():
     client = boto3.client(SERVICE, region_name=REGION)
-    non_existent_cluster_name = random_string()
+    non_existent_cluster_name = mock_random.get_random_string()
     expected_exception = ResourceNotFoundException
-    expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=non_existent_cluster_name,)
+    expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=non_existent_cluster_name)
 
     with pytest.raises(ClientError) as raised_exception:
         client.create_nodegroup(
             clusterName=non_existent_cluster_name,
-            nodegroupName=random_string(),
+            nodegroupName=mock_random.get_random_string(),
             **dict(NodegroupInputs.REQUIRED)
         )
 
@@ -527,22 +558,20 @@ def test_create_nodegroup_throws_exception_when_nodegroup_already_exists(
 
 
 @mock_eks
-def test_create_nodegroup_throws_exception_when_cluster_not_active(
-    NodegroupBuilder, monkeypatch
-):
+def test_create_nodegroup_throws_exception_when_cluster_not_active(NodegroupBuilder):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant patch Cluster attributes in server mode.")
     client, generated_test_data = NodegroupBuilder(BatchCountSize.SMALL)
     expected_exception = InvalidRequestException
     expected_msg = CLUSTER_NOT_READY_MSG.format(
-        clusterName=generated_test_data.cluster_name,
+        clusterName=generated_test_data.cluster_name
     )
 
     with mock.patch("moto.eks.models.Cluster.isActive", return_value=False):
         with pytest.raises(ClientError) as raised_exception:
             client.create_nodegroup(
                 clusterName=generated_test_data.cluster_name,
-                nodegroupName=random_string(),
+                nodegroupName=mock_random.get_random_string(),
                 **dict(NodegroupInputs.REQUIRED)
             )
     count_nodegroups_after_test = len(
@@ -649,7 +678,7 @@ def test_describe_nodegroup_throws_exception_when_cluster_not_found(NodegroupBui
     client, generated_test_data = NodegroupBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -666,7 +695,7 @@ def test_describe_nodegroup_throws_exception_when_nodegroup_not_found(NodegroupB
     client, generated_test_data = NodegroupBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = NODEGROUP_NOT_FOUND_MSG.format(
-        nodegroupName=generated_test_data.nonexistent_nodegroup_name,
+        nodegroupName=generated_test_data.nonexistent_nodegroup_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -726,7 +755,7 @@ def test_delete_nodegroup_throws_exception_when_cluster_not_found(NodegroupBuild
     client, generated_test_data = NodegroupBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -743,7 +772,7 @@ def test_delete_nodegroup_throws_exception_when_nodegroup_not_found(NodegroupBui
     client, generated_test_data = NodegroupBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = NODEGROUP_NOT_FOUND_MSG.format(
-        nodegroupName=generated_test_data.nonexistent_nodegroup_name,
+        nodegroupName=generated_test_data.nonexistent_nodegroup_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -798,7 +827,7 @@ def test_create_nodegroup_handles_launch_template_combinations(
     expected_result,
 ):
     client, generated_test_data = ClusterBuilder()
-    nodegroup_name = random_string()
+    nodegroup_name = mock_random.get_random_string()
     expected_exception = InvalidParameterException
     expected_msg = None
 
@@ -853,7 +882,7 @@ def test_list_fargate_profile_returns_empty_by_default(ClusterBuilder):
         clusterName=generated_test_data.existing_cluster_name
     )[ResponseAttributes.FARGATE_PROFILE_NAMES]
 
-    result.should.be.empty
+    result.should.equal([])
 
 
 @mock_eks
@@ -937,14 +966,14 @@ def test_list_fargate_profile_returns_custom_second_page_results(FargateProfileB
 @mock_eks
 def test_create_fargate_profile_throws_exception_when_cluster_not_found():
     client = boto3.client(SERVICE, region_name=REGION)
-    non_existent_cluster_name = random_string()
+    non_existent_cluster_name = mock_random.get_random_string()
     expected_exception = ResourceNotFoundException
-    expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=non_existent_cluster_name,)
+    expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=non_existent_cluster_name)
 
     with pytest.raises(ClientError) as raised_exception:
         client.create_fargate_profile(
             clusterName=non_existent_cluster_name,
-            fargateProfileName=random_string(),
+            fargateProfileName=mock_random.get_random_string(),
             **dict(FargateProfileInputs.REQUIRED)
         )
 
@@ -977,21 +1006,21 @@ def test_create_fargate_profile_throws_exception_when_fargate_profile_already_ex
 
 @mock_eks
 def test_create_fargate_profile_throws_exception_when_cluster_not_active(
-    FargateProfileBuilder, monkeypatch
+    FargateProfileBuilder,
 ):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant patch Cluster attributes in server mode.")
     client, generated_test_data = FargateProfileBuilder(BatchCountSize.SMALL)
     expected_exception = InvalidRequestException
     expected_msg = CLUSTER_NOT_READY_MSG.format(
-        clusterName=generated_test_data.cluster_name,
+        clusterName=generated_test_data.cluster_name
     )
 
     with mock.patch("moto.eks.models.Cluster.isActive", return_value=False):
         with pytest.raises(ClientError) as raised_exception:
             client.create_fargate_profile(
                 clusterName=generated_test_data.cluster_name,
-                fargateProfileName=random_string(),
+                fargateProfileName=mock_random.get_random_string(),
                 **dict(FargateProfileInputs.REQUIRED)
             )
     count_fargate_profiles_after_test = len(
@@ -1057,7 +1086,7 @@ def test_describe_fargate_profile_throws_exception_when_cluster_not_found(
     client, generated_test_data = FargateProfileBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -1076,7 +1105,7 @@ def test_describe_fargate_profile_throws_exception_when_profile_not_found(
     client, generated_test_data = FargateProfileBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = FARGATE_PROFILE_NOT_FOUND_MSG.format(
-        fargateProfileName=generated_test_data.nonexistent_fargate_profile_name,
+        fargateProfileName=generated_test_data.nonexistent_fargate_profile_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -1124,7 +1153,7 @@ def test_delete_fargate_profile_throws_exception_when_cluster_not_found(
     client, generated_test_data = FargateProfileBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -1143,7 +1172,7 @@ def test_delete_fargate_profile_throws_exception_when_fargate_profile_not_found(
     client, generated_test_data = FargateProfileBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = FARGATE_PROFILE_NOT_FOUND_MSG.format(
-        fargateProfileName=generated_test_data.nonexistent_fargate_profile_name,
+        fargateProfileName=generated_test_data.nonexistent_fargate_profile_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -1159,7 +1188,7 @@ def test_delete_fargate_profile_throws_exception_when_fargate_profile_not_found(
 def test_create_fargate_throws_exception_when_no_selectors_provided(ClusterBuilder):
     client, generated_test_data = ClusterBuilder()
     cluster_name = generated_test_data.existing_cluster_name
-    fargate_profile_name = random_string()
+    fargate_profile_name = mock_random.get_random_string()
     expected_exception = InvalidParameterException
     expected_msg = FARGATE_PROFILE_NEEDS_SELECTOR_MSG
 
@@ -1290,7 +1319,7 @@ selector_formatting_test_cases = [
 
 
 @pytest.mark.parametrize(
-    "selectors, expected_message, expected_result", selector_formatting_test_cases,
+    "selectors, expected_message, expected_result", selector_formatting_test_cases
 )
 @mock_eks
 def test_create_fargate_selectors(
@@ -1298,7 +1327,7 @@ def test_create_fargate_selectors(
 ):
     client, generated_test_data = ClusterBuilder()
     cluster_name = generated_test_data.existing_cluster_name
-    fargate_profile_name = random_string()
+    fargate_profile_name = mock_random.get_random_string()
     expected_exception = InvalidParameterException
 
     test_inputs = dict(
@@ -1345,7 +1374,7 @@ def all_arn_values_should_be_valid(expected_arn_values, pattern, arn_under_test)
         if expected_value:
             value.should.be.within(expected_value)
         else:
-            value.should.be.truthy
+            value.shouldnt.equal(None)
     region_matches_partition(findall[1], findall[0]).should.be.true
 
 
@@ -1363,7 +1392,7 @@ def assert_result_matches_expected_list(result, expected_result, expected_len):
 def assert_valid_selectors(ClusterBuilder, expected_msg, expected_result, selectors):
     client, generated_test_data = ClusterBuilder()
     cluster_name = generated_test_data.existing_cluster_name
-    fargate_profile_name = random_string()
+    fargate_profile_name = mock_random.get_random_string()
     expected_exception = InvalidParameterException
 
     test_inputs = dict(

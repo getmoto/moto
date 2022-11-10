@@ -1,8 +1,6 @@
-import random
 import string
 import re
-
-from moto.core import ACCOUNT_ID
+from moto.moto_api._internal import mock_random as random
 
 
 def random_password(
@@ -63,10 +61,10 @@ def random_password(
     return password
 
 
-def secret_arn(region, secret_id):
-    id_string = "".join(random.choice(string.ascii_letters) for _ in range(5))
-    return "arn:aws:secretsmanager:{0}:{1}:secret:{2}-{3}".format(
-        region, ACCOUNT_ID, secret_id, id_string
+def secret_arn(account_id, region, secret_id):
+    id_string = "".join(random.choice(string.ascii_letters) for _ in range(6))
+    return (
+        f"arn:aws:secretsmanager:{region}:{account_id}:secret:{secret_id}-{id_string}"
     )
 
 

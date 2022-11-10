@@ -1,47 +1,41 @@
-import uuid
-import random
 import yaml
 import os
 import string
-
-from moto.core import ACCOUNT_ID
-
-
-def generate_stack_id(stack_name, region="us-east-1", account="123456789"):
-    random_id = uuid.uuid4()
-    return "arn:aws:cloudformation:{}:{}:stack/{}/{}".format(
-        region, account, stack_name, random_id
-    )
+from moto.moto_api._internal import mock_random as random
+from typing import Any, List
 
 
-def generate_changeset_id(changeset_name, region_name):
-    random_id = uuid.uuid4()
-    return "arn:aws:cloudformation:{0}:123456789:changeSet/{1}/{2}".format(
-        region_name, changeset_name, random_id
-    )
+def generate_stack_id(stack_name: str, region: str, account: str) -> str:
+    random_id = random.uuid4()
+    return f"arn:aws:cloudformation:{region}:{account}:stack/{stack_name}/{random_id}"
 
 
-def generate_stackset_id(stackset_name):
-    random_id = uuid.uuid4()
+def generate_changeset_id(
+    changeset_name: str, region_name: str, account_id: str
+) -> str:
+    random_id = random.uuid4()
+    return f"arn:aws:cloudformation:{region_name}:{account_id}:changeSet/{changeset_name}/{random_id}"
+
+
+def generate_stackset_id(stackset_name: str) -> str:
+    random_id = random.uuid4()
     return "{}:{}".format(stackset_name, random_id)
 
 
-def generate_stackset_arn(stackset_id, region_name):
-    return "arn:aws:cloudformation:{}:{}:stackset/{}".format(
-        region_name, ACCOUNT_ID, stackset_id
-    )
+def generate_stackset_arn(stackset_id: str, region_name: str, account_id: str) -> str:
+    return f"arn:aws:cloudformation:{region_name}:{account_id}:stackset/{stackset_id}"
 
 
-def random_suffix():
+def random_suffix() -> str:
     size = 12
     chars = list(range(10)) + list(string.ascii_uppercase)
     return "".join(str(random.choice(chars)) for x in range(size))
 
 
-def yaml_tag_constructor(loader, tag, node):
+def yaml_tag_constructor(loader: Any, tag: Any, node: Any) -> Any:
     """convert shorthand intrinsic function to full name"""
 
-    def _f(loader, tag, node):
+    def _f(loader: Any, tag: Any, node: Any) -> Any:
         if tag == "!GetAtt":
             if isinstance(node.value, list):
                 return node.value
@@ -59,7 +53,7 @@ def yaml_tag_constructor(loader, tag, node):
     return {key: _f(loader, tag, node)}
 
 
-def validate_template_cfn_lint(template):
+def validate_template_cfn_lint(template: str) -> List[Any]:
     # Importing cfnlint adds a significant overhead, so we keep it local
     from cfnlint import decode, core
 

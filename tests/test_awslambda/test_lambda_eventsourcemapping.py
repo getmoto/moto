@@ -6,13 +6,7 @@ import time
 import sure  # noqa # pylint: disable=unused-import
 import uuid
 
-from moto import (
-    mock_dynamodb2,
-    mock_lambda,
-    mock_logs,
-    mock_sns,
-    mock_sqs,
-)
+from moto import mock_dynamodb, mock_lambda, mock_logs, mock_sns, mock_sqs
 from uuid import uuid4
 from .utilities import (
     get_role_name,
@@ -103,7 +97,7 @@ def test_invoke_function_from_sqs(key):
 @pytest.mark.network
 @mock_logs
 @mock_lambda
-@mock_dynamodb2
+@mock_dynamodb
 def test_invoke_function_from_dynamodb_put():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     table_name = str(uuid4())[0:6] + "_table"
@@ -154,7 +148,7 @@ def test_invoke_function_from_dynamodb_put():
 @pytest.mark.network
 @mock_logs
 @mock_lambda
-@mock_dynamodb2
+@mock_dynamodb
 def test_invoke_function_from_dynamodb_update():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     table_name = str(uuid4())[0:6] + "_table"

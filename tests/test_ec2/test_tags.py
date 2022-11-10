@@ -74,7 +74,7 @@ def test_instance_delete_tags():
 
 
 @mock_ec2
-def test_get_all_tags_with_special_characters_boto3():
+def test_get_all_tags_with_special_characters():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
@@ -90,7 +90,7 @@ def test_get_all_tags_with_special_characters_boto3():
 
 
 @mock_ec2
-def test_create_tags_boto3():
+def test_create_tags():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
@@ -125,7 +125,7 @@ def test_create_tags_boto3():
 
 
 @mock_ec2
-def test_tag_limit_exceeded_boto3():
+def test_tag_limit_exceeded():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
@@ -155,7 +155,7 @@ def test_tag_limit_exceeded_boto3():
 
 
 @mock_ec2
-def test_invalid_id_boto3():
+def test_invalid_id():
     client = boto3.client("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.create_tags(
@@ -175,13 +175,13 @@ def test_invalid_id_boto3():
 
 
 @mock_ec2
-def test_get_all_tags_resource_filter_boto3():
+def test_get_all_tags_resource_filter():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
     inst_tag_key = str(uuid4())[0:6]
     client.create_tags(
-        Resources=[instance.id], Tags=[{"Key": inst_tag_key, "Value": "some value"}],
+        Resources=[instance.id], Tags=[{"Key": inst_tag_key, "Value": "some value"}]
     )
     image = instance.create_image(Name="test-ami", Description="this is a test ami")
     image.create_tags(Tags=[{"Key": "an image key", "Value": "some value"}])
@@ -227,7 +227,7 @@ def test_get_all_tags_resource_filter_boto3():
 
 
 @mock_ec2
-def test_get_all_tags_value_filter_boto3():
+def test_get_all_tags_value_filter():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -265,7 +265,7 @@ def test_get_all_tags_value_filter_boto3():
 
 
 @mock_ec2
-def test_retrieved_instances_must_contain_their_tags_boto3():
+def test_retrieved_instances_must_contain_their_tags():
     tag_key = "Tag name"
     tag_value = "Tag value"
     tags_to_be_set = {"Key": tag_key, "Value": tag_value}
@@ -291,7 +291,7 @@ def test_retrieved_instances_must_contain_their_tags_boto3():
 
 
 @mock_ec2
-def test_retrieved_volumes_must_contain_their_tags_boto3():
+def test_retrieved_volumes_must_contain_their_tags():
     tag_key = "Tag name"
     tag_value = "Tag value"
     tags_to_be_set = {"Key": tag_key, "Value": tag_value}
@@ -299,7 +299,7 @@ def test_retrieved_volumes_must_contain_their_tags_boto3():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     volume = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
-    volume.tags.should.be.none
+    volume.tags.should.equal(None)
 
     client.create_tags(Resources=[volume.id], Tags=[tags_to_be_set])
 
@@ -308,7 +308,7 @@ def test_retrieved_volumes_must_contain_their_tags_boto3():
 
 
 @mock_ec2
-def test_retrieved_snapshots_must_contain_their_tags_boto3():
+def test_retrieved_snapshots_must_contain_their_tags():
     tag_key = "Tag name"
     tag_value = "Tag value"
     tags_to_be_set = {"Key": tag_key, "Value": tag_value}
@@ -325,7 +325,7 @@ def test_retrieved_snapshots_must_contain_their_tags_boto3():
 
 
 @mock_ec2
-def test_filter_instances_by_wildcard_tags_boto3():
+def test_filter_instances_by_wildcard_tags():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
 
@@ -399,6 +399,26 @@ def test_create_snapshot_with_tags():
     expected_tags = [{"Key": "TEST_SNAPSHOT_TAG", "Value": "TEST_SNAPSHOT_VALUE"}]
 
     assert snapshot["Tags"] == expected_tags
+
+
+@mock_ec2
+def test_create_volume_without_tags():
+    client = boto3.client("ec2", "us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_volume(
+            AvailabilityZone="us-east-1a",
+            Encrypted=False,
+            Size=40,
+            TagSpecifications=[
+                {
+                    "ResourceType": "volume",
+                    "Tags": [],
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Tag specification must have at least one tag")
 
 
 @mock_ec2

@@ -6,7 +6,7 @@ import json
 from moto import mock_cloudformation, mock_ecr
 import sure  # noqa # pylint: disable=unused-import
 
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 repo_template = Template(
     json.dumps(
@@ -16,7 +16,7 @@ repo_template = Template(
             "Resources": {
                 "Repo": {
                     "Type": "AWS::ECR::Repository",
-                    "Properties": {"RepositoryName": "${repo_name}",},
+                    "Properties": {"RepositoryName": "${repo_name}"},
                 }
             },
             "Outputs": {

@@ -5,6 +5,9 @@ from .models import ecs_backends
 
 
 class EC2ContainerServiceResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="ecs")
+
     @property
     def ecs_backend(self):
         """
@@ -13,7 +16,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         :return: ECS Backend object
         :rtype: moto.ecs.models.EC2ContainerServiceBackend
         """
-        return ecs_backends[self.region]
+        return ecs_backends[self.current_account][self.region]
 
     @property
     def request_params(self):
@@ -22,15 +25,23 @@ class EC2ContainerServiceResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param, if_none=None):
-        return self.request_params.get(param, if_none)
+    def _get_param(self, param_name, if_none=None):
+        return self.request_params.get(param_name, if_none)
+
+    def create_capacity_provider(self):
+        name = self._get_param("name")
+        asg_provider = self._get_param("autoScalingGroupProvider")
+        tags = self._get_param("tags")
+        provider = self.ecs_backend.create_capacity_provider(name, asg_provider, tags)
+        return json.dumps({"capacityProvider": provider.response_object})
 
     def create_cluster(self):
         cluster_name = self._get_param("clusterName")
         tags = self._get_param("tags")
+        settings = self._get_param("settings")
         if cluster_name is None:
             cluster_name = "default"
-        cluster = self.ecs_backend.create_cluster(cluster_name, tags)
+        cluster = self.ecs_backend.create_cluster(cluster_name, tags, settings)
         return json.dumps({"cluster": cluster.response_object})
 
     def list_clusters(self):
@@ -39,6 +50,21 @@ class EC2ContainerServiceResponse(BaseResponse):
             {
                 "clusterArns": cluster_arns
                 #  'nextToken': str(uuid.uuid4())
+            }
+        )
+
+    def delete_capacity_provider(self):
+        name = self._get_param("capacityProvider")
+        provider = self.ecs_backend.delete_capacity_provider(name)
+        return json.dumps({"capacityProvider": provider.response_object})
+
+    def describe_capacity_providers(self):
+        names = self._get_param("capacityProviders")
+        providers, failures = self.ecs_backend.describe_capacity_providers(names)
+        return json.dumps(
+            {
+                "capacityProviders": [p.response_object for p in providers],
+                "failures": [p.response_object for p in failures],
             }
         )
 
@@ -117,10 +143,11 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_str = self._get_param("cluster", "default")
         overrides = self._get_param("overrides")
         task_definition_str = self._get_param("taskDefinition")
-        count = self._get_int_param("count")
+        count = self._get_int_param("count", 1)
         started_by = self._get_param("startedBy")
         tags = self._get_param("tags")
         launch_type = self._get_param("launchType")
+        network_configuration = self._get_param("networkConfiguration")
         tasks = self.ecs_backend.run_task(
             cluster_str,
             task_definition_str,
@@ -129,6 +156,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             started_by,
             tags,
             launch_type,
+            network_configuration,
         )
         return json.dumps(
             {"tasks": [task.response_object for task in tasks], "failures": []}
@@ -207,7 +235,10 @@ class EC2ContainerServiceResponse(BaseResponse):
     def list_services(self):
         cluster_str = self._get_param("cluster", "default")
         scheduling_strategy = self._get_param("schedulingStrategy")
-        service_arns = self.ecs_backend.list_services(cluster_str, scheduling_strategy)
+        launch_type = self._get_param("launchType")
+        service_arns = self.ecs_backend.list_services(
+            cluster_str, scheduling_strategy, launch_type=launch_type
+        )
         return json.dumps(
             {
                 "serviceArns": service_arns
@@ -321,11 +352,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         attr_name = self._get_param("attributeName")
         attr_value = self._get_param("attributeValue")
         target_type = self._get_param("targetType")
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
 
         results = self.ecs_backend.list_attributes(
-            target_type, cluster_name, attr_name, attr_value, max_results, next_token
+            target_type, cluster_name, attr_name, attr_value
         )
         # Result will be [item will be {0 cluster_name, 1 arn, 2 name, 3 value}]
 
@@ -357,13 +386,7 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def list_task_definition_families(self):
         family_prefix = self._get_param("familyPrefix")
-        status = self._get_param("status")
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
-
-        results = self.ecs_backend.list_task_definition_families(
-            family_prefix, status, max_results, next_token
-        )
+        results = self.ecs_backend.list_task_definition_families(family_prefix)
 
         return json.dumps({"families": list(results)})
 
@@ -434,10 +457,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_str = self._get_param("cluster")
         service_str = self._get_param("service")
         task_set = self._get_param("taskSet")
-        force = self._get_param("force")
-        task_set = self.ecs_backend.delete_task_set(
-            cluster_str, service_str, task_set, force
-        )
+        task_set = self.ecs_backend.delete_task_set(cluster_str, service_str, task_set)
         return json.dumps({"taskSet": task_set.response_object})
 
     def update_task_set(self):

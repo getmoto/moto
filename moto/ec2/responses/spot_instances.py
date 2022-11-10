@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class SpotInstances(BaseResponse):
+class SpotInstances(EC2BaseResponse):
     def cancel_spot_instance_requests(self):
         request_ids = self._get_multi_param("SpotInstanceRequestId")
         if self.is_not_dryrun("CancelSpotInstance"):
@@ -29,7 +28,7 @@ class SpotInstances(BaseResponse):
 
     def describe_spot_instance_requests(self):
         spot_instance_ids = self._get_multi_param("SpotInstanceRequestId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         requests = self.ec2_backend.describe_spot_instance_requests(
             filters=filters, spot_instance_ids=spot_instance_ids
         )
@@ -38,7 +37,7 @@ class SpotInstances(BaseResponse):
 
     def describe_spot_price_history(self):
         instance_types_filters = self._get_multi_param("InstanceType")
-        filter_dict = filters_from_querystring(self.querystring)
+        filter_dict = self._filters_from_querystring()
         prices = self.ec2_backend.describe_spot_price_history(
             instance_types_filters, filter_dict
         )
@@ -63,6 +62,10 @@ class SpotInstances(BaseResponse):
         ramdisk_id = self._get_param("LaunchSpecification.RamdiskId")
         monitoring_enabled = self._get_param("LaunchSpecification.Monitoring.Enabled")
         subnet_id = self._get_param("LaunchSpecification.SubnetId")
+        instance_interruption_behaviour = self._get_param(
+            "InstanceInterruptionBehavior"
+        )
+        tags = self._parse_tag_specification()
 
         if self.is_not_dryrun("RequestSpotInstance"):
             requests = self.ec2_backend.request_spot_instances(
@@ -83,6 +86,8 @@ class SpotInstances(BaseResponse):
                 ramdisk_id=ramdisk_id,
                 monitoring_enabled=monitoring_enabled,
                 subnet_id=subnet_id,
+                instance_interruption_behaviour=instance_interruption_behaviour,
+                tags=tags,
             )
 
             template = self.response_template(REQUEST_SPOT_INSTANCES_TEMPLATE)
@@ -99,9 +104,9 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
       <type>{{ request.type }}</type>
       <state>{{ request.state }}</state>
       <status>
-        <code>pending-evaluation</code>
+        <code>{{ request.status }}</code>
         <updateTime>2015-01-01T00:00:00.000Z</updateTime>
-        <message>Your Spot request has been submitted for review, and is pending evaluation.</message>
+        <message>{{ request.status_message }}</message>
       </status>
       <instanceId>{{ request.instance_id }}</instanceId>
       <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
@@ -154,11 +159,11 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
       <type>{{ request.type }}</type>
       <state>{{ request.state }}</state>
       <status>
-        <code>pending-evaluation</code>
+        <code>{{ request.status }}</code>
         <updateTime>2015-01-01T00:00:00.000Z</updateTime>
-        <message>Your Spot request has been submitted for review, and is pending evaluation.</message>
+        <message>{{ request.status_message }}</message>
       </status>
-      <instanceId>{{ request.instance_id }}</instanceId>
+      <instanceId>{{ request.instance.id }}</instanceId>
       {% if request.availability_zone_group %}
         <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
       {% endif %}
@@ -218,6 +223,7 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
         <validUntil>{{ request.valid_until }}</validUntil>
       {% endif %}
       <productDescription>Linux/UNIX</productDescription>
+      <instanceInterruptionBehavior>{{ request.instance_interruption_behaviour }}</instanceInterruptionBehavior>
     </item>
     {% endfor %}
   </spotInstanceRequestSet>

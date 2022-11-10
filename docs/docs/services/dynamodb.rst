@@ -16,8 +16,8 @@ dynamodb
 
 .. sourcecode:: python
 
-            @mock_dynamodb2
-            def test_dynamodb2_behaviour:
+            @mock_dynamodb
+            def test_dynamodb_behaviour:
                 boto3.client("dynamodb")
                 ...
 
@@ -41,6 +41,7 @@ dynamodb
 - [ ] describe_export
 - [ ] describe_global_table
 - [ ] describe_global_table_settings
+- [ ] describe_import
 - [ ] describe_kinesis_streaming_destination
 - [ ] describe_limits
 - [X] describe_table
@@ -52,10 +53,12 @@ dynamodb
 - [ ] execute_transaction
 - [ ] export_table_to_point_in_time
 - [X] get_item
+- [ ] import_table
 - [X] list_backups
 - [ ] list_contributor_insights
 - [ ] list_exports
 - [ ] list_global_tables
+- [ ] list_imports
 - [X] list_tables
 - [X] list_tags_of_resource
 - [X] put_item

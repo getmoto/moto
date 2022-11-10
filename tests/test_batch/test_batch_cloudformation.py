@@ -1,12 +1,6 @@
 import boto3
 import sure  # noqa # pylint: disable=unused-import
-from moto import (
-    mock_batch,
-    mock_iam,
-    mock_ec2,
-    mock_ecs,
-    mock_cloudformation,
-)
+from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_cloudformation
 import json
 from uuid import uuid4
 

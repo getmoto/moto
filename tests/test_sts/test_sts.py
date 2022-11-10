@@ -9,7 +9,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sts, mock_iam, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
 
 
@@ -61,8 +61,10 @@ def test_get_federation_token_boto3():
 
 @freeze_time("2012-01-01 12:00:00")
 @mock_sts
+@mock_iam
 def test_assume_role():
     client = boto3.client("sts", region_name="us-east-1")
+    iam_client = boto3.client("iam", region_name="us-east-1")
 
     session_name = "session-name"
     policy = json.dumps(
@@ -77,12 +79,24 @@ def test_assume_role():
             ]
         }
     )
+    trust_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::{account_id}:root".format(account_id=ACCOUNT_ID)
+            },
+            "Action": "sts:AssumeRole",
+        },
+    }
     role_name = "test-role"
-    s3_role = "arn:aws:iam::{account_id}:role/{role_name}".format(
-        account_id=ACCOUNT_ID, role_name=role_name
-    )
+    role = iam_client.create_role(
+        RoleName="test-role", AssumeRolePolicyDocument=json.dumps(trust_policy_document)
+    )["Role"]
+    role_id = role["RoleId"]
+    role_arn = role["Arn"]
     assume_role_response = client.assume_role(
-        RoleArn=s3_role,
+        RoleArn=role_arn,
         RoleSessionName=session_name,
         Policy=policy,
         DurationSeconds=900,
@@ -103,6 +117,10 @@ def test_assume_role():
         )
     )
     assert assume_role_response["AssumedRoleUser"]["AssumedRoleId"].startswith("AROA")
+    assert (
+        assume_role_response["AssumedRoleUser"]["AssumedRoleId"].rpartition(":")[0]
+        == role_id
+    )
     assert assume_role_response["AssumedRoleUser"]["AssumedRoleId"].endswith(
         ":" + session_name
     )

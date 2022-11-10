@@ -3,62 +3,26 @@ name: TestNDeploy
 on: [push, pull_request]
 
 jobs:
-  # Install and cache dependencies
-  terraformcache:
-    name: Caching Terraform dependencies
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ 3.8 ]
-
-    steps:
-    - name: Checkout Terraform Tests repo
-      uses: actions/checkout@v2
-      with:
-        repository: localstack/localstack-terraform-test
-        ref: build
-        path: moto-terraform-tests
-        submodules: 'true'
-    - uses: actions/setup-go@v2
-      with:
-        go-version: '^1.16.0'
-    - run: go version
-    - name: cache
-      id: terraformcache
-      uses: actions/cache@v2
-      with:
-        path: '~/.cache'
-        key: 'terraformcache_download2'
-    - name: Download
-      env:
-        DOWNLOAD_TEST_BIN: 1
-        TEST_BIN_URL: "https://moto-terraform-test.s3.amazonaws.com/aws.test"
-      if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
-      run: |
-        cd moto-terraform-tests
-        bin/install-aws-test
-        cd ..
-
   cache:
     name: Caching
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.6, 3.7, 3.8, 3.9, "3.10" ]
+        python-version: [ 3.6, 3.7, 3.8, 3.9, "3.10", "3.11" ]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get pip cache dir
         id: pip-cache-dir
         run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+          echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
       - name: pip cache
         id: pip-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
@@ -79,18 +43,18 @@ jobs:
       matrix:
         python-version: [3.7]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     # Retrieve the previously cached dependencies
     - name: Get pip cache dir
       id: pip-cache
       run: |
-        echo "::set-output name=dir::$(pip cache dir)"
+        echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
@@ -113,22 +77,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.6, 3.7, 3.8, 3.9, "3.10", "3.11"]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Get pip cache dir
       id: pip-cache
       run: |
-        echo "::set-output name=dir::$(pip cache dir)"
+        echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
@@ -140,14 +104,12 @@ jobs:
         pip install -r requirements-dev.txt
         pip install pytest-cov
         pip install pytest-github-actions-annotate-failures
-        # https://github.com/aws/aws-xray-sdk-python/issues/196
-        pip install "coverage<=4.5.4"
     - name: Test with pytest
       run: |
         make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       with:
         fail_ci_if_error: false
         flags: unittests
@@ -157,15 +119,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.6, 3.7, 3.8, 3.9, "3.10", "3.11"]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Start MotoServer
@@ -176,9 +139,9 @@ jobs:
     - name: Get pip cache dir
       id: pip-cache
       run: |
-        echo "::set-output name=dir::$(pip cache dir)"
+        echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
@@ -188,7 +151,6 @@ jobs:
     - name: Install project dependencies
       run: |
         pip install -r requirements-dev.txt
-        pip install "coverage<=4.5.4"
     - name: Test ServerMode/Coverage
       env:
         TEST_SERVER_MODE: ${{ true }}
@@ -196,7 +158,7 @@ jobs:
         make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       with:
         fail_ci_if_error: false
         flags: servertests
@@ -210,94 +172,26 @@ jobs:
         docker stop motoserver
     - name: Archive TF logs
       if: always()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: motoserver-${{ matrix.python-version }}
         path: |
           serverlogs/*
 
-  terraform:
-    name: Terraform Tests
-    runs-on: ubuntu-latest
-    needs: terraformcache
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ 3.8 ]
-        part: ["aa", "ab", "ac", "ad", "ae"]
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Checkout Terraform Tests repo
-      uses: actions/checkout@v2
-      with:
-        repository: localstack/localstack-terraform-test
-        ref: build
-        path: moto-terraform-tests
-        submodules: 'true'
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: cache
-      uses: actions/cache@v2
-      with:
-        path: '~/.cache'
-        key: 'terraformcache_download2'
-    - name: Start MotoServer
-      run: |
-        python setup.py sdist
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
-        MOTO_PORT=4566 python scripts/ci_wait_for_server.py
-    # Poor man's parallelization
-    # Running them sequentially takes too much time
-    # And using the build in parallel-argument does not help with reducing runtime
-    # So we simply split the list of tests, and ask our CI for separate VM's to run them in parallel
-    - name: Get list of tests
-      run: |
-        cd moto-terraform-tests
-        bin/list-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt > tftestlist.txt
-        split -n l/5 tftestlist.txt tf-split-
-        cd ..
-    - name: Run Terraform Tests
-      run: |
-        cd moto-terraform-tests
-        echo "Copying random zipfile that is missing for SSM tests..."
-        cp terraform-provider-aws/aws/test-fixtures/lambda_elb.zip terraform-provider-aws/aws/test-fixtures/ssm-doc-acc-test.zip
-        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i tf-split-${{ matrix.part }} -e ../tests/terraform-tests.failures.txt
-        cd ..
-    - name: "Create report"
-      run: |
-        ls -la
-        cp server_output.log moto-terraform-tests/build/server_output.log
-        cd moto-terraform-tests
-        bin/create-report
-        bin/create-report-cli
-        cd ..
-    - name: Archive TF logs
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: buildfolder-${{ matrix.part }}
-        path: |
-          moto-terraform-tests/build/*
-
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: [test, testserver, terraform ]
+    needs: [test, testserver ]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'spulec/moto' }}
     strategy:
       matrix:
         python-version: [3.8]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: Update & Build
@@ -306,7 +200,7 @@ jobs:
           python update_version_from_git.py
           python setup.py sdist bdist_wheel
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Build Docker release
@@ -315,9 +209,9 @@ jobs:
       # Required to get the correct Digest
       # See https://github.com/docker/build-push-action/issues/461
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}

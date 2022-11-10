@@ -42,7 +42,7 @@ iam
 - [X] create_policy_version
 - [X] create_role
 - [X] create_saml_provider
-- [ ] create_service_linked_role
+- [X] create_service_linked_role
 - [ ] create_service_specific_credential
 - [X] create_user
 - [X] create_virtual_mfa_device
@@ -64,7 +64,7 @@ iam
 - [X] delete_role_policy
 - [X] delete_saml_provider
 - [X] delete_server_certificate
-- [ ] delete_service_linked_role
+- [X] delete_service_linked_role
 - [ ] delete_service_specific_credential
 - [X] delete_signing_certificate
 - [X] delete_ssh_public_key
@@ -89,6 +89,10 @@ iam
 - [ ] get_context_keys_for_principal_policy
 - [X] get_credential_report
 - [X] get_group
+  
+        Pagination is not yet implemented
+        
+
 - [X] get_group_policy
 - [X] get_instance_profile
 - [X] get_login_profile
@@ -102,17 +106,29 @@ iam
 - [X] get_server_certificate
 - [ ] get_service_last_accessed_details
 - [ ] get_service_last_accessed_details_with_entities
-- [ ] get_service_linked_role_deletion_status
+- [X] get_service_linked_role_deletion_status
+  
+        This method always succeeds for now - we do not yet keep track of deletions
+        
+
 - [X] get_ssh_public_key
 - [X] get_user
 - [X] get_user_policy
-- [ ] list_access_keys
+- [X] list_access_keys
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_account_aliases
 - [X] list_attached_group_policies
 - [X] list_attached_role_policies
 - [X] list_attached_user_policies
 - [ ] list_entities_for_policy
 - [X] list_group_policies
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_groups
 - [ ] list_groups_for_user
 - [ ] list_instance_profile_tags
@@ -132,7 +148,11 @@ iam
 - [ ] list_saml_provider_tags
 - [X] list_saml_providers
 - [ ] list_server_certificate_tags
-- [ ] list_server_certificates
+- [X] list_server_certificates
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_service_specific_credentials
 - [X] list_signing_certificates
 - [ ] list_ssh_public_keys
@@ -172,7 +192,7 @@ iam
 - [X] untag_user
 - [X] update_access_key
 - [X] update_account_password_policy
-- [ ] update_assume_role_policy
+- [X] update_assume_role_policy
 - [X] update_group
 - [X] update_login_profile
 - [X] update_open_id_connect_provider_thumbprint

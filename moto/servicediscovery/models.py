@@ -1,8 +1,8 @@
-import random
 import string
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import (
@@ -22,6 +22,7 @@ def random_id(size):
 class Namespace(BaseModel):
     def __init__(
         self,
+        account_id,
         region,
         name,
         ns_type,
@@ -33,7 +34,7 @@ class Namespace(BaseModel):
     ):
         super().__init__()
         self.id = f"ns-{random_id(20)}"
-        self.arn = f"arn:aws:servicediscovery:{region}:{ACCOUNT_ID}:namespace/{self.id}"
+        self.arn = f"arn:aws:servicediscovery:{region}:{account_id}:namespace/{self.id}"
         self.name = name
         self.type = ns_type
         self.creator_request_id = creator_request_id
@@ -64,6 +65,7 @@ class Namespace(BaseModel):
 class Service(BaseModel):
     def __init__(
         self,
+        account_id,
         region,
         name,
         namespace_id,
@@ -76,7 +78,7 @@ class Service(BaseModel):
     ):
         super().__init__()
         self.id = f"srv-{random_id(8)}"
-        self.arn = f"arn:aws:servicediscovery:{region}:{ACCOUNT_ID}:service/{self.id}"
+        self.arn = f"arn:aws:servicediscovery:{region}:{account_id}:service/{self.id}"
         self.name = name
         self.namespace_id = namespace_id
         self.description = description
@@ -145,18 +147,12 @@ class Operation(BaseModel):
 class ServiceDiscoveryBackend(BaseBackend):
     """Implementation of ServiceDiscovery APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.operations = dict()
         self.namespaces = dict()
         self.services = dict()
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def list_namespaces(self):
         """
@@ -166,6 +162,7 @@ class ServiceDiscoveryBackend(BaseBackend):
 
     def create_http_namespace(self, name, creator_request_id, description, tags):
         namespace = Namespace(
+            account_id=self.account_id,
             region=self.region_name,
             name=name,
             ns_type="HTTP",
@@ -237,6 +234,7 @@ class ServiceDiscoveryBackend(BaseBackend):
         dns_properties = (properties or {}).get("DnsProperties", {})
         dns_properties["HostedZoneId"] = "hzi"
         namespace = Namespace(
+            account_id=self.account_id,
             region=self.region_name,
             name=name,
             ns_type="DNS_PRIVATE",
@@ -260,6 +258,7 @@ class ServiceDiscoveryBackend(BaseBackend):
         dns_properties = (properties or {}).get("DnsProperties", {})
         dns_properties["HostedZoneId"] = "hzi"
         namespace = Namespace(
+            account_id=self.account_id,
             region=self.region_name,
             name=name,
             ns_type="DNS_PUBLIC",
@@ -289,6 +288,7 @@ class ServiceDiscoveryBackend(BaseBackend):
         service_type,
     ):
         service = Service(
+            account_id=self.account_id,
             region=self.region_name,
             name=name,
             namespace_id=namespace_id,
@@ -322,7 +322,7 @@ class ServiceDiscoveryBackend(BaseBackend):
         service = self.get_service(service_id)
         service.update(details=details)
         operation_id = self._create_operation(
-            "UPDATE_SERVICE", targets={"SEVICE": service.id}
+            "UPDATE_SERVICE", targets={"SERVICE": service.id}
         )
         return operation_id
 

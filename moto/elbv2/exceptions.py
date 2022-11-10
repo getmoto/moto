@@ -4,6 +4,9 @@ from moto.core.exceptions import RESTError
 class ELBClientError(RESTError):
     code = 400
 
+    def __init__(self, error_type, message):
+        super().__init__(error_type, message, template="wrapped_single_error")
+
 
 class DuplicateTagKeysError(ELBClientError):
     def __init__(self, cidr):
@@ -131,7 +134,7 @@ class ActionTargetGroupNotFoundError(ELBClientError):
 
 
 class ListenerOrBalancerMissingError(ELBClientError):
-    def __init__(self, arn):
+    def __init__(self):
         super().__init__(
             "ValidationError",
             "You must specify either listener ARNs or a load balancer ARN",
@@ -149,8 +152,9 @@ class ResourceInUseError(ELBClientError):
 
 
 class RuleNotFoundError(ELBClientError):
-    def __init__(self):
-        super().__init__("RuleNotFound", "The specified rule does not exist.")
+    def __init__(self, msg=None):
+        msg = msg or "The specified rule does not exist."
+        super().__init__("RuleNotFound", msg)
 
 
 class DuplicatePriorityError(ELBClientError):

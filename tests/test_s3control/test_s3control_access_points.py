@@ -4,14 +4,13 @@ import sure  # noqa # pylint: disable=unused-import
 
 from botocore.client import ClientError
 from moto import mock_s3control
-from moto.core import ACCOUNT_ID
 
 
 @mock_s3control
 def test_create_access_point():
     client = boto3.client("s3control", region_name="eu-west-1")
     resp = client.create_access_point(
-        AccountId="111111111111", Name="ap_name", Bucket="mybucket",
+        AccountId="111111111111", Name="ap_name", Bucket="mybucket"
     )
 
     resp.should.have.key("AccessPointArn")
@@ -34,7 +33,7 @@ def test_get_unknown_access_point():
 def test_get_access_point_minimal():
     client = boto3.client("s3control", region_name="ap-southeast-1")
     client.create_access_point(
-        AccountId="111111111111", Name="ap_name", Bucket="mybucket",
+        AccountId="111111111111", Name="ap_name", Bucket="mybucket"
     )
 
     resp = client.get_access_point(AccountId="111111111111", Name="ap_name")
@@ -53,7 +52,7 @@ def test_get_access_point_minimal():
     resp.should.have.key("CreationDate")
     resp.should.have.key("Alias").match("ap_name-[a-z0-9]+-s3alias")
     resp.should.have.key("AccessPointArn").equals(
-        f"arn:aws:s3:us-east-1:{ACCOUNT_ID}:accesspoint/ap_name"
+        "arn:aws:s3:us-east-1:111111111111:accesspoint/ap_name"
     )
     resp.should.have.key("Endpoints")
 
@@ -108,7 +107,7 @@ def test_delete_access_point():
     client = boto3.client("s3control", region_name="ap-southeast-1")
 
     client.create_access_point(
-        AccountId="111111111111", Name="ap_name", Bucket="mybucket",
+        AccountId="111111111111", Name="ap_name", Bucket="mybucket"
     )
 
     client.delete_access_point(AccountId="111111111111", Name="ap_name")

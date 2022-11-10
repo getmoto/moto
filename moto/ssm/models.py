@@ -4,20 +4,20 @@ from typing import Dict
 
 from collections import defaultdict
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
+from moto.secretsmanager import secretsmanager_backends
+from moto.secretsmanager.exceptions import SecretsManagerClientError
 from moto.utilities.utils import load_resource
 
 import datetime
 import time
-import uuid
 import json
 import yaml
 import hashlib
-import random
-
+from moto.moto_api._internal import mock_random as random
 from .utils import parameter_arn, convert_to_params
 from .exceptions import (
     ValidationException,
@@ -44,15 +44,41 @@ from .exceptions import (
 
 
 class ParameterDict(defaultdict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, account_id, region_name):
+        # each value is a list of all of the versions for a parameter
+        # to get the current value, grab the last item of the list
+        super().__init__(list)
         self.parameters_loaded = False
+        self.account_id = account_id
+        self.region_name = region_name
 
     def _check_loading_status(self, key):
         if not self.parameters_loaded and key and str(key).startswith("/aws"):
             self._load_global_parameters()
 
     def _load_global_parameters(self):
+        try:
+            latest_amis_linux = load_resource(
+                __name__, f"resources/ami-amazon-linux-latest/{self.region_name}.json"
+            )
+        except FileNotFoundError:
+            latest_amis_linux = []
+        for param in latest_amis_linux:
+            name = param["Name"]
+            super().__getitem__(name).append(
+                Parameter(
+                    account_id=self.account_id,
+                    name=name,
+                    value=param["Value"],
+                    parameter_type=param["Type"],
+                    description=None,
+                    allowed_pattern=None,
+                    keyid=None,
+                    last_modified_date=param["LastModifiedDate"],
+                    version=param["Version"],
+                    data_type=param["DataType"],
+                )
+            )
         regions = load_resource(__name__, "resources/regions.json")
         services = load_resource(__name__, "resources/services.json")
         params = []
@@ -68,6 +94,7 @@ class ParameterDict(defaultdict):
             version = 1
             super().__getitem__(name).append(
                 Parameter(
+                    account_id=self.account_id,
                     name=name,
                     value=value,
                     parameter_type=parameter_type,
@@ -81,11 +108,55 @@ class ParameterDict(defaultdict):
             )
         self.parameters_loaded = True
 
+    def _get_secretsmanager_parameter(self, secret_name):
+        secrets_backend = secretsmanager_backends[self.account_id][self.region_name]
+        secret = secrets_backend.describe_secret(secret_name)
+        version_id_to_stage = secret["VersionIdsToStages"]
+        # Sort version ID's so that AWSCURRENT is last
+        sorted_version_ids = [
+            k for k in version_id_to_stage if "AWSCURRENT" not in version_id_to_stage[k]
+        ] + [k for k in version_id_to_stage if "AWSCURRENT" in version_id_to_stage[k]]
+        values = [
+            secrets_backend.get_secret_value(
+                secret_name,
+                version_id=version_id,
+                version_stage=None,
+            )
+            for version_id in sorted_version_ids
+        ]
+        return [
+            Parameter(
+                account_id=self.account_id,
+                name=secret["Name"],
+                value=val.get("SecretString"),
+                parameter_type="SecureString",
+                description=secret.get("Description"),
+                allowed_pattern=None,
+                keyid=None,
+                last_modified_date=secret["LastChangedDate"],
+                version=0,
+                data_type="text",
+                labels=[val.get("VersionId")] + val.get("VersionStages", []),
+                source_result=json.dumps(secret),
+            )
+            for val in values
+        ]
+
     def __getitem__(self, item):
+        if item.startswith("/aws/reference/secretsmanager/"):
+            return self._get_secretsmanager_parameter("/".join(item.split("/")[4:]))
         self._check_loading_status(item)
         return super().__getitem__(item)
 
     def __contains__(self, k):
+        if k and k.startswith("/aws/reference/secretsmanager/"):
+            try:
+                param = self._get_secretsmanager_parameter("/".join(k.split("/")[4:]))
+                return param is not None
+            except SecretsManagerClientError:
+                raise ParameterNotFound(
+                    f"An error occurred (ParameterNotFound) when referencing Secrets Manager: Secret {k} not found."
+                )
         self._check_loading_status(k)
         return super().__contains__(k)
 
@@ -103,9 +174,10 @@ PARAMETER_VERSION_LIMIT = 100
 PARAMETER_HISTORY_MAX_RESULTS = 50
 
 
-class Parameter(BaseModel):
+class Parameter(CloudFormationModel):
     def __init__(
         self,
+        account_id,
         name,
         value,
         parameter_type,
@@ -116,7 +188,10 @@ class Parameter(BaseModel):
         version,
         data_type,
         tags=None,
+        labels=None,
+        source_result=None,
     ):
+        self.account_id = account_id
         self.name = name
         self.type = parameter_type
         self.description = description
@@ -126,7 +201,8 @@ class Parameter(BaseModel):
         self.version = version
         self.data_type = data_type
         self.tags = tags or []
-        self.labels = []
+        self.labels = labels or []
+        self.source_result = source_result
 
         if self.type == "SecureString":
             if not self.keyid:
@@ -156,9 +232,11 @@ class Parameter(BaseModel):
             "LastModifiedDate": round(self.last_modified_date, 3),
             "DataType": self.data_type,
         }
+        if self.source_result:
+            r["SourceResult"] = self.source_result
 
         if region:
-            r["ARN"] = parameter_arn(region, self.name)
+            r["ARN"] = parameter_arn(self.account_id, region, self.name)
 
         return r
 
@@ -180,6 +258,62 @@ class Parameter(BaseModel):
             r["Labels"] = self.labels
 
         return r
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ssm-parameter.html
+        return "AWS::SSM::Parameter"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
+    ):
+        ssm_backend = ssm_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        parameter_args = {
+            "name": properties.get("Name"),
+            "description": properties.get("Description", None),
+            "value": properties.get("Value", None),
+            "parameter_type": properties.get("Type", None),
+            "allowed_pattern": properties.get("AllowedPattern", None),
+            "keyid": properties.get("KeyId", None),
+            "overwrite": properties.get("Overwrite", False),
+            "tags": properties.get("Tags", None),
+            "data_type": properties.get("DataType", "text"),
+        }
+        ssm_backend.put_parameter(**parameter_args)
+        parameter = ssm_backend.get_parameter(properties.get("Name"))
+        return parameter
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
+    ):
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, account_id, region_name
+        )
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, account_id, region_name
+    ):
+        ssm_backend = ssm_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        ssm_backend.delete_parameter(properties.get("Name"))
 
 
 MAX_TIMEOUT_SECONDS = 3600
@@ -374,6 +508,7 @@ class Documents(BaseModel):
 class Document(BaseModel):
     def __init__(
         self,
+        account_id,
         name,
         version_name,
         content,
@@ -395,17 +530,12 @@ class Document(BaseModel):
 
         self.status = "Active"
         self.document_version = document_version
-        self.owner = ACCOUNT_ID
+        self.owner = account_id
         self.created_date = datetime.datetime.utcnow()
 
         if document_format == "JSON":
             try:
                 content_json = json.loads(content)
-            except ValueError:
-                # Python2
-                raise InvalidDocumentContent(
-                    "The content for the document is not valid."
-                )
             except json.decoder.JSONDecodeError:
                 raise InvalidDocumentContent(
                     "The content for the document is not valid."
@@ -471,6 +601,7 @@ class Document(BaseModel):
 class Command(BaseModel):
     def __init__(
         self,
+        account_id,
         comment="",
         document_name="",
         timeout_seconds=MAX_TIMEOUT_SECONDS,
@@ -499,9 +630,10 @@ class Command(BaseModel):
         if targets is None:
             targets = []
 
-        self.command_id = str(uuid.uuid4())
+        self.command_id = str(random.uuid4())
         self.status = "Success"
         self.status_details = "Details placeholder"
+        self.account_id = account_id
 
         self.requested_date_time = datetime.datetime.now()
         self.requested_date_time_iso = self.requested_date_time.isoformat()
@@ -546,7 +678,7 @@ class Command(BaseModel):
 
     def _get_instance_ids_from_targets(self):
         target_instance_ids = []
-        ec2_backend = ec2_backends[self.backend_region]
+        ec2_backend = ec2_backends[self.account_id][self.backend_region]
         ec2_filters = {target["Key"]: target["Values"] for target in self.targets}
         reservations = ec2_backend.all_reservations(filters=ec2_filters)
         for reservation in reservations:
@@ -559,6 +691,7 @@ class Command(BaseModel):
             "CommandId": self.command_id,
             "Comment": self.comment,
             "CompletedCount": self.completed_count,
+            "DeliveryTimedOutCount": 0,
             "DocumentName": self.document_name,
             "ErrorCount": self.error_count,
             "ExpiresAfter": self.expires_after,
@@ -683,7 +816,7 @@ def _document_filter_list_includes_comparator(keyed_value_list, _filter):
     return False
 
 
-def _document_filter_match(filters, ssm_doc):
+def _document_filter_match(account_id, filters, ssm_doc):
     for _filter in filters:
         if _filter["Key"] == "Name" and not _document_filter_equal_comparator(
             ssm_doc.name, _filter
@@ -695,7 +828,7 @@ def _document_filter_match(filters, ssm_doc):
                 raise ValidationException("Owner filter can only have one value.")
             if _filter["Values"][0] == "Self":
                 # Update to running account ID
-                _filter["Values"][0] = ACCOUNT_ID
+                _filter["Values"][0] = account_id
             if not _document_filter_equal_comparator(ssm_doc.owner, _filter):
                 return False
 
@@ -782,13 +915,13 @@ class SimpleSystemManagerBackend(BaseBackend):
      - /aws/service/global-infrastructure/services
 
     Note that these are hardcoded, so they may be out of date for new services/regions.
+
+    Integration with SecretsManager is also supported.
     """
 
-    def __init__(self, region):
-        super().__init__()
-        # each value is a list of all of the versions for a parameter
-        # to get the current value, grab the last item of the list
-        self._parameters = ParameterDict(list)
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
+        self._parameters = ParameterDict(account_id, region_name)
 
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
@@ -796,13 +929,6 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._documents: Dict[str, Documents] = {}
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
-
-        self._region = region
-
-    def reset(self):
-        region_name = self._region
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -873,6 +999,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         tags,
     ):
         ssm_document = Document(
+            account_id=self.account_id,
             name=name,
             version_name=version_name,
             content=content,
@@ -1020,6 +1147,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         new_version = str(int(documents.latest_version) + 1)
         new_ssm_document = Document(
+            account_id=self.account_id,
             name=name,
             version_name=version_name,
             content=content,
@@ -1070,7 +1198,9 @@ class SimpleSystemManagerBackend(BaseBackend):
                 continue
 
             ssm_doc = documents.get_default_version()
-            if filters and not _document_filter_match(filters, ssm_doc):
+            if filters and not _document_filter_match(
+                self.account_id, filters, ssm_doc
+            ):
                 # If we have filters enabled, and we don't match them,
                 continue
             else:
@@ -1081,11 +1211,10 @@ class SimpleSystemManagerBackend(BaseBackend):
         # If we've fallen out of the loop, theres no more documents. No next token.
         return results, ""
 
-    def describe_document_permission(
-        self, name, max_results=None, permission_type=None, next_token=None
-    ):
-        # Parameters max_results, permission_type, and next_token not used because
-        # this current implementation doesn't support pagination.
+    def describe_document_permission(self, name):
+        """
+        Parameters max_results, permission_type, and next_token not yet implemented
+        """
         document = self._get_documents(name)
         return document.describe_permissions()
 
@@ -1170,7 +1299,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         result = []
         for param_name in self._parameters:
-            ssm_parameter = self.get_parameter(param_name, False)
+            ssm_parameter = self.get_parameter(param_name)
             if not self._match_filters(ssm_parameter, parameter_filters):
                 continue
 
@@ -1385,7 +1514,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             result.append(self._parameters[k])
         return result
 
-    def get_parameters(self, names, with_decryption):
+    def get_parameters(self, names):
         result = {}
 
         if len(names) > 10:
@@ -1400,7 +1529,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         for name in set(names):
             if name.split(":")[0] in self._parameters:
                 try:
-                    param = self.get_parameter(name, with_decryption)
+                    param = self.get_parameter(name)
 
                     if param is not None:
                         result[name] = param
@@ -1411,7 +1540,6 @@ class SimpleSystemManagerBackend(BaseBackend):
     def get_parameters_by_path(
         self,
         path,
-        with_decryption,
         recursive,
         filters=None,
         next_token=None,
@@ -1426,7 +1554,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         # difference here.
         path = path.rstrip("/") + "/"
         for param_name in self._parameters.get_keys_beginning_with(path, recursive):
-            parameter = self.get_parameter(param_name, with_decryption)
+            parameter = self.get_parameter(param_name)
             if not self._match_filters(parameter, filters):
                 continue
             result.append(parameter)
@@ -1445,7 +1573,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             next_token = None
         return values, next_token
 
-    def get_parameter_history(self, name, with_decryption, next_token, max_results=50):
+    def get_parameter_history(self, name, next_token, max_results=50):
 
         if max_results > PARAMETER_HISTORY_MAX_RESULTS:
             raise ValidationException(
@@ -1545,7 +1673,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         # True if no false match (or no filters at all)
         return True
 
-    def get_parameter(self, name, with_decryption):
+    def get_parameter(self, name):
         name_parts = name.split(":")
         name_prefix = name_parts[0]
 
@@ -1718,6 +1846,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         last_modified_date = time.time()
         self._parameters[name].append(
             Parameter(
+                account_id=self.account_id,
                 name=name,
                 value=value,
                 parameter_type=parameter_type,
@@ -1778,6 +1907,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def send_command(self, **kwargs):
         command = Command(
+            account_id=self.account_id,
             comment=kwargs.get("Comment", ""),
             document_name=kwargs.get("DocumentName"),
             timeout_seconds=kwargs.get("TimeoutSeconds", 3600),
@@ -1798,7 +1928,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             parameters=kwargs.get("Parameters", {}),
             service_role_arn=kwargs.get("ServiceRoleArn", ""),
             targets=kwargs.get("Targets", []),
-            backend_region=self._region,
+            backend_region=self.region_name,
         )
 
         self._commands.append(command)

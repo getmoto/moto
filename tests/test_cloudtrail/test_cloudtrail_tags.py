@@ -12,12 +12,12 @@ def test_add_tags():
     _, resp, _ = create_trail_simple(region_name="ap-southeast-1")
     trail_arn = resp["TrailARN"]
 
-    client.add_tags(ResourceId=trail_arn, TagsList=[{"Key": "k1", "Value": "v1"},])
+    client.add_tags(ResourceId=trail_arn, TagsList=[{"Key": "k1", "Value": "v1"}])
 
     resp = client.list_tags(ResourceIdList=[trail_arn])
     resp.should.have.key("ResourceTagList").length_of(1)
     resp["ResourceTagList"][0].should.equal(
-        {"ResourceId": trail_arn, "TagsList": [{"Key": "k1", "Value": "v1"},]}
+        {"ResourceId": trail_arn, "TagsList": [{"Key": "k1", "Value": "v1"}]}
     )
 
 
@@ -31,7 +31,7 @@ def test_remove_tags():
     trail_arn = resp["TrailARN"]
 
     # Add a third tag
-    client.add_tags(ResourceId=trail_arn, TagsList=[{"Key": "tk3", "Value": "tv3"},])
+    client.add_tags(ResourceId=trail_arn, TagsList=[{"Key": "tk3", "Value": "tv3"}])
 
     # Remove the second tag
     client.remove_tags(ResourceId=trail_arn, TagsList=[{"Key": "tk2", "Value": "tv2"}])

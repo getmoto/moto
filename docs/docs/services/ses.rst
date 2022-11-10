@@ -12,6 +12,8 @@
 ses
 ===
 
+.. autoclass:: moto.ses.models.SESBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -46,7 +48,7 @@ ses
 - [ ] delete_template
 - [ ] delete_verified_email_address
 - [ ] describe_active_receipt_rule_set
-- [ ] describe_configuration_set
+- [X] describe_configuration_set
 - [X] describe_receipt_rule
 - [X] describe_receipt_rule_set
 - [ ] get_account_sending_enabled
@@ -55,7 +57,7 @@ ses
 - [X] get_identity_mail_from_domain_attributes
 - [X] get_identity_notification_attributes
 - [ ] get_identity_policies
-- [ ] get_identity_verification_attributes
+- [X] get_identity_verification_attributes
 - [X] get_send_quota
 - [X] get_send_statistics
 - [X] get_template
@@ -71,7 +73,7 @@ ses
 - [ ] put_identity_policy
 - [ ] reorder_receipt_rule_set
 - [ ] send_bounce
-- [ ] send_bulk_templated_email
+- [X] send_bulk_templated_email
 - [ ] send_custom_verification_email
 - [X] send_email
 - [X] send_raw_email

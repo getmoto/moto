@@ -7,11 +7,12 @@ from freezegun import freeze_time
 import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
+from unittest import SkipTest
 import pytest
 from moto import mock_sns, mock_sqs, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.models import responses_mock
-from moto.sns import sns_backend
+from moto.sns import sns_backends
 
 MESSAGE_FROM_SQS_TEMPLATE = (
     '{\n  "Message": "%s",\n  "MessageId": "%s",\n  "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",\n  "SignatureVersion": "1",\n  "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",\n  "Subject": "my subject",\n  "Timestamp": "2015-01-01T12:00:00.000Z",\n  "TopicArn": "arn:aws:sns:%s:'
@@ -89,17 +90,15 @@ def test_publish_to_sqs_fifo():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
         Name="topic.fifo",
-        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true",},
+        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true"},
     )
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName="queue.fifo",
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true",},
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
     )
-    topic.subscribe(
-        Protocol="sqs", Endpoint=queue.attributes["QueueArn"],
-    )
+    topic.subscribe(Protocol="sqs", Endpoint=queue.attributes["QueueArn"])
 
     topic.publish(Message="message", MessageGroupId="message_group_id")
 
@@ -289,6 +288,7 @@ def test_publish_sms():
 
     result.should.contain("MessageId")
     if not settings.TEST_SERVER_MODE:
+        sns_backend = sns_backends[ACCOUNT_ID]["us-east-1"]
         sns_backend.sms_messages.should.have.key(result["MessageId"]).being.equal(
             ("+15551234567", "my message")
         )
@@ -399,6 +399,9 @@ def test_publish_to_sqs_in_different_region():
 @freeze_time("2013-01-01")
 @mock_sns
 def test_publish_to_http():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't mock requests in ServerMode")
+
     def callback(request):
         request.headers["Content-Type"].should.equal("text/plain; charset=UTF-8")
         json.loads.when.called_with(request.body.decode()).should_not.throw(Exception)
@@ -419,12 +422,12 @@ def test_publish_to_http():
 
     conn.publish(TopicArn=topic_arn, Message="my message", Subject="my subject")
 
-    if not settings.TEST_SERVER_MODE:
-        sns_backend.topics[topic_arn].sent_notifications.should.have.length_of(1)
-        notification = sns_backend.topics[topic_arn].sent_notifications[0]
-        _, msg, subject, _, _ = notification
-        msg.should.equal("my message")
-        subject.should.equal("my subject")
+    sns_backend = sns_backends[ACCOUNT_ID]["us-east-1"]
+    sns_backend.topics[topic_arn].sent_notifications.should.have.length_of(1)
+    notification = sns_backend.topics[topic_arn].sent_notifications[0]
+    _, msg, subject, _, _ = notification
+    msg.should.equal("my message")
+    subject.should.equal("my subject")
 
 
 @mock_sqs
@@ -505,7 +508,7 @@ def test_publish_fifo_needs_group_id():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
         Name="topic.fifo",
-        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true",},
+        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true"},
     )
 
     with pytest.raises(
@@ -1117,3 +1120,165 @@ def test_filtering_all_AND_matching_no_match():
     message_bodies.should.equal([])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
     message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_prefix():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"prefix": "bas"}]}
+    )
+
+    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "String", "StringValue": interest},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match1", "match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": "basketball"}]}
+    )
+
+    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "String", "StringValue": interest},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match2", "match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_multiple_values():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": ["basketball", "rugby"]}]}
+    )
+
+    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "String", "StringValue": interest},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_prefix():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": {"prefix": "bas"}}]}
+    )
+
+    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "String", "StringValue": interest},
+            },
+        )
+
+    # This should match rugby only
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match2"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_unknown():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": {"unknown": "bas"}}]}
+    )
+
+    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "String", "StringValue": interest},
+            },
+        )
+
+    # This should match rugby only
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_numeric():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": ["100"]}]}
+    )
+
+    for nr, idx in [("50", "1"), ("100", "2"), ("150", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "Number", "StringValue": nr},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match1", "match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_numeric_match():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"numeric": ["=", "100"]}]}
+    )
+
+    for nr, idx in [("50", "1"), ("100", "2"), ("150", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "Number", "StringValue": nr},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match2"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_numeric_range():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"numeric": [">", "49", "<=", "100"]}]}
+    )
+
+    for nr, idx in [("50", "1"), ("100", "2"), ("150", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "Number", "StringValue": nr},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match1", "match2"})

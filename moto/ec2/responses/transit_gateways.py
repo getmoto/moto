@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class TransitGateways(BaseResponse):
+class TransitGateways(EC2BaseResponse):
     def create_transit_gateway(self):
         description = self._get_param("Description") or None
         options = self._get_multi_param_dict("Options")
@@ -15,11 +14,13 @@ class TransitGateways(BaseResponse):
         )
 
         # creating default route table
-        transit_gateway_route_table = self.ec2_backend.create_transit_gateway_route_table(
-            transit_gateway_id=transit_gateway.id,
-            tags={},
-            default_association_route_table=True,
-            default_propagation_route_table=True,
+        transit_gateway_route_table = (
+            self.ec2_backend.create_transit_gateway_route_table(
+                transit_gateway_id=transit_gateway.id,
+                tags={},
+                default_association_route_table=True,
+                default_propagation_route_table=True,
+            )
         )
         transit_gateway.options[
             "AssociationDefaultRouteTableId"
@@ -39,7 +40,7 @@ class TransitGateways(BaseResponse):
 
     def describe_transit_gateways(self):
         transit_gateway_ids = self._get_multi_param("TransitGatewayIds")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         transit_gateways = self.ec2_backend.describe_transit_gateways(
             filters, transit_gateway_ids
         )

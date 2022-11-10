@@ -10,12 +10,15 @@ from .exceptions import BadSegmentException
 
 
 class XRayResponse(BaseResponse):
+    def __init__(self):
+        super().__init__(service_name="xray")
+
     def _error(self, code, message):
         return json.dumps({"__type": code, "message": message}), dict(status=400)
 
     @property
     def xray_backend(self):
-        return xray_backends[self.region]
+        return xray_backends[self.current_account][self.region]
 
     @property
     def request_params(self):
@@ -24,8 +27,8 @@ class XRayResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param, default=None):
-        return self.request_params.get(param, default)
+    def _get_param(self, param_name, if_none=None):
+        return self.request_params.get(param_name, if_none)
 
     def _get_action(self):
         # Amazon is just calling urls like /TelemetryRecords etc...
@@ -35,10 +38,7 @@ class XRayResponse(BaseResponse):
 
     # PutTelemetryRecords
     def telemetry_records(self):
-        try:
-            self.xray_backend.add_telemetry_records(self.request_params)
-        except AWSError as err:
-            return err.response()
+        self.xray_backend.add_telemetry_records(self.request_params)
 
         return ""
 
@@ -88,7 +88,6 @@ class XRayResponse(BaseResponse):
             )
 
         filter_expression = self._get_param("FilterExpression")
-        sampling = self._get_param("Sampling", "false") == "true"
 
         try:
             start_time = datetime.datetime.fromtimestamp(int(start_time))
@@ -107,10 +106,10 @@ class XRayResponse(BaseResponse):
 
         try:
             result = self.xray_backend.get_trace_summary(
-                start_time, end_time, filter_expression, sampling
+                start_time, end_time, filter_expression
             )
         except AWSError as err:
-            return err.response()
+            raise err
         except Exception as err:
             return (
                 json.dumps({"__type": "InternalFailure", "message": str(err)}),
@@ -122,7 +121,6 @@ class XRayResponse(BaseResponse):
     # BatchGetTraces
     def traces(self):
         trace_ids = self._get_param("TraceIds")
-        next_token = self._get_param("NextToken")  # not implemented yet
 
         if trace_ids is None:
             msg = "Parameter TraceIds is missing"
@@ -132,9 +130,9 @@ class XRayResponse(BaseResponse):
             )
 
         try:
-            result = self.xray_backend.get_trace_ids(trace_ids, next_token)
+            result = self.xray_backend.get_trace_ids(trace_ids)
         except AWSError as err:
-            return err.response()
+            raise err
         except Exception as err:
             return (
                 json.dumps({"__type": "InternalFailure", "message": str(err)}),

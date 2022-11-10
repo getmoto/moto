@@ -1,17 +1,8 @@
 import json
-import random
 import re
 import string
-
+from moto.moto_api._internal import mock_random as random
 from urllib.parse import parse_qs, urlparse
-
-
-def region_from_managedblckchain_url(url):
-    domain = urlparse(url).netloc
-    region = "us-east-1"
-    if "." in domain:
-        region = domain.split(".")[1]
-    return region
 
 
 def networkid_from_managedblockchain_url(full_url):

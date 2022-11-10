@@ -56,7 +56,7 @@ class MockXrayClient:
         return wrapped_f
 
     def start(self):
-        print("Starting X-Ray Patch")
+        print("Starting X-Ray Patch")  # noqa
         self.old_xray_context_var = os.environ.get("AWS_XRAY_CONTEXT_MISSING")
         os.environ["AWS_XRAY_CONTEXT_MISSING"] = "LOG_ERROR"
         self.old_xray_context = aws_xray_sdk.core.xray_recorder._context

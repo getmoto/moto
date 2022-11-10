@@ -38,6 +38,7 @@ sns
 - [X] delete_platform_application
 - [ ] delete_sms_sandbox_phone_number
 - [X] delete_topic
+- [ ] get_data_protection_policy
 - [ ] get_endpoint_attributes
 - [ ] get_platform_application_attributes
 - [ ] get_sms_attributes
@@ -60,6 +61,7 @@ sns
         The MessageStructure and MessageDeduplicationId-parameters have not yet been implemented.
         
 
+- [ ] put_data_protection_policy
 - [X] remove_permission
 - [X] set_endpoint_attributes
 - [ ] set_platform_application_attributes

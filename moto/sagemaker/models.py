@@ -1,8 +1,7 @@
 import json
 import os
 from datetime import datetime
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
@@ -36,7 +35,18 @@ PAGINATION_MODEL = {
         "unique_attribute": "trial_component_arn",
         "fail_on_invalid_token": True,
     },
+    "list_tags": {
+        "input_token": "NextToken",
+        "limit_key": "MaxResults",
+        "limit_default": 50,
+        "unique_attribute": "Key",
+        "fail_on_invalid_token": True,
+    },
 }
+
+
+def arn_formatter(_type, _id, account_id, region_name):
+    return f"arn:aws:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
 
 
 class BaseObject(BaseModel):
@@ -74,21 +84,22 @@ class FakeProcessingJob(BaseObject):
         processing_inputs,
         processing_job_name,
         processing_output_config,
-        processing_resources,
+        account_id,
         region_name,
         role_arn,
+        tags,
         stopping_condition,
     ):
         self.processing_job_name = processing_job_name
-        self.processing_job_arn = FakeProcessingJob.arn_formatter(
-            processing_job_name, region_name
+        self.processing_job_arn = arn_formatter(
+            "processing-job", processing_job_name, account_id, region_name
         )
 
         now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.creation_time = now_string
         self.last_modified_time = now_string
         self.processing_end_time = now_string
-
+        self.tags = tags or []
         self.role_arn = role_arn
         self.app_specification = app_specification
         self.experiment_config = experiment_config
@@ -109,21 +120,11 @@ class FakeProcessingJob(BaseObject):
     def response_create(self):
         return {"ProcessingJobArn": self.processing_job_arn}
 
-    @staticmethod
-    def arn_formatter(endpoint_name, region_name):
-        return (
-            "arn:aws:sagemaker:"
-            + region_name
-            + ":"
-            + str(ACCOUNT_ID)
-            + ":processing-job/"
-            + endpoint_name
-        )
-
 
 class FakeTrainingJob(BaseObject):
     def __init__(
         self,
+        account_id,
         region_name,
         training_job_name,
         hyper_parameters,
@@ -153,7 +154,7 @@ class FakeTrainingJob(BaseObject):
         self.resource_config = resource_config
         self.vpc_config = vpc_config
         self.stopping_condition = stopping_condition
-        self.tags = tags
+        self.tags = tags or []
         self.enable_network_isolation = enable_network_isolation
         self.enable_inter_container_traffic_encryption = (
             enable_inter_container_traffic_encryption
@@ -165,7 +166,7 @@ class FakeTrainingJob(BaseObject):
         self.tensor_board_output_config = tensor_board_output_config
         self.experiment_config = experiment_config
         self.training_job_arn = FakeTrainingJob.arn_formatter(
-            training_job_name, region_name
+            training_job_name, account_id, region_name
         )
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -219,20 +220,14 @@ class FakeTrainingJob(BaseObject):
         return {"TrainingJobArn": self.training_job_arn}
 
     @staticmethod
-    def arn_formatter(endpoint_name, region_name):
-        return (
-            "arn:aws:sagemaker:"
-            + region_name
-            + ":"
-            + str(ACCOUNT_ID)
-            + ":training-job/"
-            + endpoint_name
-        )
+    def arn_formatter(name, account_id, region_name):
+        return arn_formatter("training-job", name, account_id, region_name)
 
 
 class FakeEndpoint(BaseObject, CloudFormationModel):
     def __init__(
         self,
+        account_id,
         region_name,
         endpoint_name,
         endpoint_config_name,
@@ -241,9 +236,13 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         tags,
     ):
         self.endpoint_name = endpoint_name
-        self.endpoint_arn = FakeEndpoint.arn_formatter(endpoint_name, region_name)
+        self.endpoint_arn = FakeEndpoint.arn_formatter(
+            endpoint_name, account_id, region_name
+        )
         self.endpoint_config_name = endpoint_config_name
-        self.production_variants = production_variants
+        self.production_variants = self._process_production_variants(
+            production_variants
+        )
         self.data_capture_config = data_capture_config
         self.tags = tags or []
         self.endpoint_status = "InService"
@@ -251,6 +250,42 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
+
+    def _process_production_variants(self, production_variants):
+        endpoint_variants = []
+        for production_variant in production_variants:
+            temp_variant = {}
+
+            # VariantName is the only required param
+            temp_variant["VariantName"] = production_variant["VariantName"]
+
+            if production_variant.get("InitialInstanceCount", None):
+                temp_variant["CurrentInstanceCount"] = production_variant[
+                    "InitialInstanceCount"
+                ]
+                temp_variant["DesiredInstanceCount"] = production_variant[
+                    "InitialInstanceCount"
+                ]
+
+            if production_variant.get("InitialVariantWeight", None):
+                temp_variant["CurrentWeight"] = production_variant[
+                    "InitialVariantWeight"
+                ]
+                temp_variant["DesiredWeight"] = production_variant[
+                    "InitialVariantWeight"
+                ]
+
+            if production_variant.get("ServerlessConfig", None):
+                temp_variant["CurrentServerlessConfig"] = production_variant[
+                    "ServerlessConfig"
+                ]
+                temp_variant["DesiredServerlessConfig"] = production_variant[
+                    "ServerlessConfig"
+                ]
+
+            endpoint_variants.append(temp_variant)
+
+        return endpoint_variants
 
     @property
     def response_object(self):
@@ -264,23 +299,16 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         return {"EndpointArn": self.endpoint_arn}
 
     @staticmethod
-    def arn_formatter(endpoint_name, region_name):
-        return (
-            "arn:aws:sagemaker:"
-            + region_name
-            + ":"
-            + str(ACCOUNT_ID)
-            + ":endpoint/"
-            + endpoint_name
-        )
+    def arn_formatter(endpoint_name, account_id, region_name):
+        return arn_formatter("endpoint", endpoint_name, account_id, region_name)
 
     @property
     def physical_resource_id(self):
         return self.endpoint_arn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["EndpointName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["EndpointName"]
 
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpoint.html#aws-resource-sagemaker-endpoint-return-values
@@ -301,9 +329,9 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        sagemaker_backend = sagemaker_backends[region_name]
+        sagemaker_backend = sagemaker_backends[account_id][region_name]
 
         # Get required properties from provided CloudFormation template
         properties = cloudformation_json["Properties"]
@@ -318,32 +346,41 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # Changes to the Endpoint will not change resource name
         cls.delete_from_cloudformation_json(
-            original_resource.endpoint_arn, cloudformation_json, region_name
+            original_resource.endpoint_arn, cloudformation_json, account_id, region_name
         )
         new_resource = cls.create_from_cloudformation_json(
-            original_resource.endpoint_name, cloudformation_json, region_name
+            original_resource.endpoint_name,
+            cloudformation_json,
+            account_id,
+            region_name,
         )
         return new_resource
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # Get actual name because resource_name actually provides the ARN
         # since the Physical Resource ID is the ARN despite SageMaker
         # using the name for most of its operations.
         endpoint_name = resource_name.split("/")[-1]
 
-        sagemaker_backends[region_name].delete_endpoint(endpoint_name)
+        sagemaker_backends[account_id][region_name].delete_endpoint(endpoint_name)
 
 
 class FakeEndpointConfig(BaseObject, CloudFormationModel):
     def __init__(
         self,
+        account_id,
         region_name,
         endpoint_config_name,
         production_variants,
@@ -355,7 +392,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
         self.endpoint_config_name = endpoint_config_name
         self.endpoint_config_arn = FakeEndpointConfig.arn_formatter(
-            endpoint_config_name, region_name
+            endpoint_config_name, account_id, region_name
         )
         self.production_variants = production_variants or []
         self.data_capture_config = data_capture_config or {}
@@ -365,7 +402,25 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
     def validate_production_variants(self, production_variants):
         for production_variant in production_variants:
-            self.validate_instance_type(production_variant["InstanceType"])
+            if "InstanceType" in production_variant.keys():
+                self.validate_instance_type(production_variant["InstanceType"])
+            elif "ServerlessConfig" in production_variant.keys():
+                self.validate_serverless_config(production_variant["ServerlessConfig"])
+            else:
+                message = "Invalid Keys for ProductionVariant: received {} but expected it to contain one of {}".format(
+                    production_variant.keys(), ["InstanceType", "ServerlessConfig"]
+                )
+                raise ValidationError(message=message)
+
+    def validate_serverless_config(self, serverless_config):
+        VALID_SERVERLESS_MEMORY_SIZE = [1024, 2048, 3072, 4096, 5120, 6144]
+        if not validators.is_one_of(
+            serverless_config["MemorySizeInMB"], VALID_SERVERLESS_MEMORY_SIZE
+        ):
+            message = "Value '{}' at 'MemorySizeInMB' failed to satisfy constraint: Member must satisfy enum value set: {}".format(
+                serverless_config["MemorySizeInMB"], VALID_SERVERLESS_MEMORY_SIZE
+            )
+            raise ValidationError(message=message)
 
     def validate_instance_type(self, instance_type):
         VALID_INSTANCE_TYPES = [
@@ -454,14 +509,9 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         return {"EndpointConfigArn": self.endpoint_config_arn}
 
     @staticmethod
-    def arn_formatter(model_name, region_name):
-        return (
-            "arn:aws:sagemaker:"
-            + region_name
-            + ":"
-            + str(ACCOUNT_ID)
-            + ":endpoint-config/"
-            + model_name
+    def arn_formatter(endpoint_config_name, account_id, region_name):
+        return arn_formatter(
+            "endpoint-config", endpoint_config_name, account_id, region_name
         )
 
     @property
@@ -469,8 +519,8 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         return self.endpoint_config_arn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["EndpointConfigName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["EndpointConfigName"]
 
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpointconfig.html#aws-resource-sagemaker-endpointconfig-return-values
@@ -491,9 +541,9 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        sagemaker_backend = sagemaker_backends[region_name]
+        sagemaker_backend = sagemaker_backends[account_id][region_name]
 
         # Get required properties from provided CloudFormation template
         properties = cloudformation_json["Properties"]
@@ -510,32 +560,43 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # Most changes to the endpoint config will change resource name for EndpointConfigs
         cls.delete_from_cloudformation_json(
-            original_resource.endpoint_config_arn, cloudformation_json, region_name
+            original_resource.endpoint_config_arn,
+            cloudformation_json,
+            account_id,
+            region_name,
         )
         new_resource = cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
         return new_resource
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # Get actual name because resource_name actually provides the ARN
         # since the Physical Resource ID is the ARN despite SageMaker
         # using the name for most of its operations.
         endpoint_config_name = resource_name.split("/")[-1]
 
-        sagemaker_backends[region_name].delete_endpoint_config(endpoint_config_name)
+        sagemaker_backends[account_id][region_name].delete_endpoint_config(
+            endpoint_config_name
+        )
 
 
 class Model(BaseObject, CloudFormationModel):
     def __init__(
         self,
+        account_id,
         region_name,
         model_name,
         execution_role_arn,
@@ -552,7 +613,9 @@ class Model(BaseObject, CloudFormationModel):
         self.vpc_config = vpc_config
         self.primary_container = primary_container
         self.execution_role_arn = execution_role_arn or "arn:test"
-        self.model_arn = self.arn_for_model_name(self.model_name, region_name)
+        self.model_arn = arn_formatter(
+            "model", self.model_name, account_id, region_name
+        )
 
     @property
     def response_object(self):
@@ -565,24 +628,13 @@ class Model(BaseObject, CloudFormationModel):
     def response_create(self):
         return {"ModelArn": self.model_arn}
 
-    @staticmethod
-    def arn_for_model_name(model_name, region_name):
-        return (
-            "arn:aws:sagemaker:"
-            + region_name
-            + ":"
-            + str(ACCOUNT_ID)
-            + ":model/"
-            + model_name
-        )
-
     @property
     def physical_resource_id(self):
         return self.model_arn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["ModelName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["ModelName"]
 
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-model.html#aws-resource-sagemaker-model-return-values
@@ -603,9 +655,9 @@ class Model(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        sagemaker_backend = sagemaker_backends[region_name]
+        sagemaker_backend = sagemaker_backends[account_id][region_name]
 
         # Get required properties from provided CloudFormation template
         properties = cloudformation_json["Properties"]
@@ -624,27 +676,32 @@ class Model(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # Most changes to the model will change resource name for Models
         cls.delete_from_cloudformation_json(
-            original_resource.model_arn, cloudformation_json, region_name
+            original_resource.model_arn, cloudformation_json, account_id, region_name
         )
         new_resource = cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
         return new_resource
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # Get actual name because resource_name actually provides the ARN
         # since the Physical Resource ID is the ARN despite SageMaker
         # using the name for most of its operations.
         model_name = resource_name.split("/")[-1]
 
-        sagemaker_backends[region_name].delete_model(model_name)
+        sagemaker_backends[account_id][region_name].delete_model(model_name)
 
 
 class VpcConfig(BaseObject):
@@ -679,6 +736,7 @@ class Container(BaseObject):
 class FakeSagemakerNotebookInstance(CloudFormationModel):
     def __init__(
         self,
+        account_id,
         region_name,
         notebook_instance_name,
         instance_type,
@@ -715,6 +773,9 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         self.root_access = root_access
         self.status = None
         self.creation_time = self.last_modified_time = datetime.now()
+        self.arn = arn_formatter(
+            "notebook-instance", notebook_instance_name, account_id, region_name
+        )
         self.start()
 
     def validate_volume_size_in_gb(self, volume_size_in_gb):
@@ -770,17 +831,6 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
             raise ValidationError(message=message)
 
     @property
-    def arn(self):
-        return (
-            "arn:aws:sagemaker:"
-            + self.region_name
-            + ":"
-            + str(ACCOUNT_ID)
-            + ":notebook-instance/"
-            + self.notebook_instance_name
-        )
-
-    @property
     def url(self):
         return "{}.notebook.{}.sagemaker.aws".format(
             self.notebook_instance_name, self.region_name
@@ -801,8 +851,8 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         return self.arn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["NotebookInstanceName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["NotebookInstanceName"]
 
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstance.html#aws-resource-sagemaker-notebookinstance-return-values
@@ -823,14 +873,14 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         # Get required properties from provided CloudFormation template
         properties = cloudformation_json["Properties"]
         instance_type = properties["InstanceType"]
         role_arn = properties["RoleArn"]
 
-        notebook = sagemaker_backends[region_name].create_notebook_instance(
+        notebook = sagemaker_backends[account_id][region_name].create_notebook_instance(
             notebook_instance_name=resource_name,
             instance_type=instance_type,
             role_arn=role_arn,
@@ -839,34 +889,47 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # Operations keep same resource name so delete old and create new to mimic update
         cls.delete_from_cloudformation_json(
-            original_resource.arn, cloudformation_json, region_name
+            original_resource.arn, cloudformation_json, account_id, region_name
         )
         new_resource = cls.create_from_cloudformation_json(
-            original_resource.notebook_instance_name, cloudformation_json, region_name
+            original_resource.notebook_instance_name,
+            cloudformation_json,
+            account_id,
+            region_name,
         )
         return new_resource
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # Get actual name because resource_name actually provides the ARN
         # since the Physical Resource ID is the ARN despite SageMaker
         # using the name for most of its operations.
         notebook_instance_name = resource_name.split("/")[-1]
 
-        backend = sagemaker_backends[region_name]
+        backend = sagemaker_backends[account_id][region_name]
         backend.stop_notebook_instance(notebook_instance_name)
         backend.delete_notebook_instance(notebook_instance_name)
 
 
 class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationModel):
     def __init__(
-        self, region_name, notebook_instance_lifecycle_config_name, on_create, on_start
+        self,
+        account_id,
+        region_name,
+        notebook_instance_lifecycle_config_name,
+        on_create,
+        on_start,
     ):
         self.region_name = region_name
         self.notebook_instance_lifecycle_config_name = (
@@ -877,19 +940,16 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
-        self.notebook_instance_lifecycle_config_arn = FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
-            self.notebook_instance_lifecycle_config_name, self.region_name
+        self.notebook_instance_lifecycle_config_arn = (
+            FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+                self.notebook_instance_lifecycle_config_name, account_id, region_name
+            )
         )
 
     @staticmethod
-    def arn_formatter(notebook_instance_lifecycle_config_name, region_name):
-        return (
-            "arn:aws:sagemaker:"
-            + region_name
-            + ":"
-            + str(ACCOUNT_ID)
-            + ":notebook-instance-lifecycle-configuration/"
-            + notebook_instance_lifecycle_config_name
+    def arn_formatter(name, account_id, region_name):
+        return arn_formatter(
+            "notebook-instance-lifecycle-configuration", name, account_id, region_name
         )
 
     @property
@@ -908,8 +968,8 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         return self.notebook_instance_lifecycle_config_arn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["NotebookInstanceLifecycleConfigName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["NotebookInstanceLifecycleConfigName"]
 
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstancelifecycleconfig.html#aws-resource-sagemaker-notebookinstancelifecycleconfig-return-values
@@ -930,11 +990,11 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
-        config = sagemaker_backends[
+        config = sagemaker_backends[account_id][
             region_name
         ].create_notebook_instance_lifecycle_config(
             notebook_instance_lifecycle_config_name=resource_name,
@@ -945,36 +1005,44 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # Operations keep same resource name so delete old and create new to mimic update
         cls.delete_from_cloudformation_json(
             original_resource.notebook_instance_lifecycle_config_arn,
             cloudformation_json,
+            account_id,
             region_name,
         )
         new_resource = cls.create_from_cloudformation_json(
             original_resource.notebook_instance_lifecycle_config_name,
             cloudformation_json,
+            account_id,
             region_name,
         )
         return new_resource
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # Get actual name because resource_name actually provides the ARN
         # since the Physical Resource ID is the ARN despite SageMaker
         # using the name for most of its operations.
         config_name = resource_name.split("/")[-1]
 
-        backend = sagemaker_backends[region_name]
+        backend = sagemaker_backends[account_id][region_name]
         backend.delete_notebook_instance_lifecycle_config(config_name)
 
 
 class SageMakerModelBackend(BaseBackend):
-    def __init__(self, region_name=None):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._models = {}
         self.notebook_instances = {}
         self.endpoint_configs = {}
@@ -985,12 +1053,6 @@ class SageMakerModelBackend(BaseBackend):
         self.trial_components = {}
         self.training_jobs = {}
         self.notebook_instance_lifecycle_configurations = {}
-        self.region_name = region_name
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1046,6 +1108,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def create_model(self, **kwargs):
         model_obj = Model(
+            account_id=self.account_id,
             region_name=self.region_name,
             model_name=kwargs.get("ModelName"),
             execution_role_arn=kwargs.get("ExecutionRoleArn"),
@@ -1062,10 +1125,8 @@ class SageMakerModelBackend(BaseBackend):
         model = self._models.get(model_name)
         if model:
             return model
-        message = "Could not find model '{}'.".format(
-            Model.arn_for_model_name(model_name, self.region_name)
-        )
-        raise ValidationError(message=message)
+        arn = arn_formatter("model", model_name, self.account_id, self.region_name)
+        raise ValidationError(message=f"Could not find model '{arn}'.")
 
     def list_models(self):
         return self._models.values()
@@ -1080,7 +1141,10 @@ class SageMakerModelBackend(BaseBackend):
 
     def create_experiment(self, experiment_name):
         experiment = FakeExperiment(
-            region_name=self.region_name, experiment_name=experiment_name, tags=[]
+            account_id=self.account_id,
+            region_name=self.region_name,
+            experiment_name=experiment_name,
+            tags=[],
         )
         self.experiments[experiment_name] = experiment
         return experiment.response_create
@@ -1094,51 +1158,38 @@ class SageMakerModelBackend(BaseBackend):
             "LastModifiedTime": experiment_data.last_modified_time,
         }
 
-    def add_tags_to_experiment(self, experiment_arn, tags):
-        experiment = [
-            self.experiments[i]
-            for i in self.experiments
-            if self.experiments[i].experiment_arn == experiment_arn
-        ][0]
-        experiment.tags.extend(tags)
+    def _get_resource_from_arn(self, arn):
+        resources = {
+            "model": self._models,
+            "notebook-instance": self.notebook_instances,
+            "endpoint": self.endpoints,
+            "endpoint-config": self.endpoint_configs,
+            "training-job": self.training_jobs,
+            "experiment": self.experiments,
+            "experiment-trial": self.trials,
+            "experiment-trial-component": self.trial_components,
+            "processing-job": self.processing_jobs,
+        }
+        target_resource, target_name = arn.split(":")[-1].split("/")
+        try:
+            resource = resources.get(target_resource).get(target_name)
+        except KeyError:
+            message = f"Could not find {target_resource} with name {target_name}"
+            raise ValidationError(message=message)
+        return resource
 
-    def add_tags_to_trial(self, trial_arn, tags):
-        trial = [
-            self.trials[i] for i in self.trials if self.trials[i].trial_arn == trial_arn
-        ][0]
-        trial.tags.extend(tags)
+    def add_tags(self, arn, tags):
+        resource = self._get_resource_from_arn(arn)
+        resource.tags.extend(tags)
 
-    def add_tags_to_trial_component(self, trial_component_arn, tags):
-        trial_component = [
-            self.trial_components[i]
-            for i in self.trial_components
-            if self.trial_components[i].trial_component_arn == trial_component_arn
-        ][0]
-        trial_component.tags.extend(tags)
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_tags(self, arn):
+        resource = self._get_resource_from_arn(arn)
+        return resource.tags
 
-    def delete_tags_from_experiment(self, experiment_arn, tag_keys):
-        experiment = [
-            self.experiments[i]
-            for i in self.experiments
-            if self.experiments[i].experiment_arn == experiment_arn
-        ][0]
-        experiment.tags = [tag for tag in experiment.tags if tag["Key"] not in tag_keys]
-
-    def delete_tags_from_trial(self, trial_arn, tag_keys):
-        trial = [
-            self.trials[i] for i in self.trials if self.trials[i].trial_arn == trial_arn
-        ][0]
-        trial.tags = [tag for tag in trial.tags if tag["Key"] not in tag_keys]
-
-    def delete_tags_from_trial_component(self, trial_component_arn, tag_keys):
-        trial_component = [
-            self.trial_components[i]
-            for i in self.trial_components
-            if self.trial_components[i].trial_component_arn == trial_component_arn
-        ][0]
-        trial_component.tags = [
-            tag for tag in trial_component.tags if tag["Key"] not in tag_keys
-        ]
+    def delete_tags(self, arn, tag_keys):
+        resource = self._get_resource_from_arn(arn)
+        resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_experiments(self):
@@ -1280,28 +1331,9 @@ class SageMakerModelBackend(BaseBackend):
             )
             raise ValidationError(message=message)
 
-    def get_experiment_by_arn(self, arn):
-        experiments = [
-            experiment
-            for experiment in self.experiments.values()
-            if experiment.experiment_arn == arn
-        ]
-        if len(experiments) == 0:
-            message = "RecordNotFound"
-            raise ValidationError(message=message)
-        return experiments[0]
-
-    def get_experiment_tags(self, arn):
-        try:
-            experiment = self.get_experiment_by_arn(arn)
-            return experiment.tags or []
-        except RESTError:
-            return []
-
-    def create_trial(
-        self, trial_name, experiment_name,
-    ):
+    def create_trial(self, trial_name, experiment_name):
         trial = FakeTrial(
+            account_id=self.account_id,
             region_name=self.region_name,
             trial_name=trial_name,
             experiment_name=experiment_name,
@@ -1329,20 +1361,6 @@ class SageMakerModelBackend(BaseBackend):
             )
             raise ValidationError(message=message)
 
-    def get_trial_by_arn(self, arn):
-        trials = [trial for trial in self.trials.values() if trial.trial_arn == arn]
-        if len(trials) == 0:
-            message = "RecordNotFound"
-            raise ValidationError(message=message)
-        return trials[0]
-
-    def get_trial_tags(self, arn):
-        try:
-            trial = self.get_trial_by_arn(arn)
-            return trial.tags or []
-        except RESTError:
-            return []
-
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_trials(self, experiment_name=None, trial_component_name=None):
         trials_fetched = list(self.trials.values())
@@ -1364,10 +1382,9 @@ class SageMakerModelBackend(BaseBackend):
             if evaluate_filter_expression(trial_data)
         ]
 
-    def create_trial_component(
-        self, trial_component_name, trial_name,
-    ):
+    def create_trial_component(self, trial_component_name, trial_name):
         trial_component = FakeTrialComponent(
+            account_id=self.account_id,
             region_name=self.region_name,
             trial_component_name=trial_component_name,
             trial_name=trial_name,
@@ -1385,30 +1402,14 @@ class SageMakerModelBackend(BaseBackend):
             )
             raise ValidationError(message=message)
 
-    def get_trial_component_by_arn(self, arn):
-        trial_components = [
-            trial_component
-            for trial_component in self.trial_components.values()
-            if trial_component.trial_component_arn == arn
-        ]
-        if len(trial_components) == 0:
-            message = "RecordNotFound"
-            raise ValidationError(message=message)
-        return trial_components[0]
-
-    def get_trial_component_tags(self, arn):
-        try:
-            trial_component = self.get_trial_component_by_arn(arn)
-            return trial_component.tags or []
-        except RESTError:
-            return []
-
     def describe_trial_component(self, trial_component_name):
         try:
             return self.trial_components[trial_component_name].response_object
         except KeyError:
             message = "Could not find trial component '{}'.".format(
-                FakeTrialComponent.arn_formatter(trial_component_name, self.region_name)
+                FakeTrialComponent.arn_formatter(
+                    trial_component_name, self.account_id, self.region_name
+                )
             )
             raise ValidationError(message=message)
 
@@ -1433,7 +1434,7 @@ class SageMakerModelBackend(BaseBackend):
             self.trials[trial_name].trial_components.extend([trial_component_name])
         else:
             raise ResourceNotFound(
-                message=f"Trial 'arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial/{trial_name}' does not exist."
+                message=f"Trial 'arn:aws:sagemaker:{self.region_name}:{self.account_id}:experiment-trial/{trial_name}' does not exist."
             )
 
         if trial_component_name in self.trial_components.keys():
@@ -1462,8 +1463,8 @@ class SageMakerModelBackend(BaseBackend):
             )
 
         return {
-            "TrialComponentArn": f"arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial-component/{trial_component_name}",
-            "TrialArn": f"arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial/{trial_name}",
+            "TrialComponentArn": f"arn:aws:sagemaker:{self.region_name}:{self.account_id}:experiment-trial-component/{trial_component_name}",
+            "TrialArn": f"arn:aws:sagemaker:{self.region_name}:{self.account_id}:experiment-trial/{trial_name}",
         }
 
     def create_notebook_instance(
@@ -1486,6 +1487,7 @@ class SageMakerModelBackend(BaseBackend):
         self._validate_unique_notebook_instance_name(notebook_instance_name)
 
         notebook_instance = FakeSagemakerNotebookInstance(
+            account_id=self.account_id,
             region_name=self.region_name,
             notebook_instance_name=notebook_instance_name,
             instance_type=instance_type,
@@ -1521,16 +1523,6 @@ class SageMakerModelBackend(BaseBackend):
         except KeyError:
             raise ValidationError(message="RecordNotFound")
 
-    def get_notebook_instance_by_arn(self, arn):
-        instances = [
-            notebook_instance
-            for notebook_instance in self.notebook_instances.values()
-            if notebook_instance.arn == arn
-        ]
-        if len(instances) == 0:
-            raise ValidationError(message="RecordNotFound")
-        return instances[0]
-
     def start_notebook_instance(self, notebook_instance_name):
         notebook_instance = self.get_notebook_instance(notebook_instance_name)
         notebook_instance.start()
@@ -1548,13 +1540,6 @@ class SageMakerModelBackend(BaseBackend):
             raise ValidationError(message=message)
         del self.notebook_instances[notebook_instance_name]
 
-    def get_notebook_instance_tags(self, arn):
-        try:
-            notebook_instance = self.get_notebook_instance_by_arn(arn)
-            return notebook_instance.tags or []
-        except RESTError:
-            return []
-
     def create_notebook_instance_lifecycle_config(
         self, notebook_instance_lifecycle_config_name, on_create, on_start
     ):
@@ -1564,11 +1549,14 @@ class SageMakerModelBackend(BaseBackend):
         ):
             message = "Unable to create Notebook Instance Lifecycle Config {}. (Details: Notebook Instance Lifecycle Config already exists.)".format(
                 FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
-                    notebook_instance_lifecycle_config_name, self.region_name
+                    notebook_instance_lifecycle_config_name,
+                    self.account_id,
+                    self.region_name,
                 )
             )
             raise ValidationError(message=message)
         lifecycle_config = FakeSageMakerNotebookInstanceLifecycleConfig(
+            account_id=self.account_id,
             region_name=self.region_name,
             notebook_instance_lifecycle_config_name=notebook_instance_lifecycle_config_name,
             on_create=on_create,
@@ -1589,7 +1577,9 @@ class SageMakerModelBackend(BaseBackend):
         except KeyError:
             message = "Unable to describe Notebook Instance Lifecycle Config '{}'. (Details: Notebook Instance Lifecycle Config does not exist.)".format(
                 FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
-                    notebook_instance_lifecycle_config_name, self.region_name
+                    notebook_instance_lifecycle_config_name,
+                    self.account_id,
+                    self.region_name,
                 )
             )
             raise ValidationError(message=message)
@@ -1604,7 +1594,9 @@ class SageMakerModelBackend(BaseBackend):
         except KeyError:
             message = "Unable to delete Notebook Instance Lifecycle Config '{}'. (Details: Notebook Instance Lifecycle Config does not exist.)".format(
                 FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
-                    notebook_instance_lifecycle_config_name, self.region_name
+                    notebook_instance_lifecycle_config_name,
+                    self.account_id,
+                    self.region_name,
                 )
             )
             raise ValidationError(message=message)
@@ -1618,6 +1610,7 @@ class SageMakerModelBackend(BaseBackend):
         kms_key_id,
     ):
         endpoint_config = FakeEndpointConfig(
+            account_id=self.account_id,
             region_name=self.region_name,
             endpoint_config_name=endpoint_config_name,
             production_variants=production_variants,
@@ -1633,43 +1626,47 @@ class SageMakerModelBackend(BaseBackend):
     def validate_production_variants(self, production_variants):
         for production_variant in production_variants:
             if production_variant["ModelName"] not in self._models:
-                message = "Could not find model '{}'.".format(
-                    Model.arn_for_model_name(
-                        production_variant["ModelName"], self.region_name
-                    )
+                arn = arn_formatter(
+                    "model",
+                    production_variant["ModelName"],
+                    self.account_id,
+                    self.region_name,
                 )
-                raise ValidationError(message=message)
+                raise ValidationError(message=f"Could not find model '{arn}'.")
 
     def describe_endpoint_config(self, endpoint_config_name):
         try:
             return self.endpoint_configs[endpoint_config_name].response_object
         except KeyError:
-            message = "Could not find endpoint configuration '{}'.".format(
-                FakeEndpointConfig.arn_formatter(endpoint_config_name, self.region_name)
+            arn = FakeEndpointConfig.arn_formatter(
+                endpoint_config_name, self.account_id, self.region_name
             )
-            raise ValidationError(message=message)
+            raise ValidationError(
+                message=f"Could not find endpoint configuration '{arn}'."
+            )
 
     def delete_endpoint_config(self, endpoint_config_name):
         try:
             del self.endpoint_configs[endpoint_config_name]
         except KeyError:
-            message = "Could not find endpoint configuration '{}'.".format(
-                FakeEndpointConfig.arn_formatter(endpoint_config_name, self.region_name)
+            arn = FakeEndpointConfig.arn_formatter(
+                endpoint_config_name, self.account_id, self.region_name
             )
-            raise ValidationError(message=message)
+            raise ValidationError(
+                message=f"Could not find endpoint configuration '{arn}'."
+            )
 
-    def create_endpoint(
-        self, endpoint_name, endpoint_config_name, tags,
-    ):
+    def create_endpoint(self, endpoint_name, endpoint_config_name, tags):
         try:
             endpoint_config = self.describe_endpoint_config(endpoint_config_name)
         except KeyError:
-            message = "Could not find endpoint_config '{}'.".format(
-                FakeEndpointConfig.arn_formatter(endpoint_config_name, self.region_name)
+            arn = FakeEndpointConfig.arn_formatter(
+                endpoint_config_name, self.account_id, self.region_name
             )
-            raise ValidationError(message=message)
+            raise ValidationError(message=f"Could not find endpoint_config '{arn}'.")
 
         endpoint = FakeEndpoint(
+            account_id=self.account_id,
             region_name=self.region_name,
             endpoint_name=endpoint_name,
             endpoint_config_name=endpoint_config_name,
@@ -1685,37 +1682,19 @@ class SageMakerModelBackend(BaseBackend):
         try:
             return self.endpoints[endpoint_name].response_object
         except KeyError:
-            message = "Could not find endpoint configuration '{}'.".format(
-                FakeEndpoint.arn_formatter(endpoint_name, self.region_name)
+            arn = FakeEndpoint.arn_formatter(
+                endpoint_name, self.account_id, self.region_name
             )
-            raise ValidationError(message=message)
+            raise ValidationError(message=f"Could not find endpoint '{arn}'.")
 
     def delete_endpoint(self, endpoint_name):
         try:
             del self.endpoints[endpoint_name]
         except KeyError:
-            message = "Could not find endpoint configuration '{}'.".format(
-                FakeEndpoint.arn_formatter(endpoint_name, self.region_name)
+            arn = FakeEndpoint.arn_formatter(
+                endpoint_name, self.account_id, self.region_name
             )
-            raise ValidationError(message=message)
-
-    def get_endpoint_by_arn(self, arn):
-        endpoints = [
-            endpoint
-            for endpoint in self.endpoints.values()
-            if endpoint.endpoint_arn == arn
-        ]
-        if len(endpoints) == 0:
-            message = "RecordNotFound"
-            raise ValidationError(message=message)
-        return endpoints[0]
-
-    def get_endpoint_tags(self, arn):
-        try:
-            endpoint = self.get_endpoint_by_arn(arn)
-            return endpoint.tags or []
-        except RESTError:
-            return []
+            raise ValidationError(message=f"Could not find endpoint '{arn}'.")
 
     def create_processing_job(
         self,
@@ -1725,8 +1704,8 @@ class SageMakerModelBackend(BaseBackend):
         processing_inputs,
         processing_job_name,
         processing_output_config,
-        processing_resources,
         role_arn,
+        tags,
         stopping_condition,
     ):
         processing_job = FakeProcessingJob(
@@ -1736,10 +1715,11 @@ class SageMakerModelBackend(BaseBackend):
             processing_inputs=processing_inputs,
             processing_job_name=processing_job_name,
             processing_output_config=processing_output_config,
-            processing_resources=processing_resources,
+            account_id=self.account_id,
             region_name=self.region_name,
             role_arn=role_arn,
             stopping_condition=stopping_condition,
+            tags=tags,
         )
         self.processing_jobs[processing_job_name] = processing_job
         return processing_job
@@ -1748,10 +1728,10 @@ class SageMakerModelBackend(BaseBackend):
         try:
             return self.processing_jobs[processing_job_name].response_object
         except KeyError:
-            message = "Could not find processing job '{}'.".format(
-                FakeProcessingJob.arn_formatter(processing_job_name, self.region_name)
+            arn = FakeProcessingJob.arn_formatter(
+                processing_job_name, self.account_id, self.region_name
             )
-            raise ValidationError(message=message)
+            raise ValidationError(message=f"Could not find processing job '{arn}'.")
 
     def list_processing_jobs(
         self,
@@ -1763,8 +1743,6 @@ class SageMakerModelBackend(BaseBackend):
         last_modified_time_before,
         name_contains,
         status_equals,
-        sort_by,
-        sort_order,
     ):
         if next_token:
             try:
@@ -1862,6 +1840,7 @@ class SageMakerModelBackend(BaseBackend):
         experiment_config,
     ):
         training_job = FakeTrainingJob(
+            account_id=self.account_id,
             region_name=self.region_name,
             training_job_name=training_job_name,
             hyper_parameters=hyper_parameters,
@@ -1890,38 +1869,11 @@ class SageMakerModelBackend(BaseBackend):
             return self.training_jobs[training_job_name].response_object
         except KeyError:
             message = "Could not find training job '{}'.".format(
-                FakeTrainingJob.arn_formatter(training_job_name, self.region_name)
+                FakeTrainingJob.arn_formatter(
+                    training_job_name, self.account_id, self.region_name
+                )
             )
             raise ValidationError(message=message)
-
-    def delete_training_job(self, training_job_name):
-        try:
-            del self.training_jobs[training_job_name]
-        except KeyError:
-            message = "Could not find endpoint configuration '{}'.".format(
-                FakeTrainingJob.arn_formatter(training_job_name, self.region_name)
-            )
-            raise ValidationError(message=message)
-
-    def get_training_job_by_arn(self, arn):
-        training_jobs = [
-            training_job
-            for training_job in self.training_jobs.values()
-            if training_job.training_job_arn == arn
-        ]
-        if len(training_jobs) == 0:
-            raise ValidationError(message="RecordNotFound")
-        return training_jobs[0]
-
-    def get_training_job_tags(self, arn):
-        try:
-            training_job = self.get_training_job_by_arn(arn)
-            return training_job.tags or []
-        except RESTError:
-            return []
-
-    def _update_training_job_details(self, training_job_name, details_json):
-        self.training_jobs[training_job_name].update(details_json)
 
     def list_training_jobs(
         self,
@@ -1933,8 +1885,6 @@ class SageMakerModelBackend(BaseBackend):
         last_modified_time_before,
         name_contains,
         status_equals,
-        sort_by,
-        sort_order,
     ):
         if next_token:
             try:
@@ -2007,13 +1957,62 @@ class SageMakerModelBackend(BaseBackend):
             "NextToken": str(next_index) if next_index is not None else None,
         }
 
+    def update_endpoint_weights_and_capacities(
+        self, endpoint_name, desired_weights_and_capacities
+    ):
+        # Validate inputs
+        endpoint = self.endpoints.get(endpoint_name, None)
+        if not endpoint:
+            arn = FakeEndpoint.arn_formatter(
+                endpoint_name, self.account_id, self.region_name
+            )
+            raise AWSValidationException(f'Could not find endpoint "{arn}".')
+
+        names_checked = []
+        for variant_config in desired_weights_and_capacities:
+            name = variant_config.get("VariantName")
+
+            if name in names_checked:
+                raise AWSValidationException(
+                    f'The variant name "{name}" was non-unique within the request.'
+                )
+
+            if not any(
+                variant["VariantName"] == name
+                for variant in endpoint.production_variants
+            ):
+                raise AWSValidationException(
+                    f'The variant name(s) "{name}" is/are not present within endpoint configuration "{endpoint.endpoint_config_name}".'
+                )
+
+            names_checked.append(name)
+
+        # Update endpoint variants
+        endpoint.endpoint_status = "Updating"
+
+        for variant_config in desired_weights_and_capacities:
+            name = variant_config.get("VariantName")
+            desired_weight = variant_config.get("DesiredWeight")
+            desired_instance_count = variant_config.get("DesiredInstanceCount")
+
+            for variant in endpoint.production_variants:
+                if variant.get("VariantName") == name:
+                    variant["DesiredWeight"] = desired_weight
+                    variant["CurrentWeight"] = desired_weight
+                    variant["DesiredInstanceCount"] = desired_instance_count
+                    variant["CurrentInstanceCount"] = desired_instance_count
+                    break
+
+        endpoint.endpoint_status = "InService"
+        return endpoint.endpoint_arn
+
 
 class FakeExperiment(BaseObject):
-    def __init__(
-        self, region_name, experiment_name, tags,
-    ):
+    def __init__(self, account_id, region_name, experiment_name, tags):
         self.experiment_name = experiment_name
-        self.experiment_arn = FakeExperiment.arn_formatter(experiment_name, region_name)
+        self.experiment_arn = arn_formatter(
+            "experiment", experiment_name, account_id, region_name
+        )
         self.tags = tags
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -2030,24 +2029,21 @@ class FakeExperiment(BaseObject):
     def response_create(self):
         return {"ExperimentArn": self.experiment_arn}
 
-    @staticmethod
-    def arn_formatter(experiment_arn, region_name):
-        return (
-            "arn:aws:sagemaker:"
-            + region_name
-            + ":"
-            + str(ACCOUNT_ID)
-            + ":experiment/"
-            + experiment_arn
-        )
-
 
 class FakeTrial(BaseObject):
     def __init__(
-        self, region_name, trial_name, experiment_name, tags, trial_components,
+        self,
+        account_id,
+        region_name,
+        trial_name,
+        experiment_name,
+        tags,
+        trial_components,
     ):
         self.trial_name = trial_name
-        self.trial_arn = FakeTrial.arn_formatter(trial_name, region_name)
+        self.trial_arn = arn_formatter(
+            "experiment-trial", trial_name, account_id, region_name
+        )
         self.tags = tags
         self.trial_components = trial_components
         self.experiment_name = experiment_name
@@ -2066,25 +2062,12 @@ class FakeTrial(BaseObject):
     def response_create(self):
         return {"TrialArn": self.trial_arn}
 
-    @staticmethod
-    def arn_formatter(trial_name, region_name):
-        return (
-            "arn:aws:sagemaker:"
-            + region_name
-            + ":"
-            + str(ACCOUNT_ID)
-            + ":experiment-trial/"
-            + trial_name
-        )
-
 
 class FakeTrialComponent(BaseObject):
-    def __init__(
-        self, region_name, trial_component_name, trial_name, tags,
-    ):
+    def __init__(self, account_id, region_name, trial_component_name, trial_name, tags):
         self.trial_component_name = trial_component_name
         self.trial_component_arn = FakeTrialComponent.arn_formatter(
-            trial_component_name, region_name
+            trial_component_name, account_id, region_name
         )
         self.tags = tags
         self.trial_name = trial_name
@@ -2103,14 +2086,9 @@ class FakeTrialComponent(BaseObject):
         return {"TrialComponentArn": self.trial_component_arn}
 
     @staticmethod
-    def arn_formatter(trial_component_name, region_name):
-        return (
-            "arn:aws:sagemaker:"
-            + region_name
-            + ":"
-            + str(ACCOUNT_ID)
-            + ":experiment-trial-component/"
-            + trial_component_name
+    def arn_formatter(trial_component_name, account_id, region_name):
+        return arn_formatter(
+            "experiment-trial-component", trial_component_name, account_id, region_name
         )
 
 

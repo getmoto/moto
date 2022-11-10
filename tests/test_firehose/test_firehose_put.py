@@ -4,8 +4,8 @@ import sure  # noqa pylint: disable=unused-import
 
 from moto import mock_firehose
 from moto import mock_s3
-from moto.core import ACCOUNT_ID
-from moto.core.utils import get_random_hex
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.moto_api._internal import mock_random
 from tests.test_firehose.test_firehose import TEST_REGION
 from tests.test_firehose.test_firehose import sample_s3_dest_config
 from tests.test_firehose.test_firehose_destination_types import (
@@ -24,7 +24,7 @@ def test_put_record_redshift_destination():
     """
     client = boto3.client("firehose", region_name=TEST_REGION)
 
-    stream_name = f"test_put_record_{get_random_hex(6)}"
+    stream_name = f"test_put_record_{mock_random.get_random_hex(6)}"
     create_redshift_delivery_stream(client, stream_name)
     result = client.put_record(
         DeliveryStreamName=stream_name, Record={"Data": "some test data"}
@@ -41,7 +41,7 @@ def test_put_record_batch_redshift_destination():
     """
     client = boto3.client("firehose", region_name=TEST_REGION)
 
-    stream_name = f"test_put_record_{get_random_hex(6)}"
+    stream_name = f"test_put_record_{mock_random.get_random_hex(6)}"
     create_redshift_delivery_stream(client, stream_name)
     records = [{"Data": "one"}, {"Data": "two"}, {"Data": "three"}]
     result = client.put_record_batch(DeliveryStreamName=stream_name, Records=records)
@@ -63,7 +63,7 @@ def test_put_record_http_destination():
     client = boto3.client("firehose", region_name=TEST_REGION)
     s3_dest_config = sample_s3_dest_config()
 
-    stream_name = f"test_put_record_{get_random_hex(6)}"
+    stream_name = f"test_put_record_{mock_random.get_random_hex(6)}"
     client.create_delivery_stream(
         DeliveryStreamName=stream_name,
         HttpEndpointDestinationConfiguration={
@@ -83,7 +83,7 @@ def test_put_record_batch_http_destination():
     client = boto3.client("firehose", region_name=TEST_REGION)
     s3_dest_config = sample_s3_dest_config()
 
-    stream_name = f"test_put_record_{get_random_hex(6)}"
+    stream_name = f"test_put_record_{mock_random.get_random_hex(6)}"
     client.create_delivery_stream(
         DeliveryStreamName=stream_name,
         HttpEndpointDestinationConfiguration={
@@ -119,7 +119,7 @@ def test_put_record_batch_extended_s3_destination():
         CreateBucketConfiguration={"LocationConstraint": S3_LOCATION_CONSTRAINT},
     )
 
-    stream_name = f"test_put_record_{get_random_hex(6)}"
+    stream_name = f"test_put_record_{mock_random.get_random_hex(6)}"
     client.create_delivery_stream(
         DeliveryStreamName=stream_name,
         ExtendedS3DestinationConfiguration={

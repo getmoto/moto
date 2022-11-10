@@ -9,13 +9,13 @@ Installing Moto
 
 You can use ``pip`` to install the latest released version of ``moto``, and specify which service(s) you will use::
 
-    pip install moto[ec2,s3,..]
+    pip install 'moto[ec2,s3,..]'
 
 This will install Moto, and the dependencies required for that specific service.
 
 If you don't care about the number of dependencies, or if you want to mock many AWS services::
 
-    pip install moto[all]
+    pip install 'moto[all]'
 
 If you want to install ``moto`` from source::
 
@@ -215,10 +215,13 @@ You need to ensure that the mocks are actually in place.
         export AWS_SECRET_ACCESS_KEY='testing'
         export AWS_SECURITY_TOKEN='testing'
         export AWS_SESSION_TOKEN='testing'
+        export AWS_DEFAULT_REGION='us-east-1'
 
  #. **VERY IMPORTANT**: ensure that you have your mocks set up *BEFORE* your `boto3` client is established.
     This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
     See the pesky imports section below on how to work around this.
+
+.. note:: By default, the region must be one supported by AWS, see :ref:`Can I mock the default AWS region?` for how to change this.
 
 Example on usage
 ~~~~~~~~~~~~~~~~
