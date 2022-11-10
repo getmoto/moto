@@ -1,8 +1,8 @@
 import re
 from datetime import datetime
 
-from moto.core import BaseBackend
-from moto.core.utils import BackendDict, iso_8601_datetime_without_milliseconds
+from moto.core import BaseBackend, BackendDict
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.moto_api._internal import mock_random as random
 from moto.redshiftdata.exceptions import ValidationException, ResourceNotFoundException
 

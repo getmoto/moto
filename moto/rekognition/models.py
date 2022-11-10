@@ -2,8 +2,7 @@
 
 import string
 
-from moto.core import BaseBackend
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict
 from moto.moto_api._internal import mock_random as random
 
 

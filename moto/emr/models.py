@@ -5,8 +5,7 @@ import warnings
 
 import pytz
 from dateutil.parser import parse as dtparse
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.emr.exceptions import (
     InvalidRequestException,
     ValidationException,

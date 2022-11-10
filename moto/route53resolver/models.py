@@ -4,8 +4,7 @@ from datetime import datetime, timezone
 from ipaddress import ip_address, ip_network, IPv4Address
 import re
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError

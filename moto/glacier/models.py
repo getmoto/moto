@@ -2,8 +2,7 @@ import hashlib
 
 import datetime
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.utilities.utils import md5_hash
 
 from .utils import get_job_id

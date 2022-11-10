@@ -7,8 +7,8 @@ from typing import Dict, List
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.ecr.exceptions import (
     ImageNotFoundException,
     RepositoryNotFoundException,

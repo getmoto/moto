@@ -1,8 +1,8 @@
 """PersonalizeBackend class with methods for supported APIs."""
 
 from .exceptions import ResourceNotFoundException
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, unix_time
+from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import unix_time
 
 
 class Schema(BaseModel):

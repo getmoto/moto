@@ -1,11 +1,11 @@
 import datetime
 import re
 from typing import Dict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BackendDict, BaseModel
 
 from .utils import make_arn_for_wacl
 from .exceptions import WAFV2DuplicateItemException, WAFNonexistentItemException
-from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from collections import OrderedDict

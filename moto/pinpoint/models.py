@@ -1,6 +1,6 @@
 from datetime import datetime
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, unix_time
+from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 

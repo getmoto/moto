@@ -3,8 +3,8 @@ import re
 from datetime import datetime
 import inspect
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, iso_8601_datetime_without_milliseconds
+from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from .utils import (
     default_auto_start_configuration,
     default_auto_stop_configuration,

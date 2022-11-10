@@ -9,7 +9,7 @@ import threading
 import dateutil.parser
 from sys import platform
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.iam.models import iam_backends, IAMBackend
 from moto.ec2.models import ec2_backends, EC2Backend
 from moto.ec2.models.instances import Instance
@@ -28,7 +28,7 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
 from moto.iam.exceptions import IAMNotFoundException
-from moto.core.utils import unix_time_millis, BackendDict
+from moto.core.utils import unix_time_millis
 from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState

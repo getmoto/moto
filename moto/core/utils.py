@@ -1,15 +1,9 @@
-from functools import lru_cache
-
 import datetime
 import inspect
 import re
 from botocore.exceptions import ClientError
-from boto3 import Session
-from moto.settings import allow_unknown_region
-from threading import RLock
-from typing import Any, Optional, List
+from typing import Optional
 from urllib.parse import urlparse
-from uuid import uuid4
 
 
 def camelcase_to_underscores(argument: Optional[str]) -> str:
@@ -69,7 +63,7 @@ def method_names_from_class(clazz):
     return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
 
 
-def convert_regex_to_flask_path(url_path):
+def convert_regex_to_flask_path(url_path: str) -> str:
     """
     Converts a regex matching url to one that can be used with flask
     """
@@ -308,118 +302,3 @@ def extract_region_from_aws_authorization(string):
     if region == auth:
         return None
     return region
-
-
-backend_lock = RLock()
-
-
-class AccountSpecificBackend(dict):
-    """
-    Dictionary storing the data for a service in a specific account.
-    Data access pattern:
-      account_specific_backend[region: str] = backend: BaseBackend
-    """
-
-    def __init__(
-        self, service_name, account_id, backend, use_boto3_regions, additional_regions
-    ):
-        self.service_name = service_name
-        self.account_id = account_id
-        self.backend = backend
-        self.regions = []
-        if use_boto3_regions:
-            sess = Session()
-            self.regions.extend(sess.get_available_regions(service_name))
-            self.regions.extend(
-                sess.get_available_regions(service_name, partition_name="aws-us-gov")
-            )
-            self.regions.extend(
-                sess.get_available_regions(service_name, partition_name="aws-cn")
-            )
-        self.regions.extend(additional_regions or [])
-        self._id = str(uuid4())
-
-    def __hash__(self):
-        return hash(self._id)
-
-    def __eq__(self, other):
-        return (
-            other
-            and isinstance(other, AccountSpecificBackend)
-            and other._id == self._id
-        )
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def reset(self):
-        for region_specific_backend in self.values():
-            region_specific_backend.reset()
-
-    def __contains__(self, region):
-        return region in self.regions or region in self.keys()
-
-    @lru_cache()
-    def __getitem__(self, region_name):
-        if region_name in self.keys():
-            return super().__getitem__(region_name)
-        # Create the backend for a specific region
-        with backend_lock:
-            if region_name in self.regions and region_name not in self.keys():
-                super().__setitem__(
-                    region_name, self.backend(region_name, account_id=self.account_id)
-                )
-            if region_name not in self.regions and allow_unknown_region():
-                super().__setitem__(
-                    region_name, self.backend(region_name, account_id=self.account_id)
-                )
-        return super().__getitem__(region_name)
-
-
-class BackendDict(dict):
-    """
-    Data Structure to store everything related to a specific service.
-    Format:
-      [account_id: str]: AccountSpecificBackend
-      [account_id: str][region: str] = BaseBackend
-    """
-
-    def __init__(
-        self,
-        backend: Any,
-        service_name: str,
-        use_boto3_regions: bool = True,
-        additional_regions: Optional[List[str]] = None,
-    ):
-        self.backend = backend
-        self.service_name = service_name
-        self._use_boto3_regions = use_boto3_regions
-        self._additional_regions = additional_regions
-        self._id = str(uuid4())
-
-    def __hash__(self):
-        # Required for the LRUcache to work.
-        # service_name is enough to determine uniqueness - other properties are dependent
-        return hash(self._id)
-
-    def __eq__(self, other):
-        return other and isinstance(other, BackendDict) and other._id == self._id
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    @lru_cache()
-    def __getitem__(self, account_id) -> AccountSpecificBackend:
-        self._create_account_specific_backend(account_id)
-        return super().__getitem__(account_id)
-
-    def _create_account_specific_backend(self, account_id) -> None:
-        with backend_lock:
-            if account_id not in self.keys():
-                self[account_id] = AccountSpecificBackend(
-                    service_name=self.service_name,
-                    account_id=account_id,
-                    backend=self.backend,
-                    use_boto3_regions=self._use_boto3_regions,
-                    additional_regions=self._additional_regions,
-                )

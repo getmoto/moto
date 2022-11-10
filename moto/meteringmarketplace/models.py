@@ -1,7 +1,6 @@
 import collections
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api._internal import mock_random
-from moto.core.utils import BackendDict
 
 
 class UsageRecord(BaseModel, dict):

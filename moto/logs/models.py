@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple, Optional
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core import CloudFormationModel
-from moto.core.utils import unix_time_millis, BackendDict
+from moto.core.utils import unix_time_millis
 from moto.logs.metric_filters import MetricFilters
 from moto.logs.exceptions import (
     ResourceNotFoundException,

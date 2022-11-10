@@ -2,8 +2,8 @@ import string
 
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Tuple, Optional
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
+from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.moto_api._internal import mock_random as random

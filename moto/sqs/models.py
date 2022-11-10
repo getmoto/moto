@@ -11,13 +11,12 @@ from threading import Condition
 from xml.sax.saxutils import escape
 
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     unix_time,
     unix_time_millis,
     tags_from_cloudformation_tags_list,
-    BackendDict,
 )
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash

@@ -6,8 +6,8 @@ import json
 import re
 
 from collections import OrderedDict
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, unix_time_millis, BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core.utils import unix_time, unix_time_millis
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb.comparisons import get_filter_expression
 from moto.dynamodb.comparisons import get_expected

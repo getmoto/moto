@@ -2,9 +2,9 @@ import datetime
 import re
 import json
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import unix_time, BackendDict
+from moto.core.utils import unix_time
 from moto.organizations import utils
 from moto.organizations.exceptions import (
     InvalidInputException,

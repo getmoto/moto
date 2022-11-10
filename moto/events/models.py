@@ -12,12 +12,11 @@ from operator import lt, le, eq, ge, gt
 
 from collections import OrderedDict
 from moto.core.exceptions import JsonRESTError
-from moto.core import BaseBackend, CloudFormationModel, BaseModel
+from moto.core import BaseBackend, BackendDict, CloudFormationModel, BaseModel
 from moto.core.utils import (
     unix_time,
     unix_time_millis,
     iso_8601_datetime_without_milliseconds,
-    BackendDict,
 )
 from moto.events.exceptions import (
     ValidationException,
