@@ -870,3 +870,29 @@ def test_update_primary_key():
     table.get_item(Key={"pk": "testchangepk"})["Item"].should.equal(
         {"pk": "testchangepk"}
     )
+
+
+@mock_dynamodb
+def test_put_item__string_as_integer_value():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Unable to mock a session with Config in ServerMode")
+    session = botocore.session.Session()
+    config = botocore.client.Config(parameter_validation=False)
+    client = session.create_client("dynamodb", region_name="us-east-1", config=config)
+    client.create_table(
+        TableName="without_sk",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 10},
+    )
+    with pytest.raises(ClientError) as exc:
+        client.put_item(TableName="without_sk", Item={"pk": {"S": 123}})
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("SerializationException")
+    err["Message"].should.equal("NUMBER_VALUE cannot be converted to String")
+
+    with pytest.raises(ClientError) as exc:
+        client.put_item(TableName="without_sk", Item={"pk": {"S": {"S": "asdf"}}})
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("SerializationException")
+    err["Message"].should.equal("Start of structure or map found where not expected")

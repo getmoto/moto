@@ -33,6 +33,7 @@ from moto.dynamodb.exceptions import (
     MockValidationException,
     InvalidConversion,
     TransactWriteSingleOpException,
+    SerializationException,
 )
 from moto.dynamodb.models.utilities import bytesize
 from moto.dynamodb.models.dynamo_type import DynamoType
@@ -658,6 +659,17 @@ class Table(CloudFormationModel):
                 self._validate_item_types(value)
             elif type(value) == int and key == "N":
                 raise InvalidConversion
+            if key == "S":
+                # This scenario is usually caught by boto3, but the user can disable parameter validation
+                # Which is why we need to catch it 'server-side' as well
+                if type(value) == int:
+                    raise SerializationException(
+                        "NUMBER_VALUE cannot be converted to String"
+                    )
+                if type(value) == dict:
+                    raise SerializationException(
+                        "Start of structure or map found where not expected"
+                    )
 
     def put_item(
         self,
@@ -699,9 +711,8 @@ class Table(CloudFormationModel):
                 actual_type=range_value.type,
             )
 
-        self._validate_key_sizes(item_attrs)
-
         self._validate_item_types(item_attrs)
+        self._validate_key_sizes(item_attrs)
 
         if expected is None:
             expected = {}
