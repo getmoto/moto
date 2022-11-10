@@ -5,6 +5,7 @@ import os
 import re
 import unittest
 from types import FunctionType
+from typing import Any, Callable, Dict, Optional, Set, TypeVar
 from unittest.mock import patch
 
 import boto3
@@ -14,7 +15,7 @@ from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 
 from moto import settings
-from moto.core.base_backend import BackendDict
+from .base_backend import BackendDict
 from .botocore_stubber import BotocoreStubber
 from .custom_responses_mock import (
     get_response_mock,
@@ -24,13 +25,14 @@ from .custom_responses_mock import (
 )
 
 DEFAULT_ACCOUNT_ID = "123456789012"
+CALLABLE_RETURN = TypeVar("CALLABLE_RETURN")
 
 
 class BaseMockAWS:
     nested_count = 0
     mocks_active = False
 
-    def __init__(self, backends):
+    def __init__(self, backends: BackendDict):
         from moto.instance_metadata import instance_metadata_backends
         from moto.moto_api._internal.models import moto_api_backend
 
@@ -55,25 +57,25 @@ class BaseMockAWS:
             "AWS_ACCESS_KEY_ID": "foobar_key",
             "AWS_SECRET_ACCESS_KEY": "foobar_secret",
         }
-        self.ORIG_KEYS = {}
+        self.ORIG_KEYS: Dict[str, Optional[str]] = {}
         self.default_session_mock = patch("boto3.DEFAULT_SESSION", None)
 
         if self.__class__.nested_count == 0:
-            self.reset()
+            self.reset()  # type: ignore[attr-defined]
 
-    def __call__(self, func, reset=True):
+    def __call__(self, func: Callable[..., Any], reset: bool = True) -> Any:
         if inspect.isclass(func):
             return self.decorate_class(func)
         return self.decorate_callable(func, reset)
 
-    def __enter__(self):
+    def __enter__(self) -> "BaseMockAWS":
         self.start()
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         self.stop()
 
-    def start(self, reset=True):
+    def start(self, reset: bool = True) -> None:
         if not self.__class__.mocks_active:
             self.default_session_mock.start()
             self.mock_env_variables()
@@ -84,9 +86,9 @@ class BaseMockAWS:
             for backend in self.backends.values():
                 backend.reset()
 
-        self.enable_patching(reset)
+        self.enable_patching(reset)  # type: ignore[attr-defined]
 
-    def stop(self):
+    def stop(self) -> None:
         self.__class__.nested_count -= 1
 
         if self.__class__.nested_count < 0:
@@ -102,10 +104,12 @@ class BaseMockAWS:
                     pass
                 self.unmock_env_variables()
                 self.__class__.mocks_active = False
-            self.disable_patching()
+            self.disable_patching()  # type: ignore[attr-defined]
 
-    def decorate_callable(self, func, reset):
-        def wrapper(*args, **kwargs):
+    def decorate_callable(
+        self, func: Callable[..., CALLABLE_RETURN], reset: bool
+    ) -> Callable[..., CALLABLE_RETURN]:
+        def wrapper(*args: Any, **kwargs: Any) -> CALLABLE_RETURN:
             self.start(reset=reset)
             try:
                 result = func(*args, **kwargs)
@@ -114,10 +118,10 @@ class BaseMockAWS:
             return result
 
         functools.update_wrapper(wrapper, func)
-        wrapper.__wrapped__ = func
+        wrapper.__wrapped__ = func  # type: ignore[attr-defined]
         return wrapper
 
-    def decorate_class(self, klass):
+    def decorate_class(self, klass: type) -> object:
         direct_methods = get_direct_methods_of(klass)
         defined_classes = set(
             x for x, y in klass.__dict__.items() if inspect.isclass(y)
@@ -181,7 +185,7 @@ class BaseMockAWS:
                 continue
         return klass
 
-    def mock_env_variables(self):
+    def mock_env_variables(self) -> None:
         # "Mock" the AWS credentials as they can't be mocked in Botocore currently
         # self.env_variables_mocks = mock.patch.dict(os.environ, FAKE_KEYS)
         # self.env_variables_mocks.start()
@@ -189,7 +193,7 @@ class BaseMockAWS:
             self.ORIG_KEYS[k] = os.environ.get(k, None)
             os.environ[k] = v
 
-    def unmock_env_variables(self):
+    def unmock_env_variables(self) -> None:
         # This doesn't work in Python2 - for some reason, unmocking clears the entire os.environ dict
         # Obviously bad user experience, and also breaks pytest - as it uses PYTEST_CURRENT_TEST as an env var
         # self.env_variables_mocks.stop()
@@ -200,7 +204,7 @@ class BaseMockAWS:
                 del os.environ[k]
 
 
-def get_direct_methods_of(klass):
+def get_direct_methods_of(klass: object) -> Set[str]:
     return set(
         x
         for x, y in klass.__dict__.items()
@@ -232,7 +236,7 @@ botocore_stubber = BotocoreStubber()
 BUILTIN_HANDLERS.append(("before-send", botocore_stubber))
 
 
-def patch_client(client):
+def patch_client(client: botocore.client.BaseClient) -> None:
     """
     Explicitly patch a boto3-client
     """
@@ -254,7 +258,7 @@ def patch_client(client):
         raise Exception(f"Argument {client} should be of type boto3.client")
 
 
-def patch_resource(resource):
+def patch_resource(resource: Any) -> None:
     """
     Explicitly patch a boto3-resource
     """
@@ -267,11 +271,13 @@ def patch_resource(resource):
 
 
 class BotocoreEventMockAWS(BaseMockAWS):
-    def reset(self):
+    def reset(self) -> None:
         botocore_stubber.reset()
         reset_responses_mock(responses_mock)
 
-    def enable_patching(self, reset=True):  # pylint: disable=unused-argument
+    def enable_patching(
+        self, reset: bool = True  # pylint: disable=unused-argument
+    ) -> None:
         # Circumvent circular imports
         from .utils import convert_flask_to_responses_response
 
@@ -313,7 +319,7 @@ class BotocoreEventMockAWS(BaseMockAWS):
                 )
             )
 
-    def disable_patching(self):
+    def disable_patching(self) -> None:
         botocore_stubber.enabled = False
         self.reset()
 
@@ -330,14 +336,13 @@ class ServerModeMockAWS(BaseMockAWS):
 
     RESET_IN_PROGRESS = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         self.test_server_mode_endpoint = settings.test_server_mode_endpoint()
         super().__init__(*args, **kwargs)
 
-    def reset(self):
+    def reset(self) -> None:
         call_reset_api = os.environ.get("MOTO_CALL_RESET_API")
-        call_reset_api = not call_reset_api or call_reset_api.lower() != "false"
-        if call_reset_api:
+        if not call_reset_api or call_reset_api.lower() != "false":
             if not ServerModeMockAWS.RESET_IN_PROGRESS:
                 ServerModeMockAWS.RESET_IN_PROGRESS = True
                 import requests
@@ -345,14 +350,14 @@ class ServerModeMockAWS(BaseMockAWS):
                 requests.post(f"{self.test_server_mode_endpoint}/moto-api/reset")
                 ServerModeMockAWS.RESET_IN_PROGRESS = False
 
-    def enable_patching(self, reset=True):
+    def enable_patching(self, reset: bool = True) -> None:
         if self.__class__.nested_count == 1 and reset:
             # Just started
             self.reset()
 
         from boto3 import client as real_boto3_client, resource as real_boto3_resource
 
-        def fake_boto3_client(*args, **kwargs):
+        def fake_boto3_client(*args: Any, **kwargs: Any) -> botocore.client.BaseClient:
             region = self._get_region(*args, **kwargs)
             if region:
                 if "config" in kwargs:
@@ -364,7 +369,7 @@ class ServerModeMockAWS(BaseMockAWS):
                 kwargs["endpoint_url"] = self.test_server_mode_endpoint
             return real_boto3_client(*args, **kwargs)
 
-        def fake_boto3_resource(*args, **kwargs):
+        def fake_boto3_resource(*args: Any, **kwargs: Any) -> Any:
             if "endpoint_url" not in kwargs:
                 kwargs["endpoint_url"] = self.test_server_mode_endpoint
             return real_boto3_resource(*args, **kwargs)
@@ -374,7 +379,7 @@ class ServerModeMockAWS(BaseMockAWS):
         self._client_patcher.start()
         self._resource_patcher.start()
 
-    def _get_region(self, *args, **kwargs):
+    def _get_region(self, *args: Any, **kwargs: Any) -> Optional[str]:
         if "region_name" in kwargs:
             return kwargs["region_name"]
         if type(args) == tuple and len(args) == 2:
@@ -382,7 +387,7 @@ class ServerModeMockAWS(BaseMockAWS):
             return region
         return None
 
-    def disable_patching(self):
+    def disable_patching(self) -> None:
         if self._client_patcher:
             self._client_patcher.stop()
             self._resource_patcher.stop()
@@ -394,9 +399,9 @@ class base_decorator:
     def __init__(self, backends: BackendDict):
         self.backends = backends
 
-    def __call__(self, func=None):
+    def __call__(self, func: Optional[Callable[..., Any]] = None) -> BaseMockAWS:
         if settings.TEST_SERVER_MODE:
-            mocked_backend = ServerModeMockAWS(self.backends)
+            mocked_backend: BaseMockAWS = ServerModeMockAWS(self.backends)
         else:
             mocked_backend = self.mock_backend(self.backends)
 

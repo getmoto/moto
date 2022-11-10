@@ -1,5 +1,6 @@
 # This will only exist in responses >= 0.17
 import responses
+from typing import Any, List, Tuple, Optional
 from .custom_responses_mock import CallbackResponse, not_implemented_callback
 
 
@@ -10,11 +11,12 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
      - CallbackResponses are not discarded after first use - users can mock the same URL as often as they like
     """
 
-    def add(self, response):
+    def add(self, response: responses.BaseResponse) -> responses.BaseResponse:
         if response not in self.registered:
             super().add(response)
+        return response
 
-    def find(self, request):
+    def find(self, request: Any) -> Tuple[Optional[responses.BaseResponse], List[str]]:
         all_possibles = responses._default_mock._registry.registered + self.registered
         found = []
         match_failed_reasons = []

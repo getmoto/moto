@@ -11,11 +11,22 @@ import xmltodict
 
 from collections import defaultdict, OrderedDict
 from moto import settings
+from moto.core.common_types import TYPE_RESPONSE, TYPE_IF_NONE
 from moto.core.exceptions import DryRunClientError
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
 from jinja2 import Environment, DictLoader, Template
-from typing import Dict, Union, Any, Tuple, TypeVar
+from typing import (
+    Dict,
+    Union,
+    Any,
+    Tuple,
+    Optional,
+    List,
+    Set,
+    ClassVar,
+    Callable,
+)
 from urllib.parse import parse_qs, parse_qsl, urlparse
 from werkzeug.exceptions import HTTPException
 from xml.dom.minidom import parseString as parseXML
@@ -23,29 +34,19 @@ from xml.dom.minidom import parseString as parseXML
 
 log = logging.getLogger(__name__)
 
-JINJA_ENVS = {}
-
-TYPE_RESPONSE = Tuple[int, Dict[str, str], str]
-TYPE_IF_NONE = TypeVar("TYPE_IF_NONE")
+JINJA_ENVS: Dict[type, Environment] = {}
 
 
-def _decode_dict(d):
-    decoded = OrderedDict()
+def _decode_dict(d: Dict[Any, Any]) -> Dict[str, Any]:
+    decoded: Dict[str, Any] = OrderedDict()
     for key, value in d.items():
         if isinstance(key, bytes):
             newkey = key.decode("utf-8")
-        elif isinstance(key, (list, tuple)):
-            newkey = []
-            for k in key:
-                if isinstance(k, bytes):
-                    newkey.append(k.decode("utf-8"))
-                else:
-                    newkey.append(k)
         else:
             newkey = key
 
         if isinstance(value, bytes):
-            newvalue = value.decode("utf-8")
+            decoded[newkey] = value.decode("utf-8")
         elif isinstance(value, (list, tuple)):
             newvalue = []
             for v in value:
@@ -53,18 +54,18 @@ def _decode_dict(d):
                     newvalue.append(v.decode("utf-8"))
                 else:
                     newvalue.append(v)
+            decoded[newkey] = newvalue
         else:
-            newvalue = value
+            decoded[newkey] = value
 
-        decoded[newkey] = newvalue
     return decoded
 
 
 class DynamicDictLoader(DictLoader):
-    def update(self, mapping):
-        self.mapping.update(mapping)
+    def update(self, mapping: Dict[str, str]) -> None:
+        self.mapping.update(mapping)  # type: ignore[attr-defined]
 
-    def contains(self, template):
+    def contains(self, template: str) -> bool:
         return bool(template in self.mapping)
 
 
@@ -73,12 +74,12 @@ class _TemplateEnvironmentMixin(object):
     RIGHT_PATTERN = re.compile(r">[\s\n]+")
 
     @property
-    def should_autoescape(self):
+    def should_autoescape(self) -> bool:
         # Allow for subclass to overwrite
         return False
 
     @property
-    def environment(self):
+    def environment(self) -> Environment:
         key = type(self)
         try:
             environment = JINJA_ENVS[key]
@@ -94,11 +95,11 @@ class _TemplateEnvironmentMixin(object):
 
         return environment
 
-    def contains_template(self, template_id):
-        return self.environment.loader.contains(template_id)
+    def contains_template(self, template_id: str) -> bool:
+        return self.environment.loader.contains(template_id)  # type: ignore[union-attr]
 
     @classmethod
-    def _make_template_id(cls, source):
+    def _make_template_id(cls, source: str) -> str:
         """
         Return a numeric string that's unique for the lifetime of the source.
 
@@ -117,47 +118,49 @@ class _TemplateEnvironmentMixin(object):
                 xml = re.sub(
                     self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
                 )
-            self.environment.loader.update({template_id: xml})
+            self.environment.loader.update({template_id: xml})  # type: ignore[union-attr]
         return self.environment.get_template(template_id)
 
 
 class ActionAuthenticatorMixin(object):
 
-    request_count = 0
+    request_count: ClassVar[int] = 0
 
-    def _authenticate_and_authorize_action(self, iam_request_cls):
+    def _authenticate_and_authorize_action(self, iam_request_cls: type) -> None:
         if (
             ActionAuthenticatorMixin.request_count
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
         ):
             iam_request = iam_request_cls(
-                account_id=self.current_account,
-                method=self.method,
-                path=self.path,
-                data=self.data,
-                headers=self.headers,
+                account_id=self.current_account,  # type: ignore[attr-defined]
+                method=self.method,  # type: ignore[attr-defined]
+                path=self.path,  # type: ignore[attr-defined]
+                data=self.data,  # type: ignore[attr-defined]
+                headers=self.headers,  # type: ignore[attr-defined]
             )
             iam_request.check_signature()
             iam_request.check_action_permitted()
         else:
             ActionAuthenticatorMixin.request_count += 1
 
-    def _authenticate_and_authorize_normal_action(self):
+    def _authenticate_and_authorize_normal_action(self) -> None:
         from moto.iam.access_control import IAMRequest
 
         self._authenticate_and_authorize_action(IAMRequest)
 
-    def _authenticate_and_authorize_s3_action(self):
+    def _authenticate_and_authorize_s3_action(self) -> None:
         from moto.iam.access_control import S3IAMRequest
 
         self._authenticate_and_authorize_action(S3IAMRequest)
 
     @staticmethod
-    def set_initial_no_auth_action_count(initial_no_auth_action_count):
+    def set_initial_no_auth_action_count(initial_no_auth_action_count: int) -> Callable[..., Callable[..., TYPE_RESPONSE]]:  # type: ignore[misc]
         _test_server_mode_endpoint = settings.test_server_mode_endpoint()
 
-        def decorator(function):
-            def wrapper(*args, **kwargs):
+        def decorator(
+            function: Callable[..., TYPE_RESPONSE]
+        ) -> Callable[..., TYPE_RESPONSE]:
+            def wrapper(*args: Any, **kwargs: Any) -> TYPE_RESPONSE:
                 if settings.TEST_SERVER_MODE:
                     response = requests.post(
                         f"{_test_server_mode_endpoint}/moto-api/reset-auth",
@@ -191,7 +194,7 @@ class ActionAuthenticatorMixin(object):
                 return result
 
             functools.update_wrapper(wrapper, function)
-            wrapper.__wrapped__ = function
+            wrapper.__wrapped__ = function  # type: ignore[attr-defined]
             return wrapper
 
         return decorator
@@ -213,12 +216,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     )
     aws_service_spec = None
 
-    def __init__(self, service_name=None) -> None:
+    def __init__(self, service_name: Optional[str] = None):
         super().__init__()
         self.service_name = service_name
 
     @classmethod
-    def dispatch(cls, *args: Any, **kwargs: Any) -> Any:
+    def dispatch(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
         return cls()._dispatch(*args, **kwargs)
 
     def setup_class(
@@ -227,7 +230,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         """
         use_raw_body: Use incoming bytes if True, encode to string otherwise
         """
-        querystring = OrderedDict()
+        querystring: Dict[str, Any] = OrderedDict()
         if hasattr(request, "body"):
             # Boto
             self.body = request.body
@@ -292,7 +295,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.data = querystring
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
-        self.uri_match = None
+        self.uri_match: Optional[re.Match[str]] = None
 
         self.headers = request.headers
         if "host" not in self.headers:
@@ -307,11 +310,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         mark_account_as_visited(
             account_id=self.current_account,
             access_key=self.access_key,
-            service=self.service_name,
+            service=self.service_name,  # type: ignore[arg-type]
             region=self.region,
         )
 
-    def get_region_from_url(self, request, full_url):
+    def get_region_from_url(self, request: Any, full_url: str) -> str:
         url_match = self.region_regex.search(full_url)
         user_agent_match = self.region_from_useragent_regex.search(
             request.headers.get("User-Agent", "")
@@ -329,7 +332,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             region = self.default_region
         return region
 
-    def get_access_key(self):
+    def get_access_key(self) -> str:
         """
         Returns the access key id used in this request as the current user id
         """
@@ -339,11 +342,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return match.group(1)
 
         if self.querystring.get("AWSAccessKeyId"):
-            return self.querystring.get("AWSAccessKeyId")[0]
+            return self.querystring["AWSAccessKeyId"][0]
         else:
             return "AKIAEXAMPLE"
 
-    def get_current_account(self):
+    def get_current_account(self) -> str:
         # PRIO 1: Check if we have a Environment Variable set
         if "MOTO_ACCOUNT_ID" in os.environ:
             return os.environ["MOTO_ACCOUNT_ID"]
@@ -358,11 +361,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return get_account_id_from(self.get_access_key())
 
-    def _dispatch(self, request, full_url, headers):
+    def _dispatch(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         return self.call_action()
 
-    def uri_to_regexp(self, uri):
+    def uri_to_regexp(self, uri: str) -> str:
         """converts uri w/ placeholder to regexp
           '/cars/{carName}/drivers/{DriverName}'
         -> '^/cars/.*/drivers/[^/]*$'
@@ -372,7 +375,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         """
 
-        def _convert(elem, is_last):
+        def _convert(elem: str, is_last: bool) -> str:
             if not re.match("^{.*}$", elem):
                 return elem
             name = (
@@ -394,7 +397,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         )
         return regexp
 
-    def _get_action_from_method_and_request_uri(self, method, request_uri):
+    def _get_action_from_method_and_request_uri(
+        self, method: str, request_uri: str
+    ) -> str:
         """basically used for `rest-json` APIs
         You can refer to example from link below
         https://github.com/boto/botocore/blob/develop/botocore/data/iot/2015-05-28/service-2.json
@@ -406,7 +411,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         # make cache if it does not exist yet
         if not hasattr(self, "method_urls"):
-            self.method_urls = defaultdict(lambda: defaultdict(str))
+            self.method_urls: Dict[str, Dict[str, str]] = defaultdict(
+                lambda: defaultdict(str)
+            )
             op_names = conn._service_model.operation_names
             for op_name in op_names:
                 op_model = conn._service_model.operation_model(op_name)
@@ -419,9 +426,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.uri_match = match
             if match:
                 return name
-        return None
+        return None  # type: ignore[return-value]
 
-    def _get_action(self):
+    def _get_action(self) -> str:
         action = self.querystring.get("Action", [""])[0]
         if action:
             return action
@@ -433,7 +440,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # get action from method and uri
         return self._get_action_from_method_and_request_uri(self.method, self.path)
 
-    def call_action(self):
+    def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers
 
         try:
@@ -449,9 +456,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             try:
                 response = method()
             except HTTPException as http_error:
-                response_headers = dict(http_error.get_headers() or [])
-                response_headers["status"] = http_error.code
-                response = http_error.description, response_headers
+                response_headers: Dict[str, Union[str, int]] = dict(
+                    http_error.get_headers() or []
+                )
+                response_headers["status"] = http_error.code  # type: ignore[assignment]
+                response = http_error.description, response_headers  # type: ignore[assignment]
 
             if isinstance(response, str):
                 return 200, headers, response
@@ -466,7 +475,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         )
 
     @staticmethod
-    def _send_response(headers, response):
+    def _send_response(headers: Dict[str, str], response: Any) -> Tuple[int, Dict[str, str], str]:  # type: ignore[misc]
         if response is None:
             response = "", {}
         if len(response) == 2:
@@ -480,7 +489,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             headers["status"] = str(headers["status"])
         return status, headers, body
 
-    def _get_param(self, param_name, if_none=None) -> Any:
+    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         val = self.querystring.get(param_name)
         if val is not None:
             return val[0]
@@ -503,7 +512,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return if_none
 
     def _get_int_param(
-        self, param_name, if_none: TYPE_IF_NONE = None
+        self, param_name: str, if_none: TYPE_IF_NONE = None  # type: ignore[assignment]
     ) -> Union[int, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:
@@ -511,7 +520,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return if_none
 
     def _get_bool_param(
-        self, param_name, if_none: TYPE_IF_NONE = None
+        self, param_name: str, if_none: TYPE_IF_NONE = None  # type: ignore[assignment]
     ) -> Union[bool, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:
@@ -522,12 +531,15 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return False
         return if_none
 
-    def _get_multi_param_dict(self, param_prefix) -> Dict:
+    def _get_multi_param_dict(self, param_prefix: str) -> Dict[str, Any]:
         return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
 
     def _get_multi_param_helper(
-        self, param_prefix, skip_result_conversion=False, tracked_prefixes=None
-    ):
+        self,
+        param_prefix: str,
+        skip_result_conversion: bool = False,
+        tracked_prefixes: Optional[Set[str]] = None,
+    ) -> Any:
         value_dict = dict()
         tracked_prefixes = (
             tracked_prefixes or set()
@@ -589,11 +601,13 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 if len(parts) != 2 or parts[1] != "member":
                     value_dict[parts[0]] = value_dict.pop(k)
         else:
-            value_dict = list(value_dict.values())[0]
+            value_dict = list(value_dict.values())[0]  # type: ignore[assignment]
 
         return value_dict
 
-    def _get_multi_param(self, param_prefix, skip_result_conversion=False) -> Any:
+    def _get_multi_param(
+        self, param_prefix: str, skip_result_conversion: bool = False
+    ) -> List[Any]:
         """
         Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
         this will return ['my-test-1', 'my-test-2']
@@ -616,7 +630,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return values
 
-    def _get_dict_param(self, param_prefix) -> Dict:
+    def _get_dict_param(self, param_prefix: str) -> Dict[str, Any]:
         """
         Given a parameter dict of
         {
@@ -630,7 +644,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             "instance_count": "1",
         }
         """
-        params = {}
+        params: Dict[str, Any] = {}
         for key, value in self.querystring.items():
             if key.startswith(param_prefix):
                 params[camelcase_to_underscores(key.replace(param_prefix, ""))] = value[
@@ -638,7 +652,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 ]
         return params
 
-    def _get_params(self) -> Any:
+    def _get_params(self) -> Dict[str, Any]:
         """
         Given a querystring of
         {
@@ -674,12 +688,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             ]
         }
         """
-        params = {}
+        params: Dict[str, Any] = {}
         for k, v in sorted(self.querystring.items()):
             self._parse_param(k, v[0], params)
         return params
 
-    def _parse_param(self, key, value, params):
+    def _parse_param(self, key: str, value: str, params: Any) -> None:
         keylist = key.split(".")
         obj = params
         for i, key in enumerate(keylist[:-1]):
@@ -713,7 +727,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             obj[keylist[-1]] = value
 
-    def _get_list_prefix(self, param_prefix: str) -> Any:
+    def _get_list_prefix(self, param_prefix: str) -> List[Dict[str, Any]]:
         """
         Given a query dict like
         {
@@ -752,7 +766,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             param_index += 1
         return results
 
-    def _get_map_prefix(self, param_prefix, key_end=".key", value_end=".value"):
+    def _get_map_prefix(
+        self, param_prefix: str, key_end: str = ".key", value_end: str = ".value"
+    ) -> Dict[str, Any]:
         results = {}
         param_index = 1
         while 1:
@@ -774,7 +790,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return results
 
-    def _get_object_map(self, prefix, name="Name", value="Value"):
+    def _get_object_map(
+        self, prefix: str, name: str = "Name", value: str = "Value"
+    ) -> Dict[str, Any]:
         """
         Given a query dict like
         {
@@ -822,19 +840,16 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return object_map
 
     @property
-    def request_json(self):
+    def request_json(self) -> bool:
         return "JSON" in self.querystring.get("ContentType", [])
 
-    def error_on_dryrun(self):
+    def error_on_dryrun(self) -> None:
         self.is_not_dryrun()
 
-    def is_not_dryrun(self, action=None):
-        action = action or self._get_param("Action")
+    def is_not_dryrun(self, action: Optional[str] = None) -> bool:
         if "true" in self.querystring.get("DryRun", ["false"]):
-            message = (
-                "An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set"
-                % action
-            )
+            a = action or self._get_param("Action")
+            message = f"An error occurred (DryRunOperation) when calling the {a} operation: Request would have succeeded, but DryRun flag is set"
             raise DryRunClientError(error_type="DryRunOperation", message=message)
         return True
 
@@ -842,20 +857,20 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 class _RecursiveDictRef(object):
     """Store a recursive reference to dict."""
 
-    def __init__(self):
-        self.key = None
-        self.dic = {}
+    def __init__(self) -> None:
+        self.key: Optional[str] = None
+        self.dic: Dict[str, Any] = {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{!r}".format(self.dic)
 
-    def __getattr__(self, key):
-        return self.dic.__getattr__(key)
+    def __getattr__(self, key: str) -> Any:
+        return self.dic.__getattr__(key)  # type: ignore[attr-defined]
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return self.dic.__getitem__(key)
 
-    def set_reference(self, key, dic):
+    def set_reference(self, key: str, dic: Dict[str, Any]) -> None:
         """Set the RecursiveDictRef object to keep reference to dict object
         (dic) at the key.
 
@@ -877,7 +892,7 @@ class AWSServiceSpec(object):
         self.operations = spec["operations"]
         self.shapes = spec["shapes"]
 
-    def input_spec(self, operation):
+    def input_spec(self, operation: str) -> Dict[str, Any]:
         try:
             op = self.operations[operation]
         except KeyError:
@@ -887,7 +902,7 @@ class AWSServiceSpec(object):
         shape = self.shapes[op["input"]["shape"]]
         return self._expand(shape)
 
-    def output_spec(self, operation):
+    def output_spec(self, operation: str) -> Dict[str, Any]:
         """Produce a JSON with a valid API response syntax for operation, but
         with type information. Each node represented by a key has the
         value containing field type, e.g.,
@@ -904,11 +919,13 @@ class AWSServiceSpec(object):
         shape = self.shapes[op["output"]["shape"]]
         return self._expand(shape)
 
-    def _expand(self, shape):
-        def expand(dic, seen=None):
+    def _expand(self, shape: Dict[str, Any]) -> Dict[str, Any]:
+        def expand(
+            dic: Dict[str, Any], seen: Optional[Dict[str, Any]] = None
+        ) -> Dict[str, Any]:
             seen = seen or {}
             if dic["type"] == "structure":
-                nodes = {}
+                nodes: Dict[str, Any] = {}
                 for k, v in dic["members"].items():
                     seen_till_here = dict(seen)
                     if k in seen_till_here:
@@ -932,7 +949,7 @@ class AWSServiceSpec(object):
 
             elif dic["type"] == "map":
                 seen_till_here = dict(seen)
-                node = {"type": "map"}
+                node: Dict[str, Any] = {"type": "map"}
 
                 if "shape" in dic["key"]:
                     shape = dic["key"]["shape"]
@@ -958,12 +975,12 @@ class AWSServiceSpec(object):
         return expand(shape)
 
 
-def to_str(value, spec):
+def to_str(value: Any, spec: Dict[str, Any]) -> str:
     vtype = spec["type"]
     if vtype == "boolean":
         return "true" if value else "false"
     elif vtype == "long":
-        return int(value)
+        return int(value)  # type: ignore[return-value]
     elif vtype == "integer":
         return str(value)
     elif vtype == "float":
@@ -984,7 +1001,7 @@ def to_str(value, spec):
         raise TypeError("Unknown type {}".format(vtype))
 
 
-def from_str(value, spec):
+def from_str(value: str, spec: Dict[str, Any]) -> Any:
     vtype = spec["type"]
     if vtype == "boolean":
         return True if value == "true" else False
@@ -1001,7 +1018,9 @@ def from_str(value, spec):
     raise TypeError("Unknown type {}".format(vtype))
 
 
-def flatten_json_request_body(prefix, dict_body, spec):
+def flatten_json_request_body(
+    prefix: str, dict_body: Dict[str, Any], spec: Dict[str, Any]
+) -> Dict[str, Any]:
     """Convert a JSON request body into query params."""
     if len(spec) == 1 and "type" in spec:
         return {prefix: to_str(dict_body, spec)}
@@ -1030,10 +1049,12 @@ def flatten_json_request_body(prefix, dict_body, spec):
     return dict((prefix + k, v) for k, v in flat.items())
 
 
-def xml_to_json_response(service_spec, operation, xml, result_node=None):
+def xml_to_json_response(
+    service_spec: Any, operation: str, xml: str, result_node: Any = None
+) -> Dict[str, Any]:
     """Convert rendered XML response to JSON for use with boto3."""
 
-    def transform(value, spec):
+    def transform(value: Any, spec: Dict[str, Any]) -> Any:
         """Apply transformations to make the output JSON comply with the
         expected form. This function applies:
 
@@ -1047,7 +1068,7 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
         if len(spec) == 1:
             return from_str(value, spec)
 
-        od = OrderedDict()
+        od: Dict[str, Any] = OrderedDict()
         for k, v in value.items():
             if k.startswith("@"):
                 continue
@@ -1099,7 +1120,7 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
         for k in result_node or (operation + "Response", operation + "Result"):
             dic = dic[k]
     except KeyError:
-        return None
+        return None  # type: ignore[return-value]
     else:
         return transform(dic, output_spec)
     return None
