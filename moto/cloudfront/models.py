@@ -278,6 +278,13 @@ class CloudFrontBackend(BaseBackend):
         dist.advance()
         return dist, dist.etag
 
+    def get_distribution_config(self, distribution_id: str) -> Tuple[Distribution, str]:
+        if distribution_id not in self.distributions:
+            raise NoSuchDistribution
+        dist = self.distributions[distribution_id]
+        dist.advance()
+        return dist, dist.etag
+
     def delete_distribution(self, distribution_id: str, if_match: bool) -> None:
         """
         The IfMatch-value is ignored - any value is considered valid.
