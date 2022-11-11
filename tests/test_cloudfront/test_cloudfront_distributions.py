@@ -294,7 +294,21 @@ def test_create_distribution_needs_unique_caller_reference():
 
 
 @mock_cloudfront
-def test_create_distribution_with_mismatched_originid():
+def test_get_distribution_config_with_unknown_distribution_id():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_distribution_config(Id="unknown")
+
+    metadata = exc.value.response["ResponseMetadata"]
+    metadata["HTTPStatusCode"].should.equal(404)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchDistribution")
+    err["Message"].should.equal("The specified distribution does not exist.")
+
+
+@mock_cloudfront
+def test_get_distribution_config_with_mismatched_originid():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
     with pytest.raises(ClientError) as exc:
