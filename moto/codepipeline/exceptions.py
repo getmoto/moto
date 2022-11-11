@@ -34,5 +34,5 @@ class TooManyTagsException(JsonRESTError):
 
     def __init__(self, arn: str):
         super().__init__(
-            "TooManyTagsException", "Tag limit exceeded for resource [{}].".format(arn)
+            "TooManyTagsException", f"Tag limit exceeded for resource [{arn}]."
         )

@@ -385,17 +385,15 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 .replace("-", "_")
             )
             if is_last:
-                return "(?P<%s>[^/]+)" % name
-            return "(?P<%s>.*)" % name
+                return f"(?P<{name}>[^/]+)"
+            return f"(?P<{name}>.*)"
 
         elems = uri.split("/")
         num_elems = len(elems)
-        regexp = "^{}$".format(
-            "/".join(
-                [_convert(elem, (i == num_elems - 1)) for i, elem in enumerate(elems)]
-            )
+        regexp = "/".join(
+            [_convert(elem, (i == num_elems - 1)) for i, elem in enumerate(elems)]
         )
-        return regexp
+        return f"^{regexp}$"
 
     def _get_action_from_method_and_request_uri(
         self, method: str, request_uri: str
@@ -470,9 +468,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if not action:
             return 404, headers, ""
 
-        raise NotImplementedError(
-            "The {0} action has not been implemented".format(action)
-        )
+        raise NotImplementedError(f"The {action} action has not been implemented")
 
     @staticmethod
     def _send_response(headers: Dict[str, str], response: Any) -> Tuple[int, Dict[str, str], str]:  # type: ignore[misc]
@@ -569,10 +565,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 match = self.param_regex.search(name[len(param_prefix) :])
                 if match:
                     # enable access to params that are lists of dicts, e.g., "TagSpecification.1.ResourceType=.."
-                    sub_attr = "%s%s.%s" % (
-                        name[: len(param_prefix)],
-                        match.group(1),
-                        match.group(2),
+                    sub_attr = (
+                        f"{name[: len(param_prefix)]}{match.group(1)}.{match.group(2)}"
                     )
                     if match.group(3):
                         value = self._get_multi_param_helper(
@@ -753,7 +747,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         results = []
         param_index = 1
         while True:
-            index_prefix = "{0}.{1}.".format(param_prefix, param_index)
+            index_prefix = f"{param_prefix}.{param_index}."
             new_items = {}
             for key, value in self.querystring.items():
                 if key.startswith(index_prefix):
@@ -772,7 +766,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         results = {}
         param_index = 1
         while 1:
-            index_prefix = "{0}.{1}.".format(param_prefix, param_index)
+            index_prefix = f"{param_prefix}.{param_index}."
 
             k, v = None, None
             for key, value in self.querystring.items():
@@ -820,14 +814,14 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         index = 1
         while True:
             # Loop through looking for keys representing object name
-            name_key = "{0}.{1}.{2}".format(prefix, index, name)
+            name_key = f"{prefix}.{index}.{name}"
             obj_name = self.querystring.get(name_key)
             if not obj_name:
                 # Found all keys
                 break
 
             obj = {}
-            value_key_prefix = "{0}.{1}.{2}.".format(prefix, index, value)
+            value_key_prefix = f"{prefix}.{index}.{value}."
             for k, v in self.querystring.items():
                 if k.startswith(value_key_prefix):
                     _, value_key = k.split(value_key_prefix, 1)
@@ -862,7 +856,7 @@ class _RecursiveDictRef(object):
         self.dic: Dict[str, Any] = {}
 
     def __repr__(self) -> str:
-        return "{!r}".format(self.dic)
+        return f"{self.dic}"
 
     def __getattr__(self, key: str) -> Any:
         return self.dic.__getattr__(key)  # type: ignore[attr-defined]
@@ -896,7 +890,7 @@ class AWSServiceSpec(object):
         try:
             op = self.operations[operation]
         except KeyError:
-            raise ValueError("Invalid operation: {}".format(operation))
+            raise ValueError(f"Invalid operation: {operation}")
         if "input" not in op:
             return {}
         shape = self.shapes[op["input"]["shape"]]
@@ -913,7 +907,7 @@ class AWSServiceSpec(object):
         try:
             op = self.operations[operation]
         except KeyError:
-            raise ValueError("Invalid operation: {}".format(operation))
+            raise ValueError(f"Invalid operation: {operation}")
         if "output" not in op:
             return {}
         shape = self.shapes[op["output"]["shape"]]
@@ -998,7 +992,7 @@ def to_str(value: Any, spec: Dict[str, Any]) -> str:
     elif value is None:
         return "null"
     else:
-        raise TypeError("Unknown type {}".format(vtype))
+        raise TypeError(f"Unknown type {vtype}")
 
 
 def from_str(value: str, spec: Dict[str, Any]) -> Any:
@@ -1015,7 +1009,7 @@ def from_str(value: str, spec: Dict[str, Any]) -> Any:
         return value
     elif vtype == "string":
         return value
-    raise TypeError("Unknown type {}".format(vtype))
+    raise TypeError(f"Unknown type {vtype}")
 
 
 def flatten_json_request_body(

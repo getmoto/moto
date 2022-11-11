@@ -178,7 +178,7 @@ class FakeStackInstances(BaseModel):
     ):
         self.parameters = parameters or {}
         self.stackset_id = stackset_id
-        self.stack_name = "StackSet-{}".format(stackset_id)
+        self.stack_name = f"StackSet-{stackset_id}"
         self.stackset_name = stackset_name
         self.stack_instances: List[Dict[str, Any]] = []
 
@@ -503,29 +503,17 @@ class FakeEvent(BaseModel):
     def sendToSns(
         self, account_id: str, region: str, sns_topic_arns: List[str]
     ) -> None:
-        message = """StackId='{stack_id}'
-Timestamp='{timestamp}'
-EventId='{event_id}'
-LogicalResourceId='{logical_resource_id}'
+        message = f"""StackId='{self.stack_id}'
+Timestamp='{iso_8601_datetime_with_milliseconds(self.timestamp)}'
+EventId='{self.event_id}'
+LogicalResourceId='{self.logical_resource_id}'
 Namespace='{account_id}'
-ResourceProperties='{resource_properties}'
-ResourceStatus='{resource_status}'
-ResourceStatusReason='{resource_status_reason}'
-ResourceType='{resource_type}'
-StackName='{stack_name}'
-ClientRequestToken='{client_request_token}'""".format(
-            stack_id=self.stack_id,
-            timestamp=iso_8601_datetime_with_milliseconds(self.timestamp),
-            event_id=self.event_id,
-            logical_resource_id=self.logical_resource_id,
-            account_id=account_id,
-            resource_properties=self.resource_properties,
-            resource_status=self.resource_status,
-            resource_status_reason=self.resource_status_reason,
-            resource_type=self.resource_type,
-            stack_name=self.stack_name,
-            client_request_token=self.client_request_token,
-        )
+ResourceProperties='{self.resource_properties}'
+ResourceStatus='{self.resource_status}'
+ResourceStatusReason='{self.resource_status_reason}'
+ResourceType='{self.resource_type}'
+StackName='{self.stack_name}'
+ClientRequestToken='{self.client_request_token}'"""
 
         for sns_topic_arn in sns_topic_arns:
             sns_backends[account_id][region].publish(

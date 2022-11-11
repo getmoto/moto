@@ -420,15 +420,7 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
-        self.aggregation_authorization_arn = (
-            "arn:aws:config:{region}:{id}:aggregation-authorization/"
-            "{auth_account}/{auth_region}".format(
-                region=current_region,
-                id=account_id,
-                auth_account=authorized_account_id,
-                auth_region=authorized_aws_region,
-            )
-        )
+        self.aggregation_authorization_arn = f"arn:aws:config:{current_region}:{account_id}:aggregation-authorization/{authorized_account_id}/{authorized_aws_region}"
         self.authorized_account_id = authorized_account_id
         self.authorized_aws_region = authorized_aws_region
         self.creation_time = datetime2int(datetime.utcnow())
@@ -451,7 +443,7 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
         self._status = "CREATE_SUCCESSFUL"
-        self._unique_pack_name = "{0}-{1}".format(name, random_string())
+        self._unique_pack_name = f"{name}-{random_string()}"
 
         self.conformance_pack_input_parameters = input_parameters or []
         self.delivery_s3_bucket = delivery_s3_bucket
@@ -1091,7 +1083,7 @@ class ConfigBackend(BaseBackend):
         tag_dict = validate_tags(tags or [])
 
         # Does this already exist?
-        key = "{}/{}".format(authorized_account, authorized_region)
+        key = f"{authorized_account}/{authorized_region}"
         agg_auth = self.aggregation_authorizations.get(key)
         if not agg_auth:
             agg_auth = ConfigAggregationAuthorization(
@@ -1101,9 +1093,7 @@ class ConfigBackend(BaseBackend):
                 authorized_region,
                 tags=tag_dict,
             )
-            self.aggregation_authorizations[
-                "{}/{}".format(authorized_account, authorized_region)
-            ] = agg_auth
+            self.aggregation_authorizations[key] = agg_auth
         else:
             # Only update the tags:
             agg_auth.tags = tag_dict
@@ -1148,7 +1138,7 @@ class ConfigBackend(BaseBackend):
     ) -> None:
         # This will always return a 200 -- regardless if there is or isn't an existing
         # aggregation authorization.
-        key = "{}/{}".format(authorized_account, authorized_region)
+        key = f"{authorized_account}/{authorized_region}"
         self.aggregation_authorizations.pop(key, None)
 
     def put_configuration_recorder(self, config_recorder: Dict[str, Any]) -> None:
@@ -1725,9 +1715,9 @@ class ConfigBackend(BaseBackend):
         if not re.match(r"s3://.*", template_s3_uri):
             raise ValidationException(
                 "1 validation error detected: "
-                "Value '{}' at 'templateS3Uri' failed to satisfy constraint: "
+                f"Value '{template_s3_uri}' at 'templateS3Uri' failed to satisfy constraint: "
                 "Member must satisfy regular expression pattern: "
-                "s3://.*".format(template_s3_uri)
+                "s3://.*"
             )
 
         pack = self.organization_conformance_packs.get(name)
@@ -1822,9 +1812,7 @@ class ConfigBackend(BaseBackend):
         statuses = [
             {
                 "AccountId": self.account_id,
-                "ConformancePackName": "OrgConformsPack-{0}".format(
-                    pack._unique_pack_name
-                ),
+                "ConformancePackName": f"OrgConformsPack-{pack._unique_pack_name}",
                 "Status": pack._status,
                 "LastUpdateTime": datetime2int(datetime.utcnow()),
             }
@@ -1838,7 +1826,7 @@ class ConfigBackend(BaseBackend):
         if not pack:
             raise NoSuchOrganizationConformancePackException(
                 "Could not find an OrganizationConformancePack for given "
-                "request with resourceName {}".format(name)
+                f"request with resourceName {name}"
             )
 
         self.organization_conformance_packs.pop(name)

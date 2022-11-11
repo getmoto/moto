@@ -101,9 +101,7 @@ class CodePipelineBackend(BaseBackend):
                 raise IAMNotFoundException("")
         except IAMNotFoundException:
             raise InvalidStructureException(
-                "CodePipeline is not authorized to perform AssumeRole on role {}".format(
-                    pipeline["roleArn"]
-                )
+                f"CodePipeline is not authorized to perform AssumeRole on role {pipeline['roleArn']}"
             )
 
         if len(pipeline["stages"]) < 2:

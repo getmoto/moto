@@ -63,7 +63,7 @@ class RESTError(HTTPException):
                 error_type=error_type,
                 message=message,
                 request_id_tag=self.request_id_tag_name,
-                **kwargs
+                **kwargs,
             )
             self.content_type = "application/xml"
 
@@ -124,10 +124,7 @@ class AccessDeniedError(RESTError):
 
     def __init__(self, user_arn: str, action: str):
         super().__init__(
-            "AccessDenied",
-            "User: {user_arn} is not authorized to perform: {operation}".format(
-                user_arn=user_arn, operation=action
-            ),
+            "AccessDenied", f"User: {user_arn} is not authorized to perform: {action}"
         )
 
 
@@ -170,4 +167,4 @@ class InvalidToken(AWSError):
     code = 400
 
     def __init__(self, message: str = "Invalid token"):
-        super().__init__("Invalid Token: {}".format(message), "InvalidToken")
+        super().__init__(f"Invalid Token: {message}", "InvalidToken")
