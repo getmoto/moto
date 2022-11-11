@@ -78,24 +78,30 @@ class CloudFrontResponse(BaseResponse):
             response = template.render(distribution=dist, xmlns=XMLNS)
             return 200, {"ETag": etag}, response
 
-    def update_distribution(
+    def update_distribution(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
     ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
-        params = self._get_xml_body()
-        distribution_config = params.get("DistributionConfig")
         dist_id = full_url.split("/")[-2]
-        if_match = headers["If-Match"]
+        if request.method == "GET":
+            distribution_config, etag = self.backend.get_distribution_config(dist_id)
+            template = self.response_template(GET_DISTRIBUTION_CONFIG_TEMPLATE)
+            response = template.render(distribution=distribution_config, xmlns=XMLNS)
+            return 200, {"ETag": etag}, response
+        if request.method == "PUT":
+            params = self._get_xml_body()
+            dist_config = params.get("DistributionConfig")
+            if_match = headers["If-Match"]
 
-        dist, location, e_tag = self.backend.update_distribution(
-            dist_config=distribution_config,  # type: ignore[arg-type]
-            _id=dist_id,
-            if_match=if_match,
-        )
-        template = self.response_template(UPDATE_DISTRIBUTION_TEMPLATE)
-        response = template.render(distribution=dist, xmlns=XMLNS)
-        headers = {"ETag": e_tag, "Location": location}
-        return 200, headers, response
+            dist, location, e_tag = self.backend.update_distribution(
+                dist_config=dist_config,  # type: ignore[arg-type]
+                _id=dist_id,
+                if_match=if_match,
+            )
+            template = self.response_template(UPDATE_DISTRIBUTION_TEMPLATE)
+            response = template.render(distribution=dist, xmlns=XMLNS)
+            headers = {"ETag": e_tag, "Location": location}
+            return 200, headers, response
 
     def create_invalidation(self) -> TYPE_RESPONSE:
         dist_id = self.path.split("/")[-2]
@@ -548,6 +554,16 @@ GET_DISTRIBUTION_TEMPLATE = (
     + DISTRIBUTION_TEMPLATE
     + """
   </Distribution>
+"""
+)
+
+GET_DISTRIBUTION_CONFIG_TEMPLATE = (
+    """<?xml version="1.0"?>
+  <DistributionConfig>
+"""
+    + DIST_CONFIG_TEMPLATE
+    + """
+  </DistributionConfig>
 """
 )
 
