@@ -59,13 +59,11 @@ class BatchSimpleBackend(BaseBackend):
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
         if job_def is None:
-            raise ClientException(
-                "Job definition {0} does not exist".format(job_def_id)
-            )
+            raise ClientException(f"Job definition {job_def_id} does not exist")
 
         queue = self.get_job_queue(job_queue)
         if queue is None:
-            raise ClientException("Job queue {0} does not exist".format(job_queue))
+            raise ClientException(f"Job queue {job_queue} does not exist")
 
         job = Job(
             job_name,
