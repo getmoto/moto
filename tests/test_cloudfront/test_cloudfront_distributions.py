@@ -175,9 +175,11 @@ def test_create_distribution_with_web_acl():
 
 
 @mock_cloudfront
-def test_create_distribution_with_field_level_encryption():
+def test_create_distribution_with_field_level_encryption_and_real_time_log_config_arn():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
+    real_time_log_config_arn = f"arn:aws:cloudfront::{ACCOUNT_ID}:realtime-log-config/ExampleNameForRealtimeLogConfig"
+    config["DefaultCacheBehavior"]["RealtimeLogConfigArn"] = real_time_log_config_arn
     config["DefaultCacheBehavior"]["FieldLevelEncryptionId"] = "K3D5EWEUDCCXON"
 
     resp = client.create_distribution(DistributionConfig=config)
@@ -190,27 +192,10 @@ def test_create_distribution_with_field_level_encryption():
 
     config.should.have.key("DefaultCacheBehavior")
     default_cache = config["DefaultCacheBehavior"]
+
     default_cache.should.have.key("FieldLevelEncryptionId")
     default_cache.should.have.key("FieldLevelEncryptionId").equals("K3D5EWEUDCCXON")
 
-
-@mock_cloudfront
-def test_create_distribution_with_real_time_log_config_arn():
-    client = boto3.client("cloudfront", region_name="us-west-1")
-    config = scaffold.example_distribution_config("ref")
-    real_time_log_config_arn = f"arn:aws:cloudfront::{ACCOUNT_ID}:realtime-log-config/ExampleNameForRealtimeLogConfig"
-    config["DefaultCacheBehavior"]["RealtimeLogConfigArn"] = real_time_log_config_arn
-
-    resp = client.create_distribution(DistributionConfig=config)
-    resp.should.have.key("Distribution")
-
-    distribution = resp["Distribution"]
-
-    distribution.should.have.key("DistributionConfig")
-    config = distribution["DistributionConfig"]
-
-    config.should.have.key("DefaultCacheBehavior")
-    default_cache = config["DefaultCacheBehavior"]
     default_cache.should.have.key("RealtimeLogConfigArn")
     default_cache.should.have.key("RealtimeLogConfigArn").equals(
         real_time_log_config_arn
