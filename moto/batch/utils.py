@@ -2,21 +2,17 @@ from typing import Any, Dict
 
 
 def make_arn_for_compute_env(account_id: str, name: str, region_name: str) -> str:
-    return "arn:aws:batch:{0}:{1}:compute-environment/{2}".format(
-        region_name, account_id, name
-    )
+    return f"arn:aws:batch:{region_name}:{account_id}:compute-environment/{name}"
 
 
 def make_arn_for_job_queue(account_id: str, name: str, region_name: str) -> str:
-    return "arn:aws:batch:{0}:{1}:job-queue/{2}".format(region_name, account_id, name)
+    return f"arn:aws:batch:{region_name}:{account_id}:job-queue/{name}"
 
 
 def make_arn_for_task_def(
     account_id: str, name: str, revision: int, region_name: str
 ) -> str:
-    return "arn:aws:batch:{0}:{1}:job-definition/{2}:{3}".format(
-        region_name, account_id, name, revision
-    )
+    return f"arn:aws:batch:{region_name}:{account_id}:job-definition/{name}:{revision}"
 
 
 def lowercase_first_key(some_dict: Dict[str, Any]) -> Dict[str, Any]:
