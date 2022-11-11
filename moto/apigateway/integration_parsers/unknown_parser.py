@@ -13,4 +13,4 @@ class TypeUnknownParser(IntegrationParser):
         self, request: requests.PreparedRequest, integration: Integration
     ) -> Tuple[int, Union[str, bytes]]:
         _type = integration.integration_type
-        raise NotImplementedError("The {0} type has not been implemented".format(_type))
+        raise NotImplementedError(f"The {_type} type has not been implemented")

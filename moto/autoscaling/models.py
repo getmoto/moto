@@ -1219,7 +1219,7 @@ class AutoScalingBackend(BaseBackend):
     ) -> FakeLifeCycleHook:
         lifecycle_hook = FakeLifeCycleHook(name, as_name, transition, timeout, result)
 
-        self.lifecycle_hooks["%s_%s" % (as_name, name)] = lifecycle_hook
+        self.lifecycle_hooks[f"{as_name}_{name}"] = lifecycle_hook
         return lifecycle_hook
 
     def describe_lifecycle_hooks(
@@ -1235,7 +1235,7 @@ class AutoScalingBackend(BaseBackend):
         ]
 
     def delete_lifecycle_hook(self, as_name: str, name: str) -> None:
-        self.lifecycle_hooks.pop("%s_%s" % (as_name, name), None)
+        self.lifecycle_hooks.pop(f"{as_name}_{name}", None)
 
     def put_scaling_policy(
         self,

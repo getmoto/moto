@@ -142,7 +142,7 @@ class LambdaResponse(BaseResponse):
         elif request.method == "DELETE":
             return self._untag_resource()
         else:
-            raise ValueError("Cannot handle {0} request".format(request.method))
+            raise ValueError(f"Cannot handle {request.method} request")
 
     def policy(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
@@ -153,7 +153,7 @@ class LambdaResponse(BaseResponse):
         elif request.method == "DELETE":
             return self._del_policy(request, self.querystring)
         else:
-            raise ValueError("Cannot handle {0} request".format(request.method))
+            raise ValueError(f"Cannot handle {request.method} request")
 
     def configuration(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)

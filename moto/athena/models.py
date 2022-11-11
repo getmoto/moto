@@ -49,7 +49,7 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
         super().__init__(
             athena_backend.account_id,
             self.region_name,
-            "workgroup/{}".format(name),
+            f"workgroup/{name}",
             tags,
         )
         self.athena_backend = athena_backend
@@ -72,7 +72,7 @@ class DataCatalog(TaggableResourceMixin, BaseModel):
         super().__init__(
             athena_backend.account_id,
             self.region_name,
-            "datacatalog/{}".format(name),
+            f"datacatalog/{name}",
             tags,
         )
         self.athena_backend = athena_backend
