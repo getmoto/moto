@@ -125,6 +125,82 @@ def test_create_distribution_s3_minimum():
     restriction.should.have.key("RestrictionType").equals("none")
     restriction.should.have.key("Quantity").equals(0)
 
+    config.should.have.key("WebACLId")
+    config.should.have.key("WebACLId").equals("")
+
+
+@mock_cloudfront
+def test_create_distribution_with_logging():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    config["Logging"] = {
+        "Enabled": True,
+        "IncludeCookies": True,
+        "Bucket": "logging-bucket",
+        "Prefix": "logging-bucket",
+    }
+
+    resp = client.create_distribution(DistributionConfig=config)
+    resp.should.have.key("Distribution")
+
+    distribution = resp["Distribution"]
+
+    distribution.should.have.key("DistributionConfig")
+    config = distribution["DistributionConfig"]
+
+    config.should.have.key("Logging")
+    logging = config["Logging"]
+    logging.should.have.key("Enabled").equals(True)
+    logging.should.have.key("IncludeCookies").equals(True)
+    logging.should.have.key("Bucket").equals("logging-bucket")
+    logging.should.have.key("Prefix").equals("logging-bucket")
+
+
+@mock_cloudfront
+def test_create_distribution_with_web_acl():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    config["WebACLId"] = "test-web-acl"
+
+    resp = client.create_distribution(DistributionConfig=config)
+    resp.should.have.key("Distribution")
+
+    distribution = resp["Distribution"]
+
+    distribution.should.have.key("DistributionConfig")
+    config = distribution["DistributionConfig"]
+
+    config.should.have.key("WebACLId")
+    config.should.have.key("WebACLId").equals("test-web-acl")
+
+
+@mock_cloudfront
+def test_create_distribution_with_field_level_encryption_and_real_time_log_config_arn():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    real_time_log_config_arn = f"arn:aws:cloudfront::{ACCOUNT_ID}:realtime-log-config/ExampleNameForRealtimeLogConfig"
+    config["DefaultCacheBehavior"]["RealtimeLogConfigArn"] = real_time_log_config_arn
+    config["DefaultCacheBehavior"]["FieldLevelEncryptionId"] = "K3D5EWEUDCCXON"
+
+    resp = client.create_distribution(DistributionConfig=config)
+    resp.should.have.key("Distribution")
+
+    distribution = resp["Distribution"]
+
+    distribution.should.have.key("DistributionConfig")
+    config = distribution["DistributionConfig"]
+
+    config.should.have.key("DefaultCacheBehavior")
+    default_cache = config["DefaultCacheBehavior"]
+
+    default_cache.should.have.key("FieldLevelEncryptionId")
+    default_cache.should.have.key("FieldLevelEncryptionId").equals("K3D5EWEUDCCXON")
+
+    default_cache.should.have.key("RealtimeLogConfigArn")
+    default_cache.should.have.key("RealtimeLogConfigArn").equals(
+        real_time_log_config_arn
+    )
+
 
 @mock_cloudfront
 def test_create_distribution_with_georestriction():
