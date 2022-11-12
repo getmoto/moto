@@ -249,7 +249,7 @@ class APIGatewayResponse(BaseResponse):
                 function_id, resource_id, method_type, response_code
             )
             return 204, {}, json.dumps(method_response.to_json())  # type: ignore[union-attr]
-        raise Exception('Unexpected HTTP method "%s"' % self.method)
+        raise Exception(f'Unexpected HTTP method "{self.method}"')
 
     def restapis_authorizers(self, request: Any, full_url: str, headers: Dict[str, str]) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
@@ -702,7 +702,7 @@ class APIGatewayResponse(BaseResponse):
                 self.backend.delete_domain_name(domain_name)
             return 202, {}, json.dumps({})
         else:
-            msg = 'Method "%s" for API GW domain names not implemented' % self.method
+            msg = f'Method "{self.method}" for API GW domain names not implemented'
             return 404, {}, json.dumps({"error": msg})
 
     def models(self, request: Any, full_url: str, headers: Dict[str, str]) -> TYPE_RESPONSE:  # type: ignore[return]

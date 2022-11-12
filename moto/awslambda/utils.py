@@ -7,7 +7,7 @@ LAYER_ARN = namedtuple("LAYER_ARN", ["region", "account", "layer_name", "version
 
 
 def make_arn(resource_type: str, region: str, account: str, name: str) -> str:
-    return "arn:aws:lambda:{0}:{1}:{2}:{3}".format(region, account, resource_type, name)
+    return f"arn:aws:lambda:{region}:{account}:{resource_type}:{name}"
 
 
 make_function_arn = partial(make_arn, "function")
@@ -18,7 +18,7 @@ def make_ver_arn(
     resource_type: str, region: str, account: str, name: str, version: str = "1"
 ) -> str:
     arn = make_arn(resource_type, region, account, name)
-    return "{0}:{1}".format(arn, version)
+    return f"{arn}:{version}"
 
 
 make_function_ver_arn = partial(make_ver_arn, "function")

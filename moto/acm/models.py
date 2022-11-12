@@ -330,7 +330,7 @@ class CertBundle(BaseModel):
                     "ENCRYPTION", ""
                 ),
                 "Status": self.status,  # One of PENDING_VALIDATION, ISSUED, INACTIVE, EXPIRED, VALIDATION_TIMED_OUT, REVOKED, FAILED.
-                "Subject": "CN={0}".format(self.common_name),
+                "Subject": f"CN={self.common_name}",
                 "SubjectAlternativeNames": sans,
                 "Type": self.type,  # One of IMPORTED, AMAZON_ISSUED,
                 "ExtendedKeyUsages": [],

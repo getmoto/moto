@@ -96,7 +96,7 @@ class Deployment(CloudFormationModel):
         cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "Deployment":
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
@@ -280,7 +280,7 @@ class Method(CloudFormationModel):
         cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "Method":
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
@@ -389,7 +389,7 @@ class Resource(CloudFormationModel):
         cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "Resource":
         properties = cloudformation_json["Properties"]
         api_id = properties["RestApiId"]
@@ -515,7 +515,7 @@ class Authorizer(BaseModel):
         authorizer_id: Optional[str],
         name: Optional[str],
         authorizer_type: Optional[str],
-        **kwargs: Any
+        **kwargs: Any,
     ):
         self.id = authorizer_id
         self.name = name
@@ -569,11 +569,11 @@ class Authorizer(BaseModel):
                 self.name = op["value"]
             elif "/providerARNs" in op["path"]:
                 # TODO: add and remove
-                raise Exception('Patch operation for "%s" not implemented' % op["path"])
+                raise Exception(f'Patch operation for "{op["path"]}" not implemented')
             elif "/type" in op["path"]:
                 self.type = op["value"]
             else:
-                raise Exception('Patch operation "%s" not implemented' % op["op"])
+                raise Exception(f'Patch operation "{op["op"]}" not implemented')
         return self
 
 
@@ -748,7 +748,7 @@ class Stage(BaseModel):
         elif op["op"] == "replace":
             self.variables[key] = op["value"]
         else:
-            raise Exception('Patch operation "%s" not implemented' % op["op"])
+            raise Exception(f'Patch operation "{op["op"]}" not implemented')
 
 
 class ApiKey(BaseModel):
@@ -801,7 +801,7 @@ class ApiKey(BaseModel):
                 elif "/enabled" in op["path"]:
                     self.enabled = self._str2bool(op["value"])
             else:
-                raise Exception('Patch operation "%s" not implemented' % op["op"])
+                raise Exception(f'Patch operation "{op["op"]}" not implemented')
         return self
 
     def _str2bool(self, v: str) -> bool:
@@ -978,7 +978,7 @@ class RestAPI(CloudFormationModel):
         region_name: str,
         name: str,
         description: str,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         self.id = api_id
         self.account_id = account_id
@@ -1064,7 +1064,7 @@ class RestAPI(CloudFormationModel):
             for res_id, res_obj in self.resources.items():
                 if res_obj.path_part == "/" and not res_obj.parent_id:
                     return res_id
-            raise Exception("Unable to find root resource for API %s" % self)
+            raise Exception(f"Unable to find root resource for API {self}")
         raise UnformattedGetAttTemplateException()
 
     @property
@@ -1086,7 +1086,7 @@ class RestAPI(CloudFormationModel):
         cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "RestAPI":
         properties = cloudformation_json["Properties"]
         name = properties["Name"]
@@ -1327,11 +1327,11 @@ class RestAPI(CloudFormationModel):
 class DomainName(BaseModel):
     def __init__(self, domain_name: str, **kwargs: Any):
         self.domain_name = domain_name
-        self.regional_domain_name = "d-%s.execute-api.%s.amazonaws.com" % (
-            create_id(),
-            kwargs.get("region_name") or "us-east-1",
+        region = kwargs.get("region_name") or "us-east-1"
+        self.regional_domain_name = (
+            f"d-{create_id()}.execute-api.{region}.amazonaws.com"
         )
-        self.distribution_domain_name = "d%s.cloudfront.net" % create_id()
+        self.distribution_domain_name = f"d{create_id()}.cloudfront.net"
         self.domain_name_status = "AVAILABLE"
         self.status_message = "Domain Name Available"
         self.regional_hosted_zone_id = "Z2FDTNDATAQYW2"
