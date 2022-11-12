@@ -3,8 +3,7 @@ import pytz
 from collections import OrderedDict
 from typing import List, Iterable
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.ec2.models import ec2_backends
 from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.moto_api._internal import mock_random

@@ -9,7 +9,7 @@ import threading
 import dateutil.parser
 from sys import platform
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.iam.models import iam_backends, IAMBackend
 from moto.ec2.models import ec2_backends, EC2Backend
 from moto.ec2.models.instances import Instance
@@ -28,7 +28,7 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
 from moto.iam.exceptions import IAMNotFoundException
-from moto.core.utils import unix_time_millis, BackendDict
+from moto.core.utils import unix_time_millis
 from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -609,7 +609,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 )
                 for m in self._get_container_property("mountPoints", [])
             ]
-            name = "{0}-{1}".format(self.job_name, self.job_id)
+            name = f"{self.job_name}-{self.job_id}"
 
             self.advance()
             while self.status == "PENDING":
@@ -729,9 +729,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
                 # Send to cloudwatch
                 log_group = "/aws/batch/job"
-                stream_name = "{0}/default/{1}".format(
-                    self.job_definition.name, self.job_id
-                )
+                stream_name = f"{self.job_definition.name}/default/{self.job_id}"
                 self.log_stream_name = stream_name
                 self._log_backend.ensure_log_group(log_group, None)
                 self._log_backend.create_log_stream(log_group, stream_name)
@@ -745,20 +743,14 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
             except Exception as err:
                 logger.error(
-                    "Failed to run AWS Batch container {0}. Error {1}".format(
-                        self.name, err
-                    )
+                    f"Failed to run AWS Batch container {self.name}. Error {err}"
                 )
                 self._mark_stopped(success=False)
                 container.kill()
             finally:
                 container.remove()
         except Exception as err:
-            logger.error(
-                "Failed to run AWS Batch container {0}. Error {1}".format(
-                    self.name, err
-                )
-            )
+            logger.error(f"Failed to run AWS Batch container {self.name}. Error {err}")
             self._mark_stopped(success=False)
 
     def _mark_stopped(self, success: bool = True) -> None:
@@ -806,9 +798,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                         successful_dependencies.add(dependent_id)
                     if dependent_job.status == "FAILED":
                         logger.error(
-                            "Terminating job {0} due to failed dependency {1}".format(
-                                self.name, dependent_job.name
-                            )
+                            f"Terminating job {self.name} due to failed dependency {dependent_job.name}"
                         )
                         self._mark_stopped(success=False)
                         return False
@@ -1045,9 +1035,7 @@ class BatchBackend(BaseBackend):
 
         if self.get_compute_environment_by_name(compute_environment_name) is not None:
             raise InvalidParameterValueException(
-                "A compute environment already exists with the name {0}".format(
-                    compute_environment_name
-                )
+                f"A compute environment already exists with the name {compute_environment_name}"
             )
 
         # Look for IAM role
@@ -1055,24 +1043,22 @@ class BatchBackend(BaseBackend):
             self.iam_backend.get_role_by_arn(service_role)
         except IAMNotFoundException:
             raise InvalidParameterValueException(
-                "Could not find IAM role {0}".format(service_role)
+                f"Could not find IAM role {service_role}"
             )
 
         if _type not in ("MANAGED", "UNMANAGED"):
             raise InvalidParameterValueException(
-                "type {0} must be one of MANAGED | UNMANAGED".format(service_role)
+                f"type {_type} must be one of MANAGED | UNMANAGED"
             )
 
         if state is not None and state not in ("ENABLED", "DISABLED"):
             raise InvalidParameterValueException(
-                "state {0} must be one of ENABLED | DISABLED".format(state)
+                f"state {state} must be one of ENABLED | DISABLED"
             )
 
         if compute_resources is None and _type == "MANAGED":
             raise InvalidParameterValueException(
-                "computeResources must be specified when creating a {0} environment".format(
-                    state
-                )
+                f"computeResources must be specified when creating a {state} environment"
             )
         elif compute_resources is not None:
             self._validate_compute_resources(compute_resources)
@@ -1144,7 +1130,7 @@ class BatchBackend(BaseBackend):
                     break
             else:
                 raise InvalidParameterValueException(
-                    "could not find instanceRole {0}".format(cr["instanceRole"])
+                    f"could not find instanceRole {cr['instanceRole']}"
                 )
 
             if int(cr["minvCpus"]) < 0:
@@ -1166,13 +1152,13 @@ class BatchBackend(BaseBackend):
                     and instance_type not in EC2_INSTANCE_FAMILIES
                 ):
                     raise InvalidParameterValueException(
-                        "Instance type {0} does not exist".format(instance_type)
+                        f"Instance type {instance_type} does not exist"
                     )
 
         for sec_id in cr["securityGroupIds"]:
             if self.ec2_backend.get_security_group_from_id(sec_id) is None:
                 raise InvalidParameterValueException(
-                    "security group {0} does not exist".format(sec_id)
+                    f"security group {sec_id} does not exist"
                 )
         if len(cr["securityGroupIds"]) == 0:
             raise InvalidParameterValueException(
@@ -1184,7 +1170,7 @@ class BatchBackend(BaseBackend):
                 self.ec2_backend.get_subnet(subnet_id)
             except InvalidSubnetIdError:
                 raise InvalidParameterValueException(
-                    "subnet {0} does not exist".format(subnet_id)
+                    f"subnet {subnet_id} does not exist"
                 )
         if len(cr["subnets"]) == 0:
             raise InvalidParameterValueException("At least 1 subnet must be provided")
@@ -1289,7 +1275,7 @@ class BatchBackend(BaseBackend):
                 self.iam_backend.get_role_by_arn(service_role)
             except IAMNotFoundException:
                 raise InvalidParameterValueException(
-                    "Could not find IAM role {0}".format(service_role)
+                    f"Could not find IAM role {service_role}"
                 )
 
             compute_env.service_role = service_role
@@ -1297,7 +1283,7 @@ class BatchBackend(BaseBackend):
         if state is not None:
             if state not in ("ENABLED", "DISABLED"):
                 raise InvalidParameterValueException(
-                    "state {0} must be one of ENABLED | DISABLED".format(state)
+                    f"state {state} must be one of ENABLED | DISABLED"
                 )
 
             compute_env.state = state
@@ -1324,14 +1310,12 @@ class BatchBackend(BaseBackend):
             (compute_env_order, "computeEnvironmentOrder"),
         ):
             if variable is None:
-                raise ClientException("{0} must be provided".format(var_name))
+                raise ClientException(f"{var_name} must be provided")
 
         if state not in ("ENABLED", "DISABLED"):
-            raise ClientException(
-                "state {0} must be one of ENABLED | DISABLED".format(state)
-            )
+            raise ClientException(f"state {state} must be one of ENABLED | DISABLED")
         if self.get_job_queue_by_name(queue_name) is not None:
-            raise ClientException("Job queue {0} already exists".format(queue_name))
+            raise ClientException(f"Job queue {queue_name} already exists")
 
         if len(compute_env_order) == 0:
             raise ClientException("At least 1 compute environment must be provided")
@@ -1346,9 +1330,7 @@ class BatchBackend(BaseBackend):
             for arn in ordered_compute_environments:
                 env = self.get_compute_environment_by_arn(arn)
                 if env is None:
-                    raise ClientException(
-                        "Compute environment {0} does not exist".format(arn)
-                    )
+                    raise ClientException(f"Compute environment {arn} does not exist")
                 env_objects.append(env)
         except Exception:
             raise ClientException("computeEnvironmentOrder is malformed")
@@ -1399,12 +1381,12 @@ class BatchBackend(BaseBackend):
 
         job_queue = self.get_job_queue(queue_name)
         if job_queue is None:
-            raise ClientException("Job queue {0} does not exist".format(queue_name))
+            raise ClientException(f"Job queue {queue_name} does not exist")
 
         if state is not None:
             if state not in ("ENABLED", "DISABLED"):
                 raise ClientException(
-                    "state {0} must be one of ENABLED | DISABLED".format(state)
+                    f"state {state} must be one of ENABLED | DISABLED"
                 )
 
             job_queue.state = state
@@ -1424,7 +1406,7 @@ class BatchBackend(BaseBackend):
                     env = self.get_compute_environment_by_arn(arn)
                     if env is None:
                         raise ClientException(
-                            "Compute environment {0} does not exist".format(arn)
+                            f"Compute environment {arn} does not exist"
                         )
                     env_objects.append(env)
             except Exception:
@@ -1544,13 +1526,11 @@ class BatchBackend(BaseBackend):
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
         if job_def is None:
-            raise ClientException(
-                "Job definition {0} does not exist".format(job_def_id)
-            )
+            raise ClientException(f"Job definition {job_def_id} does not exist")
 
         queue = self.get_job_queue(job_queue)
         if queue is None:
-            raise ClientException("Job queue {0} does not exist".format(job_queue))
+            raise ClientException(f"Job queue {job_queue} does not exist")
 
         job = Job(
             job_name,
@@ -1593,7 +1573,7 @@ class BatchBackend(BaseBackend):
 
         job_queue = self.get_job_queue(job_queue_name)
         if job_queue is None:
-            raise ClientException("Job queue {0} does not exist".format(job_queue))
+            raise ClientException(f"Job queue {job_queue_name} does not exist")
 
         if job_status is not None and job_status not in (
             "SUBMITTED",

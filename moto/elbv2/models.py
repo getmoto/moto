@@ -5,11 +5,8 @@ from botocore.exceptions import ParamValidationError
 from collections import OrderedDict
 from typing import Any, List, Dict, Iterable, Optional
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import (
-    iso_8601_datetime_with_milliseconds,
-    BackendDict,
-)
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService

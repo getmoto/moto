@@ -1,7 +1,6 @@
 """QuickSightBackend class with methods for supported APIs."""
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from .exceptions import ResourceNotFoundException
 
 

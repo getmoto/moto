@@ -17,9 +17,7 @@ class ResourceContentionError(RESTError):
 
 class InvalidInstanceError(AutoscalingClientError):
     def __init__(self, instance_id: str):
-        super().__init__(
-            "ValidationError", "Instance [{0}] is invalid.".format(instance_id)
-        )
+        super().__init__("ValidationError", f"Instance [{instance_id}] is invalid.")
 
 
 class ValidationError(AutoscalingClientError):

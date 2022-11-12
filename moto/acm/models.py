@@ -1,8 +1,7 @@
 import base64
 import re
 import datetime
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto import settings
 from typing import Any, Dict, List, Iterable, Optional, Tuple, Set
 
@@ -331,7 +330,7 @@ class CertBundle(BaseModel):
                     "ENCRYPTION", ""
                 ),
                 "Status": self.status,  # One of PENDING_VALIDATION, ISSUED, INACTIVE, EXPIRED, VALIDATION_TIMED_OUT, REVOKED, FAILED.
-                "Subject": "CN={0}".format(self.common_name),
+                "Subject": f"CN={self.common_name}",
                 "SubjectAlternativeNames": sans,
                 "Type": self.type,  # One of IMPORTED, AMAZON_ISSUED,
                 "ExtendedKeyUsages": [],

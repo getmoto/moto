@@ -2,8 +2,8 @@ import string
 
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Tuple, Optional
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
+from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.moto_api._internal import mock_random as random
@@ -73,17 +73,20 @@ class DefaultCacheBehaviour:
         self.compress = config.get("Compress", "true").lower() == "true"
         self.lambda_function_associations: List[Any] = []
         self.function_associations: List[Any] = []
-        self.field_level_encryption_id = ""
+        self.field_level_encryption_id = config.get("FieldLevelEncryptionId") or ""
         self.forwarded_values = ForwardedValues(config.get("ForwardedValues", {}))
         self.min_ttl = config.get("MinTTL") or 0
         self.default_ttl = config.get("DefaultTTL") or 0
         self.max_ttl = config.get("MaxTTL") or 0
+        self.realtime_log_config_arn = config.get("RealtimeLogConfigArn") or ""
 
 
 class Logging:
-    def __init__(self) -> None:
-        self.enabled = False
-        self.include_cookies = False
+    def __init__(self, config: Dict[str, Any]) -> None:
+        self.enabled = config.get("Enabled") or False
+        self.include_cookies = config.get("IncludeCookies") or False
+        self.bucket = config.get("Bucket") or ""
+        self.prefix = config.get("Prefix") or ""
 
 
 class ViewerCertificate:
@@ -149,7 +152,7 @@ class DistributionConfig:
         )
         self.cache_behaviors: List[Any] = []
         self.custom_error_responses: List[Any] = []
-        self.logging = Logging()
+        self.logging = Logging(config.get("Logging") or {})
         self.enabled = config.get("Enabled") or False
         self.viewer_certificate = ViewerCertificate()
         self.geo_restriction = GeoRestrictions(config.get("Restrictions") or {})
@@ -169,6 +172,7 @@ class DistributionConfig:
         self.http_version = config.get("HttpVersion", "http2")
         self.is_ipv6_enabled = config.get("IsIPV6Enabled", "true").lower() == "true"
         self.default_root_object = config.get("DefaultRootObject") or ""
+        self.web_acl_id = config.get("WebACLId") or ""
 
 
 class Distribution(BaseModel, ManagedState):
@@ -268,6 +272,13 @@ class CloudFrontBackend(BaseBackend):
         return dist, dist.location, dist.etag
 
     def get_distribution(self, distribution_id: str) -> Tuple[Distribution, str]:
+        if distribution_id not in self.distributions:
+            raise NoSuchDistribution
+        dist = self.distributions[distribution_id]
+        dist.advance()
+        return dist, dist.etag
+
+    def get_distribution_config(self, distribution_id: str) -> Tuple[Distribution, str]:
         if distribution_id not in self.distributions:
             raise NoSuchDistribution
         dist = self.distributions[distribution_id]

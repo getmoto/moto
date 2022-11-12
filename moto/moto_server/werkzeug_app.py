@@ -16,8 +16,8 @@ except ImportError:
 
 import moto.backends as backends
 import moto.backend_index as backend_index
-from moto.core import DEFAULT_ACCOUNT_ID
-from moto.core.utils import convert_to_flask_response, BackendDict
+from moto.core import BackendDict, DEFAULT_ACCOUNT_ID
+from moto.core.utils import convert_to_flask_response
 
 from .utilities import AWSTestHelper, RegexConverter
 

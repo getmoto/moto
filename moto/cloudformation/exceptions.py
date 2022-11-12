@@ -13,7 +13,7 @@ class UnformattedGetAttTemplateException(Exception):
 class ValidationError(RESTError):
     def __init__(self, name_or_id: Optional[str] = None, message: Optional[str] = None):
         if message is None:
-            message = "Stack with id {0} does not exist".format(name_or_id)
+            message = f"Stack with id {name_or_id} does not exist"
 
         template = Template(ERROR_RESPONSE)
         super().__init__(error_type="ValidationError", message=message)
@@ -23,7 +23,7 @@ class ValidationError(RESTError):
 class MissingParameterError(RESTError):
     def __init__(self, parameter_name: str):
         template = Template(ERROR_RESPONSE)
-        message = "Missing parameter {0}".format(parameter_name)
+        message = f"Missing parameter {parameter_name}"
         super().__init__(error_type="ValidationError", message=message)
         self.description = template.render(code="Missing Parameter", message=message)
 
@@ -33,7 +33,7 @@ class ExportNotFound(RESTError):
 
     def __init__(self, export_name: str):
         template = Template(ERROR_RESPONSE)
-        message = "No export named {0} found.".format(export_name)
+        message = f"No export named {export_name} found."
         super().__init__(error_type="ExportNotFound", message=message)
         self.description = template.render(code="ExportNotFound", message=message)
 

@@ -3,8 +3,8 @@ import time
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Iterable, Tuple
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
     S3BucketDoesNotExistException,

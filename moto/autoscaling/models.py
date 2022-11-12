@@ -8,8 +8,8 @@ from moto.packages.boto.ec2.blockdevicemapping import (
 from moto.ec2.exceptions import InvalidInstanceIdError
 
 from collections import OrderedDict
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import camelcase_to_underscores, BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core.utils import camelcase_to_underscores
 from moto.ec2 import ec2_backends
 from moto.ec2.models import EC2Backend
 from moto.ec2.models.instances import Instance
@@ -398,7 +398,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         load_balancers: List[str],
         target_group_arns: List[str],
         placement_group: str,
-        termination_policies: str,
+        termination_policies: List[str],
         autoscaling_backend: "AutoScalingBackend",
         ec2_backend: EC2Backend,
         tags: List[Dict[str, str]],
@@ -824,7 +824,7 @@ class AutoScalingBackend(BaseBackend):
         self.elbv2_backend: ELBv2Backend = elbv2_backends[self.account_id][region_name]
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[Dict[str, Any]]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "autoscaling"
@@ -980,7 +980,7 @@ class AutoScalingBackend(BaseBackend):
         load_balancers: List[str],
         target_group_arns: List[str],
         placement_group: str,
-        termination_policies: str,
+        termination_policies: List[str],
         tags: List[Dict[str, str]],
         capacity_rebalance: bool = False,
         new_instances_protected_from_scale_in: bool = False,
@@ -1219,11 +1219,11 @@ class AutoScalingBackend(BaseBackend):
     ) -> FakeLifeCycleHook:
         lifecycle_hook = FakeLifeCycleHook(name, as_name, transition, timeout, result)
 
-        self.lifecycle_hooks["%s_%s" % (as_name, name)] = lifecycle_hook
+        self.lifecycle_hooks[f"{as_name}_{name}"] = lifecycle_hook
         return lifecycle_hook
 
     def describe_lifecycle_hooks(
-        self, as_name: str, lifecycle_hook_names: Optional[str] = None
+        self, as_name: str, lifecycle_hook_names: Optional[List[str]] = None
     ) -> List[FakeLifeCycleHook]:
         return [
             lifecycle_hook
@@ -1235,7 +1235,7 @@ class AutoScalingBackend(BaseBackend):
         ]
 
     def delete_lifecycle_hook(self, as_name: str, name: str) -> None:
-        self.lifecycle_hooks.pop("%s_%s" % (as_name, name), None)
+        self.lifecycle_hooks.pop(f"{as_name}_{name}", None)
 
     def put_scaling_policy(
         self,

@@ -14,7 +14,7 @@ class TypeAwsParser(IntegrationParser):
         try:
             # We need a better way to support services automatically
             # This is how AWS does it though - sending a new HTTP request to the target service
-            arn, action = integration["uri"].split("/")
+            arn, action = integration.uri.split("/")
             _, _, _, region, service, path_or_action = arn.split(":")
             if service == "dynamodb" and path_or_action == "action":
                 target_url = f"https://dynamodb.{region}.amazonaws.com/"

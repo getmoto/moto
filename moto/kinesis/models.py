@@ -5,8 +5,8 @@ import itertools
 
 from operator import attrgetter
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core.utils import unix_time
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import md5_hash
 from .exceptions import (

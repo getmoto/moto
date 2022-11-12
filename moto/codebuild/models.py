@@ -1,5 +1,5 @@
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from collections import defaultdict
 from dateutil import parser
@@ -103,9 +103,9 @@ class CodeBuild(BaseModel):
         self.project_metadata: Dict[str, Any] = dict()
 
         self.project_metadata["name"] = project_name
-        self.project_metadata["arn"] = "arn:aws:codebuild:{0}:{1}:project/{2}".format(
-            region, account_id, self.project_metadata["name"]
-        )
+        self.project_metadata[
+            "arn"
+        ] = f"arn:aws:codebuild:{region}:{account_id}:project/{project_name}"
         self.project_metadata[
             "encryptionKey"
         ] = f"arn:aws:kms:{region}:{account_id}:alias/aws/s3"
@@ -178,7 +178,7 @@ class CodeBuildBackend(BaseBackend):
         artifact_override: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
 
-        build_id = "{0}:{1}".format(project_name, mock_random.uuid4())
+        build_id = f"{project_name}:{mock_random.uuid4()}"
 
         # construct a new build
         self.build_metadata[project_name] = CodeBuildProjectMetadata(

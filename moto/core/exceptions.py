@@ -1,6 +1,6 @@
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
-from typing import Any, Optional
+from typing import Any, List, Tuple, Optional
 import json
 
 # TODO: add "<Type>Sender</Type>" to error responses below?
@@ -63,18 +63,22 @@ class RESTError(HTTPException):
                 error_type=error_type,
                 message=message,
                 request_id_tag=self.request_id_tag_name,
-                **kwargs
+                **kwargs,
             )
             self.content_type = "application/xml"
 
-    def get_headers(self, *args, **kwargs):  # pylint: disable=unused-argument
-        return {
-            "X-Amzn-ErrorType": self.error_type or "UnknownError",
-            "Content-Type": self.content_type,
-        }
+    def get_headers(
+        self, *args: Any, **kwargs: Any  # pylint: disable=unused-argument
+    ) -> List[Tuple[str, str]]:
+        return [
+            ("X-Amzn-ErrorType", self.error_type or "UnknownError"),
+            ("Content-Type", self.content_type),
+        ]
 
-    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
-        return self.description
+    def get_body(
+        self, *args: Any, **kwargs: Any  # pylint: disable=unused-argument
+    ) -> str:
+        return self.description  # type: ignore[return-value]
 
 
 class DryRunClientError(RESTError):
@@ -86,19 +90,19 @@ class JsonRESTError(RESTError):
         self, error_type: str, message: str, template: str = "error_json", **kwargs: Any
     ):
         super().__init__(error_type, message, template, **kwargs)
-        self.description = json.dumps(
+        self.description: str = json.dumps(
             {"__type": self.error_type, "message": self.message}
         )
         self.content_type = "application/json"
 
-    def get_body(self, *args, **kwargs) -> str:
+    def get_body(self, *args: Any, **kwargs: Any) -> str:
         return self.description
 
 
 class SignatureDoesNotMatchError(RESTError):
     code = 403
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "SignatureDoesNotMatch",
             "The request signature we calculated does not match the signature you provided. Check your AWS Secret Access Key and signing method. Consult the service documentation for details.",
@@ -108,7 +112,7 @@ class SignatureDoesNotMatchError(RESTError):
 class InvalidClientTokenIdError(RESTError):
     code = 403
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidClientTokenId",
             "The security token included in the request is invalid.",
@@ -118,19 +122,16 @@ class InvalidClientTokenIdError(RESTError):
 class AccessDeniedError(RESTError):
     code = 403
 
-    def __init__(self, user_arn, action):
+    def __init__(self, user_arn: str, action: str):
         super().__init__(
-            "AccessDenied",
-            "User: {user_arn} is not authorized to perform: {operation}".format(
-                user_arn=user_arn, operation=action
-            ),
+            "AccessDenied", f"User: {user_arn} is not authorized to perform: {action}"
         )
 
 
 class AuthFailureError(RESTError):
     code = 401
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "AuthFailure",
             "AWS was not able to validate the provided access credentials",
@@ -142,9 +143,12 @@ class AWSError(JsonRESTError):
     STATUS = 400
 
     def __init__(
-        self, message: str, exception_type: str = None, status: Optional[int] = None
+        self,
+        message: str,
+        exception_type: Optional[str] = None,
+        status: Optional[int] = None,
     ):
-        super().__init__(exception_type or self.TYPE, message)
+        super().__init__(exception_type or self.TYPE, message)  # type: ignore[arg-type]
         self.code = status or self.STATUS
 
 
@@ -153,7 +157,7 @@ class InvalidNextTokenException(JsonRESTError):
 
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidNextTokenException", "The nextToken provided is invalid"
         )
@@ -162,5 +166,5 @@ class InvalidNextTokenException(JsonRESTError):
 class InvalidToken(AWSError):
     code = 400
 
-    def __init__(self, message="Invalid token"):
-        super().__init__("Invalid Token: {}".format(message), "InvalidToken")
+    def __init__(self, message: str = "Invalid token"):
+        super().__init__(f"Invalid Token: {message}", "InvalidToken")

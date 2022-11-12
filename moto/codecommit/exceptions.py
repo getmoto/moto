@@ -7,7 +7,7 @@ class RepositoryNameExistsException(JsonRESTError):
     def __init__(self, repository_name: str):
         super().__init__(
             "RepositoryNameExistsException",
-            "Repository named {0} already exists".format(repository_name),
+            f"Repository named {repository_name} already exists",
         )
 
 
@@ -16,8 +16,7 @@ class RepositoryDoesNotExistException(JsonRESTError):
 
     def __init__(self, repository_name: str):
         super().__init__(
-            "RepositoryDoesNotExistException",
-            "{0} does not exist".format(repository_name),
+            "RepositoryDoesNotExistException", f"{repository_name} does not exist"
         )
 
 

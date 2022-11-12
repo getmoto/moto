@@ -2,8 +2,8 @@ from base64 import b64decode
 import datetime
 import re
 import xmltodict
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
+from moto.core import BaseBackend, BaseModel, BackendDict
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.iam import iam_backends
 from moto.sts.utils import (
     random_session_token,

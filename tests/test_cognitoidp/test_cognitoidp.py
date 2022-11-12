@@ -2838,6 +2838,7 @@ def test_token_legitimacy():
         id_token = outputs["id_token"]
         access_token = outputs["access_token"]
         client_id = outputs["client_id"]
+        username = outputs["username"]
         issuer = "https://cognito-idp.us-west-2.amazonaws.com/{}".format(
             outputs["user_pool_id"]
         )
@@ -2851,6 +2852,7 @@ def test_token_legitimacy():
         access_claims["iss"].should.equal(issuer)
         access_claims["aud"].should.equal(client_id)
         access_claims["token_use"].should.equal("access")
+        access_claims["username"].should.equal(username)
 
 
 @mock_cognitoidp

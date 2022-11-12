@@ -1,7 +1,7 @@
 from .exceptions import ResourceNotFound
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, unix_time
+from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL

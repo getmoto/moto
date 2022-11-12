@@ -7,11 +7,10 @@ from typing import Any, Dict, List, Optional, Iterable, Tuple, Union, Type
 from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
 from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
-    BackendDict,
 )
 from moto.moto_api._internal import mock_random
 from moto.sns.models import sns_backends
@@ -117,7 +116,7 @@ class FakeStackSet(BaseModel):
         self.execution_role = execution_role or self.execution_role
 
         if accounts and regions:
-            self.update_instances(accounts, regions, self.parameters)
+            self.update_instances(accounts, regions, self.parameters)  # type: ignore[arg-type]
 
         operation = self._create_operation(
             operation_id=operation_id,
@@ -158,7 +157,7 @@ class FakeStackSet(BaseModel):
         )
 
     def update_instances(
-        self, accounts: List[str], regions: List[str], parameters: Dict[str, str]
+        self, accounts: List[str], regions: List[str], parameters: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         operation_id = str(mock_random.uuid4())
 
@@ -179,7 +178,7 @@ class FakeStackInstances(BaseModel):
     ):
         self.parameters = parameters or {}
         self.stackset_id = stackset_id
-        self.stack_name = "StackSet-{}".format(stackset_id)
+        self.stack_name = f"StackSet-{stackset_id}"
         self.stackset_name = stackset_name
         self.stack_instances: List[Dict[str, Any]] = []
 
@@ -208,7 +207,7 @@ class FakeStackInstances(BaseModel):
         self,
         accounts: List[str],
         regions: List[str],
-        parameters: Optional[Dict[str, str]],
+        parameters: Optional[List[Dict[str, Any]]],
     ) -> Any:
         for account in accounts:
             for region in regions:
@@ -242,6 +241,7 @@ class FakeStack(BaseModel):
         tags: Optional[Dict[str, str]] = None,
         role_arn: Optional[str] = None,
         cross_stack_resources: Optional[Dict[str, Export]] = None,
+        enable_termination_protection: Optional[bool] = False,
     ):
         self.stack_id = stack_id
         self.name = name
@@ -262,6 +262,9 @@ class FakeStack(BaseModel):
         self.policy = ""
 
         self.cross_stack_resources: Dict[str, Export] = cross_stack_resources or {}
+        self.enable_termination_protection: bool = (
+            enable_termination_protection or False
+        )
         self.resource_map = self._create_resource_map()
 
         self.custom_resources: Dict[str, CustomModel] = dict()
@@ -500,29 +503,17 @@ class FakeEvent(BaseModel):
     def sendToSns(
         self, account_id: str, region: str, sns_topic_arns: List[str]
     ) -> None:
-        message = """StackId='{stack_id}'
-Timestamp='{timestamp}'
-EventId='{event_id}'
-LogicalResourceId='{logical_resource_id}'
+        message = f"""StackId='{self.stack_id}'
+Timestamp='{iso_8601_datetime_with_milliseconds(self.timestamp)}'
+EventId='{self.event_id}'
+LogicalResourceId='{self.logical_resource_id}'
 Namespace='{account_id}'
-ResourceProperties='{resource_properties}'
-ResourceStatus='{resource_status}'
-ResourceStatusReason='{resource_status_reason}'
-ResourceType='{resource_type}'
-StackName='{stack_name}'
-ClientRequestToken='{client_request_token}'""".format(
-            stack_id=self.stack_id,
-            timestamp=iso_8601_datetime_with_milliseconds(self.timestamp),
-            event_id=self.event_id,
-            logical_resource_id=self.logical_resource_id,
-            account_id=account_id,
-            resource_properties=self.resource_properties,
-            resource_status=self.resource_status,
-            resource_status_reason=self.resource_status_reason,
-            resource_type=self.resource_type,
-            stack_name=self.stack_name,
-            client_request_token=self.client_request_token,
-        )
+ResourceProperties='{self.resource_properties}'
+ResourceStatus='{self.resource_status}'
+ResourceStatusReason='{self.resource_status_reason}'
+ResourceType='{self.resource_type}'
+StackName='{self.stack_name}'
+ClientRequestToken='{self.client_request_token}'"""
 
         for sns_topic_arn in sns_topic_arns:
             sns_backends[account_id][region].publish(
@@ -651,7 +642,7 @@ class CloudFormationBackend(BaseBackend):
         stackset_name: str,
         accounts: List[str],
         regions: List[str],
-        parameters: Dict[str, str],
+        parameters: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         stack_set = self.get_stack_set(stackset_name)
         return stack_set.update_instances(accounts, regions, parameters)
@@ -701,6 +692,7 @@ class CloudFormationBackend(BaseBackend):
         notification_arns: Optional[List[str]] = None,
         tags: Optional[Dict[str, str]] = None,
         role_arn: Optional[str] = None,
+        enable_termination_protection: Optional[bool] = False,
     ) -> FakeStack:
         stack_id = generate_stack_id(name, self.region_name, self.account_id)
         new_stack = FakeStack(
@@ -714,6 +706,7 @@ class CloudFormationBackend(BaseBackend):
             tags=tags,
             role_arn=role_arn,
             cross_stack_resources=self.exports,
+            enable_termination_protection=enable_termination_protection,
         )
         self.stacks[stack_id] = new_stack
         self._validate_export_uniqueness(new_stack)

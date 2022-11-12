@@ -1,6 +1,5 @@
 import json
-from moto.core import BaseBackend
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict
 
 
 class Ec2InstanceConnectBackend(BaseBackend):

@@ -13,11 +13,16 @@ from jinja2 import Template
 from typing import List, Mapping
 from urllib import parse
 from moto.core.exceptions import RESTError
-from moto.core import DEFAULT_ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
+from moto.core import (
+    DEFAULT_ACCOUNT_ID,
+    BaseBackend,
+    BaseModel,
+    CloudFormationModel,
+    BackendDict,
+)
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
-    BackendDict,
     unix_time,
 )
 from moto.iam.policy_validation import (
@@ -64,14 +69,16 @@ SERVICE_NAME_CONVERSION = {
 }
 
 
-def get_account_id_from(access_key):
+def get_account_id_from(access_key: str) -> str:
     for account_id, account in iam_backends.items():
         if access_key in account["global"].access_keys:
             return account_id
     return DEFAULT_ACCOUNT_ID
 
 
-def mark_account_as_visited(account_id, access_key, service, region):
+def mark_account_as_visited(
+    account_id: str, access_key: str, service: str, region: str
+) -> None:
     account = iam_backends[account_id]
     if access_key in account["global"].access_keys:
         account["global"].access_keys[access_key].last_used = AccessKeyLastUsed(
@@ -3050,6 +3057,6 @@ class IAMBackend(BaseBackend):
         return True
 
 
-iam_backends: Mapping[str, Mapping[str, IAMBackend]] = BackendDict(
+iam_backends = BackendDict(
     IAMBackend, "iam", use_boto3_regions=False, additional_regions=["global"]
 )

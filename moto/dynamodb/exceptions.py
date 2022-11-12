@@ -332,3 +332,8 @@ class TransactWriteSingleOpException(MockValidationException):
 
     def __init__(self):
         super().__init__(self.there_can_be_only_one)
+
+
+class SerializationException(DynamodbException):
+    def __init__(self, msg):
+        super().__init__(error_type="SerializationException", message=msg)

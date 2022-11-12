@@ -25,8 +25,7 @@ import warnings
 
 import requests
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.firehose.exceptions import (
     ConcurrentModificationException,
     InvalidArgumentException,

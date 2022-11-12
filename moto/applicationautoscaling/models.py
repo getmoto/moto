@@ -1,5 +1,4 @@
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.ecs import ecs_backends
 from moto.moto_api._internal import mock_random
 from .exceptions import AWSValidationException
@@ -143,7 +142,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         _, cluster, service = r_id.split("/")
         result, _ = self.ecs_backend.describe_services(cluster, [service])
         if len(result) != 1:
-            raise AWSValidationException("ECS service doesn't exist: {}".format(r_id))
+            raise AWSValidationException(f"ECS service doesn't exist: {r_id}")
         return True
 
     def _add_scalable_target(
@@ -163,9 +162,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             del self.targets[dimension][r_id]
         else:
             raise AWSValidationException(
-                "No scalable target found for service namespace: {}, resource ID: {}, scalable dimension: {}".format(
-                    namespace, r_id, dimension
-                )
+                f"No scalable target found for service namespace: {namespace}, resource ID: {r_id}, scalable dimension: {dimension}"
             )
 
     def put_scaling_policy(
@@ -248,9 +245,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             del self.policies[policy_key]
         else:
             raise AWSValidationException(
-                "No scaling policy found for service namespace: {}, resource ID: {}, scalable dimension: {}, policy name: {}".format(
-                    service_namespace, resource_id, scalable_dimension, policy_name
-                )
+                f"No scaling policy found for service namespace: {service_namespace}, resource ID: {resource_id}, scalable dimension: {scalable_dimension}, policy name: {policy_name}"
             )
 
     def delete_scheduled_action(
@@ -459,7 +454,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             self.target_tracking_scaling_policy_configuration = policy_body
         else:
             raise AWSValidationException(
-                "Unknown policy type {} specified.".format(policy_type)
+                f"Unknown policy type {policy_type} specified."
             )
 
         self._policy_body = policy_body
@@ -469,13 +464,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self.policy_name = policy_name
         self.policy_type = policy_type
         self._guid = mock_random.uuid4()
-        self.policy_arn = "arn:aws:autoscaling:{}:scalingPolicy:{}:resource/{}/{}:policyName/{}".format(
-            region_name,
-            self._guid,
-            self.service_namespace,
-            self.resource_id,
-            self.policy_name,
-        )
+        self.policy_arn = f"arn:aws:autoscaling:{region_name}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
         self.creation_time = time.time()
 
     @staticmethod
@@ -485,8 +474,8 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         scalable_dimension: str,
         policy_name: str,
     ) -> str:
-        return "{}\t{}\t{}\t{}".format(
-            service_namespace, resource_id, scalable_dimension, policy_name
+        return (
+            f"{service_namespace}\t{resource_id}\t{scalable_dimension}\t{policy_name}"
         )
 
 

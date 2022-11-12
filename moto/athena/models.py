@@ -1,7 +1,6 @@
 import time
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api._internal import mock_random
 from typing import Any, Dict, List, Optional
 
@@ -52,7 +51,7 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
         super().__init__(
             athena_backend.account_id,
             self.region_name,
-            "workgroup/{}".format(name),
+            f"workgroup/{name}",
             tags,
         )
         self.athena_backend = athena_backend
@@ -75,7 +74,7 @@ class DataCatalog(TaggableResourceMixin, BaseModel):
         super().__init__(
             athena_backend.account_id,
             self.region_name,
-            "datacatalog/{}".format(name),
+            f"datacatalog/{name}",
             tags,
         )
         self.athena_backend = athena_backend

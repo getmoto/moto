@@ -97,7 +97,7 @@ class Output(object):
         self.value = value
 
     def __repr__(self) -> str:
-        return 'Output:"%s"="%s"' % (self.key, self.value)
+        return f'Output:"{self.key}"="{self.value}"'
 
 
 class LazyDict(Dict[str, Any]):
@@ -225,7 +225,7 @@ def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
             result = []
             # TODO: make this configurable, to reflect the real AWS AZs
             for az in ("a", "b", "c", "d"):
-                result.append("%s%s" % (region, az))
+                result.append(f"{region}{az}")
             return result
 
         cleaned_json = {}
@@ -268,24 +268,22 @@ def generate_resource_name(resource_type: str, stack_name: str, logical_id: str)
     ]:
         # Target group names need to be less than 32 characters, so when cloudformation creates a name for you
         # it makes sure to stay under that limit
-        name_prefix = "{0}-{1}".format(stack_name, logical_id)
+        name_prefix = f"{stack_name}-{logical_id}"
         my_random_suffix = random_suffix()
         truncated_name_prefix = name_prefix[0 : 32 - (len(my_random_suffix) + 1)]
         # if the truncated name ends in a dash, we'll end up with a double dash in the final name, which is
         # not allowed
         if truncated_name_prefix.endswith("-"):
             truncated_name_prefix = truncated_name_prefix[:-1]
-        return "{0}-{1}".format(truncated_name_prefix, my_random_suffix)
+        return f"{truncated_name_prefix}-{my_random_suffix}"
     elif resource_type == "AWS::S3::Bucket":
-        right_hand_part_of_name = "-{0}-{1}".format(logical_id, random_suffix())
+        right_hand_part_of_name = f"-{logical_id}-{random_suffix()}"
         max_stack_name_portion_len = 63 - len(right_hand_part_of_name)
-        return "{0}{1}".format(
-            stack_name[:max_stack_name_portion_len], right_hand_part_of_name
-        ).lower()
+        return f"{stack_name[:max_stack_name_portion_len]}{right_hand_part_of_name}".lower()
     elif resource_type == "AWS::IAM::Policy":
-        return "{0}-{1}-{2}".format(stack_name[:5], logical_id[:4], random_suffix())
+        return f"{stack_name[:5]}-{logical_id[:4]}-{random_suffix()}"
     else:
-        return "{0}-{1}-{2}".format(stack_name, logical_id, random_suffix())
+        return f"{stack_name}-{logical_id}-{random_suffix()}"
 
 
 def parse_resource(
@@ -295,9 +293,7 @@ def parse_resource(
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
         warnings.warn(
-            "Tried to parse {0} but it's not supported by moto's CloudFormation implementation".format(
-                resource_type
-            )
+            f"Tried to parse {resource_type} but it's not supported by moto's CloudFormation implementation"
         )
         return None  # type: ignore[return-value]
 

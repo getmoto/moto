@@ -1,11 +1,10 @@
 import json
 import statistics
 
-from moto.core import BaseBackend, BaseModel, CloudWatchMetricProvider
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudWatchMetricProvider
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_nanoseconds,
-    BackendDict,
 )
 from moto.moto_api._internal import mock_random
 from datetime import datetime, timedelta
@@ -282,7 +281,7 @@ class Dashboard(BaseModel):
         return len(self.body)
 
     def __repr__(self) -> str:
-        return "<CloudWatchDashboard {0}>".format(self.name)
+        return f"<CloudWatchDashboard {self.name}>"
 
 
 class Statistics:

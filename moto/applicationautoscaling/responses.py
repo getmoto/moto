@@ -116,22 +116,18 @@ class ApplicationAutoScalingResponse(BaseResponse):
         message = None
         if dimension is not None and dimension not in dimensions:
             messages.append(
-                "Value '{}' at 'scalableDimension' "
-                "failed to satisfy constraint: Member must satisfy enum value set: "
-                "{}".format(dimension, dimensions)
+                f"Value '{dimension}' at 'scalableDimension' failed to satisfy constraint: Member must satisfy enum value set: {dimensions}"
             )
         namespaces = [n.value for n in ServiceNamespaceValueSet]
         if namespace is not None and namespace not in namespaces:
             messages.append(
-                "Value '{}' at 'serviceNamespace' "
-                "failed to satisfy constraint: Member must satisfy enum value set: "
-                "{}".format(namespace, namespaces)
+                f"Value '{namespace}' at 'serviceNamespace' failed to satisfy constraint: Member must satisfy enum value set: {namespaces}"
             )
         if len(messages) == 1:
-            message = "1 validation error detected: {}".format(messages[0])
+            message = f"1 validation error detected: {messages[0]}"
         elif len(messages) > 1:
-            message = "{} validation errors detected: {}".format(
-                len(messages), "; ".join(messages)
+            message = (
+                f'{len(messages)} validation errors detected: {"; ".join(messages)}'
             )
         if message:
             raise AWSValidationException(message)

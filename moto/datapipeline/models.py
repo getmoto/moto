@@ -1,8 +1,7 @@
 import datetime
 
 from collections import OrderedDict
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 
 

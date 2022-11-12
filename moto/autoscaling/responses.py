@@ -22,20 +22,20 @@ class AutoScalingResponse(BaseResponse):
             instance_monitoring = False
         params = self._get_params()
         self.autoscaling_backend.create_launch_configuration(
-            name=params.get("LaunchConfigurationName"),
-            image_id=params.get("ImageId"),
+            name=params.get("LaunchConfigurationName"),  # type: ignore[arg-type]
+            image_id=params.get("ImageId"),  # type: ignore[arg-type]
             key_name=params.get("KeyName"),
-            ramdisk_id=params.get("RamdiskId"),
-            kernel_id=params.get("KernelId"),
+            ramdisk_id=params.get("RamdiskId"),  # type: ignore[arg-type]
+            kernel_id=params.get("KernelId"),  # type: ignore[arg-type]
             security_groups=self._get_multi_param("SecurityGroups.member"),
-            user_data=params.get("UserData"),
-            instance_type=params.get("InstanceType"),
+            user_data=params.get("UserData"),  # type: ignore[arg-type]
+            instance_type=params.get("InstanceType"),  # type: ignore[arg-type]
             instance_monitoring=instance_monitoring,
             instance_profile_name=params.get("IamInstanceProfile"),
             spot_price=params.get("SpotPrice"),
-            ebs_optimized=params.get("EbsOptimized"),
-            associate_public_ip_address=params.get("AssociatePublicIpAddress"),
-            block_device_mappings=params.get("BlockDeviceMappings"),
+            ebs_optimized=params.get("EbsOptimized"),  # type: ignore[arg-type]
+            associate_public_ip_address=params.get("AssociatePublicIpAddress"),  # type: ignore[arg-type]
+            block_device_mappings=params.get("BlockDeviceMappings"),  # type: ignore[arg-type]
             instance_id=params.get("InstanceId"),
             metadata_options=params.get("MetadataOptions"),
             classic_link_vpc_id=params.get("ClassicLinkVPCId"),
@@ -311,17 +311,17 @@ class AutoScalingResponse(BaseResponse):
     def put_scaling_policy(self) -> str:
         params = self._get_params()
         policy = self.autoscaling_backend.put_scaling_policy(
-            name=params.get("PolicyName"),
+            name=params.get("PolicyName"),  # type: ignore[arg-type]
             policy_type=params.get("PolicyType", "SimpleScaling"),
-            metric_aggregation_type=params.get("MetricAggregationType"),
-            adjustment_type=params.get("AdjustmentType"),
-            as_name=params.get("AutoScalingGroupName"),
-            min_adjustment_magnitude=params.get("MinAdjustmentMagnitude"),
+            metric_aggregation_type=params.get("MetricAggregationType"),  # type: ignore[arg-type]
+            adjustment_type=params.get("AdjustmentType"),  # type: ignore[arg-type]
+            as_name=params.get("AutoScalingGroupName"),  # type: ignore[arg-type]
+            min_adjustment_magnitude=params.get("MinAdjustmentMagnitude"),  # type: ignore[arg-type]
             scaling_adjustment=self._get_int_param("ScalingAdjustment"),
             cooldown=self._get_int_param("Cooldown"),
             target_tracking_config=params.get("TargetTrackingConfiguration", {}),
             step_adjustments=params.get("StepAdjustments", []),
-            estimated_instance_warmup=params.get("EstimatedInstanceWarmup"),
+            estimated_instance_warmup=params.get("EstimatedInstanceWarmup"),  # type: ignore[arg-type]
             predictive_scaling_configuration=params.get(
                 "PredictiveScalingConfiguration", {}
             ),
@@ -480,7 +480,7 @@ class AutoScalingResponse(BaseResponse):
     def enable_metrics_collection(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         metrics = self._get_params().get("Metrics")
-        self.autoscaling_backend.enable_metrics_collection(group_name, metrics)
+        self.autoscaling_backend.enable_metrics_collection(group_name, metrics)  # type: ignore[arg-type]
         template = self.response_template(ENABLE_METRICS_COLLECTION_TEMPLATE)
         return template.render()
 

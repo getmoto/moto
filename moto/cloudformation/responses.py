@@ -123,6 +123,7 @@ class CloudFormationResponse(BaseResponse):
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
         role_arn = self._get_param("RoleARN")
+        enable_termination_protection = self._get_param("EnableTerminationProtection")
         parameters_list = self._get_list_prefix("Parameters.member")
         tags = dict(
             (item["key"], item["value"])
@@ -148,6 +149,7 @@ class CloudFormationResponse(BaseResponse):
             notification_arns=stack_notification_arns,
             tags=tags,
             role_arn=role_arn,
+            enable_termination_protection=enable_termination_protection,
         )
         if self.request_json:
             return json.dumps(
@@ -278,8 +280,8 @@ class CloudFormationResponse(BaseResponse):
                 break
 
         if not resource:
-            message = "Resource {0} does not exist for stack {1}".format(
-                logical_resource_id, stack_name
+            message = (
+                f"Resource {logical_resource_id} does not exist for stack {stack_name}"
             )
             raise ValidationError(stack_name, message)
 
@@ -375,8 +377,7 @@ class CloudFormationResponse(BaseResponse):
         if stack.status == "ROLLBACK_COMPLETE":
             raise ValidationError(
                 stack.stack_id,
-                message="Stack:{0} is in ROLLBACK_COMPLETE state and can not "
-                "be updated.".format(stack.stack_id),
+                message=f"Stack:{stack.stack_id} is in ROLLBACK_COMPLETE state and can not be updated.",
             )
 
     def update_stack(self) -> str:
@@ -835,6 +836,7 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
             </member>
           {% endfor %}
         </Tags>
+        <EnableTerminationProtection>{{ stack.enable_termination_protection }}</EnableTerminationProtection>
       </member>
       {% endfor %}
     </Stacks>

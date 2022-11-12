@@ -1,6 +1,5 @@
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.ec2 import ec2_backends
-from moto.core.utils import BackendDict
 from moto.moto_api._internal import mock_random as random
 import datetime
 

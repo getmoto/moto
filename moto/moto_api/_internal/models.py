@@ -1,4 +1,4 @@
-from moto.core import BaseBackend
+from moto.core import BaseBackend, DEFAULT_ACCOUNT_ID
 
 
 class MotoAPIBackend(BaseBackend):
@@ -31,4 +31,4 @@ class MotoAPIBackend(BaseBackend):
         state_manager.unset_transition(model_name)
 
 
-moto_api_backend = MotoAPIBackend(region_name="global")
+moto_api_backend = MotoAPIBackend(region_name="global", account_id=DEFAULT_ACCOUNT_ID)

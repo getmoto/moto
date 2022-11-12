@@ -2,8 +2,8 @@ import random
 import time
 import pytest
 
-from moto.core import BaseBackend, DEFAULT_ACCOUNT_ID
-from moto.core.utils import AccountSpecificBackend, BackendDict
+from moto.core import BaseBackend, BackendDict, DEFAULT_ACCOUNT_ID
+from moto.core.base_backend import AccountSpecificBackend
 
 from moto.autoscaling.models import AutoScalingBackend
 from moto.ec2.models import EC2Backend

@@ -19,7 +19,7 @@ def generate_changeset_id(
 
 def generate_stackset_id(stackset_name: str) -> str:
     random_id = random.uuid4()
-    return "{}:{}".format(stackset_name, random_id)
+    return f"{stackset_name}:{random_id}"
 
 
 def generate_stackset_arn(stackset_id: str, region_name: str, account_id: str) -> str:
@@ -48,7 +48,7 @@ def yaml_tag_constructor(loader: Any, tag: Any, node: Any) -> Any:
     if tag == "!Ref":
         key = "Ref"
     else:
-        key = "Fn::{}".format(tag[1:])
+        key = f"Fn::{tag[1:]}"
 
     return {key: _f(loader, tag, node)}
 

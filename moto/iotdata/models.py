@@ -2,8 +2,8 @@ import json
 import time
 import jsondiff
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import merge_dicts, BackendDict
+from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import merge_dicts
 from moto.iot import iot_backends
 from .exceptions import (
     ConflictException,

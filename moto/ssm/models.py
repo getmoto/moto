@@ -4,9 +4,8 @@ from typing import Dict
 
 from collections import defaultdict
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.exceptions import SecretsManagerClientError

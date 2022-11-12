@@ -1,6 +1,6 @@
 """DAXBackend class with methods for supported APIs."""
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import BackendDict, unix_time
+from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import unix_time
 from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
