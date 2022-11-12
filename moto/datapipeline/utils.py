@@ -3,7 +3,7 @@ from moto.moto_api._internal import mock_random
 
 
 def get_random_pipeline_id():
-    return "df-{0}".format(mock_random.get_random_hex(length=19))
+    return f"df-{mock_random.get_random_hex(length=19)}"
 
 
 def remove_capitalization_of_dict_keys(obj):
