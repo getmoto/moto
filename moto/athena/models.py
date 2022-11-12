@@ -1,10 +1,9 @@
 import time
+import warnings
+from typing import Any, Dict, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api._internal import mock_random
-from typing import Any, Dict, List, Optional
-
-import warnings
 
 
 class TaggableResourceMixin(object):
@@ -189,7 +188,7 @@ class AthenaBackend(BaseBackend):
     def list_query_executions(self) -> list:
         return self.executions
 
-    def get_query_results(self, exec_id: str) -> dict:
+    def get_query_results(self) -> dict:
         return {"ResultSet": {"Rows": [], "ResultSetMetadata": {"ColumnInfo": []}}}
 
     def stop_query_execution(self, exec_id: str) -> None:

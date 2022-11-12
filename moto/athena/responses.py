@@ -1,8 +1,9 @@
 import json
+from typing import Dict, Tuple, Union
 
 from moto.core.responses import BaseResponse
-from .models import athena_backends, AthenaBackend
-from typing import Dict, Tuple, Union
+
+from .models import AthenaBackend, athena_backends
 
 
 class AthenaResponse(BaseResponse):
