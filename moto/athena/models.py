@@ -1,5 +1,4 @@
 import time
-import warnings
 from typing import Any, Dict, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
@@ -173,22 +172,13 @@ class AthenaBackend(BaseBackend):
         self.executions[execution.id] = execution
         return execution.id
 
-    def get_execution(self, exec_id: str) -> Execution:
-        warnings.warn(
-            "`get_execution` has been replaced by `get_query_execution`"
-            "to align with the Athena API, "
-            "and will be removed in a future version.",
-            PendingDeprecationWarning,
-        )
-        return self.get_query_execution(exec_id)
-
     def get_query_execution(self, exec_id: str) -> Execution:
         return self.executions[exec_id]
 
-    def list_query_executions(self) -> list:
+    def list_query_executions(self) -> Dict[str, Execution]:
         return self.executions
 
-    def get_query_results(self) -> dict:
+    def get_query_results(self) -> dict[str, dict[str, Any]]:
         return {"ResultSet": {"Rows": [], "ResultSetMetadata": {"ColumnInfo": []}}}
 
     def stop_query_execution(self, exec_id: str) -> None:
