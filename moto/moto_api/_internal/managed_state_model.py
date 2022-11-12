@@ -28,7 +28,7 @@ class ManagedState:
         self._tick += 1
 
     @property
-    def status(self):
+    def status(self) -> str:
         """
         Transitions the status as appropriate before returning
         """
@@ -52,15 +52,15 @@ class ManagedState:
         return self._status
 
     @status.setter
-    def status(self, value):
+    def status(self, value: str) -> None:
         self._status = value
 
-    def _get_next_status(self, previous):
+    def _get_next_status(self, previous: str) -> str:
         return next(
             (nxt for prev, nxt in self._transitions if previous == prev), previous
         )
 
-    def _get_last_status(self, previous):
+    def _get_last_status(self, previous: str) -> str:
         next_state = self._get_next_status(previous)
         while next_state != previous:
             previous = next_state
