@@ -34,7 +34,7 @@ class DynamoType(object):
         return self.type == other.type and self.value == other.value
 
     def __repr__(self):
-        return "DynamoType: {0}".format(self.to_json())
+        return f"DynamoType: {self.to_json()}"
 
     def add(self, dyn_type):
         if self.type == "SS":
@@ -66,7 +66,7 @@ class Item(BaseModel):
             self.attrs[key] = DynamoType(value)
 
     def __repr__(self):
-        return "Item: {0}".format(self.to_json())
+        return f"Item: {self.to_json()}"
 
     def to_json(self):
         attributes = {}

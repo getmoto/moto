@@ -63,11 +63,9 @@ class Token(object):
 
     def __repr__(self):
         if isinstance(self.type, int):
-            return 'Token("{tt}", "{tv}")'.format(
-                tt=self.PLACEHOLDER_NAMES[self.type], tv=self.value
-            )
+            return f'Token("{self.PLACEHOLDER_NAMES[self.type]}", "{self.value}")'
         else:
-            return 'Token("{tt}", "{tv}")'.format(tt=self.type, tv=self.value)
+            return f'Token("{self.type}", "{self.value}")'
 
     def __eq__(self, other):
         return self.type == other.type and self.value == other.value

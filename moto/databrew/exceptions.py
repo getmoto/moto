@@ -7,7 +7,7 @@ class DataBrewClientError(JsonRESTError):
 
 class AlreadyExistsException(DataBrewClientError):
     def __init__(self, typ):
-        super().__init__("AlreadyExistsException", "%s already exists." % (typ))
+        super().__init__("AlreadyExistsException", f"{typ} already exists.")
 
 
 class ConflictException(DataBrewClientError):
@@ -41,7 +41,7 @@ class ResourceNotFoundException(DataBrewClientError):
 
 class RulesetNotFoundException(EntityNotFoundException):
     def __init__(self, recipe_name):
-        super().__init__("Ruleset %s not found." % recipe_name)
+        super().__init__(f"Ruleset {recipe_name} not found.")
 
 
 class ServiceQuotaExceededException(JsonRESTError):

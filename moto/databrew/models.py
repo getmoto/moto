@@ -488,12 +488,12 @@ class FakeRecipeVersion(BaseModel):
             "Name": self.name,
             "Steps": self.steps,
             "Description": self.description,
-            "CreateDate": "%.3f" % self.created_time.timestamp(),
+            "CreateDate": f"{self.created_time.timestamp():.3f}",
             "Tags": self.tags or dict(),
             "RecipeVersion": str(self.version),
         }
         if self.published_date is not None:
-            dict_recipe["PublishedDate"] = "%.3f" % self.published_date.timestamp()
+            dict_recipe["PublishedDate"] = f"{self.published_date.timestamp():.3f}"
 
         return dict_recipe
 
@@ -529,7 +529,7 @@ class FakeRuleset(BaseModel):
             "Rules": self.rules,
             "Description": self.description,
             "TargetArn": self.target_arn,
-            "CreateDate": "%.3f" % self.created_time.timestamp(),
+            "CreateDate": f"{self.created_time.timestamp():.3f}",
             "Tags": self.tags or dict(),
         }
 
@@ -569,7 +569,7 @@ class FakeDataset(BaseModel):
             "FormatOptions": self.format_options,
             "Input": self.input,
             "PathOptions": self.path_options,
-            "CreateDate": "%.3f" % self.created_time.timestamp(),
+            "CreateDate": f"{self.created_time.timestamp():.3f}",
             "Tags": self.tags or dict(),
             "ResourceArn": self.resource_arn,
         }
@@ -631,7 +631,7 @@ class FakeJob(BaseModel, metaclass=BaseModelABCMeta):
         rtn_dict = {
             "Name": self.name,
             "AccountId": self.account_id,
-            "CreateDate": "%.3f" % self.created_time.timestamp(),
+            "CreateDate": f"{self.created_time.timestamp():.3f}",
             "DatasetName": self.dataset_name,
             "EncryptionMode": self.encryption_mode,
             "Tags": self.tags or dict(),

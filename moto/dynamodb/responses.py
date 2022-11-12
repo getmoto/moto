@@ -28,9 +28,7 @@ def include_consumed_capacity(val=1.0):
             expected_capacity = handler.body.get("ReturnConsumedCapacity", "NONE")
             if expected_capacity not in ["NONE", "TOTAL", "INDEXES"]:
                 type_ = "ValidationException"
-                message = "1 validation error detected: Value '{}' at 'returnConsumedCapacity' failed to satisfy constraint: Member must satisfy enum value set: [INDEXES, TOTAL, NONE]".format(
-                    expected_capacity
-                )
+                message = f"1 validation error detected: Value '{expected_capacity}' at 'returnConsumedCapacity' failed to satisfy constraint: Member must satisfy enum value set: [INDEXES, TOTAL, NONE]"
                 return (
                     400,
                     handler.response_headers,
@@ -730,7 +728,7 @@ class DynamoHandler(BaseResponse):
                 projection_expression,
             )
         except ValueError as err:
-            raise MockValidationException("Bad Filter Expression: {0}".format(err))
+            raise MockValidationException(f"Bad Filter Expression: {err}")
 
         result = {
             "Count": len(items),

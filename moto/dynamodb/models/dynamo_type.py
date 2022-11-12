@@ -100,7 +100,7 @@ class DynamoType(object):
         return self.cast_value >= other.cast_value
 
     def __repr__(self):
-        return "DynamoType: {0}".format(self.to_json())
+        return f"DynamoType: {self.to_json()}"
 
     def __add__(self, other):
         if self.type != other.type:
@@ -108,9 +108,7 @@ class DynamoType(object):
         if self.is_number():
             self_value = float(self.value) if "." in self.value else int(self.value)
             other_value = float(other.value) if "." in other.value else int(other.value)
-            return DynamoType(
-                {DDBType.NUMBER: "{v}".format(v=self_value + other_value)}
-            )
+            return DynamoType({DDBType.NUMBER: f"{self_value + other_value}"})
         else:
             raise IncorrectDataType()
 
@@ -120,9 +118,7 @@ class DynamoType(object):
         if self.type == DDBType.NUMBER:
             self_value = float(self.value) if "." in self.value else int(self.value)
             other_value = float(other.value) if "." in other.value else int(other.value)
-            return DynamoType(
-                {DDBType.NUMBER: "{v}".format(v=self_value - other_value)}
-            )
+            return DynamoType({DDBType.NUMBER: f"{self_value - other_value}"})
         else:
             raise TypeError("Sum only supported for Numbers.")
 
@@ -136,9 +132,7 @@ class DynamoType(object):
             if self.type == DDBType.LIST:
                 return self.value[item]
         raise TypeError(
-            "This DynamoType {dt} is not subscriptable by a {it}".format(
-                dt=self.type, it=type(item)
-            )
+            f"This DynamoType {self.type} is not subscriptable by a {type(item)}"
         )
 
     def __setitem__(self, key, value):
@@ -153,7 +147,7 @@ class DynamoType(object):
             if self.is_map():
                 self.value[key] = value
         else:
-            raise NotImplementedError("No set_item for {t}".format(t=type(key)))
+            raise NotImplementedError(f"No set_item for {type(key)}")
 
     @property
     def cast_value(self):
@@ -237,4 +231,4 @@ class DynamoType(object):
         if self.is_map() or self.is_list():
             self.value.pop(key, *args, **kwargs)
         else:
-            raise TypeError("pop not supported for DynamoType {t}".format(t=self.type))
+            raise TypeError(f"pop not supported for DynamoType {self.type}")
