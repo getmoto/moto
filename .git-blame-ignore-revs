@@ -1,16 +1,19 @@
 # You can configure git to automatically use this file with the following config:
 # git config --global blame.ignoreRevsFile .git-blame-ignore-revs
 
-# Reformat using isort
-e34b6a36ae0c1571bcb5fd7034e817d3b397e283
+# Port test suite from nose to pytest
+9db62d32bf70e18f315305b7915d199e3ba1210a
 
-# Add Black and Pyupgrade to botocore directory
-321ed9bb9345f05528e61a9edccb811012f7dc2a
+# Black Formatting
+96e5b1993d7f2451443bfabff4265029ac6625af
+e00af2f73cb7d27c3755f18b2161b9acbd8ca8aa
+29d01c35bc06d5a8462487d614e33b9e8416ba96
 
-# Cleanup pyupgrade misses
-a2c2fe68a2f9ae259dd1d72b172d41c7c81808cd
+# Add mypy type annotations
+1a8f93dce33f1c1c7983a8052ef54de30ff64407
 
-# Run Black and PyUpgrade over tests directory
-10747e5e2f2f97a9493b91b5c886bda71678e3be
-
-d60aa64abb085bfc7630cdca1176da9c5f02765d
+# Replace string-format with f-strings
+b0b943949d2a8e1e49b395b7aef9d709100847be
+e7850246ee9cee0545c00c5fa3e6ec5661fb7d0e
+222621fe94a1f6ad1dec259f17773b9ae4cdac8d
+52892f5481cdb4bc04d6eb4908bbee773d4333a8
