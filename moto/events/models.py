@@ -1068,15 +1068,17 @@ class EventsBackend(BaseBackend):
 
         return rule
 
-    def delete_rule(self, name):
+    def delete_rule(self, name: str) -> None:
         rule = self.rules.get(name)
+        if not rule:
+            return
         if len(rule.targets) > 0:
             raise ValidationException("Rule can't be deleted since it has targets.")
 
         arn = rule.arn
         if self.tagger.has_tags(arn):
             self.tagger.delete_all_tags_for_resource(arn)
-        return self.rules.pop(name) is not None
+        self.rules.pop(name)
 
     def describe_rule(self, name):
         rule = self.rules.get(name)
