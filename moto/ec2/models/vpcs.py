@@ -437,14 +437,14 @@ class VPCBackend:
         ]
         if vpn_gateways:
             raise DependencyViolationError(
-                "The vpc {0} has dependencies and cannot be deleted.".format(vpc_id)
+                f"The vpc {vpc_id} has dependencies and cannot be deleted."
             )
 
         # Delete route table if only main route table remains.
         route_tables = self.describe_route_tables(filters={"vpc-id": vpc_id})
         if len(route_tables) > 1:
             raise DependencyViolationError(
-                "The vpc {0} has dependencies and cannot be deleted.".format(vpc_id)
+                f"The vpc {vpc_id} has dependencies and cannot be deleted."
             )
         for route_table in route_tables:
             self.delete_route_table(route_table.id)

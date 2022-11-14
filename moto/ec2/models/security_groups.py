@@ -523,9 +523,7 @@ class SecurityGroupBackend:
     def _delete_security_group(self, vpc_id, group_id):
         vpc_id = vpc_id or self.default_vpc.id
         if self.groups[vpc_id][group_id].enis:
-            raise DependencyViolationError(
-                "{0} is being utilized by {1}".format(group_id, "ENIs")
-            )
+            raise DependencyViolationError(f"{group_id} is being utilized by ENIs")
         return self.groups[vpc_id].pop(group_id)
 
     def delete_security_group(self, name=None, group_id=None):

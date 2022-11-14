@@ -17,7 +17,7 @@ class Pipeline(BaseModel):
     ):
         a = "".join(random.choice(string.digits) for _ in range(13))
         b = "".join(random.choice(string.ascii_lowercase) for _ in range(6))
-        self.id = "{}-{}".format(a, b)
+        self.id = f"{a}-{b}"
         self.name = name
         self.arn = f"arn:aws:elastictranscoder:{region}:{account_id}:pipeline/{self.id}"
         self.status = "Active"

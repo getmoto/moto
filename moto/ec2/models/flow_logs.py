@@ -225,11 +225,7 @@ class FlowLogsBackend:
                     # the unsuccessful status for the
                     # given resource_id
                     unsuccessful.append(
-                        (
-                            resource_id,
-                            "400",
-                            "LogDestination: {0} does not exist.".format(arn),
-                        )
+                        (resource_id, "400", f"LogDestination: {arn} does not exist.")
                     )
                     continue
             elif log_destination_type == "cloud-watch-logs":

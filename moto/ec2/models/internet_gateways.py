@@ -141,7 +141,7 @@ class InternetGatewayBackend:
         igw = self.get_internet_gateway(internet_gateway_id)
         if igw.vpc:
             raise DependencyViolationError(
-                "{0} is being utilized by {1}".format(internet_gateway_id, igw.vpc.id)
+                f"{internet_gateway_id} is being utilized by {igw.vpc.id}"
             )
         self.internet_gateways.pop(internet_gateway_id)
         return True

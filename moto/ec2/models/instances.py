@@ -127,11 +127,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         ami = amis[0] if amis else None
         if ami is None:
             warnings.warn(
-                "Could not find AMI with image-id:{0}, "
+                f"Could not find AMI with image-id:{self.image_id}, "
                 "in the near future this will "
                 "cause an error.\n"
                 "Use ec2_backend.describe_images() to "
-                "find suitable image for your test".format(self.image_id),
+                "find suitable image for your test",
                 PendingDeprecationWarning,
             )
 
@@ -238,9 +238,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def private_dns(self):
         formatted_ip = self.private_ip.replace(".", "-")
         if self.region_name == "us-east-1":
-            return "ip-{0}.ec2.internal".format(formatted_ip)
+            return f"ip-{formatted_ip}.ec2.internal"
         else:
-            return "ip-{0}.{1}.compute.internal".format(formatted_ip, self.region_name)
+            return f"ip-{formatted_ip}.{self.region_name}.compute.internal"
 
     @property
     def public_ip(self):
@@ -251,11 +251,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         if self.public_ip:
             formatted_ip = self.public_ip.replace(".", "-")
             if self.region_name == "us-east-1":
-                return "ec2-{0}.compute-1.amazonaws.com".format(formatted_ip)
+                return f"ec2-{formatted_ip}.compute-1.amazonaws.com"
             else:
-                return "ec2-{0}.{1}.compute.amazonaws.com".format(
-                    formatted_ip, self.region_name
-                )
+                return f"ec2-{formatted_ip}.{self.region_name}.compute.amazonaws.com"
 
     @staticmethod
     def cloudformation_name_type():
@@ -358,8 +356,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.name = "stopped"
         self._state.code = 80
 
-        self._reason = "User initiated ({0})".format(
-            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        self._reason = (
+            f"User initiated ({datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
         )
         self._state_reason = StateReason(
             "Client.UserInitiatedShutdown: User initiated shutdown",
@@ -408,8 +406,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.name = "terminated"
         self._state.code = 48
 
-        self._reason = "User initiated ({0})".format(
-            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        self._reason = (
+            f"User initiated ({datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
         )
         self._state_reason = StateReason(
             "Client.UserInitiatedShutdown: User initiated shutdown",
@@ -600,7 +598,7 @@ class InstanceBackend:
         count: int,
         user_data: Optional[str],
         security_group_names: List[str],
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Reservation:
         location_type = "availability-zone" if kwargs.get("placement") else "region"
         default_region = "us-east-1"

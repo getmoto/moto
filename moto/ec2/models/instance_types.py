@@ -117,7 +117,7 @@ class InstanceType(dict):
         self[name] = value
 
     def __repr__(self):
-        return "<InstanceType: %s>" % self.name
+        return f"<InstanceType: {self.name}>"
 
     def get_filter_value(self, filter_name):
         def stringify(v):

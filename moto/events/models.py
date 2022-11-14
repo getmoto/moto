@@ -68,19 +68,10 @@ class Rule(CloudFormationModel):
     @property
     def arn(self):
         event_bus_name = (
-            ""
-            if self.event_bus_name == "default"
-            else "{}/".format(self.event_bus_name)
+            "" if self.event_bus_name == "default" else f"{self.event_bus_name}/"
         )
 
-        return (
-            "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
-                region=self.region_name,
-                account_id=self.account_id,
-                event_bus_name=event_bus_name,
-                name=self.name,
-            )
-        )
+        return f"arn:aws:events:{self.region_name}:{self.account_id}:rule/{event_bus_name}{self.name}"
 
     @property
     def physical_resource_id(self):
@@ -145,7 +136,7 @@ class Rule(CloudFormationModel):
                 group_id = target.get("SqsParameters", {}).get("MessageGroupId")
                 self._send_to_sqs_queue(arn.resource_id, event, group_id)
             else:
-                raise NotImplementedError("Expr not defined for {0}".format(type(self)))
+                raise NotImplementedError(f"Expr not defined for {type(self)}")
 
     def _parse_arn(self, arn):
         # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -890,9 +881,7 @@ class EventPattern:
             return all(numeric_matches)
         else:
             warnings.warn(
-                "'{}' filter logic unimplemented. defaulting to True".format(
-                    filter_name
-                )
+                f"'{filter_name}' filter logic unimplemented. defaulting to True"
             )
             return True
 
@@ -1001,7 +990,7 @@ class EventsBackend(BaseBackend):
         event_bus = self.event_buses.get(event_bus_name)
         if not event_bus:
             raise ResourceNotFoundException(
-                "Event bus {} does not exist.".format(event_bus_name)
+                f"Event bus {event_bus_name} does not exist."
             )
 
         return event_bus
@@ -1009,7 +998,7 @@ class EventsBackend(BaseBackend):
     def _get_replay(self, name):
         replay = self.replays.get(name)
         if not replay:
-            raise ResourceNotFoundException("Replay {} does not exist.".format(name))
+            raise ResourceNotFoundException(f"Replay {name} does not exist.")
 
         return replay
 
@@ -1081,7 +1070,7 @@ class EventsBackend(BaseBackend):
     def describe_rule(self, name):
         rule = self.rules.get(name)
         if not rule:
-            raise ResourceNotFoundException("Rule {} does not exist.".format(name))
+            raise ResourceNotFoundException(f"Rule {name} does not exist.")
         return rule
 
     def disable_rule(self, name):
@@ -1158,8 +1147,7 @@ class EventsBackend(BaseBackend):
         )
         if invalid_arn:
             raise ValidationException(
-                "Parameter {} is not valid. "
-                "Reason: Provided Arn is not in correct format.".format(invalid_arn)
+                f"Parameter {invalid_arn} is not valid. Reason: Provided Arn is not in correct format."
             )
 
         for target in targets:
@@ -1171,16 +1159,14 @@ class EventsBackend(BaseBackend):
                 and not target.get("SqsParameters")
             ):
                 raise ValidationException(
-                    "Parameter(s) SqsParameters must be specified for target: {}.".format(
-                        target["Id"]
-                    )
+                    f"Parameter(s) SqsParameters must be specified for target: {target['Id']}."
                 )
 
         rule = self.rules.get(name)
 
         if not rule:
             raise ResourceNotFoundException(
-                "Rule {0} does not exist on EventBus {1}.".format(name, event_bus_name)
+                f"Rule {name} does not exist on EventBus {event_bus_name}."
             )
 
         rule.put_targets(targets)
@@ -1260,7 +1246,7 @@ class EventsBackend(BaseBackend):
 
         if not rule:
             raise ResourceNotFoundException(
-                "Rule {0} does not exist on EventBus {1}.".format(name, event_bus_name)
+                f"Rule {name} does not exist on EventBus {event_bus_name}."
             )
 
         rule.remove_targets(ids)
@@ -1370,8 +1356,7 @@ class EventsBackend(BaseBackend):
     def create_event_bus(self, name, event_source_name=None, tags=None):
         if name in self.event_buses:
             raise JsonRESTError(
-                "ResourceAlreadyExistsException",
-                "Event bus {} already exists.".format(name),
+                "ResourceAlreadyExistsException", f"Event bus {name} already exists."
             )
 
         if not event_source_name and "/" in name:
@@ -1382,7 +1367,7 @@ class EventsBackend(BaseBackend):
         if event_source_name and event_source_name not in self.event_sources:
             raise JsonRESTError(
                 "ResourceNotFoundException",
-                "Event source {} does not exist.".format(event_source_name),
+                f"Event source {event_source_name} does not exist.",
             )
 
         event_bus = EventBus(self.account_id, self.region_name, name, tags=tags)
@@ -1418,7 +1403,7 @@ class EventsBackend(BaseBackend):
             if name in registry:
                 return self.tagger.list_tags_for_resource(registry[name].arn)
         raise ResourceNotFoundException(
-            "Rule {0} does not exist on EventBus default.".format(name)
+            f"Rule {name} does not exist on EventBus default."
         )
 
     def tag_resource(self, arn, tags):
@@ -1429,7 +1414,7 @@ class EventsBackend(BaseBackend):
                 self.tagger.tag_resource(registry[name].arn, tags)
                 return {}
         raise ResourceNotFoundException(
-            "Rule {0} does not exist on EventBus default.".format(name)
+            f"Rule {name} does not exist on EventBus default."
         )
 
     def untag_resource(self, arn, tag_names):
@@ -1440,23 +1425,21 @@ class EventsBackend(BaseBackend):
                 self.tagger.untag_resource_using_names(registry[name].arn, tag_names)
                 return {}
         raise ResourceNotFoundException(
-            "Rule {0} does not exist on EventBus default.".format(name)
+            f"Rule {name} does not exist on EventBus default."
         )
 
     def create_archive(self, name, source_arn, description, event_pattern, retention):
         if len(name) > 48:
             raise ValidationException(
                 " 1 validation error detected: "
-                "Value '{}' at 'archiveName' failed to satisfy constraint: "
-                "Member must have length less than or equal to 48".format(name)
+                f"Value '{name}' at 'archiveName' failed to satisfy constraint: "
+                "Member must have length less than or equal to 48"
             )
 
         event_bus = self._get_event_bus(source_arn)
 
         if name in self.archives:
-            raise ResourceAlreadyExistsException(
-                "Archive {} already exists.".format(name)
-            )
+            raise ResourceAlreadyExistsException(f"Archive {name} already exists.")
 
         archive = Archive(
             self.account_id,
@@ -1471,7 +1454,7 @@ class EventsBackend(BaseBackend):
         rule_event_pattern = json.loads(event_pattern or "{}")
         rule_event_pattern["replay-name"] = [{"exists": False}]
 
-        rule_name = "Events-Archive-{}".format(name)
+        rule_name = f"Events-Archive-{name}"
         rule = self.put_rule(
             rule_name,
             event_pattern=json.dumps(rule_event_pattern),
@@ -1484,14 +1467,12 @@ class EventsBackend(BaseBackend):
             [
                 {
                     "Id": rule.name,
-                    "Arn": "arn:aws:events:{}:::".format(self.region_name),
+                    "Arn": f"arn:aws:events:{self.region_name}:::",
                     "InputTransformer": {
                         "InputPathsMap": {},
                         "InputTemplate": json.dumps(
                             {
-                                "archive-arn": "{0}:{1}".format(
-                                    archive.arn, archive.uuid
-                                ),
+                                "archive-arn": f"{archive.arn}:{archive.uuid}",
                                 "event": "<aws.events.event.json>",
                                 "ingestion-time": "<aws.events.event.ingestion-time>",
                             }
@@ -1509,7 +1490,7 @@ class EventsBackend(BaseBackend):
         archive = self.archives.get(name)
 
         if not archive:
-            raise ResourceNotFoundException("Archive {} does not exist.".format(name))
+            raise ResourceNotFoundException(f"Archive {name} does not exist.")
 
         return archive.describe()
 
@@ -1521,11 +1502,11 @@ class EventsBackend(BaseBackend):
             )
 
         if state and state not in Archive.VALID_STATES:
+            valid_states = ", ".join(Archive.VALID_STATES)
             raise ValidationException(
                 "1 validation error detected: "
-                "Value '{0}' at 'state' failed to satisfy constraint: "
-                "Member must satisfy enum value set: "
-                "[{1}]".format(state, ", ".join(Archive.VALID_STATES))
+                f"Value '{state}' at 'state' failed to satisfy constraint: "
+                f"Member must satisfy enum value set: [{valid_states}]"
             )
 
         if [name_prefix, source_arn, state].count(None) == 3:
@@ -1547,7 +1528,7 @@ class EventsBackend(BaseBackend):
         archive = self.archives.get(name)
 
         if not archive:
-            raise ResourceNotFoundException("Archive {} does not exist.".format(name))
+            raise ResourceNotFoundException(f"Archive {name} does not exist.")
 
         archive.update(description, event_pattern, retention)
 
@@ -1561,7 +1542,7 @@ class EventsBackend(BaseBackend):
         archive = self.archives.get(name)
 
         if not archive:
-            raise ResourceNotFoundException("Archive {} does not exist.".format(name))
+            raise ResourceNotFoundException(f"Archive {name} does not exist.")
 
         archive.delete(self.account_id, self.region_name)
 
@@ -1572,8 +1553,7 @@ class EventsBackend(BaseBackend):
         event_bus_arn_pattern = r"^arn:aws:events:[a-zA-Z0-9-]+:\d{12}:event-bus/"
         if not re.match(event_bus_arn_pattern, event_bus_arn):
             raise ValidationException(
-                "Parameter Destination.Arn is not valid. "
-                "Reason: Must contain an event bus ARN."
+                "Parameter Destination.Arn is not valid. Reason: Must contain an event bus ARN."
             )
 
         self._get_event_bus(event_bus_arn)
@@ -1582,8 +1562,7 @@ class EventsBackend(BaseBackend):
         archive = self.archives.get(archive_name)
         if not archive:
             raise ValidationException(
-                "Parameter EventSourceArn is not valid. "
-                "Reason: Archive {} does not exist.".format(archive_name)
+                f"Parameter EventSourceArn is not valid. Reason: Archive {archive_name} does not exist."
             )
 
         if event_bus_arn != archive.source_arn:
@@ -1599,9 +1578,7 @@ class EventsBackend(BaseBackend):
             )
 
         if name in self.replays:
-            raise ResourceAlreadyExistsException(
-                "Replay {} already exists.".format(name)
-            )
+            raise ResourceAlreadyExistsException(f"Replay {name} already exists.")
 
         replay = Replay(
             self.account_id,
@@ -1638,11 +1615,9 @@ class EventsBackend(BaseBackend):
 
         valid_states = sorted([item.value for item in ReplayState])
         if state and state not in valid_states:
+            all_states = ", ".join(valid_states)
             raise ValidationException(
-                "1 validation error detected: "
-                "Value '{0}' at 'state' failed to satisfy constraint: "
-                "Member must satisfy enum value set: "
-                "[{1}]".format(state, ", ".join(valid_states))
+                f"1 validation error detected: Value '{state}' at 'state' failed to satisfy constraint: Member must satisfy enum value set: [{all_states}]"
             )
 
         if [name_prefix, source_arn, state].count(None) == 3:
@@ -1672,7 +1647,7 @@ class EventsBackend(BaseBackend):
             ReplayState.COMPLETED,
         ]:
             raise IllegalStatusException(
-                "Replay {} is not in a valid state for this operation.".format(name)
+                f"Replay {name} is not in a valid state for this operation."
             )
 
         replay.state = ReplayState.CANCELLED
@@ -1694,9 +1669,7 @@ class EventsBackend(BaseBackend):
     def update_connection(self, *, name, **kwargs):
         connection = self.connections.get(name)
         if not connection:
-            raise ResourceNotFoundException(
-                "Connection '{}' does not exist.".format(name)
-            )
+            raise ResourceNotFoundException(f"Connection '{name}' does not exist.")
 
         for attr, value in kwargs.items():
             if value is not None and hasattr(connection, attr):
@@ -1724,9 +1697,7 @@ class EventsBackend(BaseBackend):
         """
         connection = self.connections.get(name)
         if not connection:
-            raise ResourceNotFoundException(
-                "Connection '{}' does not exist.".format(name)
-            )
+            raise ResourceNotFoundException(f"Connection '{name}' does not exist.")
 
         return connection.describe()
 
@@ -1748,9 +1719,7 @@ class EventsBackend(BaseBackend):
         """
         connection = self.connections.pop(name, None)
         if not connection:
-            raise ResourceNotFoundException(
-                "Connection '{}' does not exist.".format(name)
-            )
+            raise ResourceNotFoundException(f"Connection '{name}' does not exist.")
 
         return connection.describe_short()
 
@@ -1804,7 +1773,7 @@ class EventsBackend(BaseBackend):
         destination = self.destinations.get(name)
         if not destination:
             raise ResourceNotFoundException(
-                "An api-destination '{}' does not exist.".format(name)
+                f"An api-destination '{name}' does not exist."
             )
         return destination.describe()
 
@@ -1821,7 +1790,7 @@ class EventsBackend(BaseBackend):
         destination = self.destinations.get(name)
         if not destination:
             raise ResourceNotFoundException(
-                "An api-destination '{}' does not exist.".format(name)
+                f"An api-destination '{name}' does not exist."
             )
 
         for attr, value in kwargs.items():
@@ -1849,7 +1818,7 @@ class EventsBackend(BaseBackend):
         destination = self.destinations.pop(name, None)
         if not destination:
             raise ResourceNotFoundException(
-                "An api-destination '{}' does not exist.".format(name)
+                f"An api-destination '{name}' does not exist."
             )
         return {}
 

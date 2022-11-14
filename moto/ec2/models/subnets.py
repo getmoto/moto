@@ -186,9 +186,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
     def request_ip(self, ip, instance):
         if ipaddress.ip_address(ip) not in self.cidr:
-            raise Exception(
-                "IP does not fall in the subnet CIDR of {0}".format(self.cidr)
-            )
+            raise Exception(f"IP does not fall in the subnet CIDR of {self.cidr}")
 
         if ip in self._subnet_ips:
             raise Exception("IP already in use")
@@ -439,7 +437,5 @@ class SubnetRouteTableAssociationBackend:
 
     def create_subnet_association(self, route_table_id, subnet_id):
         subnet_association = SubnetRouteTableAssociation(route_table_id, subnet_id)
-        self.subnet_associations[
-            "{0}:{1}".format(route_table_id, subnet_id)
-        ] = subnet_association
+        self.subnet_associations[f"{route_table_id}:{subnet_id}"] = subnet_association
         return subnet_association

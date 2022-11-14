@@ -585,9 +585,7 @@ class ELBV2Response(BaseResponse):
         if ssl_policy is not None and ssl_policy not in [
             item["name"] for item in SSL_POLICIES
         ]:
-            raise RESTError(
-                "SSLPolicyNotFound", "Policy {0} not found".format(ssl_policy)
-            )
+            raise RESTError("SSLPolicyNotFound", f"Policy {ssl_policy} not found")
 
         listener = self.elbv2_backend.modify_listener(
             arn, port, protocol, ssl_policy, certificates, default_actions

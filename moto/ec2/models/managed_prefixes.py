@@ -30,9 +30,7 @@ class ManagedPrefixList(TaggedEC2Resource):
         self.delete_counter = 1
 
     def arn(self, region, owner_id):
-        return "arn:aws:ec2:{region}:{owner_id}:prefix-list/{resource_id}".format(
-            region=region, resource_id=self.id, owner_id=owner_id
-        )
+        return f"arn:aws:ec2:{region}:{owner_id}:prefix-list/{self.id}"
 
     @property
     def owner_id(self):
@@ -142,7 +140,7 @@ class ManagedPrefixListBackend:
         managed_prefix_list = self.create_managed_prefix_list(
             address_family="IPv4",
             entry=entry,
-            prefix_list_name="com.amazonaws.{}.s3".format(self.region_name),
+            prefix_list_name=f"com.amazonaws.{self.region_name}.s3",
             owner_id="aws",
         )
         managed_prefix_list.version = None
@@ -159,7 +157,7 @@ class ManagedPrefixListBackend:
         managed_prefix_list = self.create_managed_prefix_list(
             address_family="IPv4",
             entry=entry,
-            prefix_list_name="com.amazonaws.{}.dynamodb".format(self.region_name),
+            prefix_list_name=f"com.amazonaws.{self.region_name}.dynamodb",
             owner_id="aws",
         )
         managed_prefix_list.version = None

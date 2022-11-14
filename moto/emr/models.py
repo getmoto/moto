@@ -278,9 +278,7 @@ class FakeCluster(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:elasticmapreduce:{0}:{1}:cluster/{2}".format(
-            self.emr_backend.region_name, self.emr_backend.account_id, self.id
-        )
+        return f"arn:aws:elasticmapreduce:{self.emr_backend.region_name}:{self.emr_backend.account_id}:cluster/{self.id}"
 
     @property
     def instance_groups(self):
@@ -591,7 +589,7 @@ class ElasticMapReduceBackend(BaseBackend):
         emr_managed_master_security_group,
         emr_managed_slave_security_group,
         service_access_security_group,
-        **_
+        **_,
     ):
         default_return_value = (
             emr_managed_master_security_group,
@@ -608,10 +606,10 @@ class ElasticMapReduceBackend(BaseBackend):
             subnet = self.ec2_backend.get_subnet(ec2_subnet_id)
         except InvalidSubnetIdError:
             warnings.warn(
-                "Could not find Subnet with id: {0}\n"
+                f"Could not find Subnet with id: {ec2_subnet_id}\n"
                 "In the near future, this will raise an error.\n"
                 "Use ec2.describe_subnets() to find a suitable id "
-                "for your test.".format(ec2_subnet_id),
+                "for your test.",
                 PendingDeprecationWarning,
             )
             return default_return_value
@@ -674,9 +672,7 @@ class ElasticMapReduceBackend(BaseBackend):
     def create_security_configuration(self, name, security_configuration):
         if name in self.security_configurations:
             raise InvalidRequestException(
-                message="SecurityConfiguration with name '{}' already exists.".format(
-                    name
-                )
+                message=f"SecurityConfiguration with name '{name}' already exists."
             )
         security_configuration = FakeSecurityConfiguration(
             name=name, security_configuration=security_configuration
@@ -687,18 +683,14 @@ class ElasticMapReduceBackend(BaseBackend):
     def get_security_configuration(self, name):
         if name not in self.security_configurations:
             raise InvalidRequestException(
-                message="Security configuration with name '{}' does not exist.".format(
-                    name
-                )
+                message=f"Security configuration with name '{name}' does not exist."
             )
         return self.security_configurations[name]
 
     def delete_security_configuration(self, name):
         if name not in self.security_configurations:
             raise InvalidRequestException(
-                message="Security configuration with name '{}' does not exist.".format(
-                    name
-                )
+                message=f"Security configuration with name '{name}' does not exist."
             )
         del self.security_configurations[name]
 

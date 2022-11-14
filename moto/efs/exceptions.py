@@ -20,7 +20,7 @@ class FileSystemAlreadyExists(EFSError):
     def __init__(self, creation_token, *args, **kwargs):
         super().__init__(
             "FileSystemAlreadyExists",
-            "File system with {} already exists.".format(creation_token),
+            f"File system with {creation_token} already exists.",
             *args,
             **kwargs,
         )
@@ -32,7 +32,7 @@ class FileSystemNotFound(EFSError):
     def __init__(self, file_system_id, *args, **kwargs):
         super().__init__(
             "FileSystemNotFound",
-            "File system {} does not exist.".format(file_system_id),
+            f"File system {file_system_id} does not exist.",
             *args,
             **kwargs,
         )
@@ -58,7 +58,7 @@ class MountTargetNotFound(EFSError):
     def __init__(self, mount_target_id, *args, **kwargs):
         super().__init__(
             "MountTargetNotFound",
-            "Mount target '{}' does not exist.".format(mount_target_id),
+            f"Mount target '{mount_target_id}' does not exist.",
             *args,
             **kwargs,
         )
@@ -84,7 +84,7 @@ class SubnetNotFound(EFSError):
     def __init__(self, subnet_id, *args, **kwargs):
         super().__init__(
             "SubnetNotFound",
-            "The subnet ID '{}' does not exist".format(subnet_id),
+            f"The subnet ID '{subnet_id}' does not exist",
             *args,
             **kwargs,
         )
@@ -96,7 +96,7 @@ class SecurityGroupNotFound(EFSError):
     def __init__(self, security_group_id, *args, **kwargs):
         super().__init__(
             "SecurityGroupNotFound",
-            "The SecurityGroup ID '{}' does not exist".format(security_group_id),
+            f"The SecurityGroup ID '{security_group_id}' does not exist",
             *args,
             **kwargs,
         )

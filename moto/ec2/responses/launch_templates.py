@@ -38,7 +38,7 @@ def xml_serialize(tree, key, value):
         pass
     else:
         raise NotImplementedError(
-            'Don\'t know how to serialize "{}" to xml'.format(value.__class__)
+            f'Don\'t know how to serialize "{value.__class__}" to xml'
         )
 
 

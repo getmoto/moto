@@ -112,9 +112,9 @@ class Repository(BaseObject, CloudFormationModel):
         )
 
         if not image:
-            image_id_rep = "{{imageDigest:'{0}', imageTag:'{1}'}}".format(
-                image_digest or "null", image_tag or "null"
-            )
+            idigest = image_digest or "null"
+            itag = image_tag or "null"
+            image_id_rep = f"{{imageDigest:'{idigest}', imageTag:'{itag}'}}"
 
             raise ImageNotFoundException(
                 image_id=image_id_rep,
@@ -249,9 +249,9 @@ class Image(BaseObject):
         self.last_scan = None
 
     def _create_digest(self):
-        image_contents = "docker_image{0}".format(int(random.random() * 10**6))
+        image_contents = f"docker_image{int(random.random() * 10**6)}"
         self.image_digest = (
-            "sha256:%s" % hashlib.sha256(image_contents.encode("utf-8")).hexdigest()
+            "sha256:" + hashlib.sha256(image_contents.encode("utf-8")).hexdigest()
         )
 
     def get_image_digest(self):
@@ -488,7 +488,7 @@ class ECRBackend(BaseBackend):
         if repository_name in self.repositories:
             repository = self.repositories[repository_name]
         else:
-            raise Exception("{0} is not a repository".format(repository_name))
+            raise Exception(f"{repository_name} is not a repository")
 
         # Tags are unique, so delete any existing image with this tag first
         self.batch_delete_image(
@@ -885,10 +885,9 @@ class ECRBackend(BaseBackend):
         image = repo._get_image(image_id.get("imageTag"), image_id.get("imageDigest"))
 
         if not image.last_scan:
-            image_id_rep = "{{imageDigest:'{0}', imageTag:'{1}'}}".format(
-                image_id.get("imageDigest") or "null",
-                image_id.get("imageTag") or "null",
-            )
+            idigest = image_id.get("imageDigest") or "null"
+            itag = image_id.get("imageTag") or "null"
+            image_id_rep = f"{{imageDigest:'{idigest}', imageTag:'{itag}'}}"
             raise ScanNotFoundException(
                 image_id=image_id_rep,
                 repository_name=repository_name,

@@ -40,7 +40,7 @@ class ElasticTranscoderResponse(BaseResponse):
         if not role:
             return self.err("Role cannot be blank")
         if not re.match("^arn:aws:iam::[0-9]+:role/.+", role):
-            return self.err("Role ARN is invalid: {}".format(role))
+            return self.err(f"Role ARN is invalid: {role}")
         if not output_bucket and not content_config:
             return self.err(
                 "[OutputBucket and ContentConfig:Bucket are not allowed to both be null.]"
@@ -75,9 +75,7 @@ class ElasticTranscoderResponse(BaseResponse):
     def validate_pipeline_id(self, pipeline_id):
         r = "^\\d{13}-\\w{6}$"
         if not re.match(r, pipeline_id):
-            msg = "1 validation error detected: Value '{}' at 'id' failed to satisfy constraint: Member must satisfy regular expression pattern: {}".format(
-                pipeline_id, r
-            )
+            msg = f"1 validation error detected: Value '{pipeline_id}' at 'id' failed to satisfy constraint: Member must satisfy regular expression pattern: {r}"
             return self.err(msg)
         try:
             self.elastictranscoder_backend.read_pipeline(pipeline_id)
