@@ -303,7 +303,7 @@ class NetworkInterfaceBackend:
                     ]
                 else:
                     self.raise_not_implemented_error(
-                        "The filter '{0}' for DescribeNetworkInterfaces".format(_filter)
+                        f"The filter '{_filter}' for DescribeNetworkInterfaces"
                     )
         return enis
 

@@ -11,7 +11,7 @@ class ELBClientError(RESTError):
 class DuplicateTagKeysError(ELBClientError):
     def __init__(self, cidr):
         super().__init__(
-            "DuplicateTagKeys", "Tag key was specified more than once: {0}".format(cidr)
+            "DuplicateTagKeys", f"Tag key was specified more than once: {cidr}"
         )
 
 
@@ -26,7 +26,7 @@ class LoadBalancerNotFoundError(ELBClientError):
     def __init__(self, cidr):
         super().__init__(
             "LoadBalancerNotFound",
-            "The specified load balancer does not exist: {0}".format(cidr),
+            f"The specified load balancer does not exist: {cidr}",
         )
 
 
@@ -57,9 +57,7 @@ class DuplicateListenerError(ELBClientError):
     def __init__(self, name, port):
         super().__init__(
             "DuplicateListener",
-            "A listener already exists for {0} with LoadBalancerPort {1}, but with a different InstancePort, Protocol, or SSLCertificateId".format(
-                name, port
-            ),
+            f"A listener already exists for {name} with LoadBalancerPort {port}, but with a different InstancePort, Protocol, or SSLCertificateId",
         )
 
 
@@ -67,9 +65,7 @@ class DuplicateLoadBalancerName(ELBClientError):
     def __init__(self, name):
         super().__init__(
             "DuplicateLoadBalancerName",
-            "The specified load balancer name already exists for this account: {0}".format(
-                name
-            ),
+            f"The specified load balancer name already exists for this account: {name}",
         )
 
 

@@ -162,9 +162,7 @@ class RouteTableBackend:
         route_table = self.get_route_table(route_table_id)
         if route_table.associations:
             raise DependencyViolationError(
-                "The routeTable '{0}' has dependencies and cannot be deleted.".format(
-                    route_table_id
-                )
+                f"The routeTable '{route_table_id}' has dependencies and cannot be deleted."
             )
         self.route_tables.pop(route_table_id)
         return True

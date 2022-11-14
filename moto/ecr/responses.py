@@ -137,15 +137,13 @@ class ECRResponse(BaseResponse):
             registry_ids = [self.current_account]
         auth_data = []
         for registry_id in registry_ids:
-            password = "{}-auth-token".format(registry_id)
-            auth_token = b64encode("AWS:{}".format(password).encode("ascii")).decode()
+            password = f"{registry_id}-auth-token"
+            auth_token = b64encode(f"AWS:{password}".encode("ascii")).decode()
             auth_data.append(
                 {
                     "authorizationToken": auth_token,
                     "expiresAt": time.mktime(datetime(2015, 1, 1).timetuple()),
-                    "proxyEndpoint": "https://{}.dkr.ecr.{}.amazonaws.com".format(
-                        registry_id, self.region
-                    ),
+                    "proxyEndpoint": f"https://{registry_id}.dkr.ecr.{self.region}.amazonaws.com",
                 }
             )
         return json.dumps({"authorizationData": auth_data})

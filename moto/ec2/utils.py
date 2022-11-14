@@ -235,7 +235,7 @@ def random_carrier_gateway_id():
 
 
 def random_public_ip():
-    return "54.214.{0}.{1}".format(random.choice(range(255)), random.choice(range(255)))
+    return f"54.214.{random.choice(range(255))}.{random.choice(range(255))}"
 
 
 def random_private_ip(cidr=None, ipv6=False):
@@ -249,39 +249,29 @@ def random_private_ip(cidr=None, ipv6=False):
         ula = ipaddress.IPv4Network(cidr)
         return str(ula.network_address + (random.getrandbits(32 - ula.prefixlen)))
     if ipv6:
-        return "2001::cafe:%x/64" % random.getrandbits(16)
-    return "10.{0}.{1}.{2}".format(
-        random.choice(range(255)), random.choice(range(255)), random.choice(range(255))
-    )
+        return f"2001::cafe:{random.getrandbits(16)}x/64"
+    return f"10.{random.choice(range(255))}.{random.choice(range(255))}.{random.choice(range(255))}"
 
 
 def random_ip():
-    return "127.{0}.{1}.{2}".format(
-        random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
-    )
+    return f"127.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
 
 
 def generate_dns_from_ip(ip, dns_type="internal"):
     splits = ip.split("/")[0].split(".") if "/" in ip else ip.split(".")
-    return "ip-{}-{}-{}-{}.ec2.{}".format(
-        splits[0], splits[1], splits[2], splits[3], dns_type
-    )
+    return f"ip-{splits[0]}-{splits[1]}-{splits[2]}-{splits[3]}.ec2.{dns_type}"
 
 
 def random_mac_address():
-    return "02:00:00:%02x:%02x:%02x" % (
-        random.randint(0, 255),
-        random.randint(0, 255),
-        random.randint(0, 255),
-    )
+    return f"02:00:00:{random.randint(0, 255)}02x:{random.randint(0, 255)}02x:{random.randint(0, 255)}02x"
 
 
 def randor_ipv4_cidr():
-    return "10.0.{}.{}/16".format(random.randint(0, 255), random.randint(0, 255))
+    return f"10.0.{random.randint(0, 255)}.{random.randint(0, 255)}/16"
 
 
 def random_ipv6_cidr():
-    return "2400:6500:{}:{}00::/56".format(random_resource_id(4), random_resource_id(2))
+    return f"2400:6500:{random_resource_id(4)}:{random_resource_id(2)}00::/56"
 
 
 def generate_route_id(
@@ -291,7 +281,7 @@ def generate_route_id(
         cidr_block = ipv6_cidr_block
     if prefix_list and not cidr_block:
         cidr_block = prefix_list
-    return "%s~%s" % (route_table_id, cidr_block)
+    return f"{route_table_id}~{cidr_block}"
 
 
 def random_managed_prefix_list_id():
@@ -300,9 +290,9 @@ def random_managed_prefix_list_id():
 
 def create_dns_entries(service_name, vpc_endpoint_id):
     dns_entries = {}
-    dns_entries["dns_name"] = "{}-{}.{}".format(
-        vpc_endpoint_id, random_resource_id(8), service_name
-    )
+    dns_entries[
+        "dns_name"
+    ] = f"{vpc_endpoint_id}-{random_resource_id(8)}.{service_name}"
     dns_entries["hosted_zone_id"] = random_resource_id(13).upper()
     return dns_entries
 
@@ -310,9 +300,7 @@ def create_dns_entries(service_name, vpc_endpoint_id):
 def utc_date_and_time():
     x = datetime.utcnow()
     # Better performing alternative to x.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    return "{}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}.000Z".format(
-        x.year, x.month, x.day, x.hour, x.minute, x.second
-    )
+    return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
 
 
 def split_route_id(route_id):
@@ -322,7 +310,7 @@ def split_route_id(route_id):
 
 def get_attribute_value(parameter, querystring_dict):
     for key, value in querystring_dict.items():
-        match = re.search(r"{0}.Value".format(parameter), key)
+        match = re.search(rf"{parameter}.Value", key)
         if match:
             if value[0].lower() in ["true", "false"]:
                 return True if value[0].lower() in ["true"] else False
