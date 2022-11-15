@@ -79,7 +79,7 @@ def test_signal_workflow_execution_without_runId():
     )
     run_id = hsh["runId"]
 
-    wfe = conn.signal_workflow_execution(
+    conn.signal_workflow_execution(
         domain="test-domain",
         signalName="my_signal",
         workflowId="uid-abcd1234",
