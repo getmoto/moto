@@ -542,7 +542,7 @@ class SWFResponse(BaseResponse):
         signal_name = self._params["signalName"]
         workflow_id = self._params["workflowId"]
         _input = self._params["input"]
-        run_id = self._params["runId"]
+        run_id = self._params.get("runId")
 
         self._check_string(domain_name)
         self._check_string(signal_name)
