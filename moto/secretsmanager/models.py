@@ -522,9 +522,14 @@ class SecretsManagerBackend(BaseBackend):
         # We add the new secret version as "pending". The previous version remains
         # as "current" for now. Once we've passed the new secret through the lambda
         # rotation function (if provided) we can then update the status to "current".
+        old_secret_version_secret_string = (
+            old_secret_version["secret_string"]
+            if "secret_string" in old_secret_version
+            else None
+        )
         self._add_secret(
             secret_id,
-            old_secret_version["secret_string"],
+            old_secret_version_secret_string,
             description=secret.description,
             tags=secret.tags,
             version_id=new_version_id,
