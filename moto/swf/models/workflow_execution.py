@@ -263,6 +263,18 @@ class WorkflowExecution(BaseModel):
         self.schedule_decision_task()
 
     def _schedule_decision_task(self):
+        has_scheduled_task = False
+        has_started_task = False
+        for task in self.decision_tasks:
+            if task.state == "STARTED":
+                has_started_task = True
+            elif task.state == "SCHEDULED":
+                has_scheduled_task = True
+        # If a decision task is already running, we cannot schedule more than one additional task
+        # See https://docs.aws.amazon.com/amazonswf/latest/developerguide/swf-dg-dev-deciders.html#swf-dg-deciders-launch
+        if has_started_task and has_scheduled_task:
+            return
+
         evt = self._add_event(
             "DecisionTaskScheduled",
             start_to_close_timeout=self.task_start_to_close_timeout,
