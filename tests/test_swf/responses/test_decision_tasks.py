@@ -69,6 +69,95 @@ def test_poll_for_decision_task_previous_started_event_id_boto3():
 
 
 @mock_swf
+def test_poll_for_decision_task_ensure_single_started_task():
+    client = setup_workflow_boto3()
+
+    resp = client.poll_for_decision_task(
+        domain="test-domain", taskList={"name": "queue"}
+    )
+    resp.should.have.key("taskToken")
+    first_decision_task = resp["taskToken"]
+
+    # History should have just the decision task triggered on workflow start
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal(
+        ["WorkflowExecutionStarted", "DecisionTaskScheduled", "DecisionTaskStarted"]
+    )
+
+    # Schedule another decision task, before first one is completed
+    client.signal_workflow_execution(
+        domain="test-domain",
+        signalName="my_signal",
+        workflowId="uid-abcd1234",
+        input="my_input",
+        runId=client.run_id,
+    )
+
+    # Second poll should return no new tasks
+    resp = client.poll_for_decision_task(
+        domain="test-domain", taskList={"name": "queue"}
+    )
+    assert resp["previousStartedEventId"] == 0
+    assert resp["startedEventId"] == 0
+    assert resp.should_not.have.key("taskToken")
+
+    resp = client.get_workflow_execution_history(
+        domain="test-domain",
+        execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
+    )
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal(
+        [
+            "WorkflowExecutionStarted",
+            "DecisionTaskScheduled",
+            "DecisionTaskStarted",
+            "WorkflowExecutionSignaled",
+            "DecisionTaskScheduled",
+        ]
+    )
+
+    client.respond_decision_task_completed(taskToken=first_decision_task)
+
+    resp = client.poll_for_decision_task(
+        domain="test-domain", taskList={"name": "queue"}
+    )
+    resp.should.have.key("taskToken")
+
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal(
+        [
+            "WorkflowExecutionStarted",
+            "DecisionTaskScheduled",
+            "DecisionTaskStarted",
+            "WorkflowExecutionSignaled",
+            "DecisionTaskScheduled",
+            "DecisionTaskCompleted",
+            "DecisionTaskStarted",
+        ]
+    )
+
+
+@mock_swf
+def test_poll_for_decision_task_exclude_completed_executions():
+    client = setup_workflow_boto3()
+
+    resp = client.get_workflow_execution_history(
+        domain="test-domain",
+        execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
+    )
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
+
+    client.terminate_workflow_execution(
+        domain="test-domain", runId=client.run_id, workflowId="uid-abcd1234"
+    )
+    resp = client.poll_for_decision_task(
+        domain="test-domain", taskList={"name": "queue"}
+    )
+    resp.should_not.have.key("taskToken")
+
+
+@mock_swf
 def test_poll_for_decision_task_when_none_boto3():
     client = setup_workflow_boto3()
 

@@ -212,9 +212,27 @@ class SWFBackend(BaseBackend):
         #
         # TODO: handle long polling (case 2) for decision tasks
         candidates = []
-        for _task_list, tasks in domain.decision_task_lists.items():
-            if _task_list == task_list:
-                candidates += [t for t in tasks if t.state == "SCHEDULED"]
+
+        # Collect candidate scheduled tasks from open workflow executions
+        # matching the selected task list.
+        #
+        # If another decision task is already started, then no candidates
+        # will be produced for that workflow execution. This is because only one
+        # decision task can be started at any given time.
+        # See https://docs.aws.amazon.com/amazonswf/latest/developerguide/swf-dev-tasks.html
+        for wfe in domain.workflow_executions:
+            if wfe.task_list == task_list and wfe.open:
+                wfe_candidates = []
+                found_started = False
+                for task in wfe.decision_tasks:
+                    if task.state == "STARTED":
+                        found_started = True
+                        break
+                    elif task.state == "SCHEDULED":
+                        wfe_candidates.append(task)
+                if not found_started:
+                    candidates += wfe_candidates
+
         if any(candidates):
             # TODO: handle task priorities (but not supported by boto for now)
             task = min(candidates, key=lambda d: d.scheduled_at)
