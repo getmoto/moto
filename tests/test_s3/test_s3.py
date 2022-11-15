@@ -1618,6 +1618,28 @@ def test_delete_versioned_bucket_returns_meta():
 
 
 @mock_s3
+def test_get_object_if_modified_since_refresh():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = "hello.txt"
+
+    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
+
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+
+    with pytest.raises(botocore.exceptions.ClientError) as err:
+        s3.get_object(
+            Bucket=bucket_name,
+            Key=key,
+            IfModifiedSince=response['LastModified'],
+        )
+    e = err.value
+    e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
+
+
+@mock_s3
 def test_get_object_if_modified_since():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
