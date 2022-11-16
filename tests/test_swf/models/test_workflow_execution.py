@@ -220,6 +220,33 @@ def test_workflow_execution_schedule_decision_task():
     wfe.open_counts["openDecisionTasks"].should.equal(1)
 
 
+def test_workflow_execution_dont_schedule_decision_if_existing_started_and_other_scheduled():
+    wfe = make_workflow_execution()
+    wfe.open_counts["openDecisionTasks"].should.equal(0)
+
+    wfe.schedule_decision_task()
+    wfe.open_counts["openDecisionTasks"].should.equal(1)
+
+    wfe.decision_tasks[0].start("evt_id")
+
+    wfe.schedule_decision_task()
+    wfe.schedule_decision_task()
+    wfe.open_counts["openDecisionTasks"].should.equal(2)
+
+
+def test_workflow_execution_schedule_decision_if_existing_started_and_no_other_scheduled():
+    wfe = make_workflow_execution()
+    wfe.open_counts["openDecisionTasks"].should.equal(0)
+
+    wfe.schedule_decision_task()
+    wfe.open_counts["openDecisionTasks"].should.equal(1)
+
+    wfe.decision_tasks[0].start("evt_id")
+
+    wfe.schedule_decision_task()
+    wfe.open_counts["openDecisionTasks"].should.equal(2)
+
+
 def test_workflow_execution_start_decision_task():
     wfe = make_workflow_execution()
     wfe.schedule_decision_task()
