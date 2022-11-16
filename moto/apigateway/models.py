@@ -114,6 +114,7 @@ class IntegrationResponse(BaseModel):
         status_code: Union[str, int],
         selection_pattern: Optional[str] = None,
         response_templates: Optional[Dict[str, Any]] = None,
+        response_parameters: Optional[Dict[str, str]] = None,
         content_handling: Optional[Any] = None,
     ):
         if response_templates is None:
@@ -126,6 +127,7 @@ class IntegrationResponse(BaseModel):
         self.response_templates = response_templates
         self.status_code = status_code
         self.selection_pattern = selection_pattern
+        self.response_parameters = response_parameters
         self.content_handling = content_handling
 
     def to_json(self) -> Dict[str, Any]:
@@ -137,6 +139,8 @@ class IntegrationResponse(BaseModel):
             resp["selectionPattern"] = self.selection_pattern
         if self.content_handling:
             resp["contentHandling"] = self.content_handling
+        if self.response_parameters:
+            resp["responseParameters"] = self.response_parameters
         return resp
 
 
@@ -191,10 +195,15 @@ class Integration(BaseModel):
         status_code: str,
         selection_pattern: str,
         response_templates: Dict[str, str],
+        response_parameters: Dict[str, str],
         content_handling: str,
     ) -> IntegrationResponse:
         integration_response = IntegrationResponse(
-            status_code, selection_pattern, response_templates or None, content_handling
+            status_code,
+            selection_pattern,
+            response_templates or None,
+            response_parameters,
+            content_handling,
         )
         if self.integration_responses is None:
             self.integration_responses = {}
@@ -1895,12 +1904,17 @@ class APIGatewayBackend(BaseBackend):
         status_code: str,
         selection_pattern: str,
         response_templates: Dict[str, str],
+        response_parameters: Dict[str, str],
         content_handling: str,
     ) -> IntegrationResponse:
         integration = self.get_integration(function_id, resource_id, method_type)
         if integration:
             return integration.create_integration_response(
-                status_code, selection_pattern, response_templates, content_handling
+                status_code,
+                selection_pattern,
+                response_templates,
+                response_parameters,
+                content_handling,
             )
         raise NoIntegrationResponseDefined()
 
