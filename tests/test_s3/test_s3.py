@@ -1633,7 +1633,7 @@ def test_get_object_if_modified_since_refresh():
         s3.get_object(
             Bucket=bucket_name,
             Key=key,
-            IfModifiedSince=response['LastModified'],
+            IfModifiedSince=response["LastModified"],
         )
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
@@ -1749,7 +1749,7 @@ def test_head_object_if_modified_since_refresh():
         s3.head_object(
             Bucket=bucket_name,
             Key=key,
-            IfModifiedSince=response['LastModified'],
+            IfModifiedSince=response["LastModified"],
         )
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
