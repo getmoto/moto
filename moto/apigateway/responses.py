@@ -498,6 +498,7 @@ class APIGatewayResponse(BaseResponse):
 
             selection_pattern = self._get_param("selectionPattern")
             response_templates = self._get_param("responseTemplates")
+            response_parameters = self._get_param("responseParameters")
             content_handling = self._get_param("contentHandling")
             integration_response = self.backend.put_integration_response(
                 function_id,
@@ -506,6 +507,7 @@ class APIGatewayResponse(BaseResponse):
                 status_code,
                 selection_pattern,
                 response_templates,
+                response_parameters,
                 content_handling,
             )
             return 201, {}, json.dumps(integration_response.to_json())

@@ -652,6 +652,10 @@ def test_integration_response():
         httpMethod="GET",
         statusCode="200",
         selectionPattern="foobar",
+        responseParameters={
+            "method.response.header.Location": "integration.response.body.redirect.url",
+            "method.response.header.x-user-id": "integration.response.header.x-userid",
+        },
         responseTemplates={},
     )
 
@@ -664,6 +668,10 @@ def test_integration_response():
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 201},
             "responseTemplates": {},  # Note: TF compatibility
+            "responseParameters": {
+                "method.response.header.Location": "integration.response.body.redirect.url",
+                "method.response.header.x-user-id": "integration.response.header.x-userid",
+            },
         }
     )
 
@@ -679,6 +687,10 @@ def test_integration_response():
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
             "responseTemplates": {},  # Note: TF compatibility
+            "responseParameters": {
+                "method.response.header.Location": "integration.response.body.redirect.url",
+                "method.response.header.x-user-id": "integration.response.header.x-userid",
+            },
         }
     )
 
@@ -692,6 +704,10 @@ def test_integration_response():
                 "responseTemplates": {},  # Note: TF compatibility
                 "selectionPattern": "foobar",
                 "statusCode": "200",
+                "responseParameters": {
+                    "method.response.header.Location": "integration.response.body.redirect.url",
+                    "method.response.header.x-user-id": "integration.response.header.x-userid",
+                },
             }
         }
     )
@@ -1052,6 +1068,10 @@ def test_put_integration_response_with_response_template():
         httpMethod="GET",
         statusCode="200",
         selectionPattern="foobar",
+        responseParameters={
+            "method.response.header.Location": "integration.response.body.redirect.url",
+            "method.response.header.x-user-id": "integration.response.header.x-userid",
+        },
         responseTemplates={"application/json": json.dumps({"data": "test"})},
     )
 
@@ -1068,6 +1088,10 @@ def test_put_integration_response_with_response_template():
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
             "responseTemplates": {"application/json": json.dumps({"data": "test"})},
+            "responseParameters": {
+                "method.response.header.Location": "integration.response.body.redirect.url",
+                "method.response.header.x-user-id": "integration.response.header.x-userid",
+            },
         }
     )
 
