@@ -70,6 +70,31 @@ def test_signal_workflow_execution_boto3():
 
 
 @mock_swf
+def test_signal_workflow_execution_without_runId():
+    conn = setup_swf_environment_boto3()
+    hsh = conn.start_workflow_execution(
+        domain="test-domain",
+        workflowId="uid-abcd1234",
+        workflowType={"name": "test-workflow", "version": "v1.0"},
+    )
+    run_id = hsh["runId"]
+
+    conn.signal_workflow_execution(
+        domain="test-domain",
+        signalName="my_signal",
+        workflowId="uid-abcd1234",
+        input="my_input",
+    )
+
+    resp = conn.get_workflow_execution_history(
+        domain="test-domain", execution={"runId": run_id, "workflowId": "uid-abcd1234"}
+    )
+
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.contain("WorkflowExecutionSignaled")
+
+
+@mock_swf
 def test_start_already_started_workflow_execution_boto3():
     client = setup_swf_environment_boto3()
     client.start_workflow_execution(
