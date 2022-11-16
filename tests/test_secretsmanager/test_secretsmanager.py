@@ -65,9 +65,7 @@ def test_get_secret_value_by_arn():
     secret_value = "test_get_secret_value_by_arn"
     result = conn.create_secret(Name=name, SecretString=secret_value)
     arn = result["ARN"]
-    arn.should.match(
-        "^arn:aws:secretsmanager:us-west-2:{}:secret:{}".format(ACCOUNT_ID, name)
-    )
+    arn.should.match(f"^arn:aws:secretsmanager:us-west-2:{ACCOUNT_ID}:secret:{name}")
 
     result = conn.get_secret_value(SecretId=arn)
     assert result["SecretString"] == secret_value

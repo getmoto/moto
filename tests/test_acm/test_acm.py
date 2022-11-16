@@ -511,7 +511,7 @@ def test_add_too_many_tags():
     with pytest.raises(ClientError) as ex:
         client.add_tags_to_certificate(
             CertificateArn=arn,
-            Tags=[{"Key": "a-%d" % i, "Value": "abcd"} for i in range(1, 52)],
+            Tags=[{"Key": f"a-{i}", "Value": "abcd"} for i in range(1, 52)],
         )
     ex.value.response["Error"]["Code"].should.equal("TooManyTagsException")
     ex.value.response["Error"]["Message"].should.contain("contains too many Tags")
@@ -520,7 +520,7 @@ def test_add_too_many_tags():
     # Add 49 tags first, then try to add 2 more.
     client.add_tags_to_certificate(
         CertificateArn=arn,
-        Tags=[{"Key": "p-%d" % i, "Value": "pqrs"} for i in range(1, 50)],
+        Tags=[{"Key": f"p-{i}", "Value": "pqrs"} for i in range(1, 50)],
     )
     client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.length_of(
         49

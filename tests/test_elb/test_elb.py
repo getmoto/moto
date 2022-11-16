@@ -248,7 +248,7 @@ def test_describe_paginated_balancers():
 
     for i in range(51):
         client.create_load_balancer(
-            LoadBalancerName="my-lb%d" % i,
+            LoadBalancerName=f"my-lb{i}",
             Listeners=[
                 {"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}
             ],

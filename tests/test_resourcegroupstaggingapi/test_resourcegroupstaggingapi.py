@@ -387,15 +387,15 @@ def test_get_resources_rds():
     resources_untagged = []
     for i in range(3):
         database = client.create_db_instance(
-            DBInstanceIdentifier="db-instance-{}".format(i),
+            DBInstanceIdentifier=f"db-instance-{i}",
             Engine="postgres",
             DBInstanceClass="db.m1.small",
             CopyTagsToSnapshot=True if i else False,
-            Tags=[{"Key": "test", "Value": "value-{}".format(i)}] if i else [],
+            Tags=[{"Key": "test", "Value": f"value-{i}"}] if i else [],
         ).get("DBInstance")
         snapshot = client.create_db_snapshot(
             DBInstanceIdentifier=database["DBInstanceIdentifier"],
-            DBSnapshotIdentifier="snapshot-{}".format(i),
+            DBSnapshotIdentifier=f"snapshot-{i}",
         ).get("DBSnapshot")
         group = resources_tagged if i else resources_untagged
         group.append(database["DBInstanceArn"])
@@ -409,7 +409,7 @@ def test_get_resources_rds():
             arn.should.be.within(resources_tagged)
             arn.should_not.be.within(resources_untagged)
             if resource_type:
-                sure.this(":{}:".format(resource_type)).should.be.within(arn)
+                sure.this(f":{resource_type}:").should.be.within(arn)
 
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
     resp = rtapi.get_resources(ResourceTypeFilters=["rds"])

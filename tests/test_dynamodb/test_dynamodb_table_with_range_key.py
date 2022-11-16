@@ -192,9 +192,7 @@ def test_boto3_conditions_ignorecase():
     for expr in between_expressions:
         results = dynamodb.query(
             TableName="users",
-            KeyConditionExpression="forum_name = :forum_name and subject {}".format(
-                expr
-            ),
+            KeyConditionExpression=f"forum_name = :forum_name and subject {expr}",
             ExpressionAttributeValues={
                 ":forum_name": {"S": "the-key"},
                 ":start": {"S": "100"},
@@ -1023,7 +1021,7 @@ def test_query_pagination():
         table.put_item(
             Item={
                 "forum_name": "the-key",
-                "subject": "{0}".format(i),
+                "subject": f"{i}",
                 "username": "johndoe",
                 "created": Decimal("3"),
             }

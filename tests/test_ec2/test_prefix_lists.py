@@ -15,9 +15,7 @@ def test_create():
     prefix_list.should.have.key("AddressFamily").equals("?")
     prefix_list.should.have.key("State").equals("create-complete")
     prefix_list.should.have.key("PrefixListArn").equals(
-        "arn:aws:ec2:us-west-1:{}:prefix-list/{}".format(
-            ACCOUNT_ID, prefix_list["PrefixListId"]
-        )
+        f"arn:aws:ec2:us-west-1:{ACCOUNT_ID}:prefix-list/{prefix_list['PrefixListId']}"
     )
     prefix_list.should.have.key("PrefixListName").equals("examplelist")
     prefix_list.should.have.key("MaxEntries").equals(2)

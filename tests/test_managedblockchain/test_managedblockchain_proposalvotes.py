@@ -313,7 +313,7 @@ def test_vote_on_proposal_expiredproposal():
         err = ex.value.response["Error"]
         err["Code"].should.equal("InvalidRequestException")
         err["Message"].should.contain(
-            "Proposal {0} is expired and you cannot vote on it.".format(proposal_id)
+            f"Proposal {proposal_id} is expired and you cannot vote on it."
         )
 
         # Get proposal details - should be EXPIRED
@@ -633,7 +633,7 @@ def test_vote_on_proposal_alreadyvoted():
     err = ex.value.response["Error"]
     err["Code"].should.equal("ResourceAlreadyExistsException")
     err["Message"].should.contain(
-        "Member {0} has already voted on proposal {1}.".format(member_id, proposal_id)
+        f"Member {member_id} has already voted on proposal {proposal_id}."
     )
 
 

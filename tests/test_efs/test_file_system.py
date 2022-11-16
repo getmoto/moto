@@ -262,7 +262,7 @@ def test_describe_file_systems_aws_create_sample_2(efs):
 def test_describe_file_systems_paging(efs):
     # Create several file systems.
     for i in range(10):
-        efs.create_file_system(CreationToken="foobar_{}".format(i))
+        efs.create_file_system(CreationToken=f"foobar_{i}")
 
     # First call (Start)
     # ------------------

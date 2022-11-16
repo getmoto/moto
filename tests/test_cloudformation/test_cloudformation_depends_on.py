@@ -112,9 +112,7 @@ def test_create_stack_with_depends_on():
 
     ecs = boto3.client("ecs", region_name="us-east-1")
     cluster_arn = ecs.list_clusters()["clusterArns"][0]
-    assert cluster_arn == "arn:aws:ecs:us-east-1:{}:cluster/test-cluster".format(
-        ACCOUNT_ID
-    )
+    assert cluster_arn == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:cluster/test-cluster"
 
 
 @mock_cloudformation

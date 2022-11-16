@@ -48,9 +48,7 @@ def test_create_transit_gateway():
     gateways.should.have.length_of(1)
     gateways[0].should.have.key("CreationTime")
     gateways[0].should.have.key("TransitGatewayArn").equal(
-        "arn:aws:ec2:us-east-1:{}:transit-gateway/{}".format(
-            ACCOUNT_ID, gateway["TransitGatewayId"]
-        )
+        f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/{gateway['TransitGatewayId']}"
     )
     gateways[0]["Options"].should.have.key("AssociationDefaultRouteTableId").equal(
         gateways[0]["Options"]["PropagationDefaultRouteTableId"]

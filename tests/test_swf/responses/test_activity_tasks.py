@@ -125,9 +125,7 @@ def test_respond_activity_task_completed_on_closed_workflow_execution_boto3():
         client.respond_activity_task_completed(taskToken=activity_token)
     ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
     ex.value.response["Error"]["Message"].should.equal(
-        "Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId={}]".format(
-            client.run_id
-        )
+        f"Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId={client.run_id}]"
     )
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 

@@ -34,16 +34,16 @@ def test_usage_plans_apis():
     json.loads(res.data)["item"].should.have.length_of(1)
 
     # Get single usage plan
-    res = test_client.get("/usageplans/{0}".format(created_plan["id"]))
+    res = test_client.get(f"/usageplans/{created_plan['id']}")
     fetched_plan = json.loads(res.data)
     fetched_plan.should.equal(created_plan)
 
     # Not existing usage plan
-    res = test_client.get("/usageplans/{0}".format("not_existing"))
+    res = test_client.get("/usageplans/not_existing")
     res.status_code.should.equal(404)
 
     # Delete usage plan
-    res = test_client.delete("/usageplans/{0}".format(created_plan["id"]))
+    res = test_client.delete(f"/usageplans/{created_plan['id']}")
     res.data.should.equal(b"{}")
 
     # List usage plans (expect empty again)
@@ -61,53 +61,45 @@ def test_usage_plans_keys():
     created_api_key = json.loads(res.data)
 
     # List usage plans keys (expect empty)
-    res = test_client.get("/usageplans/{0}/keys".format(usage_plan_id))
+    res = test_client.get(f"/usageplans/{usage_plan_id}/keys")
     json.loads(res.data)["item"].should.have.length_of(0)
 
     # Invalid api key (does not exists at all)
-    res = test_client.get(
-        "/usageplans/{0}/keys/{1}".format(usage_plan_id, "not_existing")
-    )
+    res = test_client.get(f"/usageplans/{usage_plan_id}/keys/not_existing")
     res.status_code.should.equal(404)
 
     # not existing usage plan with existing api key
-    res = test_client.get(
-        "/usageplans/{0}/keys/{1}".format("not_existing", created_api_key["id"])
-    )
+    res = test_client.get(f"/usageplans/not_existing/keys/{created_api_key['id']}")
     res.status_code.should.equal(404)
 
     # not jet added api key
-    res = test_client.get(
-        "/usageplans/{0}/keys/{1}".format(usage_plan_id, created_api_key["id"])
-    )
+    res = test_client.get(f"/usageplans/{usage_plan_id}/keys/{created_api_key['id']}")
     res.status_code.should.equal(404)
 
     # Create usage plan key
     res = test_client.post(
-        "/usageplans/{0}/keys".format(usage_plan_id),
+        f"/usageplans/{usage_plan_id}/keys",
         data=json.dumps({"keyId": created_api_key["id"], "keyType": "API_KEY"}),
     )
     created_usage_plan_key = json.loads(res.data)
 
     # List usage plans keys (expect 1 key)
-    res = test_client.get("/usageplans/{0}/keys".format(usage_plan_id))
+    res = test_client.get(f"/usageplans/{usage_plan_id}/keys")
     json.loads(res.data)["item"].should.have.length_of(1)
 
     # Get single usage plan key
-    res = test_client.get(
-        "/usageplans/{0}/keys/{1}".format(usage_plan_id, created_api_key["id"])
-    )
+    res = test_client.get(f"/usageplans/{usage_plan_id}/keys/{created_api_key['id']}")
     fetched_plan_key = json.loads(res.data)
     fetched_plan_key.should.equal(created_usage_plan_key)
 
     # Delete usage plan key
     res = test_client.delete(
-        "/usageplans/{0}/keys/{1}".format(usage_plan_id, created_api_key["id"])
+        f"/usageplans/{usage_plan_id}/keys/{created_api_key['id']}"
     )
     res.data.should.equal(b"{}")
 
     # List usage plans keys (expect to be empty again)
-    res = test_client.get("/usageplans/{0}/keys".format(usage_plan_id))
+    res = test_client.get(f"/usageplans/{usage_plan_id}/keys")
     json.loads(res.data)["item"].should.have.length_of(0)
 
 
@@ -118,7 +110,7 @@ def test_create_usage_plans_key_non_existent_api_key():
 
     # Create usage plan key with non-existent api key
     res = test_client.post(
-        "/usageplans/{0}/keys".format(usage_plan_id),
+        f"/usageplans/{usage_plan_id}/keys",
         data=json.dumps({"keyId": "non-existent", "keyType": "API_KEY"}),
     )
     res.status_code.should.equal(404)

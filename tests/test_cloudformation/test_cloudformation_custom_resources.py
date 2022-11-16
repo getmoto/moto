@@ -12,7 +12,7 @@ from .fixtures.custom_lambda import get_template
 
 
 def get_lambda_code():
-    pfunc = """
+    return f"""
 def lambda_handler(event, context):
     # Need to print this, one of the tests verifies the correct input
     print(event)
@@ -21,17 +21,14 @@ def lambda_handler(event, context):
     response["StackId"] = event["StackId"]
     response["RequestId"] = event["RequestId"]
     response["LogicalResourceId"] = event["LogicalResourceId"]
-    response["PhysicalResourceId"] = "{resource_id}"
+    response["PhysicalResourceId"] = "CustomResource{str(uuid4())[0:6]}"
     response_data = dict()
     response_data["info_value"] = "special value"
     if event["RequestType"] == "Create":
         response["Data"] = response_data
     import cfnresponse
     cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
-""".format(
-        resource_id=f"CustomResource{str(uuid4())[0:6]}"
-    )
-    return pfunc
+"""
 
 
 @mock_cloudformation

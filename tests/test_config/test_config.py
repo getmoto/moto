@@ -289,9 +289,7 @@ def test_put_configuration_aggregator():
             AccountAggregationSources=[
                 {"AccountIds": ["012345678910"], "AllAwsRegions": True}
             ],
-            Tags=[
-                {"Key": "{}".format(x), "Value": "{}".format(x)} for x in range(0, 51)
-            ],
+            Tags=[{"Key": f"{x}", "Value": f"{x}"} for x in range(0, 51)],
         )
     assert (
         "Member must have length less than or equal to 50"
@@ -399,9 +397,7 @@ def test_put_configuration_aggregator():
         account_aggregation_source
     ]
     assert (
-        "arn:aws:config:us-west-2:{}:config-aggregator/config-aggregator-".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:config:us-west-2:{ACCOUNT_ID}:config-aggregator/config-aggregator-"
         in result["ConfigurationAggregator"]["ConfigurationAggregatorArn"]
     )
     assert (
@@ -455,7 +451,7 @@ def test_describe_configuration_aggregators():
     # Make 10 config aggregators:
     for x in range(0, 10):
         client.put_configuration_aggregator(
-            ConfigurationAggregatorName="testing{}".format(x),
+            ConfigurationAggregatorName=f"testing{x}",
             AccountAggregationSources=[
                 {"AccountIds": ["012345678910"], "AllAwsRegions": True}
             ],
@@ -509,19 +505,19 @@ def test_describe_configuration_aggregators():
     assert result["NextToken"] == "testing4"
     assert [
         agg["ConfigurationAggregatorName"] for agg in result["ConfigurationAggregators"]
-    ] == ["testing{}".format(x) for x in range(0, 4)]
+    ] == [f"testing{x}" for x in range(0, 4)]
     result = client.describe_configuration_aggregators(Limit=4, NextToken="testing4")
     assert len(result["ConfigurationAggregators"]) == 4
     assert result["NextToken"] == "testing8"
     assert [
         agg["ConfigurationAggregatorName"] for agg in result["ConfigurationAggregators"]
-    ] == ["testing{}".format(x) for x in range(4, 8)]
+    ] == [f"testing{x}" for x in range(4, 8)]
     result = client.describe_configuration_aggregators(Limit=4, NextToken="testing8")
     assert len(result["ConfigurationAggregators"]) == 2
     assert not result.get("NextToken")
     assert [
         agg["ConfigurationAggregatorName"] for agg in result["ConfigurationAggregators"]
-    ] == ["testing{}".format(x) for x in range(8, 10)]
+    ] == [f"testing{x}" for x in range(8, 10)]
 
     # Test Pagination with Filtering:
     result = client.describe_configuration_aggregators(
@@ -560,9 +556,7 @@ def test_put_aggregation_authorization():
         client.put_aggregation_authorization(
             AuthorizedAccountId="012345678910",
             AuthorizedAwsRegion="us-west-2",
-            Tags=[
-                {"Key": "{}".format(x), "Value": "{}".format(x)} for x in range(0, 51)
-            ],
+            Tags=[{"Key": f"{x}", "Value": f"{x}"} for x in range(0, 51)],
         )
     assert (
         "Member must have length less than or equal to 50"
@@ -626,10 +620,9 @@ def test_put_aggregation_authorization():
         Tags=[{"Key": "tag", "Value": "a"}],
     )
 
-    assert result["AggregationAuthorization"][
-        "AggregationAuthorizationArn"
-    ] == "arn:aws:config:us-west-2:{}:aggregation-authorization/012345678910/us-east-1".format(
-        ACCOUNT_ID
+    assert (
+        result["AggregationAuthorization"]["AggregationAuthorizationArn"]
+        == f"arn:aws:config:us-west-2:{ACCOUNT_ID}:aggregation-authorization/012345678910/us-east-1"
     )
     assert result["AggregationAuthorization"]["AuthorizedAccountId"] == "012345678910"
     assert result["AggregationAuthorization"]["AuthorizedAwsRegion"] == "us-east-1"
@@ -641,10 +634,9 @@ def test_put_aggregation_authorization():
     result = client.put_aggregation_authorization(
         AuthorizedAccountId="012345678910", AuthorizedAwsRegion="us-east-1"
     )
-    assert result["AggregationAuthorization"][
-        "AggregationAuthorizationArn"
-    ] == "arn:aws:config:us-west-2:{}:aggregation-authorization/012345678910/us-east-1".format(
-        ACCOUNT_ID
+    assert (
+        result["AggregationAuthorization"]["AggregationAuthorizationArn"]
+        == f"arn:aws:config:us-west-2:{ACCOUNT_ID}:aggregation-authorization/012345678910/us-east-1"
     )
     assert result["AggregationAuthorization"]["AuthorizedAccountId"] == "012345678910"
     assert result["AggregationAuthorization"]["AuthorizedAwsRegion"] == "us-east-1"
@@ -661,7 +653,7 @@ def test_describe_aggregation_authorizations():
     # Make 10 account authorizations:
     for i in range(0, 10):
         client.put_aggregation_authorization(
-            AuthorizedAccountId="{}".format(str(i) * 12),
+            AuthorizedAccountId=f"{str(i) * 12}",
             AuthorizedAwsRegion="us-west-2",
         )
 
@@ -679,7 +671,7 @@ def test_describe_aggregation_authorizations():
     assert result["NextToken"] == ("4" * 12) + "/us-west-2"
     assert [
         auth["AuthorizedAccountId"] for auth in result["AggregationAuthorizations"]
-    ] == ["{}".format(str(x) * 12) for x in range(0, 4)]
+    ] == [f"{str(x) * 12}" for x in range(0, 4)]
 
     result = client.describe_aggregation_authorizations(
         Limit=4, NextToken=("4" * 12) + "/us-west-2"
@@ -688,7 +680,7 @@ def test_describe_aggregation_authorizations():
     assert result["NextToken"] == ("8" * 12) + "/us-west-2"
     assert [
         auth["AuthorizedAccountId"] for auth in result["AggregationAuthorizations"]
-    ] == ["{}".format(str(x) * 12) for x in range(4, 8)]
+    ] == [f"{str(x) * 12}" for x in range(4, 8)]
 
     result = client.describe_aggregation_authorizations(
         Limit=4, NextToken=("8" * 12) + "/us-west-2"
@@ -697,7 +689,7 @@ def test_describe_aggregation_authorizations():
     assert not result.get("NextToken")
     assert [
         auth["AuthorizedAccountId"] for auth in result["AggregationAuthorizations"]
-    ] == ["{}".format(str(x) * 12) for x in range(8, 10)]
+    ] == [f"{str(x) * 12}" for x in range(8, 10)]
 
     # Test with an invalid filter:
     with pytest.raises(ClientError) as ce:
@@ -1252,7 +1244,7 @@ def test_list_discovered_resource():
     s3_client = boto3.client("s3", region_name="us-west-2")
     for x in range(0, 10):
         s3_client.create_bucket(
-            Bucket="bucket{}".format(x),
+            Bucket=f"bucket{x}",
             CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
         )
 
@@ -1269,8 +1261,8 @@ def test_list_discovered_resource():
     for x in range(0, 10):
         assert result["resourceIdentifiers"][x] == {
             "resourceType": "AWS::S3::Bucket",
-            "resourceId": "bucket{}".format(x),
-            "resourceName": "bucket{}".format(x),
+            "resourceId": f"bucket{x}",
+            "resourceName": f"bucket{x}",
         }
     assert not result.get("nextToken")
 
@@ -1330,7 +1322,7 @@ def test_list_discovered_resource():
     )
 
     # More than 20 resourceIds:
-    resource_ids = ["{}".format(x) for x in range(0, 21)]
+    resource_ids = [f"{x}" for x in range(0, 21)]
     with pytest.raises(ClientError) as ce:
         client.list_discovered_resources(
             resourceType="AWS::S3::Bucket", resourceIds=resource_ids
@@ -1378,14 +1370,14 @@ def test_list_aggregate_discovered_resource():
     s3_client = boto3.client("s3", region_name="us-west-2")
     for x in range(0, 10):
         s3_client.create_bucket(
-            Bucket="bucket{}".format(x),
+            Bucket=f"bucket{x}",
             CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
         )
 
     s3_client_eu = boto3.client("s3", region_name="eu-west-1")
     for x in range(10, 12):
         s3_client_eu.create_bucket(
-            Bucket="eu-bucket{}".format(x),
+            Bucket=f"eu-bucket{x}",
             CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
         )
 
@@ -1398,16 +1390,16 @@ def test_list_aggregate_discovered_resource():
         assert result["ResourceIdentifiers"][x] == {
             "SourceAccountId": ACCOUNT_ID,
             "ResourceType": "AWS::S3::Bucket",
-            "ResourceId": "bucket{}".format(x),
-            "ResourceName": "bucket{}".format(x),
+            "ResourceId": f"bucket{x}",
+            "ResourceName": f"bucket{x}",
             "SourceRegion": "us-west-2",
         }
     for x in range(11, 12):
         assert result["ResourceIdentifiers"][x] == {
             "SourceAccountId": ACCOUNT_ID,
             "ResourceType": "AWS::S3::Bucket",
-            "ResourceId": "eu-bucket{}".format(x),
-            "ResourceName": "eu-bucket{}".format(x),
+            "ResourceId": f"eu-bucket{x}",
+            "ResourceName": f"eu-bucket{x}",
             "SourceRegion": "eu-west-1",
         }
 
@@ -1519,7 +1511,7 @@ def test_get_resource_config_history():
     s3_client = boto3.client("s3", region_name="us-west-2")
     for x in range(0, 10):
         s3_client.create_bucket(
-            Bucket="bucket{}".format(x),
+            Bucket=f"bucket{x}",
             CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
         )
 
@@ -1580,18 +1572,18 @@ def test_batch_get_resource_config():
     s3_client = boto3.client("s3", region_name="us-west-2")
     for x in range(0, 10):
         s3_client.create_bucket(
-            Bucket="bucket{}".format(x),
+            Bucket=f"bucket{x}",
             CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
         )
 
     # Get them all:
     keys = [
-        {"resourceType": "AWS::S3::Bucket", "resourceId": "bucket{}".format(x)}
+        {"resourceType": "AWS::S3::Bucket", "resourceId": f"bucket{x}"}
         for x in range(0, 10)
     ]
     result = client.batch_get_resource_config(resourceKeys=keys)
     assert len(result["baseConfigurationItems"]) == 10
-    buckets_missing = ["bucket{}".format(x) for x in range(0, 10)]
+    buckets_missing = [f"bucket{x}" for x in range(0, 10)]
     for r in result["baseConfigurationItems"]:
         buckets_missing.remove(r["resourceName"])
 
@@ -1656,22 +1648,22 @@ def test_batch_get_aggregate_resource_config():
     s3_client = boto3.client("s3", region_name="us-west-2")
     for x in range(0, 10):
         s3_client.create_bucket(
-            Bucket="bucket{}".format(x),
+            Bucket=f"bucket{x}",
             CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
         )
         s3_client.put_bucket_tagging(
-            Bucket="bucket{}".format(x),
+            Bucket=f"bucket{x}",
             Tagging={"TagSet": [{"Key": "Some", "Value": "Tag"}]},
         )
 
     s3_client_eu = boto3.client("s3", region_name="eu-west-1")
     for x in range(10, 12):
         s3_client_eu.create_bucket(
-            Bucket="eu-bucket{}".format(x),
+            Bucket=f"eu-bucket{x}",
             CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
         )
         s3_client.put_bucket_tagging(
-            Bucket="eu-bucket{}".format(x),
+            Bucket=f"eu-bucket{x}",
             Tagging={"TagSet": [{"Key": "Some", "Value": "Tag"}]},
         )
 
@@ -1681,7 +1673,7 @@ def test_batch_get_aggregate_resource_config():
             "SourceAccountId": ACCOUNT_ID,
             "SourceRegion": "us-west-2",
             "ResourceType": "AWS::S3::Bucket",
-            "ResourceId": "bucket{}".format(x),
+            "ResourceId": f"bucket{x}",
         }
         for x in range(0, 10)
     ]
@@ -1690,7 +1682,7 @@ def test_batch_get_aggregate_resource_config():
             "SourceAccountId": ACCOUNT_ID,
             "SourceRegion": "eu-west-1",
             "ResourceType": "AWS::S3::Bucket",
-            "ResourceId": "eu-bucket{}".format(x),
+            "ResourceId": f"eu-bucket{x}",
         }
         for x in range(10, 12)
     ]
@@ -1704,8 +1696,8 @@ def test_batch_get_aggregate_resource_config():
 
     # Verify all the buckets are there:
     assert len(result["BaseConfigurationItems"]) == 12
-    missing_buckets = ["bucket{}".format(x) for x in range(0, 10)] + [
-        "eu-bucket{}".format(x) for x in range(10, 12)
+    missing_buckets = [f"bucket{x}" for x in range(0, 10)] + [
+        f"eu-bucket{x}" for x in range(10, 12)
     ]
 
     for r in result["BaseConfigurationItems"]:
@@ -2063,7 +2055,7 @@ def test_get_organization_conformance_pack_detailed_status():
     status = response["OrganizationConformancePackDetailedStatuses"][0]
     status["AccountId"].should.equal(ACCOUNT_ID)
     status["ConformancePackName"].should.equal(
-        "OrgConformsPack-{}".format(arn[arn.rfind("/") + 1 :])
+        f"OrgConformsPack-{arn[arn.rfind('/') + 1 :]}"
     )
     status["Status"].should.equal("CREATE_SUCCESSFUL")
     update_time = status["LastUpdateTime"]
@@ -2085,7 +2077,7 @@ def test_get_organization_conformance_pack_detailed_status():
     status = response["OrganizationConformancePackDetailedStatuses"][0]
     status["AccountId"].should.equal(ACCOUNT_ID)
     status["ConformancePackName"].should.equal(
-        "OrgConformsPack-{}".format(arn[arn.rfind("/") + 1 :])
+        f"OrgConformsPack-{arn[arn.rfind('/') + 1 :]}"
     )
     status["Status"].should.equal("UPDATE_SUCCESSFUL")
     status["LastUpdateTime"].should.be.greater_than(update_time)

@@ -258,11 +258,7 @@ def test_access_denied_with_no_policy():
     ex.value.response["Error"]["Code"].should.equal("AccessDenied")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
     ex.value.response["Error"]["Message"].should.equal(
-        "User: arn:aws:iam::{account_id}:user/{user_name} is not authorized to perform: {operation}".format(
-            account_id=ACCOUNT_ID,
-            user_name=user_name,
-            operation="ec2:DescribeInstances",
-        )
+        f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:DescribeInstances"
     )
 
 
@@ -288,11 +284,7 @@ def test_access_denied_with_not_allowing_policy():
     ex.value.response["Error"]["Code"].should.equal("AccessDenied")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
     ex.value.response["Error"]["Message"].should.equal(
-        "User: arn:aws:iam::{account_id}:user/{user_name} is not authorized to perform: {operation}".format(
-            account_id=ACCOUNT_ID,
-            user_name=user_name,
-            operation="ec2:DescribeInstances",
-        )
+        f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:DescribeInstances"
     )
 
 
@@ -324,9 +316,7 @@ def test_access_denied_for_run_instances():
     ex.value.response["Error"]["Code"].should.equal("AccessDenied")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
     ex.value.response["Error"]["Message"].should.equal(
-        "User: arn:aws:iam::{account_id}:user/{user_name} is not authorized to perform: {operation}".format(
-            account_id=ACCOUNT_ID, user_name=user_name, operation="ec2:RunInstances"
-        )
+        f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:RunInstances"
     )
 
 
@@ -355,9 +345,7 @@ def test_access_denied_with_denying_policy():
     ex.value.response["Error"]["Code"].should.equal("AccessDenied")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
     ex.value.response["Error"]["Message"].should.equal(
-        "User: arn:aws:iam::{account_id}:user/{user_name} is not authorized to perform: {operation}".format(
-            account_id=ACCOUNT_ID, user_name=user_name, operation="ec2:CreateVpc"
-        )
+        f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:CreateVpc"
     )
 
 
@@ -535,9 +523,7 @@ def test_access_denied_with_many_irrelevant_policies():
     ex.value.response["Error"]["Code"].should.equal("AccessDenied")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
     ex.value.response["Error"]["Message"].should.equal(
-        "User: arn:aws:iam::{account_id}:user/{user_name} is not authorized to perform: {operation}".format(
-            account_id=ACCOUNT_ID, user_name=user_name, operation="ec2:CreateKeyPair"
-        )
+        f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:CreateKeyPair"
     )
 
 
@@ -552,9 +538,7 @@ def test_allowed_with_temporary_credentials():
         "Version": "2012-10-17",
         "Statement": {
             "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::{account_id}:root".format(account_id=ACCOUNT_ID)
-            },
+            "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
             "Action": "sts:AssumeRole",
         },
     }
@@ -607,9 +591,7 @@ def test_access_denied_with_temporary_credentials():
         "Version": "2012-10-17",
         "Statement": {
             "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::{account_id}:root".format(account_id=ACCOUNT_ID)
-            },
+            "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
             "Action": "sts:AssumeRole",
         },
     }
@@ -638,12 +620,7 @@ def test_access_denied_with_temporary_credentials():
     ex.value.response["Error"]["Code"].should.equal("AccessDenied")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
     ex.value.response["Error"]["Message"].should.equal(
-        "User: arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name} is not authorized to perform: {operation}".format(
-            account_id=ACCOUNT_ID,
-            role_name=role_name,
-            session_name=session_name,
-            operation="rds:CreateDBInstance",
-        )
+        f"User: arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name} is not authorized to perform: rds:CreateDBInstance"
     )
 
 
@@ -753,9 +730,7 @@ def test_s3_invalid_token_with_temporary_credentials():
         "Version": "2012-10-17",
         "Statement": {
             "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::{account_id}:root".format(account_id=ACCOUNT_ID)
-            },
+            "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
             "Action": "sts:AssumeRole",
         },
     }

@@ -19,11 +19,11 @@ class TestMockBucketStartingWithServiceName:
     @pytest.mark.parametrize("service_name,decorator", service_names)
     def test_bucketname_starting_with_service_name(self, service_name, decorator):
 
-        decorator = getattr(moto, "mock_{}".format(service_name))
+        decorator = getattr(moto, f"mock_{service_name}")
         with decorator():
             with mock_s3():
                 s3_client = boto3.client("s3", "eu-west-1")
-                bucket_name = "{}-bucket".format(service_name)
+                bucket_name = f"{service_name}-bucket"
                 s3_client.create_bucket(
                     ACL="private",
                     Bucket=bucket_name,

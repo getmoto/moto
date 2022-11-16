@@ -145,7 +145,7 @@ def test_list_table_tags_paginated():
     table_description = conn.describe_table(TableName=name)
     arn = table_description["Table"]["TableArn"]
     for i in range(11):
-        tags = [{"Key": "TestTag%d" % i, "Value": "TestValue"}]
+        tags = [{"Key": f"TestTag{i}", "Value": "TestValue"}]
         conn.tag_resource(ResourceArn=arn, Tags=tags)
     resp = conn.list_tags_of_resource(ResourceArn=arn)
     assert len(resp["Tags"]) == 10
@@ -3861,7 +3861,7 @@ def test_transact_write_items_put_conditional_expressions():
                 {
                     "Put": {
                         "Item": {
-                            "id": {"S": "foo{}".format(str(i))},
+                            "id": {"S": f"foo{i}"},
                             "foo": {"S": "bar"},
                         },
                         "TableName": "test-table",
@@ -4285,9 +4285,7 @@ def assert_correct_client_error(
     braces = braces or ["{", "}"]
     assert client_error.response["Error"]["Code"] == code
     if message_values is not None:
-        values_string = "{open_brace}(?P<values>.*){close_brace}".format(
-            open_brace=braces[0], close_brace=braces[1]
-        )
+        values_string = f"{braces[0]}(?P<values>.*){braces[1]}"
         re_msg = re.compile(message_template.format(values=values_string))
         match_result = re_msg.match(client_error.response["Error"]["Message"])
         assert match_result is not None
@@ -4886,7 +4884,7 @@ def test_set_attribute_is_dropped_if_empty_after_update_expression(attr_name):
     client.update_item(
         TableName=table_name,
         Key={"customer": {"S": item_key}},
-        UpdateExpression="ADD {} :order".format(attr_name),
+        UpdateExpression=f"ADD {attr_name} :order",
         ExpressionAttributeNames=expression_attribute_names,
         ExpressionAttributeValues={":order": {"SS": [set_item]}},
     )
@@ -4898,7 +4896,7 @@ def test_set_attribute_is_dropped_if_empty_after_update_expression(attr_name):
     client.update_item(
         TableName=table_name,
         Key={"customer": {"S": item_key}},
-        UpdateExpression="DELETE {} :order".format(attr_name),
+        UpdateExpression=f"DELETE {attr_name} :order",
         ExpressionAttributeNames=expression_attribute_names,
         ExpressionAttributeValues={":order": {"SS": [set_item]}},
     )
@@ -5193,7 +5191,7 @@ def test_describe_backup_for_non_existent_backup_raises_error():
         client.describe_backup(BackupArn=non_existent_arn)
     error = ex.value.response["Error"]
     error["Code"].should.equal("BackupNotFoundException")
-    error["Message"].should.equal("Backup not found: {}".format(non_existent_arn))
+    error["Message"].should.equal(f"Backup not found: {non_existent_arn}")
 
 
 @mock_dynamodb
@@ -5280,7 +5278,7 @@ def test_restore_table_from_non_existent_backup_raises_error():
         )
     error = ex.value.response["Error"]
     error["Code"].should.equal("BackupNotFoundException")
-    error["Message"].should.equal("Backup not found: {}".format(non_existent_arn))
+    error["Message"].should.equal(f"Backup not found: {non_existent_arn}")
 
 
 @mock_dynamodb
@@ -5301,7 +5299,7 @@ def test_restore_table_from_backup_raises_error_when_table_already_exists():
         )
     error = ex.value.response["Error"]
     error["Code"].should.equal("TableAlreadyExistsException")
-    error["Message"].should.equal("Table already exists: {}".format(table_name))
+    error["Message"].should.equal(f"Table already exists: {table_name}")
 
 
 @mock_dynamodb
@@ -5316,7 +5314,7 @@ def test_restore_table_from_backup():
     )
     table = resp.get("TableDescription")
     for i in range(5):
-        client.put_item(TableName=table_name, Item={"id": {"S": "item %d" % i}})
+        client.put_item(TableName=table_name, Item={"id": {"S": f"item {i}"}})
 
     backup_arn = (
         client.create_backup(TableName=table_name, BackupName="backup")
@@ -5356,7 +5354,7 @@ def test_restore_table_to_point_in_time():
     )
     table = resp.get("TableDescription")
     for i in range(5):
-        client.put_item(TableName=table_name, Item={"id": {"S": "item %d" % i}})
+        client.put_item(TableName=table_name, Item={"id": {"S": f"item {i}"}})
 
     restored_table_name = "restored-from-pit"
     restored = client.restore_table_to_point_in_time(
@@ -5385,7 +5383,7 @@ def test_restore_table_to_point_in_time_raises_error_when_source_not_exist():
         )
     error = ex.value.response["Error"]
     error["Code"].should.equal("SourceTableNotFoundException")
-    error["Message"].should.equal("Source table not found: %s" % table_name)
+    error["Message"].should.equal(f"Source table not found: {table_name}")
 
 
 @mock_dynamodb
@@ -5411,7 +5409,7 @@ def test_restore_table_to_point_in_time_raises_error_when_dest_exist():
         )
     error = ex.value.response["Error"]
     error["Code"].should.equal("TableAlreadyExistsException")
-    error["Message"].should.equal("Table already exists: %s" % restored_table_name)
+    error["Message"].should.equal(f"Table already exists: {restored_table_name}")
 
 
 @mock_dynamodb
@@ -5422,7 +5420,7 @@ def test_delete_non_existent_backup_raises_error():
         client.delete_backup(BackupArn=non_existent_arn)
     error = ex.value.response["Error"]
     error["Code"].should.equal("BackupNotFoundException")
-    error["Message"].should.equal("Backup not found: {}".format(non_existent_arn))
+    error["Message"].should.equal(f"Backup not found: {non_existent_arn}")
 
 
 @mock_dynamodb
@@ -5511,7 +5509,7 @@ def test_describe_endpoints(region):
     res.should.equal(
         [
             {
-                "Address": "dynamodb.{}.amazonaws.com".format(region),
+                "Address": f"dynamodb.{region}.amazonaws.com",
                 "CachePeriodInMinutes": 1440,
             },
         ]

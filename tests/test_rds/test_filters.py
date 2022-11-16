@@ -15,8 +15,8 @@ class TestDBInstanceFilters(object):
         cls.mock.start()
         client = boto3.client("rds", region_name="us-west-2")
         for i in range(10):
-            instance_identifier = "db-instance-{}".format(i)
-            cluster_identifier = "db-cluster-{}".format(i)
+            instance_identifier = f"db-instance-{i}"
+            cluster_identifier = f"db-cluster-{i}"
             engine = "postgres" if (i % 3) else "mysql"
             client.create_db_instance(
                 DBInstanceIdentifier=instance_identifier,
@@ -200,7 +200,7 @@ class TestDBSnapshotFilters(object):
         # We'll set up two instances (one postgres, one mysql)
         # with two snapshots each.
         for i in range(2):
-            identifier = "db-instance-{}".format(i)
+            identifier = f"db-instance-{i}"
             engine = "postgres" if i else "mysql"
             client.create_db_instance(
                 DBInstanceIdentifier=identifier,
@@ -210,7 +210,7 @@ class TestDBSnapshotFilters(object):
             for j in range(2):
                 client.create_db_snapshot(
                     DBInstanceIdentifier=identifier,
-                    DBSnapshotIdentifier="{}-snapshot-{}".format(identifier, j),
+                    DBSnapshotIdentifier=f"{identifier}-snapshot-{j}",
                 )
         cls.client = client
 

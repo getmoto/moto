@@ -915,12 +915,8 @@ def test_create_authorizer():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
 
-    response["items"][0]["id"].should.match(
-        r"{0}|{1}".format(authorizer_id2, authorizer_id)
-    )
-    response["items"][1]["id"].should.match(
-        r"{0}|{1}".format(authorizer_id2, authorizer_id)
-    )
+    response["items"][0]["id"].should.match(rf"{authorizer_id2}|{authorizer_id}")
+    response["items"][1]["id"].should.match(rf"{authorizer_id2}|{authorizer_id}")
 
     new_authorizer_name_with_vars = "authorizer_with_vars"
     response = client.create_authorizer(
@@ -1162,9 +1158,7 @@ def test_put_integration_validation():
         client.put_integration(
             restApiId=api_id,
             resourceId=root_id,
-            credentials="arn:aws:iam::{}:role/service-role/testfunction-role-oe783psq".format(
-                ACCOUNT_ID
-            ),
+            credentials=f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/testfunction-role-oe783psq",
             httpMethod="GET",
             type=_type,
             uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
@@ -1186,9 +1180,7 @@ def test_put_integration_validation():
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
-                credentials="arn:aws:iam::{}:role/service-role/testfunction-role-oe783psq".format(
-                    ACCOUNT_ID
-                ),
+                credentials=f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/testfunction-role-oe783psq",
                 httpMethod="GET",
                 type=_type,
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",

@@ -514,7 +514,7 @@ def test_create_policy():
         PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY
     )
     response["Policy"]["Arn"].should.equal(
-        "arn:aws:iam::{}:policy/TestCreatePolicy".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:policy/TestCreatePolicy"
     )
 
 
@@ -547,14 +547,12 @@ def test_create_policy_versions():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError):
         conn.create_policy_version(
-            PolicyArn="arn:aws:iam::{}:policy/TestCreatePolicyVersion".format(
-                ACCOUNT_ID
-            ),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestCreatePolicyVersion",
             PolicyDocument='{"some":"policy"}',
         )
     conn.create_policy(PolicyName="TestCreatePolicyVersion", PolicyDocument=MOCK_POLICY)
     version = conn.create_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestCreatePolicyVersion".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestCreatePolicyVersion",
         PolicyDocument=MOCK_POLICY,
         SetAsDefault=True,
     )
@@ -562,11 +560,11 @@ def test_create_policy_versions():
     version.get("PolicyVersion").get("VersionId").should.equal("v2")
     version.get("PolicyVersion").get("IsDefaultVersion").should.be.ok
     conn.delete_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestCreatePolicyVersion".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestCreatePolicyVersion",
         VersionId="v1",
     )
     version = conn.create_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestCreatePolicyVersion".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestCreatePolicyVersion",
         PolicyDocument=MOCK_POLICY,
     )
     version.get("PolicyVersion").get("VersionId").should.equal("v3")
@@ -581,16 +579,12 @@ def test_create_many_policy_versions():
     )
     for _ in range(0, 4):
         conn.create_policy_version(
-            PolicyArn="arn:aws:iam::{}:policy/TestCreateManyPolicyVersions".format(
-                ACCOUNT_ID
-            ),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestCreateManyPolicyVersions",
             PolicyDocument=MOCK_POLICY,
         )
     with pytest.raises(ClientError):
         conn.create_policy_version(
-            PolicyArn="arn:aws:iam::{}:policy/TestCreateManyPolicyVersions".format(
-                ACCOUNT_ID
-            ),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestCreateManyPolicyVersions",
             PolicyDocument=MOCK_POLICY,
         )
 
@@ -602,23 +596,17 @@ def test_set_default_policy_version():
         PolicyName="TestSetDefaultPolicyVersion", PolicyDocument=MOCK_POLICY
     )
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
-            ACCOUNT_ID
-        ),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestSetDefaultPolicyVersion",
         PolicyDocument=MOCK_POLICY_2,
         SetAsDefault=True,
     )
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
-            ACCOUNT_ID
-        ),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestSetDefaultPolicyVersion",
         PolicyDocument=MOCK_POLICY_3,
         SetAsDefault=True,
     )
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
-            ACCOUNT_ID
-        )
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestSetDefaultPolicyVersion"
     )
     versions.get("Versions")[0].get("Document").should.equal(json.loads(MOCK_POLICY))
     versions.get("Versions")[0].get("IsDefaultVersion").shouldnt.be.ok
@@ -628,15 +616,11 @@ def test_set_default_policy_version():
     versions.get("Versions")[2].get("IsDefaultVersion").should.be.ok
 
     conn.set_default_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
-            ACCOUNT_ID
-        ),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestSetDefaultPolicyVersion",
         VersionId="v1",
     )
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
-            ACCOUNT_ID
-        )
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestSetDefaultPolicyVersion"
     )
     versions.get("Versions")[0].get("Document").should.equal(json.loads(MOCK_POLICY))
     versions.get("Versions")[0].get("IsDefaultVersion").should.be.ok
@@ -647,20 +631,16 @@ def test_set_default_policy_version():
 
     # Set default version for non-existing policy
     conn.set_default_policy_version.when.called_with(
-        PolicyArn="arn:aws:iam::{}:policy/TestNonExistingPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestNonExistingPolicy",
         VersionId="v1",
     ).should.throw(
         ClientError,
-        "Policy arn:aws:iam::{}:policy/TestNonExistingPolicy not found".format(
-            ACCOUNT_ID
-        ),
+        f"Policy arn:aws:iam::{ACCOUNT_ID}:policy/TestNonExistingPolicy not found",
     )
 
     # Set default version for incorrect version
     conn.set_default_policy_version.when.called_with(
-        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
-            ACCOUNT_ID
-        ),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestSetDefaultPolicyVersion",
         VersionId="wrong_version_id",
     ).should.throw(
         ClientError,
@@ -669,15 +649,11 @@ def test_set_default_policy_version():
 
     # Set default version for non-existing version
     conn.set_default_policy_version.when.called_with(
-        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
-            ACCOUNT_ID
-        ),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestSetDefaultPolicyVersion",
         VersionId="v4",
     ).should.throw(
         ClientError,
-        "Policy arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion version v4 does not exist or is not attachable.".format(
-            ACCOUNT_ID
-        ),
+        f"Policy arn:aws:iam::{ACCOUNT_ID}:policy/TestSetDefaultPolicyVersion version v4 does not exist or is not attachable.",
     )
 
 
@@ -686,10 +662,10 @@ def test_get_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestGetPolicy", PolicyDocument=MOCK_POLICY)
     policy = conn.get_policy(
-        PolicyArn="arn:aws:iam::{}:policy/TestGetPolicy".format(ACCOUNT_ID)
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestGetPolicy"
     )
     policy["Policy"]["Arn"].should.equal(
-        "arn:aws:iam::{}:policy/TestGetPolicy".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:policy/TestGetPolicy"
     )
 
 
@@ -712,16 +688,16 @@ def test_get_policy_version():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestGetPolicyVersion", PolicyDocument=MOCK_POLICY)
     version = conn.create_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestGetPolicyVersion".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestGetPolicyVersion",
         PolicyDocument=MOCK_POLICY,
     )
     with pytest.raises(ClientError):
         conn.get_policy_version(
-            PolicyArn="arn:aws:iam::{}:policy/TestGetPolicyVersion".format(ACCOUNT_ID),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestGetPolicyVersion",
             VersionId="v2-does-not-exist",
         )
     retrieved = conn.get_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestGetPolicyVersion".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestGetPolicyVersion",
         VersionId=version.get("PolicyVersion").get("VersionId"),
     )
     retrieved.get("PolicyVersion").get("Document").should.equal(json.loads(MOCK_POLICY))
@@ -766,25 +742,25 @@ def test_list_policy_versions():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError):
         versions = conn.list_policy_versions(
-            PolicyArn="arn:aws:iam::{}:policy/TestListPolicyVersions".format(ACCOUNT_ID)
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestListPolicyVersions"
         )
     conn.create_policy(PolicyName="TestListPolicyVersions", PolicyDocument=MOCK_POLICY)
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::{}:policy/TestListPolicyVersions".format(ACCOUNT_ID)
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestListPolicyVersions"
     )
     versions.get("Versions")[0].get("VersionId").should.equal("v1")
     versions.get("Versions")[0].get("IsDefaultVersion").should.be.ok
 
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestListPolicyVersions".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestListPolicyVersions",
         PolicyDocument=MOCK_POLICY_2,
     )
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestListPolicyVersions".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestListPolicyVersions",
         PolicyDocument=MOCK_POLICY_3,
     )
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::{}:policy/TestListPolicyVersions".format(ACCOUNT_ID)
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestListPolicyVersions"
     )
     versions.get("Versions")[1].get("Document").should.equal(json.loads(MOCK_POLICY_2))
     versions.get("Versions")[1].get("IsDefaultVersion").shouldnt.be.ok
@@ -797,22 +773,20 @@ def test_delete_policy_version():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestDeletePolicyVersion", PolicyDocument=MOCK_POLICY)
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestDeletePolicyVersion",
         PolicyDocument=MOCK_POLICY,
     )
     with pytest.raises(ClientError):
         conn.delete_policy_version(
-            PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(
-                ACCOUNT_ID
-            ),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestDeletePolicyVersion",
             VersionId="v2-nope-this-does-not-exist",
         )
     conn.delete_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestDeletePolicyVersion",
         VersionId="v2",
     )
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(ACCOUNT_ID)
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestDeletePolicyVersion"
     )
     len(versions.get("Versions")).should.equal(1)
 
@@ -822,14 +796,12 @@ def test_delete_default_policy_version():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestDeletePolicyVersion", PolicyDocument=MOCK_POLICY)
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestDeletePolicyVersion",
         PolicyDocument=MOCK_POLICY_2,
     )
     with pytest.raises(ClientError):
         conn.delete_policy_version(
-            PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(
-                ACCOUNT_ID
-            ),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestDeletePolicyVersion",
             VersionId="v1",
         )
 
@@ -849,9 +821,7 @@ def test_create_policy_with_tags():
 
     # Get policy:
     policy = conn.get_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(
-            ACCOUNT_ID, "TestCreatePolicyWithTags1"
-        )
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestCreatePolicyWithTags1"
     )["Policy"]
     assert len(policy["Tags"]) == 2
     assert policy["Tags"][0]["Key"] == "somekey"
@@ -872,9 +842,7 @@ def test_create_policy_with_empty_tag_value():
         Tags=[{"Key": "somekey", "Value": ""}],
     )
     tags = conn.list_policy_tags(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(
-            ACCOUNT_ID, "TestCreatePolicyWithTags2"
-        )
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestCreatePolicyWithTags2"
     )
     assert len(tags["Tags"]) == 1
     assert tags["Tags"][0]["Key"] == "somekey"
@@ -994,7 +962,7 @@ def test_create_policy_with_no_tags():
 
     # Get without tags:
     policy = conn.get_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy"
     )["Policy"]
     assert not policy.get("Tags")
 
@@ -1004,7 +972,7 @@ def test_get_policy_with_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1013,7 +981,7 @@ def test_get_policy_with_tags():
 
     # Get policy:
     policy = conn.get_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy"
     )["Policy"]
     assert len(policy["Tags"]) == 2
     assert policy["Tags"][0]["Key"] == "somekey"
@@ -1027,7 +995,7 @@ def test_list_policy_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1036,7 +1004,7 @@ def test_list_policy_tags():
 
     # List_policy_tags:
     tags = conn.list_policy_tags(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy"
     )
     assert len(tags["Tags"]) == 2
     assert tags["Tags"][0]["Key"] == "somekey"
@@ -1052,7 +1020,7 @@ def test_list_policy_tags_pagination():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1061,7 +1029,7 @@ def test_list_policy_tags_pagination():
 
     # Test pagination:
     tags = conn.list_policy_tags(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         MaxItems=1,
     )
     assert len(tags["Tags"]) == 1
@@ -1071,7 +1039,7 @@ def test_list_policy_tags_pagination():
     assert tags["Marker"] == "1"
 
     tags = conn.list_policy_tags(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Marker=tags["Marker"],
     )
     assert len(tags["Tags"]) == 1
@@ -1086,7 +1054,7 @@ def test_updating_existing_tag():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1095,11 +1063,11 @@ def test_updating_existing_tag():
 
     # Test updating an existing tag:
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[{"Key": "somekey", "Value": "somenewvalue"}],
     )
     tags = conn.list_policy_tags(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy"
     )
     assert len(tags["Tags"]) == 2
     assert tags["Tags"][0]["Key"] == "somekey"
@@ -1111,7 +1079,7 @@ def test_updating_existing_tag_with_empty_value():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1120,11 +1088,11 @@ def test_updating_existing_tag_with_empty_value():
 
     # Empty is good:
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[{"Key": "somekey", "Value": ""}],
     )
     tags = conn.list_policy_tags(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy"
     )
     assert len(tags["Tags"]) == 2
     assert tags["Tags"][0]["Key"] == "somekey"
@@ -1136,7 +1104,7 @@ def test_updating_existing_tagged_policy_with_too_many_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1149,7 +1117,7 @@ def test_updating_existing_tagged_policy_with_too_many_tags():
             map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
         )
         conn.tag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
             Tags=too_many_tags,
         )
     assert (
@@ -1163,7 +1131,7 @@ def test_updating_existing_tagged_policy_with_duplicate_tag():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1173,7 +1141,7 @@ def test_updating_existing_tagged_policy_with_duplicate_tag():
     # With a duplicate tag:
     with pytest.raises(ClientError) as ce:
         conn.tag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
             Tags=[{"Key": "0", "Value": ""}, {"Key": "0", "Value": ""}],
         )
     assert (
@@ -1187,7 +1155,7 @@ def test_updating_existing_tagged_policy_with_duplicate_tag_different_casing():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1197,7 +1165,7 @@ def test_updating_existing_tagged_policy_with_duplicate_tag_different_casing():
     # Duplicate tag with different casing:
     with pytest.raises(ClientError) as ce:
         conn.tag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
             Tags=[{"Key": "a", "Value": ""}, {"Key": "A", "Value": ""}],
         )
     assert (
@@ -1211,7 +1179,7 @@ def test_updating_existing_tagged_policy_with_large_key():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1221,7 +1189,7 @@ def test_updating_existing_tagged_policy_with_large_key():
     # With a really big key:
     with pytest.raises(ClientError) as ce:
         conn.tag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
             Tags=[{"Key": "0" * 129, "Value": ""}],
         )
     assert (
@@ -1235,7 +1203,7 @@ def test_updating_existing_tagged_policy_with_large_value():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1245,7 +1213,7 @@ def test_updating_existing_tagged_policy_with_large_value():
     # With a really big value:
     with pytest.raises(ClientError) as ce:
         conn.tag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
             Tags=[{"Key": "0", "Value": "0" * 257}],
         )
     assert (
@@ -1259,7 +1227,7 @@ def test_updating_existing_tagged_policy_with_invalid_character():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1269,7 +1237,7 @@ def test_updating_existing_tagged_policy_with_invalid_character():
     # With an invalid character:
     with pytest.raises(ClientError) as ce:
         conn.tag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
             Tags=[{"Key": "NOWAY!", "Value": ""}],
         )
     assert (
@@ -1285,7 +1253,7 @@ def test_tag_non_existant_policy():
     # With a policy that doesn't exist:
     with pytest.raises(ClientError):
         conn.tag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "NotAPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/NotAPolicy",
             Tags=[{"Key": "some", "Value": "value"}],
         )
 
@@ -1297,7 +1265,7 @@ def test_untag_policy():
 
     # With proper tag values:
     conn.tag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestUnTagPolicy",
         Tags=[
             {"Key": "somekey", "Value": "somevalue"},
             {"Key": "someotherkey", "Value": "someothervalue"},
@@ -1306,11 +1274,11 @@ def test_untag_policy():
 
     # Remove them:
     conn.untag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestUnTagPolicy",
         TagKeys=["somekey"],
     )
     tags = conn.list_policy_tags(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy")
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestUnTagPolicy"
     )
     assert len(tags["Tags"]) == 1
     assert tags["Tags"][0]["Key"] == "someotherkey"
@@ -1318,11 +1286,11 @@ def test_untag_policy():
 
     # And again:
     conn.untag_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestUnTagPolicy",
         TagKeys=["someotherkey"],
     )
     tags = conn.list_policy_tags(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy")
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestUnTagPolicy"
     )
     assert not tags["Tags"]
 
@@ -1330,7 +1298,7 @@ def test_untag_policy():
     # With more than 50 tags:
     with pytest.raises(ClientError) as ce:
         conn.untag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestUnTagPolicy",
             TagKeys=[str(x) for x in range(0, 51)],
         )
     assert (
@@ -1342,7 +1310,7 @@ def test_untag_policy():
     # With a really big key:
     with pytest.raises(ClientError) as ce:
         conn.untag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestUnTagPolicy",
             TagKeys=["0" * 129],
         )
     assert (
@@ -1354,7 +1322,7 @@ def test_untag_policy():
     # With an invalid character:
     with pytest.raises(ClientError) as ce:
         conn.untag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestUnTagPolicy",
             TagKeys=["NOWAY!"],
         )
     assert (
@@ -1366,7 +1334,7 @@ def test_untag_policy():
     # With a policy that doesn't exist:
     with pytest.raises(ClientError):
         conn.untag_policy(
-            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "NotAPolicy"),
+            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/NotAPolicy",
             TagKeys=["somevalue"],
         )
 
@@ -1378,7 +1346,7 @@ def test_create_user_boto():
     u["Path"].should.equal("/")
     u["UserName"].should.equal("my-user")
     u.should.have.key("UserId")
-    u["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
+    u["Arn"].should.equal(f"arn:aws:iam::{ACCOUNT_ID}:user/my-user")
     u["CreateDate"].should.be.a(datetime)
 
     with pytest.raises(ClientError) as ex:
@@ -1403,7 +1371,7 @@ def test_get_user():
     u["Path"].should.equal("/")
     u["UserName"].should.equal("my-user")
     u.should.have.key("UserId")
-    u["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
+    u["Arn"].should.equal(f"arn:aws:iam::{ACCOUNT_ID}:user/my-user")
     u["CreateDate"].should.be.a(datetime)
 
 
@@ -1438,7 +1406,7 @@ def test_list_users():
     user = response["Users"][0]
     user["UserName"].should.equal("my-user")
     user["Path"].should.equal("/")
-    user["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
+    user["Arn"].should.equal(f"arn:aws:iam::{ACCOUNT_ID}:user/my-user")
     response["IsTruncated"].should.equal(False)
 
     conn.create_user(UserName="my-user-1", Path="myUser")
@@ -1620,9 +1588,7 @@ def test_create_virtual_mfa_device():
     response = client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
     device = response["VirtualMFADevice"]
 
-    device["SerialNumber"].should.equal(
-        "arn:aws:iam::{}:mfa/test-device".format(ACCOUNT_ID)
-    )
+    device["SerialNumber"].should.equal(f"arn:aws:iam::{ACCOUNT_ID}:mfa/test-device")
     device["Base32StringSeed"].decode("ascii").should.match("[A-Z234567]")
     device["QRCodePNG"].should_not.equal("")
 
@@ -1631,9 +1597,7 @@ def test_create_virtual_mfa_device():
     )
     device = response["VirtualMFADevice"]
 
-    device["SerialNumber"].should.equal(
-        "arn:aws:iam::{}:mfa/test-device-2".format(ACCOUNT_ID)
-    )
+    device["SerialNumber"].should.equal(f"arn:aws:iam::{ACCOUNT_ID}:mfa/test-device-2")
     device["Base32StringSeed"].decode("ascii").should.match("[A-Z234567]")
     device["QRCodePNG"].should_not.equal("")
 
@@ -1643,7 +1607,7 @@ def test_create_virtual_mfa_device():
     device = response["VirtualMFADevice"]
 
     device["SerialNumber"].should.equal(
-        "arn:aws:iam::{}:mfa/test/test-device".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:mfa/test/test-device"
     )
     device["Base32StringSeed"].decode("ascii").should.match("[A-Z234567]")
     device["QRCodePNG"].should_not.equal("")
@@ -1677,7 +1641,7 @@ def test_create_virtual_mfa_device_errors():
         "It must begin and end with / and contain only alphanumeric characters and/or / characters.",
     )
 
-    too_long_path = "/{}/".format("b" * 511)
+    too_long_path = f"/{('b' * 511)}/"
     client.create_virtual_mfa_device.when.called_with(
         Path=too_long_path, VirtualMFADeviceName="test-device"
     ).should.throw(
@@ -1706,12 +1670,12 @@ def test_delete_virtual_mfa_device():
 def test_delete_virtual_mfa_device_errors():
     client = boto3.client("iam", region_name="us-east-1")
 
-    serial_number = "arn:aws:iam::{}:mfa/not-existing".format(ACCOUNT_ID)
+    serial_number = f"arn:aws:iam::{ACCOUNT_ID}:mfa/not-existing"
     client.delete_virtual_mfa_device.when.called_with(
         SerialNumber=serial_number
     ).should.throw(
         ClientError,
-        "VirtualMFADevice with serial number {0} doesn't exist.".format(serial_number),
+        f"VirtualMFADevice with serial number {serial_number} doesn't exist.",
     )
 
 
@@ -1796,9 +1760,7 @@ def test_enable_virtual_mfa_device():
     device["User"]["Path"].should.equal("/")
     device["User"]["UserName"].should.equal("test-user")
     device["User"]["UserId"].should.match("[a-z0-9]+")
-    device["User"]["Arn"].should.equal(
-        "arn:aws:iam::{}:user/test-user".format(ACCOUNT_ID)
-    )
+    device["User"]["Arn"].should.equal(f"arn:aws:iam::{ACCOUNT_ID}:user/test-user")
     device["User"]["CreateDate"].should.be.a(datetime)
     device["User"]["Tags"].should.equal(tags)
     device["EnableDate"].should.be.a(datetime)
@@ -2324,7 +2286,7 @@ def test_get_account_authorization_details():
     )
 
     conn = boto3.client("iam", region_name="us-east-1")
-    boundary = "arn:aws:iam::{}:policy/boundary".format(ACCOUNT_ID)
+    boundary = f"arn:aws:iam::{ACCOUNT_ID}:policy/boundary"
     conn.create_role(
         RoleName="my-role",
         AssumeRolePolicyDocument="some policy",
@@ -2351,11 +2313,11 @@ def test_get_account_authorization_details():
 
     conn.attach_user_policy(
         UserName="testUser",
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
     )
     conn.attach_group_policy(
         GroupName="testGroup",
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
     )
 
     conn.add_user_to_group(UserName="testUser", GroupName="testGroup")
@@ -2375,7 +2337,7 @@ def test_get_account_authorization_details():
     )
     conn.attach_role_policy(
         RoleName="my-role",
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
     )
 
     result = conn.get_account_authorization_details(Filter=["Role"])
@@ -2392,7 +2354,7 @@ def test_get_account_authorization_details():
         "PermissionsBoundary"
     ] == {
         "PermissionsBoundaryType": "PermissionsBoundaryPolicy",
-        "PermissionsBoundaryArn": "arn:aws:iam::{}:policy/boundary".format(ACCOUNT_ID),
+        "PermissionsBoundaryArn": f"arn:aws:iam::{ACCOUNT_ID}:policy/boundary",
     }
     assert len(result["RoleDetailList"][0]["Tags"]) == 2
     assert len(result["RoleDetailList"][0]["RolePolicyList"]) == 1
@@ -2401,9 +2363,10 @@ def test_get_account_authorization_details():
         result["RoleDetailList"][0]["AttachedManagedPolicies"][0]["PolicyName"]
         == "testPolicy"
     )
-    assert result["RoleDetailList"][0]["AttachedManagedPolicies"][0][
-        "PolicyArn"
-    ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
+    assert (
+        result["RoleDetailList"][0]["AttachedManagedPolicies"][0]["PolicyArn"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy"
+    )
     assert result["RoleDetailList"][0]["RolePolicyList"][0][
         "PolicyDocument"
     ] == json.loads(test_policy)
@@ -2420,9 +2383,10 @@ def test_get_account_authorization_details():
         result["UserDetailList"][0]["AttachedManagedPolicies"][0]["PolicyName"]
         == "testPolicy"
     )
-    assert result["UserDetailList"][0]["AttachedManagedPolicies"][0][
-        "PolicyArn"
-    ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
+    assert (
+        result["UserDetailList"][0]["AttachedManagedPolicies"][0]["PolicyArn"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy"
+    )
     assert result["UserDetailList"][0]["UserPolicyList"][0][
         "PolicyDocument"
     ] == json.loads(test_policy)
@@ -2438,9 +2402,10 @@ def test_get_account_authorization_details():
         result["GroupDetailList"][0]["AttachedManagedPolicies"][0]["PolicyName"]
         == "testPolicy"
     )
-    assert result["GroupDetailList"][0]["AttachedManagedPolicies"][0][
-        "PolicyArn"
-    ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
+    assert (
+        result["GroupDetailList"][0]["AttachedManagedPolicies"][0]["PolicyArn"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy"
+    )
     assert result["GroupDetailList"][0]["GroupPolicyList"][0][
         "PolicyDocument"
     ] == json.loads(test_policy)
@@ -2508,14 +2473,16 @@ def test_signing_certs():
             UserName="notauser", CertificateId=cert_id, Status="Inactive"
         )
 
+    fake_id_name = "x" * 32
     with pytest.raises(ClientError) as ce:
         client.update_signing_certificate(
-            UserName="testing", CertificateId="x" * 32, Status="Inactive"
+            UserName="testing", CertificateId=fake_id_name, Status="Inactive"
         )
 
-    assert ce.value.response["Error"][
-        "Message"
-    ] == "The Certificate with id {id} cannot be found.".format(id="x" * 32)
+    assert (
+        ce.value.response["Error"]["Message"]
+        == f"The Certificate with id {fake_id_name} cannot be found."
+    )
 
     # List the certs:
     resp = client.list_signing_certificates(UserName="testing")["Certificates"]
@@ -2540,7 +2507,7 @@ def test_create_saml_provider():
         Name="TestSAMLProvider", SAMLMetadataDocument="a" * 1024
     )
     response["SAMLProviderArn"].should.equal(
-        "arn:aws:iam::{}:saml-provider/TestSAMLProvider".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:saml-provider/TestSAMLProvider"
     )
 
 
@@ -2562,7 +2529,7 @@ def test_list_saml_providers():
     conn.create_saml_provider(Name="TestSAMLProvider", SAMLMetadataDocument="a" * 1024)
     response = conn.list_saml_providers()
     response["SAMLProviderList"][0]["Arn"].should.equal(
-        "arn:aws:iam::{}:saml-provider/TestSAMLProvider".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:saml-provider/TestSAMLProvider"
     )
 
 
@@ -2583,9 +2550,10 @@ def test_delete_saml_provider():
     with pytest.raises(ClientError) as ce:
         conn.delete_signing_certificate(UserName="testing", CertificateId=cert_id)
 
-    assert ce.value.response["Error"][
-        "Message"
-    ] == "The Certificate with id {id} cannot be found.".format(id=cert_id)
+    assert (
+        ce.value.response["Error"]["Message"]
+        == f"The Certificate with id {cert_id} cannot be found."
+    )
 
     # Verify that it's not in the list:
     resp = conn.list_signing_certificates(UserName="testing")
@@ -2989,11 +2957,11 @@ def test_list_entities_for_policy():
 
     conn.attach_user_policy(
         UserName="testUser",
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
     )
     conn.attach_group_policy(
         GroupName="testGroup",
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
     )
 
     conn.add_user_to_group(UserName="testUser", GroupName="testGroup")
@@ -3013,11 +2981,11 @@ def test_list_entities_for_policy():
     )
     conn.attach_role_policy(
         RoleName="my-role",
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
     )
 
     response = conn.list_entities_for_policy(
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
         EntityFilter="Role",
     )
     assert response["PolicyRoles"][0]["RoleName"] == "my-role"
@@ -3026,7 +2994,7 @@ def test_list_entities_for_policy():
     response["PolicyUsers"].should.equal([])
 
     response = conn.list_entities_for_policy(
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
         EntityFilter="User",
     )
     assert response["PolicyUsers"][0]["UserName"] == "testUser"
@@ -3035,7 +3003,7 @@ def test_list_entities_for_policy():
     response["PolicyRoles"].should.equal([])
 
     response = conn.list_entities_for_policy(
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
         EntityFilter="Group",
     )
     assert response["PolicyGroups"][0]["GroupName"] == "testGroup"
@@ -3044,7 +3012,7 @@ def test_list_entities_for_policy():
     response["PolicyUsers"].should.equal([])
 
     response = conn.list_entities_for_policy(
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
         EntityFilter="LocalManagedPolicy",
     )
     assert response["PolicyGroups"][0]["GroupName"] == "testGroup"
@@ -3057,7 +3025,7 @@ def test_list_entities_for_policy():
 
     # Return everything when no entity is specified
     response = conn.list_entities_for_policy(
-        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
+        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy"
     )
     response["PolicyGroups"][0]["GroupName"].should.equal("testGroup")
     response["PolicyUsers"][0]["UserName"].should.equal("testUser")
@@ -3074,9 +3042,7 @@ def test_create_role_no_path():
     resp = conn.create_role(
         RoleName="my-role", AssumeRolePolicyDocument="some policy", Description="test"
     )
-    resp.get("Role").get("Arn").should.equal(
-        "arn:aws:iam::{}:role/my-role".format(ACCOUNT_ID)
-    )
+    resp.get("Role").get("Arn").should.equal(f"arn:aws:iam::{ACCOUNT_ID}:role/my-role")
     resp.get("Role").should_not.have.key("PermissionsBoundary")
     resp.get("Role").get("Description").should.equal("test")
 
@@ -3084,7 +3050,7 @@ def test_create_role_no_path():
 @mock_iam()
 def test_create_role_with_permissions_boundary():
     conn = boto3.client("iam", region_name="us-east-1")
-    boundary = "arn:aws:iam::{}:policy/boundary".format(ACCOUNT_ID)
+    boundary = f"arn:aws:iam::{ACCOUNT_ID}:policy/boundary"
     resp = conn.create_role(
         RoleName="my-role",
         AssumeRolePolicyDocument="some policy",
@@ -3139,7 +3105,7 @@ def test_create_role_with_same_name_should_fail():
         )
     err.value.response["Error"]["Code"].should.equal("EntityAlreadyExists")
     err.value.response["Error"]["Message"].should.equal(
-        "Role with name {0} already exists.".format(test_role_name)
+        f"Role with name {test_role_name} already exists."
     )
 
 
@@ -3153,9 +3119,7 @@ def test_create_policy_with_same_name_should_fail():
         iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
     err.value.response["Error"]["Code"].should.equal("EntityAlreadyExists")
     err.value.response["Error"]["Message"].should.equal(
-        "A policy called {0} already exists. Duplicate names are not allowed.".format(
-            test_policy_name
-        )
+        f"A policy called {test_policy_name} already exists. Duplicate names are not allowed."
     )
 
 
@@ -3237,7 +3201,7 @@ def test_get_account_password_policy_errors():
 
     client.get_account_password_policy.when.called_with().should.throw(
         ClientError,
-        "The Password Policy with domain name {} cannot be found.".format(ACCOUNT_ID),
+        f"The Password Policy with domain name {ACCOUNT_ID} cannot be found.",
     )
 
 
@@ -3254,7 +3218,7 @@ def test_delete_account_password_policy():
 
     client.get_account_password_policy.when.called_with().should.throw(
         ClientError,
-        "The Password Policy with domain name {} cannot be found.".format(ACCOUNT_ID),
+        f"The Password Policy with domain name {ACCOUNT_ID} cannot be found.",
     )
 
 
@@ -3467,11 +3431,11 @@ def test_role_list_config_discovered_resources():
         this_role = role_config_query.backends[DEFAULT_ACCOUNT_ID][
             "global"
         ].create_role(
-            role_name="role{}".format(ix),
+            role_name=f"role{ix}",
             assume_role_policy_document=None,
             path="/",
             permissions_boundary=None,
-            description="role{}".format(ix),
+            description=f"role{ix}",
             tags=[{"Key": "foo", "Value": "bar"}],
             max_session_duration=3600,
         )
@@ -3848,9 +3812,9 @@ def test_role_config_client():
     num_roles = 10
     for ix in range(1, num_roles + 1):
         this_policy = iam_client.create_role(
-            RoleName="role{}".format(ix),
+            RoleName=f"role{ix}",
             Path="/",
-            Description="role{}".format(ix),
+            Description=f"role{ix}",
             AssumeRolePolicyDocument=json.dumps("{ }"),
         )
         roles.append(
@@ -4075,10 +4039,10 @@ def test_policy_list_config_discovered_resources():
         this_policy = policy_config_query.backends[DEFAULT_ACCOUNT_ID][
             "global"
         ].create_policy(
-            description="policy{}".format(ix),
+            description=f"policy{ix}",
             path="",
             policy_document=json.dumps(basic_policy),
-            policy_name="policy{}".format(ix),
+            policy_name=f"policy{ix}",
             tags=[],
         )
         policies.append({"id": this_policy.id, "name": this_policy.name})
@@ -4301,10 +4265,10 @@ def test_policy_config_client():
     num_policies = 10
     for ix in range(1, num_policies + 1):
         this_policy = iam_client.create_policy(
-            PolicyName="policy{}".format(ix),
+            PolicyName=f"policy{ix}",
             Path="/",
             PolicyDocument=json.dumps(basic_policy),
-            Description="policy{}".format(ix),
+            Description=f"policy{ix}",
         )
         policies.append(
             {
@@ -4479,7 +4443,7 @@ def test_list_roles_with_more_than_100_roles_no_max_items_defaults_to_100():
     iam = boto3.client("iam", region_name="us-east-1")
     for i in range(150):
         iam.create_role(
-            RoleName="test_role_{}".format(i), AssumeRolePolicyDocument="some policy"
+            RoleName=f"test_role_{i}", AssumeRolePolicyDocument="some policy"
         )
     response = iam.list_roles()
     roles = response["Roles"]
@@ -4493,7 +4457,7 @@ def test_list_roles_max_item_and_marker_values_adhered():
     iam = boto3.client("iam", region_name="us-east-1")
     for i in range(10):
         iam.create_role(
-            RoleName="test_role_{}".format(i), AssumeRolePolicyDocument="some policy"
+            RoleName=f"test_role_{i}", AssumeRolePolicyDocument="some policy"
         )
     response = iam.list_roles(MaxItems=2)
     roles = response["Roles"]
@@ -4633,7 +4597,7 @@ def test_tag_user_error_unknown_user_name():
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
     ex.response["Error"]["Code"].should.contain("NoSuchEntity")
     ex.response["Error"]["Message"].should.equal(
-        "The user with name {} cannot be found.".format(name)
+        f"The user with name {name} cannot be found."
     )
 
 
@@ -4671,7 +4635,7 @@ def test_untag_user_error_unknown_user_name():
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
     ex.response["Error"]["Code"].should.contain("NoSuchEntity")
     ex.response["Error"]["Message"].should.equal(
-        "The user with name {} cannot be found.".format(name)
+        f"The user with name {name} cannot be found."
     )
 
 

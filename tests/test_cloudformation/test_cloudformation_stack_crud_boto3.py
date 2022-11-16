@@ -1075,10 +1075,10 @@ def test_creating_stacks_across_regions():
     list(west2_cf.stacks.all()).should.have.length_of(1)
 
     list(west1_cf.stacks.all())[0].stack_id.should.contain(
-        "arn:aws:cloudformation:us-west-1:{}:stack/test_stack/".format(ACCOUNT_ID)
+        f"arn:aws:cloudformation:us-west-1:{ACCOUNT_ID}:stack/test_stack/"
     )
     list(west2_cf.stacks.all())[0].stack_id.should.contain(
-        "arn:aws:cloudformation:us-west-2:{}:stack/test_stack/".format(ACCOUNT_ID)
+        f"arn:aws:cloudformation:us-west-2:{ACCOUNT_ID}:stack/test_stack/"
     )
 
 
@@ -1110,7 +1110,7 @@ def test_create_stack_with_notification_arn():
     messages.should.have.length_of(1)
     msg = json.loads(messages[0].body)
     msg["Subject"].should.equal("AWS CloudFormation Notification")
-    msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
+    msg["Message"].should.contain(f"StackId='{stack.stack_id}'\n")
     msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")
     msg["Message"].should.contain("ResourceStatus='CREATE_IN_PROGRESS'\n")
     msg["Message"].should.contain("ResourceStatusReason='User Initiated'\n")
@@ -1128,7 +1128,7 @@ def test_create_stack_with_notification_arn():
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
     msg = json.loads(messages[0].body)
-    msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
+    msg["Message"].should.contain(f"StackId='{stack.stack_id}'\n")
     msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")
     msg["Message"].should.contain("ResourceStatus='CREATE_COMPLETE'\n")
     msg["Message"].should.contain("ResourceStatusReason='None'\n")
@@ -1150,10 +1150,10 @@ def test_create_stack_with_role_arn():
     cf.create_stack(
         StackName="test_stack_with_notifications",
         TemplateBody=dummy_template_json,
-        RoleARN="arn:aws:iam::{}:role/moto".format(ACCOUNT_ID),
+        RoleARN=f"arn:aws:iam::{ACCOUNT_ID}:role/moto",
     )
     stack = list(cf.stacks.all())[0]
-    stack.role_arn.should.equal("arn:aws:iam::{}:role/moto".format(ACCOUNT_ID))
+    stack.role_arn.should.equal(f"arn:aws:iam::{ACCOUNT_ID}:role/moto")
 
 
 @mock_cloudformation
@@ -1380,11 +1380,11 @@ def test_create_change_set_from_s3_url():
         Tags=[{"Key": "tag-key", "Value": "tag-value"}],
     )
     assert (
-        "arn:aws:cloudformation:us-west-1:{}:changeSet/NewChangeSet/".format(ACCOUNT_ID)
+        f"arn:aws:cloudformation:us-west-1:{ACCOUNT_ID}:changeSet/NewChangeSet/"
         in response["Id"]
     )
     assert (
-        "arn:aws:cloudformation:us-west-1:{}:stack/NewStack".format(ACCOUNT_ID)
+        f"arn:aws:cloudformation:us-west-1:{ACCOUNT_ID}:stack/NewStack"
         in response["StackId"]
     )
 
@@ -1503,9 +1503,7 @@ def test_execute_change_set_w_name():
 def test_describe_stack_pagination():
     conn = boto3.client("cloudformation", region_name="us-east-1")
     for i in range(100):
-        conn.create_stack(
-            StackName="test_stack_{}".format(i), TemplateBody=dummy_template_json
-        )
+        conn.create_stack(StackName=f"test_stack_{i}", TemplateBody=dummy_template_json)
 
     resp = conn.describe_stacks()
     stacks = resp["Stacks"]
@@ -1789,7 +1787,7 @@ def test_describe_updated_stack():
 
     cf_conn.update_stack(
         StackName="test_stack",
-        RoleARN="arn:aws:iam::{}:role/moto".format(ACCOUNT_ID),
+        RoleARN=f"arn:aws:iam::{ACCOUNT_ID}:role/moto",
         TemplateBody=dummy_update_template_json,
         Tags=[{"Key": "foo", "Value": "baz"}],
         Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
@@ -1801,7 +1799,7 @@ def test_describe_updated_stack():
     stack_by_id["StackId"].should.equal(stack["StackId"])
     stack_by_id["StackName"].should.equal("test_stack")
     stack_by_id["StackStatus"].should.equal("UPDATE_COMPLETE")
-    stack_by_id["RoleARN"].should.equal("arn:aws:iam::{}:role/moto".format(ACCOUNT_ID))
+    stack_by_id["RoleARN"].should.equal(f"arn:aws:iam::{ACCOUNT_ID}:role/moto")
     stack_by_id["Tags"].should.equal([{"Key": "foo", "Value": "baz"}])
 
     # Verify the updated template is persisted
@@ -1937,9 +1935,7 @@ def test_update_stack_when_rolled_back():
     err = ex.value.response["Error"]
     err.should.have.key("Code").being.equal("ValidationError")
     err.should.have.key("Message").match(
-        r"Stack:arn:aws:cloudformation:us-east-1:{}:stack/test_stack/[a-z0-9-]+ is in ROLLBACK_COMPLETE state and can not be updated.".format(
-            ACCOUNT_ID
-        )
+        rf"Stack:arn:aws:cloudformation:us-east-1:{ACCOUNT_ID}:stack/test_stack/[a-z0-9-]+ is in ROLLBACK_COMPLETE state and can not be updated."
     )
 
 
@@ -2121,7 +2117,7 @@ def test_list_exports_with_token():
         # Add index to ensure name is unique
         dummy_output_template["Outputs"]["StackVPC"]["Export"]["Name"] += str(i)
         cf.create_stack(
-            StackName="test_stack_{}".format(i),
+            StackName=f"test_stack_{i}",
             TemplateBody=json.dumps(dummy_output_template),
         )
     exports = cf.list_exports()

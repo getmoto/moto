@@ -52,11 +52,9 @@ def test_get_federation_token_boto3():
     creds["SecretAccessKey"].should.equal("wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY")
 
     fed_user["Arn"].should.equal(
-        "arn:aws:sts::{account_id}:federated-user/{token_name}".format(
-            account_id=ACCOUNT_ID, token_name=token_name
-        )
+        f"arn:aws:sts::{ACCOUNT_ID}:federated-user/{token_name}"
     )
-    fed_user["FederatedUserId"].should.equal("{}:{}".format(ACCOUNT_ID, token_name))
+    fed_user["FederatedUserId"].should.equal(f"{ACCOUNT_ID}:{token_name}")
 
 
 @freeze_time("2012-01-01 12:00:00")
@@ -83,9 +81,7 @@ def test_assume_role():
         "Version": "2012-10-17",
         "Statement": {
             "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::{account_id}:root".format(account_id=ACCOUNT_ID)
-            },
+            "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
             "Action": "sts:AssumeRole",
         },
     }
@@ -112,9 +108,7 @@ def test_assume_role():
     credentials["SecretAccessKey"].should.have.length_of(40)
 
     assume_role_response["AssumedRoleUser"]["Arn"].should.equal(
-        "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-            account_id=ACCOUNT_ID, role_name=role_name, session_name=session_name
-        )
+        f"arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name}"
     )
     assert assume_role_response["AssumedRoleUser"]["AssumedRoleId"].startswith("AROA")
     assert (
@@ -137,13 +131,9 @@ def test_assume_role_with_saml():
     provider_name = "TestProvFed"
     fed_identifier = "7ca82df9-1bad-4dd3-9b2b-adb68b554282"
     fed_name = "testuser"
-    role_input = "arn:aws:iam::{account_id}:role/{role_name}".format(
-        account_id=ACCOUNT_ID, role_name=role_name
-    )
-    principal_role = "arn:aws:iam:{account_id}:saml-provider/{provider_name}".format(
-        account_id=ACCOUNT_ID, provider_name=provider_name
-    )
-    saml_assertion = """
+    role_input = f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}"
+    principal_role = f"arn:aws:iam:{ACCOUNT_ID}:saml-provider/{provider_name}"
+    saml_assertion = f"""
 <?xml version="1.0"?>
 <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_00000000-0000-0000-0000-000000000000" Version="2.0" IssueInstant="2012-01-01T12:00:00.000Z" Destination="https://signin.aws.amazon.com/saml" Consent="urn:oasis:names:tc:SAML:2.0:consent:unspecified">
   <Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">http://localhost/</Issuer>
@@ -188,7 +178,7 @@ def test_assume_role_with_saml():
         <AttributeValue>{fed_name}</AttributeValue>
       </Attribute>
       <Attribute Name="https://aws.amazon.com/SAML/Attributes/Role">
-        <AttributeValue>arn:aws:iam::{account_id}:saml-provider/{provider_name},arn:aws:iam::{account_id}:role/{role_name}</AttributeValue>
+        <AttributeValue>arn:aws:iam::{ACCOUNT_ID}:saml-provider/{provider_name},arn:aws:iam::{ACCOUNT_ID}:role/{role_name}</AttributeValue>
       </Attribute>
       <Attribute Name="https://aws.amazon.com/SAML/Attributes/SessionDuration">
         <AttributeValue>900</AttributeValue>
@@ -200,13 +190,7 @@ def test_assume_role_with_saml():
       </AuthnContext>
     </AuthnStatement>
   </Assertion>
-</samlp:Response>""".format(
-        account_id=ACCOUNT_ID,
-        role_name=role_name,
-        provider_name=provider_name,
-        fed_identifier=fed_identifier,
-        fed_name=fed_name,
-    ).replace(
+</samlp:Response>""".replace(
         "\n", ""
     )
 
@@ -226,16 +210,14 @@ def test_assume_role_with_saml():
     credentials["SecretAccessKey"].should.have.length_of(40)
 
     assume_role_response["AssumedRoleUser"]["Arn"].should.equal(
-        "arn:aws:sts::{account_id}:assumed-role/{role_name}/{fed_name}".format(
-            account_id=ACCOUNT_ID, role_name=role_name, fed_name=fed_name
-        )
+        f"arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{fed_name}"
     )
     assert assume_role_response["AssumedRoleUser"]["AssumedRoleId"].startswith("AROA")
     assert assume_role_response["AssumedRoleUser"]["AssumedRoleId"].endswith(
-        ":{fed_name}".format(fed_name=fed_name)
+        f":{fed_name}"
     )
     assume_role_response["AssumedRoleUser"]["AssumedRoleId"].should.have.length_of(
-        21 + 1 + len("{fed_name}".format(fed_name=fed_name))
+        21 + 1 + len(f"{fed_name}")
     )
 
 
@@ -247,13 +229,9 @@ def test_assume_role_with_saml_should_not_rely_on_attribute_order():
     provider_name = "TestProvFed"
     fed_identifier = "7ca82df9-1bad-4dd3-9b2b-adb68b554282"
     fed_name = "testuser"
-    role_input = "arn:aws:iam::{account_id}:role/{role_name}".format(
-        account_id=ACCOUNT_ID, role_name=role_name
-    )
-    principal_role = "arn:aws:iam:{account_id}:saml-provider/{provider_name}".format(
-        account_id=ACCOUNT_ID, provider_name=provider_name
-    )
-    saml_assertion = """
+    role_input = f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}"
+    principal_role = f"arn:aws:iam:{ACCOUNT_ID}:saml-provider/{provider_name}"
+    saml_assertion = f"""
 <?xml version="1.0"?>
 <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_00000000-0000-0000-0000-000000000000" Version="2.0" IssueInstant="2012-01-01T12:00:00.000Z" Destination="https://signin.aws.amazon.com/saml" Consent="urn:oasis:names:tc:SAML:2.0:consent:unspecified">
   <Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">http://localhost/</Issuer>
@@ -295,7 +273,7 @@ def test_assume_role_with_saml_should_not_rely_on_attribute_order():
     </Conditions>
     <AttributeStatement>
       <Attribute Name="https://aws.amazon.com/SAML/Attributes/Role">
-        <AttributeValue>arn:aws:iam::{account_id}:saml-provider/{provider_name},arn:aws:iam::{account_id}:role/{role_name}</AttributeValue>
+        <AttributeValue>arn:aws:iam::{ACCOUNT_ID}:saml-provider/{provider_name},arn:aws:iam::{ACCOUNT_ID}:role/{role_name}</AttributeValue>
       </Attribute>
       <Attribute Name="https://aws.amazon.com/SAML/Attributes/SessionDuration">
         <AttributeValue>900</AttributeValue>
@@ -310,13 +288,7 @@ def test_assume_role_with_saml_should_not_rely_on_attribute_order():
       </AuthnContext>
     </AuthnStatement>
   </Assertion>
-</samlp:Response>""".format(
-        account_id=ACCOUNT_ID,
-        role_name=role_name,
-        provider_name=provider_name,
-        fed_identifier=fed_identifier,
-        fed_name=fed_name,
-    ).replace(
+</samlp:Response>""".replace(
         "\n", ""
     )
 
@@ -331,9 +303,7 @@ def test_assume_role_with_saml_should_not_rely_on_attribute_order():
         credentials["Expiration"].isoformat().should.equal("2012-01-01T12:15:00+00:00")
 
     assume_role_response["AssumedRoleUser"]["Arn"].should.equal(
-        "arn:aws:sts::{account_id}:assumed-role/{role_name}/{fed_name}".format(
-            account_id=ACCOUNT_ID, role_name=role_name, fed_name=fed_name
-        )
+        f"arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{fed_name}"
     )
 
 
@@ -345,13 +315,9 @@ def test_assume_role_with_saml_should_respect_xml_namespaces():
     provider_name = "TestProvFed"
     fed_identifier = "7ca82df9-1bad-4dd3-9b2b-adb68b554282"
     fed_name = "testuser"
-    role_input = "arn:aws:iam::{account_id}:role/{role_name}".format(
-        account_id=ACCOUNT_ID, role_name=role_name
-    )
-    principal_role = "arn:aws:iam:{account_id}:saml-provider/{provider_name}".format(
-        account_id=ACCOUNT_ID, provider_name=provider_name
-    )
-    saml_assertion = """
+    role_input = f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}"
+    principal_role = f"arn:aws:iam:{ACCOUNT_ID}:saml-provider/{provider_name}"
+    saml_assertion = f"""
 <?xml version="1.0"?>
 <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_00000000-0000-0000-0000-000000000000" Version="2.0" IssueInstant="2012-01-01T12:00:00.000Z" Destination="https://signin.aws.amazon.com/saml" Consent="urn:oasis:names:tc:SAML:2.0:consent:unspecified">
   <saml:Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">http://localhost/</saml:Issuer>
@@ -396,7 +362,7 @@ def test_assume_role_with_saml_should_respect_xml_namespaces():
         <saml:AttributeValue>{fed_name}</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute Name="https://aws.amazon.com/SAML/Attributes/Role">
-        <saml:AttributeValue>arn:aws:iam::{account_id}:saml-provider/{provider_name},arn:aws:iam::{account_id}:role/{role_name}</saml:AttributeValue>
+        <saml:AttributeValue>arn:aws:iam::{ACCOUNT_ID}:saml-provider/{provider_name},arn:aws:iam::{ACCOUNT_ID}:role/{role_name}</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute Name="https://aws.amazon.com/SAML/Attributes/SessionDuration">
         <saml:AttributeValue>900</saml:AttributeValue>
@@ -408,13 +374,7 @@ def test_assume_role_with_saml_should_respect_xml_namespaces():
       </saml:AuthnContext>
     </saml:AuthnStatement>
   </saml:Assertion>
-</samlp:Response>""".format(
-        account_id=ACCOUNT_ID,
-        role_name=role_name,
-        provider_name=provider_name,
-        fed_identifier=fed_identifier,
-        fed_name=fed_name,
-    ).replace(
+</samlp:Response>""".replace(
         "\n", ""
     )
 
@@ -429,9 +389,7 @@ def test_assume_role_with_saml_should_respect_xml_namespaces():
         credentials["Expiration"].isoformat().should.equal("2012-01-01T12:15:00+00:00")
 
     assume_role_response["AssumedRoleUser"]["Arn"].should.equal(
-        "arn:aws:sts::{account_id}:assumed-role/{role_name}/{fed_name}".format(
-            account_id=ACCOUNT_ID, role_name=role_name, fed_name=fed_name
-        )
+        f"arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{fed_name}"
     )
 
 
@@ -443,13 +401,9 @@ def test_assume_role_with_saml_should_retrieve_attribute_value_from_text_when_xm
     provider_name = "TestProvFed"
     fed_identifier = "7ca82df9-1bad-4dd3-9b2b-adb68b554282"
     fed_name = "testuser"
-    role_input = "arn:aws:iam::{account_id}:role/{role_name}".format(
-        account_id=ACCOUNT_ID, role_name=role_name
-    )
-    principal_role = "arn:aws:iam:{account_id}:saml-provider/{provider_name}".format(
-        account_id=ACCOUNT_ID, provider_name=provider_name
-    )
-    saml_assertion = """
+    role_input = f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}"
+    principal_role = f"arn:aws:iam:{ACCOUNT_ID}:saml-provider/{provider_name}"
+    saml_assertion = f"""
 <?xml version="1.0"?>
 <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_00000000-0000-0000-0000-000000000000" Version="2.0" IssueInstant="2012-01-01T12:00:00.000Z" Destination="https://signin.aws.amazon.com/saml" Consent="urn:oasis:names:tc:SAML:2.0:consent:unspecified">
   <saml:Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">http://localhost/</saml:Issuer>
@@ -498,7 +452,7 @@ def test_assume_role_with_saml_should_retrieve_attribute_value_from_text_when_xm
       <saml:Attribute Name="https://aws.amazon.com/SAML/Attributes/Role">
         <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                             xsi:type="xs:string">arn:aws:iam::{account_id}:saml-provider/{provider_name},arn:aws:iam::{account_id}:role/{role_name}</saml:AttributeValue>
+                             xsi:type="xs:string">arn:aws:iam::{ACCOUNT_ID}:saml-provider/{provider_name},arn:aws:iam::{ACCOUNT_ID}:role/{role_name}</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute Name="https://aws.amazon.com/SAML/Attributes/SessionDuration">
         <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -512,13 +466,7 @@ def test_assume_role_with_saml_should_retrieve_attribute_value_from_text_when_xm
       </saml:AuthnContext>
     </saml:AuthnStatement>
   </saml:Assertion>
-</samlp:Response>""".format(
-        account_id=ACCOUNT_ID,
-        role_name=role_name,
-        provider_name=provider_name,
-        fed_identifier=fed_identifier,
-        fed_name=fed_name,
-    ).replace(
+</samlp:Response>""".replace(
         "\n", ""
     )
 
@@ -533,9 +481,7 @@ def test_assume_role_with_saml_should_retrieve_attribute_value_from_text_when_xm
         credentials["Expiration"].isoformat().should.equal("2012-01-01T12:15:00+00:00")
 
     assume_role_response["AssumedRoleUser"]["Arn"].should.equal(
-        "arn:aws:sts::{account_id}:assumed-role/{role_name}/{fed_name}".format(
-            account_id=ACCOUNT_ID, role_name=role_name, fed_name=fed_name
-        )
+        f"arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{fed_name}"
     )
 
 
@@ -547,13 +493,9 @@ def test_assume_role_with_saml_should_default_session_duration_to_3600_seconds_w
     provider_name = "TestProvFed"
     fed_identifier = "7ca82df9-1bad-4dd3-9b2b-adb68b554282"
     fed_name = "testuser"
-    role_input = "arn:aws:iam::{account_id}:role/{role_name}".format(
-        account_id=ACCOUNT_ID, role_name=role_name
-    )
-    principal_role = "arn:aws:iam:{account_id}:saml-provider/{provider_name}".format(
-        account_id=ACCOUNT_ID, provider_name=provider_name
-    )
-    saml_assertion = """
+    role_input = f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}"
+    principal_role = f"arn:aws:iam:{ACCOUNT_ID}:saml-provider/{provider_name}"
+    saml_assertion = f"""
 <?xml version="1.0"?>
 <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_00000000-0000-0000-0000-000000000000" Version="2.0" IssueInstant="2012-01-01T12:00:00.000Z" Destination="https://signin.aws.amazon.com/saml" Consent="urn:oasis:names:tc:SAML:2.0:consent:unspecified">
   <Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">http://localhost/</Issuer>
@@ -595,7 +537,7 @@ def test_assume_role_with_saml_should_default_session_duration_to_3600_seconds_w
     </Conditions>
     <AttributeStatement>
       <Attribute Name="https://aws.amazon.com/SAML/Attributes/Role">
-        <AttributeValue>arn:aws:iam::{account_id}:saml-provider/{provider_name},arn:aws:iam::{account_id}:role/{role_name}</AttributeValue>
+        <AttributeValue>arn:aws:iam::{ACCOUNT_ID}:saml-provider/{provider_name},arn:aws:iam::{ACCOUNT_ID}:role/{role_name}</AttributeValue>
       </Attribute>
       <Attribute Name="https://aws.amazon.com/SAML/Attributes/RoleSessionName">
         <AttributeValue>{fed_name}</AttributeValue>
@@ -607,13 +549,7 @@ def test_assume_role_with_saml_should_default_session_duration_to_3600_seconds_w
       </AuthnContext>
     </AuthnStatement>
   </Assertion>
-</samlp:Response>""".format(
-        account_id=ACCOUNT_ID,
-        role_name=role_name,
-        provider_name=provider_name,
-        fed_identifier=fed_identifier,
-        fed_name=fed_name,
-    ).replace(
+</samlp:Response>""".replace(
         "\n", ""
     )
 
@@ -647,9 +583,7 @@ def test_assume_role_with_web_identity_boto3():
         }
     )
     role_name = "test-role"
-    s3_role = "arn:aws:iam::{account_id}:role/{role_name}".format(
-        account_id=ACCOUNT_ID, role_name=role_name
-    )
+    s3_role = f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}"
     session_name = "session-name"
     role = client.assume_role_with_web_identity(
         RoleArn=s3_role,
@@ -675,9 +609,7 @@ def test_assume_role_with_web_identity_boto3():
     creds["SecretAccessKey"].should.have.length_of(40)
 
     user["Arn"].should.equal(
-        "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-            account_id=ACCOUNT_ID, role_name=role_name, session_name=session_name
-        )
+        f"arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name}"
     )
     user["AssumedRoleId"].should.contain("session-name")
 
@@ -686,9 +618,7 @@ def test_assume_role_with_web_identity_boto3():
 def test_get_caller_identity_with_default_credentials():
     identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
 
-    identity["Arn"].should.equal(
-        "arn:aws:sts::{account_id}:user/moto".format(account_id=ACCOUNT_ID)
-    )
+    identity["Arn"].should.equal(f"arn:aws:sts::{ACCOUNT_ID}:user/moto")
     identity["UserId"].should.equal("AKIAIOSFODNN7EXAMPLE")
     identity["Account"].should.equal(str(ACCOUNT_ID))
 
@@ -723,9 +653,7 @@ def test_get_caller_identity_with_assumed_role_credentials():
         "Version": "2012-10-17",
         "Statement": {
             "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::{account_id}:root".format(account_id=ACCOUNT_ID)
-            },
+            "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
             "Action": "sts:AssumeRole",
         },
     }

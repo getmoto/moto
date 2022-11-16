@@ -15,9 +15,7 @@ from .fixtures.schema_registry import (
 def create_database_input(database_name):
     database_input = copy.deepcopy(DATABASE_INPUT)
     database_input["Name"] = database_name
-    database_input["LocationUri"] = "s3://my-bucket/{database_name}".format(
-        database_name=database_name
-    )
+    database_input["LocationUri"] = f"s3://my-bucket/{database_name}"
     return database_input
 
 
@@ -42,9 +40,7 @@ def create_table_input(database_name, table_name, columns=None, partition_keys=N
     table_input["StorageDescriptor"]["Columns"] = columns or []
     table_input["StorageDescriptor"][
         "Location"
-    ] = "s3://my-bucket/{database_name}/{table_name}".format(
-        database_name=database_name, table_name=table_name
-    )
+    ] = f"s3://my-bucket/{database_name}/{table_name}"
     return table_input
 
 
@@ -93,9 +89,7 @@ def create_column(name, type_, comment=None, parameters=None):
 
 
 def create_partition_input(database_name, table_name, values=None, columns=None):
-    root_path = "s3://my-bucket/{database_name}/{table_name}".format(
-        database_name=database_name, table_name=table_name
-    )
+    root_path = f"s3://my-bucket/{database_name}/{table_name}"
 
     part_input = copy.deepcopy(PARTITION_INPUT)
     part_input["Values"] = values or []

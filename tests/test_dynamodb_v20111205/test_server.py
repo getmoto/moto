@@ -1319,7 +1319,7 @@ def create_table(test_client, name=None, region=None, use_range_key=True):
         "Content-Type": "application/x-amz-json-1.0",
     }
     if region:
-        headers["Host"] = "dynamodb.{}.amazonaws.com".format(region)
+        headers["Host"] = f"dynamodb.{region}.amazonaws.com"
     request_body = {
         "TableName": name,
         "KeySchema": {

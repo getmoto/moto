@@ -130,7 +130,7 @@ def test_put_account_setting_changes_service_arn():
     response = client.list_services(cluster="dummy-cluster", launchType="FARGATE")
     service_arn = response["serviceArns"][0]
     service_arn.should.equal(
-        "arn:aws:ecs:eu-west-1:{}:service/test-ecs-service".format(ACCOUNT_ID)
+        f"arn:aws:ecs:eu-west-1:{ACCOUNT_ID}:service/test-ecs-service"
     )
 
     # Second invocation returns long ARN's by default, after deleting the preference
@@ -138,9 +138,7 @@ def test_put_account_setting_changes_service_arn():
     response = client.list_services(cluster="dummy-cluster", launchType="FARGATE")
     service_arn = response["serviceArns"][0]
     service_arn.should.equal(
-        "arn:aws:ecs:eu-west-1:{}:service/dummy-cluster/test-ecs-service".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:ecs:eu-west-1:{ACCOUNT_ID}:service/dummy-cluster/test-ecs-service"
     )
 
 

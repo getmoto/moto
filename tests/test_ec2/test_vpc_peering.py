@@ -399,9 +399,9 @@ def test_vpc_peering_connections_cross_region_accept_wrong_region():
         ec2_usw1.accept_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
     cm.value.response["Error"]["Code"].should.equal("OperationNotPermitted")
     exp_msg = (
-        "Incorrect region ({0}) specified for this request.VPC "
-        "peering connection {1} must be "
-        "accepted in region {2}".format("us-west-1", vpc_pcx_usw1.id, "ap-northeast-1")
+        "Incorrect region (us-west-1) specified for this request.VPC "
+        f"peering connection {vpc_pcx_usw1.id} must be "
+        "accepted in region ap-northeast-1"
     )
     cm.value.response["Error"]["Message"].should.equal(exp_msg)
 
@@ -424,9 +424,9 @@ def test_vpc_peering_connections_cross_region_reject_wrong_region():
         ec2_usw1.reject_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
     cm.value.response["Error"]["Code"].should.equal("OperationNotPermitted")
     exp_msg = (
-        "Incorrect region ({0}) specified for this request.VPC "
-        "peering connection {1} must be accepted or "
-        "rejected in region {2}".format("us-west-1", vpc_pcx_usw1.id, "ap-northeast-1")
+        "Incorrect region (us-west-1) specified for this request.VPC "
+        f"peering connection {vpc_pcx_usw1.id} must be accepted or "
+        "rejected in region ap-northeast-1"
     )
     cm.value.response["Error"]["Message"].should.equal(exp_msg)
 

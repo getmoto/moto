@@ -18,7 +18,7 @@ def test_register_task_definition(use_resource_reqs):
     resp.should.contain("revision")
 
     assert resp["jobDefinitionArn"].endswith(
-        "{0}:{1}".format(resp["jobDefinitionName"], resp["revision"])
+        f"{resp['jobDefinitionName']}:{resp['revision']}"
     )
 
 
@@ -113,7 +113,7 @@ def test_reregister_task_definition(use_resource_reqs):
     resp1.should.contain("revision")
 
     assert resp1["jobDefinitionArn"].endswith(
-        "{0}:{1}".format(resp1["jobDefinitionName"], resp1["revision"])
+        f"{resp1['jobDefinitionName']}:{resp1['revision']}"
     )
     resp1["revision"].should.equal(1)
 

@@ -35,9 +35,7 @@ def test_create_user_pool():
 
     result["UserPool"]["Id"].should.match(r"[\w-]+_[0-9a-zA-Z]+")
     result["UserPool"]["Arn"].should.equal(
-        "arn:aws:cognito-idp:us-west-2:{}:userpool/{}".format(
-            ACCOUNT_ID, result["UserPool"]["Id"]
-        )
+        f"arn:aws:cognito-idp:us-west-2:{ACCOUNT_ID}:userpool/{result['UserPool']['Id']}"
     )
     result["UserPool"]["Name"].should.equal(name)
     result["UserPool"]["LambdaConfig"]["PreSignUp"].should.equal(value)
@@ -847,9 +845,7 @@ def test_create_user_pool_domain_custom_domain_config():
 
     domain = str(uuid.uuid4())
     custom_domain_config = {
-        "CertificateArn": "arn:aws:acm:us-east-1:{}:certificate/123456789012".format(
-            ACCOUNT_ID
-        )
+        "CertificateArn": f"arn:aws:acm:us-east-1:{ACCOUNT_ID}:certificate/123456789012"
     }
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     result = conn.create_user_pool_domain(
@@ -896,9 +892,7 @@ def test_update_user_pool_domain():
 
     domain = str(uuid.uuid4())
     custom_domain_config = {
-        "CertificateArn": "arn:aws:acm:us-east-1:{}:certificate/123456789012".format(
-            ACCOUNT_ID
-        )
+        "CertificateArn": f"arn:aws:acm:us-east-1:{ACCOUNT_ID}:certificate/123456789012"
     }
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     conn.create_user_pool_domain(UserPoolId=user_pool_id, Domain=domain)
@@ -2395,7 +2389,7 @@ def test_list_users_inherent_attributes():
 
     for name, filter_value, response_field, response_field_expected_value in filters:
         result = conn.list_users(
-            UserPoolId=user_pool_id, Filter='{}="{}"'.format(name, filter_value)
+            UserPoolId=user_pool_id, Filter=f'{name}="{filter_value}"'
         )
         result["Users"].should.have.length_of(1)
         result["Users"][0][response_field].should.equal(response_field_expected_value)
@@ -2839,8 +2833,8 @@ def test_token_legitimacy():
         access_token = outputs["access_token"]
         client_id = outputs["client_id"]
         username = outputs["username"]
-        issuer = "https://cognito-idp.us-west-2.amazonaws.com/{}".format(
-            outputs["user_pool_id"]
+        issuer = (
+            f"https://cognito-idp.us-west-2.amazonaws.com/{outputs['user_pool_id']}"
         )
         id_claims = json.loads(jws.verify(id_token, json_web_key, "RS256"))
         id_claims["iss"].should.equal(issuer)
@@ -3451,7 +3445,7 @@ def test_resource_server():
     ex.value.operation_name.should.equal("CreateResourceServer")
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
     ex.value.response["Error"]["Message"].should.equal(
-        "%s already exists in user pool %s." % (identifier, user_pool_id)
+        f"{identifier} already exists in user pool {user_pool_id}."
     )
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
@@ -4308,8 +4302,6 @@ def verify_kid_header(token):
 
 
 def fetch_public_keys():
-    keys_url = "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
-        "us-west-2", "someuserpoolid"
-    )
+    keys_url = "https://cognito-idp.us-west-2.amazonaws.com/someuserpoolid/.well-known/jwks.json"
     response = requests.get(keys_url).json()
     return response["keys"]

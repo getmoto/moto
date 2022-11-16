@@ -91,9 +91,9 @@ def test_create_mount_target_aws_sample_2(efs, ec2, file_system, subnet):
         ip_addr = ip_addr_obj.exploded
         break
     else:
-        assert False, "Could not generate an IP address from CIDR block: {}".format(
-            subnet["CidrBlock"]
-        )
+        assert (
+            False
+        ), f"Could not generate an IP address from CIDR block: {subnet['CidrBlock']}"
     desc_sg_resp = ec2.describe_security_groups()
     security_group = desc_sg_resp["SecurityGroups"][0]
     security_group_id = security_group["GroupId"]
@@ -216,8 +216,8 @@ def test_create_mount_target_too_many_security_groups(efs, ec2, file_system, sub
     for i in range(6):
         sg_info = ec2.create_security_group(
             VpcId=subnet["VpcId"],
-            GroupName="sg-{}".format(i),
-            Description="SG-{} protects us from the Goa'uld.".format(i),
+            GroupName=f"sg-{i}",
+            Description=f"SG-{i} protects us from the Goa'uld.",
         )
         sg_id_list.append(sg_info["GroupId"])
     with pytest.raises(ClientError) as exc_info:

@@ -561,14 +561,12 @@ def test_associate_vpc_ipv4_cidr_block():
     # Associate/Extend vpc CIDR range up to 5 ciders
     for i in range(43, 47):
         response = ec2.meta.client.associate_vpc_cidr_block(
-            VpcId=vpc.id, CidrBlock="10.10.{}.0/24".format(i)
+            VpcId=vpc.id, CidrBlock=f"10.10.{i}.0/24"
         )
         response["CidrBlockAssociation"]["CidrBlockState"]["State"].should.equal(
             "associating"
         )
-        response["CidrBlockAssociation"]["CidrBlock"].should.equal(
-            "10.10.{}.0/24".format(i)
-        )
+        response["CidrBlockAssociation"]["CidrBlock"].should.equal(f"10.10.{i}.0/24")
         response["CidrBlockAssociation"]["AssociationId"].should.contain(
             "vpc-cidr-assoc"
         )
@@ -590,9 +588,7 @@ def test_associate_vpc_ipv4_cidr_block():
         )
     str(ex.value).should.equal(
         "An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock "
-        "operation: This network '{}' has met its maximum number of allowed CIDRs: 5".format(
-            vpc.id
-        )
+        f"operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 5"
     )
 
 
@@ -657,8 +653,8 @@ def test_disassociate_vpc_ipv4_cidr_block():
         )
     str(ex.value).should.equal(
         "An error occurred (OperationNotPermitted) when calling the DisassociateVpcCidrBlock operation: "
-        "The vpc CIDR block with association ID {} may not be disassociated. It is the primary "
-        "IPv4 CIDR block of the VPC".format(vpc_base_cidr_assoc_id)
+        f"The vpc CIDR block with association ID {vpc_base_cidr_assoc_id} may not be disassociated. It is the primary "
+        "IPv4 CIDR block of the VPC"
     )
 
 
@@ -738,9 +734,7 @@ def test_vpc_associate_ipv6_cidr_block():
         )
     str(ex.value).should.equal(
         "An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock "
-        "operation: This network '{}' has met its maximum number of allowed CIDRs: 1".format(
-            vpc.id
-        )
+        f"operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 1"
     )
 
     # Test associate ipv6 cidr block after vpc created
@@ -848,9 +842,7 @@ def test_create_vpc_with_invalid_cidr_block_parameter():
         ec2.create_vpc(CidrBlock=vpc_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateVpc "
-        "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(
-            vpc_cidr_block
-        )
+        f"operation: Value ({vpc_cidr_block}) for parameter cidrBlock is invalid. This is not a valid CIDR block."
     )
 
 
@@ -863,7 +855,7 @@ def test_create_vpc_with_invalid_cidr_range():
         ec2.create_vpc(CidrBlock=vpc_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidVpc.Range) when calling the CreateVpc "
-        "operation: The CIDR '{}' is invalid.".format(vpc_cidr_block)
+        f"operation: The CIDR '{vpc_cidr_block}' is invalid."
     )
 
 

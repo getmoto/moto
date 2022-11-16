@@ -119,8 +119,8 @@ def test_get_parameters_by_path():
     {p["ARN"] for p in response["Parameters"]}.should.equal(
         set(
             [
-                "arn:aws:ssm:us-east-1:{}:parameter/foo".format(ACCOUNT_ID),
-                "arn:aws:ssm:us-east-1:{}:parameter/baz".format(ACCOUNT_ID),
+                f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/foo",
+                f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/baz",
             ]
         )
     )
@@ -254,7 +254,7 @@ def test_put_parameter(name):
     response["Parameters"][0]["DataType"].should.equal("text")
     response["Parameters"][0]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/{name}"
     )
     initial_modification_date = response["Parameters"][0]["LastModifiedDate"]
 
@@ -266,7 +266,7 @@ def test_put_parameter(name):
     except botocore.exceptions.ClientError as err:
         err.operation_name.should.equal("PutParameter")
         err.response["Error"]["Message"].should.equal(
-            "Parameter {} already exists.".format(name)
+            f"Parameter {name} already exists."
         )
 
     response = client.get_parameters(Names=[name], WithDecryption=False)
@@ -282,7 +282,7 @@ def test_put_parameter(name):
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/{name}"
     )
     new_data_type = "aws:ec2:image"
 
@@ -323,7 +323,7 @@ def test_put_parameter(name):
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/{name}"
     )
 
 
@@ -390,16 +390,12 @@ def test_put_parameter_invalid_names():
     aws_path = "/aws_test/path/to/var"
     client.put_parameter.when.called_with(
         Name=aws_path, Value="value", Type="String"
-    ).should.throw(
-        ClientError, "No access to reserved parameter name: {}.".format(aws_path)
-    )
+    ).should.throw(ClientError, f"No access to reserved parameter name: {aws_path}.")
 
     aws_path = "/AWS/PATH/TO/VAR"
     client.put_parameter.when.called_with(
         Name=aws_path, Value="value", Type="String"
-    ).should.throw(
-        ClientError, "No access to reserved parameter name: {}.".format(aws_path)
-    )
+    ).should.throw(ClientError, f"No access to reserved parameter name: {aws_path}.")
 
 
 @mock_ssm
@@ -447,7 +443,7 @@ def test_get_parameter():
     response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:{}:parameter/test".format(ACCOUNT_ID)
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/test"
     )
 
 
@@ -474,7 +470,7 @@ def test_get_parameter_with_version_and_labels():
     response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:{}:parameter/test-1".format(ACCOUNT_ID)
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/test-1"
     )
 
     response = client.get_parameter(Name="test-2:1", WithDecryption=False)
@@ -484,7 +480,7 @@ def test_get_parameter_with_version_and_labels():
     response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:{}:parameter/test-2".format(ACCOUNT_ID)
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/test-2"
     )
 
     response = client.get_parameter(Name="test-2:test-label", WithDecryption=False)
@@ -494,7 +490,7 @@ def test_get_parameter_with_version_and_labels():
     response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:{}:parameter/test-2".format(ACCOUNT_ID)
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/test-2"
     )
 
     with pytest.raises(ClientError) as ex:
@@ -532,12 +528,11 @@ def test_get_parameters_errors():
     ex.operation_name.should.equal("GetParameters")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ValidationException")
+    all_keys = ", ".join(ssm_parameters.keys())
     ex.response["Error"]["Message"].should.equal(
         "1 validation error detected: "
-        "Value '[{}]' at 'names' failed to satisfy constraint: "
-        "Member must have length less than or equal to 10.".format(
-            ", ".join(ssm_parameters.keys())
-        )
+        f"Value '[{all_keys}]' at 'names' failed to satisfy constraint: "
+        "Member must have length less than or equal to 10."
     )
 
 
@@ -582,7 +577,7 @@ def test_describe_parameters_paging():
     client = boto3.client("ssm", region_name="us-east-1")
 
     for i in range(50):
-        client.put_parameter(Name="param-%d" % i, Value="value-%d" % i, Type="String")
+        client.put_parameter(Name=f"param-{i}", Value=f"value-{i}", Type="String")
 
     response = client.describe_parameters()
     response["Parameters"].should.have.length_of(10)
@@ -614,7 +609,7 @@ def test_describe_parameters_filter_names():
     client = boto3.client("ssm", region_name="us-east-1")
 
     for i in range(50):
-        p = {"Name": "param-%d" % i, "Value": "value-%d" % i, "Type": "String"}
+        p = {"Name": f"param-{i}", "Value": f"value-{i}", "Type": "String"}
         if i % 5 == 0:
             p["Type"] = "SecureString"
             p["KeyId"] = "a key"
@@ -636,7 +631,7 @@ def test_describe_parameters_filter_type():
     client = boto3.client("ssm", region_name="us-east-1")
 
     for i in range(50):
-        p = {"Name": "param-%d" % i, "Value": "value-%d" % i, "Type": "String"}
+        p = {"Name": f"param-{i}", "Value": f"value-{i}", "Type": "String"}
         if i % 5 == 0:
             p["Type"] = "SecureString"
             p["KeyId"] = "a key"
@@ -657,10 +652,10 @@ def test_describe_parameters_filter_keyid():
     client = boto3.client("ssm", region_name="us-east-1")
 
     for i in range(50):
-        p = {"Name": "param-%d" % i, "Value": "value-%d" % i, "Type": "String"}
+        p = {"Name": f"param-{i}", "Value": f"value-{i}", "Type": "String"}
         if i % 5 == 0:
             p["Type"] = "SecureString"
-            p["KeyId"] = "key:%d" % i
+            p["KeyId"] = f"key:{i}"
         client.put_parameter(**p)
 
     response = client.describe_parameters(
@@ -1160,8 +1155,8 @@ def test_get_parameter_history():
     for i in range(3):
         client.put_parameter(
             Name=test_parameter_name,
-            Description="A test parameter version %d" % i,
-            Value="value-%d" % i,
+            Description=f"A test parameter version {i}",
+            Value=f"value-{i}",
             Type="String",
             Overwrite=True,
         )
@@ -1172,9 +1167,9 @@ def test_get_parameter_history():
     for index, param in enumerate(parameters_response):
         param["Name"].should.equal(test_parameter_name)
         param["Type"].should.equal("String")
-        param["Value"].should.equal("value-%d" % index)
+        param["Value"].should.equal(f"value-{index}")
         param["Version"].should.equal(index + 1)
-        param["Description"].should.equal("A test parameter version %d" % index)
+        param["Description"].should.equal(f"A test parameter version {index}")
         param["Labels"].should.equal([])
 
     len(parameters_response).should.equal(3)
@@ -1189,8 +1184,8 @@ def test_get_parameter_history_with_secure_string():
     for i in range(3):
         client.put_parameter(
             Name=test_parameter_name,
-            Description="A test parameter version %d" % i,
-            Value="value-%d" % i,
+            Description=f"A test parameter version {i}",
+            Value=f"value-{i}",
             Type="SecureString",
             Overwrite=True,
         )
@@ -1204,15 +1199,15 @@ def test_get_parameter_history_with_secure_string():
         for index, param in enumerate(parameters_response):
             param["Name"].should.equal(test_parameter_name)
             param["Type"].should.equal("SecureString")
-            expected_plaintext_value = "value-%d" % index
+            expected_plaintext_value = f"value-{index}"
             if with_decryption:
                 param["Value"].should.equal(expected_plaintext_value)
             else:
                 param["Value"].should.equal(
-                    "kms:alias/aws/ssm:%s" % expected_plaintext_value
+                    f"kms:alias/aws/ssm:{expected_plaintext_value}"
                 )
             param["Version"].should.equal(index + 1)
-            param["Description"].should.equal("A test parameter version %d" % index)
+            param["Description"].should.equal(f"A test parameter version {index}")
 
         len(parameters_response).should.equal(3)
 
@@ -1294,8 +1289,8 @@ def test_label_parameter_moving_versions():
     for i in range(3):
         client.put_parameter(
             Name=test_parameter_name,
-            Description="A test parameter version %d" % i,
-            Value="value-%d" % i,
+            Description=f"A test parameter version {i}",
+            Value=f"value-{i}",
             Type="String",
             Overwrite=True,
         )
@@ -1317,9 +1312,9 @@ def test_label_parameter_moving_versions():
     for index, param in enumerate(parameters_response):
         param["Name"].should.equal(test_parameter_name)
         param["Type"].should.equal("String")
-        param["Value"].should.equal("value-%d" % index)
+        param["Value"].should.equal(f"value-{index}")
         param["Version"].should.equal(index + 1)
-        param["Description"].should.equal("A test parameter version %d" % index)
+        param["Description"].should.equal(f"A test parameter version {index}")
         labels = test_labels if param["Version"] == 2 else []
         param["Labels"].should.equal(labels)
 
@@ -1335,8 +1330,8 @@ def test_label_parameter_moving_versions_complex():
     for i in range(3):
         client.put_parameter(
             Name=test_parameter_name,
-            Description="A test parameter version %d" % i,
-            Value="value-%d" % i,
+            Description=f"A test parameter version {i}",
+            Value=f"value-{i}",
             Type="String",
             Overwrite=True,
         )
@@ -1362,9 +1357,9 @@ def test_label_parameter_moving_versions_complex():
     for index, param in enumerate(parameters_response):
         param["Name"].should.equal(test_parameter_name)
         param["Type"].should.equal("String")
-        param["Value"].should.equal("value-%d" % index)
+        param["Value"].should.equal(f"value-{index}")
         param["Version"].should.equal(index + 1)
-        param["Description"].should.equal("A test parameter version %d" % index)
+        param["Description"].should.equal(f"A test parameter version {index}")
         labels = (
             ["test-label2", "test-label3"]
             if param["Version"] == 2
@@ -1520,15 +1515,15 @@ def test_label_parameter_version_invalid_label():
     )
     response["InvalidLabels"].should.equal(["abc/123"])
 
+    long_name = "a" * 101
     client.label_parameter_version.when.called_with(
-        Name=test_parameter_name, ParameterVersion=1, Labels=["a" * 101]
+        Name=test_parameter_name, ParameterVersion=1, Labels=[long_name]
     ).should.throw(
         ClientError,
         "1 validation error detected: "
-        "Value '[%s]' at 'labels' failed to satisfy constraint: "
+        f"Value '[{long_name}]' at 'labels' failed to satisfy constraint: "
         "Member must satisfy constraint: "
-        "[Member must have length less than or equal to 100, Member must have length greater than or equal to 1]"
-        % ("a" * 101),
+        "[Member must have length less than or equal to 100, Member must have length greater than or equal to 1]",
     )
 
 
@@ -1542,8 +1537,8 @@ def test_get_parameter_history_with_label():
     for i in range(3):
         client.put_parameter(
             Name=test_parameter_name,
-            Description="A test parameter version %d" % i,
-            Value="value-%d" % i,
+            Description=f"A test parameter version {i}",
+            Value=f"value-{i}",
             Type="String",
             Overwrite=True,
         )
@@ -1558,9 +1553,9 @@ def test_get_parameter_history_with_label():
     for index, param in enumerate(parameters_response):
         param["Name"].should.equal(test_parameter_name)
         param["Type"].should.equal("String")
-        param["Value"].should.equal("value-%d" % index)
+        param["Value"].should.equal(f"value-{index}")
         param["Version"].should.equal(index + 1)
-        param["Description"].should.equal("A test parameter version %d" % index)
+        param["Description"].should.equal(f"A test parameter version {index}")
         labels = test_labels if param["Version"] == 1 else []
         param["Labels"].should.equal(labels)
 
@@ -1577,8 +1572,8 @@ def test_get_parameter_history_with_label_non_latest():
     for i in range(3):
         client.put_parameter(
             Name=test_parameter_name,
-            Description="A test parameter version %d" % i,
-            Value="value-%d" % i,
+            Description=f"A test parameter version {i}",
+            Value=f"value-{i}",
             Type="String",
             Overwrite=True,
         )
@@ -1593,9 +1588,9 @@ def test_get_parameter_history_with_label_non_latest():
     for index, param in enumerate(parameters_response):
         param["Name"].should.equal(test_parameter_name)
         param["Type"].should.equal("String")
-        param["Value"].should.equal("value-%d" % index)
+        param["Value"].should.equal(f"value-{index}")
         param["Version"].should.equal(index + 1)
-        param["Description"].should.equal("A test parameter version %d" % index)
+        param["Description"].should.equal(f"A test parameter version {index}")
         labels = test_labels if param["Version"] == 2 else []
         param["Labels"].should.equal(labels)
 
@@ -1612,8 +1607,8 @@ def test_get_parameter_history_with_label_latest_assumed():
     for i in range(3):
         client.put_parameter(
             Name=test_parameter_name,
-            Description="A test parameter version %d" % i,
-            Value="value-%d" % i,
+            Description=f"A test parameter version {i}",
+            Value=f"value-{i}",
             Type="String",
             Overwrite=True,
         )
@@ -1626,9 +1621,9 @@ def test_get_parameter_history_with_label_latest_assumed():
     for index, param in enumerate(parameters_response):
         param["Name"].should.equal(test_parameter_name)
         param["Type"].should.equal("String")
-        param["Value"].should.equal("value-%d" % index)
+        param["Value"].should.equal(f"value-{index}")
         param["Version"].should.equal(index + 1)
-        param["Description"].should.equal("A test parameter version %d" % index)
+        param["Description"].should.equal(f"A test parameter version {index}")
         labels = test_labels if param["Version"] == 3 else []
         param["Labels"].should.equal(labels)
 
@@ -1848,7 +1843,7 @@ def test_parameter_version_limit():
     for i in range(PARAMETER_VERSION_LIMIT + 1):
         client.put_parameter(
             Name=parameter_name,
-            Value="value-%d" % (i + 1),
+            Value=f"value-{(i+1)}",
             Type="String",
             Overwrite=True,
         )
@@ -1862,7 +1857,7 @@ def test_parameter_version_limit():
     len(parameter_history).should.equal(PARAMETER_VERSION_LIMIT)
     parameter_history[0]["Value"].should.equal("value-2")
     latest_version_index = PARAMETER_VERSION_LIMIT - 1
-    latest_version_value = "value-%d" % (PARAMETER_VERSION_LIMIT + 1)
+    latest_version_value = f"value-{PARAMETER_VERSION_LIMIT + 1}"
     parameter_history[latest_version_index]["Value"].should.equal(latest_version_value)
 
 
@@ -1873,7 +1868,7 @@ def test_parameter_overwrite_fails_when_limit_reached_and_oldest_version_has_lab
     for i in range(PARAMETER_VERSION_LIMIT):
         client.put_parameter(
             Name=parameter_name,
-            Value="value-%d" % (i + 1),
+            Value=f"value-{(i+1)}",
             Type="String",
             Overwrite=True,
         )
@@ -1903,21 +1898,21 @@ def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_versi
     for i in range(versions_to_create):
         client.put_parameter(
             Name=parameter_name,
-            Value="value-%d" % (i + 1),
+            Value=f"value-{(i+1)}",
             Type="String",
             Overwrite=True,
         )
 
     response = client.get_parameters(
         Names=[
-            "test-param:%d" % (versions_to_create + 1),
-            "test-param:%d" % (versions_to_create - 1),
+            f"test-param:{versions_to_create + 1}",
+            f"test-param:{versions_to_create - 1}",
         ]
     )
 
     len(response["InvalidParameters"]).should.equal(1)
     response["InvalidParameters"][0].should.equal(
-        "test-param:%d" % (versions_to_create + 1)
+        f"test-param:{versions_to_create + 1}"
     )
 
     len(response["Parameters"]).should.equal(1)
@@ -1935,7 +1930,7 @@ def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_label
     for i in range(versions_to_create):
         client.put_parameter(
             Name=parameter_name,
-            Value="value-%d" % (i + 1),
+            Value=f"value-{(i+1)}",
             Type="String",
             Overwrite=True,
         )
@@ -1990,10 +1985,8 @@ def test_get_parameter_history_should_throw_exception_when_MaxResults_is_too_lar
     error["Code"].should.equal("ValidationException")
     error["Message"].should.equal(
         "1 validation error detected: "
-        "Value '{}' at 'maxResults' failed to satisfy constraint: "
-        "Member must have value less than or equal to 50.".format(
-            PARAMETER_HISTORY_MAX_RESULTS + 1
-        )
+        f"Value '{PARAMETER_HISTORY_MAX_RESULTS + 1}' at 'maxResults' failed to satisfy constraint: "
+        "Member must have value less than or equal to 50."
     )
 
 

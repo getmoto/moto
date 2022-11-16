@@ -38,7 +38,7 @@ def test_create_resource_share():
         name="test",
         allowExternalPrincipals=False,
         resourceArns=[
-            "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(ACCOUNT_ID)
+            f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
         ],
     )
 
@@ -80,7 +80,7 @@ def test_create_resource_share_errors():
     # when
     with pytest.raises(ClientError) as e:
         client.create_resource_share(
-            name="test", resourceArns=["arn:aws:iam::{}:role/test".format(ACCOUNT_ID)]
+            name="test", resourceArns=[f"arn:aws:iam::{ACCOUNT_ID}:role/test"]
         )
     ex = e.value
     ex.operation_name.should.equal("CreateResourceShare")
@@ -97,9 +97,7 @@ def test_create_resource_share_errors():
             name="test",
             principals=["invalid"],
             resourceArns=[
-                "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(
-                    ACCOUNT_ID
-                )
+                f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
             ],
         )
     ex = e.value
@@ -129,7 +127,7 @@ def test_create_resource_share_with_organization():
         name="test",
         principals=[org_arn],
         resourceArns=[
-            "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(ACCOUNT_ID)
+            f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
         ],
     )
 
@@ -142,7 +140,7 @@ def test_create_resource_share_with_organization():
         name="test",
         principals=[ou_arn],
         resourceArns=[
-            "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(ACCOUNT_ID)
+            f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
         ],
     )
 
@@ -165,13 +163,9 @@ def test_create_resource_share_with_organization_errors():
     with pytest.raises(ClientError) as e:
         client.create_resource_share(
             name="test",
-            principals=[
-                "arn:aws:organizations::{}:organization/o-unknown".format(ACCOUNT_ID)
-            ],
+            principals=[f"arn:aws:organizations::{ACCOUNT_ID}:organization/o-unknown"],
             resourceArns=[
-                "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(
-                    ACCOUNT_ID
-                )
+                f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
             ],
         )
     ex = e.value
@@ -187,13 +181,9 @@ def test_create_resource_share_with_organization_errors():
     with pytest.raises(ClientError) as e:
         client.create_resource_share(
             name="test",
-            principals=[
-                "arn:aws:organizations::{}:ou/o-unknown/ou-unknown".format(ACCOUNT_ID)
-            ],
+            principals=[f"arn:aws:organizations::{ACCOUNT_ID}:ou/o-unknown/ou-unknown"],
             resourceArns=[
-                "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(
-                    ACCOUNT_ID
-                )
+                f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
             ],
         )
     ex = e.value
@@ -284,9 +274,7 @@ def test_update_resource_share_errors():
     # when
     with pytest.raises(ClientError) as e:
         client.update_resource_share(
-            resourceShareArn="arn:aws:ram:us-east-1:{}:resource-share/not-existing".format(
-                ACCOUNT_ID
-            ),
+            resourceShareArn=f"arn:aws:ram:us-east-1:{ACCOUNT_ID}:resource-share/not-existing",
             name="test-update",
         )
     ex = e.value
@@ -294,9 +282,7 @@ def test_update_resource_share_errors():
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("UnknownResourceException")
     ex.response["Error"]["Message"].should.equal(
-        "ResourceShare arn:aws:ram:us-east-1:{}:resource-share/not-existing could not be found.".format(
-            ACCOUNT_ID
-        )
+        f"ResourceShare arn:aws:ram:us-east-1:{ACCOUNT_ID}:resource-share/not-existing could not be found."
     )
 
 
@@ -330,18 +316,14 @@ def test_delete_resource_share_errors():
     # when
     with pytest.raises(ClientError) as e:
         client.delete_resource_share(
-            resourceShareArn="arn:aws:ram:us-east-1:{}:resource-share/not-existing".format(
-                ACCOUNT_ID
-            )
+            resourceShareArn=f"arn:aws:ram:us-east-1:{ACCOUNT_ID}:resource-share/not-existing"
         )
     ex = e.value
     ex.operation_name.should.equal("DeleteResourceShare")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("UnknownResourceException")
     ex.response["Error"]["Message"].should.equal(
-        "ResourceShare arn:aws:ram:us-east-1:{}:resource-share/not-existing could not be found.".format(
-            ACCOUNT_ID
-        )
+        f"ResourceShare arn:aws:ram:us-east-1:{ACCOUNT_ID}:resource-share/not-existing could not be found."
     )
 
 

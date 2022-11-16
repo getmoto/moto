@@ -60,7 +60,7 @@ def generate_fargate_profiles(client, cluster_name, num_profiles, minimal):
         client.create_fargate_profile(
             fargateProfileName=generate_random_name(),
             clusterName=cluster_name,
-            **_input_builder(FargateProfileInputs, minimal)
+            **_input_builder(FargateProfileInputs, minimal),
         )[ResponseAttributes.FARGATE_PROFILE][
             FargateProfileAttributes.FARGATE_PROFILE_NAME
         ]
@@ -78,17 +78,14 @@ def generate_nodegroups(client, cluster_name, num_nodegroups, minimal):
         client.create_nodegroup(
             nodegroupName=generate_random_name(),
             clusterName=cluster_name,
-            **_input_builder(NodegroupInputs, minimal)
+            **_input_builder(NodegroupInputs, minimal),
         )[ResponseAttributes.NODEGROUP][NodegroupAttributes.NODEGROUP_NAME]
         for _ in range(num_nodegroups)
     ]
 
 
 def generate_dict(prefix, count):
-    return {
-        "{prefix}_{count}".format(prefix=prefix, count=_count): str(_count)
-        for _count in range(count)
-    }
+    return {f"{prefix}_{_count}": str(_count) for _count in range(count)}
 
 
 def is_valid_uri(value):

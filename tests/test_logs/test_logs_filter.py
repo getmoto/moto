@@ -82,9 +82,7 @@ class TestLogFilterParameters(TestLogFilter):
         timestamp = int(unix_time_millis(datetime.utcnow()))
         messages = []
         for i in range(25):
-            messages.append(
-                {"message": "Message number {}".format(i), "timestamp": timestamp}
-            )
+            messages.append({"message": f"Message number {i}", "timestamp": timestamp})
             timestamp += 100
 
         self.conn.put_log_events(

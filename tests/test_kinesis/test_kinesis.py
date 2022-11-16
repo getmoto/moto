@@ -97,7 +97,7 @@ def test_list_many_streams():
     conn = boto3.client("kinesis", region_name="us-west-2")
 
     for i in range(11):
-        conn.create_stream(StreamName="stream%d" % i, ShardCount=1)
+        conn.create_stream(StreamName=f"stream{i}", ShardCount=1)
 
     resp = conn.list_streams()
     stream_names = resp["StreamNames"]
@@ -124,7 +124,7 @@ def test_describe_stream_summary():
     stream["StreamName"].should.equal(stream_name)
     stream["OpenShardCount"].should.equal(shard_count)
     stream["StreamARN"].should.equal(
-        "arn:aws:kinesis:us-west-2:{}:stream/{}".format(ACCOUNT_ID, stream_name)
+        f"arn:aws:kinesis:us-west-2:{ACCOUNT_ID}:stream/{stream_name}"
     )
     stream["StreamStatus"].should.equal("ACTIVE")
 

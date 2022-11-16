@@ -16,7 +16,7 @@ def test_create_web_acl():
     web_acl = res["Summary"]
     assert web_acl.get("Name") == "John"
     assert web_acl.get("ARN").startswith(
-        "arn:aws:wafv2:us-east-1:{}:regional/webacl/John/".format(ACCOUNT_ID)
+        f"arn:aws:wafv2:us-east-1:{ACCOUNT_ID}:regional/webacl/John/"
     )
     # Duplicate name - should raise error
     with pytest.raises(ClientError) as ex:
@@ -30,7 +30,7 @@ def test_create_web_acl():
     res = conn.create_web_acl(**CREATE_WEB_ACL_BODY("Carl", "CLOUDFRONT"))
     web_acl = res["Summary"]
     assert web_acl.get("ARN").startswith(
-        "arn:aws:wafv2:global:{}:global/webacl/Carl/".format(ACCOUNT_ID)
+        f"arn:aws:wafv2:global:{ACCOUNT_ID}:global/webacl/Carl/"
     )
 
 

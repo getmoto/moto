@@ -22,8 +22,8 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 def _create_image_digest(contents=None):
     if not contents:
-        contents = "docker_image{0}".format(int(random() * 10**6))
-    return "sha256:%s" % hashlib.sha256(contents.encode("utf-8")).hexdigest()
+        contents = f"docker_image{int(random() * 10**6)}"
+    return "sha256:" + hashlib.sha256(contents.encode("utf-8")).hexdigest()
 
 
 def _create_image_manifest():

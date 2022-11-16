@@ -32,7 +32,7 @@ def test_create_web_acl():
     web_acl = res.json["Summary"]
     assert web_acl.get("Name") == "John"
     assert web_acl.get("ARN").startswith(
-        "arn:aws:wafv2:us-east-1:{}:regional/webacl/John/".format(ACCOUNT_ID)
+        f"arn:aws:wafv2:us-east-1:{ACCOUNT_ID}:regional/webacl/John/"
     )
 
     # Duplicate name - should raise error
@@ -55,7 +55,7 @@ def test_create_web_acl():
     )
     web_acl = res.json["Summary"]
     assert web_acl.get("ARN").startswith(
-        "arn:aws:wafv2:global:{}:global/webacl/Carl/".format(ACCOUNT_ID)
+        f"arn:aws:wafv2:global:{ACCOUNT_ID}:global/webacl/Carl/"
     )
 
 

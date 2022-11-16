@@ -108,9 +108,7 @@ def test_route53_roundrobin():
     stack = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
     output = stack["Outputs"][0]
     output["OutputKey"].should.equal("DomainName")
-    output["OutputValue"].should.equal(
-        "arn:aws:route53:::hostedzone/{0}".format(zone_id)
-    )
+    output["OutputValue"].should.equal(f"arn:aws:route53:::hostedzone/{zone_id}")
 
 
 @mock_cloudformation
@@ -138,7 +136,7 @@ def test_route53_ec2_instance_with_public_ip():
     rrsets.should.have.length_of(2)
 
     record_set = rrsets[1]
-    record_set["Name"].should.equal("{0}.us-west-1.my_zone.".format(instance_id))
+    record_set["Name"].should.equal(f"{instance_id}.us-west-1.my_zone.")
     record_set.shouldnt.have.key("SetIdentifier")
     record_set["Type"].should.equal("A")
     record_set["TTL"].should.equal(900)

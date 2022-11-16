@@ -65,9 +65,7 @@ def test_get_lambda_layers():
     for version in result["LayerVersions"]:
         version.pop("CreatedDate")
     result["LayerVersions"].sort(key=lambda x: x["Version"])
-    expected_arn = "arn:aws:lambda:{0}:{1}:layer:{2}:".format(
-        _lambda_region, ACCOUNT_ID, layer_name
-    )
+    expected_arn = f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:layer:{layer_name}:"
     result["LayerVersions"].should.equal(
         [
             {
