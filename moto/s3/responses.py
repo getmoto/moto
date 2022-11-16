@@ -1285,14 +1285,14 @@ class S3Response(BaseResponse):
             raise InvalidObjectState(storage_class="GLACIER")
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
-            if key.last_modified > if_unmodified_since:
+            if key.last_modified.replace(microsecond=0) > if_unmodified_since:
                 raise PreconditionFailed("If-Unmodified-Since")
         if if_match and key.etag not in [if_match, '"{0}"'.format(if_match)]:
             raise PreconditionFailed("If-Match")
 
         if if_modified_since:
             if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
-            if key.last_modified < if_modified_since:
+            if key.last_modified.replace(microsecond=0) <= if_modified_since:
                 return 304, response_headers, "Not Modified"
         if if_none_match and key.etag == if_none_match:
             return 304, response_headers, "Not Modified"
@@ -1575,14 +1575,14 @@ class S3Response(BaseResponse):
 
             if if_unmodified_since:
                 if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
-                if key.last_modified > if_unmodified_since:
+                if key.last_modified.replace(microsecond=0) > if_unmodified_since:
                     return 412, response_headers, ""
             if if_match and key.etag != if_match:
                 return 412, response_headers, ""
 
             if if_modified_since:
                 if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
-                if key.last_modified < if_modified_since:
+                if key.last_modified.replace(microsecond=0) <= if_modified_since:
                     return 304, response_headers, "Not Modified"
             if if_none_match and key.etag == if_none_match:
                 return 304, response_headers, "Not Modified"
