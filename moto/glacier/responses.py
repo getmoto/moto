@@ -132,9 +132,7 @@ class GlacierResponse(BaseResponse):
                 vault_name, job_type, tier, archive_id
             )
             headers["x-amz-job-id"] = job_id
-            headers["Location"] = "/{0}/vaults/{1}/jobs/{2}".format(
-                account_id, vault_name, job_id
-            )
+            headers["Location"] = f"/{account_id}/vaults/{vault_name}/jobs/{job_id}"
             return 202, headers, ""
 
     def vault_jobs_individual_response(self, request, full_url, headers):

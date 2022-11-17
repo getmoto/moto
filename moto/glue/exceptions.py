@@ -7,7 +7,7 @@ class GlueClientError(JsonRESTError):
 
 class AlreadyExistsException(GlueClientError):
     def __init__(self, typ):
-        super().__init__("AlreadyExistsException", "%s already exists." % (typ))
+        super().__init__("AlreadyExistsException", f"{typ} already exists.")
 
 
 class DatabaseAlreadyExistsException(AlreadyExistsException):
@@ -37,12 +37,12 @@ class EntityNotFoundException(GlueClientError):
 
 class DatabaseNotFoundException(EntityNotFoundException):
     def __init__(self, db):
-        super().__init__("Database %s not found." % db)
+        super().__init__(f"Database {db} not found.")
 
 
 class TableNotFoundException(EntityNotFoundException):
     def __init__(self, tbl):
-        super().__init__("Table %s not found." % tbl)
+        super().__init__(f"Table {tbl} not found.")
 
 
 class PartitionNotFoundException(EntityNotFoundException):
@@ -52,17 +52,17 @@ class PartitionNotFoundException(EntityNotFoundException):
 
 class CrawlerNotFoundException(EntityNotFoundException):
     def __init__(self, crawler):
-        super().__init__("Crawler %s not found." % crawler)
+        super().__init__(f"Crawler {crawler} not found.")
 
 
 class JobNotFoundException(EntityNotFoundException):
     def __init__(self, job):
-        super().__init__("Job %s not found." % job)
+        super().__init__(f"Job {job} not found.")
 
 
 class JobRunNotFoundException(EntityNotFoundException):
     def __init__(self, job_run):
-        super().__init__("Job run %s not found." % job_run)
+        super().__init__(f"Job run {job_run} not found.")
 
 
 class VersionNotFoundException(EntityNotFoundException):
