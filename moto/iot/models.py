@@ -73,7 +73,7 @@ class FakeThingType(BaseModel):
         self.thing_type_id = str(random.uuid4())  # I don't know the rule of id
         t = time.time()
         self.metadata = {"deprecated": False, "creationDate": int(t * 1000) / 1000.0}
-        self.arn = "arn:aws:iot:%s:1:thingtype/%s" % (self.region_name, thing_type_name)
+        self.arn = f"arn:aws:iot:{self.region_name}:1:thingtype/{thing_type_name}"
 
     def to_dict(self):
         return {
@@ -127,10 +127,7 @@ class FakeThingGroup(BaseModel):
                         }
                     ]
                 )
-        self.arn = "arn:aws:iot:%s:1:thinggroup/%s" % (
-            self.region_name,
-            thing_group_name,
-        )
+        self.arn = f"arn:aws:iot:{self.region_name}:1:thinggroup/{thing_group_name}"
         self.things = OrderedDict()
 
     def to_dict(self):
@@ -306,7 +303,7 @@ class FakeJob(BaseModel):
 
         self.region_name = region_name
         self.job_id = job_id
-        self.job_arn = "arn:aws:iot:%s:1:job/%s" % (self.region_name, job_id)
+        self.job_arn = f"arn:aws:iot:{self.region_name}:1:job/{job_id}"
         self.targets = targets
         self.document_source = document_source
         self.document = document
@@ -427,26 +424,20 @@ class FakeEndpoint(BaseModel):
         ]:
             raise InvalidRequestException(
                 " An error occurred (InvalidRequestException) when calling the DescribeEndpoint "
-                "operation: Endpoint type %s not recognized." % endpoint_type
+                f"operation: Endpoint type {endpoint_type} not recognized."
             )
         self.region_name = region_name
         identifier = random.get_random_string(length=14, lower_case=True)
         if endpoint_type == "iot:Data":
-            self.endpoint = "{i}.iot.{r}.amazonaws.com".format(
-                i=identifier, r=self.region_name
-            )
+            self.endpoint = f"{identifier}.iot.{self.region_name}.amazonaws.com"
         elif "iot:Data-ATS" in endpoint_type:
-            self.endpoint = "{i}-ats.iot.{r}.amazonaws.com".format(
-                i=identifier, r=self.region_name
-            )
+            self.endpoint = f"{identifier}-ats.iot.{self.region_name}.amazonaws.com"
         elif "iot:CredentialProvider" in endpoint_type:
-            self.endpoint = "{i}.credentials.iot.{r}.amazonaws.com".format(
-                i=identifier, r=self.region_name
+            self.endpoint = (
+                f"{identifier}.credentials.iot.{self.region_name}.amazonaws.com"
             )
         elif "iot:Jobs" in endpoint_type:
-            self.endpoint = "{i}.jobs.iot.{r}.amazonaws.com".format(
-                i=identifier, r=self.region_name
-            )
+            self.endpoint = f"{identifier}.jobs.iot.{self.region_name}.amazonaws.com"
         self.endpoint_type = endpoint_type
 
     def to_get_dict(self):
@@ -488,7 +479,7 @@ class FakeRule(BaseModel):
         self.error_action = error_action or {}
         self.sql = sql
         self.aws_iot_sql_version = aws_iot_sql_version or "2016-03-23"
-        self.arn = "arn:aws:iot:%s:1:rule/%s" % (self.region_name, rule_name)
+        self.arn = f"arn:aws:iot:{self.region_name}:1:rule/{rule_name}"
 
     def to_get_dict(self):
         return {
@@ -530,14 +521,10 @@ class FakeDomainConfiguration(BaseModel):
         if service_type and service_type not in ["DATA", "CREDENTIAL_PROVIDER", "JOBS"]:
             raise InvalidRequestException(
                 "An error occurred (InvalidRequestException) when calling the DescribeDomainConfiguration "
-                "operation: Service type %s not recognized." % service_type
+                f"operation: Service type {service_type} not recognized."
             )
         self.domain_configuration_name = domain_configuration_name
-        self.domain_configuration_arn = "arn:aws:iot:%s:1:domainconfiguration/%s/%s" % (
-            region_name,
-            domain_configuration_name,
-            random.get_random_string(length=5),
-        )
+        self.domain_configuration_arn = f"arn:aws:iot:{region_name}:1:domainconfiguration/{domain_configuration_name}/{random.get_random_string(length=5)}"
         self.domain_name = domain_name
         self.server_certificates = []
         if server_certificate_arns:
@@ -871,7 +858,7 @@ class IoTBackend(BaseBackend):
         ]
         if len(certs) > 0:
             raise DeleteConflictException(
-                "Things must be detached before deletion (arn: %s)" % certs[0]
+                f"Things must be detached before deletion (arn: {certs[0]})"
             )
 
         certs = [

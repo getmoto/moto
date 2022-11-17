@@ -73,9 +73,7 @@ class RoleConfigQuery(ConfigQueryModel):
                 for role in role_list:
                     duplicate_role_list.append(
                         {
-                            "_id": "{}{}".format(
-                                role.id, region
-                            ),  # this is only for sorting, isn't returned outside of this functin
+                            "_id": f"{role.id}{region}",  # this is only for sorting, isn't returned outside of this function
                             "type": "AWS::IAM::Role",
                             "id": role.id,
                             "name": role.name,
@@ -238,9 +236,7 @@ class PolicyConfigQuery(ConfigQueryModel):
                 for policy in policy_list:
                     duplicate_policy_list.append(
                         {
-                            "_id": "{}{}".format(
-                                policy.id, region
-                            ),  # this is only for sorting, isn't returned outside of this functin
+                            "_id": f"{policy.id}{region}",  # this is only for sorting, isn't returned outside of this function
                             "type": "AWS::IAM::Policy",
                             "id": policy.id,
                             "name": policy.name,

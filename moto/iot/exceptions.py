@@ -35,14 +35,14 @@ class VersionConflictException(IoTClientError):
         self.code = 409
         super().__init__(
             "VersionConflictException",
-            "The version for thing %s does not match the expected version." % name,
+            f"The version for thing {name} does not match the expected version.",
         )
 
 
 class CertificateStateException(IoTClientError):
     def __init__(self, msg, cert_id):
         self.code = 406
-        super().__init__("CertificateStateException", "%s Id: %s" % (msg, cert_id))
+        super().__init__("CertificateStateException", f"{msg} Id: {cert_id}")
 
 
 class DeleteConflictException(IoTClientError):
@@ -71,7 +71,7 @@ class VersionsLimitExceededException(IoTClientError):
         self.code = 409
         super().__init__(
             "VersionsLimitExceededException",
-            "The policy %s already has the maximum number of versions (5)" % name,
+            f"The policy {name} already has the maximum number of versions (5)",
         )
 
 

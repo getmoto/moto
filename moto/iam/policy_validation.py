@@ -308,9 +308,7 @@ class BaseIAMPolicyValidator:
 
         vendor_pattern = re.compile(r"[^a-zA-Z0-9\-.]")
         if action_parts[0] != "*" and vendor_pattern.search(action_parts[0]):
-            raise MalformedPolicyDocument(
-                "Vendor {vendor} is not valid".format(vendor=action_parts[0])
-            )
+            raise MalformedPolicyDocument(f"Vendor {action_parts[0]} is not valid")
 
     def _validate_resources_for_formats(self):
         self._validate_resource_like_for_formats("Resource")
@@ -366,13 +364,8 @@ class BaseIAMPolicyValidator:
                     if len(remaining_resource_parts) > 3
                     else "*"
                 )
-                self._resource_error = 'Partition "{partition}" is not valid for resource "arn:{partition}:{arn1}:{arn2}:{arn3}:{arn4}".'.format(
-                    partition=resource_partitions[0],
-                    arn1=arn1,
-                    arn2=arn2,
-                    arn3=arn3,
-                    arn4=arn4,
-                )
+                pt = resource_partitions[0]
+                self._resource_error = f'Partition "{pt}" is not valid for resource "arn:{pt}:{arn1}:{arn2}:{arn3}:{arn4}".'
                 return
 
             if resource_partitions[1] != ":":

@@ -73,9 +73,7 @@ class IAMUserAccessKey:
 
     @property
     def arn(self):
-        return "arn:aws:iam::{account_id}:user/{iam_user_name}".format(
-            account_id=self.account_id, iam_user_name=self._owner_user_name
-        )
+        return f"arn:aws:iam::{self.account_id}:user/{self._owner_user_name}"
 
     def create_credentials(self):
         return Credentials(self._access_key_id, self._secret_access_key)
@@ -135,13 +133,7 @@ class AssumedRoleAccessKey(object):
 
     @property
     def arn(self):
-        return (
-            "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-                account_id=self.account_id,
-                role_name=self._owner_role_name,
-                session_name=self._session_name,
-            )
-        )
+        return f"arn:aws:sts::{self.account_id}:assumed-role/{self._owner_role_name}/{self._session_name}"
 
     def create_credentials(self):
         return Credentials(
@@ -175,13 +167,7 @@ class CreateAccessKeyFailure(Exception):
 class IAMRequestBase(object, metaclass=ABCMeta):
     def __init__(self, account_id, method, path, data, headers):
         log.debug(
-            "Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
-                class_name=self.__class__.__name__,
-                method=method,
-                path=path,
-                data=data,
-                headers=headers,
-            )
+            f"Creating {self.__class__.__name__} with method={method}, path={path}, data={data}, headers={headers}"
         )
         self.account_id = account_id
         self._method = method
@@ -410,7 +396,7 @@ class IAMPolicyStatement(object):
     @staticmethod
     def _match(pattern, string):
         pattern = pattern.replace("*", ".*")
-        pattern = "^{pattern}$".format(pattern=pattern)
+        pattern = f"^{pattern}$"
         return re.match(pattern, string)
 
 
