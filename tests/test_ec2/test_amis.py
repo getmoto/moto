@@ -599,8 +599,8 @@ def test_ami_attribute_user_permissions():
     ]
     permissions.should.equal([])
 
-    USER1 = "".join(["{}".format(random.randint(0, 9)) for _ in range(0, 12)])
-    USER2 = "".join(["{}".format(random.randint(0, 9)) for _ in range(0, 12)])
+    USER1 = "".join([f"{random.randint(0, 9)}" for _ in range(0, 12)])
+    USER2 = "".join([f"{random.randint(0, 9)}" for _ in range(0, 12)])
 
     ADD_USERS_ARGS = {
         "ImageId": image.id,
@@ -673,7 +673,7 @@ def test_ami_describe_executable_users():
     instance_id = response["Reservations"][0]["Instances"][0]["InstanceId"]
     image_id = conn.create_image(InstanceId=instance_id, Name="TestImage")["ImageId"]
 
-    USER1 = "".join(["{}".format(random.randint(0, 9)) for _ in range(0, 12)])
+    USER1 = "".join([f"{random.randint(0, 9)}" for _ in range(0, 12)])
 
     ADD_USER_ARGS = {
         "ImageId": image_id,
@@ -706,8 +706,8 @@ def test_ami_describe_executable_users_negative():
     instance_id = response["Reservations"][0]["Instances"][0]["InstanceId"]
     image_id = conn.create_image(InstanceId=instance_id, Name="TestImage")["ImageId"]
 
-    USER1 = "".join(["{}".format(random.randint(0, 9)) for _ in range(0, 12)])
-    USER2 = "".join(["{}".format(random.randint(0, 9)) for _ in range(0, 12)])
+    USER1 = "".join([f"{random.randint(0, 9)}" for _ in range(0, 12)])
+    USER2 = "".join([f"{random.randint(0, 9)}" for _ in range(0, 12)])
 
     ADD_USER_ARGS = {
         "ImageId": image_id,
@@ -742,7 +742,7 @@ def test_ami_describe_executable_users_and_filter():
         "ImageId"
     ]
 
-    USER1 = "".join(["{}".format(random.randint(0, 9)) for _ in range(0, 12)])
+    USER1 = "".join([f"{random.randint(0, 9)}" for _ in range(0, 12)])
 
     ADD_USER_ARGS = {
         "ImageId": image_id,
@@ -1127,7 +1127,7 @@ def test_ami_filter_by_empty_tag():
     for i in range(10):
         image = client.create_image(
             InstanceId=instance.instance_id,
-            Name="MyAMI{}".format(i),
+            Name=f"MyAMI{i}",
             Description="Test",
         )
 

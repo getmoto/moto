@@ -125,7 +125,7 @@ def test_create_many_snapshot_copy_grants():
 
     for i in range(10):
         client.create_snapshot_copy_grant(
-            SnapshotCopyGrantName="test-us-east-1-{0}".format(i), KmsKeyId="fake"
+            SnapshotCopyGrantName=f"test-us-east-1-{i}", KmsKeyId="fake"
         )
     response = client.describe_snapshot_copy_grants()
     len(response["SnapshotCopyGrants"]).should.equal(10)
@@ -216,7 +216,7 @@ def test_create_cluster_all_attributes():
     cluster["AutomatedSnapshotRetentionPeriod"].should.equal(10)
     # Endpoint only returned when ClusterStatus=Available
     cluster["Endpoint"]["Address"].should.match(
-        "{}.[a-z0-9]+.{}.redshift.amazonaws.com".format(cluster_identifier, region)
+        f"{cluster_identifier}.[a-z0-9]+.{region}.redshift.amazonaws.com"
     )
     cluster["Endpoint"]["Port"].should.equal(1234)
     cluster["ClusterVersion"].should.equal("1.0")
@@ -795,7 +795,7 @@ def test_create_cluster_snapshot_of_non_existent_cluster():
     cluster_identifier = "non-existent-cluster-id"
     client.create_cluster_snapshot.when.called_with(
         SnapshotIdentifier="snapshot-id", ClusterIdentifier=cluster_identifier
-    ).should.throw(ClientError, "Cluster {} not found.".format(cluster_identifier))
+    ).should.throw(ClientError, f"Cluster {cluster_identifier} not found.")
 
 
 @mock_redshift
@@ -849,9 +849,7 @@ def test_delete_automated_snapshot():
         SnapshotIdentifier=snapshot_identifier
     ).should.throw(
         ClientError,
-        "Cannot delete the snapshot {0} because only manual snapshots may be deleted".format(
-            snapshot_identifier
-        ),
+        f"Cannot delete the snapshot {snapshot_identifier} because only manual snapshots may be deleted",
     )
 
 
@@ -929,13 +927,11 @@ def test_describe_snapshot_with_filter():
 
     client.describe_cluster_snapshots.when.called_with(
         SnapshotIdentifier=snapshot_identifier, SnapshotType="automated"
-    ).should.throw(ClientError, "Snapshot {0} not found.".format(snapshot_identifier))
+    ).should.throw(ClientError, f"Snapshot {snapshot_identifier} not found.")
 
     client.describe_cluster_snapshots.when.called_with(
         SnapshotIdentifier=auto_snapshot_identifier, SnapshotType="manual"
-    ).should.throw(
-        ClientError, "Snapshot {0} not found.".format(auto_snapshot_identifier)
-    )
+    ).should.throw(ClientError, f"Snapshot {auto_snapshot_identifier} not found.")
 
 
 @mock_redshift
@@ -1074,7 +1070,7 @@ def test_describe_cluster_snapshots_not_found_error():
 
     client.describe_cluster_snapshots.when.called_with(
         SnapshotIdentifier=snapshot_identifier
-    ).should.throw(ClientError, "Snapshot {} not found.".format(snapshot_identifier))
+    ).should.throw(ClientError, f"Snapshot {snapshot_identifier} not found.")
 
 
 @mock_redshift
@@ -1131,7 +1127,7 @@ def test_cluster_snapshot_already_exists():
 
     client.create_cluster_snapshot.when.called_with(
         SnapshotIdentifier=snapshot_identifier, ClusterIdentifier=cluster_identifier
-    ).should.throw(ClientError, "{} already exists".format(snapshot_identifier))
+    ).should.throw(ClientError, f"{snapshot_identifier} already exists")
 
 
 @mock_redshift
@@ -1287,13 +1283,11 @@ def test_create_cluster_status_update():
 def test_describe_tags_with_resource_type():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
-    cluster_arn = "arn:aws:redshift:us-east-1:{}:" "cluster:{}".format(
-        ACCOUNT_ID, cluster_identifier
+    cluster_arn = (
+        f"arn:aws:redshift:us-east-1:{ACCOUNT_ID}:cluster:{cluster_identifier}"
     )
     snapshot_identifier = "my_snapshot"
-    snapshot_arn = "arn:aws:redshift:us-east-1:{}:" "snapshot:{}/{}".format(
-        ACCOUNT_ID, cluster_identifier, snapshot_identifier
-    )
+    snapshot_arn = f"arn:aws:redshift:us-east-1:{ACCOUNT_ID}:snapshot:{cluster_identifier}/{snapshot_identifier}"
     tag_key = "test-tag-key"
     tag_value = "test-tag-value"
 
@@ -1333,9 +1327,7 @@ def test_describe_tags_with_resource_type():
 @mock_redshift
 def test_describe_tags_cannot_specify_resource_type_and_resource_name():
     client = boto3.client("redshift", region_name="us-east-1")
-    resource_name = "arn:aws:redshift:us-east-1:{}:cluster:cluster-id".format(
-        ACCOUNT_ID
-    )
+    resource_name = f"arn:aws:redshift:us-east-1:{ACCOUNT_ID}:cluster:cluster-id"
     resource_type = "cluster"
     client.describe_tags.when.called_with(
         ResourceName=resource_name, ResourceType=resource_type
@@ -1346,13 +1338,11 @@ def test_describe_tags_cannot_specify_resource_type_and_resource_name():
 def test_describe_tags_with_resource_name():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "cluster-id"
-    cluster_arn = "arn:aws:redshift:us-east-1:{}:" "cluster:{}".format(
-        ACCOUNT_ID, cluster_identifier
+    cluster_arn = (
+        f"arn:aws:redshift:us-east-1:{ACCOUNT_ID}:cluster:{cluster_identifier}"
     )
     snapshot_identifier = "snapshot-id"
-    snapshot_arn = "arn:aws:redshift:us-east-1:{}:" "snapshot:{}/{}".format(
-        ACCOUNT_ID, cluster_identifier, snapshot_identifier
-    )
+    snapshot_arn = f"arn:aws:redshift:us-east-1:{ACCOUNT_ID}:snapshot:{cluster_identifier}/{snapshot_identifier}"
     tag_key = "test-tag-key"
     tag_value = "test-tag-value"
 
@@ -1393,15 +1383,15 @@ def test_describe_tags_with_resource_name():
 def test_create_tags():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "cluster-id"
-    cluster_arn = "arn:aws:redshift:us-east-1:{}:" "cluster:{}".format(
-        ACCOUNT_ID, cluster_identifier
+    cluster_arn = (
+        f"arn:aws:redshift:us-east-1:{ACCOUNT_ID}:cluster:{cluster_identifier}"
     )
     tag_key = "test-tag-key"
     tag_value = "test-tag-value"
     num_tags = 5
     tags = []
     for i in range(0, num_tags):
-        tag = {"Key": "{}-{}".format(tag_key, i), "Value": "{}-{}".format(tag_value, i)}
+        tag = {"Key": f"{tag_key}-{i}", "Value": f"{tag_value}-{i}"}
         tags.append(tag)
 
     client.create_cluster(
@@ -1424,14 +1414,14 @@ def test_create_tags():
 def test_delete_tags():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "cluster-id"
-    cluster_arn = "arn:aws:redshift:us-east-1:{}:" "cluster:{}".format(
-        ACCOUNT_ID, cluster_identifier
+    cluster_arn = (
+        f"arn:aws:redshift:us-east-1:{ACCOUNT_ID}:cluster:{cluster_identifier}"
     )
     tag_key = "test-tag-key"
     tag_value = "test-tag-value"
     tags = []
     for i in range(1, 2):
-        tag = {"Key": "{}-{}".format(tag_key, i), "Value": "{}-{}".format(tag_value, i)}
+        tag = {"Key": f"{tag_key}-{i}", "Value": f"{tag_value}-{i}"}
         tags.append(tag)
 
     client.create_cluster(
@@ -1445,7 +1435,7 @@ def test_delete_tags():
     )
     client.delete_tags(
         ResourceName=cluster_arn,
-        TagKeys=[tag["Key"] for tag in tags if tag["Key"] != "{}-1".format(tag_key)],
+        TagKeys=[tag["Key"] for tag in tags if tag["Key"] != f"{tag_key}-1"],
     )
     response = client.describe_clusters(ClusterIdentifier=cluster_identifier)
     cluster = response["Clusters"][0]
@@ -1727,7 +1717,7 @@ def test_delete_cluster_without_final_snapshot():
     cluster["DBName"].should.equal("test")
     endpoint = cluster["Endpoint"]
     endpoint["Address"].should.match(
-        "{}.[a-z0-9]+.{}.redshift.amazonaws.com".format(cluster_identifier, "us-east-1")
+        f"{cluster_identifier}.[a-z0-9]+.us-east-1.redshift.amazonaws.com"
     )
     endpoint["Port"].should.equal(5439)
     cluster["AutomatedSnapshotRetentionPeriod"].should.equal(1)
@@ -1864,7 +1854,7 @@ def test_get_cluster_credentials():
     response = client.get_cluster_credentials(
         ClusterIdentifier=cluster_identifier, DbUser=db_user
     )
-    response["DbUser"].should.equal("IAM:%s" % db_user)
+    response["DbUser"].should.equal(f"IAM:{db_user}")
     assert time.mktime((response["Expiration"]).timetuple()) == pytest.approx(
         expected_expiration
     )
@@ -1873,12 +1863,12 @@ def test_get_cluster_credentials():
     response = client.get_cluster_credentials(
         ClusterIdentifier=cluster_identifier, DbUser=db_user, AutoCreate=True
     )
-    response["DbUser"].should.equal("IAMA:%s" % db_user)
+    response["DbUser"].should.equal(f"IAMA:{db_user}")
 
     response = client.get_cluster_credentials(
         ClusterIdentifier=cluster_identifier, DbUser="some_other_user", AutoCreate=False
     )
-    response["DbUser"].should.equal("IAM:%s" % "some_other_user")
+    response["DbUser"].should.equal("IAM:some_other_user")
 
     expected_expiration = time.mktime(
         (datetime.datetime.now() + datetime.timedelta(0, 3000)).timetuple()

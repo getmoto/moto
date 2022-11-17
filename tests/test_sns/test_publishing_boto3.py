@@ -37,7 +37,7 @@ def test_publish_to_sqs():
     conn.subscribe(
         TopicArn=topic_arn,
         Protocol="sqs",
-        Endpoint="arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
+        Endpoint=f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue",
     )
     message = "my message"
     with freeze_time("2015-01-01 12:00:00"):
@@ -117,7 +117,7 @@ def test_publish_to_sqs_bad():
     conn.subscribe(
         TopicArn=topic_arn,
         Protocol="sqs",
-        Endpoint="arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
+        Endpoint=f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue",
     )
     message = "my message"
     try:
@@ -325,7 +325,7 @@ def test_publish_to_sqs_dump_json():
     conn.subscribe(
         TopicArn=topic_arn,
         Protocol="sqs",
-        Endpoint="arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
+        Endpoint=f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue",
     )
 
     message = json.dumps(
@@ -374,7 +374,7 @@ def test_publish_to_sqs_in_different_region():
     conn.subscribe(
         TopicArn=topic_arn,
         Protocol="sqs",
-        Endpoint="arn:aws:sqs:us-west-2:{}:test-queue".format(ACCOUNT_ID),
+        Endpoint=f"arn:aws:sqs:us-west-2:{ACCOUNT_ID}:test-queue",
     )
 
     message = "my message"
@@ -444,7 +444,7 @@ def test_publish_subject():
     conn.subscribe(
         TopicArn=topic_arn,
         Protocol="sqs",
-        Endpoint="arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
+        Endpoint=f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue",
     )
     message = "my message"
     subject1 = "test subject"
@@ -476,7 +476,7 @@ def test_publish_null_subject():
     conn.subscribe(
         TopicArn=topic_arn,
         Protocol="sqs",
-        Endpoint="arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
+        Endpoint=f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue",
     )
     message = "my message"
     with freeze_time("2015-01-01 12:00:00"):

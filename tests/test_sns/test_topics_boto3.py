@@ -19,9 +19,7 @@ def test_create_and_delete_topic():
         topics = topics_json["Topics"]
         topics.should.have.length_of(1)
         topics[0]["TopicArn"].should.equal(
-            "arn:aws:sns:{0}:{1}:{2}".format(
-                conn._client_config.region_name, ACCOUNT_ID, topic_name
-            )
+            f"arn:aws:sns:{conn._client_config.region_name}:{ACCOUNT_ID}:{topic_name}"
         )
 
         # Delete the topic
@@ -108,7 +106,7 @@ def test_create_topic_must_meet_constraints():
     conn = boto3.client("sns", region_name="us-east-1")
     common_random_chars = [":", ";", "!", "@", "|", "^", "%"]
     for char in common_random_chars:
-        conn.create_topic.when.called_with(Name="no%s_invalidchar" % char).should.throw(
+        conn.create_topic.when.called_with(Name=f"no{char}_invalidchar").should.throw(
             ClientError
         )
     conn.create_topic.when.called_with(Name="no spaces allowed").should.throw(
@@ -140,9 +138,7 @@ def test_topic_corresponds_to_region():
         conn.create_topic(Name="some-topic")
         topics_json = conn.list_topics()
         topic_arn = topics_json["Topics"][0]["TopicArn"]
-        topic_arn.should.equal(
-            "arn:aws:sns:{0}:{1}:some-topic".format(region, ACCOUNT_ID)
-        )
+        topic_arn.should.equal(f"arn:aws:sns:{region}:{ACCOUNT_ID}:some-topic")
 
 
 @mock_sns
@@ -155,9 +151,7 @@ def test_topic_attributes():
 
     attributes = conn.get_topic_attributes(TopicArn=topic_arn)["Attributes"]
     attributes["TopicArn"].should.equal(
-        "arn:aws:sns:{0}:{1}:some-topic".format(
-            conn._client_config.region_name, ACCOUNT_ID
-        )
+        f"arn:aws:sns:{conn._client_config.region_name}:{ACCOUNT_ID}:some-topic"
     )
     attributes["Owner"].should.equal(ACCOUNT_ID)
     json.loads(attributes["Policy"]).should.equal(
@@ -180,9 +174,7 @@ def test_topic_attributes():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:{}:some-topic".format(
-                        ACCOUNT_ID
-                    ),
+                    "Resource": f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:some-topic",
                     "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 }
             ],
@@ -274,9 +266,7 @@ def test_add_remove_permissions():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(
-                        ACCOUNT_ID
-                    ),
+                    "Resource": f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:test-permissions",
                     "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 },
                 {
@@ -284,9 +274,7 @@ def test_add_remove_permissions():
                     "Effect": "Allow",
                     "Principal": {"AWS": "arn:aws:iam::999999999999:root"},
                     "Action": "SNS:Publish",
-                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(
-                        ACCOUNT_ID
-                    ),
+                    "Resource": f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:test-permissions",
                 },
             ],
         }
@@ -315,9 +303,7 @@ def test_add_remove_permissions():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(
-                        ACCOUNT_ID
-                    ),
+                    "Resource": f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:test-permissions",
                     "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 }
             ],
@@ -343,7 +329,7 @@ def test_add_remove_permissions():
                 ]
             },
             "Action": ["SNS:Publish", "SNS:Subscribe"],
-            "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(ACCOUNT_ID),
+            "Resource": f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:test-permissions",
         }
     )
 
@@ -484,8 +470,7 @@ def test_tag_resource_errors():
     ).should.throw(ClientError, "Resource does not exist")
 
     too_many_tags = [
-        {"Key": "tag_key_{}".format(i), "Value": "tag_value_{}".format(i)}
-        for i in range(51)
+        {"Key": f"tag_key_{i}", "Value": f"tag_value_{i}"} for i in range(51)
     ]
     conn.tag_resource.when.called_with(
         ResourceArn=topic_arn, Tags=too_many_tags

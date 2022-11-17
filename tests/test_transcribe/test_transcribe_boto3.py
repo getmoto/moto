@@ -61,11 +61,7 @@ def test_run_medical_transcription_job_minimal_params():
     transcription_job.should.contain("CompletionTime")
     transcription_job["Transcript"].should.equal(
         {
-            "TranscriptFileUri": "https://s3.{}.amazonaws.com/{}/medical/{}.json".format(
-                region_name,
-                args["OutputBucketName"],
-                args["MedicalTranscriptionJobName"],
-            )
+            "TranscriptFileUri": f"https://s3.{region_name}.amazonaws.com/{args['OutputBucketName']}/medical/{args['MedicalTranscriptionJobName']}.json"
         }
     )
 
@@ -168,11 +164,7 @@ def test_run_medical_transcription_job_all_params():
     transcription_job.should.contain("CompletionTime")
     transcription_job["Transcript"].should.equal(
         {
-            "TranscriptFileUri": "https://s3.{}.amazonaws.com/{}/medical/{}.json".format(
-                region_name,
-                args["OutputBucketName"],
-                args["MedicalTranscriptionJobName"],
-            )
+            "TranscriptFileUri": f"https://s3.{region_name}.amazonaws.com/{args['OutputBucketName']}/medical/{args['MedicalTranscriptionJobName']}.json"
         }
     )
 
@@ -262,9 +254,7 @@ def test_run_transcription_job_all_params():
     transcription_job.should.contain("CompletionTime")
     transcription_job["Transcript"].should.equal(
         {
-            "TranscriptFileUri": "https://s3.{}.amazonaws.com/{}/{}.json".format(
-                region_name, args["OutputBucketName"], args["TranscriptionJobName"]
-            )
+            "TranscriptFileUri": f"https://s3.{region_name}.amazonaws.com/{args['OutputBucketName']}/{args['TranscriptionJobName']}.json"
         }
     )
 
@@ -325,7 +315,7 @@ def test_run_transcription_job_minimal_params():
     transcription_job.should.contain("Transcript")
     # Check aws hosted bucket
     transcription_job["Transcript"]["TranscriptFileUri"].should.contain(
-        "https://s3.{0}.amazonaws.com/aws-transcribe-{0}-prod/".format(region_name)
+        f"https://s3.{region_name}.amazonaws.com/aws-transcribe-{region_name}-prod/"
     )
 
     # Delete
@@ -543,7 +533,7 @@ def test_list_medical_transcription_jobs():
     client = boto3.client("transcribe", region_name=region_name)
 
     def run_job(index, target_status):
-        job_name = "Job_{}".format(index)
+        job_name = f"Job_{index}"
         args = {
             "MedicalTranscriptionJobName": job_name,
             "LanguageCode": "en-US",
@@ -635,7 +625,7 @@ def test_list_transcription_jobs():
     client = boto3.client("transcribe", region_name=region_name)
 
     def run_job(index, target_status):
-        job_name = "Job_{}".format(index)
+        job_name = f"Job_{index}"
         args = {
             "TranscriptionJobName": job_name,
             "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
@@ -796,9 +786,7 @@ def test_create_vocabulary():
     resp["VocabularyState"].should.equal("PENDING")
     resp["DownloadUri"].should.contain(vocabulary_name)
     resp["DownloadUri"].should.contain(
-        "https://s3.{0}.amazonaws.com/aws-transcribe-dictionary-model-{0}-prod".format(
-            region_name
-        )
+        f"https://s3.{region_name}.amazonaws.com/aws-transcribe-dictionary-model-{region_name}-prod"
     )
     # IN_PROGRESS
     resp = client.get_vocabulary(VocabularyName=vocabulary_name)
@@ -813,7 +801,7 @@ def test_list_vocabularies():
     client = boto3.client("transcribe", region_name=region_name)
 
     def create_vocab(index, target_status):
-        vocabulary_name = "Vocab_{}".format(index)
+        vocabulary_name = f"Vocab_{index}"
         args = {
             "VocabularyName": vocabulary_name,
             "LanguageCode": "en-US",
@@ -896,7 +884,7 @@ def test_list_medical_vocabularies():
     client = boto3.client("transcribe", region_name=region_name)
 
     def create_vocab(index, target_status):
-        vocabulary_name = "Vocab_{}".format(index)
+        vocabulary_name = f"Vocab_{index}"
         resp = client.create_medical_vocabulary(
             VocabularyName=vocabulary_name,
             LanguageCode="en-US",

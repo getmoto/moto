@@ -13,7 +13,7 @@ CLIENT_ENDPOINT = "/"
 
 def headers(action):
     return {
-        "X-Amz-Target": "RedshiftData.%s" % action,
+        "X-Amz-Target": f"RedshiftData.{action}",
         "Content-Type": "application/x-amz-json-1.1",
     }
 
@@ -218,8 +218,7 @@ def test_redshiftdata_execute_statement_and_cancel_statement(client):
     should_return_expected_exception(
         cancel_response2,
         "ValidationException",
-        "Could not cancel a query that is already in %s state with ID: %s"
-        % ("ABORTED", execute_payload["Id"]),
+        f"Could not cancel a query that is already in ABORTED state with ID: {execute_payload['Id']}",
     )
 
 

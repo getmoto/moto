@@ -58,7 +58,7 @@ def test_create_model(sagemaker_client):
         VpcConfig=vpc_config.response_object,
     )
     model["ModelArn"].should.match(
-        r"^arn:aws:sagemaker:.*:.*:model/{}$".format(TEST_MODEL_NAME)
+        rf"^arn:aws:sagemaker:.*:.*:model/{TEST_MODEL_NAME}$"
     )
 
 
@@ -84,7 +84,7 @@ def test_list_models(sagemaker_client):
     assert len(models["Models"]).should.equal(1)
     assert models["Models"][0]["ModelName"].should.equal(TEST_MODEL_NAME)
     assert models["Models"][0]["ModelArn"].should.match(
-        r"^arn:aws:sagemaker:.*:.*:model/{}$".format(TEST_MODEL_NAME)
+        rf"^arn:aws:sagemaker:.*:.*:model/{TEST_MODEL_NAME}$"
     )
 
 

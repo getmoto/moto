@@ -27,9 +27,7 @@ def test_codebuild_create_project_s3_artifacts():
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
 
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     response = client.create_project(
@@ -78,9 +76,7 @@ def test_codebuild_create_project_no_artifacts():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     response = client.create_project(
@@ -127,9 +123,7 @@ def test_codebuild_create_project_with_invalid_name():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     with pytest.raises(client.exceptions.from_code("InvalidInputException")) as err:
@@ -160,9 +154,7 @@ def test_codebuild_create_project_with_invalid_name_length():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     with pytest.raises(client.exceptions.from_code("InvalidInputException")) as err:
@@ -192,9 +184,7 @@ def test_codebuild_create_project_when_exists():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -234,9 +224,7 @@ def test_codebuild_list_projects():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -275,9 +263,7 @@ def test_codebuild_list_builds_for_project_no_history():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -309,9 +295,7 @@ def test_codebuild_list_builds_for_project_with_history():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -392,9 +376,7 @@ def test_codebuild_start_build_no_overrides():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -426,9 +408,7 @@ def test_codebuild_start_build_multiple_times():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -463,9 +443,7 @@ def test_codebuild_start_build_with_overrides():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     branch_override = "fix/testing"
@@ -504,9 +482,7 @@ def test_codebuild_batch_get_builds_1_project():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -543,9 +519,7 @@ def test_codebuild_batch_get_builds_2_projects():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -584,7 +558,7 @@ def test_codebuild_batch_get_builds_invalid_build_id():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     with pytest.raises(client.exceptions.InvalidInputException) as err:
-        client.batch_get_builds(ids=["some_project{}".format(uuid1())])
+        client.batch_get_builds(ids=[f"some_project{uuid1()}"])
     err.value.response["Error"]["Code"].should.equal("InvalidInputException")
 
 
@@ -613,9 +587,7 @@ def test_codebuild_delete_project():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -653,9 +625,7 @@ def test_codebuild_stop_build():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -678,7 +648,7 @@ def test_codebuild_stop_build_no_build():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     with pytest.raises(client.exceptions.ResourceNotFoundException) as err:
-        client.stop_build(id="some_project:{0}".format(uuid1()))
+        client.stop_build(id=f"some_project:{uuid1()}")
     err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
@@ -687,5 +657,5 @@ def test_codebuild_stop_build_bad_uid():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     with pytest.raises(client.exceptions.InvalidInputException) as err:
-        client.stop_build(id="some_project{0}".format(uuid1()))
+        client.stop_build(id=f"some_project{uuid1()}")
     err.value.response["Error"]["Code"].should.equal("InvalidInputException")

@@ -19,7 +19,7 @@ def test_create_platform_application():
     )
     application_arn = response["PlatformApplicationArn"]
     application_arn.should.equal(
-        "arn:aws:sns:us-east-1:{}:app/APNS/my-application".format(ACCOUNT_ID)
+        f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:app/APNS/my-application"
     )
 
 
@@ -131,7 +131,7 @@ def test_create_platform_endpoint():
 
     endpoint_arn = endpoint["EndpointArn"]
     endpoint_arn.should.contain(
-        "arn:aws:sns:us-east-1:{}:endpoint/APNS/my-application/".format(ACCOUNT_ID)
+        f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:endpoint/APNS/my-application/"
     )
 
 

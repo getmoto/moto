@@ -52,7 +52,7 @@ def test_fn_join_boto3():
 
     stack = cf.describe_stacks()["Stacks"][0]
     fn_join_output = stack["Outputs"][0]
-    fn_join_output["OutputValue"].should.equal("test eip:{0}".format(eip["PublicIp"]))
+    fn_join_output["OutputValue"].should.equal(f"test eip:{eip['PublicIp']}")
 
 
 @mock_cloudformation
@@ -301,9 +301,7 @@ def lambda_handler(event, context):
         [
             {
                 "Version": 1,
-                "LayerVersionArn": "arn:aws:lambda:{}:{}:layer:{}:1".format(
-                    region, ACCOUNT_ID, layer_name
-                ),
+                "LayerVersionArn": f"arn:aws:lambda:{region}:{ACCOUNT_ID}:layer:{layer_name}:1",
                 "CompatibleRuntimes": ["python2.7", "python3.6"],
                 "Description": "Test Layer",
                 "LicenseInfo": "MIT",
@@ -424,7 +422,7 @@ def test_stack_spot_fleet():
                 "Type": "AWS::EC2::SpotFleet",
                 "Properties": {
                     "SpotFleetRequestConfigData": {
-                        "IamFleetRole": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID),
+                        "IamFleetRole": f"arn:aws:iam::{ACCOUNT_ID}:role/fleet",
                         "SpotPrice": "0.12",
                         "TargetCapacity": 6,
                         "AllocationStrategy": "diversified",
@@ -445,9 +443,7 @@ def test_stack_spot_fleet():
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
                                 "IamInstanceProfile": {
-                                    "Arn": "arn:aws:iam::{}:role/fleet".format(
-                                        ACCOUNT_ID
-                                    )
+                                    "Arn": f"arn:aws:iam::{ACCOUNT_ID}:role/fleet"
                                 },
                                 "WeightedCapacity": "4",
                                 "SpotPrice": "10.00",
@@ -480,7 +476,7 @@ def test_stack_spot_fleet():
     spot_fleet_config["SpotPrice"].should.equal("0.12")
     spot_fleet_config["TargetCapacity"].should.equal(6)
     spot_fleet_config["IamFleetRole"].should.equal(
-        "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:role/fleet"
     )
     spot_fleet_config["AllocationStrategy"].should.equal("diversified")
     spot_fleet_config["FulfilledCapacity"].should.equal(6.0)
@@ -513,7 +509,7 @@ def test_stack_spot_fleet_should_figure_out_default_price():
                 "Type": "AWS::EC2::SpotFleet",
                 "Properties": {
                     "SpotFleetRequestConfigData": {
-                        "IamFleetRole": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID),
+                        "IamFleetRole": f"arn:aws:iam::{ACCOUNT_ID}:role/fleet",
                         "TargetCapacity": 6,
                         "AllocationStrategy": "diversified",
                         "LaunchSpecifications": [
@@ -532,9 +528,7 @@ def test_stack_spot_fleet_should_figure_out_default_price():
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
                                 "IamInstanceProfile": {
-                                    "Arn": "arn:aws:iam::{}:role/fleet".format(
-                                        ACCOUNT_ID
-                                    )
+                                    "Arn": f"arn:aws:iam::{ACCOUNT_ID}:role/fleet"
                                 },
                                 "WeightedCapacity": "4",
                             },

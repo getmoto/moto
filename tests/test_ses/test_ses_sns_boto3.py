@@ -30,7 +30,7 @@ def __setup_feedback_env__(
     sns_conn.subscribe(
         TopicArn=topic_arn,
         Protocol="sqs",
-        Endpoint="arn:aws:sqs:%s:%s:%s" % (region, ACCOUNT_ID, queue),
+        Endpoint=f"arn:aws:sqs:{region}:{ACCOUNT_ID}:{queue}",
     )
     # Verify SES domain
     ses_conn.verify_domain_identity(Domain=domain)

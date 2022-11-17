@@ -30,7 +30,12 @@ def lambda_handler(event, context):
 
 
 def get_test_zip_file2():
-    func_str = """
+    base_url = (
+        "motoserver:5000"
+        if settings.TEST_SERVER_MODE
+        else "ec2.us-west-2.amazonaws.com"
+    )
+    func_str = f"""
 import boto3
 
 def lambda_handler(event, context):
@@ -40,11 +45,7 @@ def lambda_handler(event, context):
     vol = ec2.Volume(volume_id)
 
     return {{'id': vol.id, 'state': vol.state, 'size': vol.size}}
-""".format(
-        base_url="motoserver:5000"
-        if settings.TEST_SERVER_MODE
-        else "ec2.us-west-2.amazonaws.com"
-    )
+"""
     return _process_lambda(func_str)
 
 

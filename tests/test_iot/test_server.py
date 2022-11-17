@@ -44,7 +44,7 @@ def test_list_attached_policies(url_encode_arn):
     if url_encode_arn:
         certificate_arn = quote(certificate_arn, safe="")
 
-    result = test_client.post("/attached-policies/{}".format(certificate_arn))
+    result = test_client.post(f"/attached-policies/{certificate_arn}")
     result.status_code.should.equal(200)
     result_dict = json.loads(result.data.decode("utf-8"))
     result_dict["policies"][0]["policyName"].should.equal("my-policy")

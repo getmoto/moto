@@ -24,9 +24,7 @@ def test_create_simple_pipeline():
     pipeline.should.have.key("Id")
     pipeline.should.have.key("Name").being.equal("testpipeline")
     pipeline.should.have.key("Arn").being.equal(
-        "arn:aws:elastictranscoder:{}:{}:pipeline/{}".format(
-            region, ACCOUNT_ID, pipeline["Id"]
-        )
+        f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
     )
     pipeline.should.have.key("Status").being.equal("Active")
     pipeline.should.have.key("InputBucket").being.equal("inputtest")
@@ -64,9 +62,7 @@ def test_create_pipeline_with_content_config():
     pipeline.should.have.key("Id")
     pipeline.should.have.key("Name").being.equal("testpipeline")
     pipeline.should.have.key("Arn").being.equal(
-        "arn:aws:elastictranscoder:{}:{}:pipeline/{}".format(
-            region, ACCOUNT_ID, pipeline["Id"]
-        )
+        f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
     )
     pipeline.should.have.key("Status").being.equal("Active")
     pipeline.should.have.key("InputBucket").being.equal("inputtest")
@@ -186,9 +182,7 @@ def test_list_pipelines():
     pipeline.should.have.key("Id")
     pipeline.should.have.key("Name").being.equal("testpipeline")
     pipeline.should.have.key("Arn").being.equal(
-        "arn:aws:elastictranscoder:{}:{}:pipeline/{}".format(
-            region, ACCOUNT_ID, pipeline["Id"]
-        )
+        f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
     )
     pipeline.should.have.key("Status").being.equal("Active")
     pipeline.should.have.key("InputBucket").being.equal("inputtest")
@@ -227,9 +221,7 @@ def test_read_pipeline():
     pipeline.should.have.key("Id")
     pipeline.should.have.key("Name").being.equal("testpipeline")
     pipeline.should.have.key("Arn").being.equal(
-        "arn:aws:elastictranscoder:{}:{}:pipeline/{}".format(
-            region, ACCOUNT_ID, pipeline["Id"]
-        )
+        f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
     )
     pipeline.should.have.key("Status").being.equal("Active")
     pipeline.should.have.key("InputBucket").being.equal("inputtest")
@@ -271,9 +263,7 @@ def test_read_nonexisting_pipeline_format():
     err = ex.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
     err["Message"].should.equal(
-        "The specified pipeline was not found: account={}, pipelineId={}.".format(
-            ACCOUNT_ID, pipeline_id
-        )
+        f"The specified pipeline was not found: account={ACCOUNT_ID}, pipelineId={pipeline_id}."
     )
 
 
@@ -298,9 +288,7 @@ def test_update_pipeline_name():
     pipeline.should.have.key("Id")
     pipeline.should.have.key("Name").being.equal("newtestpipeline")
     pipeline.should.have.key("Arn").being.equal(
-        "arn:aws:elastictranscoder:{}:{}:pipeline/{}".format(
-            region, ACCOUNT_ID, pipeline["Id"]
-        )
+        f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
     )
     pipeline.should.have.key("Status").being.equal("Active")
     pipeline.should.have.key("InputBucket").being.equal("inputtest")
@@ -369,9 +357,7 @@ def test_update_nonexisting_pipeline():
     err = ex.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
     err["Message"].should.equal(
-        "The specified pipeline was not found: account={}, pipelineId={}.".format(
-            ACCOUNT_ID, pipeline_id
-        )
+        f"The specified pipeline was not found: account={ACCOUNT_ID}, pipelineId={pipeline_id}."
     )
 
 
@@ -395,4 +381,4 @@ def test_delete_pipeline():
 
 
 def create_role_name(name):
-    return "arn:aws:iam::{}:role/{}".format(ACCOUNT_ID, name)
+    return f"arn:aws:iam::{ACCOUNT_ID}:role/{name}"

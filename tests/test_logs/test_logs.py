@@ -1087,7 +1087,7 @@ def test_describe_log_streams_paging():
     resp["logStreams"].should.have.length_of(2)
     resp["logStreams"][0]["arn"].should.contain(log_group_name)
     resp["nextToken"].should.equal(
-        "{}@{}".format(log_group_name, resp["logStreams"][1]["logStreamName"])
+        f"{log_group_name}@{resp['logStreams'][1]['logStreamName']}"
     )
 
     resp = client.describe_log_streams(
@@ -1096,7 +1096,7 @@ def test_describe_log_streams_paging():
     resp["logStreams"].should.have.length_of(1)
     resp["logStreams"][0]["arn"].should.contain(log_group_name)
     resp["nextToken"].should.equal(
-        "{}@{}".format(log_group_name, resp["logStreams"][0]["logStreamName"])
+        f"{log_group_name}@{resp['logStreams'][0]['logStreamName']}"
     )
 
     resp = client.describe_log_streams(
@@ -1170,7 +1170,7 @@ def test_get_too_many_log_events(nr_of_events):
     err["Code"].should.equal("InvalidParameterException")
     err["Message"].should.contain("1 validation error detected")
     err["Message"].should.contain(
-        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_events)
+        f"Value '{nr_of_events}' at 'limit' failed to satisfy constraint"
     )
     err["Message"].should.contain("Member must have value less than or equal to 10000")
 
@@ -1194,7 +1194,7 @@ def test_filter_too_many_log_events(nr_of_events):
     err["Code"].should.equal("InvalidParameterException")
     err["Message"].should.contain("1 validation error detected")
     err["Message"].should.contain(
-        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_events)
+        f"Value '{nr_of_events}' at 'limit' failed to satisfy constraint"
     )
     err["Message"].should.contain("Member must have value less than or equal to 10000")
 
@@ -1209,7 +1209,7 @@ def test_describe_too_many_log_groups(nr_of_groups):
     err["Code"].should.equal("InvalidParameterException")
     err["Message"].should.contain("1 validation error detected")
     err["Message"].should.contain(
-        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_groups)
+        f"Value '{nr_of_groups}' at 'limit' failed to satisfy constraint"
     )
     err["Message"].should.contain("Member must have value less than or equal to 50")
 
@@ -1226,7 +1226,7 @@ def test_describe_too_many_log_streams(nr_of_streams):
     err["Code"].should.equal("InvalidParameterException")
     err["Message"].should.contain("1 validation error detected")
     err["Message"].should.contain(
-        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_streams)
+        f"Value '{nr_of_streams}' at 'limit' failed to satisfy constraint"
     )
     err["Message"].should.contain("Member must have value less than or equal to 50")
 
@@ -1242,9 +1242,7 @@ def test_create_log_group_invalid_name_length(length):
     err["Code"].should.equal("InvalidParameterException")
     err["Message"].should.contain("1 validation error detected")
     err["Message"].should.contain(
-        "Value '{}' at 'logGroupName' failed to satisfy constraint".format(
-            log_group_name
-        )
+        f"Value '{log_group_name}' at 'logGroupName' failed to satisfy constraint"
     )
     err["Message"].should.contain("Member must have length less than or equal to 512")
 
@@ -1263,7 +1261,7 @@ def test_describe_log_streams_invalid_order_by(invalid_orderby):
     err["Code"].should.equal("InvalidParameterException")
     err["Message"].should.contain("1 validation error detected")
     err["Message"].should.contain(
-        "Value '{}' at 'orderBy' failed to satisfy constraint".format(invalid_orderby)
+        f"Value '{invalid_orderby}' at 'orderBy' failed to satisfy constraint"
     )
     err["Message"].should.contain(
         "Member must satisfy enum value set: [LogStreamName, LastEventTime]"

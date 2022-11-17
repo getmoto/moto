@@ -8,7 +8,7 @@ from moto import mock_s3, mock_sts, mock_sqs, settings
 
 @mock_sqs
 @pytest.mark.network
-def test_passthrough_requests():
+def test_passthrough_requests() -> None:
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
 
@@ -19,7 +19,7 @@ def test_passthrough_requests():
 if not settings.TEST_SERVER_MODE:
 
     @mock_sqs
-    def test_requests_to_amazon_subdomains_dont_work():
+    def test_requests_to_amazon_subdomains_dont_work() -> None:
         res = requests.get("https://fakeservice.amazonaws.com/foo/bar")
         assert res.content == b"The method is not implemented"
         assert res.status_code == 400
@@ -27,7 +27,7 @@ if not settings.TEST_SERVER_MODE:
 
 @mock_sts
 @mock_s3
-def test_decorator_ordering():
+def test_decorator_ordering() -> None:
     """
     https://github.com/spulec/moto/issues/3790#issuecomment-803979809
     """
@@ -49,4 +49,4 @@ def test_decorator_ordering():
     )
 
     resp = requests.get(presigned_url)
-    resp.status_code.should.equal(200)
+    resp.status_code.should.equal(200)  # type: ignore[attr-defined]

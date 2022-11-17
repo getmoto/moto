@@ -359,9 +359,7 @@ def test_terminate_workflow_execution_with_wrong_workflow_or_run_id_boto3():
         )
     ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
     ex.value.response["Error"]["Message"].should.equal(
-        "Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId={}]".format(
-            run_id
-        )
+        f"Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId={run_id}]"
     )
 
     # already closed, without run_id

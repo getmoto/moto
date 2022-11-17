@@ -43,15 +43,9 @@ class TestStsAssumeRole(unittest.TestCase):
         provider_name = "TestProvFed"
         fed_identifier = "7ca82df9-1bad-4dd3-9b2b-adb68b554282"
         fed_name = "testuser"
-        role_input = "arn:aws:iam::{account_id}:role/{role_name}".format(
-            account_id=self.account_b, role_name=role_name
-        )
-        principal_role = (
-            "arn:aws:iam:{account_id}:saml-provider/{provider_name}".format(
-                account_id=ACCOUNT_ID, provider_name=provider_name
-            )
-        )
-        saml_assertion = """<?xml version="1.0"?>
+        role_input = f"arn:aws:iam::{self.account_b}:role/{role_name}"
+        principal_role = f"arn:aws:iam:{ACCOUNT_ID}:saml-provider/{provider_name}"
+        saml_assertion = f"""<?xml version="1.0"?>
         <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_00000000-0000-0000-0000-000000000000" Version="2.0" IssueInstant="2012-01-01T12:00:00.000Z" Destination="https://signin.aws.amazon.com/saml" Consent="urn:oasis:names:tc:SAML:2.0:consent:unspecified">
           <Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">http://localhost/</Issuer>
           <samlp:Status>
@@ -95,7 +89,7 @@ class TestStsAssumeRole(unittest.TestCase):
                 <AttributeValue>{fed_name}</AttributeValue>
               </Attribute>
               <Attribute Name="https://aws.amazon.com/SAML/Attributes/Role">
-                <AttributeValue>arn:aws:iam::{account_id}:role/{role_name},arn:aws:iam::{account_id}:saml-provider/{provider_name}</AttributeValue>
+                <AttributeValue>arn:aws:iam::{self.account_b}:role/{role_name},arn:aws:iam::{self.account_b}:saml-provider/{provider_name}</AttributeValue>
               </Attribute>
               <Attribute Name="https://aws.amazon.com/SAML/Attributes/SessionDuration">
                 <AttributeValue>900</AttributeValue>
@@ -107,13 +101,7 @@ class TestStsAssumeRole(unittest.TestCase):
               </AuthnContext>
             </AuthnStatement>
           </Assertion>
-        </samlp:Response>""".format(
-            account_id=self.account_b,
-            role_name=role_name,
-            provider_name=provider_name,
-            fed_identifier=fed_identifier,
-            fed_name=fed_name,
-        ).replace(
+        </samlp:Response>""".replace(
             "\n", ""
         )
 

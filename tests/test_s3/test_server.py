@@ -119,7 +119,7 @@ def test_s3_server_post_to_bucket_redirect():
             "success_action_redirect": redirect_base,
         },
     )
-    real_key = "asdf/the-key/{}".format(filename)
+    real_key = f"asdf/the-key/{filename}"
     res.status_code.should.equal(303)
     redirect = res.headers["location"]
     assert redirect.startswith(redirect_base)
@@ -129,7 +129,7 @@ def test_s3_server_post_to_bucket_redirect():
     assert args["key"][0] == real_key
     assert args["bucket"][0] == "tester"
 
-    res = test_client.get("/{}".format(real_key), "http://tester.localhost:5000/")
+    res = test_client.get(f"/{real_key}", "http://tester.localhost:5000/")
     res.status_code.should.equal(200)
     res.data.should.equal(filecontent.encode("utf8"))
 

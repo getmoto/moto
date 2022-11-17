@@ -144,9 +144,7 @@ def test_cognito_action_listener_rule_cloudformation():
                         {
                             "Type": "authenticate-cognito",
                             "AuthenticateCognitoConfig": {
-                                "UserPoolArn": "arn:aws:cognito-idp:us-east-1:{}:userpool/us-east-1_ABCD1234".format(
-                                    ACCOUNT_ID
-                                ),
+                                "UserPoolArn": f"arn:aws:cognito-idp:us-east-1:{ACCOUNT_ID}:userpool/us-east-1_ABCD1234",
                                 "UserPoolClientId": "abcd1234abcd",
                                 "UserPoolDomain": "testpool",
                             },
@@ -175,9 +173,7 @@ def test_cognito_action_listener_rule_cloudformation():
             {
                 "Type": "authenticate-cognito",
                 "AuthenticateCognitoConfig": {
-                    "UserPoolArn": "arn:aws:cognito-idp:us-east-1:{}:userpool/us-east-1_ABCD1234".format(
-                        ACCOUNT_ID
-                    ),
+                    "UserPoolArn": f"arn:aws:cognito-idp:us-east-1:{ACCOUNT_ID}:userpool/us-east-1_ABCD1234",
                     "UserPoolClientId": "abcd1234abcd",
                     "UserPoolDomain": "testpool",
                 },

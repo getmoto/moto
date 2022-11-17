@@ -54,7 +54,7 @@ class MyProcessingJobModel(object):
                 "InputName": "input",
                 "AppManaged": False,
                 "S3Input": {
-                    "S3Uri": "s3://{}/{}/processing/".format(self.bucket, self.prefix),
+                    "S3Uri": f"s3://{self.bucket}/{self.prefix}/processing/",
                     "LocalPath": "/opt/ml/processing/input",
                     "S3DataType": "S3Prefix",
                     "S3InputMode": "File",
@@ -68,9 +68,7 @@ class MyProcessingJobModel(object):
                 {
                     "OutputName": "output",
                     "S3Output": {
-                        "S3Uri": "s3://{}/{}/processing/".format(
-                            self.bucket, self.prefix
-                        ),
+                        "S3Uri": f"s3://{self.bucket}/{self.prefix}/processing/",
                         "LocalPath": "/opt/ml/processing/output",
                         "S3UploadMode": "EndOfJob",
                     },
@@ -132,7 +130,7 @@ def test_create_processing_job(sagemaker_client):
     )
     resp = job.save(sagemaker_client)
     resp["ProcessingJobArn"].should.match(
-        r"^arn:aws:sagemaker:.*:.*:processing-job/{}$".format(FAKE_PROCESSING_JOB_NAME)
+        rf"^arn:aws:sagemaker:.*:.*:processing-job/{FAKE_PROCESSING_JOB_NAME}$"
     )
 
     resp = sagemaker_client.describe_processing_job(
@@ -140,7 +138,7 @@ def test_create_processing_job(sagemaker_client):
     )
     resp["ProcessingJobName"].should.equal(FAKE_PROCESSING_JOB_NAME)
     resp["ProcessingJobArn"].should.match(
-        r"^arn:aws:sagemaker:.*:.*:processing-job/{}$".format(FAKE_PROCESSING_JOB_NAME)
+        rf"^arn:aws:sagemaker:.*:.*:processing-job/{FAKE_PROCESSING_JOB_NAME}$"
     )
     assert "python3" in resp["AppSpecification"]["ContainerEntrypoint"]
     assert "app.py" in resp["AppSpecification"]["ContainerEntrypoint"]
@@ -164,7 +162,7 @@ def test_list_processing_jobs(sagemaker_client):
     assert processing_jobs["ProcessingJobSummaries"][0][
         "ProcessingJobArn"
     ].should.match(
-        r"^arn:aws:sagemaker:.*:.*:processing-job/{}$".format(FAKE_PROCESSING_JOB_NAME)
+        rf"^arn:aws:sagemaker:.*:.*:processing-job/{FAKE_PROCESSING_JOB_NAME}$"
     )
     assert processing_jobs.get("NextToken") is None
 
@@ -216,15 +214,15 @@ def test_list_processing_jobs_should_validate_input(sagemaker_client):
 
 def test_list_processing_jobs_with_name_filters(sagemaker_client):
     for i in range(5):
-        name = "xgboost-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{}".format(i)
+        name = f"xgboost-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{i}"
         MyProcessingJobModel(processing_job_name=name, role_arn=arn).save(
             sagemaker_client
         )
 
     for i in range(5):
-        name = "vgg-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{}".format(i)
+        name = f"vgg-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{i}"
         MyProcessingJobModel(processing_job_name=name, role_arn=arn).save(
             sagemaker_client
         )
@@ -240,8 +238,8 @@ def test_list_processing_jobs_with_name_filters(sagemaker_client):
 
 def test_list_processing_jobs_paginated(sagemaker_client):
     for i in range(5):
-        name = "xgboost-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{}".format(i)
+        name = f"xgboost-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{i}"
         MyProcessingJobModel(processing_job_name=name, role_arn=arn).save(
             sagemaker_client
         )
@@ -269,15 +267,15 @@ def test_list_processing_jobs_paginated(sagemaker_client):
 
 def test_list_processing_jobs_paginated_with_target_in_middle(sagemaker_client):
     for i in range(5):
-        name = "xgboost-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{}".format(i)
+        name = f"xgboost-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{i}"
         MyProcessingJobModel(processing_job_name=name, role_arn=arn).save(
             sagemaker_client
         )
 
     for i in range(5):
-        name = "vgg-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{}".format(i)
+        name = f"vgg-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{i}"
         MyProcessingJobModel(processing_job_name=name, role_arn=arn).save(
             sagemaker_client
         )
@@ -311,15 +309,15 @@ def test_list_processing_jobs_paginated_with_target_in_middle(sagemaker_client):
 
 def test_list_processing_jobs_paginated_with_fragmented_targets(sagemaker_client):
     for i in range(5):
-        name = "xgboost-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{}".format(i)
+        name = f"xgboost-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{i}"
         MyProcessingJobModel(processing_job_name=name, role_arn=arn).save(
             sagemaker_client
         )
 
     for i in range(5):
-        name = "vgg-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{}".format(i)
+        name = f"vgg-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{i}"
         MyProcessingJobModel(processing_job_name=name, role_arn=arn).save(
             sagemaker_client
         )
@@ -351,7 +349,7 @@ def test_list_processing_jobs_paginated_with_fragmented_targets(sagemaker_client
 
 def test_add_and_delete_tags_in_training_job(sagemaker_client):
     processing_job_name = "MyProcessingJob"
-    role_arn = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
+    role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
     container = "382416733822.dkr.ecr.us-east-1.amazonaws.com/linear-learner:1"
     bucket = "my-bucket"
     prefix = "my-prefix"

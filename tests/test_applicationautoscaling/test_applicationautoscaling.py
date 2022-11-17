@@ -9,7 +9,7 @@ DEFAULT_ECS_CLUSTER = "default"
 DEFAULT_ECS_TASK = "test_ecs_task"
 DEFAULT_ECS_SERVICE = "sample-webapp"
 DEFAULT_SERVICE_NAMESPACE = "ecs"
-DEFAULT_RESOURCE_ID = "service/{}/{}".format(DEFAULT_ECS_CLUSTER, DEFAULT_ECS_SERVICE)
+DEFAULT_RESOURCE_ID = f"service/{DEFAULT_ECS_CLUSTER}/{DEFAULT_ECS_SERVICE}"
 DEFAULT_SCALABLE_DIMENSION = "ecs:service:DesiredCount"
 DEFAULT_MIN_CAPACITY = 1
 DEFAULT_MAX_CAPACITY = 1
@@ -122,12 +122,12 @@ def test_describe_scalable_targets_only_return_ecs_targets():
     register_scalable_target(
         client,
         ServiceNamespace="ecs",
-        ResourceId="service/{}/test1".format(DEFAULT_ECS_CLUSTER),
+        ResourceId=f"service/{DEFAULT_ECS_CLUSTER}/test1",
     )
     register_scalable_target(
         client,
         ServiceNamespace="ecs",
-        ResourceId="service/{}/test2".format(DEFAULT_ECS_CLUSTER),
+        ResourceId=f"service/{DEFAULT_ECS_CLUSTER}/test2",
     )
     register_scalable_target(
         client,
@@ -158,7 +158,7 @@ def test_describe_scalable_targets_next_token_success():
         register_scalable_target(
             client,
             ServiceNamespace="ecs",
-            ResourceId="service/{}/{}".format(DEFAULT_ECS_CLUSTER, i),
+            ResourceId=f"service/{DEFAULT_ECS_CLUSTER}/{i}",
         )
     response = client.describe_scalable_targets(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
@@ -379,9 +379,7 @@ def test_put_scaling_policy(policy_type, policy_body_kwargs):
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     response["PolicyARN"].should.match(
-        r"arn:aws:autoscaling:.*1:scalingPolicy:.*:resource/{}/{}:policyName/{}".format(
-            namespace, resource_id, policy_name
-        )
+        rf"arn:aws:autoscaling:.*1:scalingPolicy:.*:resource/{namespace}/{resource_id}:policyName/{policy_name}"
     )
 
 
@@ -434,9 +432,7 @@ def test_describe_scaling_policies():
     policy["PolicyType"].should.equal(policy_type)
     policy["TargetTrackingScalingPolicyConfiguration"].should.equal(policy_body)
     policy["PolicyARN"].should.match(
-        r"arn:aws:autoscaling:.*1:scalingPolicy:.*:resource/{}/{}:policyName/{}".format(
-            namespace, resource_id, policy_name
-        )
+        rf"arn:aws:autoscaling:.*1:scalingPolicy:.*:resource/{namespace}/{resource_id}:policyName/{policy_name}"
     )
     policy.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
 

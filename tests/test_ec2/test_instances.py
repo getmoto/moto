@@ -228,9 +228,7 @@ def test_instance_detach_volume_wrong_path():
         ex.value.response["Error"]["Code"].should.equal("InvalidAttachment.NotFound")
         ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
         ex.value.response["Error"]["Message"].should.equal(
-            "The volume {0} is not attached to instance {1} as device {2}".format(
-                volume.volume_id, instance.instance_id, "/dev/sdf"
-            )
+            f"The volume {volume.volume_id} is not attached to instance {instance.instance_id} as device /dev/sdf"
         )
 
 
@@ -2120,9 +2118,7 @@ def test_describe_instance_attribute():
             )
         ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
         ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-        message = "Value ({invalid_instance_attribute}) for parameter attribute is invalid. Unknown attribute.".format(
-            invalid_instance_attribute=invalid_instance_attribute
-        )
+        message = f"Value ({invalid_instance_attribute}) for parameter attribute is invalid. Unknown attribute."
         ex.value.response["Error"]["Message"].should.equal(message)
 
 
@@ -2227,7 +2223,7 @@ def test_instance_termination_protection():
     error = ex.value.response["Error"]
     error["Code"].should.equal("OperationNotPermitted")
     ex.value.response["Error"]["Message"].should.match(
-        r"The instance '{}' may not be terminated.*$".format(instance_id)
+        rf"The instance '{instance_id}' may not be terminated.*$"
     )
 
     # Use alternate request syntax for setting attribute.

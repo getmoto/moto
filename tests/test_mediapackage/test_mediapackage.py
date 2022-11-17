@@ -60,9 +60,7 @@ def test_create_channel_succeeds():
 
     response = client.create_channel(**channel_config)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response["Arn"].should.equal(
-        "arn:aws:mediapackage:channel:{}".format(response["Id"])
-    )
+    response["Arn"].should.equal(f"arn:aws:mediapackage:channel:{response['Id']}")
     response["Description"].should.equal("Awesome channel!")
     response["Id"].should.equal("channel-id")
     response["Tags"]["Customer"].should.equal("moto")
@@ -76,7 +74,7 @@ def test_describe_channel_succeeds():
     create_response = client.create_channel(**channel_config)
     describe_response = client.describe_channel(Id=create_response["Id"])
     describe_response["Arn"].should.equal(
-        "arn:aws:mediapackage:channel:{}".format(describe_response["Id"])
+        f"arn:aws:mediapackage:channel:{describe_response['Id']}"
     )
     describe_response["Description"].should.equal(channel_config["Description"])
     describe_response["Tags"]["Customer"].should.equal("moto")
@@ -90,7 +88,7 @@ def test_describe_unknown_channel_throws_error():
         client.describe_channel(Id=channel_id)
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("channel with id={} not found".format(str(channel_id)))
+    err["Message"].should.equal(f"channel with id={channel_id} not found")
 
 
 @mock_mediapackage
@@ -101,7 +99,7 @@ def test_delete_unknown_channel_throws_error():
         client.delete_channel(Id=channel_id)
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("channel with id={} not found".format(str(channel_id)))
+    err["Message"].should.equal(f"channel with id={channel_id} not found")
 
 
 @mock_mediapackage
@@ -131,7 +129,7 @@ def test_list_channels_succeds():
     len(channels_list).should.equal(1)
     first_channel = channels_list[0]
     first_channel["Arn"].should.equal(
-        "arn:aws:mediapackage:channel:{}".format(first_channel["Id"])
+        f"arn:aws:mediapackage:channel:{first_channel['Id']}"
     )
     first_channel["Description"].should.equal(channel_config["Description"])
     first_channel["Tags"]["Customer"].should.equal("moto")
@@ -145,7 +143,7 @@ def test_create_origin_endpoint_succeeds():
     response = client.create_origin_endpoint(**origin_endpoint_config)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     response["Arn"].should.equal(
-        "arn:aws:mediapackage:origin_endpoint:{}".format(response["Id"])
+        f"arn:aws:mediapackage:origin_endpoint:{response['Id']}"
     )
     response["ChannelId"].should.equal(origin_endpoint_config["ChannelId"])
     response["Description"].should.equal(origin_endpoint_config["Description"])
@@ -162,16 +160,14 @@ def test_describe_origin_endpoint_succeeds():
     describe_response = client.describe_origin_endpoint(Id=create_response["Id"])
     describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     describe_response["Arn"].should.equal(
-        "arn:aws:mediapackage:origin_endpoint:{}".format(describe_response["Id"])
+        f"arn:aws:mediapackage:origin_endpoint:{describe_response['Id']}"
     )
     describe_response["ChannelId"].should.equal(origin_endpoint_config["ChannelId"])
     describe_response["Description"].should.equal(origin_endpoint_config["Description"])
     describe_response["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
     describe_response["Origination"].should.equal("ALLOW")
     describe_response["Url"].should.equal(
-        "https://origin-endpoint.mediapackage.{}.amazonaws.com/{}".format(
-            region, describe_response["Id"]
-        )
+        f"https://origin-endpoint.mediapackage.{region}.amazonaws.com/{describe_response['Id']}"
     )
 
 
@@ -183,9 +179,7 @@ def test_describe_unknown_origin_endpoint_throws_error():
         client.describe_origin_endpoint(Id=channel_id)
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "origin endpoint with id={} not found".format(str(channel_id))
-    )
+    err["Message"].should.equal(f"origin endpoint with id={channel_id} not found")
 
 
 @mock_mediapackage
@@ -213,9 +207,7 @@ def test_delete_unknown_origin_endpoint_throws_error():
         client.delete_origin_endpoint(Id=channel_id)
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "origin endpoint with id={} not found".format(str(channel_id))
-    )
+    err["Message"].should.equal(f"origin endpoint with id={channel_id} not found")
 
 
 @mock_mediapackage
@@ -244,9 +236,7 @@ def test_update_unknown_origin_endpoint_throws_error():
         )
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "origin endpoint with id={} not found".format(str(channel_id))
-    )
+    err["Message"].should.equal(f"origin endpoint with id={channel_id} not found")
 
 
 @mock_mediapackage
@@ -261,7 +251,7 @@ def test_list_origin_endpoint_succeeds():
     len(origin_endpoints_list).should.equal(1)
     first_origin_endpoint = origin_endpoints_list[0]
     first_origin_endpoint["Arn"].should.equal(
-        "arn:aws:mediapackage:origin_endpoint:{}".format(first_origin_endpoint["Id"])
+        f"arn:aws:mediapackage:origin_endpoint:{first_origin_endpoint['Id']}"
     )
     first_origin_endpoint["ChannelId"].should.equal(origin_endpoint_config["ChannelId"])
     first_origin_endpoint["Description"].should.equal(

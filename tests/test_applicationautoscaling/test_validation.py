@@ -12,7 +12,7 @@ DEFAULT_ECS_CLUSTER = "default"
 DEFAULT_ECS_TASK = "test_ecs_task"
 DEFAULT_ECS_SERVICE = "sample-webapp"
 DEFAULT_SERVICE_NAMESPACE = "ecs"
-DEFAULT_RESOURCE_ID = "service/{}/{}".format(DEFAULT_ECS_CLUSTER, DEFAULT_ECS_SERVICE)
+DEFAULT_RESOURCE_ID = f"service/{DEFAULT_ECS_CLUSTER}/{DEFAULT_ECS_SERVICE}"
 DEFAULT_SCALABLE_DIMENSION = "ecs:service:DesiredCount"
 DEFAULT_MIN_CAPACITY = 1
 DEFAULT_MAX_CAPACITY = 1
@@ -71,7 +71,7 @@ def test_describe_scalable_targets_with_multiple_invalid_parameters_should_retur
 @mock_applicationautoscaling
 def test_register_scalable_target_ecs_with_non_existent_service_should_return_clusternotfound_exception():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    resource_id = "service/{}/foo".format(DEFAULT_ECS_CLUSTER)
+    resource_id = f"service/{DEFAULT_ECS_CLUSTER}/foo"
 
     with pytest.raises(ClientError) as ex:
         register_scalable_target(client, ServiceNamespace="ecs", ResourceId=resource_id)

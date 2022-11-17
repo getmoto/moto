@@ -505,7 +505,7 @@ def test_update_settype_item_with_conditions():
 def test_scan_pagination():
     table = _create_user_table()
 
-    expected_usernames = ["user{0}".format(i) for i in range(10)]
+    expected_usernames = [f"user{i}" for i in range(10)]
     for u in expected_usernames:
         table.put_item(Item={"username": u})
 

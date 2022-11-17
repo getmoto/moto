@@ -459,7 +459,7 @@ def test_list_tags_for_resource():
     create_basic_codepipeline(client, name)
 
     response = client.list_tags_for_resource(
-        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name)
+        resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}"
     )
     response["tags"].should.equal([{"key": "key", "value": "value"}])
 
@@ -488,12 +488,12 @@ def test_tag_resource():
     create_basic_codepipeline(client, name)
 
     client.tag_resource(
-        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
+        resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}",
         tags=[{"key": "key-2", "value": "value-2"}],
     )
 
     response = client.list_tags_for_resource(
-        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name)
+        resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}"
     )
     response["tags"].should.equal(
         [{"key": "key", "value": "value"}, {"key": "key-2", "value": "value-2"}]
@@ -521,7 +521,7 @@ def test_tag_resource_errors():
 
     with pytest.raises(ClientError) as e:
         client.tag_resource(
-            resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
+            resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}",
             tags=[{"key": "aws:key", "value": "value"}],
         )
     ex = e.value
@@ -536,20 +536,15 @@ def test_tag_resource_errors():
 
     with pytest.raises(ClientError) as e:
         client.tag_resource(
-            resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
-            tags=[
-                {"key": "key-{}".format(i), "value": "value-{}".format(i)}
-                for i in range(50)
-            ],
+            resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}",
+            tags=[{"key": f"key-{i}", "value": f"value-{i}"} for i in range(50)],
         )
     ex = e.value
     ex.operation_name.should.equal("TagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TooManyTagsException")
     ex.response["Error"]["Message"].should.equal(
-        "Tag limit exceeded for resource [arn:aws:codepipeline:us-east-1:123456789012:{}].".format(
-            name
-        )
+        f"Tag limit exceeded for resource [arn:aws:codepipeline:us-east-1:123456789012:{name}]."
     )
 
 
@@ -560,23 +555,23 @@ def test_untag_resource():
     create_basic_codepipeline(client, name)
 
     response = client.list_tags_for_resource(
-        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name)
+        resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}"
     )
     response["tags"].should.equal([{"key": "key", "value": "value"}])
 
     client.untag_resource(
-        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
+        resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}",
         tagKeys=["key"],
     )
 
     response = client.list_tags_for_resource(
-        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name)
+        resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}"
     )
     response["tags"].should.have.length_of(0)
 
     # removing a not existing tag should raise no exception
     client.untag_resource(
-        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
+        resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}",
         tagKeys=["key"],
     )
 

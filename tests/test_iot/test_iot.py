@@ -16,25 +16,25 @@ def test_endpoints():
     endpoint = client.describe_endpoint(endpointType="iot:Data")
     endpoint.should.have.key("endpointAddress").which.should_not.contain("ats")
     endpoint.should.have.key("endpointAddress").which.should.contain(
-        "iot.{}.amazonaws.com".format(region_name)
+        f"iot.{region_name}.amazonaws.com"
     )
 
     # iot:Data-ATS
     endpoint = client.describe_endpoint(endpointType="iot:Data-ATS")
     endpoint.should.have.key("endpointAddress").which.should.contain(
-        "ats.iot.{}.amazonaws.com".format(region_name)
+        f"ats.iot.{region_name}.amazonaws.com"
     )
 
     # iot:Data-ATS
     endpoint = client.describe_endpoint(endpointType="iot:CredentialProvider")
     endpoint.should.have.key("endpointAddress").which.should.contain(
-        "credentials.iot.{}.amazonaws.com".format(region_name)
+        f"credentials.iot.{region_name}.amazonaws.com"
     )
 
     # iot:Data-ATS
     endpoint = client.describe_endpoint(endpointType="iot:Jobs")
     endpoint.should.have.key("endpointAddress").which.should.contain(
-        "jobs.iot.{}.amazonaws.com".format(region_name)
+        f"jobs.iot.{region_name}.amazonaws.com"
     )
 
     # raise InvalidRequestException

@@ -33,7 +33,7 @@ def test_s3_public_access_block_to_config_dict():
     ].public_access_block.to_config_dict()
 
     for key, value in public_access_block.items():
-        k = "{lowercase}{rest}".format(lowercase=key[0].lower(), rest=key[1:])
+        k = f"{key[0].lower()}{key[1:]}"
         assert result[k] is (value == "True")
 
     # Verify that this resides in the full bucket's to_config_dict:
@@ -70,15 +70,15 @@ def test_list_config_discovered_resources():
     for x in range(0, 10):
         assert result[x] == {
             "type": "AWS::S3::Bucket",
-            "id": "bucket{}".format(x),
-            "name": "bucket{}".format(x),
+            "id": f"bucket{x}",
+            "name": f"bucket{x}",
             "region": "us-west-2",
         }
     for x in range(10, 12):
         assert result[x] == {
             "type": "AWS::S3::Bucket",
-            "id": "eu-bucket{}".format(x),
-            "name": "eu-bucket{}".format(x),
+            "id": f"eu-bucket{x}",
+            "name": f"eu-bucket{x}",
             "region": "eu-west-1",
         }
 

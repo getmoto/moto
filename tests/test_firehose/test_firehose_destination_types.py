@@ -16,7 +16,7 @@ def create_extended_s3_delivery_stream(client, stream_name):
         DeliveryStreamName=stream_name,
         DeliveryStreamType="DirectPut",
         ExtendedS3DestinationConfiguration={
-            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
+            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
             "BucketARN": "arn:aws:s3:::firehose-test",
             "Prefix": "myFolder/",
             "CompressionFormat": "UNCOMPRESSED",
@@ -28,9 +28,7 @@ def create_extended_s3_delivery_stream(client, stream_name):
                 },
                 "SchemaConfiguration": {
                     "DatabaseName": stream_name,
-                    "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                        ACCOUNT_ID
-                    ),
+                    "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                     "TableName": "outputTable",
                 },
             },
@@ -43,7 +41,7 @@ def create_redshift_delivery_stream(client, stream_name):
     return client.create_delivery_stream(
         DeliveryStreamName=stream_name,
         RedshiftDestinationConfiguration={
-            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
+            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
             "ClusterJDBCURL": "jdbc:redshift://host.amazonaws.com:5439/database",
             "CopyCommand": {
                 "DataTableName": "outputTable",
@@ -52,9 +50,7 @@ def create_redshift_delivery_stream(client, stream_name):
             "Username": "username",
             "Password": "password",
             "S3Configuration": {
-                "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                    ACCOUNT_ID
-                ),
+                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                 "BucketARN": "arn:aws:s3:::firehose-test",
                 "Prefix": "myFolder/",
                 "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
@@ -70,7 +66,7 @@ def create_elasticsearch_delivery_stream(client, stream_name):
         DeliveryStreamName=stream_name,
         DeliveryStreamType="DirectPut",
         ElasticsearchDestinationConfiguration={
-            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
+            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
             "DomainARN": "arn:aws:es:::domain/firehose-test",
             "IndexName": "myIndex",
             "TypeName": "UNCOMPRESSED",
@@ -78,9 +74,7 @@ def create_elasticsearch_delivery_stream(client, stream_name):
             "BufferingHints": {"IntervalInSeconds": 123, "SizeInMBs": 123},
             "RetryOptions": {"DurationInSeconds": 123},
             "S3Configuration": {
-                "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                    ACCOUNT_ID
-                ),
+                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                 "BucketARN": "arn:aws:s3:::firehose-test",
                 "Prefix": "myFolder/",
                 "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
@@ -101,9 +95,7 @@ def create_http_delivery_stream(client, stream_name):
             "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
             "CloudWatchLoggingOptions": {"Enabled": False},
             "S3Configuration": {
-                "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                    ACCOUNT_ID
-                ),
+                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                 "BucketARN": "arn:aws:s3:::firehose-test",
                 "Prefix": "myFolder/",
                 "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
@@ -140,9 +132,7 @@ def test_create_redshift_delivery_stream():
                 {
                     "DestinationId": "destinationId-000000000001",
                     "RedshiftDestinationDescription": {
-                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                            ACCOUNT_ID
-                        ),
+                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                         "ClusterJDBCURL": "jdbc:redshift://host.amazonaws.com:5439/database",
                         "CopyCommand": {
                             "DataTableName": "outputTable",
@@ -150,9 +140,7 @@ def test_create_redshift_delivery_stream():
                         },
                         "Username": "username",
                         "S3DestinationDescription": {
-                            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                                ACCOUNT_ID
-                            ),
+                            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                             "BucketARN": "arn:aws:s3:::firehose-test",
                             "Prefix": "myFolder/",
                             "BufferingHints": {
@@ -196,9 +184,7 @@ def test_create_extended_s3_delivery_stream():
                 {
                     "DestinationId": "destinationId-000000000001",
                     "ExtendedS3DestinationDescription": {
-                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                            ACCOUNT_ID
-                        ),
+                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                         "BucketARN": "arn:aws:s3:::firehose-test",
                         "Prefix": "myFolder/",
                         "CompressionFormat": "UNCOMPRESSED",
@@ -214,17 +200,13 @@ def test_create_extended_s3_delivery_stream():
                             },
                             "SchemaConfiguration": {
                                 "DatabaseName": stream_name,
-                                "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                                    ACCOUNT_ID
-                                ),
+                                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                                 "TableName": "outputTable",
                             },
                         },
                     },
                     "S3DestinationDescription": {
-                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                            ACCOUNT_ID
-                        ),
+                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                         "BucketARN": "arn:aws:s3:::firehose-test",
                         "Prefix": "myFolder/",
                         "CompressionFormat": "UNCOMPRESSED",
@@ -263,9 +245,7 @@ def test_create_elasticsearch_delivery_stream():
                 {
                     "DestinationId": "destinationId-000000000001",
                     "ElasticsearchDestinationDescription": {
-                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                            ACCOUNT_ID
-                        ),
+                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                         "DomainARN": "arn:aws:es:::domain/firehose-test",
                         "IndexName": "myIndex",
                         "TypeName": "UNCOMPRESSED",
@@ -273,9 +253,7 @@ def test_create_elasticsearch_delivery_stream():
                         "BufferingHints": {"IntervalInSeconds": 123, "SizeInMBs": 123},
                         "RetryOptions": {"DurationInSeconds": 123},
                         "S3DestinationDescription": {
-                            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                                ACCOUNT_ID
-                            ),
+                            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                             "BucketARN": "arn:aws:s3:::firehose-test",
                             "Prefix": "myFolder/",
                             "BufferingHints": {
@@ -301,7 +279,7 @@ def test_create_s3_delivery_stream():
     response = client.create_delivery_stream(
         DeliveryStreamName=stream_name,
         S3DestinationConfiguration={
-            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
+            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
             "BucketARN": "arn:aws:s3:::firehose-test",
             "Prefix": "myFolder/",
             "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
@@ -328,9 +306,7 @@ def test_create_s3_delivery_stream():
                 {
                     "DestinationId": "destinationId-000000000001",
                     "S3DestinationDescription": {
-                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                            ACCOUNT_ID
-                        ),
+                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                         "BucketARN": "arn:aws:s3:::firehose-test",
                         "Prefix": "myFolder/",
                         "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
@@ -375,9 +351,7 @@ def test_create_http_stream():
                         "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
                         "CloudWatchLoggingOptions": {"Enabled": False},
                         "S3DestinationDescription": {
-                            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
-                                ACCOUNT_ID
-                            ),
+                            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
                             "BucketARN": "arn:aws:s3:::firehose-test",
                             "Prefix": "myFolder/",
                             "BufferingHints": {

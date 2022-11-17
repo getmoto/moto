@@ -818,9 +818,7 @@ def test_create_route_with_invalid_destination_cidr_block_parameter():
         )
     str(ex.value).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateRoute "
-        "operation: Value ({}) for parameter destinationCidrBlock is invalid. This is not a valid CIDR block.".format(
-            destination_cidr_block
-        )
+        f"operation: Value ({destination_cidr_block}) for parameter destinationCidrBlock is invalid. This is not a valid CIDR block."
     )
 
     route_table.create_route(

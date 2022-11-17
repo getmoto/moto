@@ -21,9 +21,7 @@ def test_create_launch_configuration():
         SecurityGroups=["default", "default2"],
         UserData="This is some user_data",
         InstanceMonitoring={"Enabled": True},
-        IamInstanceProfile="arn:aws:iam::{}:instance-profile/testing".format(
-            ACCOUNT_ID
-        ),
+        IamInstanceProfile=f"arn:aws:iam::{ACCOUNT_ID}:instance-profile/testing",
         SpotPrice="0.1",
     )
 
@@ -39,7 +37,7 @@ def test_create_launch_configuration():
     userdata.should.equal(b"This is some user_data")
     launch_config["InstanceMonitoring"].should.equal({"Enabled": True})
     launch_config["IamInstanceProfile"].should.equal(
-        "arn:aws:iam::{}:instance-profile/testing".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:instance-profile/testing"
     )
     launch_config["SpotPrice"].should.equal("0.1")
     launch_config["BlockDeviceMappings"].should.equal([])
@@ -56,9 +54,7 @@ def test_create_launch_configuration_with_block_device_mappings():
         SecurityGroups=["default", "default2"],
         UserData="This is some user_data",
         InstanceMonitoring={"Enabled": True},
-        IamInstanceProfile="arn:aws:iam::{}:instance-profile/testing".format(
-            ACCOUNT_ID
-        ),
+        IamInstanceProfile=f"arn:aws:iam::{ACCOUNT_ID}:instance-profile/testing",
         SpotPrice="0.1",
         BlockDeviceMappings=[
             {"DeviceName": "/dev/xvdb", "VirtualName": "ephemeral0"},
@@ -236,7 +232,7 @@ def test_launch_configuration_describe_paginated():
     conn = boto3.client("autoscaling", region_name="us-east-1")
     for i in range(51):
         conn.create_launch_configuration(
-            LaunchConfigurationName="TestLC%d" % i,
+            LaunchConfigurationName=f"TestLC{i}",
             ImageId=EXAMPLE_AMI_ID,
             InstanceType="t2.medium",
         )

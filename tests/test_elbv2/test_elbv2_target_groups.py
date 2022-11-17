@@ -131,11 +131,7 @@ def test_create_target_group_and_listeners():
         Protocol="HTTPS",
         Port=443,
         Certificates=[
-            {
-                "CertificateArn": "arn:aws:iam:{}:server-certificate/test-cert".format(
-                    ACCOUNT_ID
-                )
-            }
+            {"CertificateArn": f"arn:aws:iam:{ACCOUNT_ID}:server-certificate/test-cert"}
         ],
         DefaultActions=[actions],
     )
@@ -143,13 +139,7 @@ def test_create_target_group_and_listeners():
     listener.get("Port").should.equal(443)
     listener.get("Protocol").should.equal("HTTPS")
     listener.get("Certificates").should.equal(
-        [
-            {
-                "CertificateArn": "arn:aws:iam:{}:server-certificate/test-cert".format(
-                    ACCOUNT_ID
-                )
-            }
-        ]
+        [{"CertificateArn": f"arn:aws:iam:{ACCOUNT_ID}:server-certificate/test-cert"}]
     )
     listener.get("DefaultActions").should.equal(
         [{"TargetGroupArn": target_group_arn, "Type": "forward"}]

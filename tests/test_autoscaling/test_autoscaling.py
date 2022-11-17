@@ -99,7 +99,7 @@ def test_create_autoscaling_group_from_invalid_instance_id():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["Error"]["Code"].should.equal("ValidationError")
     ex.value.response["Error"]["Message"].should.equal(
-        "Instance [{0}] is invalid.".format(invalid_instance_id)
+        f"Instance [{invalid_instance_id}] is invalid."
     )
 
 
@@ -518,9 +518,7 @@ def test_update_autoscaling_group_launch_config():
         AutoScalingGroupName="test_asg",
         LaunchConfigurationName="test_launch_configuration_new",
         MinSize=1,
-        VPCZoneIdentifier="{subnet1},{subnet2}".format(
-            subnet1=mocked_networking["subnet1"], subnet2=mocked_networking["subnet2"]
-        ),
+        VPCZoneIdentifier=f"{mocked_networking['subnet1']},{mocked_networking['subnet2']}",
         NewInstancesProtectedFromScaleIn=False,
     )
 
@@ -566,9 +564,7 @@ def test_update_autoscaling_group_launch_template():
             "Version": "1",
         },
         MinSize=1,
-        VPCZoneIdentifier="{subnet1},{subnet2}".format(
-            subnet1=mocked_networking["subnet1"], subnet2=mocked_networking["subnet2"]
-        ),
+        VPCZoneIdentifier=f"{mocked_networking['subnet1']},{mocked_networking['subnet2']}",
         NewInstancesProtectedFromScaleIn=False,
     )
 

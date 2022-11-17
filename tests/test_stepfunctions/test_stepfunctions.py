@@ -228,7 +228,7 @@ def test_state_machine_list_returns_created_state_machines():
 def test_state_machine_list_pagination():
     client = boto3.client("stepfunctions", region_name=region)
     for i in range(25):
-        machine_name = "StateMachine-{}".format(i)
+        machine_name = f"StateMachine-{i}"
         client.create_state_machine(
             name=machine_name,
             definition=str(simple_definition),

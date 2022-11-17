@@ -83,7 +83,7 @@ def test_send_email():
     conn.verify_domain_identity(Domain="example.com")
     conn.send_email(**kwargs)
 
-    too_many_addresses = list("to%s@example.com" % i for i in range(51))
+    too_many_addresses = list(f"to{i}@example.com" for i in range(51))
     conn.send_email.when.called_with(
         **dict(kwargs, Destination={"ToAddresses": too_many_addresses})
     ).should.throw(ClientError)
@@ -226,7 +226,7 @@ def test_send_bulk_templated_email():
     too_many_destinations = list(
         {
             "Destination": {
-                "ToAddresses": ["to%s@example.com" % i],
+                "ToAddresses": [f"to{i}@example.com"],
                 "CcAddresses": [],
                 "BccAddresses": [],
             }
@@ -241,7 +241,7 @@ def test_send_bulk_templated_email():
     ex.value.response["Error"]["Code"].should.equal("MessageRejected")
     ex.value.response["Error"]["Message"].should.equal("Too many destinations.")
 
-    too_many_destinations = list("to%s@example.com" % i for i in range(51))
+    too_many_destinations = list(f"to{i}@example.com" for i in range(51))
 
     with pytest.raises(ClientError) as ex:
         args = dict(
@@ -301,7 +301,7 @@ def test_send_templated_email():
 
     conn.send_templated_email(**kwargs)
 
-    too_many_addresses = list("to%s@example.com" % i for i in range(51))
+    too_many_addresses = list(f"to{i}@example.com" for i in range(51))
     conn.send_templated_email.when.called_with(
         **dict(kwargs, Destination={"ToAddresses": too_many_addresses})
     ).should.throw(ClientError)

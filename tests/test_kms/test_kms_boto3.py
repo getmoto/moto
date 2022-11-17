@@ -65,9 +65,7 @@ def test_create_key():
     )
 
     key["KeyMetadata"]["Arn"].should.equal(
-        "arn:aws:kms:us-east-1:{}:key/{}".format(
-            ACCOUNT_ID, key["KeyMetadata"]["KeyId"]
-        )
+        f"arn:aws:kms:us-east-1:{ACCOUNT_ID}:key/{key['KeyMetadata']['KeyId']}"
     )
     key["KeyMetadata"]["AWSAccountId"].should.equal(ACCOUNT_ID)
     key["KeyMetadata"]["CreationDate"].should.be.a(datetime)
@@ -262,7 +260,7 @@ def test__create_alias__can_create_multiple_aliases_for_same_key_id():
     aliases = client.list_aliases(KeyId=key_id)["Aliases"]
 
     for name in alias_names:
-        alias_arn = "arn:aws:kms:us-east-1:{}:{}".format(ACCOUNT_ID, name)
+        alias_arn = f"arn:aws:kms:us-east-1:{ACCOUNT_ID}:{name}"
         aliases.should.contain(
             {"AliasName": name, "AliasArn": alias_arn, "TargetKeyId": key_id}
         )
@@ -278,8 +276,8 @@ def test_list_aliases():
     aliases.should.have.length_of(14)
     default_alias_names = ["aws/ebs", "aws/s3", "aws/redshift", "aws/rds"]
     for name in default_alias_names:
-        full_name = "alias/{}".format(name)
-        arn = "arn:aws:kms:{}:{}:{}".format(region, ACCOUNT_ID, full_name)
+        full_name = f"alias/{name}"
+        arn = f"arn:aws:kms:{region}:{ACCOUNT_ID}:{full_name}"
         aliases.should.contain({"AliasName": full_name, "AliasArn": arn})
 
 
@@ -991,9 +989,7 @@ def test__create_alias__raises_if_alias_has_restricted_characters(name):
     err = ex.value.response["Error"]
     err["Code"].should.equal("ValidationException")
     err["Message"].should.equal(
-        "1 validation error detected: Value '{}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$".format(
-            name
-        )
+        f"1 validation error detected: Value '{name}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$"
     )
 
 

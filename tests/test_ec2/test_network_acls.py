@@ -304,9 +304,7 @@ def test_duplicate_network_acl_entry():
         )
     str(ex.value).should.equal(
         "An error occurred (NetworkAclEntryAlreadyExists) when calling the CreateNetworkAclEntry "
-        "operation: The network acl entry identified by {} already exists.".format(
-            rule_number
-        )
+        f"operation: The network acl entry identified by {rule_number} already exists."
     )
 
 

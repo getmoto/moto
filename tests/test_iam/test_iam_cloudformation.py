@@ -368,7 +368,7 @@ Resources:
 
     policy_arn = provisioned_resource["PhysicalResourceId"]
     policy_arn.should.match(
-        "arn:aws:iam::{}:policy/MyStack-ThePolicy-[A-Z0-9]+".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-[A-Z0-9]+"
     )
     expected_name = policy_arn.split("/")[1]
 
@@ -420,7 +420,7 @@ Resources:
     logical_resource_id.should.equal("ThePolicy")
 
     policy_arn = provisioned_resource["PhysicalResourceId"]
-    policy_arn.should.equal("arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, name))
+    policy_arn.should.equal(f"arn:aws:iam::{ACCOUNT_ID}:policy/{name}")
 
     policy = iam_client.get_policy(PolicyArn=policy_arn)["Policy"]
     policy.should.have.key("Arn").equal(policy_arn)
@@ -469,7 +469,7 @@ Resources:
 
     policy_arn = provisioned_resource["PhysicalResourceId"]
     policy_arn.should.match(
-        "rn:aws:iam::{}:policy/MyStack-ThePolicy-[A-Z0-9]+".format(ACCOUNT_ID)
+        f"rn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-[A-Z0-9]+"
     )
 
     response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
@@ -520,7 +520,7 @@ Resources:
 
     policy_arn = provisioned_resource["PhysicalResourceId"]
     policy_arn.should.match(
-        "rn:aws:iam::{}:policy/MyStack-ThePolicy-[A-Z0-9]+".format(ACCOUNT_ID)
+        f"rn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-[A-Z0-9]+"
     )
 
     response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
@@ -571,7 +571,7 @@ Resources:
 
     policy_arn = provisioned_resource["PhysicalResourceId"]
     policy_arn.should.match(
-        "rn:aws:iam::{}:policy/MyStack-ThePolicy-[A-Z0-9]+".format(ACCOUNT_ID)
+        f"rn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-[A-Z0-9]+"
     )
 
     response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
@@ -594,7 +594,7 @@ def test_iam_cloudformation_create_user_policy():
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
-    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+    bucket_arn = f"arn:aws:s3:::{bucket_name}"
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     stack_name = "MyStack"
@@ -646,7 +646,7 @@ def test_iam_cloudformation_update_user_policy():
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
-    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+    bucket_arn = f"arn:aws:s3:::{bucket_name}"
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     stack_name = "MyStack"
@@ -733,7 +733,7 @@ def test_iam_cloudformation_delete_user_policy_having_generated_name():
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
-    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+    bucket_arn = f"arn:aws:s3:::{bucket_name}"
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     stack_name = "MyStack"
@@ -788,7 +788,7 @@ def test_iam_cloudformation_create_role_policy():
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
-    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+    bucket_arn = f"arn:aws:s3:::{bucket_name}"
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     stack_name = "MyStack"
@@ -840,7 +840,7 @@ def test_iam_cloudformation_update_role_policy():
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
-    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+    bucket_arn = f"arn:aws:s3:::{bucket_name}"
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     stack_name = "MyStack"
@@ -927,7 +927,7 @@ def test_iam_cloudformation_delete_role_policy_having_generated_name():
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
-    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+    bucket_arn = f"arn:aws:s3:::{bucket_name}"
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     stack_name = "MyStack"
@@ -982,7 +982,7 @@ def test_iam_cloudformation_create_group_policy():
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
-    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+    bucket_arn = f"arn:aws:s3:::{bucket_name}"
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     stack_name = "MyStack"
@@ -1034,7 +1034,7 @@ def test_iam_cloudformation_update_group_policy():
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
-    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+    bucket_arn = f"arn:aws:s3:::{bucket_name}"
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     stack_name = "MyStack"
@@ -1121,7 +1121,7 @@ def test_iam_cloudformation_delete_group_policy_having_generated_name():
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
-    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+    bucket_arn = f"arn:aws:s3:::{bucket_name}"
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     stack_name = "MyStack"

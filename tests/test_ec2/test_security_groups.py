@@ -589,7 +589,7 @@ def test_sec_group_rule_limit(use_vpc):
         ip_permissions = [
             {
                 "IpProtocol": "-1",
-                "IpRanges": [{"CidrIp": "{}.0.0.0/0".format(i)} for i in range(110)],
+                "IpRanges": [{"CidrIp": f"{i}.0.0.0/0"} for i in range(110)],
             }
         ]
         client.authorize_security_group_ingress(
@@ -621,7 +621,7 @@ def test_sec_group_rule_limit(use_vpc):
     permissions = [
         {
             "IpProtocol": "-1",
-            "IpRanges": [{"CidrIp": "{}.0.0.0/0".format(i)} for i in range(limit - 1)],
+            "IpRanges": [{"CidrIp": f"{i}.0.0.0/0"} for i in range(limit - 1)],
         }
     ]
     client.authorize_security_group_ingress(GroupId=sg.id, IpPermissions=permissions)
@@ -654,9 +654,7 @@ def test_sec_group_rule_limit(use_vpc):
     permissions = [
         {
             "IpProtocol": "-1",
-            "IpRanges": [
-                {"CidrIp": "{}.0.0.0/0".format(i)} for i in range(1, limit - 1)
-            ],
+            "IpRanges": [{"CidrIp": f"{i}.0.0.0/0"} for i in range(1, limit - 1)],
         }
     ]
     client.authorize_security_group_egress(GroupId=sg.id, IpPermissions=permissions)
@@ -1187,7 +1185,7 @@ def test_update_security_group_rule_descriptions_ingress():
 def test_non_existent_security_group_raises_error_on_authorize():
     client = boto3.client("ec2", "us-east-1")
     non_existent_sg = "sg-123abc"
-    expected_error = "The security group '{}' does not exist".format(non_existent_sg)
+    expected_error = f"The security group '{non_existent_sg}' does not exist"
     authorize_funcs = [
         client.authorize_security_group_egress,
         client.authorize_security_group_ingress,

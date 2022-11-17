@@ -208,7 +208,7 @@ def test_policy_versions(iot_client):
         )
     err = exc.value.response["Error"]
     err["Message"].should.equal(
-        "The policy %s already has the maximum number of versions (5)" % policy_name
+        f"The policy {policy_name} already has the maximum number of versions (5)"
     )
 
     iot_client.delete_policy_version(policyName=policy_name, policyVersionId="1")

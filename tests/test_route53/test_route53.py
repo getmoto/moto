@@ -1130,7 +1130,7 @@ def test_list_resource_record_sets_name_type_filters():
 
     def create_resource_record_set(rec_type, rec_name):
         payload = {
-            "Comment": "create {} record {}".format(rec_type, rec_name),
+            "Comment": f"create {rec_type} record {rec_name}",
             "Changes": [
                 {
                     "Action": "CREATE",
@@ -1206,12 +1206,12 @@ def test_change_resource_record_sets_records_limit():
     for ci in range(4):
         resourcerecords = []
         for rri in range(250):
-            resourcerecords.append({"Value": "127.0.0.%d" % (rri)})
+            resourcerecords.append({"Value": f"127.0.0.{rri}"})
         changes.append(
             {
                 "Action": "CREATE",
                 "ResourceRecordSet": {
-                    "Name": "foo%d.db." % (ci),
+                    "Name": f"foo{ci}.db.",
                     "Type": "A",
                     "TTL": 10,
                     "ResourceRecords": resourcerecords,
@@ -1258,12 +1258,12 @@ def test_change_resource_record_sets_records_limit():
     for ci in range(2):
         resourcerecords = []
         for rri in range(250):
-            resourcerecords.append({"Value": "127.0.0.%d" % (rri)})
+            resourcerecords.append({"Value": f"127.0.0.{rri}"})
         changes.append(
             {
                 "Action": "UPSERT",
                 "ResourceRecordSet": {
-                    "Name": "foo%d.db." % (ci),
+                    "Name": f"foo{ci}.db.",
                     "Type": "A",
                     "TTL": 10,
                     "ResourceRecords": resourcerecords,
