@@ -1,0 +1,7 @@
+# You can configure git to automatically use this file with the following config:
+# git config --global blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Black Formatting
+96e5b1993d7f2451443bfabff4265029ac6625af
+e00af2f73cb7d27c3755f18b2161b9acbd8ca8aa
+29d01c35bc06d5a8462487d614e33b9e8416ba96
