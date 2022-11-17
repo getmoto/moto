@@ -325,6 +325,15 @@ def test_delete_rule_with_targets():
 
 
 @mock_events
+def test_delete_unknown_rule():
+    client = boto3.client("events", "us-west-1")
+    resp = client.delete_rule(Name="unknown")
+
+    # this fails silently - it just returns an empty 200. Verified against AWS.
+    resp["ResponseMetadata"].should.have.key("HTTPStatusCode").equals(200)
+
+
+@mock_events
 def test_list_targets_by_rule():
     rule_name = get_random_rule()["Name"]
     client = generate_environment()
