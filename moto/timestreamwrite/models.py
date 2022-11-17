@@ -217,5 +217,7 @@ timestreamwrite_backends = BackendDict(
         "us-west-2",
         "eu-central-1",
         "eu-west-1",
+        "ap-southeast-2",
+        "ap-northeast-1",
     ],
 )
