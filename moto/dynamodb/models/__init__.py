@@ -1701,6 +1701,17 @@ class DynamoDBBackend(BaseBackend):
                     expression_attribute_values = item.get(
                         "ExpressionAttributeValues", None
                     )
+
+                    return_values_on_condition_check_failure = item.get(
+                        "ReturnValuesOnConditionCheckFailure", None
+                    )
+                    current = self.get_item(table_name, attrs)
+                    if (
+                        return_values_on_condition_check_failure == "ALL_OLD"
+                        and current
+                    ):
+                        item["Item"] = current.to_json()["Attributes"]
+
                     self.put_item(
                         table_name,
                         attrs,

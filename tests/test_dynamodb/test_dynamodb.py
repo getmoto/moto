@@ -3897,6 +3897,60 @@ def test_transact_write_items_put_conditional_expressions():
 
 
 @mock_dynamodb
+def test_transact_write_items_put_conditional_expressions_return_values_on_condition_check_failure_all_old():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo2"}})
+    # Put multiple items
+    with pytest.raises(ClientError) as ex:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "Item": {
+                            "id": {"S": "foo{}".format(str(i))},
+                            "foo": {"S": "bar"},
+                        },
+                        "TableName": "test-table",
+                        "ConditionExpression": "#i <> :i",
+                        "ExpressionAttributeNames": {"#i": "id"},
+                        "ReturnValuesOnConditionCheckFailure": "ALL_OLD",
+                        "ExpressionAttributeValues": {
+                            ":i": {
+                                "S": "foo2"
+                            }  # This item already exist, so the ConditionExpression should fail
+                        },
+                    }
+                }
+                for i in range(0, 5)
+            ]
+        )
+    # Assert the exception is correct
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    reasons = ex.value.response["CancellationReasons"]
+    reasons.should.have.length_of(5)
+    reasons.should.contain(
+        {
+            "Code": "ConditionalCheckFailed",
+            "Message": "The conditional request failed",
+            "Item": {"id": {"S": "foo2"}},
+        }
+    )
+    reasons.should.contain({"Code": "None"})
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    # Assert all are present
+    items = dynamodb.scan(TableName="test-table")["Items"]
+    items.should.have.length_of(1)
+    items[0].should.equal({"id": {"S": "foo2"}})
+
+
+@mock_dynamodb
 def test_transact_write_items_conditioncheck_passes():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
