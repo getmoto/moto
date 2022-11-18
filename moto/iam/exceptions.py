@@ -37,9 +37,7 @@ class MalformedCertificate(RESTError):
     code = 400
 
     def __init__(self, cert):
-        super().__init__(
-            "MalformedCertificate", "Certificate {cert} is malformed".format(cert=cert)
-        )
+        super().__init__("MalformedCertificate", f"Certificate {cert} is malformed")
 
 
 class MalformedPolicyDocument(RESTError):
@@ -70,10 +68,8 @@ class TagKeyTooBig(RESTError):
     def __init__(self, tag, param="tags.X.member.key"):
         super().__init__(
             "ValidationError",
-            "1 validation error detected: Value '{}' at '{}' failed to satisfy "
-            "constraint: Member must have length less than or equal to 128.".format(
-                tag, param
-            ),
+            f"1 validation error detected: Value '{tag}' at '{param}' failed to satisfy "
+            "constraint: Member must have length less than or equal to 128.",
         )
 
 
@@ -83,10 +79,8 @@ class TagValueTooBig(RESTError):
     def __init__(self, tag):
         super().__init__(
             "ValidationError",
-            "1 validation error detected: Value '{}' at 'tags.X.member.value' failed to satisfy "
-            "constraint: Member must have length less than or equal to 256.".format(
-                tag
-            ),
+            f"1 validation error detected: Value '{tag}' at 'tags.X.member.value' failed to satisfy "
+            "constraint: Member must have length less than or equal to 256.",
         )
 
 
@@ -105,10 +99,8 @@ class TooManyTags(RESTError):
     def __init__(self, tags, param="tags"):
         super().__init__(
             "ValidationError",
-            "1 validation error detected: Value '{}' at '{}' failed to satisfy "
-            "constraint: Member must have length less than or equal to 50.".format(
-                tags, param
-            ),
+            f"1 validation error detected: Value '{tags}' at '{param}' failed to satisfy "
+            "constraint: Member must have length less than or equal to 50.",
         )
 
 
