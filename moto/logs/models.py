@@ -152,7 +152,7 @@ class LogStream(BaseModel):
                 formatted_log_events,
             )
 
-        return "{:056d}".format(self.upload_sequence_token)
+        return f"{self.upload_sequence_token:056d}"
 
     def get_log_events(
         self,
@@ -211,26 +211,18 @@ class LogStream(BaseModel):
         if start_index < 0:
             start_index = 0
         elif start_index > final_index:
-            return (
-                [],
-                "b/{:056d}".format(final_index),
-                "f/{:056d}".format(final_index),
-            )
+            return ([], f"b/{final_index:056d}", f"f/{final_index:056d}")
 
         if end_index > final_index:
             end_index = final_index
         elif end_index < 0:
-            return ([], "b/{:056d}".format(0), "f/{:056d}".format(0))
+            return ([], f"b/{0:056d}", f"f/{0:056d}")
 
         events_page = [
             event.to_response_dict() for event in events[start_index : end_index + 1]
         ]
 
-        return (
-            events_page,
-            "b/{:056d}".format(start_index),
-            "f/{:056d}".format(end_index),
-        )
+        return (events_page, f"b/{start_index:056d}", f"f/{end_index:056d}")
 
     def filter_log_events(self, start_time, end_time, filter_pattern):
         def filter_func(event):
@@ -358,9 +350,7 @@ class LogGroup(CloudFormationModel):
         log_streams_page = [x[1] for x in log_streams[first_index:last_index]]
         new_token = None
         if log_streams_page and last_index < len(log_streams):
-            new_token = "{}@{}".format(
-                log_group_name, log_streams_page[-1]["logStreamName"]
-            )
+            new_token = f"{log_group_name}@{log_streams_page[-1]['logStreamName']}"
 
         return log_streams_page, new_token
 
@@ -442,9 +432,7 @@ class LogGroup(CloudFormationModel):
         next_token = None
         if events_page and last_index < len(events):
             last_event = events_page[-1]
-            next_token = "{}@{}@{}".format(
-                log_group_name, last_event["logStreamName"], last_event["eventId"]
-            )
+            next_token = f"{log_group_name}@{last_event['logStreamName']}@{last_event['eventId']}"
 
         searched_streams = [
             {"logStreamName": stream.log_stream_name, "searchedCompletely": True}
