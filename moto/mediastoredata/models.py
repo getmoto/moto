@@ -45,7 +45,7 @@ class MediaStoreDataBackend(BaseBackend):
     def delete_object(self, path):
         if path not in self._objects:
             error = "ObjectNotFoundException"
-            raise ClientError(error, "Object with id={} not found".format(path))
+            raise ClientError(error, f"Object with id={path} not found")
         del self._objects[path]
         return {}
 
@@ -56,7 +56,7 @@ class MediaStoreDataBackend(BaseBackend):
         objects_found = [item for item in self._objects.values() if item.path == path]
         if len(objects_found) == 0:
             error = "ObjectNotFoundException"
-            raise ClientError(error, "Object with id={} not found".format(path))
+            raise ClientError(error, f"Object with id={path} not found")
         return objects_found[0]
 
     def list_items(self):
