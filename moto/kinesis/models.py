@@ -85,7 +85,7 @@ class Shard(BaseModel):
 
     @property
     def shard_id(self):
-        return "shardId-{0}".format(str(self._shard_id).zfill(12))
+        return f"shardId-{str(self._shard_id).zfill(12)}"
 
     def get_records(self, last_sequence_id, limit):
         last_sequence_id = int(last_sequence_id)
