@@ -17,8 +17,7 @@ class KinesisVideoArchivedMediaBackend(BaseBackend):
             "GET_DASH_STREAMING_SESSION_URL": "/dash/v1/getDASHManifest.mpd",
         }
         relative_path = api_to_relative_path[api_name]
-        url = "{}{}?SessionToken={}".format(data_endpoint, relative_path, session_token)
-        return url
+        return f"{data_endpoint}{relative_path}?SessionToken={session_token}"
 
     def get_hls_streaming_session_url(self, stream_name, stream_arn):
         # Ignore option paramters as the format of hls_url does't depends on them

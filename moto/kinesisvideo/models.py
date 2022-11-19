@@ -32,9 +32,7 @@ class Stream(BaseModel):
 
     def get_data_endpoint(self, api_name):
         data_endpoint_prefix = "s-" if api_name in ("PUT_MEDIA", "GET_MEDIA") else "b-"
-        return "https://{}{}.kinesisvideo.{}.amazonaws.com".format(
-            data_endpoint_prefix, self.data_endpoint_number, self.region_name
-        )
+        return f"https://{data_endpoint_prefix}{self.data_endpoint_number}.kinesisvideo.{self.region_name}.amazonaws.com"
 
     def to_dict(self):
         return {
@@ -66,9 +64,7 @@ class KinesisVideoBackend(BaseBackend):
     ):
         streams = [_ for _ in self.streams.values() if _.stream_name == stream_name]
         if len(streams) > 0:
-            raise ResourceInUseException(
-                "The stream {} already exists.".format(stream_name)
-            )
+            raise ResourceInUseException(f"The stream {stream_name} already exists.")
         stream = Stream(
             self.account_id,
             self.region_name,
