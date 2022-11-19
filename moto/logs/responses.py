@@ -383,7 +383,7 @@ class LogsResponse(BaseResponse):
             log_group_names, start_time, end_time, query_string
         )
 
-        return json.dumps({"queryId": "{0}".format(query_id)})
+        return json.dumps({"queryId": f"{query_id}"})
 
     def create_export_task(self):
         log_group_name = self._get_param("logGroupName")
