@@ -694,6 +694,9 @@ class CloudFormationBackend(BaseBackend):
         role_arn: Optional[str] = None,
         enable_termination_protection: Optional[bool] = False,
     ) -> FakeStack:
+        """
+        The functionality behind EnableTerminationProtection is not yet implemented.
+        """
         stack_id = generate_stack_id(name, self.region_name, self.account_id)
         new_stack = FakeStack(
             stack_id=stack_id,

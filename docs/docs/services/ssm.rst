@@ -58,6 +58,7 @@ ssm
 - [X] delete_parameters
 - [ ] delete_patch_baseline
 - [ ] delete_resource_data_sync
+- [ ] delete_resource_policy
 - [ ] deregister_managed_instance
 - [ ] deregister_patch_baseline_for_patch_group
 - [ ] deregister_target_from_maintenance_window
@@ -139,6 +140,7 @@ ssm
 
 - [ ] get_patch_baseline
 - [ ] get_patch_baseline_for_patch_group
+- [ ] get_resource_policies
 - [ ] get_service_setting
 - [X] label_parameter_version
 - [ ] list_association_versions
@@ -165,6 +167,7 @@ ssm
 - [ ] put_compliance_items
 - [ ] put_inventory
 - [X] put_parameter
+- [ ] put_resource_policy
 - [ ] register_default_patch_baseline
 - [ ] register_patch_baseline_for_patch_group
 - [ ] register_target_with_maintenance_window

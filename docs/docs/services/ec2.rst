@@ -68,6 +68,7 @@ ec2
 - [ ] cancel_capacity_reservation_fleets
 - [ ] cancel_conversion_task
 - [ ] cancel_export_task
+- [ ] cancel_image_launch_permission
 - [ ] cancel_import_task
 - [ ] cancel_reserved_instances_listing
 - [X] cancel_spot_fleet_requests

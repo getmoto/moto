@@ -269,7 +269,7 @@
 
 ## appsync
 <details>
-<summary>30% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] associate_api
 - [ ] create_api_cache
@@ -289,6 +289,7 @@
 - [ ] delete_resolver
 - [ ] delete_type
 - [ ] disassociate_api
+- [ ] evaluate_code
 - [ ] evaluate_mapping_template
 - [ ] flush_api_cache
 - [ ] get_api_association
@@ -610,8 +611,10 @@
 <summary>9% implemented</summary>
 
 - [ ] associate_alias
+- [ ] copy_distribution
 - [ ] create_cache_policy
 - [ ] create_cloud_front_origin_access_identity
+- [ ] create_continuous_deployment_policy
 - [X] create_distribution
 - [X] create_distribution_with_tags
 - [ ] create_field_level_encryption_config
@@ -629,6 +632,7 @@
 - [ ] create_streaming_distribution_with_tags
 - [ ] delete_cache_policy
 - [ ] delete_cloud_front_origin_access_identity
+- [ ] delete_continuous_deployment_policy
 - [X] delete_distribution
 - [ ] delete_field_level_encryption_config
 - [ ] delete_field_level_encryption_profile
@@ -646,8 +650,10 @@
 - [ ] get_cache_policy_config
 - [ ] get_cloud_front_origin_access_identity
 - [ ] get_cloud_front_origin_access_identity_config
+- [ ] get_continuous_deployment_policy
+- [ ] get_continuous_deployment_policy_config
 - [X] get_distribution
-- [ ] get_distribution_config
+- [X] get_distribution_config
 - [ ] get_field_level_encryption
 - [ ] get_field_level_encryption_config
 - [ ] get_field_level_encryption_profile
@@ -671,6 +677,7 @@
 - [ ] list_cache_policies
 - [ ] list_cloud_front_origin_access_identities
 - [ ] list_conflicting_aliases
+- [ ] list_continuous_deployment_policies
 - [X] list_distributions
 - [ ] list_distributions_by_cache_policy_id
 - [ ] list_distributions_by_key_group
@@ -696,6 +703,7 @@
 - [ ] untag_resource
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
+- [ ] update_continuous_deployment_policy
 - [X] update_distribution
 - [ ] update_field_level_encryption_config
 - [ ] update_field_level_encryption_profile
@@ -711,7 +719,7 @@
 
 ## cloudtrail
 <details>
-<summary>44% implemented</summary>
+<summary>42% implemented</summary>
 
 - [X] add_tags
 - [ ] cancel_query
@@ -719,6 +727,7 @@
 - [X] create_trail
 - [ ] delete_event_data_store
 - [X] delete_trail
+- [ ] deregister_organization_delegated_admin
 - [ ] describe_query
 - [X] describe_trails
 - [ ] get_channel
@@ -740,6 +749,7 @@
 - [ ] lookup_events
 - [X] put_event_selectors
 - [X] put_insight_selectors
+- [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
 - [ ] start_import
@@ -1706,6 +1716,7 @@
 - [ ] cancel_capacity_reservation_fleets
 - [ ] cancel_conversion_task
 - [ ] cancel_export_task
+- [ ] cancel_image_launch_permission
 - [ ] cancel_import_task
 - [ ] cancel_reserved_instances_listing
 - [X] cancel_spot_fleet_requests
@@ -2270,7 +2281,7 @@
 
 ## ecs
 <details>
-<summary>78% implemented</summary>
+<summary>75% implemented</summary>
 
 - [X] create_capacity_provider
 - [X] create_cluster
@@ -2293,6 +2304,7 @@
 - [X] describe_tasks
 - [ ] discover_poll_endpoint
 - [ ] execute_command
+- [ ] get_task_protection
 - [X] list_account_settings
 - [X] list_attributes
 - [X] list_clusters
@@ -2323,6 +2335,7 @@
 - [X] update_container_instances_state
 - [X] update_service
 - [X] update_service_primary_task_set
+- [ ] update_task_protection
 - [X] update_task_set
 </details>
 
@@ -2684,17 +2697,21 @@
 
 ## emr-containers
 <details>
-<summary>53% implemented</summary>
+<summary>42% implemented</summary>
 
 - [X] cancel_job_run
+- [ ] create_job_template
 - [ ] create_managed_endpoint
 - [X] create_virtual_cluster
+- [ ] delete_job_template
 - [ ] delete_managed_endpoint
 - [X] delete_virtual_cluster
 - [X] describe_job_run
+- [ ] describe_job_template
 - [ ] describe_managed_endpoint
 - [X] describe_virtual_cluster
 - [X] list_job_runs
+- [ ] list_job_templates
 - [ ] list_managed_endpoints
 - [ ] list_tags_for_resource
 - [X] list_virtual_clusters
@@ -2726,20 +2743,23 @@
 
 ## es
 <details>
-<summary>9% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] accept_inbound_cross_cluster_search_connection
 - [ ] add_tags
 - [ ] associate_package
+- [ ] authorize_vpc_endpoint_access
 - [ ] cancel_elasticsearch_service_software_update
 - [X] create_elasticsearch_domain
 - [ ] create_outbound_cross_cluster_search_connection
 - [ ] create_package
+- [ ] create_vpc_endpoint
 - [X] delete_elasticsearch_domain
 - [ ] delete_elasticsearch_service_role
 - [ ] delete_inbound_cross_cluster_search_connection
 - [ ] delete_outbound_cross_cluster_search_connection
 - [ ] delete_package
+- [ ] delete_vpc_endpoint
 - [ ] describe_domain_auto_tunes
 - [ ] describe_domain_change_progress
 - [X] describe_elasticsearch_domain
@@ -2751,6 +2771,7 @@
 - [ ] describe_packages
 - [ ] describe_reserved_elasticsearch_instance_offerings
 - [ ] describe_reserved_elasticsearch_instances
+- [ ] describe_vpc_endpoints
 - [ ] dissociate_package
 - [ ] get_compatible_elasticsearch_versions
 - [ ] get_package_version_history
@@ -2762,12 +2783,17 @@
 - [ ] list_elasticsearch_versions
 - [ ] list_packages_for_domain
 - [ ] list_tags
+- [ ] list_vpc_endpoint_access
+- [ ] list_vpc_endpoints
+- [ ] list_vpc_endpoints_for_domain
 - [ ] purchase_reserved_elasticsearch_instance_offering
 - [ ] reject_inbound_cross_cluster_search_connection
 - [ ] remove_tags
+- [ ] revoke_vpc_endpoint_access
 - [ ] start_elasticsearch_service_software_update
 - [ ] update_elasticsearch_domain_config
 - [ ] update_package
+- [ ] update_vpc_endpoint
 - [ ] upgrade_elasticsearch_domain
 </details>
 
@@ -3654,6 +3680,7 @@
 - [X] list_principal_things
 - [ ] list_provisioning_template_versions
 - [ ] list_provisioning_templates
+- [ ] list_related_resources_for_audit_finding
 - [ ] list_role_aliases
 - [ ] list_scheduled_audits
 - [ ] list_security_profiles
@@ -4309,7 +4336,7 @@
 
 ## organizations
 <details>
-<summary>76% implemented</summary>
+<summary>78% implemented</summary>
 
 - [ ] accept_handshake
 - [X] attach_policy
@@ -4322,7 +4349,7 @@
 - [X] create_policy
 - [ ] decline_handshake
 - [X] delete_organization
-- [ ] delete_organizational_unit
+- [X] delete_organizational_unit
 - [X] delete_policy
 - [X] deregister_delegated_administrator
 - [X] describe_account
@@ -4378,6 +4405,7 @@
 - [ ] create_dataset_import_job
 - [ ] create_event_tracker
 - [ ] create_filter
+- [ ] create_metric_attribution
 - [ ] create_recommender
 - [X] create_schema
 - [ ] create_solution
@@ -4387,6 +4415,7 @@
 - [ ] delete_dataset_group
 - [ ] delete_event_tracker
 - [ ] delete_filter
+- [ ] delete_metric_attribution
 - [ ] delete_recommender
 - [X] delete_schema
 - [ ] delete_solution
@@ -4401,6 +4430,7 @@
 - [ ] describe_event_tracker
 - [ ] describe_feature_transformation
 - [ ] describe_filter
+- [ ] describe_metric_attribution
 - [ ] describe_recipe
 - [ ] describe_recommender
 - [X] describe_schema
@@ -4416,6 +4446,8 @@
 - [ ] list_datasets
 - [ ] list_event_trackers
 - [ ] list_filters
+- [ ] list_metric_attribution_metrics
+- [ ] list_metric_attributions
 - [ ] list_recipes
 - [ ] list_recommenders
 - [X] list_schemas
@@ -4428,6 +4460,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_campaign
+- [ ] update_metric_attribution
 - [ ] update_recommender
 </details>
 
@@ -4594,6 +4627,7 @@
 - [ ] create_theme
 - [ ] create_theme_alias
 - [ ] delete_account_customization
+- [ ] delete_account_subscription
 - [ ] delete_analysis
 - [ ] delete_dashboard
 - [ ] delete_data_set
@@ -4667,6 +4701,8 @@
 - [ ] restore_analysis
 - [ ] search_analyses
 - [ ] search_dashboards
+- [ ] search_data_sets
+- [ ] search_data_sources
 - [ ] search_folders
 - [ ] search_groups
 - [ ] tag_resource
@@ -6002,6 +6038,7 @@
 - [X] delete_parameters
 - [ ] delete_patch_baseline
 - [ ] delete_resource_data_sync
+- [ ] delete_resource_policy
 - [ ] deregister_managed_instance
 - [ ] deregister_patch_baseline_for_patch_group
 - [ ] deregister_target_from_maintenance_window
@@ -6062,6 +6099,7 @@
 - [X] get_parameters_by_path
 - [ ] get_patch_baseline
 - [ ] get_patch_baseline_for_patch_group
+- [ ] get_resource_policies
 - [ ] get_service_setting
 - [X] label_parameter_version
 - [ ] list_association_versions
@@ -6084,6 +6122,7 @@
 - [ ] put_compliance_items
 - [ ] put_inventory
 - [X] put_parameter
+- [ ] put_resource_policy
 - [ ] register_default_patch_baseline
 - [ ] register_patch_baseline_for_patch_group
 - [ ] register_target_with_maintenance_window
@@ -6433,6 +6472,7 @@
 - chime-sdk-media-pipelines
 - chime-sdk-meetings
 - chime-sdk-messaging
+- chime-sdk-voice
 - cloud9
 - cloudcontrol
 - clouddirectory
@@ -6492,6 +6532,7 @@
 - inspector
 - inspector2
 - iot-jobs-data
+- iot-roborunner
 - iot1click-devices
 - iot1click-projects
 - iotanalytics
@@ -6570,6 +6611,7 @@
 - rds-data
 - redshift-serverless
 - resiliencehub
+- resource-explorer-2
 - robomaker
 - rolesanywhere
 - route53-recovery-cluster
@@ -6583,6 +6625,7 @@
 - sagemaker-featurestore-runtime
 - sagemaker-runtime
 - savingsplans
+- scheduler
 - schemas
 - securityhub
 - serverlessrepo
@@ -6596,6 +6639,7 @@
 - snowball
 - ssm-contacts
 - ssm-incidents
+- ssm-sap
 - sso
 - sso-oidc
 - storagegateway
