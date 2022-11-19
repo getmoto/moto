@@ -33,6 +33,10 @@ cloudformation
 - [ ] continue_update_rollback
 - [X] create_change_set
 - [X] create_stack
+  
+        The functionality behind EnableTerminationProtection is not yet implemented.
+        
+
 - [X] create_stack_instances
 - [X] create_stack_set
 - [ ] deactivate_type

@@ -26,8 +26,10 @@ cloudfront
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_alias
+- [ ] copy_distribution
 - [ ] create_cache_policy
 - [ ] create_cloud_front_origin_access_identity
+- [ ] create_continuous_deployment_policy
 - [X] create_distribution
   
         Not all configuration options are supported yet.  Please raise an issue if
@@ -51,6 +53,7 @@ cloudfront
 - [ ] create_streaming_distribution_with_tags
 - [ ] delete_cache_policy
 - [ ] delete_cloud_front_origin_access_identity
+- [ ] delete_continuous_deployment_policy
 - [X] delete_distribution
   
         The IfMatch-value is ignored - any value is considered valid.
@@ -73,8 +76,10 @@ cloudfront
 - [ ] get_cache_policy_config
 - [ ] get_cloud_front_origin_access_identity
 - [ ] get_cloud_front_origin_access_identity_config
+- [ ] get_continuous_deployment_policy
+- [ ] get_continuous_deployment_policy_config
 - [X] get_distribution
-- [ ] get_distribution_config
+- [X] get_distribution_config
 - [ ] get_field_level_encryption
 - [ ] get_field_level_encryption_config
 - [ ] get_field_level_encryption_profile
@@ -98,6 +103,7 @@ cloudfront
 - [ ] list_cache_policies
 - [ ] list_cloud_front_origin_access_identities
 - [ ] list_conflicting_aliases
+- [ ] list_continuous_deployment_policies
 - [X] list_distributions
   
         Pagination is not supported yet.
@@ -131,6 +137,7 @@ cloudfront
 - [ ] untag_resource
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
+- [ ] update_continuous_deployment_policy
 - [X] update_distribution
   
         The IfMatch-value is ignored - any value is considered valid.
