@@ -222,7 +222,7 @@ def ecr_repo_fixture():
 
 
 @mock_lambda
-def test_create_function_from_image(with_ecr):
+def test_create_function_from_image(with_ecr):  # pylint: disable=unused-argument
     lambda_client = boto3.client("lambda", "us-east-1")
 
     fn_name = str(uuid4())[0:6]
@@ -255,7 +255,9 @@ def test_create_function_from_image(with_ecr):
 
 
 @mock_lambda
-def test_create_function_from_missing_image(with_ecr):
+def test_create_function_from_missing_image(
+    with_ecr,
+):  # pylint: disable=unused-argument
     lambda_client = boto3.client("lambda", "us-east-1")
 
     fn_name = str(uuid4())[0:6]
