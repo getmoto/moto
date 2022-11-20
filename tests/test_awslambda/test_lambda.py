@@ -1,4 +1,5 @@
 import base64
+import json
 import botocore.client
 import boto3
 import hashlib
@@ -7,7 +8,8 @@ import pytest
 
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-from moto import mock_lambda, mock_s3
+from tests.test_ecr.test_ecr_helpers import _create_image_manifest
+from moto import mock_lambda, mock_s3, mock_ecr
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from uuid import uuid4
 from .utilities import (
@@ -205,11 +207,21 @@ def test_create_function__with_tracingmode(tracing_mode):
     result.should.have.key("TracingConfig").should.equal({"Mode": output})
 
 
+@mock_ecr
 @mock_lambda
 def test_create_function_from_image():
     lambda_client = boto3.client("lambda", "us-east-1")
+    ecr_client = boto3.client("ecr", "us-east-1")
+    ecr_client.create_repository(repositoryName="testlambda")
+    ecr_client.put_image(
+        repositoryName="testlambda",
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag="latest",
+    )
+
     fn_name = str(uuid4())[0:6]
-    image_uri = "111122223333.dkr.ecr.us-east-1.amazonaws.com/testlambda:latest"
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambda:latest"
+
     dic = {
         "FunctionName": fn_name,
         "Role": get_role_name(),
@@ -234,6 +246,34 @@ def test_create_function_from_image():
     image_uri_without_tag = image_uri.split(":")[0]
     resolved_image_uri = f"{image_uri_without_tag}@sha256:{config['CodeSha256']}"
     code.should.have.key("ResolvedImageUri").equals(resolved_image_uri)
+
+
+@mock_ecr
+@mock_lambda
+def test_create_function_from_missing_image():
+    lambda_client = boto3.client("lambda", "us-east-1")
+    ecr_client = boto3.client("ecr", "us-east-1")
+    ecr_client.create_repository(repositoryName="testlambda")
+
+    fn_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambda:dne"
+
+    dic = {
+        "FunctionName": fn_name,
+        "Role": get_role_name(),
+        "Code": {"ImageUri": image_uri},
+        "PackageType": "Image",
+        "Timeout": 100,
+    }
+
+    with pytest.raises(ClientError) as exc:
+        lambda_client.create_function(**dic)
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ImageNotFoundException")
+    err["Message"].should.equal(
+        "The image with imageId {'imageTag': 'dne'} does not exist within the repository with name 'testlambda' in the registry with id '123456789012'"
+    )
 
 
 @mock_lambda
