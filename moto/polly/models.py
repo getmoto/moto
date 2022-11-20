@@ -42,7 +42,7 @@ class Lexicon(BaseModel):
                     self.language_code = value
 
         except Exception as err:
-            raise ValueError("Failure parsing XML: {0}".format(err))
+            raise ValueError(f"Failure parsing XML: {err}")
 
     def to_dict(self):
         return {
@@ -57,7 +57,7 @@ class Lexicon(BaseModel):
         }
 
     def __repr__(self):
-        return "<Lexicon {0}>".format(self.name)
+        return f"<Lexicon {self.name}>"
 
 
 class PollyBackend(BaseBackend):
