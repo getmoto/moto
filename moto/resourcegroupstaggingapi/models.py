@@ -174,9 +174,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": "arn:aws:ec2:{0}::image/{1}".format(
-                        self.region_name, ami.id
-                    ),
+                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::image/{ami.id}",
                     "Tags": tags,
                 }
 
@@ -195,9 +193,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     ):  # Skip if no tags, or invalid filter
                         continue
                     yield {
-                        "ResourceARN": "arn:aws:ec2:{0}::instance/{1}".format(
-                            self.region_name, instance.id
-                        ),
+                        "ResourceARN": f"arn:aws:ec2:{self.region_name}::instance/{instance.id}",
                         "Tags": tags,
                     }
 
@@ -215,9 +211,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": "arn:aws:ec2:{0}::network-interface/{1}".format(
-                        self.region_name, eni.id
-                    ),
+                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::network-interface/{eni.id}",
                     "Tags": tags,
                 }
 
@@ -238,9 +232,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     ):  # Skip if no tags, or invalid filter
                         continue
                     yield {
-                        "ResourceARN": "arn:aws:ec2:{0}::security-group/{1}".format(
-                            self.region_name, sg.id
-                        ),
+                        "ResourceARN": f"arn:aws:ec2:{self.region_name}::security-group/{sg.id}",
                         "Tags": tags,
                     }
 
@@ -258,9 +250,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": "arn:aws:ec2:{0}::snapshot/{1}".format(
-                        self.region_name, snapshot.id
-                    ),
+                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::snapshot/{snapshot.id}",
                     "Tags": tags,
                 }
 
@@ -280,9 +270,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": "arn:aws:ec2:{0}::volume/{1}".format(
-                        self.region_name, volume.id
-                    ),
+                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::volume/{volume.id}",
                     "Tags": tags,
                 }
 
@@ -300,7 +288,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 if not tag_filter(tags):  # Skip if no tags, or invalid filter
                     continue
 
-                yield {"ResourceARN": "{0}".format(elb.arn), "Tags": tags}
+                yield {"ResourceARN": f"{elb.arn}", "Tags": tags}
 
         # ELB Target Group, resource type elasticloadbalancing:targetgroup
         if (
@@ -315,7 +303,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 if not tag_filter(tags):  # Skip if no tags, or invalid filter
                     continue
 
-                yield {"ResourceARN": "{0}".format(target_group.arn), "Tags": tags}
+                yield {"ResourceARN": f"{target_group.arn}", "Tags": tags}
 
         # EMR Cluster
 
@@ -336,7 +324,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 if not tag_filter(tags):  # Skip if no tags, or invalid filter
                     continue
 
-                yield {"ResourceARN": "{0}".format(kms_key.arn), "Tags": tags}
+                yield {"ResourceARN": f"{kms_key.arn}", "Tags": tags}
 
         # RDS Instance
         if (

@@ -67,26 +67,9 @@ class RedshiftResponse(BaseResponse):
             body = convert_json_error_to_xml(body)
         return status, headers, body
 
-    def unpack_complex_list_params(self, label, names):
-        unpacked_list = list()
-        count = 1
-        while self._get_param("{0}.{1}.{2}".format(label, count, names[0])):
-            param = dict()
-            for i in range(len(names)):
-                param[names[i]] = self._get_param(
-                    "{0}.{1}.{2}".format(label, count, names[i])
-                )
-            unpacked_list.append(param)
-            count += 1
-        return unpacked_list
-
-    def unpack_list_params(self, label):
-        unpacked_list = list()
-        count = 1
-        while self._get_param("{0}.{1}".format(label, count)):
-            unpacked_list.append(self._get_param("{0}.{1}".format(label, count)))
-            count += 1
-        return unpacked_list
+    def unpack_list_params(self, label, child_label):
+        root = self._get_multi_param_dict(label) or {}
+        return root.get(child_label, [])
 
     def _get_cluster_security_groups(self):
         cluster_security_groups = self._get_multi_param("ClusterSecurityGroups.member")
@@ -144,7 +127,7 @@ class RedshiftResponse(BaseResponse):
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "encrypted": self._get_param("Encrypted"),
             "region_name": self.region,
-            "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
+            "tags": self.unpack_list_params("Tags", "Tag"),
             "iam_roles_arn": self._get_iam_roles(),
             "enhanced_vpc_routing": self._get_param("EnhancedVpcRouting"),
             "kms_key_id": self._get_param("KmsKeyId"),
@@ -327,7 +310,7 @@ class RedshiftResponse(BaseResponse):
         cluster_subnet_group_name = self._get_param("ClusterSubnetGroupName")
         description = self._get_param("Description")
         subnet_ids = self._get_subnet_ids()
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
 
         subnet_group = self.redshift_backend.create_cluster_subnet_group(
             cluster_subnet_group_name=cluster_subnet_group_name,
@@ -388,7 +371,7 @@ class RedshiftResponse(BaseResponse):
     def create_cluster_security_group(self):
         cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
         description = self._get_param("Description")
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
 
         security_group = self.redshift_backend.create_cluster_security_group(
             cluster_security_group_name=cluster_security_group_name,
@@ -477,7 +460,7 @@ class RedshiftResponse(BaseResponse):
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
         group_family = self._get_param("ParameterGroupFamily")
         description = self._get_param("Description")
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
 
         parameter_group = self.redshift_backend.create_cluster_parameter_group(
             cluster_parameter_group_name, group_family, description, self.region, tags
@@ -537,7 +520,7 @@ class RedshiftResponse(BaseResponse):
     def create_cluster_snapshot(self):
         cluster_identifier = self._get_param("ClusterIdentifier")
         snapshot_identifier = self._get_param("SnapshotIdentifier")
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
 
         snapshot = self.redshift_backend.create_cluster_snapshot(
             cluster_identifier, snapshot_identifier, self.region, tags
@@ -651,7 +634,7 @@ class RedshiftResponse(BaseResponse):
 
     def create_tags(self):
         resource_name = self._get_param("ResourceName")
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
 
         self.redshift_backend.create_tags(resource_name, tags)
 
@@ -685,7 +668,7 @@ class RedshiftResponse(BaseResponse):
 
     def delete_tags(self):
         resource_name = self._get_param("ResourceName")
-        tag_keys = self.unpack_list_params("TagKeys.TagKey")
+        tag_keys = self.unpack_list_params("TagKeys", "TagKey")
 
         self.redshift_backend.delete_tags(resource_name, tag_keys)
 

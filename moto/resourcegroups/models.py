@@ -34,9 +34,7 @@ class FakeResourceGroup(BaseModel):
 
     @staticmethod
     def _format_error(key, value, constraint):
-        return "Value '{value}' at '{key}' failed to satisfy constraint: {constraint}".format(
-            constraint=constraint, key=key, value=value
-        )
+        return f"Value '{value}' at '{key}' failed to satisfy constraint: {constraint}"
 
     def _raise_errors(self):
         if self.errors:
@@ -44,9 +42,7 @@ class FakeResourceGroup(BaseModel):
             plural = "s" if len(self.errors) > 1 else ""
             errors = "; ".join(self.errors)
             raise BadRequestException(
-                "{errors_len} validation error{plural} detected: {errors}".format(
-                    errors_len=errors_len, plural=plural, errors=errors
-                )
+                f"{errors_len} validation error{plural} detected: {errors}"
             )
 
     def _validate_description(self, value):
