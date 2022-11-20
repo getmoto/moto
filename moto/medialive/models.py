@@ -134,7 +134,7 @@ class MediaLiveBackend(BaseBackend):
         The RequestID and Reserved parameters are not yet implemented
         """
         channel_id = mock_random.uuid4().hex
-        arn = "arn:aws:medialive:channel:{}".format(channel_id)
+        arn = f"arn:aws:medialive:channel:{channel_id}"
         channel = Channel(
             arn=arn,
             cdi_input_specification=cdi_input_specification,
@@ -228,7 +228,7 @@ class MediaLiveBackend(BaseBackend):
         The VPC and RequestId parameters are not yet implemented
         """
         input_id = mock_random.uuid4().hex
-        arn = "arn:aws:medialive:input:{}".format(input_id)
+        arn = f"arn:aws:medialive:input:{input_id}"
         a_input = Input(
             arn=arn,
             input_id=input_id,

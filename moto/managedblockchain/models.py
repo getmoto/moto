@@ -128,15 +128,13 @@ class ManagedBlockchainNetwork(BaseModel):
         # Format for get_network
         frameworkattributes = {
             "Fabric": {
-                "OrderingServiceEndpoint": "orderer.{0}.managedblockchain.{1}.amazonaws.com:30001".format(
-                    self.id.lower(), self.region
-                ),
+                "OrderingServiceEndpoint": f"orderer.{self.id.lower()}.managedblockchain.{self.region}.amazonaws.com:30001",
                 "Edition": self.frameworkconfiguration["Fabric"]["Edition"],
             }
         }
 
-        vpcendpointname = "com.amazonaws.{0}.managedblockchain.{1}".format(
-            self.region, self.id.lower()
+        vpcendpointname = (
+            f"com.amazonaws.{self.region}.managedblockchain.{self.id.lower()}"
         )
 
         d = {
@@ -390,9 +388,7 @@ class ManagedBlockchainMember(BaseModel):
                 "AdminUsername": self.member_configuration["FrameworkConfiguration"][
                     "Fabric"
                 ]["AdminUsername"],
-                "CaEndpoint": "ca.{0}.{1}.managedblockchain.{2}.amazonaws.com:30002".format(
-                    self.id.lower(), self.networkid.lower(), self.region
-                ),
+                "CaEndpoint": f"ca.{self.id.lower()}.{self.networkid.lower()}.managedblockchain.{self.region}.amazonaws.com:30002",
             }
         }
 
@@ -464,18 +460,8 @@ class ManagedBlockchainNode(BaseModel):
         # Format for get_node
         frameworkattributes = {
             "Fabric": {
-                "PeerEndpoint": "{0}.{1}.{2}.managedblockchain.{3}.amazonaws.com:30003".format(
-                    self.id.lower(),
-                    self.networkid.lower(),
-                    self.memberid.lower(),
-                    self.region,
-                ),
-                "PeerEventEndpoint": "{0}.{1}.{2}.managedblockchain.{3}.amazonaws.com:30004".format(
-                    self.id.lower(),
-                    self.networkid.lower(),
-                    self.memberid.lower(),
-                    self.region,
-                ),
+                "PeerEndpoint": f"{self.id.lower()}.{self.networkid.lower()}.{self.memberid.lower()}.managedblockchain.{self.region}.amazonaws.com:30003",
+                "PeerEventEndpoint": f"{self.id.lower()}.{self.networkid.lower()}.{self.memberid.lower()}.managedblockchain.{self.region}.amazonaws.com:30004",
             }
         }
 
@@ -526,9 +512,7 @@ class ManagedBlockchainBackend(BaseBackend):
         if frameworkversion not in FRAMEWORKVERSIONS:
             raise BadRequestException(
                 "CreateNetwork",
-                "Invalid version {0} requested for framework HYPERLEDGER_FABRIC".format(
-                    frameworkversion
-                ),
+                f"Invalid version {frameworkversion} requested for framework HYPERLEDGER_FABRIC",
             )
 
         # Check edition
@@ -569,7 +553,7 @@ class ManagedBlockchainBackend(BaseBackend):
     def get_network(self, network_id):
         if network_id not in self.networks:
             raise ResourceNotFoundException(
-                "GetNetwork", "Network {0} not found.".format(network_id)
+                "GetNetwork", f"Network {network_id} not found."
             )
         return self.networks.get(network_id)
 
@@ -577,13 +561,13 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "CreateProposal", "Network {0} not found.".format(networkid)
+                "CreateProposal", f"Network {networkid} not found."
             )
 
         # Check if member exists
         if memberid not in self.members:
             raise ResourceNotFoundException(
-                "CreateProposal", "Member {0} not found.".format(memberid)
+                "CreateProposal", f"Member {memberid} not found."
             )
 
         # CLI docs say that Invitations and Removals cannot both be passed - but it does
@@ -632,7 +616,7 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "ListProposals", "Network {0} not found.".format(networkid)
+                "ListProposals", f"Network {networkid} not found."
             )
 
         proposalsfornetwork = []
@@ -647,12 +631,12 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "GetProposal", "Network {0} not found.".format(networkid)
+                "GetProposal", f"Network {networkid} not found."
             )
 
         if proposalid not in self.proposals:
             raise ResourceNotFoundException(
-                "GetProposal", "Proposal {0} not found.".format(proposalid)
+                "GetProposal", f"Proposal {proposalid} not found."
             )
 
         # See if it needs to be set to expipred
@@ -663,17 +647,17 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "VoteOnProposal", "Network {0} not found.".format(networkid)
+                "VoteOnProposal", f"Network {networkid} not found."
             )
 
         if proposalid not in self.proposals:
             raise ResourceNotFoundException(
-                "VoteOnProposal", "Proposal {0} not found.".format(proposalid)
+                "VoteOnProposal", f"Proposal {proposalid} not found."
             )
 
         if votermemberid not in self.members:
             raise ResourceNotFoundException(
-                "VoteOnProposal", "Member {0} not found.".format(votermemberid)
+                "VoteOnProposal", f"Member {votermemberid} not found."
             )
 
         if vote.upper() not in VOTEVALUES:
@@ -686,25 +670,21 @@ class ManagedBlockchainBackend(BaseBackend):
         if self.proposals.get(proposalid).proposal_status == "EXPIRED":
             raise InvalidRequestException(
                 "VoteOnProposal",
-                "Proposal {0} is expired and you cannot vote on it.".format(proposalid),
+                f"Proposal {proposalid} is expired and you cannot vote on it.",
             )
 
         # Check if IN_PROGRESS
         if self.proposals.get(proposalid).proposal_status != "IN_PROGRESS":
             raise InvalidRequestException(
                 "VoteOnProposal",
-                "Proposal {0} has status {1} and you cannot vote on it.".format(
-                    proposalid, self.proposals.get(proposalid).proposal_status
-                ),
+                f"Proposal {proposalid} has status {self.proposals.get(proposalid).proposal_status} and you cannot vote on it.",
             )
 
         # Check to see if this member already voted
         if votermemberid in self.proposals.get(proposalid).proposal_votes:
             raise ResourceAlreadyExistsException(
                 "VoteOnProposal",
-                "Member {0} has already voted on proposal {1}.".format(
-                    votermemberid, proposalid
-                ),
+                f"Member {votermemberid} has already voted on proposal {proposalid}.",
             )
 
         # Cast vote
@@ -741,12 +721,12 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "ListProposalVotes", "Network {0} not found.".format(networkid)
+                "ListProposalVotes", f"Network {networkid} not found."
             )
 
         if proposalid not in self.proposals:
             raise ResourceNotFoundException(
-                "ListProposalVotes", "Proposal {0} not found.".format(proposalid)
+                "ListProposalVotes", f"Proposal {proposalid} not found."
             )
 
         # Output the vote summaries
@@ -765,7 +745,7 @@ class ManagedBlockchainBackend(BaseBackend):
     def reject_invitation(self, invitationid):
         if invitationid not in self.invitations:
             raise ResourceNotFoundException(
-                "RejectInvitation", "InvitationId {0} not found.".format(invitationid)
+                "RejectInvitation", f"InvitationId {invitationid} not found."
             )
         self.invitations.get(invitationid).reject_invitation()
 
@@ -773,30 +753,25 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "CreateMember", "Network {0} not found.".format(networkid)
+                "CreateMember", f"Network {networkid} not found."
             )
 
         if invitationid not in self.invitations:
             raise InvalidRequestException(
-                "CreateMember", "Invitation {0} not valid".format(invitationid)
+                "CreateMember", f"Invitation {invitationid} not valid"
             )
 
         if self.invitations.get(invitationid).invitation_status != "PENDING":
             raise InvalidRequestException(
-                "CreateMember", "Invitation {0} not valid".format(invitationid)
+                "CreateMember", f"Invitation {invitationid} not valid"
             )
 
-        if (
-            member_name_exist_in_network(
-                self.members, networkid, member_configuration["Name"]
-            )
-            is True
+        if member_name_exist_in_network(
+            self.members, networkid, member_configuration["Name"]
         ):
             raise InvalidRequestException(
                 "CreateMember",
-                "Member name {0} already exists in network {1}.".format(
-                    member_configuration["Name"], networkid
-                ),
+                f"Member name {member_configuration['Name']} already exists in network {networkid}.",
             )
 
         networkedition = self.networks.get(networkid).network_edition
@@ -806,9 +781,7 @@ class ManagedBlockchainBackend(BaseBackend):
         ):
             raise ResourceLimitExceededException(
                 "CreateMember",
-                "You cannot create a member in network {0}.{1} is the maximum number of members allowed in a {2} Edition network.".format(
-                    networkid, EDITIONS[networkedition]["MaxMembers"], networkedition
-                ),
+                f"You cannot create a member in network {networkid}.{EDITIONS[networkedition]['MaxMembers']} is the maximum number of members allowed in a {networkedition} Edition network.",
             )
 
         memberadminpassword = member_configuration["FrameworkConfiguration"]["Fabric"][
@@ -836,7 +809,7 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "ListMembers", "Network {0} not found.".format(networkid)
+                "ListMembers", f"Network {networkid} not found."
             )
 
         membersfornetwork = []
@@ -849,18 +822,18 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "GetMember", "Network {0} not found.".format(networkid)
+                "GetMember", f"Network {networkid} not found."
             )
 
         if memberid not in self.members:
             raise ResourceNotFoundException(
-                "GetMember", "Member {0} not found.".format(memberid)
+                "GetMember", f"Member {memberid} not found."
             )
 
         # Cannot get a member than has been deleted (it does show up in the list)
         if self.members.get(memberid).member_status == "DELETED":
             raise ResourceNotFoundException(
-                "GetMember", "Member {0} not found.".format(memberid)
+                "GetMember", f"Member {memberid} not found."
             )
 
         return self.members.get(memberid)
@@ -869,12 +842,12 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "DeleteMember", "Network {0} not found.".format(networkid)
+                "DeleteMember", f"Network {networkid} not found."
             )
 
         if memberid not in self.members:
             raise ResourceNotFoundException(
-                "DeleteMember", "Member {0} not found.".format(memberid)
+                "DeleteMember", f"Member {memberid} not found."
             )
 
         self.members.get(memberid).delete()
@@ -902,12 +875,12 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "UpdateMember", "Network {0} not found.".format(networkid)
+                "UpdateMember", f"Network {networkid} not found."
             )
 
         if memberid not in self.members:
             raise ResourceNotFoundException(
-                "UpdateMember", "Member {0} not found.".format(memberid)
+                "UpdateMember", f"Member {memberid} not found."
             )
 
         self.members.get(memberid).update(logpublishingconfiguration)
@@ -923,12 +896,12 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "CreateNode", "Network {0} not found.".format(networkid)
+                "CreateNode", f"Network {networkid} not found."
             )
 
         if memberid not in self.members:
             raise ResourceNotFoundException(
-                "CreateNode", "Member {0} not found.".format(memberid)
+                "CreateNode", f"Member {memberid} not found."
             )
 
         networkedition = self.networks.get(networkid).network_edition
@@ -938,11 +911,7 @@ class ManagedBlockchainBackend(BaseBackend):
         ):
             raise ResourceLimitExceededException(
                 "CreateNode",
-                "Maximum number of nodes exceeded in member {0}. The maximum number of nodes you can have in a member in a {1} Edition network is {2}".format(
-                    memberid,
-                    networkedition,
-                    EDITIONS[networkedition]["MaxNodesPerMember"],
-                ),
+                f"Maximum number of nodes exceeded in member {memberid}. The maximum number of nodes you can have in a member in a {networkedition} Edition network is {EDITIONS[networkedition]['MaxNodesPerMember']}",
             )
 
         # See if the instance family is correct
@@ -956,7 +925,7 @@ class ManagedBlockchainBackend(BaseBackend):
         if correctinstancefamily is False:
             raise InvalidRequestException(
                 "CreateNode",
-                "Requested instance {0} isn't supported.".format(instancetype),
+                f"Requested instance {instancetype} isn't supported.",
             )
 
         # Check for specific types for starter
@@ -964,9 +933,7 @@ class ManagedBlockchainBackend(BaseBackend):
             if instancetype not in EDITIONS["STARTER"]["AllowedNodeInstanceTypes"]:
                 raise InvalidRequestException(
                     "CreateNode",
-                    "Instance type {0} is not supported with STARTER Edition networks.".format(
-                        instancetype
-                    ),
+                    f"Instance type {instancetype} is not supported with STARTER Edition networks.",
                 )
 
         # Simple availability zone check
@@ -994,18 +961,18 @@ class ManagedBlockchainBackend(BaseBackend):
     def list_nodes(self, networkid, memberid, status=None):
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "ListNodes", "Network {0} not found.".format(networkid)
+                "ListNodes", f"Network {networkid} not found."
             )
 
         if memberid not in self.members:
             raise ResourceNotFoundException(
-                "ListNodes", "Member {0} not found.".format(memberid)
+                "ListNodes", f"Member {memberid} not found."
             )
 
         # If member is deleted, cannot list nodes
         if self.members.get(memberid).member_status == "DELETED":
             raise ResourceNotFoundException(
-                "ListNodes", "Member {0} not found.".format(memberid)
+                "ListNodes", f"Member {memberid} not found."
             )
 
         nodesformember = []
@@ -1020,24 +987,18 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "GetNode", "Network {0} not found.".format(networkid)
+                "GetNode", f"Network {networkid} not found."
             )
 
         if memberid not in self.members:
-            raise ResourceNotFoundException(
-                "GetNode", "Member {0} not found.".format(memberid)
-            )
+            raise ResourceNotFoundException("GetNode", f"Member {memberid} not found.")
 
         if nodeid not in self.nodes:
-            raise ResourceNotFoundException(
-                "GetNode", "Node {0} not found.".format(nodeid)
-            )
+            raise ResourceNotFoundException("GetNode", f"Node {nodeid} not found.")
 
         # Cannot get a node than has been deleted (it does show up in the list)
         if self.nodes.get(nodeid).node_status == "DELETED":
-            raise ResourceNotFoundException(
-                "GetNode", "Node {0} not found.".format(nodeid)
-            )
+            raise ResourceNotFoundException("GetNode", f"Node {nodeid} not found.")
 
         return self.nodes.get(nodeid)
 
@@ -1045,18 +1006,16 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "DeleteNode", "Network {0} not found.".format(networkid)
+                "DeleteNode", f"Network {networkid} not found."
             )
 
         if memberid not in self.members:
             raise ResourceNotFoundException(
-                "DeleteNode", "Member {0} not found.".format(memberid)
+                "DeleteNode", f"Member {memberid} not found."
             )
 
         if nodeid not in self.nodes:
-            raise ResourceNotFoundException(
-                "DeleteNode", "Node {0} not found.".format(nodeid)
-            )
+            raise ResourceNotFoundException("DeleteNode", f"Node {nodeid} not found.")
 
         self.nodes.get(nodeid).delete()
 
@@ -1064,18 +1023,16 @@ class ManagedBlockchainBackend(BaseBackend):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
-                "UpdateNode", "Network {0} not found.".format(networkid)
+                "UpdateNode", f"Network {networkid} not found."
             )
 
         if memberid not in self.members:
             raise ResourceNotFoundException(
-                "UpdateNode", "Member {0} not found.".format(memberid)
+                "UpdateNode", f"Member {memberid} not found."
             )
 
         if nodeid not in self.nodes:
-            raise ResourceNotFoundException(
-                "UpdateNode", "Node {0} not found.".format(nodeid)
-            )
+            raise ResourceNotFoundException("UpdateNode", f"Node {nodeid} not found.")
 
         self.nodes.get(nodeid).update(logpublishingconfiguration)
 

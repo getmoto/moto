@@ -35,9 +35,7 @@ class BadRequestException(ManagedBlockchainClientError):
     def __init__(self, pretty_called_method, operation_error):
         super().__init__(
             "BadRequestException",
-            "An error occurred (BadRequestException) when calling the {0} operation: {1}".format(
-                pretty_called_method, operation_error
-            ),
+            f"An error occurred (BadRequestException) when calling the {pretty_called_method} operation: {operation_error}",
         )
 
 
@@ -45,9 +43,7 @@ class InvalidRequestException(ManagedBlockchainClientError):
     def __init__(self, pretty_called_method, operation_error):
         super().__init__(
             "InvalidRequestException",
-            "An error occurred (InvalidRequestException) when calling the {0} operation: {1}".format(
-                pretty_called_method, operation_error
-            ),
+            f"An error occurred (InvalidRequestException) when calling the {pretty_called_method} operation: {operation_error}",
         )
 
 
@@ -56,9 +52,7 @@ class ResourceNotFoundException(ManagedBlockchainClientError):
         self.code = 404
         super().__init__(
             "ResourceNotFoundException",
-            "An error occurred (ResourceNotFoundException) when calling the {0} operation: {1}".format(
-                pretty_called_method, operation_error
-            ),
+            f"An error occurred (ResourceNotFoundException) when calling the {pretty_called_method} operation: {operation_error}",
         )
 
 
@@ -67,9 +61,7 @@ class ResourceAlreadyExistsException(ManagedBlockchainClientError):
         self.code = 409
         super().__init__(
             "ResourceAlreadyExistsException",
-            "An error occurred (ResourceAlreadyExistsException) when calling the {0} operation: {1}".format(
-                pretty_called_method, operation_error
-            ),
+            f"An error occurred (ResourceAlreadyExistsException) when calling the {pretty_called_method} operation: {operation_error}",
         )
 
 
@@ -78,7 +70,5 @@ class ResourceLimitExceededException(ManagedBlockchainClientError):
         self.code = 429
         super().__init__(
             "ResourceLimitExceededException",
-            "An error occurred (ResourceLimitExceededException) when calling the {0} operation: {1}".format(
-                pretty_called_method, operation_error
-            ),
+            f"An error occurred (ResourceLimitExceededException) when calling the {pretty_called_method} operation: {operation_error}",
         )

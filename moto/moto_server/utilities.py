@@ -23,10 +23,8 @@ class AWSTestHelper(FlaskClient):
         opts = {"Action": action_name}
         opts.update(kwargs)
         res = self.get(
-            "/?{0}".format(urlencode(opts)),
-            headers={
-                "Host": "{0}.us-east-1.amazonaws.com".format(self.application.service)
-            },
+            f"/?{urlencode(opts)}",
+            headers={"Host": f"{self.application.service}.us-east-1.amazonaws.com"},
         )
         return res.data.decode("utf-8")
 

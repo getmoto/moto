@@ -74,15 +74,13 @@ class DomainDispatcherApplication(object):
             return host
 
         for backend, pattern in self.backend_url_patterns:
-            if pattern.match("http://%s" % host):
+            if pattern.match(f"http://{host}"):
                 return backend
 
         if "amazonaws.com" in host:
             print(  # noqa
-                "Unable to find appropriate backend for {}."
-                "Remember to add the URL to urls.py, and run scripts/update_backend_index.py to index it.".format(
-                    host
-                )
+                f"Unable to find appropriate backend for {host}."
+                "Remember to add the URL to urls.py, and run scripts/update_backend_index.py to index it."
             )
 
     def infer_service_region_host(self, body, environ):
@@ -129,9 +127,7 @@ class DomainDispatcherApplication(object):
         elif service == "mediastore" and not target:
             # All MediaStore API calls have a target header
             # If no target is set, assume we're trying to reach the mediastore-data service
-            host = "data.{service}.{region}.amazonaws.com".format(
-                service=service, region=region
-            )
+            host = f"data.{service}.{region}.amazonaws.com"
         elif service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
                 host = "dynamodbstreams"
@@ -145,21 +141,15 @@ class DomainDispatcherApplication(object):
                 else:
                     host = "dynamodb"
         elif service == "sagemaker":
-            host = "api.{service}.{region}.amazonaws.com".format(
-                service=service, region=region
-            )
+            host = f"api.{service}.{region}.amazonaws.com"
         elif service == "timestream":
-            host = "ingest.{service}.{region}.amazonaws.com".format(
-                service=service, region=region
-            )
+            host = f"ingest.{service}.{region}.amazonaws.com"
         elif service == "s3" and (
             path.startswith("/v20180820/") or "s3-control" in environ["HTTP_HOST"]
         ):
             host = "s3control"
         else:
-            host = "{service}.{region}.amazonaws.com".format(
-                service=service, region=region
-            )
+            host = f"{service}.{region}.amazonaws.com"
 
         return host
 
@@ -281,7 +271,7 @@ def create_backend_app(service):
     for url_path, handler in backend.flask_paths.items():
         view_func = convert_to_flask_response(handler)
         if handler.__name__ == "dispatch":
-            endpoint = "{0}.dispatch".format(handler.__self__.__name__)
+            endpoint = f"{handler.__self__.__name__}.dispatch"
         else:
             endpoint = view_func.__name__
 

@@ -42,11 +42,11 @@ class MediaStoreBackend(BaseBackend):
         self._containers = OrderedDict()
 
     def create_container(self, name, tags):
-        arn = "arn:aws:mediastore:container:{}".format(name)
+        arn = f"arn:aws:mediastore:container:{name}"
         container = Container(
             arn=arn,
             name=name,
-            endpoint="/{}".format(name),
+            endpoint=f"/{name}",
             status="CREATING",
             creation_time=date.today().strftime("%m/%d/%Y, %H:%M:%S"),
             tags=tags,
