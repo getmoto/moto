@@ -39,11 +39,10 @@ class PollyResponse(BaseResponse):
         language_code = self._get_param("LanguageCode")
 
         if language_code is not None and language_code not in LANGUAGE_CODES:
+            all_codes = ", ".join(LANGUAGE_CODES)
             msg = (
-                "1 validation error detected: Value '{0}' at 'languageCode' failed to satisfy constraint: "
-                "Member must satisfy enum value set: [{1}]".format(
-                    language_code, ", ".join(LANGUAGE_CODES)
-                )
+                f"1 validation error detected: Value '{language_code}' at 'languageCode' failed to satisfy constraint: "
+                f"Member must satisfy enum value set: [{all_codes}]"
             )
             return msg, dict(status=400)
 
@@ -170,9 +169,8 @@ class PollyResponse(BaseResponse):
         if "VoiceId" not in self.json:
             return self._error("MissingParameter", "Missing parameter VoiceId")
         if self.json["VoiceId"] not in VOICE_IDS:
-            return self._error(
-                "InvalidParameterValue", "Not one of {0}".format(", ".join(VOICE_IDS))
-            )
+            all_voices = ", ".join(VOICE_IDS)
+            return self._error("InvalidParameterValue", f"Not one of {all_voices}")
         args["voice_id"] = self.json["VoiceId"]
 
         # More validation
