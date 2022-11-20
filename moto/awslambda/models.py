@@ -497,7 +497,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             if len(images) == 0:
                 raise ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
             else:
-                self.code_sha_256 = images[0]["imageId"]["imageDigest"]
+                self.code_sha_256 = images[0]["imageId"]["imageDigest"].replace(
+                    "sha256:", ""
+                )
                 self.code_size = 0
 
         self.function_arn = make_function_arn(
