@@ -15,16 +15,13 @@ class RedshiftClientError(JsonRESTError):
 
 class ClusterNotFoundError(RedshiftClientError):
     def __init__(self, cluster_identifier):
-        super().__init__(
-            "ClusterNotFound", "Cluster {0} not found.".format(cluster_identifier)
-        )
+        super().__init__("ClusterNotFound", f"Cluster {cluster_identifier} not found.")
 
 
 class ClusterSubnetGroupNotFoundError(RedshiftClientError):
     def __init__(self, subnet_identifier):
         super().__init__(
-            "ClusterSubnetGroupNotFound",
-            "Subnet group {0} not found.".format(subnet_identifier),
+            "ClusterSubnetGroupNotFound", f"Subnet group {subnet_identifier} not found."
         )
 
 
@@ -32,7 +29,7 @@ class ClusterSecurityGroupNotFoundError(RedshiftClientError):
     def __init__(self, group_identifier):
         super().__init__(
             "ClusterSecurityGroupNotFound",
-            "Security group {0} not found.".format(group_identifier),
+            f"Security group {group_identifier} not found.",
         )
 
 
@@ -40,15 +37,13 @@ class ClusterParameterGroupNotFoundError(RedshiftClientError):
     def __init__(self, group_identifier):
         super().__init__(
             "ClusterParameterGroupNotFound",
-            "Parameter group {0} not found.".format(group_identifier),
+            f"Parameter group {group_identifier} not found.",
         )
 
 
 class InvalidSubnetError(RedshiftClientError):
     def __init__(self, subnet_identifier):
-        super().__init__(
-            "InvalidSubnet", "Subnet {0} not found.".format(subnet_identifier)
-        )
+        super().__init__("InvalidSubnet", f"Subnet {subnet_identifier} not found.")
 
 
 class SnapshotCopyGrantAlreadyExistsFaultError(RedshiftClientError):
@@ -56,7 +51,7 @@ class SnapshotCopyGrantAlreadyExistsFaultError(RedshiftClientError):
         super().__init__(
             "SnapshotCopyGrantAlreadyExistsFault",
             "Cannot create the snapshot copy grant because a grant "
-            "with the identifier '{0}' already exists".format(snapshot_copy_grant_name),
+            f"with the identifier '{snapshot_copy_grant_name}' already exists",
         )
 
 
@@ -64,15 +59,14 @@ class SnapshotCopyGrantNotFoundFaultError(RedshiftClientError):
     def __init__(self, snapshot_copy_grant_name):
         super().__init__(
             "SnapshotCopyGrantNotFoundFault",
-            "Snapshot copy grant not found: {0}".format(snapshot_copy_grant_name),
+            f"Snapshot copy grant not found: {snapshot_copy_grant_name}",
         )
 
 
 class ClusterSnapshotNotFoundError(RedshiftClientError):
     def __init__(self, snapshot_identifier):
         super().__init__(
-            "ClusterSnapshotNotFound",
-            "Snapshot {0} not found.".format(snapshot_identifier),
+            "ClusterSnapshotNotFound", f"Snapshot {snapshot_identifier} not found."
         )
 
 
@@ -81,7 +75,7 @@ class ClusterSnapshotAlreadyExistsError(RedshiftClientError):
         super().__init__(
             "ClusterSnapshotAlreadyExists",
             "Cannot create the snapshot because a snapshot with the "
-            "identifier {0} already exists".format(snapshot_identifier),
+            f"identifier {snapshot_identifier} already exists",
         )
 
 
@@ -96,9 +90,9 @@ class ResourceNotFoundFaultError(RedshiftClientError):
 
     def __init__(self, resource_type=None, resource_name=None, message=None):
         if resource_type and not resource_name:
-            msg = "resource of type '{0}' not found.".format(resource_type)
+            msg = f"resource of type '{resource_type}' not found."
         else:
-            msg = "{0} ({1}) not found.".format(resource_type, resource_name)
+            msg = f"{resource_type} ({resource_name}) not found."
         if message:
             msg = message
         super().__init__("ResourceNotFoundFault", msg)
@@ -108,9 +102,7 @@ class SnapshotCopyDisabledFaultError(RedshiftClientError):
     def __init__(self, cluster_identifier):
         super().__init__(
             "SnapshotCopyDisabledFault",
-            "Cannot modify retention period because snapshot copy is disabled on Cluster {0}.".format(
-                cluster_identifier
-            ),
+            f"Cannot modify retention period because snapshot copy is disabled on Cluster {cluster_identifier}.",
         )
 
 
@@ -118,9 +110,7 @@ class SnapshotCopyAlreadyDisabledFaultError(RedshiftClientError):
     def __init__(self, cluster_identifier):
         super().__init__(
             "SnapshotCopyAlreadyDisabledFault",
-            "Snapshot Copy is already disabled on Cluster {0}.".format(
-                cluster_identifier
-            ),
+            f"Snapshot Copy is already disabled on Cluster {cluster_identifier}.",
         )
 
 
@@ -128,9 +118,7 @@ class SnapshotCopyAlreadyEnabledFaultError(RedshiftClientError):
     def __init__(self, cluster_identifier):
         super().__init__(
             "SnapshotCopyAlreadyEnabledFault",
-            "Snapshot Copy is already enabled on Cluster {0}.".format(
-                cluster_identifier
-            ),
+            f"Snapshot Copy is already enabled on Cluster {cluster_identifier}.",
         )
 
 
@@ -161,7 +149,5 @@ class InvalidClusterSnapshotStateFaultError(RedshiftClientError):
     def __init__(self, snapshot_identifier):
         super().__init__(
             "InvalidClusterSnapshotStateFault",
-            "Cannot delete the snapshot {0} because only manual snapshots may be deleted".format(
-                snapshot_identifier
-            ),
+            f"Cannot delete the snapshot {snapshot_identifier} because only manual snapshots may be deleted",
         )

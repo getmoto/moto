@@ -22,8 +22,7 @@ class RDSClientError(RESTError):
 class DBInstanceNotFoundError(RDSClientError):
     def __init__(self, database_identifier):
         super().__init__(
-            "DBInstanceNotFound",
-            "DBInstance {0} not found.".format(database_identifier),
+            "DBInstanceNotFound", f"DBInstance {database_identifier} not found."
         )
 
 
@@ -69,9 +68,7 @@ class InvalidDBClusterStateFaultError(RDSClientError):
     def __init__(self, database_identifier):
         super().__init__(
             "InvalidDBClusterStateFault",
-            "Invalid DB type, when trying to perform StopDBInstance on {0}e. See AWS RDS documentation on rds.stop_db_instance".format(
-                database_identifier
-            ),
+            f"Invalid DB type, when trying to perform StopDBInstance on {database_identifier}e. See AWS RDS documentation on rds.stop_db_instance",
         )
 
 
@@ -83,8 +80,7 @@ class InvalidDBInstanceStateError(RDSClientError):
             else "stopped, it cannot be started"
         )
         super().__init__(
-            "InvalidDBInstanceState",
-            "Instance {} is not {}.".format(database_identifier, estate),
+            "InvalidDBInstanceState", f"Instance {database_identifier} is not {estate}."
         )
 
 
@@ -100,9 +96,7 @@ class DBSnapshotAlreadyExistsError(RDSClientError):
     def __init__(self, database_snapshot_identifier):
         super().__init__(
             "DBSnapshotAlreadyExists",
-            "Cannot create the snapshot because a snapshot with the identifier {} already exists.".format(
-                database_snapshot_identifier
-            ),
+            f"Cannot create the snapshot because a snapshot with the identifier {database_snapshot_identifier} already exists.",
         )
 
 
@@ -124,8 +118,7 @@ class InvalidDBClusterStateFault(RDSClientError):
 class DBClusterNotFoundError(RDSClientError):
     def __init__(self, cluster_identifier):
         super().__init__(
-            "DBClusterNotFoundFault",
-            "DBCluster {} not found.".format(cluster_identifier),
+            "DBClusterNotFoundFault", f"DBCluster {cluster_identifier} not found."
         )
 
 
@@ -133,7 +126,7 @@ class DBClusterSnapshotNotFoundError(RDSClientError):
     def __init__(self, snapshot_identifier):
         super().__init__(
             "DBClusterSnapshotNotFoundFault",
-            "DBClusterSnapshot {} not found.".format(snapshot_identifier),
+            f"DBClusterSnapshot {snapshot_identifier} not found.",
         )
 
 
@@ -141,9 +134,7 @@ class DBClusterSnapshotAlreadyExistsError(RDSClientError):
     def __init__(self, database_snapshot_identifier):
         super().__init__(
             "DBClusterSnapshotAlreadyExistsFault",
-            "Cannot create the snapshot because a snapshot with the identifier {} already exists.".format(
-                database_snapshot_identifier
-            ),
+            f"Cannot create the snapshot because a snapshot with the identifier {database_snapshot_identifier} already exists.",
         )
 
 
@@ -151,9 +142,7 @@ class ExportTaskAlreadyExistsError(RDSClientError):
     def __init__(self, export_task_identifier):
         super().__init__(
             "ExportTaskAlreadyExistsFault",
-            "Cannot start export task because a task with the identifier {} already exists.".format(
-                export_task_identifier
-            ),
+            f"Cannot start export task because a task with the identifier {export_task_identifier} already exists.",
         )
 
 
@@ -161,9 +150,7 @@ class ExportTaskNotFoundError(RDSClientError):
     def __init__(self, export_task_identifier):
         super().__init__(
             "ExportTaskNotFoundFault",
-            "Cannot cancel export task because a task with the identifier {} is not exist.".format(
-                export_task_identifier
-            ),
+            f"Cannot cancel export task because a task with the identifier {export_task_identifier} is not exist.",
         )
 
 
@@ -171,9 +158,7 @@ class InvalidExportSourceStateError(RDSClientError):
     def __init__(self, status):
         super().__init__(
             "InvalidExportSourceStateFault",
-            "Export source should be 'available' but current status is {}.".format(
-                status
-            ),
+            f"Export source should be 'available' but current status is {status}.",
         )
 
 
@@ -181,13 +166,12 @@ class SubscriptionAlreadyExistError(RDSClientError):
     def __init__(self, subscription_name):
         super().__init__(
             "SubscriptionAlreadyExistFault",
-            "Subscription {} already exists.".format(subscription_name),
+            f"Subscription {subscription_name} already exists.",
         )
 
 
 class SubscriptionNotFoundError(RDSClientError):
     def __init__(self, subscription_name):
         super().__init__(
-            "SubscriptionNotFoundFault",
-            "Subscription {} not found.".format(subscription_name),
+            "SubscriptionNotFoundFault", f"Subscription {subscription_name} not found."
         )

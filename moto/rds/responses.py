@@ -60,7 +60,7 @@ class RDSResponse(BaseResponse):
             "tags": list(),
             "deletion_protection": self._get_bool_param("DeletionProtection"),
         }
-        args["tags"] = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        args["tags"] = self.unpack_list_params("Tags", "Tag")
         return args
 
     def _get_modify_db_cluster_kwargs(self):
@@ -110,7 +110,7 @@ class RDSResponse(BaseResponse):
             "tags": list(),
             "deletion_protection": self._get_bool_param("DeletionProtection"),
         }
-        args["tags"] = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        args["tags"] = self.unpack_list_params("Tags", "Tag")
         return args
 
     def _get_db_replica_kwargs(self):
@@ -141,7 +141,7 @@ class RDSResponse(BaseResponse):
             "description": self._get_param("Description"),
             "family": self._get_param("DBParameterGroupFamily"),
             "name": self._get_param("DBParameterGroupName"),
-            "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
+            "tags": self.unpack_list_params("Tags", "Tag"),
         }
 
     def _get_db_cluster_kwargs(self):
@@ -169,7 +169,7 @@ class RDSResponse(BaseResponse):
             "db_cluster_instance_class": self._get_param("DBClusterInstanceClass"),
             "enable_http_endpoint": self._get_param("EnableHttpEndpoint"),
             "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
-            "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
+            "tags": self.unpack_list_params("Tags", "Tag"),
         }
 
     def _get_export_task_kwargs(self):
@@ -180,7 +180,7 @@ class RDSResponse(BaseResponse):
             "iam_role_arn": self._get_param("IamRoleArn"),
             "kms_key_id": self._get_param("KmsKeyId"),
             "s3_prefix": self._get_param("S3Prefix"),
-            "export_only": self.unpack_list_params("ExportOnly.member"),
+            "export_only": self.unpack_list_params("ExportOnly", "member"),
         }
 
     def _get_event_subscription_kwargs(self):
@@ -189,33 +189,16 @@ class RDSResponse(BaseResponse):
             "sns_topic_arn": self._get_param("SnsTopicArn"),
             "source_type": self._get_param("SourceType"),
             "event_categories": self.unpack_list_params(
-                "EventCategories.EventCategory"
+                "EventCategories", "EventCategory"
             ),
-            "source_ids": self.unpack_list_params("SourceIds.SourceId"),
+            "source_ids": self.unpack_list_params("SourceIds", "SourceId"),
             "enabled": self._get_param("Enabled"),
-            "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
+            "tags": self.unpack_list_params("Tags", "Tag"),
         }
 
-    def unpack_complex_list_params(self, label, names):
-        unpacked_list = list()
-        count = 1
-        while self._get_param("{0}.{1}.{2}".format(label, count, names[0])):
-            param = dict()
-            for i in range(len(names)):
-                param[names[i]] = self._get_param(
-                    "{0}.{1}.{2}".format(label, count, names[i])
-                )
-            unpacked_list.append(param)
-            count += 1
-        return unpacked_list
-
-    def unpack_list_params(self, label):
-        unpacked_list = list()
-        count = 1
-        while self._get_param("{0}.{1}".format(label, count)):
-            unpacked_list.append(self._get_param("{0}.{1}".format(label, count)))
-            count += 1
-        return unpacked_list
+    def unpack_list_params(self, label, child_label):
+        root = self._get_multi_param_dict(label) or {}
+        return root.get(child_label, [])
 
     def create_db_instance(self):
         db_kwargs = self._get_db_kwargs()
@@ -284,7 +267,7 @@ class RDSResponse(BaseResponse):
     def create_db_snapshot(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
         snapshot = self.backend.create_db_snapshot(
             db_instance_identifier, db_snapshot_identifier, tags
         )
@@ -294,7 +277,7 @@ class RDSResponse(BaseResponse):
     def copy_db_snapshot(self):
         source_snapshot_identifier = self._get_param("SourceDBSnapshotIdentifier")
         target_snapshot_identifier = self._get_param("TargetDBSnapshotIdentifier")
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
         snapshot = self.backend.copy_database_snapshot(
             source_snapshot_identifier, target_snapshot_identifier, tags
         )
@@ -335,14 +318,14 @@ class RDSResponse(BaseResponse):
 
     def add_tags_to_resource(self):
         arn = self._get_param("ResourceName")
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
         tags = self.backend.add_tags_to_resource(arn, tags)
         template = self.response_template(ADD_TAGS_TO_RESOURCE_TEMPLATE)
         return template.render(tags=tags)
 
     def remove_tags_from_resource(self):
         arn = self._get_param("ResourceName")
-        tag_keys = self.unpack_list_params("TagKeys.member")
+        tag_keys = self.unpack_list_params("TagKeys", "member")
         self.backend.remove_tags_from_resource(arn, tag_keys)
         template = self.response_template(REMOVE_TAGS_FROM_RESOURCE_TEMPLATE)
         return template.render()
@@ -365,7 +348,7 @@ class RDSResponse(BaseResponse):
     def create_db_security_group(self):
         group_name = self._get_param("DBSecurityGroupName")
         description = self._get_param("DBSecurityGroupDescription")
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
         security_group = self.backend.create_db_security_group(
             group_name, description, tags
         )
@@ -397,7 +380,7 @@ class RDSResponse(BaseResponse):
         subnet_name = self._get_param("DBSubnetGroupName")
         description = self._get_param("DBSubnetGroupDescription")
         subnet_ids = self._get_multi_param("SubnetIds.SubnetIdentifier")
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
         subnets = [
             ec2_backends[self.current_account][self.region].get_subnet(subnet_id)
             for subnet_id in subnet_ids
@@ -466,27 +449,22 @@ class RDSResponse(BaseResponse):
         option_group_name = self._get_param("OptionGroupName")
         count = 1
         options_to_include = []
-        while self._get_param("OptionsToInclude.member.{0}.OptionName".format(count)):
+        # TODO: This can probably be refactored with a single call to super.get_multi_param, but there are not enough tests (yet) to verify this
+        while self._get_param(f"OptionsToInclude.member.{count}.OptionName"):
             options_to_include.append(
                 {
-                    "Port": self._get_param(
-                        "OptionsToInclude.member.{0}.Port".format(count)
-                    ),
+                    "Port": self._get_param(f"OptionsToInclude.member.{count}.Port"),
                     "OptionName": self._get_param(
-                        "OptionsToInclude.member.{0}.OptionName".format(count)
+                        f"OptionsToInclude.member.{count}.OptionName"
                     ),
                     "DBSecurityGroupMemberships": self._get_param(
-                        "OptionsToInclude.member.{0}.DBSecurityGroupMemberships".format(
-                            count
-                        )
+                        f"OptionsToInclude.member.{count}.DBSecurityGroupMemberships"
                     ),
                     "OptionSettings": self._get_param(
-                        "OptionsToInclude.member.{0}.OptionSettings".format(count)
+                        f"OptionsToInclude.member.{count}.OptionSettings"
                     ),
                     "VpcSecurityGroupMemberships": self._get_param(
-                        "OptionsToInclude.member.{0}.VpcSecurityGroupMemberships".format(
-                            count
-                        )
+                        f"OptionsToInclude.member.{count}.VpcSecurityGroupMemberships"
                     ),
                 }
             )
@@ -494,10 +472,8 @@ class RDSResponse(BaseResponse):
 
         count = 1
         options_to_remove = []
-        while self._get_param("OptionsToRemove.member.{0}".format(count)):
-            options_to_remove.append(
-                self._get_param("OptionsToRemove.member.{0}".format(count))
-            )
+        while self._get_param(f"OptionsToRemove.member.{count}"):
+            options_to_remove.append(self._get_param(f"OptionsToRemove.member.{count}"))
             count += 1
         option_group = self.backend.modify_option_group(
             option_group_name, options_to_include, options_to_remove
@@ -601,7 +577,7 @@ class RDSResponse(BaseResponse):
     def create_db_cluster_snapshot(self):
         db_cluster_identifier = self._get_param("DBClusterIdentifier")
         db_snapshot_identifier = self._get_param("DBClusterSnapshotIdentifier")
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
         snapshot = self.backend.create_db_cluster_snapshot(
             db_cluster_identifier, db_snapshot_identifier, tags
         )
@@ -615,7 +591,7 @@ class RDSResponse(BaseResponse):
         target_snapshot_identifier = self._get_param(
             "TargetDBClusterSnapshotIdentifier"
         )
-        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        tags = self.unpack_list_params("Tags", "Tag")
         snapshot = self.backend.copy_cluster_snapshot(
             source_snapshot_identifier, target_snapshot_identifier, tags
         )

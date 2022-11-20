@@ -94,14 +94,12 @@ def validate_filters(filters, filter_defs):
     for filter_name, filter_values in filters.items():
         filter_def = filter_defs.get(filter_name)
         if filter_def is None:
-            raise KeyError("Unrecognized filter name: {}".format(filter_name))
+            raise KeyError(f"Unrecognized filter name: {filter_name}")
         if not filter_values:
-            raise ValueError(
-                "The list of {} must not be empty.".format(filter_def.description)
-            )
+            raise ValueError(f"The list of {filter_def.description} must not be empty.")
         if filter_def.attrs_to_check is None:
             raise NotImplementedError(
-                "{} filter has not been implemented in Moto yet.".format(filter_name)
+                f"{filter_name} filter has not been implemented in Moto yet."
             )
 
 

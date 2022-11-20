@@ -69,7 +69,7 @@ class ResourceShare(BaseModel):
                     continue
                 else:
                     raise UnknownResourceException(
-                        "Organization {} could not be found.".format(match.group(1))
+                        f"Organization {match.group(1)} could not be found."
                     )
 
             match = re.search(
@@ -97,15 +97,12 @@ class ResourceShare(BaseModel):
                         continue
 
                 raise UnknownResourceException(
-                    "OrganizationalUnit {} in unknown organization could not be found.".format(
-                        match.group(2)
-                    )
+                    f"OrganizationalUnit {match.group(2)} in unknown organization could not be found."
                 )
 
             if not re.match(r"^\d{12}$", principal):
                 raise InvalidParameterException(
-                    "Principal ID {} is malformed. "
-                    "Verify the ID and try again.".format(principal)
+                    f"Principal ID {principal} is malformed. Verify the ID and try again."
                 )
 
         for principal in principals:
@@ -118,8 +115,7 @@ class ResourceShare(BaseModel):
             )
             if not match:
                 raise MalformedArnException(
-                    "The specified resource ARN {} is not valid. "
-                    "Verify the ARN and try again.".format(resource)
+                    f"The specified resource ARN {resource} is not valid. Verify the ARN and try again."
                 )
 
             if match.group(1) not in self.SHAREABLE_RESOURCES:
@@ -180,8 +176,8 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         if owner not in ["SELF", "OTHER-ACCOUNTS"]:
             raise InvalidParameterException(
-                "{} is not a valid resource owner. "
-                "Specify either SELF or OTHER-ACCOUNTS and try again.".format(owner)
+                f"{owner} is not a valid resource owner. "
+                "Specify either SELF or OTHER-ACCOUNTS and try again."
             )
 
         if owner == "OTHER-ACCOUNTS":
@@ -201,9 +197,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         )
 
         if not resource:
-            raise UnknownResourceException(
-                "ResourceShare {} could not be found.".format(arn)
-            )
+            raise UnknownResourceException(f"ResourceShare {arn} could not be found.")
 
         resource.update(**kwargs)
         response = resource.describe()
@@ -217,9 +211,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         )
 
         if not resource:
-            raise UnknownResourceException(
-                "ResourceShare {} could not be found.".format(arn)
-            )
+            raise UnknownResourceException(f"ResourceShare {arn} could not be found.")
 
         resource.delete()
 
