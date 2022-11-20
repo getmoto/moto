@@ -208,7 +208,7 @@ class FakePolicy(BaseModel):
             self._arn_format = utils.SCP_ARN_FORMAT
         else:
             raise NotImplementedError(
-                "The {0} policy type has not been implemented".format(self.type)
+                f"The {self.type} policy type has not been implemented"
             )
 
     @property
@@ -683,7 +683,7 @@ class OrganizationsBackend(BaseBackend):
 
         if _filter not in ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]:
             raise NotImplementedError(
-                "The {0} policy type has not been implemented".format(_filter)
+                f"The {_filter} policy type has not been implemented"
             )
 
         return dict(
