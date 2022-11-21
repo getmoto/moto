@@ -157,6 +157,8 @@ class Integration(BaseModel):
         cache_namespace: Optional[str] = None,
         timeout_in_millis: Optional[str] = None,
         request_parameters: Optional[Dict[str, Any]] = None,
+        content_handling: Optional[str] = None,
+        credentials: Optional[str] = None,
     ):
         self.integration_type = integration_type
         self.uri = uri
@@ -168,6 +170,8 @@ class Integration(BaseModel):
         self.cache_namespace = cache_namespace
         self.timeout_in_millis = timeout_in_millis
         self.request_parameters = request_parameters
+        self.content_handling = content_handling
+        self.credentials = credentials
         self.integration_responses: Optional[Dict[str, IntegrationResponse]] = None
 
     def to_json(self) -> Dict[str, Any]:
@@ -188,6 +192,8 @@ class Integration(BaseModel):
             "cacheNamespace": self.cache_namespace,
             "timeoutInMillis": self.timeout_in_millis,
             "requestParameters": self.request_parameters,
+            "contentHandling": self.content_handling,
+            "credentials": self.credentials
         }
 
     def create_integration_response(
@@ -492,6 +498,8 @@ class Resource(CloudFormationModel):
         cache_namespace: Optional[str] = None,
         timeout_in_millis: Optional[str] = None,
         request_parameters: Optional[Dict[str, Any]] = None,
+        content_handling: Optional[str] = None,
+        credentials: Optional[str] = None,
     ) -> Integration:
         integration_method = integration_method or method_type
         integration = Integration(
@@ -504,6 +512,8 @@ class Resource(CloudFormationModel):
             cache_namespace=cache_namespace,
             timeout_in_millis=timeout_in_millis,
             request_parameters=request_parameters,
+            content_handling=content_handling,
+            credentials=credentials,
         )
         self.resource_methods[method_type].method_integration = integration
         return integration
@@ -1839,6 +1849,7 @@ class APIGatewayBackend(BaseBackend):
         cache_namespace: Optional[str] = None,
         timeout_in_millis: Optional[str] = None,
         request_parameters: Optional[Dict[str, Any]] = None,
+        content_handling: Optional[str] = None,
     ) -> Integration:
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
@@ -1881,6 +1892,8 @@ class APIGatewayBackend(BaseBackend):
             cache_namespace=cache_namespace,
             timeout_in_millis=timeout_in_millis,
             request_parameters=request_parameters,
+            content_handling=content_handling,
+            credentials=credentials,
         )
         return integration
 

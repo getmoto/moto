@@ -451,6 +451,7 @@ class APIGatewayResponse(BaseResponse):
             cache_namespace = self._get_param("cacheNamespace")
             timeout_in_millis = self._get_param("timeoutInMillis")
             request_parameters = self._get_param("requestParameters")
+            content_handling = self._get_param("contentHandling")
             self.backend.get_method(function_id, resource_id, method_type)
 
             integration_http_method = self._get_param(
@@ -471,6 +472,7 @@ class APIGatewayResponse(BaseResponse):
                 cache_namespace=cache_namespace,
                 timeout_in_millis=timeout_in_millis,
                 request_parameters=request_parameters,
+                content_handling=content_handling,
             )
             return 201, {}, json.dumps(integration_response.to_json())
         elif self.method == "DELETE":

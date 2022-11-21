@@ -9,6 +9,8 @@ from moto import mock_apigateway, mock_cognitoidp
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 import pytest
 
+from tests import DEFAULT_ACCOUNT_ID
+
 
 @freeze_time("2015-01-01")
 @mock_apigateway
@@ -526,7 +528,10 @@ def test_integrations():
         uri="http://httpbin.org/robots.txt",
         integrationHttpMethod="POST",
         requestParameters={"integration.request.header.X-Custom": "'Custom'"},
+        contentHandling="CONVERT_TO_TEXT",
+        credentials=f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role"
     )
+
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
@@ -539,6 +544,8 @@ def test_integrations():
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
             "cacheKeyParameters": [],
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
+            "contentHandling": "CONVERT_TO_TEXT",
+            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role"
         }
     )
 
@@ -557,6 +564,8 @@ def test_integrations():
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
             "cacheKeyParameters": [],
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
+            "contentHandling": "CONVERT_TO_TEXT",
+            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role"
         }
     )
 
@@ -574,6 +583,8 @@ def test_integrations():
             "cacheKeyParameters": [],
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
+            "contentHandling": "CONVERT_TO_TEXT",
+            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role"
         }
     )
 
