@@ -5,7 +5,7 @@ class BadSegmentException(Exception):
         self.message = message
 
     def __repr__(self):
-        return "<BadSegment {0}>".format("-".join([self.id, self.code, self.message]))
+        return f"<BadSegment {self.id}-{self.code}-{self.message}>"
 
     def to_dict(self):
         result = {}

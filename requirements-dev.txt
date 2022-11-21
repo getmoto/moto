@@ -4,6 +4,7 @@
 black==22.3.0
 flake8==4.0.1
 flake8-print
+flake8-use-fstring
 click
 inflection
 lxml

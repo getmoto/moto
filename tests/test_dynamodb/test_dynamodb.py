@@ -3914,7 +3914,7 @@ def test_transact_write_items_put_conditional_expressions_return_values_on_condi
                 {
                     "Put": {
                         "Item": {
-                            "id": {"S": "foo{}".format(str(i))},
+                            "id": {"S": f"foo{i}"},
                             "foo": {"S": "bar"},
                         },
                         "TableName": "test-table",

@@ -20,9 +20,7 @@ def paginate(
             model = pagination_model
             pagination_config = model.get(method)
             if not pagination_config:
-                raise ValueError(
-                    "No pagination config for backend method: {}".format(method)
-                )
+                raise ValueError(f"No pagination config for backend method: {method}")
             # Get the pagination arguments, to be used by the paginator
             next_token_name = pagination_config.get("input_token", "next_token")
             limit_name = pagination_config.get("limit_key")
@@ -100,9 +98,7 @@ class Paginator(object):
             self._raise_exception_if_required(next_token)
             return None
         if next_token.get("parameterChecksum") != self._param_checksum:
-            raise InvalidToken(
-                "Input inconsistent with page token: {}".format(str(next_token))
-            )
+            raise InvalidToken(f"Input inconsistent with page token: {str(next_token)}")
         return next_token
 
     def _raise_exception_if_required(self, token):
