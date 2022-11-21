@@ -532,6 +532,7 @@ def test_integrations():
         requestParameters={"integration.request.header.X-Custom": "'Custom'"},
         contentHandling="CONVERT_TO_TEXT",
         credentials=f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+        tlsConfig={"insecureSkipVerification": True},
     )
 
     # this is hard to match against, so remove it
@@ -548,6 +549,7 @@ def test_integrations():
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
             "contentHandling": "CONVERT_TO_TEXT",
             "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+            "tlsConfig": {"insecureSkipVerification": True},
         }
     )
 
@@ -568,6 +570,7 @@ def test_integrations():
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
             "contentHandling": "CONVERT_TO_TEXT",
             "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+            "tlsConfig": {"insecureSkipVerification": True},
         }
     )
 
@@ -587,6 +590,7 @@ def test_integrations():
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
             "contentHandling": "CONVERT_TO_TEXT",
             "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+            "tlsConfig": {"insecureSkipVerification": True},
         }
     )
 
