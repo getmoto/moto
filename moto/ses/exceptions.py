@@ -98,5 +98,5 @@ class MissingRenderingAttributeException(RESTError):
     def __init__(self, var):
         super().__init__(
             "MissingRenderingAttributeException",
-            "Attribute '{0}' is not present in the rendering data.".format(var),
+            f"Attribute '{var}' is not present in the rendering data.",
         )

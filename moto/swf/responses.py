@@ -52,12 +52,9 @@ class SWFResponse(BaseResponse):
             return
         keys = kwargs.keys()
         if len(keys) == 2:
-            message = "Cannot specify both a {0} and a {1}".format(keys[0], keys[1])
+            message = f"Cannot specify both a {keys[0]} and a {keys[1]}"
         else:
-            message = (
-                "Cannot specify more than one exclusive filters in the"
-                " same query: {0}".format(keys)
-            )
+            message = f"Cannot specify more than one exclusive filters in the same query: {keys}"
             raise SWFValidationException(message)
 
     def _list_types(self, kind):
@@ -73,7 +70,7 @@ class SWFResponse(BaseResponse):
 
     def _describe_type(self, kind):
         domain = self._params["domain"]
-        _type_args = self._params["{0}Type".format(kind)]
+        _type_args = self._params[f"{kind}Type"]
         name = _type_args["name"]
         version = _type_args["version"]
         self._check_string(domain)
@@ -85,7 +82,7 @@ class SWFResponse(BaseResponse):
 
     def _deprecate_type(self, kind):
         domain = self._params["domain"]
-        _type_args = self._params["{0}Type".format(kind)]
+        _type_args = self._params[f"{kind}Type"]
         name = _type_args["name"]
         version = _type_args["version"]
         self._check_string(domain)
@@ -96,7 +93,7 @@ class SWFResponse(BaseResponse):
 
     def _undeprecate_type(self, kind):
         domain = self._params["domain"]
-        _type_args = self._params["{0}Type".format(kind)]
+        _type_args = self._params[f"{kind}Type"]
         name = _type_args["name"]
         version = _type_args["version"]
         self._check_string(domain)

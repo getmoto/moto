@@ -160,7 +160,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         if result is None:
             error = {
                 "__type": "ParameterNotFound",
-                "message": "Parameter {0} not found.".format(name),
+                "message": f"Parameter {name} not found.",
             }
             return json.dumps(error), dict(status=400)
         return json.dumps({})
@@ -195,7 +195,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         if result is None:
             error = {
                 "__type": "ParameterNotFound",
-                "message": "Parameter {0} not found.".format(name),
+                "message": f"Parameter {name} not found.",
             }
             return json.dumps(error), dict(status=400)
 
@@ -296,7 +296,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         if result is None:
             error = {
                 "__type": "ParameterAlreadyExists",
-                "message": "Parameter {0} already exists.".format(name),
+                "message": f"Parameter {name} already exists.",
             }
             return json.dumps(error), dict(status=400)
 
@@ -316,7 +316,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         if result is None:
             error = {
                 "__type": "ParameterNotFound",
-                "message": "Parameter {0} not found.".format(name),
+                "message": f"Parameter {name} not found.",
             }
             return json.dumps(error), dict(status=400)
 

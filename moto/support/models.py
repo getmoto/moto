@@ -166,7 +166,7 @@ class SupportBackend(BaseBackend):
         random_case_id = "".join(
             random.choice("0123456789ABCDEFGHIJKLMabcdefghijklm") for i in range(16)
         )
-        case_id = "case-12345678910-2020-%s" % random_case_id
+        case_id = f"case-12345678910-2020-{random_case_id}"
         case = SupportCase(
             case_id=case_id,
             subject=subject,

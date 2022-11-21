@@ -177,9 +177,7 @@ class InvalidRequest(S3ClientError):
     def __init__(self, method, *args, **kwargs):
         super().__init__(
             "InvalidRequest",
-            "Found unsupported HTTP method in CORS config. Unsupported method is {}".format(
-                method
-            ),
+            f"Found unsupported HTTP method in CORS config. Unsupported method is {method}",
             *args,
             **kwargs,
         )
@@ -241,9 +239,7 @@ class InvalidMaxPartArgument(S3ClientError):
     code = 400
 
     def __init__(self, arg, min_val, max_val):
-        error = "Argument {} must be an integer between {} and {}".format(
-            arg, min_val, max_val
-        )
+        error = f"Argument {arg} must be an integer between {min_val} and {max_val}"
         super().__init__("InvalidArgument", error)
 
 

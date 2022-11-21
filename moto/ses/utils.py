@@ -8,15 +8,7 @@ def random_hex(length):
 
 
 def get_random_message_id():
-    return "{0}-{1}-{2}-{3}-{4}-{5}-{6}".format(
-        random_hex(16),
-        random_hex(8),
-        random_hex(4),
-        random_hex(4),
-        random_hex(4),
-        random_hex(12),
-        random_hex(6),
-    )
+    return f"{random_hex(16)}-{random_hex(8)}-{random_hex(4)}-{random_hex(4)}-{random_hex(4)}-{random_hex(12)}-{random_hex(6)}"
 
 
 def is_valid_address(addr):

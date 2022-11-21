@@ -189,7 +189,7 @@ class SESBackend(BaseBackend):
             raise MessageRejectedError("Too many recipients.")
         if not self._is_verified_address(source):
             self.rejected_messages_count += 1
-            raise MessageRejectedError("Email address not verified %s" % source)
+            raise MessageRejectedError(f"Email address not verified {source}")
         destination_addresses = [
             address for addresses in destinations.values() for address in addresses
         ]
@@ -221,10 +221,10 @@ class SESBackend(BaseBackend):
 
         if not self._is_verified_address(source):
             self.rejected_messages_count += 1
-            raise MessageRejectedError("Email address not verified %s" % source)
+            raise MessageRejectedError(f"Email address not verified {source}")
 
         if not self.templates.get(template[0]):
-            raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
+            raise TemplateDoesNotExist(f"Template ({template[0]}) does not exist")
 
         self.__process_sns_feedback__(source, destinations, region)
 
@@ -246,7 +246,7 @@ class SESBackend(BaseBackend):
             raise MessageRejectedError("Too many recipients.")
         if not self._is_verified_address(source):
             self.rejected_messages_count += 1
-            raise MessageRejectedError("Email address not verified %s" % source)
+            raise MessageRejectedError(f"Email address not verified {source}")
         destination_addresses = [
             address for addresses in destinations.values() for address in addresses
         ]
@@ -256,7 +256,7 @@ class SESBackend(BaseBackend):
                 raise InvalidParameterValue(msg)
 
         if not self.templates.get(template[0]):
-            raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
+            raise TemplateDoesNotExist(f"Template ({template[0]}) does not exist")
 
         self.__process_sns_feedback__(source, destinations, region)
 
@@ -314,8 +314,7 @@ class SESBackend(BaseBackend):
             _, source_email_address = parseaddr(source)
             if not self._is_verified_address(source_email_address):
                 raise MessageRejectedError(
-                    "Did not have authority to send from email %s"
-                    % source_email_address
+                    f"Did not have authority to send from email {source_email_address}"
                 )
 
         recipient_count = len(destinations)
@@ -327,8 +326,7 @@ class SESBackend(BaseBackend):
             _, source_email_address = parseaddr(message["from"])
             if not self._is_verified_address(source_email_address):
                 raise MessageRejectedError(
-                    "Did not have authority to send from email %s"
-                    % source_email_address
+                    f"Did not have authority to send from email {source_email_address}"
                 )
 
         for header in "TO", "CC", "BCC":
@@ -480,9 +478,9 @@ class SESBackend(BaseBackend):
         html_part = template["html_part"]
 
         for key, value in template_data.items():
-            subject_part = str.replace(str(subject_part), "{{%s}}" % key, value)
-            text_part = str.replace(str(text_part), "{{%s}}" % key, value)
-            html_part = str.replace(str(html_part), "{{%s}}" % key, value)
+            subject_part = str.replace(str(subject_part), "{{" + key + "}}", value)
+            text_part = str.replace(str(text_part), "{{" + key + "}}", value)
+            html_part = str.replace(str(html_part), "{{" + key + "}}", value)
 
         email_obj = MIMEMultipart("alternative")
 
@@ -498,10 +496,8 @@ class SESBackend(BaseBackend):
 
         now = datetime.datetime.now().isoformat()
 
-        rendered_template = "Date: %s\r\nSubject: %s\r\n%s" % (
-            now,
-            subject_part,
-            email_obj.as_string(),
+        rendered_template = (
+            f"Date: {now}\r\nSubject: {subject_part}\r\n{email_obj.as_string()}"
         )
         return rendered_template
 
@@ -556,9 +552,7 @@ class SESBackend(BaseBackend):
         self, identity, mail_from_domain=None, behavior_on_mx_failure=None
     ):
         if identity not in (self.domains + self.addresses):
-            raise InvalidParameterValue(
-                "Identity '{0}' does not exist.".format(identity)
-            )
+            raise InvalidParameterValue(f"Identity '{identity}' does not exist.")
 
         if mail_from_domain is None:
             self.identity_mail_from_domains.pop(identity)
@@ -566,16 +560,16 @@ class SESBackend(BaseBackend):
 
         if not mail_from_domain.endswith(identity):
             raise InvalidParameterValue(
-                "Provided MAIL-FROM domain '{0}' is not subdomain of "
-                "the domain of the identity '{1}'.".format(mail_from_domain, identity)
+                f"Provided MAIL-FROM domain '{mail_from_domain}' is not subdomain of "
+                f"the domain of the identity '{identity}'."
             )
 
         if behavior_on_mx_failure not in (None, "RejectMessage", "UseDefaultValue"):
             raise ValidationError(
                 "1 validation error detected: "
-                "Value '{0}' at 'behaviorOnMXFailure'"
+                f"Value '{behavior_on_mx_failure}' at 'behaviorOnMXFailure'"
                 "failed to satisfy constraint: Member must satisfy enum value set: "
-                "[RejectMessage, UseDefaultValue]".format(behavior_on_mx_failure)
+                "[RejectMessage, UseDefaultValue]"
             )
 
         self.identity_mail_from_domains[identity] = {

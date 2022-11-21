@@ -39,9 +39,7 @@ class HistoryEvent(BaseModel):
     def __init__(self, event_id, event_type, event_timestamp=None, **kwargs):
         if event_type not in SUPPORTED_HISTORY_EVENT_TYPES:
             raise NotImplementedError(
-                "HistoryEvent does not implement attributes for type '{0}'".format(
-                    event_type
-                )
+                f"HistoryEvent does not implement attributes for type '{event_type}'"
             )
         self.event_id = event_id
         self.event_type = event_type
@@ -71,5 +69,5 @@ class HistoryEvent(BaseModel):
         }
 
     def _attributes_key(self):
-        key = "{0}EventAttributes".format(self.event_type)
+        key = f"{self.event_type}EventAttributes"
         return decapitalize(key)

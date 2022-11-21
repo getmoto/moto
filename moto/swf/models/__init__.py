@@ -168,7 +168,7 @@ class SWFBackend(BaseBackend):
         workflow_version,
         tag_list=None,
         workflow_input=None,
-        **kwargs
+        **kwargs,
     ):
         domain = self._get_domain(domain_name)
         wf_type = domain.get_type("workflow", workflow_name, workflow_version)
@@ -180,7 +180,7 @@ class SWFBackend(BaseBackend):
             workflow_id,
             tag_list=tag_list,
             workflow_input=workflow_input,
-            **kwargs
+            **kwargs,
         )
         domain.add_workflow_execution(wfe)
         wfe.start()
@@ -284,17 +284,13 @@ class SWFBackend(BaseBackend):
         if not wfe.open:
             raise SWFUnknownResourceFault(
                 "execution",
-                "WorkflowExecution=[workflowId={0}, runId={1}]".format(
-                    wfe.workflow_id, wfe.run_id
-                ),
+                f"WorkflowExecution=[workflowId={wfe.workflow_id}, runId={wfe.run_id}]",
             )
         # decision task found, but already completed
         if decision_task.state != "STARTED":
             if decision_task.state == "COMPLETED":
                 raise SWFUnknownResourceFault(
-                    "decision task, scheduledEventId = {0}".format(
-                        decision_task.scheduled_event_id
-                    )
+                    f"decision task, scheduledEventId = {decision_task.scheduled_event_id}"
                 )
             else:
                 raise ValueError(
@@ -375,17 +371,13 @@ class SWFBackend(BaseBackend):
         if not wfe.open:
             raise SWFUnknownResourceFault(
                 "execution",
-                "WorkflowExecution=[workflowId={0}, runId={1}]".format(
-                    wfe.workflow_id, wfe.run_id
-                ),
+                f"WorkflowExecution=[workflowId={wfe.workflow_id}, runId={wfe.run_id}]",
             )
         # activity task found, but already completed
         if activity_task.state != "STARTED":
             if activity_task.state == "COMPLETED":
                 raise SWFUnknownResourceFault(
-                    "activity, scheduledEventId = {0}".format(
-                        activity_task.scheduled_event_id
-                    )
+                    f"activity, scheduledEventId = {activity_task.scheduled_event_id}"
                 )
             else:
                 raise ValueError(

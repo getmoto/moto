@@ -18,14 +18,12 @@ def _validate_filters(filters):
             raise InvalidParameterException("Invalid filter key")
         if filter_key not in filter_keys():
             raise ValidationException(
-                "1 validation error detected: Value '{}' at 'filters.{}.member.key' failed to satisfy constraint: "
-                "Member must satisfy enum value set: [all, name, tag-key, description, tag-value]".format(
-                    filter_key, idx + 1
-                )
+                f"1 validation error detected: Value '{filter_key}' at 'filters.{(idx + 1)}.member.key' failed to satisfy constraint: "
+                "Member must satisfy enum value set: [all, name, tag-key, description, tag-value]"
             )
         if filter_values is None:
             raise InvalidParameterException(
-                "Invalid filter values for key: {}".format(filter_key)
+                f"Invalid filter values for key: {filter_key}"
             )
 
 

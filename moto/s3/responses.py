@@ -293,9 +293,7 @@ class S3Response(BaseResponse):
             return self._response_options(bucket_name)
         else:
             raise NotImplementedError(
-                "Method {0} has not been implemented in the S3 backend yet".format(
-                    method
-                )
+                f"Method {method} has not been implemented in the S3 backend yet"
             )
 
     @staticmethod
@@ -404,9 +402,7 @@ class S3Response(BaseResponse):
             for unsup in ("delimiter", "max-uploads"):
                 if unsup in querystring:
                     raise NotImplementedError(
-                        "Listing multipart uploads with {} has not been implemented yet.".format(
-                            unsup
-                        )
+                        f"Listing multipart uploads with {unsup} has not been implemented yet."
                     )
             multiparts = list(self.backend.get_all_multiparts(bucket_name).values())
             if "prefix" in querystring:
@@ -1068,9 +1064,7 @@ class S3Response(BaseResponse):
             raise InvalidRange(
                 actual_size=str(length), range_requested=request.headers.get("range")
             )
-        response_headers["content-range"] = "bytes {0}-{1}/{2}".format(
-            begin, end, length
-        )
+        response_headers["content-range"] = f"bytes {begin}-{end}/{length}"
         content = response_content[begin : end + 1]
         response_headers["content-length"] = len(content)
         return 206, response_headers, content
@@ -1211,9 +1205,7 @@ class S3Response(BaseResponse):
             return self._response_options(bucket_name)
         else:
             raise NotImplementedError(
-                "Method {0} has not been implemented in the S3 backend yet".format(
-                    method
-                )
+                f"Method {method} has not been implemented in the S3 backend yet"
             )
 
     def _key_response_get(self, bucket_name, query, key_name, headers):
@@ -1287,7 +1279,7 @@ class S3Response(BaseResponse):
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
             if key.last_modified.replace(microsecond=0) > if_unmodified_since:
                 raise PreconditionFailed("If-Unmodified-Since")
-        if if_match and key.etag not in [if_match, '"{0}"'.format(if_match)]:
+        if if_match and key.etag not in [if_match, f'"{if_match}"']:
             raise PreconditionFailed("If-Match")
 
         if if_modified_since:
@@ -1882,17 +1874,17 @@ class S3Response(BaseResponse):
             # 1st verify that the proper notification configuration has been passed in (with an ARN that is close
             # to being correct -- nothing too complex in the ARN logic):
             the_notification = parsed_xml["NotificationConfiguration"].get(
-                "{}Configuration".format(name)
+                f"{name}Configuration"
             )
             if the_notification:
                 found_notifications += 1
                 if not isinstance(the_notification, list):
                     the_notification = parsed_xml["NotificationConfiguration"][
-                        "{}Configuration".format(name)
+                        f"{name}Configuration"
                     ] = [the_notification]
 
                 for n in the_notification:
-                    if not n[name].startswith("arn:aws:{}:".format(arn_string)):
+                    if not n[name].startswith(f"arn:aws:{arn_string}:"):
                         raise InvalidNotificationARN()
 
                     # 2nd, verify that the Events list is correct:
@@ -1956,7 +1948,7 @@ class S3Response(BaseResponse):
         response_headers = {}
         if response_meta is not None:
             for k in response_meta:
-                response_headers["x-amz-{}".format(k)] = response_meta[k]
+                response_headers[f"x-amz-{k}"] = response_meta[k]
         return 204, response_headers, ""
 
     def _complete_multipart_body(self, body):
