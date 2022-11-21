@@ -1014,7 +1014,7 @@ class RestAPI(CloudFormationModel):
         }
         self.tags = kwargs.get(RestAPI.PROP_TAGS) or {}
         self.disableExecuteApiEndpoint = (
-            kwargs.get(RestAPI.PROP_DISABLE_EXECUTE_API_ENDPOINT) or False
+            kwargs.get("disable_execute_api_endpoint") or False
         )
         self.minimum_compression_size = kwargs.get("minimum_compression_size")
         self.deployments: Dict[str, Deployment] = {}
@@ -1536,6 +1536,7 @@ class APIGatewayBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]] = None,
         policy: Optional[str] = None,
         minimum_compression_size: Optional[int] = None,
+        disable_execute_api_endpoint: Optional[bool] = None,
     ) -> RestAPI:
         api_id = create_id()
         rest_api = RestAPI(
@@ -1549,6 +1550,7 @@ class APIGatewayBackend(BaseBackend):
             tags=tags,
             policy=policy,
             minimum_compression_size=minimum_compression_size,
+            disable_execute_api_endpoint=disable_execute_api_endpoint,
         )
         self.apis[api_id] = rest_api
         return rest_api

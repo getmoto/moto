@@ -76,6 +76,7 @@ class APIGatewayResponse(BaseResponse):
             tags = self._get_param("tags")
             policy = self._get_param("policy")
             minimum_compression_size = self._get_param("minimumCompressionSize")
+            disable_execute_api_endpoint = self._get_param("disableExecuteApiEndpoint")
 
             # Param validation
             response = self.__validate_api_key_source(api_key_source)
@@ -94,6 +95,7 @@ class APIGatewayResponse(BaseResponse):
                 tags=tags,
                 policy=policy,
                 minimum_compression_size=minimum_compression_size,
+                disable_execute_api_endpoint=disable_execute_api_endpoint,
             )
 
             return 200, {}, json.dumps(rest_api.to_dict())

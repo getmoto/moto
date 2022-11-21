@@ -17,7 +17,9 @@ from tests import DEFAULT_ACCOUNT_ID
 def test_create_and_get_rest_api():
     client = boto3.client("apigateway", region_name="us-west-2")
 
-    response = client.create_rest_api(name="my_api", description="this is my api")
+    response = client.create_rest_api(
+        name="my_api", description="this is my api", disableExecuteApiEndpoint=True
+    )
     api_id = response["id"]
 
     response = client.get_rest_api(restApiId=api_id)
@@ -34,7 +36,7 @@ def test_create_and_get_rest_api():
             "apiKeySource": "HEADER",
             "endpointConfiguration": {"types": ["EDGE"]},
             "tags": {},
-            "disableExecuteApiEndpoint": False,
+            "disableExecuteApiEndpoint": True,
         }
     )
 
