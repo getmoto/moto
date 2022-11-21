@@ -154,17 +154,18 @@ class AmiBackend:
             # owner_alias is required for terraform owner filters
             ami["owner_alias"] = "amazon"
             self.amis[ami_id] = Ami(self, **ami)
-        try:
-            latest_amis = load_resource(
-                __name__, f"../resources/latest_amis/{self.region_name}.json"
-            )
-            for ami in latest_amis:
-                ami_id = ami["ami_id"]
-                ami["owner_alias"] = "amazon"
-                self.amis[ami_id] = Ami(self, **ami)
-        except FileNotFoundError:
-            # Will error on unknown (new) regions - just return an empty list here
-            pass
+        if "MOTO_AMIS_PATH" not in environ:
+            try:
+                latest_amis = load_resource(
+                    __name__, f"../resources/latest_amis/{self.region_name}.json"
+                )
+                for ami in latest_amis:
+                    ami_id = ami["ami_id"]
+                    ami["owner_alias"] = "amazon"
+                    self.amis[ami_id] = Ami(self, **ami)
+            except FileNotFoundError:
+                # Will error on unknown (new) regions - just return an empty list here
+                pass
 
     def create_image(
         self,
