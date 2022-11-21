@@ -193,7 +193,7 @@ class Integration(BaseModel):
             "timeoutInMillis": self.timeout_in_millis,
             "requestParameters": self.request_parameters,
             "contentHandling": self.content_handling,
-            "credentials": self.credentials
+            "credentials": self.credentials,
         }
 
     def create_integration_response(

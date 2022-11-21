@@ -529,7 +529,7 @@ def test_integrations():
         integrationHttpMethod="POST",
         requestParameters={"integration.request.header.X-Custom": "'Custom'"},
         contentHandling="CONVERT_TO_TEXT",
-        credentials=f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role"
+        credentials=f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
     )
 
     # this is hard to match against, so remove it
@@ -545,7 +545,7 @@ def test_integrations():
             "cacheKeyParameters": [],
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
             "contentHandling": "CONVERT_TO_TEXT",
-            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role"
+            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
         }
     )
 
@@ -565,7 +565,7 @@ def test_integrations():
             "cacheKeyParameters": [],
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
             "contentHandling": "CONVERT_TO_TEXT",
-            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role"
+            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
         }
     )
 
@@ -584,7 +584,7 @@ def test_integrations():
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
             "contentHandling": "CONVERT_TO_TEXT",
-            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role"
+            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
         }
     )
 
