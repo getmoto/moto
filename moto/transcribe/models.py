@@ -183,28 +183,13 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 "%Y-%m-%d %H:%M:%S"
             )
             if self._output_bucket_name:
-                transcript_file_uri = "https://s3.{0}.amazonaws.com/{1}/".format(
-                    self._region_name, self._output_bucket_name
-                )
-                transcript_file_uri = (
-                    transcript_file_uri
-                    + "{0}/{1}.json".format(
-                        self.output_key, self.transcription_job_name
-                    )
-                    if self.output_key is not None
-                    else transcript_file_uri
-                    + "{transcription_job_name}.json".format(
-                        transcription_job_name=self.transcription_job_name
-                    )
-                )
+                transcript_file_uri = f"https://s3.{self._region_name}.amazonaws.com/{self._output_bucket_name}/"
+                if self.output_key is not None:
+                    transcript_file_uri += f"{self.output_key}/"
+                transcript_file_uri += f"{self.transcription_job_name}.json"
                 self.output_location_type = "CUSTOMER_BUCKET"
             else:
-                transcript_file_uri = "https://s3.{0}.amazonaws.com/aws-transcribe-{0}-prod/{1}/{2}/{3}/asrOutput.json".format(  # noqa: E501
-                    self._region_name,
-                    self._account_id,
-                    self.transcription_job_name,
-                    mock_random.uuid4(),
-                )
+                transcript_file_uri = f"https://s3.{self._region_name}.amazonaws.com/aws-transcribe-{self._region_name}-prod/{self._account_id}/{self.transcription_job_name}/{mock_random.uuid4()}/asrOutput.json"
                 self.output_location_type = "SERVICE_BUCKET"
             self.transcript = {"TranscriptFileUri": transcript_file_uri}
 
@@ -232,9 +217,7 @@ class FakeVocabulary(BaseObject, ManagedState):
         self.vocabulary_file_uri = vocabulary_file_uri
         self.last_modified_time = None
         self.failure_reason = None
-        self.download_uri = "https://s3.{0}.amazonaws.com/aws-transcribe-dictionary-model-{0}-prod/{1}/{2}/{3}/input.txt".format(  # noqa: E501
-            region_name, account_id, vocabulary_name, mock_random.uuid4()
-        )
+        self.download_uri = f"https://s3.{region_name}.amazonaws.com/aws-transcribe-dictionary-model-{region_name}-prod/{account_id}/{vocabulary_name}/{mock_random.uuid4()}/input.txt"
 
     def response_object(self, response_type):
         response_field_dict = {
@@ -403,11 +386,7 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
                 "%Y-%m-%d %H:%M:%S"
             )
             self.transcript = {
-                "TranscriptFileUri": "https://s3.{}.amazonaws.com/{}/medical/{}.json".format(
-                    self._region_name,
-                    self._output_bucket_name,
-                    self.medical_transcription_job_name,
-                )
+                "TranscriptFileUri": f"https://s3.{self._region_name}.amazonaws.com/{self._output_bucket_name}/medical/{self.medical_transcription_job_name}.json"
             }
 
 
@@ -435,9 +414,7 @@ class FakeMedicalVocabulary(FakeVocabulary):
         self.vocabulary_file_uri = vocabulary_file_uri
         self.last_modified_time = None
         self.failure_reason = None
-        self.download_uri = "https://s3.us-east-1.amazonaws.com/aws-transcribe-dictionary-model-{}-prod/{}/medical/{}/{}/input.txt".format(  # noqa: E501
-            region_name, account_id, self.vocabulary_name, mock_random.uuid4()
-        )
+        self.download_uri = f"https://s3.us-east-1.amazonaws.com/aws-transcribe-dictionary-model-{region_name}-prod/{account_id}/medical/{self.vocabulary_name}/{mock_random.uuid4()}/input.txt"
 
 
 class TranscribeBackend(BaseBackend):
