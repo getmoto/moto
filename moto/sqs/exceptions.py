@@ -63,7 +63,7 @@ class BatchRequestTooLong(RESTError):
         super().__init__(
             "BatchRequestTooLong",
             "Batch requests cannot be longer than 262144 bytes. "
-            "You have sent {} bytes.".format(length),
+            f"You have sent {length} bytes.",
         )
 
 
@@ -71,7 +71,7 @@ class BatchEntryIdsNotDistinct(RESTError):
     code = 400
 
     def __init__(self, entry_id):
-        super().__init__("BatchEntryIdsNotDistinct", "Id {} repeated.".format(entry_id))
+        super().__init__("BatchEntryIdsNotDistinct", f"Id {entry_id} repeated.")
 
 
 class TooManyEntriesInBatchRequest(RESTError):
@@ -80,8 +80,7 @@ class TooManyEntriesInBatchRequest(RESTError):
     def __init__(self, number):
         super().__init__(
             "TooManyEntriesInBatchRequest",
-            "Maximum number of entries per request are 10. "
-            "You have sent {}.".format(number),
+            "Maximum number of entries per request are 10. " f"You have sent {number}.",
         )
 
 
@@ -89,9 +88,7 @@ class InvalidAttributeName(RESTError):
     code = 400
 
     def __init__(self, attribute_name):
-        super().__init__(
-            "InvalidAttributeName", "Unknown Attribute {}.".format(attribute_name)
-        )
+        super().__init__("InvalidAttributeName", f"Unknown Attribute {attribute_name}.")
 
 
 class InvalidAttributeValue(RESTError):
@@ -100,7 +97,7 @@ class InvalidAttributeValue(RESTError):
     def __init__(self, attribute_name):
         super().__init__(
             "InvalidAttributeValue",
-            "Invalid value for the parameter {}.".format(attribute_name),
+            f"Invalid value for the parameter {attribute_name}.",
         )
 
 
@@ -116,8 +113,7 @@ class MissingParameter(RESTError):
 
     def __init__(self, parameter):
         super().__init__(
-            "MissingParameter",
-            "The request must contain the parameter {}.".format(parameter),
+            "MissingParameter", f"The request must contain the parameter {parameter}."
         )
 
 
@@ -126,5 +122,5 @@ class OverLimit(RESTError):
 
     def __init__(self, count):
         super().__init__(
-            "OverLimit", "{} Actions were found, maximum allowed is 7.".format(count)
+            "OverLimit", f"{count} Actions were found, maximum allowed is 7."
         )

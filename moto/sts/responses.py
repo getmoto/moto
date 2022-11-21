@@ -28,7 +28,7 @@ class TokenResponse(BaseResponse):
                 "1 validation error detected: Value "
                 '\'{"Version": "2012-10-17", "Statement": [...]}\' '
                 "at 'policy' failed to satisfy constraint: Member must have length less than or "
-                " equal to %s" % MAX_FEDERATION_TOKEN_POLICY_LENGTH
+                f" equal to {MAX_FEDERATION_TOKEN_POLICY_LENGTH}"
             )
 
         name = self.querystring.get("Name")[0]

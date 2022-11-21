@@ -8,9 +8,9 @@ class SWFClientError(JsonRESTError):
 class SWFUnknownResourceFault(SWFClientError):
     def __init__(self, resource_type, resource_name=None):
         if resource_name:
-            message = "Unknown {0}: {1}".format(resource_type, resource_name)
+            message = f"Unknown {resource_type}: {resource_name}"
         else:
-            message = "Unknown {0}".format(resource_type)
+            message = f"Unknown {resource_type}"
         super().__init__("com.amazonaws.swf.base.model#UnknownResourceFault", message)
 
 
@@ -31,7 +31,7 @@ class SWFDomainDeprecatedFault(SWFClientError):
 class SWFSerializationException(SWFClientError):
     def __init__(self, value):
         message = "class java.lang.Foo can not be converted to an String "
-        message += " (not a real SWF exception ; happened on: {0})".format(value)
+        message += f" (not a real SWF exception ; happened on: {value})"
         __type = "com.amazonaws.swf.base.model#SerializationException"
         super().__init__(__type, message)
 
@@ -40,9 +40,7 @@ class SWFTypeAlreadyExistsFault(SWFClientError):
     def __init__(self, _type):
         super().__init__(
             "com.amazonaws.swf.base.model#TypeAlreadyExistsFault",
-            "{0}=[name={1}, version={2}]".format(
-                _type.__class__.__name__, _type.name, _type.version
-            ),
+            f"{_type.__class__.__name__}=[name={_type.name}, version={_type.version}]",
         )
 
 
@@ -50,9 +48,7 @@ class SWFTypeDeprecatedFault(SWFClientError):
     def __init__(self, _type):
         super().__init__(
             "com.amazonaws.swf.base.model#TypeDeprecatedFault",
-            "{0}=[name={1}, version={2}]".format(
-                _type.__class__.__name__, _type.name, _type.version
-            ),
+            f"{_type.__class__.__name__}=[name={_type.name}, version={_type.version}]",
         )
 
 
@@ -88,19 +84,15 @@ class SWFDecisionValidationException(SWFClientError):
         for pb in problems:
             if pb["type"] == "null_value":
                 messages.append(
-                    "Value null at '%(where)s' failed to satisfy constraint: "
-                    "Member must not be null" % pb
+                    f"Value null at '{pb['where']}' failed to satisfy constraint: Member must not be null"
                 )
             elif pb["type"] == "bad_decision_type":
                 messages.append(
-                    "Value '%(value)s' at '%(where)s' failed to satisfy constraint: "
-                    "Member must satisfy enum value set: "
-                    "[%(possible_values)s]" % pb
+                    f"Value '{pb['value']}' at '{pb['where']}' failed to satisfy constraint: "
+                    f"Member must satisfy enum value set: [{pb['possible_values']}]"
                 )
             else:
-                raise ValueError(
-                    "Unhandled decision constraint type: {0}".format(pb["type"])
-                )
+                raise ValueError(f"Unhandled decision constraint type: {pb['type']}")
         # prefix
         count = len(problems)
         if count < 2:

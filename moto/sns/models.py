@@ -445,7 +445,7 @@ class PlatformEndpoint(BaseModel):
 
     def publish(self, message):
         if not self.enabled:
-            raise SnsEndpointDisabled("Endpoint %s disabled" % self.id)
+            raise SnsEndpointDisabled(f"Endpoint {self.id} disabled")
 
         # This is where we would actually send a message
         message_id = str(mock_random.uuid4())
@@ -561,13 +561,13 @@ class SNSBackend(BaseBackend):
             self.delete_topic_subscriptions(topic)
             self.topics.pop(arn)
         except KeyError:
-            raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
+            raise SNSNotFoundError(f"Topic with arn {arn} not found")
 
     def get_topic(self, arn):
         try:
             return self.topics[arn]
         except KeyError:
-            raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
+            raise SNSNotFoundError(f"Topic with arn {arn} not found")
 
     def set_topic_attribute(self, topic_arn, attribute_name, attribute_value):
         topic = self.get_topic(topic_arn)
@@ -578,12 +578,12 @@ class SNSBackend(BaseBackend):
             if re.search(r"[./-]{2,}", endpoint) or re.search(
                 r"(^[./-]|[./-]$)", endpoint
             ):
-                raise SNSInvalidParameter("Invalid SMS endpoint: {}".format(endpoint))
+                raise SNSInvalidParameter(f"Invalid SMS endpoint: {endpoint}")
 
             reduced_endpoint = re.sub(r"[./-]", "", endpoint)
 
             if not is_e164(reduced_endpoint):
-                raise SNSInvalidParameter("Invalid SMS endpoint: {}".format(endpoint))
+                raise SNSInvalidParameter(f"Invalid SMS endpoint: {endpoint}")
 
         # AWS doesn't create duplicates
         old_subscription = self._find_subscription(topic_arn, endpoint, protocol)
@@ -671,9 +671,9 @@ class SNSBackend(BaseBackend):
             else:
                 if not fifo_topic:
                     msg = (
-                        "Value {} for parameter MessageGroupId is invalid. "
+                        f"Value {group_id} for parameter MessageGroupId is invalid. "
                         "Reason: The request include parameter that is not valid for this queue type."
-                    ).format(group_id)
+                    )
                     raise InvalidParameterValue(msg)
             message_id = topic.publish(
                 message,
@@ -697,7 +697,7 @@ class SNSBackend(BaseBackend):
         try:
             return self.applications[arn]
         except KeyError:
-            raise SNSNotFoundError("Application with arn {0} not found".format(arn))
+            raise SNSNotFoundError(f"Application with arn {arn} not found")
 
     def set_application_attributes(self, arn, attributes):
         application = self.get_application(arn)
@@ -724,7 +724,7 @@ class SNSBackend(BaseBackend):
                 ):
                     return endpoint
                 raise DuplicateSnsEndpointError(
-                    "Duplicate endpoint token with different attributes: %s" % token
+                    f"Duplicate endpoint token with different attributes: {token}"
                 )
         platform_endpoint = PlatformEndpoint(
             self.account_id,
@@ -761,7 +761,7 @@ class SNSBackend(BaseBackend):
         try:
             del self.platform_endpoints[arn]
         except KeyError:
-            raise SNSNotFoundError("Endpoint with arn {0} not found".format(arn))
+            raise SNSNotFoundError(f"Endpoint with arn {arn} not found")
 
     def get_subscription_attributes(self, arn):
         subscription = self.subscriptions.get(arn)
@@ -786,7 +786,7 @@ class SNSBackend(BaseBackend):
         # TODO: should do validation
         _subscription = [_ for _ in self.subscriptions.values() if _.arn == arn]
         if not _subscription:
-            raise SNSNotFoundError("Subscription with arn {0} not found".format(arn))
+            raise SNSNotFoundError(f"Subscription with arn {arn} not found")
         subscription = _subscription[0]
 
         subscription.attributes[name] = value
@@ -837,9 +837,7 @@ class SNSBackend(BaseBackend):
                         continue
                     else:
                         raise SNSInvalidParameter(
-                            "Invalid parameter: FilterPolicy: Unrecognized match type {type}".format(
-                                type=keyword
-                            )
+                            f"Invalid parameter: FilterPolicy: Unrecognized match type {keyword}"
                         )
 
                 raise SNSInvalidParameter(
@@ -867,9 +865,9 @@ class SNSBackend(BaseBackend):
             raise SNSInvalidParameter("Policy statement action out of service scope!")
 
         principals = [
-            "arn:aws:iam::{}:root".format(account_id) for account_id in aws_account_ids
+            f"arn:aws:iam::{account_id}:root" for account_id in aws_account_ids
         ]
-        actions = ["SNS:{}".format(action_name) for action_name in action_names]
+        actions = [f"SNS:{action_name}" for action_name in action_names]
 
         statement = {
             "Sid": label,

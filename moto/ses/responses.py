@@ -64,7 +64,7 @@ class EmailResponse(BaseResponse):
         for dest_type in destinations:
             # consume up to 51 to allow exception
             for i in range(1, 52):
-                field = "Destination.%s.member.%s" % (dest_type, i)
+                field = f"Destination.{dest_type}.member.{i}"
                 address = self.querystring.get(field)
                 if address is None:
                     break
@@ -85,7 +85,7 @@ class EmailResponse(BaseResponse):
         for dest_type in destinations:
             # consume up to 51 to allow exception
             for i in range(1, 52):
-                field = "Destination.%s.member.%s" % (dest_type, i)
+                field = f"Destination.{dest_type}.member.{i}"
                 address = self.querystring.get(field)
                 if address is None:
                     break
@@ -105,7 +105,7 @@ class EmailResponse(BaseResponse):
         destinations = []
         for i in range(1, 52):
             destination_field = (
-                "Destinations.member.%s.Destination.ToAddresses.member.1" % (i)
+                f"Destinations.member.{i}.Destination.ToAddresses.member.1"
             )
             if self.querystring.get(destination_field) is None:
                 break
@@ -113,10 +113,8 @@ class EmailResponse(BaseResponse):
             for dest_type in destination:
                 # consume up to 51 to allow exception
                 for j in range(1, 52):
-                    field = "Destinations.member.%s.Destination.%s.member.%s" % (
-                        i,
-                        dest_type,
-                        j,
+                    field = (
+                        f"Destinations.member.{i}.Destination.{dest_type}.member.{j}"
                     )
                     address = self.querystring.get(field)
                     if address is None:
@@ -142,7 +140,7 @@ class EmailResponse(BaseResponse):
         destinations = []
         # consume up to 51 to allow exception
         for i in range(1, 52):
-            field = "Destinations.member.%s" % i
+            field = f"Destinations.member.{i}"
             address = self.querystring.get(field)
             if address is None:
                 break

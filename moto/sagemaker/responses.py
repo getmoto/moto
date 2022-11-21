@@ -486,9 +486,7 @@ class SageMakerResponse(BaseResponse):
         errors = []
         if max_results and max_results not in max_results_range:
             errors.append(
-                "Value '{0}' at 'maxResults' failed to satisfy constraint: Member must have value less than or equal to {1}".format(
-                    max_results, max_results_range[-1]
-                )
+                f"Value '{max_results}' at 'maxResults' failed to satisfy constraint: Member must have value less than or equal to {max_results_range[-1]}"
             )
 
         if sort_by not in allowed_sort_by:
@@ -541,9 +539,7 @@ class SageMakerResponse(BaseResponse):
         errors = []
         if max_results and max_results not in max_results_range:
             errors.append(
-                "Value '{0}' at 'maxResults' failed to satisfy constraint: Member must have value less than or equal to {1}".format(
-                    max_results, max_results_range[-1]
-                )
+                f"Value '{max_results}' at 'maxResults' failed to satisfy constraint: Member must have value less than or equal to {max_results_range[-1]}"
             )
 
         if sort_by not in allowed_sort_by:

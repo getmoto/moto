@@ -85,7 +85,7 @@ def _exclude_characters(password, exclude_characters):
     for c in exclude_characters:
         if c in string.punctuation:
             # Escape punctuation regex usage
-            c = r"\{0}".format(c)
+            c = rf"\{c}"
         password = re.sub(c, "", str(password))
     return password
 

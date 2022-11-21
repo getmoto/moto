@@ -26,7 +26,7 @@ class Domain(BaseModel):
         self.decision_task_lists = {}
 
     def __repr__(self):
-        return "Domain(name: %(name)s, status: %(status)s)" % self.__dict__
+        return f"Domain(name: {self.name}, status: {self.status})"
 
     def to_short_dict(self):
         hsh = {"name": self.name, "status": self.status}
@@ -50,9 +50,7 @@ class Domain(BaseModel):
             if not ignore_empty:
                 raise SWFUnknownResourceFault(
                     "type",
-                    "{0}Type=[name={1}, version={2}]".format(
-                        kind.capitalize(), name, version
-                    ),
+                    f"{kind.capitalize()}Type=[name={name}, version={version}]",
                 )
 
     def add_type(self, _type):
@@ -97,12 +95,10 @@ class Domain(BaseModel):
             if run_id:
                 args = [
                     "execution",
-                    "WorkflowExecution=[workflowId={0}, runId={1}]".format(
-                        workflow_id, run_id
-                    ),
+                    f"WorkflowExecution=[workflowId={workflow_id}, runId={run_id}]",
                 ]
             else:
-                args = ["execution, workflowId = {0}".format(workflow_id)]
+                args = [f"execution, workflowId = {workflow_id}"]
             raise SWFUnknownResourceFault(*args)
         # at last return workflow execution
         return wfe

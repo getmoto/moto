@@ -49,8 +49,7 @@ class SNSResponse(BaseResponse):
             data_type = value["DataType"]
             if not data_type:
                 raise InvalidParameterValue(
-                    "The message attribute '{0}' must contain non-empty "
-                    "message attribute value.".format(name)
+                    f"The message attribute '{name}' must contain non-empty message attribute value."
                 )
 
             data_type_parts = data_type.split(".")
@@ -60,9 +59,9 @@ class SNSResponse(BaseResponse):
                 "Number",
             ]:
                 raise InvalidParameterValue(
-                    "The message attribute '{0}' has an invalid message "
+                    f"The message attribute '{name}' has an invalid message "
                     "attribute type, the set of supported type prefixes is "
-                    "Binary, Number, and String.".format(name)
+                    "Binary, Number, and String."
                 )
 
             transform_value = None
@@ -77,9 +76,7 @@ class SNSResponse(BaseResponse):
                             raise InvalidParameterValue(
                                 "An error occurred (ParameterValueInvalid) "
                                 "when calling the Publish operation: "
-                                "Could not cast message attribute '{0}' value to number.".format(
-                                    name
-                                )
+                                f"Could not cast message attribute '{name}' value to number."
                             )
                 else:
                     transform_value = value["StringValue"]
@@ -87,9 +84,9 @@ class SNSResponse(BaseResponse):
                 transform_value = value["BinaryValue"]
             if transform_value == "":
                 raise InvalidParameterValue(
-                    "The message attribute '{0}' must contain non-empty "
+                    f"The message attribute '{name}' must contain non-empty "
                     "message attribute value for message attribute "
-                    "type '{1}'.".format(name, data_type[0])
+                    f"type '{data_type[0]}'."
                 )
 
             # transformation
@@ -767,9 +764,7 @@ class SNSResponse(BaseResponse):
         #     return error_response, dict(status=400)
 
         template = self.response_template(CONFIRM_SUBSCRIPTION_TEMPLATE)
-        return template.render(
-            sub_arn="{0}:68762e72-e9b1-410a-8b3b-903da69ee1d5".format(arn)
-        )
+        return template.render(sub_arn=f"{arn}:68762e72-e9b1-410a-8b3b-903da69ee1d5")
 
     def list_tags_for_resource(self):
         arn = self._get_param("ResourceArn")
