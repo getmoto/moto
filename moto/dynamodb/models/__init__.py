@@ -1648,7 +1648,7 @@ class DynamoDBBackend(BaseBackend):
         return table.ttl
 
     def transact_write_items(self, transact_items):
-        if len(transact_items) > 25:
+        if len(transact_items) > 100:
             raise TooManyTransactionsException()
         # Create a backup in case any of the transactions fail
         original_table_state = copy.deepcopy(self.tables)
