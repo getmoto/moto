@@ -3285,7 +3285,9 @@ if settings.TEST_SERVER_MODE:
 
 
 @mock_s3
-@pytest.mark.parametrize("prefix", ["file", "file+else", "file&another"])
+@pytest.mark.parametrize(
+    "prefix", ["file", "file+else", "file&another", "file another"]
+)
 def test_get_object_versions_with_prefix(prefix):
     bucket_name = "testbucket-3113"
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)

@@ -1,6 +1,8 @@
 import io
 from urllib.parse import urlparse, parse_qs
 import sure  # noqa # pylint: disable=unused-import
+import pytest
+import xmltodict
 
 from flask.testing import FlaskClient
 import moto.server as server
@@ -32,7 +34,8 @@ def test_s3_server_get():
     res.data.should.contain(b"ListAllMyBucketsResult")
 
 
-def test_s3_server_bucket_create():
+@pytest.mark.parametrize("key_name", ["bar_baz", "bar+baz", "baz bar"])
+def test_s3_server_bucket_create(key_name):
     test_client = authenticated_client()
 
     res = test_client.put("/", "http://foobaz.localhost:5000/")
@@ -45,22 +48,25 @@ def test_s3_server_bucket_create():
     res.status_code.should.equal(200)
     res.data.should.contain(b"ListBucketResult")
 
-    for key_name in ("bar_baz", "bar+baz"):
-        res = test_client.put(
-            f"/{key_name}", "http://foobaz.localhost:5000/", data="test value"
-        )
-        res.status_code.should.equal(200)
-        assert "ETag" in dict(res.headers)
+    res = test_client.put(
+        f"/{key_name}", "http://foobaz.localhost:5000/", data="test value"
+    )
+    res.status_code.should.equal(200)
+    assert "ETag" in dict(res.headers)
 
-        res = test_client.get(
-            "/", "http://foobaz.localhost:5000/", query_string={"prefix": key_name}
-        )
-        res.status_code.should.equal(200)
-        res.data.should.contain(b"Contents")
+    res = test_client.get(
+        "/", "http://foobaz.localhost:5000/", query_string={"prefix": key_name}
+    )
+    res.status_code.should.equal(200)
+    content = xmltodict.parse(res.data)["ListBucketResult"]["Contents"]
+    # If we receive a dict, we only received one result
+    # If content is of type list, our call returned multiple results - which is not correct
+    content.should.be.a(dict)
+    content["Key"].should.equal(key_name)
 
-        res = test_client.get(f"/{key_name}", "http://foobaz.localhost:5000/")
-        res.status_code.should.equal(200)
-        res.data.should.equal(b"test value")
+    res = test_client.get(f"/{key_name}", "http://foobaz.localhost:5000/")
+    res.status_code.should.equal(200)
+    res.data.should.equal(b"test value")
 
 
 def test_s3_server_ignore_subdomain_for_bucketnames():
