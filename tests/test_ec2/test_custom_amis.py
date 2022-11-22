@@ -43,7 +43,6 @@ from moto import mock_ec2  # noqa: E402
 
 @mock_ec2
 def test_custom_amis_with_MOTO_AMIS_PATH():
-
     # clean up the file with custom amis, it's already been loaded
     os.remove(ami_path)
 
