@@ -229,8 +229,10 @@ class MultipleTransactionsException(MockValidationException):
 
 
 class TooManyTransactionsException(MockValidationException):
-    msg = "1 validation error detected at 'transactItems' failed to satisfy constraint: " \
-          "Member must have length less than or equal to 100."
+    msg = (
+        "1 validation error detected at 'transactItems' failed to satisfy constraint: "
+        "Member must have length less than or equal to 100."
+    )
 
     def __init__(self):
         super().__init__(self.msg)

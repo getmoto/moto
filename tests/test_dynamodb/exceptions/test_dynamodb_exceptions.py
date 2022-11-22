@@ -561,7 +561,7 @@ def test_transact_write_items__too_many_transactions():
     err = exc.value.response["Error"]
     err["Code"].should.equal("ValidationException")
     err["Message"].should.match(
-        "1 validation error detected at 'transactItems' failed to satisfy constraint: " \
+        "1 validation error detected at 'transactItems' failed to satisfy constraint: "
         "Member must have length less than or equal to 100."
     )
 
