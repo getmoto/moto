@@ -555,12 +555,15 @@ def test_transact_write_items__too_many_transactions():
     with pytest.raises(ClientError) as exc:
         dynamodb.transact_write_items(
             TransactItems=[
-                update_email_transact(f"test{idx}@moto.com") for idx in range(26)
+                update_email_transact(f"test{idx}@moto.com") for idx in range(101)
             ]
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("ValidationException")
-    err["Message"].should.match("Member must have length less than or equal to 25")
+    err["Message"].should.match(
+        "1 validation error detected at 'transactItems' failed to satisfy constraint: "
+        "Member must have length less than or equal to 100."
+    )
 
 
 @mock_dynamodb
