@@ -44,7 +44,7 @@ from moto import mock_ec2  # noqa: E402
 @mock_ec2
 def test_custom_amis_with_MOTO_AMIS_PATH():
 
-    ec2_client = boto3.client("ec2")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
     images = ec2_client.describe_images()["Images"]
     assert len(images) == 1
 
