@@ -506,7 +506,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, self.account_id, self.function_name, version
         )
         self.version = version
-        self.last_modified = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        self.last_modified = datetime.datetime.utcnow().strftime(
+            "%Y-%m-%dT%H:%M:%S.000+0000"
+        )
 
     @property
     def vpc_config(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -977,7 +979,7 @@ class FunctionUrlConfig:
         self.function = function
         self.config = config
         self.url = f"https://{random.uuid4().hex}.lambda-url.{function.region}.on.aws"
-        self.created = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        self.created = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000+0000")
         self.last_modified = self.created
 
     def to_dict(self) -> Dict[str, Any]:
