@@ -76,4 +76,4 @@ def test_list_invalidations__no_entries():
     resp["InvalidationList"].should.have.key("MaxItems").equal(100)
     resp["InvalidationList"].should.have.key("IsTruncated").equal(False)
     resp["InvalidationList"].should.have.key("Quantity").equal(0)
-    resp["InvalidationList"].should.have.key("Items").equals([])
+    resp["InvalidationList"].shouldnt.have.key("Items")
