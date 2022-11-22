@@ -25,7 +25,7 @@ def test_register_domain_boto3():
     domain["status"].should.equal("REGISTERED")
     domain["description"].should.equal("A test domain")
     domain["arn"].should.equal(
-        "arn:aws:swf:us-west-1:{0}:/domain/test-domain".format(ACCOUNT_ID)
+        f"arn:aws:swf:us-west-1:{ACCOUNT_ID}:/domain/test-domain"
     )
 
 

@@ -40,7 +40,7 @@ def test_get_group_boto3():
     created["Path"].should.equal("/")
     created["GroupName"].should.equal("my-group")
     created.should.have.key("GroupId")
-    created["Arn"].should.equal("arn:aws:iam::{}:group/my-group".format(ACCOUNT_ID))
+    created["Arn"].should.equal(f"arn:aws:iam::{ACCOUNT_ID}:group/my-group")
     created["CreateDate"].should.be.a(datetime)
 
     retrieved = conn.get_group(GroupName="my-group")["Group"]
@@ -63,15 +63,16 @@ def test_get_group_current():
     assert result["Group"]["GroupName"] == "my-group"
     assert isinstance(result["Group"]["CreateDate"], datetime)
     assert result["Group"]["GroupId"]
-    assert result["Group"]["Arn"] == "arn:aws:iam::{}:group/my-group".format(ACCOUNT_ID)
+    assert result["Group"]["Arn"] == f"arn:aws:iam::{ACCOUNT_ID}:group/my-group"
     assert not result["Users"]
 
     # Make a group with a different path:
     other_group = conn.create_group(GroupName="my-other-group", Path="some/location")
     assert other_group["Group"]["Path"] == "some/location"
-    assert other_group["Group"][
-        "Arn"
-    ] == "arn:aws:iam::{}:group/some/location/my-other-group".format(ACCOUNT_ID)
+    assert (
+        other_group["Group"]["Arn"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:group/some/location/my-other-group"
+    )
 
 
 @mock_iam

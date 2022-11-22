@@ -46,6 +46,7 @@ quicksight
 - [ ] create_theme
 - [ ] create_theme_alias
 - [ ] delete_account_customization
+- [ ] delete_account_subscription
 - [ ] delete_analysis
 - [ ] delete_dashboard
 - [ ] delete_data_set
@@ -136,6 +137,8 @@ quicksight
 - [ ] restore_analysis
 - [ ] search_analyses
 - [ ] search_dashboards
+- [ ] search_data_sets
+- [ ] search_data_sources
 - [ ] search_folders
 - [ ] search_groups
 - [ ] tag_resource

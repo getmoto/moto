@@ -112,9 +112,7 @@ class ExpressionPathResolver(object):
                     else:
                         raise InvalidUpdateExpressionInvalidDocumentPath
                 else:
-                    raise NotImplementedError(
-                        "Path resolution for {t}".format(t=type(child))
-                    )
+                    raise NotImplementedError(f"Path resolution for {type(child)}")
         return DDBTypedValue(target)
 
     def resolve_expression_path_nodes_to_dynamo_type(
@@ -216,9 +214,7 @@ class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):
                 first_arg.value.append(list_element)
             return DDBTypedValue(first_arg)
         else:
-            raise NotImplementedError(
-                "Unsupported function for moto {name}".format(name=function_name)
-            )
+            raise NotImplementedError(f"Unsupported function for moto {function_name}")
 
     @classmethod
     def get_list_from_ddb_typed_value(cls, node, function_name):
@@ -270,11 +266,7 @@ class ExecuteOperations(DepthFirstTraverser):
             elif operator == "-":
                 return self.get_subtraction(left_operand, right_operand)
             else:
-                raise NotImplementedError(
-                    "Moto does not support operator {operator}".format(
-                        operator=operator
-                    )
-                )
+                raise NotImplementedError(f"Moto does not support operator {operator}")
         else:
             raise NotImplementedError(
                 "UpdateExpressionValue only has implementations for 1 or 3 children."

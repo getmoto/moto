@@ -10,7 +10,7 @@ import pytest
 TEST_REGION_NAME = "us-east-1"
 FAKE_SUBNET_ID = "subnet-012345678"
 FAKE_SECURITY_GROUP_IDS = ["sg-0123456789abcdef0", "sg-0123456789abcdef1"]
-FAKE_ROLE_ARN = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
+FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
 FAKE_KMS_KEY_ID = "62d4509a-9f96-446c-a9ba-6b1c353c8c58"
 GENERIC_TAGS_PARAM = [
     {"Key": "newkey1", "Value": "newval1"},
@@ -130,9 +130,7 @@ def test_create_notebook_instance_invalid_instance_type(sagemaker_client):
     with pytest.raises(ClientError) as ex:
         sagemaker_client.create_notebook_instance(**args)
     assert ex.value.response["Error"]["Code"] == "ValidationException"
-    expected_message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: [".format(
-        instance_type
-    )
+    expected_message = f"Value '{instance_type}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: ["
 
     assert expected_message in ex.value.response["Error"]["Message"]
 
@@ -155,9 +153,7 @@ def test_notebook_instance_lifecycle(sagemaker_client):
     with pytest.raises(ClientError) as ex:
         sagemaker_client.delete_notebook_instance(NotebookInstanceName=FAKE_NAME_PARAM)
     assert ex.value.response["Error"]["Code"] == "ValidationException"
-    expected_message = "Status (InService) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({})".format(
-        notebook_instance_arn
-    )
+    expected_message = f"Status (InService) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({notebook_instance_arn})"
     assert expected_message in ex.value.response["Error"]["Message"]
 
     sagemaker_client.stop_notebook_instance(NotebookInstanceName=FAKE_NAME_PARAM)

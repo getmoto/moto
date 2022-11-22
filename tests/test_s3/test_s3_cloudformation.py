@@ -192,23 +192,15 @@ def test_s3_bucket_cloudformation_outputs():
     outputs_list = cf.Stack(stack_name).outputs
     output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
     s3.head_bucket(Bucket=output["BucketName"])
-    output["BucketARN"].should.match("arn:aws:s3.+{bucket}".format(bucket=bucket_name))
-    output["BucketDomainName"].should.equal(
-        "{bucket}.s3.amazonaws.com".format(bucket=bucket_name)
-    )
+    output["BucketARN"].should.match(f"arn:aws:s3.+{bucket_name}")
+    output["BucketDomainName"].should.equal(f"{bucket_name}.s3.amazonaws.com")
     output["BucketDualStackDomainName"].should.equal(
-        "{bucket}.s3.dualstack.{region}.amazonaws.com".format(
-            bucket=bucket_name, region=region_name
-        )
+        f"{bucket_name}.s3.dualstack.{region_name}.amazonaws.com"
     )
     output["BucketRegionalDomainName"].should.equal(
-        "{bucket}.s3.{region}.amazonaws.com".format(
-            bucket=bucket_name, region=region_name
-        )
+        f"{bucket_name}.s3.{region_name}.amazonaws.com"
     )
     output["BucketWebsiteURL"].should.equal(
-        "http://{bucket}.s3-website.{region}.amazonaws.com".format(
-            bucket=bucket_name, region=region_name
-        )
+        f"http://{bucket_name}.s3-website.{region_name}.amazonaws.com"
     )
     output["BucketName"].should.equal(bucket_name)

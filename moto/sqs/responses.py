@@ -273,27 +273,25 @@ class SQSResponse(BaseResponse):
 
                 message_attributes = parse_message_attributes(
                     self.querystring,
-                    base="SendMessageBatchRequestEntry.{}.".format(index),
+                    base=f"SendMessageBatchRequestEntry.{index}.",
                 )
 
                 entries[index] = {
                     "Id": value[0],
                     "MessageBody": self.querystring.get(
-                        "SendMessageBatchRequestEntry.{}.MessageBody".format(index)
+                        f"SendMessageBatchRequestEntry.{index}.MessageBody"
                     )[0],
                     "DelaySeconds": self.querystring.get(
-                        "SendMessageBatchRequestEntry.{}.DelaySeconds".format(index),
+                        f"SendMessageBatchRequestEntry.{index}.DelaySeconds",
                         [None],
                     )[0],
                     "MessageAttributes": message_attributes,
                     "MessageGroupId": self.querystring.get(
-                        "SendMessageBatchRequestEntry.{}.MessageGroupId".format(index),
+                        f"SendMessageBatchRequestEntry.{index}.MessageGroupId",
                         [None],
                     )[0],
                     "MessageDeduplicationId": self.querystring.get(
-                        "SendMessageBatchRequestEntry.{}.MessageDeduplicationId".format(
-                            index
-                        ),
+                        f"SendMessageBatchRequestEntry.{index}.MessageDeduplicationId",
                         [None],
                     )[0],
                 }
@@ -329,15 +327,13 @@ class SQSResponse(BaseResponse):
 
         for index in range(1, 11):
             # Loop through looking for messages
-            receipt_key = "DeleteMessageBatchRequestEntry.{0}.ReceiptHandle".format(
-                index
-            )
+            receipt_key = f"DeleteMessageBatchRequestEntry.{index}.ReceiptHandle"
             receipt_handle = self.querystring.get(receipt_key)
             if not receipt_handle:
                 # Found all messages
                 break
 
-            message_user_id_key = "DeleteMessageBatchRequestEntry.{0}.Id".format(index)
+            message_user_id_key = f"DeleteMessageBatchRequestEntry.{index}.Id"
             message_user_id = self.querystring.get(message_user_id_key)[0]
             receipts.append(
                 {"receipt_handle": receipt_handle[0], "msg_user_id": message_user_id}
@@ -396,9 +392,9 @@ class SQSResponse(BaseResponse):
             return self._error(
                 "InvalidParameterValue",
                 "An error occurred (InvalidParameterValue) when calling "
-                "the ReceiveMessage operation: Value %s for parameter "
+                f"the ReceiveMessage operation: Value {message_count} for parameter "
                 "MaxNumberOfMessages is invalid. Reason: must be between "
-                "1 and 10, if provided." % message_count,
+                "1 and 10, if provided.",
             )
 
         try:
@@ -410,9 +406,9 @@ class SQSResponse(BaseResponse):
             return self._error(
                 "InvalidParameterValue",
                 "An error occurred (InvalidParameterValue) when calling "
-                "the ReceiveMessage operation: Value %s for parameter "
+                f"the ReceiveMessage operation: Value {wait_time} for parameter "
                 "WaitTimeSeconds is invalid. Reason: must be &lt;= 0 and "
-                "&gt;= 20 if provided." % wait_time,
+                "&gt;= 20 if provided.",
             )
 
         try:

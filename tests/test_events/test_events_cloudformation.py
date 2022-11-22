@@ -84,7 +84,7 @@ def test_create_archive():
     cfn_client.create_stack(StackName=stack_name, TemplateBody=template)
 
     # then
-    archive_arn = "arn:aws:events:eu-central-1:{0}:archive/{1}".format(ACCOUNT_ID, name)
+    archive_arn = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:archive/{name}"
     stack = cfn_client.describe_stacks(StackName=stack_name)["Stacks"][0]
     stack["Outputs"][0]["OutputValue"].should.equal(archive_arn)
 
@@ -119,7 +119,7 @@ def test_update_archive():
     response = events_client.describe_archive(ArchiveName=name)
 
     response["ArchiveArn"].should.equal(
-        "arn:aws:events:eu-central-1:{0}:archive/{1}".format(ACCOUNT_ID, name)
+        f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:archive/{name}"
     )
     response["Description"].should.equal("test archive")
 
@@ -156,7 +156,7 @@ def test_create_rule():
     cfn_client.create_stack(StackName=stack_name, TemplateBody=template)
 
     # then
-    rule_arn = "arn:aws:events:eu-central-1:{0}:rule/{1}".format(ACCOUNT_ID, name)
+    rule_arn = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:rule/{name}"
     stack = cfn_client.describe_stacks(StackName=stack_name)["Stacks"][0]
     stack["Outputs"][0]["OutputValue"].should.equal(rule_arn)
 

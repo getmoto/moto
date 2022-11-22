@@ -78,7 +78,7 @@ def test_create_node():
         conn.get_node(NetworkId=network_id, MemberId=member_id, NodeId=node_id)
     err = ex.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Node {0} not found".format(node_id))
+    err["Message"].should.contain(f"Node {node_id} not found")
 
 
 @mock_managedblockchain
@@ -147,7 +147,7 @@ def test_create_node_standard_edition():
         conn.list_nodes(NetworkId=network_id, MemberId=member_id)
     err = ex.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Member {0} not found".format(member_id))
+    err["Message"].should.contain(f"Member {member_id} not found")
 
 
 @mock_managedblockchain
@@ -196,7 +196,7 @@ def test_create_too_many_nodes():
     err = ex.value.response["Error"]
     err["Code"].should.equal("ResourceLimitExceededException")
     err["Message"].should.contain(
-        "Maximum number of nodes exceeded in member {0}".format(member_id)
+        f"Maximum number of nodes exceeded in member {member_id}"
     )
 
 

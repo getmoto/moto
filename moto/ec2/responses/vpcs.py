@@ -142,9 +142,9 @@ class VPCs(EC2BaseResponse):
             "EnableDnsHostnames",
             "EnableNetworkAddressUsageMetrics",
         ):
-            if self.querystring.get("%s.Value" % attribute):
+            if self.querystring.get(f"{attribute}.Value"):
                 attr_name = camelcase_to_underscores(attribute)
-                attr_value = self.querystring.get("%s.Value" % attribute)[0]
+                attr_value = self.querystring.get(f"{attribute}.Value")[0]
                 self.ec2_backend.modify_vpc_attribute(vpc_id, attr_name, attr_value)
                 return MODIFY_VPC_ATTRIBUTE_RESPONSE
         return None

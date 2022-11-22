@@ -157,7 +157,7 @@ def test_listing_pipelines_boto3():
 def test_listing_paginated_pipelines_boto3():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     for i in range(100):
-        conn.create_pipeline(name="mypipeline%d" % i, uniqueId="some-unique-id%d" % i)
+        conn.create_pipeline(name=f"mypipeline{i}", uniqueId=f"some-unique-id{i}")
 
     response = conn.list_pipelines()
 

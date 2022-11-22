@@ -69,9 +69,7 @@ class NotebookInstanceTestConfig(TestConfig):
 
     def get_cloudformation_template(self, include_outputs=True, **kwargs):
         instance_type = kwargs.get("instance_type", "ml.c4.xlarge")
-        role_arn = kwargs.get(
-            "role_arn", "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
-        )
+        role_arn = kwargs.get("role_arn", f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole")
 
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
@@ -170,7 +168,7 @@ class ModelTestConfig(TestConfig):
 
     def get_cloudformation_template(self, include_outputs=True, **kwargs):
         execution_role_arn = kwargs.get(
-            "execution_role_arn", "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
+            "execution_role_arn", f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
         )
         image = kwargs.get(
             "image", "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1"
@@ -224,7 +222,7 @@ class EndpointConfigTestConfig(TestConfig):
                 "InitialVariantWeight": 1,
                 "InstanceType": "ml.c4.xlarge",
                 "ModelName": self.resource_name,
-                "VariantName": "variant-name-{}".format(i),
+                "VariantName": f"variant-name-{i}",
             }
             for i in range(num_production_variants)
         ]
@@ -252,7 +250,7 @@ class EndpointConfigTestConfig(TestConfig):
 
         sagemaker_client.create_model(
             ModelName=self.resource_name,
-            ExecutionRoleArn="arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID),
+            ExecutionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
             PrimaryContainer={
                 "Image": "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1",
             },
@@ -302,7 +300,7 @@ class EndpointTestConfig(TestConfig):
 
         sagemaker_client.create_model(
             ModelName=self.resource_name,
-            ExecutionRoleArn="arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID),
+            ExecutionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
             PrimaryContainer={
                 "Image": "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1",
             },

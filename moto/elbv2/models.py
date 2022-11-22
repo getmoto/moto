@@ -372,8 +372,8 @@ class FakeListenerRule(CloudFormationModel):
 class FakeRule(BaseModel):
     def __init__(self, listener_arn, conditions, priority, actions, is_default):
         self.listener_arn = listener_arn
-        self.arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
-            id(self)
+        self.arn = (
+            listener_arn.replace(":listener/", ":listener-rule/") + f"/{id(self)}"
         )
         self.conditions = conditions
         self.priority = priority  # int or 'default'
@@ -506,10 +506,7 @@ class FakeBackend(BaseModel):
         self.policy_names = []
 
     def __repr__(self):
-        return "FakeBackend(inp: %s, policies: %s)" % (
-            self.instance_port,
-            self.policy_names,
-        )
+        return f"FakeBackend(inp: {self.instance_port}, policies: {self.policy_names})"
 
 
 class FakeLoadBalancer(CloudFormationModel):
@@ -639,7 +636,7 @@ class FakeLoadBalancer(CloudFormationModel):
             return self.name
         elif attribute_name in not_implemented_yet:
             raise NotImplementedError(
-                '"Fn::GetAtt" : [ "{0}" , "%s" ]"' % attribute_name
+                f'"Fn::GetAtt" : [ "{{0}}" , "{attribute_name}" ]"'
             )
         else:
             raise UnformattedGetAttTemplateException()
@@ -701,7 +698,7 @@ class ELBv2Backend(BaseBackend):
         arn = make_arn_for_load_balancer(
             account_id=self.account_id, name=name, region_name=self.region_name
         )
-        dns_name = "%s-1.%s.elb.amazonaws.com" % (name, self.region_name)
+        dns_name = f"{name}-1.{self.region_name}.elb.amazonaws.com"
 
         if arn in self.load_balancers:
             raise DuplicateLoadBalancerName()
@@ -786,7 +783,7 @@ class ELBv2Backend(BaseBackend):
                     "path-pattern",
                 ]:
                     raise InvalidConditionValueError(
-                        "The 'Values' field is not compatible with '%s'" % field
+                        f"The 'Values' field is not compatible with '{field}'"
                     )
                 else:
                     method_name = "_validate_" + field.replace("-", "_") + "_condition"
@@ -950,10 +947,8 @@ class ELBv2Backend(BaseBackend):
         expression = r"^(2|4|5)\d\d$"
         if not re.match(expression, status_code):
             raise InvalidStatusCodeActionTypeError(
-                "1 validation error detected: Value '{}' at 'actions.{}.member.fixedResponseConfig.statusCode' failed to satisfy constraint: \
-Member must satisfy regular expression pattern: {}".format(
-                    status_code, index, expression
-                )
+                f"1 validation error detected: Value '{status_code}' at 'actions.{index}.member.fixedResponseConfig.statusCode' failed to satisfy constraint: \
+Member must satisfy regular expression pattern: {expression}"
             )
         content_type = action.data["FixedResponseConfig"].get("ContentType")
         if content_type and content_type not in [
@@ -970,15 +965,11 @@ Member must satisfy regular expression pattern: {}".format(
     def create_target_group(self, name, **kwargs):
         if len(name) > 32:
             raise InvalidTargetGroupNameError(
-                "Target group name '{}' cannot be longer than '32' characters".format(
-                    name
-                )
+                f"Target group name '{name}' cannot be longer than '32' characters"
             )
         if not re.match(r"^[a-zA-Z0-9\-]+$", name):
             raise InvalidTargetGroupNameError(
-                "Target group name '{}' can only contain characters that are alphanumeric characters or hyphens(-)".format(
-                    name
-                )
+                f"Target group name '{name}' can only contain characters that are alphanumeric characters or hyphens(-)"
             )
 
         # undocumented validation
@@ -990,7 +981,7 @@ Member must satisfy regular expression pattern: {}".format(
 
         if name.startswith("-") or name.endswith("-"):
             raise InvalidTargetGroupNameError(
-                "Target group name '%s' cannot begin or end with '-'" % name
+                f"Target group name '{name}' cannot begin or end with '-'"
             )
         for target_group in self.target_groups.values():
             if target_group.name == name:
@@ -1002,17 +993,13 @@ Member must satisfy regular expression pattern: {}".format(
             and kwargs["healthcheck_protocol"] not in valid_protocols
         ):
             raise InvalidConditionValueError(
-                "Value {} at 'healthCheckProtocol' failed to satisfy constraint: "
-                "Member must satisfy enum value set: {}".format(
-                    kwargs["healthcheck_protocol"], valid_protocols
-                )
+                f"Value {kwargs['healthcheck_protocol']} at 'healthCheckProtocol' failed to satisfy constraint: "
+                f"Member must satisfy enum value set: {valid_protocols}"
             )
         if kwargs.get("protocol") and kwargs["protocol"] not in valid_protocols:
             raise InvalidConditionValueError(
-                "Value {} at 'protocol' failed to satisfy constraint: "
-                "Member must satisfy enum value set: {}".format(
-                    kwargs["protocol"], valid_protocols
-                )
+                f"Value {kwargs['protocol']} at 'protocol' failed to satisfy constraint: "
+                f"Member must satisfy enum value set: {valid_protocols}"
             )
 
         if (
@@ -1088,9 +1075,9 @@ Member must satisfy regular expression pattern: {}".format(
 
         self._validate_actions(default_actions)
 
-        arn = load_balancer_arn.replace(":loadbalancer/", ":listener/") + "/%s%s" % (
-            port,
-            id(self),
+        arn = (
+            load_balancer_arn.replace(":loadbalancer/", ":listener/")
+            + f"/{port}{id(self)}"
         )
         listener = FakeListener(
             load_balancer_arn,
@@ -1246,9 +1233,7 @@ Member must satisfy regular expression pattern: {}".format(
         if target_group:
             if self._any_listener_using(target_group_arn):
                 raise ResourceInUseError(
-                    "The target group '{}' is currently in use by a listener or a rule".format(
-                        target_group_arn
-                    )
+                    f"The target group '{target_group_arn}' is currently in use by a listener or a rule"
                 )
             del self.target_groups[target_group_arn]
             return target_group
@@ -1376,7 +1361,7 @@ Member must satisfy regular expression pattern: {}".format(
             if self.ec2_backend.get_security_group_from_id(sec_group_id) is None:
                 raise RESTError(
                     "InvalidSecurityGroup",
-                    "Security group {0} does not exist".format(sec_group_id),
+                    f"Security group {sec_group_id} does not exist",
                 )
 
         balancer.security_groups = sec_groups
@@ -1430,9 +1415,7 @@ Member must satisfy regular expression pattern: {}".format(
 
         for key in attrs:
             if key not in FakeLoadBalancer.VALID_ATTRS:
-                raise RESTError(
-                    "InvalidConfigurationRequest", "Key {0} not valid".format(key)
-                )
+                raise RESTError("InvalidConfigurationRequest", f"Key {key} not valid")
 
         balancer.attrs.update(attrs)
         return balancer.attrs
@@ -1510,7 +1493,7 @@ Member must satisfy regular expression pattern: {}".format(
 
         if protocol not in (None, "HTTP", "HTTPS", "TCP"):
             raise RESTError(
-                "UnsupportedProtocol", "Protocol {0} is not supported".format(protocol)
+                "UnsupportedProtocol", f"Protocol {protocol} is not supported"
             )
 
         # HTTPS checks
@@ -1524,7 +1507,7 @@ Member must satisfy regular expression pattern: {}".format(
                 if not self._certificate_exists(certificate_arn=default_cert_arn):
                     raise RESTError(
                         "CertificateNotFound",
-                        "Certificate {0} not found".format(default_cert_arn),
+                        f"Certificate {default_cert_arn} not found",
                     )
                 listener.certificate = default_cert_arn
                 listener.certificates = certificates

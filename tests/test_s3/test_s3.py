@@ -1023,9 +1023,7 @@ def test_policy():
                     "Effect": "Deny",
                     "Principal": "*",
                     "Action": "s3:PutObject",
-                    "Resource": "arn:aws:s3:::{bucket_name}/*".format(
-                        bucket_name=bucket_name
-                    ),
+                    "Resource": f"arn:aws:s3:::{bucket_name}/*",
                     "Condition": {
                         "StringNotEquals": {
                             "s3:x-amz-server-side-encryption": "aws:kms"
@@ -1206,7 +1204,7 @@ def test_list_objects_v2_common_prefix_pagination():
     s3.create_bucket(Bucket="mybucket")
 
     max_keys = 1
-    keys = ["test/{i}/{i}".format(i=i) for i in range(3)]
+    keys = [f"test/{i}/{i}" for i in range(3)]
     for key in keys:
         s3.put_object(Bucket="mybucket", Key=key, Body=b"v")
 
@@ -1235,7 +1233,7 @@ def test_list_objects_v2_common_invalid_continuation_token():
     s3.create_bucket(Bucket="mybucket")
 
     max_keys = 1
-    keys = ["test/{i}/{i}".format(i=i) for i in range(3)]
+    keys = [f"test/{i}/{i}" for i in range(3)]
     for key in keys:
         s3.put_object(Bucket="mybucket", Key=key, Body=b"v")
 
@@ -1618,6 +1616,28 @@ def test_delete_versioned_bucket_returns_meta():
 
 
 @mock_s3
+def test_get_object_if_modified_since_refresh():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = "hello.txt"
+
+    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
+
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+
+    with pytest.raises(botocore.exceptions.ClientError) as err:
+        s3.get_object(
+            Bucket=bucket_name,
+            Key=key,
+            IfModifiedSince=response["LastModified"],
+        )
+    e = err.value
+    e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
+
+
+@mock_s3
 def test_get_object_if_modified_since():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1706,6 +1726,28 @@ def test_head_object_if_modified_since():
             Bucket=bucket_name,
             Key=key,
             IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+        )
+    e = err.value
+    e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
+
+
+@mock_s3
+def test_head_object_if_modified_since_refresh():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = "hello.txt"
+
+    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
+
+    response = s3.head_object(Bucket=bucket_name, Key=key)
+
+    with pytest.raises(botocore.exceptions.ClientError) as err:
+        s3.head_object(
+            Bucket=bucket_name,
+            Key=key,
+            IfModifiedSince=response["LastModified"],
         )
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
@@ -2095,11 +2137,9 @@ def test_put_bucket_notification_errors():
             s3.put_bucket_notification_configuration(
                 Bucket="bucket",
                 NotificationConfiguration={
-                    "{}Configurations".format(tech): [
+                    f"{tech}Configurations": [
                         {
-                            "{}Arn".format(
-                                tech
-                            ): "arn:aws:{}:us-east-1:012345678910:lksajdfkldskfj",
+                            f"{tech}Arn": "arn:aws:{}:us-east-1:012345678910:lksajdfkldskfj",
                             "Events": ["s3:ObjectCreated:*"],
                         }
                     ]
@@ -2236,13 +2276,13 @@ def test_put_bucket_logging():
         BucketLoggingStatus={
             "LoggingEnabled": {
                 "TargetBucket": log_bucket,
-                "TargetPrefix": "{}/".format(bucket_name),
+                "TargetPrefix": f"{bucket_name}/",
             }
         },
     )
     result = s3.get_bucket_logging(Bucket=bucket_name)
     assert result["LoggingEnabled"]["TargetBucket"] == log_bucket
-    assert result["LoggingEnabled"]["TargetPrefix"] == "{}/".format(bucket_name)
+    assert result["LoggingEnabled"]["TargetPrefix"] == f"{bucket_name}/"
     assert not result["LoggingEnabled"].get("TargetGrants")
 
     # And disabling:
@@ -2255,7 +2295,7 @@ def test_put_bucket_logging():
         BucketLoggingStatus={
             "LoggingEnabled": {
                 "TargetBucket": log_bucket,
-                "TargetPrefix": "{}/".format(bucket_name),
+                "TargetPrefix": f"{bucket_name}/",
                 "TargetGrants": [
                     {
                         "Grantee": {
@@ -2289,7 +2329,7 @@ def test_put_bucket_logging():
         BucketLoggingStatus={
             "LoggingEnabled": {
                 "TargetBucket": log_bucket,
-                "TargetPrefix": "{}/".format(bucket_name),
+                "TargetPrefix": f"{bucket_name}/",
                 "TargetGrants": [
                     {
                         "Grantee": {
@@ -2312,7 +2352,7 @@ def test_put_bucket_logging():
             BucketLoggingStatus={
                 "LoggingEnabled": {
                     "TargetBucket": log_bucket,
-                    "TargetPrefix": "{}/".format(bucket_name),
+                    "TargetPrefix": f"{bucket_name}/",
                     "TargetGrants": [
                         {
                             "Grantee": {
@@ -3030,7 +3070,7 @@ def test_creating_presigned_post():
     ]
     conditions.append(["content-length-range", 1, 30])
 
-    real_key = "{file_uid}.txt".format(file_uid=file_uid)
+    real_key = f"{file_uid}.txt"
     data = s3.generate_presigned_post(
         Bucket=bucket,
         Key=real_key,
@@ -3384,12 +3424,12 @@ def test_request_partial_content_should_contain_all_metadata():
     obj = boto3.resource("s3").Object(bucket, object_key)
     obj.put(Body=body)
 
-    response = obj.get(Range="bytes={}".format(query_range))
+    response = obj.get(Range=f"bytes={query_range}")
 
     assert response["ETag"] == obj.e_tag
     assert response["LastModified"] == obj.last_modified
     assert response["ContentLength"] == 4
-    assert response["ContentRange"] == "bytes {}/{}".format(query_range, len(body))
+    assert response["ContentRange"] == f"bytes {query_range}/{len(body)}"
 
 
 @mock_s3

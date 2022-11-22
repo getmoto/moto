@@ -43,13 +43,7 @@ class FakeListener(BaseModel):
         self.policy_names = []
 
     def __repr__(self):
-        return "FakeListener(lbp: %s, inp: %s, pro: %s, cid: %s, policies: %s)" % (
-            self.load_balancer_port,
-            self.instance_port,
-            self.protocol,
-            self.ssl_certificate_id,
-            self.policy_names,
-        )
+        return f"FakeListener(lbp: {self.load_balancer_port}, inp: {self.instance_port}, pro: {self.protocol}, cid: {self.ssl_certificate_id}, policies: {self.policy_names})"
 
 
 class FakeBackend(BaseModel):
@@ -58,10 +52,7 @@ class FakeBackend(BaseModel):
         self.policy_names = []
 
     def __repr__(self):
-        return "FakeBackend(inp: %s, policies: %s)" % (
-            self.instance_port,
-            self.policy_names,
-        )
+        return f"FakeBackend(inp: {self.instance_port}, policies: {self.policy_names})"
 
 
 class FakeLoadBalancer(CloudFormationModel):
@@ -91,7 +82,7 @@ class FakeLoadBalancer(CloudFormationModel):
         self.subnets = subnets or []
         self.vpc_id = vpc_id
         self.tags = {}
-        self.dns_name = "%s.us-east-1.elb.amazonaws.com" % (name)
+        self.dns_name = f"{name}.us-east-1.elb.amazonaws.com"
 
         for port in ports:
             listener = FakeListener(

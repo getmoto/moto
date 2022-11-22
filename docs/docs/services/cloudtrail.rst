@@ -33,6 +33,7 @@ cloudtrail
 - [X] create_trail
 - [ ] delete_event_data_store
 - [X] delete_trail
+- [ ] deregister_organization_delegated_admin
 - [ ] describe_query
 - [X] describe_trails
 - [ ] get_channel
@@ -58,6 +59,7 @@ cloudtrail
 - [ ] lookup_events
 - [X] put_event_selectors
 - [X] put_insight_selectors
+- [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
 - [ ] start_import

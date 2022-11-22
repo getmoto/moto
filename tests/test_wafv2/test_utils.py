@@ -10,12 +10,10 @@ def test_make_arn_for_wacl():
     name = "testName"
     scope = "REGIONAL"
     arn = make_arn_for_wacl(name, ACCOUNT_ID, region, uniqueID, scope)
-    assert arn == "arn:aws:wafv2:{}:{}:regional/webacl/{}/{}".format(
-        region, ACCOUNT_ID, name, uniqueID
+    assert (
+        arn == f"arn:aws:wafv2:{region}:{ACCOUNT_ID}:regional/webacl/{name}/{uniqueID}"
     )
 
     scope = "CLOUDFRONT"
     arn = make_arn_for_wacl(name, ACCOUNT_ID, region, uniqueID, scope)
-    assert arn == "arn:aws:wafv2:{}:{}:global/webacl/{}/{}".format(
-        region, ACCOUNT_ID, name, uniqueID
-    )
+    assert arn == f"arn:aws:wafv2:{region}:{ACCOUNT_ID}:global/webacl/{name}/{uniqueID}"

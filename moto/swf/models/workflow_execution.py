@@ -89,7 +89,7 @@ class WorkflowExecution(BaseModel):
         self._timers = {}
 
     def __repr__(self):
-        return "WorkflowExecution(run_id: {0})".format(self.run_id)
+        return f"WorkflowExecution(run_id: {self.run_id})"
 
     def _set_from_kwargs_or_workflow_type(
         self, kwargs, local_key, workflow_type_key=None
@@ -263,6 +263,18 @@ class WorkflowExecution(BaseModel):
         self.schedule_decision_task()
 
     def _schedule_decision_task(self):
+        has_scheduled_task = False
+        has_started_task = False
+        for task in self.decision_tasks:
+            if task.state == "STARTED":
+                has_started_task = True
+            elif task.state == "SCHEDULED":
+                has_scheduled_task = True
+        # If a decision task is already running, we cannot schedule more than one additional task
+        # See https://docs.aws.amazon.com/amazonswf/latest/developerguide/swf-dg-dev-deciders.html#swf-dg-deciders-launch
+        if has_started_task and has_scheduled_task:
+            return
+
         evt = self._add_event(
             "DecisionTaskScheduled",
             start_to_close_timeout=self.task_start_to_close_timeout,
@@ -294,7 +306,7 @@ class WorkflowExecution(BaseModel):
         for dt in self.decision_tasks:
             if dt.task_token == task_token:
                 return dt
-        raise ValueError("No decision task with token: {0}".format(task_token))
+        raise ValueError(f"No decision task with token: {task_token}")
 
     def start_decision_task(self, task_token, identity=None):
         dt = self._find_decision_task(task_token)
@@ -337,9 +349,7 @@ class WorkflowExecution(BaseModel):
                 problems.append(
                     {
                         "type": "null_value",
-                        "where": "decisions.{0}.member.{1}.{2}".format(
-                            decision_id, kind, key
-                        ),
+                        "where": f"decisions.{decision_id}.member.{kind}.{key}",
                     }
                 )
         return problems
@@ -373,9 +383,7 @@ class WorkflowExecution(BaseModel):
             attrs_to_check = [d for d in dcs.keys() if d.endswith("DecisionAttributes")]
             if dcs["decisionType"] in self.KNOWN_DECISION_TYPES:
                 decision_type = dcs["decisionType"]
-                decision_attr = "{0}DecisionAttributes".format(
-                    decapitalize(decision_type)
-                )
+                decision_attr = f"{decapitalize(decision_type)}DecisionAttributes"
                 attrs_to_check.append(decision_attr)
             for attr in attrs_to_check:
                 problems += self._check_decision_attributes(
@@ -387,9 +395,7 @@ class WorkflowExecution(BaseModel):
                     {
                         "type": "bad_decision_type",
                         "value": dcs["decisionType"],
-                        "where": "decisions.{0}.member.decisionType".format(
-                            decision_number
-                        ),
+                        "where": f"decisions.{decision_number}.member.decisionType",
                         "possible_values": ", ".join(self.KNOWN_DECISION_TYPES),
                     }
                 )
@@ -406,7 +412,7 @@ class WorkflowExecution(BaseModel):
         # handle each decision separately, in order
         for decision in decisions:
             decision_type = decision["decisionType"]
-            attributes_key = "{0}DecisionAttributes".format(decapitalize(decision_type))
+            attributes_key = f"{decapitalize(decision_type)}DecisionAttributes"
             attributes = decision.get(attributes_key, {})
             if decision_type == "CompleteWorkflowExecution":
                 self.complete(event_id, attributes.get("result"))
@@ -429,9 +435,7 @@ class WorkflowExecution(BaseModel):
                 # TODO: implement Decision type: ScheduleLambdaFunction
                 # TODO: implement Decision type: SignalExternalWorkflowExecution
                 # TODO: implement Decision type: StartChildWorkflowExecution
-                raise NotImplementedError(
-                    "Cannot handle decision: {0}".format(decision_type)
-                )
+                raise NotImplementedError(f"Cannot handle decision: {decision_type}")
 
         # finally decrement counter if and only if everything went well
         self.open_counts["openDecisionTasks"] -= 1
@@ -541,7 +545,7 @@ class WorkflowExecution(BaseModel):
             if not timeouts[_type]:
                 error_key = default_key.replace("default_task_", "default_")
                 fail_schedule_activity_task(
-                    activity_type, "{0}_UNDEFINED".format(error_key.upper())
+                    activity_type, f"{error_key.upper()}_UNDEFINED"
                 )
                 return
 
@@ -576,7 +580,7 @@ class WorkflowExecution(BaseModel):
         for task in self.activity_tasks:
             if task.task_token == task_token:
                 return task
-        raise ValueError("No activity task with token: {0}".format(task_token))
+        raise ValueError(f"No activity task with token: {task_token}")
 
     def start_activity_task(self, task_token, identity=None):
         task = self._find_activity_task(task_token)

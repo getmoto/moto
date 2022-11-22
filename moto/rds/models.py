@@ -504,7 +504,7 @@ class Database(CloudFormationModel):
                 db_family,
                 db_parameter_group_name,
             ) = self.default_db_parameter_group_details()
-            description = "Default parameter group for {0}".format(db_family)
+            description = f"Default parameter group for {db_family}"
             return [
                 DBParameterGroup(
                     account_id=self.account_id,
@@ -523,16 +523,16 @@ class Database(CloudFormationModel):
             return [backend.db_parameter_groups[self.db_parameter_group_name]]
 
     def is_default_parameter_group(self, param_group_name):
-        return param_group_name.startswith("default.%s" % self.engine.lower())
+        return param_group_name.startswith(f"default.{self.engine.lower()}")
 
     def default_db_parameter_group_details(self):
         if not self.engine_version:
             return (None, None)
 
         minor_engine_version = ".".join(str(self.engine_version).rsplit(".")[:-1])
-        db_family = "{0}{1}".format(self.engine.lower(), minor_engine_version)
+        db_family = f"{self.engine.lower()}{minor_engine_version}"
 
-        return db_family, "default.{0}".format(db_family)
+        return db_family, f"default.{db_family}"
 
     def to_xml(self):
         template = Template(
@@ -662,9 +662,7 @@ class Database(CloudFormationModel):
 
     @property
     def address(self):
-        return "{0}.aaaaaaaaaa.{1}.rds.amazonaws.com".format(
-            self.db_instance_identifier, self.region_name
-        )
+        return f"{self.db_instance_identifier}.aaaaaaaaaa.{self.region_name}.rds.amazonaws.com"
 
     def add_replica(self, replica):
         if self.region_name != replica.region_name:
@@ -1599,12 +1597,10 @@ class RDSBackend(BaseBackend):
             "sqlserver-ex": ["10.50", "11.00"],
             "sqlserver-web": ["10.50", "11.00"],
         }
-        if option_group_kwargs["name"] in self.option_groups:
+        if option_group_id in self.option_groups:
             raise RDSClientError(
                 "OptionGroupAlreadyExistsFault",
-                "An option group named {0} already exists.".format(
-                    option_group_kwargs["name"]
-                ),
+                f"An option group named {option_group_id} already exists.",
             )
         if (
             "description" not in option_group_kwargs
@@ -1624,10 +1620,7 @@ class RDSBackend(BaseBackend):
         ):
             raise RDSClientError(
                 "InvalidParameterCombination",
-                "Cannot find major version {0} for {1}".format(
-                    option_group_kwargs["major_engine_version"],
-                    option_group_kwargs["engine_name"],
-                ),
+                f"Cannot find major version {option_group_kwargs['major_engine_version']} for {option_group_kwargs['engine_name']}",
             )
         option_group = OptionGroup(**option_group_kwargs)
         self.option_groups[option_group_id] = option_group
@@ -1710,7 +1703,7 @@ class RDSBackend(BaseBackend):
 
         if engine_name not in default_option_group_options:
             raise RDSClientError(
-                "InvalidParameterValue", "Invalid DB engine: {0}".format(engine_name)
+                "InvalidParameterValue", f"Invalid DB engine: {engine_name}"
             )
         if (
             major_engine_version
@@ -1718,9 +1711,7 @@ class RDSBackend(BaseBackend):
         ):
             raise RDSClientError(
                 "InvalidParameterCombination",
-                "Cannot find major version {0} for {1}".format(
-                    major_engine_version, engine_name
-                ),
+                f"Cannot find major version {major_engine_version} for {engine_name}",
             )
         if major_engine_version:
             return default_option_group_options[engine_name][major_engine_version]
@@ -1744,12 +1735,10 @@ class RDSBackend(BaseBackend):
 
     def create_db_parameter_group(self, db_parameter_group_kwargs):
         db_parameter_group_id = db_parameter_group_kwargs["name"]
-        if db_parameter_group_kwargs["name"] in self.db_parameter_groups:
+        if db_parameter_group_id in self.db_parameter_groups:
             raise RDSClientError(
                 "DBParameterGroupAlreadyExistsFault",
-                "A DB parameter group named {0} already exists.".format(
-                    db_parameter_group_kwargs["name"]
-                ),
+                f"A DB parameter group named {db_parameter_group_id} already exists.",
             )
         if not db_parameter_group_kwargs.get("description"):
             raise RDSClientError(
@@ -2062,7 +2051,7 @@ class RDSBackend(BaseBackend):
                     return self.subnet_groups[resource_name].get_tags()
         else:
             raise RDSClientError(
-                "InvalidParameterValue", "Invalid resource name: {0}".format(arn)
+                "InvalidParameterValue", f"Invalid resource name: {arn}"
             )
         return []
 
@@ -2102,7 +2091,7 @@ class RDSBackend(BaseBackend):
                     return self.subnet_groups[resource_name].remove_tags(tag_keys)
         else:
             raise RDSClientError(
-                "InvalidParameterValue", "Invalid resource name: {0}".format(arn)
+                "InvalidParameterValue", f"Invalid resource name: {arn}"
             )
 
     def add_tags_to_resource(self, arn, tags):
@@ -2141,7 +2130,7 @@ class RDSBackend(BaseBackend):
                     return self.subnet_groups[resource_name].add_tags(tags)
         else:
             raise RDSClientError(
-                "InvalidParameterValue", "Invalid resource name: {0}".format(arn)
+                "InvalidParameterValue", f"Invalid resource name: {arn}"
             )
 
     @staticmethod

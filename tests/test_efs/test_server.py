@@ -61,7 +61,7 @@ def test_efs_file_system_describe(efs_client):
 
 
 def test_efs_file_system_delete(file_system_id, efs_client):
-    res = efs_client.delete("/2015-02-01/file-systems/{}".format(file_system_id))
+    res = efs_client.delete(f"/2015-02-01/file-systems/{file_system_id}")
     assert res.status_code == 204
 
 
@@ -84,12 +84,10 @@ def test_efs_mount_target_delete(file_system_id, subnet_id, efs_client):
         json={"FileSystemId": file_system_id, "SubnetId": subnet_id},
     )
     mt_id = create_res.json["MountTargetId"]
-    res = efs_client.delete("/2015-02-01/mount-targets/{}".format(mt_id))
+    res = efs_client.delete(f"/2015-02-01/mount-targets/{mt_id}")
     assert res.status_code == 204
 
 
 def test_efs_describe_backup_policy(file_system_id, efs_client):
-    res = efs_client.get(
-        "/2015-02-01/file-systems/{}/backup-policy".format(file_system_id)
-    )
+    res = efs_client.get(f"/2015-02-01/file-systems/{file_system_id}/backup-policy")
     assert res.status_code == 200

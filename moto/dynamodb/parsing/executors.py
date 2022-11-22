@@ -129,7 +129,7 @@ class SetExecutor(NodeExecutor):
             item_part_to_modify_with_set[attribute_name] = value_to_set
         else:
             raise NotImplementedError(
-                "Moto does not support setting {t} yet".format(t=type(element_to_set))
+                f"Moto does not support setting {type(element_to_set)} yet"
             )
 
 
@@ -173,7 +173,7 @@ class DeleteExecutor(NodeExecutor):
                 attribute_name = element.get_attribute_name()
             else:
                 raise NotImplementedError(
-                    "Moto does not support deleting {t} yet".format(t=type(element))
+                    f"Moto does not support deleting {type(element)} yet"
                 )
             container = self.get_item_before_end_of_path(item)
             del container[attribute_name]
@@ -203,9 +203,7 @@ class RemoveExecutor(NodeExecutor):
                 pass
         else:
             raise NotImplementedError(
-                "Moto does not support setting {t} yet".format(
-                    t=type(element_to_remove)
-                )
+                f"Moto does not support setting {type(element_to_remove)} yet"
             )
 
 

@@ -552,7 +552,7 @@ def test_batch_create_partition():
 
     partition_inputs = []
     for i in range(0, 20):
-        values = ["2018-10-{:2}".format(i)]
+        values = [f"2018-10-{i:2}"]
         part_input = helpers.create_partition_input(
             database_name, table_name, values=values
         )
@@ -994,7 +994,7 @@ def test_batch_delete_partition():
 
     partition_inputs = []
     for i in range(0, 20):
-        values = ["2018-10-{:2}".format(i)]
+        values = [f"2018-10-{i:2}"]
         part_input = helpers.create_partition_input(
             database_name, table_name, values=values
         )
@@ -1027,7 +1027,7 @@ def test_batch_delete_partition_with_bad_partitions():
 
     partition_inputs = []
     for i in range(0, 20):
-        values = ["2018-10-{:2}".format(i)]
+        values = [f"2018-10-{i:2}"]
         part_input = helpers.create_partition_input(
             database_name, table_name, values=values
         )

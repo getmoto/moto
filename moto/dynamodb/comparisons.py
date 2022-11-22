@@ -83,10 +83,10 @@ class Op(object):
         self.rhs = rhs
 
     def expr(self, item):
-        raise NotImplementedError("Expr not defined for {0}".format(type(self)))
+        raise NotImplementedError(f"Expr not defined for {type(self)}")
 
     def __repr__(self):
-        return "({0} {1} {2})".format(self.lhs, self.OP, self.rhs)
+        return f"({self.lhs} {self.OP} {self.rhs})"
 
 
 # TODO add tests for all of these
@@ -276,11 +276,7 @@ class ConditionExpressionParser:
             ),
             (
                 self.Nonterminal.OPERAND,
-                re.compile(
-                    r"^{attribute_regex}(\.{attribute_regex}|\[[0-9]\])*".format(
-                        attribute_regex=attribute_regex
-                    )
-                ),
+                re.compile(rf"^{attribute_regex}(\.{attribute_regex}|\[[0-9]\])*"),
             ),
             (self.Nonterminal.COMMA, re.compile(r"^,")),
             (self.Nonterminal.LEFT_PAREN, re.compile(r"^\(")),
@@ -294,7 +290,7 @@ class ConditionExpressionParser:
                 break
         else:  # pragma: no cover
             raise ValueError(
-                "Cannot parse condition starting at:{}".format(remaining_expression)
+                f"Cannot parse condition starting at:{remaining_expression}"
             )
 
         node = self.Node(
@@ -327,7 +323,7 @@ class ConditionExpressionParser:
                     for child in children:
                         self._assert(
                             child.nonterminal == self.Nonterminal.IDENTIFIER,
-                            "Cannot use {} in path".format(child.text),
+                            f"Cannot use {child.text} in path",
                             [node],
                         )
                 output.append(
@@ -401,7 +397,7 @@ class ConditionExpressionParser:
         elif name.startswith("["):
             # e.g. [123]
             if not name.endswith("]"):  # pragma: no cover
-                raise ValueError("Bad path element {}".format(name))
+                raise ValueError(f"Bad path element {name}")
             return self.Node(
                 nonterminal=self.Nonterminal.IDENTIFIER,
                 kind=self.Kind.LITERAL,
@@ -640,7 +636,7 @@ class ConditionExpressionParser:
                 for i in range(len(expected_kinds)):
                     self._assert(
                         arguments[i].kind in expected_kinds[i],
-                        "Wrong type for argument %d in" % i,
+                        f"Wrong type for argument {i} in",
                         all_children,
                     )
                 if function_name.value == "size":
@@ -809,7 +805,7 @@ class ConditionExpressionParser:
             arguments = [self._make_operand(arg) for arg in arguments]
             return FUNC_CLASS[function_name](*arguments)
         else:  # pragma: no cover
-            raise ValueError("Unknown operand: %r" % node)
+            raise ValueError(f"Unknown operand: {node}")
 
     def _make_op_condition(self, node):
         if node.kind == self.Kind.OR:
@@ -849,7 +845,7 @@ class ConditionExpressionParser:
                 self._make_operand(lhs), self._make_operand(rhs)
             )
         else:  # pragma: no cover
-            raise ValueError("Unknown expression node kind %r" % node.kind)
+            raise ValueError(f"Unknown expression node kind {node.kind}")
 
     def _assert(self, condition, message, nodes):
         if not condition:
@@ -969,7 +965,7 @@ class OpNot(Op):
         return not lhs
 
     def __str__(self):
-        return "({0} {1})".format(self.OP, self.lhs)
+        return f"({self.OP} {self.lhs})"
 
 
 class OpAnd(Op):
@@ -1072,9 +1068,7 @@ class Func(object):
         raise NotImplementedError
 
     def __repr__(self):
-        return "{0}({1})".format(
-            self.FUNC, " ".join([repr(arg) for arg in self.arguments])
-        )
+        return f"{self.FUNC}({' '.join([repr(arg) for arg in self.arguments])})"
 
 
 class FuncAttrExists(Func):
@@ -1150,7 +1144,7 @@ class FuncSize(Func):
 
     def expr(self, item):
         if self.attr.get_type(item) is None:
-            raise ValueError("Invalid attribute name {0}".format(self.attr))
+            raise ValueError(f"Invalid attribute name {self.attr}")
 
         if self.attr.get_type(item) in ("S", "SS", "NS", "B", "BS", "L", "M"):
             return len(self.attr.expr(item))

@@ -53,6 +53,115 @@ def test_put_metric_data_can_not_have_nan():
 
 
 @mock_cloudwatch
+def test_put_metric_data_can_not_have_value_and_values():
+    client = boto3.client("cloudwatch", region_name="us-west-2")
+    utc_now = datetime.now(tz=pytz.utc)
+    with pytest.raises(ClientError) as exc:
+        client.put_metric_data(
+            Namespace="mynamespace",
+            MetricData=[
+                {
+                    "MetricName": "mymetric",
+                    "Timestamp": utc_now,
+                    "Value": 1.5,
+                    "Values": [1.0, 10.0],
+                    "Unit": "Count",
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "The parameters MetricData.member.1.Value and MetricData.member.1.Values are mutually exclusive and you have specified both."
+    )
+
+
+@mock_cloudwatch
+def test_put_metric_data_can_not_have_and_values_mismatched_counts():
+    client = boto3.client("cloudwatch", region_name="us-west-2")
+    utc_now = datetime.now(tz=pytz.utc)
+    with pytest.raises(ClientError) as exc:
+        client.put_metric_data(
+            Namespace="mynamespace",
+            MetricData=[
+                {
+                    "MetricName": "mymetric",
+                    "Timestamp": utc_now,
+                    "Values": [1.0, 10.0],
+                    "Counts": [2, 4, 1],
+                    "Unit": "Count",
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "The parameters MetricData.member.1.Values and MetricData.member.1.Counts must be of the same size."
+    )
+
+
+@mock_cloudwatch
+def test_put_metric_data_values_and_counts():
+    client = boto3.client("cloudwatch", region_name="us-west-2")
+    utc_now = datetime.now(tz=pytz.utc)
+    namespace = "values"
+    metric = "mymetric"
+    client.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": metric,
+                "Timestamp": utc_now,
+                "Values": [1.0, 10.0],
+                "Counts": [2, 4],
+            }
+        ],
+    )
+    stats = client.get_metric_statistics(
+        Namespace=namespace,
+        MetricName=metric,
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+        Period=60,
+        Statistics=["SampleCount", "Sum", "Maximum"],
+    )
+    datapoint = stats["Datapoints"][0]
+    datapoint["SampleCount"].should.equal(6.0)
+    datapoint["Sum"].should.equal(42.0)
+    datapoint["Maximum"].should.equal(10.0)
+
+
+@mock_cloudwatch
+def test_put_metric_data_values_without_counts():
+    client = boto3.client("cloudwatch", region_name="us-west-2")
+    utc_now = datetime.now(tz=pytz.utc)
+    namespace = "values"
+    metric = "mymetric"
+    client.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": metric,
+                "Timestamp": utc_now,
+                "Values": [1.0, 10.0, 23.45],
+            }
+        ],
+    )
+    stats = client.get_metric_statistics(
+        Namespace=namespace,
+        MetricName=metric,
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+        Period=60,
+        Statistics=["SampleCount", "Sum", "Maximum"],
+    )
+    datapoint = stats["Datapoints"][0]
+    datapoint["SampleCount"].should.equal(3.0)
+    datapoint["Sum"].should.equal(34.45)
+    datapoint["Maximum"].should.equal(23.45)
+
+
+@mock_cloudwatch
 def test_put_metric_data_with_statistics():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=pytz.utc)

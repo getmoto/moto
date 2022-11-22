@@ -45,7 +45,7 @@ class Version:
             self.parse(vstring)
 
     def __repr__(self):
-        return "%s ('%s')" % (self.__class__.__name__, str(self))
+        return f"{self.__class__.__name__} ('{self}')"
 
     def __eq__(self, other):
         c = self._cmp(other)
@@ -217,7 +217,7 @@ class LooseVersion(Version):
         return self.vstring
 
     def __repr__(self):
-        return "LooseVersion ('%s')" % str(self)
+        return f"LooseVersion ('{self}')"
 
     def _cmp(self, other):
         if isinstance(other, str):

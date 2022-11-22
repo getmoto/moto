@@ -473,22 +473,66 @@ class CloudWatchBackend(BaseBackend):
                 raise InvalidParameterValue(
                     f"The value NaN for parameter MetricData.member.{i + 1}.Value is invalid."
                 )
+            if metric.get("Values.member"):
+                if "Value" in metric:
+                    raise InvalidParameterValue(
+                        f"The parameters MetricData.member.{i+1}.Value and MetricData.member.{i+1}.Values are mutually exclusive and you have specified both."
+                    )
+                if metric.get("Counts.member"):
+                    if len(metric["Counts.member"]) != len(metric["Values.member"]):
+                        raise InvalidParameterValue(
+                            f"The parameters MetricData.member.{i+1}.Values and MetricData.member.{i+1}.Counts must be of the same size."
+                        )
+                for value in metric["Values.member"]:
+                    if value.lower() == "nan":
+                        raise InvalidParameterValue(
+                            f"The value {value} for parameter MetricData.member.{i + 1}.Values is invalid."
+                        )
 
         for metric_member in metric_data:
             # Preserve "datetime" for get_metric_statistics comparisons
             timestamp = metric_member.get("Timestamp")
             if timestamp is not None and type(timestamp) != datetime:
                 timestamp = parser.parse(timestamp)
-            self.metric_data.append(
-                MetricDatum(
-                    namespace,
-                    metric_member["MetricName"],
-                    float(metric_member.get("Value", 0)),
-                    metric_member.get("Dimensions.member", _EMPTY_LIST),
-                    timestamp,
-                    metric_member.get("Unit"),
+            metric_name = metric_member["MetricName"]
+            dimension = metric_member.get("Dimensions.member", _EMPTY_LIST)
+            unit = metric_member.get("Unit")
+
+            # put_metric_data can include "value" as single value or "values" as a list
+            if metric_member.get("Values.member"):
+                values = metric_member["Values.member"]
+                # value[i] should be added count[i] times (with default count 1)
+                counts = metric_member.get("Counts.member") or ["1"] * len(values)
+                for i in range(0, len(values)):
+                    value = values[i]
+                    timestamp = metric_member.get("Timestamp")
+                    if timestamp is not None and type(timestamp) != datetime:
+                        timestamp = parser.parse(timestamp)
+
+                    # add the value count[i] times
+                    for _ in range(0, int(float(counts[i]))):
+                        self.metric_data.append(
+                            MetricDatum(
+                                namespace,
+                                metric_name,
+                                float(value),
+                                dimension,
+                                timestamp,
+                                unit,
+                            )
+                        )
+            else:
+                # there is only a single value
+                self.metric_data.append(
+                    MetricDatum(
+                        namespace,
+                        metric_name,
+                        float(metric_member.get("Value", 0)),
+                        dimension,
+                        timestamp,
+                        unit,
+                    )
                 )
-            )
 
     def get_metric_data(
         self,

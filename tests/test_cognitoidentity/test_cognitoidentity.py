@@ -44,9 +44,7 @@ def test_create_identity_pool():
         AllowUnauthenticatedIdentities=False,
         SupportedLoginProviders={"graph.facebook.com": "123456789012345"},
         DeveloperProviderName="devname",
-        OpenIdConnectProviderARNs=[
-            "arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)
-        ],
+        OpenIdConnectProviderARNs=[f"arn:aws:rds:eu-west-2:{ACCOUNT_ID}:db:mysql-db"],
         CognitoIdentityProviders=[
             {
                 "ProviderName": "testprovider",
@@ -54,7 +52,7 @@ def test_create_identity_pool():
                 "ServerSideTokenCheck": True,
             }
         ],
-        SamlProviderARNs=["arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)],
+        SamlProviderARNs=[f"arn:aws:rds:eu-west-2:{ACCOUNT_ID}:db:mysql-db"],
     )
     assert result["IdentityPoolId"] != ""
 
@@ -68,9 +66,7 @@ def test_describe_identity_pool():
         AllowUnauthenticatedIdentities=False,
         SupportedLoginProviders={"graph.facebook.com": "123456789012345"},
         DeveloperProviderName="devname",
-        OpenIdConnectProviderARNs=[
-            "arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)
-        ],
+        OpenIdConnectProviderARNs=[f"arn:aws:rds:eu-west-2:{ACCOUNT_ID}:db:mysql-db"],
         CognitoIdentityProviders=[
             {
                 "ProviderName": "testprovider",
@@ -78,7 +74,7 @@ def test_describe_identity_pool():
                 "ServerSideTokenCheck": True,
             }
         ],
-        SamlProviderARNs=["arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)],
+        SamlProviderARNs=[f"arn:aws:rds:eu-west-2:{ACCOUNT_ID}:db:mysql-db"],
     )
 
     result = conn.describe_identity_pool(IdentityPoolId=res["IdentityPoolId"])

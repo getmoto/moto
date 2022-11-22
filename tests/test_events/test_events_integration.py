@@ -28,9 +28,7 @@ def test_send_to_cw_log_group():
         Targets=[
             {
                 "Id": "logs",
-                "Arn": "arn:aws:logs:eu-central-1:{0}:log-group:{1}".format(
-                    ACCOUNT_ID, log_group_name
-                ),
+                "Arn": f"arn:aws:logs:eu-central-1:{ACCOUNT_ID}:log-group:{log_group_name}",
             }
         ],
     )

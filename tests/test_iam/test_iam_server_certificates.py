@@ -22,9 +22,7 @@ def test_get_all_server_certs():
     certs.should.have.length_of(1)
     cert1 = certs[0]
     cert1["ServerCertificateName"].should.equal("certname")
-    cert1["Arn"].should.equal(
-        "arn:aws:iam::{}:server-certificate/certname".format(ACCOUNT_ID)
-    )
+    cert1["Arn"].should.equal(f"arn:aws:iam::{ACCOUNT_ID}:server-certificate/certname")
 
 
 @mock_iam
@@ -59,7 +57,7 @@ def test_get_server_cert():
     metadata["Path"].should.equal("/")
     metadata["ServerCertificateName"].should.equal("certname")
     metadata["Arn"].should.equal(
-        "arn:aws:iam::{}:server-certificate/certname".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:server-certificate/certname"
     )
     metadata.should.have.key("ServerCertificateId")
     metadata["UploadDate"].should.be.a(datetime)

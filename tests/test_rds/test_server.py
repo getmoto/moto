@@ -1,4 +1,4 @@
-import json
+from urllib.parse import urlencode
 import moto.server as server
 import sure  # noqa # pylint: disable=unused-import
 
@@ -16,18 +16,20 @@ def test_create_db_instance():
     backend = server.create_backend_app("rds")
     test_client = backend.test_client()
 
-    body = {
+    params = {
+        "Action": "CreateDBInstance",
         "DBInstanceIdentifier": "hi",
         "DBInstanceClass": "db.m4.large",
         "Engine": "aurora",
         "StorageType": "standard",
         "Port": 3306,
     }
-    res = test_client.post("/?Action=CreateDBInstance", data=json.dumps(body))
+    qs = urlencode(params)
+    resp = test_client.post(f"/?{qs}")
 
-    response = res.data.decode("utf-8")
+    response = resp.data.decode("utf-8")
     response.shouldnt.contain("<DBClusterIdentifier>")
-
+    response.should.contain("<DBInstanceIdentifier>hi</DBInstanceIdentifier")
     # We do not pass these values - they should default to false
     response.should.contain("<MultiAZ>false</MultiAZ>")
     response.should.contain(

@@ -76,6 +76,7 @@ class APIGatewayResponse(BaseResponse):
             tags = self._get_param("tags")
             policy = self._get_param("policy")
             minimum_compression_size = self._get_param("minimumCompressionSize")
+            disable_execute_api_endpoint = self._get_param("disableExecuteApiEndpoint")
 
             # Param validation
             response = self.__validate_api_key_source(api_key_source)
@@ -94,6 +95,7 @@ class APIGatewayResponse(BaseResponse):
                 tags=tags,
                 policy=policy,
                 minimum_compression_size=minimum_compression_size,
+                disable_execute_api_endpoint=disable_execute_api_endpoint,
             )
 
             return 200, {}, json.dumps(rest_api.to_dict())
@@ -451,6 +453,7 @@ class APIGatewayResponse(BaseResponse):
             cache_namespace = self._get_param("cacheNamespace")
             timeout_in_millis = self._get_param("timeoutInMillis")
             request_parameters = self._get_param("requestParameters")
+            content_handling = self._get_param("contentHandling")
             self.backend.get_method(function_id, resource_id, method_type)
 
             integration_http_method = self._get_param(
@@ -471,6 +474,7 @@ class APIGatewayResponse(BaseResponse):
                 cache_namespace=cache_namespace,
                 timeout_in_millis=timeout_in_millis,
                 request_parameters=request_parameters,
+                content_handling=content_handling,
             )
             return 201, {}, json.dumps(integration_response.to_json())
         elif self.method == "DELETE":
@@ -498,6 +502,7 @@ class APIGatewayResponse(BaseResponse):
 
             selection_pattern = self._get_param("selectionPattern")
             response_templates = self._get_param("responseTemplates")
+            response_parameters = self._get_param("responseParameters")
             content_handling = self._get_param("contentHandling")
             integration_response = self.backend.put_integration_response(
                 function_id,
@@ -506,6 +511,7 @@ class APIGatewayResponse(BaseResponse):
                 status_code,
                 selection_pattern,
                 response_templates,
+                response_parameters,
                 content_handling,
             )
             return 201, {}, json.dumps(integration_response.to_json())

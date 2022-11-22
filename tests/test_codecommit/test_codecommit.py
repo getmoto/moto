@@ -24,19 +24,13 @@ def test_create_repository():
         "description repo one"
     )
     response["repositoryMetadata"]["cloneUrlSsh"].should.equal(
-        "ssh://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
-            "eu-central-1", "repository_one"
-        )
+        "ssh://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
     )
     response["repositoryMetadata"]["cloneUrlHttp"].should.equal(
-        "https://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
-            "eu-central-1", "repository_one"
-        )
+        "https://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
     )
     response["repositoryMetadata"]["Arn"].should.equal(
-        "arn:aws:codecommit:{0}:{1}:{2}".format(
-            "eu-central-1", ACCOUNT_ID, "repository_one"
-        )
+        f"arn:aws:codecommit:eu-central-1:{ACCOUNT_ID}:repository_one"
     )
     response["repositoryMetadata"]["accountId"].should.equal(ACCOUNT_ID)
 
@@ -58,19 +52,13 @@ def test_create_repository_without_description():
     response["repositoryMetadata"]["lastModifiedDate"].should_not.be.none
     response["repositoryMetadata"]["repositoryId"].should_not.be.empty
     response["repositoryMetadata"]["cloneUrlSsh"].should.equal(
-        "ssh://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
-            "eu-central-1", "repository_two"
-        )
+        "ssh://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_two"
     )
     response["repositoryMetadata"]["cloneUrlHttp"].should.equal(
-        "https://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
-            "eu-central-1", "repository_two"
-        )
+        "https://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_two"
     )
     response["repositoryMetadata"]["Arn"].should.equal(
-        "arn:aws:codecommit:{0}:{1}:{2}".format(
-            "eu-central-1", ACCOUNT_ID, "repository_two"
-        )
+        f"arn:aws:codecommit:eu-central-1:{ACCOUNT_ID}:repository_two"
     )
     response["repositoryMetadata"]["accountId"].should.equal(ACCOUNT_ID)
 
@@ -91,7 +79,7 @@ def test_create_repository_repository_name_exists():
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("RepositoryNameExistsException")
     ex.response["Error"]["Message"].should.equal(
-        "Repository named {0} already exists".format("repository_two")
+        "Repository named repository_two already exists"
     )
 
 
@@ -138,19 +126,13 @@ def test_get_repository():
         "description repo one"
     )
     response.get("repositoryMetadata").get("cloneUrlSsh").should.equal(
-        "ssh://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
-            "eu-central-1", "repository_one"
-        )
+        "ssh://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
     )
     response.get("repositoryMetadata").get("cloneUrlHttp").should.equal(
-        "https://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
-            "eu-central-1", "repository_one"
-        )
+        "https://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
     )
     response.get("repositoryMetadata").get("Arn").should.equal(
-        "arn:aws:codecommit:{0}:{1}:{2}".format(
-            "eu-central-1", ACCOUNT_ID, "repository_one"
-        )
+        f"arn:aws:codecommit:eu-central-1:{ACCOUNT_ID}:repository_one"
     )
     response.get("repositoryMetadata").get("accountId").should.equal(ACCOUNT_ID)
 
@@ -162,9 +144,7 @@ def test_get_repository():
     ex.operation_name.should.equal("GetRepository")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("RepositoryDoesNotExistException")
-    ex.response["Error"]["Message"].should.equal(
-        "{0} does not exist".format(repository_name)
-    )
+    ex.response["Error"]["Message"].should.equal(f"{repository_name} does not exist")
 
 
 @mock_codecommit

@@ -101,7 +101,7 @@ class Ami(TaggedEC2Resource):
         # AWS auto-creates these, we should reflect the same.
         volume = self.ec2_backend.create_volume(size=15, zone_name=region_name)
         snapshot_description = (
-            snapshot_description or "Auto-created snapshot for AMI %s" % self.id
+            snapshot_description or f"Auto-created snapshot for AMI {self.id}"
         )
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
             volume.id, snapshot_description, self.owner_id, from_ami=ami_id

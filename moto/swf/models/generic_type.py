@@ -21,10 +21,8 @@ class GenericType(BaseModel):
 
     def __repr__(self):
         cls = self.__class__.__name__
-        attrs = (
-            "name: %(name)s, version: %(version)s, status: %(status)s" % self.__dict__
-        )
-        return "{0}({1})".format(cls, attrs)
+        attrs = f"name: {self.name}, version: {self.version}, status: {self.status}"
+        return f"{cls}({attrs})"
 
     @property
     def kind(self):
@@ -39,7 +37,7 @@ class GenericType(BaseModel):
 
     def to_medium_dict(self):
         hsh = {
-            "{0}Type".format(self.kind): self.to_short_dict(),
+            f"{self.kind}Type": self.to_short_dict(),
             "creationDate": 1420066800,
             "status": self.status,
         }

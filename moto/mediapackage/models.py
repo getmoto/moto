@@ -73,7 +73,7 @@ class MediaPackageBackend(BaseBackend):
         self._origin_endpoints = OrderedDict()
 
     def create_channel(self, description, channel_id, tags):
-        arn = "arn:aws:mediapackage:channel:{}".format(channel_id)
+        arn = f"arn:aws:mediapackage:channel:{channel_id}"
         channel = Channel(
             arn=arn,
             description=description,
@@ -97,7 +97,7 @@ class MediaPackageBackend(BaseBackend):
             return channel.to_dict()
         except KeyError:
             error = "NotFoundException"
-            raise ClientError(error, "channel with id={} not found".format(channel_id))
+            raise ClientError(error, f"channel with id={channel_id} not found")
 
     def delete_channel(self, channel_id):
         try:
@@ -107,7 +107,7 @@ class MediaPackageBackend(BaseBackend):
 
         except KeyError:
             error = "NotFoundException"
-            raise ClientError(error, "channel with id={} not found".format(channel_id))
+            raise ClientError(error, f"channel with id={channel_id} not found")
 
     def create_origin_endpoint(
         self,
@@ -126,10 +126,8 @@ class MediaPackageBackend(BaseBackend):
         time_delay_seconds,
         whitelist,
     ):
-        arn = "arn:aws:mediapackage:origin_endpoint:{}".format(endpoint_id)
-        url = "https://origin-endpoint.mediapackage.{}.amazonaws.com/{}".format(
-            self.region_name, endpoint_id
-        )
+        arn = f"arn:aws:mediapackage:origin_endpoint:{endpoint_id}"
+        url = f"https://origin-endpoint.mediapackage.{self.region_name}.amazonaws.com/{endpoint_id}"
         origin_endpoint = OriginEndpoint(
             arn=arn,
             authorization=authorization,
@@ -157,9 +155,7 @@ class MediaPackageBackend(BaseBackend):
             return origin_endpoint.to_dict()
         except KeyError:
             error = "NotFoundException"
-            raise ClientError(
-                error, "origin endpoint with id={} not found".format(endpoint_id)
-            )
+            raise ClientError(error, f"origin endpoint with id={endpoint_id} not found")
 
     def list_origin_endpoints(self):
         origin_endpoints = list(self._origin_endpoints.values())
@@ -173,9 +169,7 @@ class MediaPackageBackend(BaseBackend):
             return origin_endpoint.to_dict()
         except KeyError:
             error = "NotFoundException"
-            raise ClientError(
-                error, "origin endpoint with id={} not found".format(endpoint_id)
-            )
+            raise ClientError(error, f"origin endpoint with id={endpoint_id} not found")
 
     def update_origin_endpoint(
         self,
@@ -209,9 +203,7 @@ class MediaPackageBackend(BaseBackend):
 
         except KeyError:
             error = "NotFoundException"
-        raise ClientError(
-            error, "origin endpoint with id={} not found".format(endpoint_id)
-        )
+        raise ClientError(error, f"origin endpoint with id={endpoint_id} not found")
 
 
 mediapackage_backends = BackendDict(MediaPackageBackend, "mediapackage")

@@ -23,9 +23,7 @@ def test_get_hls_streaming_session_url():
         endpoint_url=data_endpoint,
     )
     res = client.get_hls_streaming_session_url(StreamName=stream_name)
-    reg_exp = r"^{}/hls/v1/getHLSMasterPlaylist.m3u8\?SessionToken\=.+$".format(
-        data_endpoint
-    )
+    reg_exp = rf"^{data_endpoint}/hls/v1/getHLSMasterPlaylist.m3u8\?SessionToken\=.+$"
     res.should.have.key("HLSStreamingSessionURL").which.should.match(reg_exp)
 
 
@@ -47,9 +45,7 @@ def test_get_dash_streaming_session_url():
         endpoint_url=data_endpoint,
     )
     res = client.get_dash_streaming_session_url(StreamName=stream_name)
-    reg_exp = r"^{}/dash/v1/getDASHManifest.mpd\?SessionToken\=.+$".format(
-        data_endpoint
-    )
+    reg_exp = rf"^{data_endpoint}/dash/v1/getDASHManifest.mpd\?SessionToken\=.+$"
     res.should.have.key("DASHStreamingSessionURL").which.should.match(reg_exp)
 
 

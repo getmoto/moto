@@ -203,10 +203,7 @@ class TestAutoScalingELB(TestCase):
                 }
             ],
             TerminationPolicies=["OldestInstance", "NewestInstance"],
-            VPCZoneIdentifier="{subnet1},{subnet2}".format(
-                subnet1=self.mocked_networking["subnet1"],
-                subnet2=self.mocked_networking["subnet2"],
-            ),
+            VPCZoneIdentifier=f"{self.mocked_networking['subnet1']},{self.mocked_networking['subnet2']}",
         )
 
         self.as_client.put_scheduled_update_group_action(
@@ -231,10 +228,7 @@ class TestAutoScalingELB(TestCase):
         group["MinSize"].should.equal(INSTANCE_COUNT_GROUP)
         group["Instances"].should.have.length_of(INSTANCE_COUNT_GROUP)
         group["VPCZoneIdentifier"].should.equal(
-            "{subnet1},{subnet2}".format(
-                subnet1=self.mocked_networking["subnet1"],
-                subnet2=self.mocked_networking["subnet2"],
-            )
+            f"{self.mocked_networking['subnet1']},{self.mocked_networking['subnet2']}"
         )
         group["LaunchConfigurationName"].should.equal(self.lc_name)
         group["DefaultCooldown"].should.equal(60)

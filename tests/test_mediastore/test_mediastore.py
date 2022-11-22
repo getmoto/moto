@@ -16,9 +16,7 @@ def test_create_container_succeeds():
     )
     container = response["Container"]
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    container["ARN"].should.equal(
-        "arn:aws:mediastore:container:{}".format(container["Name"])
-    )
+    container["ARN"].should.equal(f"arn:aws:mediastore:container:{container['Name']}")
     container["Name"].should.equal("Awesome container!")
     container["Status"].should.equal("CREATING")
 
@@ -33,9 +31,7 @@ def test_describe_container_succeeds():
     response = client.describe_container(ContainerName=container_name)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     container = response["Container"]
-    container["ARN"].should.equal(
-        "arn:aws:mediastore:container:{}".format(container["Name"])
-    )
+    container["ARN"].should.equal(f"arn:aws:mediastore:container:{container_name}")
     container["Name"].should.equal("Awesome container!")
     container["Status"].should.equal("ACTIVE")
 

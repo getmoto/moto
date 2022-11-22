@@ -238,7 +238,7 @@ def test_invoke_function_from_sqs_exception():
 
     entries = []
     for i in range(3):
-        body = {"uuid": str(uuid.uuid4()), "test": "test_{}".format(i)}
+        body = {"uuid": str(uuid.uuid4()), "test": f"test_{i}"}
         entry = {"Id": str(i), "MessageBody": json.dumps(body)}
         entries.append(entry)
 

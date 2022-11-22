@@ -385,9 +385,7 @@ def _wait_for_job_statuses(client, job_id, statuses, seconds_to_wait=30):
         time.sleep(0.1)
     else:
         raise RuntimeError(
-            "Time out waiting for job status {status}!\n Last status: {last_status}".format(
-                status=statuses, last_status=last_job_status
-            )
+            f"Time out waiting for job status {statuses}!\n Last status: {last_job_status}"
         )
 
 

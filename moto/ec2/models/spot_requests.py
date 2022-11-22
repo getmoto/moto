@@ -51,7 +51,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         self.status_message = "Your Spot request has been submitted for review, and is pending evaluation."
         if price:
             price = float(price)
-            price = "{0:.6f}".format(price)  # round up/down to 6 decimals
+            price = f"{price:.6f}"  # round up/down to 6 decimals
         self.price = price
         self.type = spot_instance_type
         self.valid_from = valid_from

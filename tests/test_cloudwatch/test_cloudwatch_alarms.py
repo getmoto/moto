@@ -19,8 +19,8 @@ def test_create_alarm():
         Dimensions=[{"Name": "InstanceId", "Value": "i-0123457"}],
         EvaluationPeriods=5,
         InsufficientDataActions=["arn:insufficient"],
-        Namespace="{0}_namespace".format(name),
-        MetricName="{0}_metric".format(name),
+        Namespace=f"{name}_namespace",
+        MetricName=f"{name}_metric",
         OKActions=["arn:ok"],
         Period=60,
         Statistic="Average",
@@ -48,7 +48,7 @@ def test_create_alarm():
     alarm.should.have.key("InsufficientDataActions").equal(["arn:insufficient"])
     alarm.should.have.key("Unit").equal("Seconds")
     alarm.should.have.key("AlarmArn").equal(
-        "arn:aws:cloudwatch:{}:{}:alarm:{}".format(region, ACCOUNT_ID, name)
+        f"arn:aws:cloudwatch:{region}:{ACCOUNT_ID}:alarm:{name}"
     )
     # default value should be True
     alarm.should.have.key("ActionsEnabled").equal(True)
@@ -70,8 +70,8 @@ def test_delete_alarm():
         Dimensions=[{"Name": "InstanceId", "Value": "i-0123457"}],
         EvaluationPeriods=5,
         InsufficientDataActions=["arn:insufficient"],
-        Namespace="{0}_namespace".format(name),
-        MetricName="{0}_metric".format(name),
+        Namespace=f"{name}_namespace",
+        MetricName=f"{name}_metric",
         OKActions=["arn:ok"],
         Period=60,
         Statistic="Average",

@@ -315,7 +315,7 @@ class ELBResponse(BaseResponse):
             if "LoadBalancerNames.member" in key:
                 number = key.split(".")[2]
                 load_balancer_name = self._get_param(
-                    "LoadBalancerNames.member.{0}".format(number)
+                    f"LoadBalancerNames.member.{number}"
                 )
                 elb = self.elb_backend.get_load_balancer(load_balancer_name)
                 if not elb:
@@ -335,7 +335,7 @@ class ELBResponse(BaseResponse):
             if "LoadBalancerNames.member" in key:
                 number = key.split(".")[2]
                 load_balancer_name = self._get_param(
-                    "LoadBalancerNames.member.{0}".format(number)
+                    f"LoadBalancerNames.member.{number}"
                 )
                 elb = self.elb_backend.get_load_balancer(load_balancer_name)
                 if not elb:

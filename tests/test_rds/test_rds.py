@@ -30,7 +30,7 @@ def test_create_database():
     db_instance["MasterUsername"].should.equal("root")
     db_instance["DBSecurityGroups"][0]["DBSecurityGroupName"].should.equal("my_sg")
     db_instance["DBInstanceArn"].should.equal(
-        "arn:aws:rds:us-west-2:{}:db:db-master-1".format(ACCOUNT_ID)
+        f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db:db-master-1"
     )
     db_instance["DBInstanceStatus"].should.equal("available")
     db_instance["DBName"].should.equal("staging-postgres")
@@ -333,7 +333,7 @@ def test_get_databases():
     instances["DBInstances"][0]["DBInstanceIdentifier"].should.equal("db-master-1")
     instances["DBInstances"][0]["DeletionProtection"].should.equal(False)
     instances["DBInstances"][0]["DBInstanceArn"].should.equal(
-        "arn:aws:rds:us-west-2:{}:db:db-master-1".format(ACCOUNT_ID)
+        f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db:db-master-1"
     )
 
     instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-2")
@@ -350,7 +350,7 @@ def test_get_databases_paginated():
         conn.create_db_instance(
             AllocatedStorage=5,
             Port=5432,
-            DBInstanceIdentifier="rds%d" % i,
+            DBInstanceIdentifier=f"rds{i}",
             DBInstanceClass="db.t1.micro",
             Engine="postgres",
         )
@@ -1345,7 +1345,7 @@ def test_list_tags_security_group():
         DBSecurityGroupDescription="DB Security Group",
         Tags=[{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}],
     )["DBSecurityGroup"]["DBSecurityGroupName"]
-    resource = "arn:aws:rds:us-west-2:1234567890:secgrp:{0}".format(security_group)
+    resource = f"arn:aws:rds:us-west-2:1234567890:secgrp:{security_group}"
     result = conn.list_tags_for_resource(ResourceName=resource)
     result["TagList"].should.equal(
         [{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}]
@@ -1362,7 +1362,7 @@ def test_add_tags_security_group():
         DBSecurityGroupName="db_sg", DBSecurityGroupDescription="DB Security Group"
     )["DBSecurityGroup"]["DBSecurityGroupName"]
 
-    resource = "arn:aws:rds:us-west-2:1234567890:secgrp:{0}".format(security_group)
+    resource = f"arn:aws:rds:us-west-2:1234567890:secgrp:{security_group}"
     conn.add_tags_to_resource(
         ResourceName=resource,
         Tags=[{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}],
@@ -1386,7 +1386,7 @@ def test_remove_tags_security_group():
         Tags=[{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}],
     )["DBSecurityGroup"]["DBSecurityGroupName"]
 
-    resource = "arn:aws:rds:us-west-2:1234567890:secgrp:{0}".format(security_group)
+    resource = f"arn:aws:rds:us-west-2:1234567890:secgrp:{security_group}"
     conn.remove_tags_from_resource(ResourceName=resource, TagKeys=["foo"])
 
     result = conn.list_tags_for_resource(ResourceName=resource)
@@ -1566,7 +1566,7 @@ def test_list_tags_database_subnet_group():
         Tags=[{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}],
     )["DBSubnetGroup"]["DBSubnetGroupName"]
     result = conn.list_tags_for_resource(
-        ResourceName="arn:aws:rds:us-west-2:1234567890:subgrp:{0}".format(subnet)
+        ResourceName=f"arn:aws:rds:us-west-2:1234567890:subgrp:{subnet}"
     )
     result["TagList"].should.equal(
         [{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}]
@@ -1643,7 +1643,7 @@ def test_add_tags_database_subnet_group():
         SubnetIds=[subnet["SubnetId"]],
         Tags=[],
     )["DBSubnetGroup"]["DBSubnetGroupName"]
-    resource = "arn:aws:rds:us-west-2:1234567890:subgrp:{0}".format(subnet)
+    resource = f"arn:aws:rds:us-west-2:1234567890:subgrp:{subnet}"
 
     conn.add_tags_to_resource(
         ResourceName=resource,
@@ -1675,7 +1675,7 @@ def test_remove_tags_database_subnet_group():
         SubnetIds=[subnet["SubnetId"]],
         Tags=[{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}],
     )["DBSubnetGroup"]["DBSubnetGroupName"]
-    resource = "arn:aws:rds:us-west-2:1234567890:subgrp:{0}".format(subnet)
+    resource = f"arn:aws:rds:us-west-2:1234567890:subgrp:{subnet}"
 
     conn.remove_tags_from_resource(ResourceName=resource, TagKeys=["foo"])
 
@@ -1804,7 +1804,7 @@ def test_create_db_parameter_group():
         "test parameter group"
     )
     db_parameter_group["DBParameterGroup"]["DBParameterGroupArn"].should.equal(
-        "arn:aws:rds:{0}:{1}:pg:{2}".format(region, ACCOUNT_ID, pg_name)
+        f"arn:aws:rds:{region}:{ACCOUNT_ID}:pg:{pg_name}"
     )
 
 
@@ -1930,7 +1930,7 @@ def test_describe_db_parameter_group():
         "test"
     )
     db_parameter_groups["DBParameterGroups"][0]["DBParameterGroupArn"].should.equal(
-        "arn:aws:rds:{0}:{1}:pg:{2}".format(region, ACCOUNT_ID, pg_name)
+        f"arn:aws:rds:{region}:{ACCOUNT_ID}:pg:{pg_name}"
     )
 
 

@@ -17,9 +17,7 @@ class InvalidParameterException(LogsClientError):
     def __init__(self, msg=None, constraint=None, parameter=None, value=None):
         self.code = 400
         if constraint:
-            msg = "1 validation error detected: Value '{}' at '{}' failed to satisfy constraint: {}".format(
-                value, parameter, constraint
-            )
+            msg = f"1 validation error detected: Value '{value}' at '{parameter}' failed to satisfy constraint: {constraint}"
         super().__init__(
             "InvalidParameterException", msg or "A parameter is specified incorrectly."
         )

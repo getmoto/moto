@@ -7,7 +7,7 @@ import pytest
 from moto import mock_sagemaker
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-FAKE_ROLE_ARN = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
+FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
 TEST_REGION_NAME = "us-east-1"
 
 
@@ -48,7 +48,7 @@ class MyTrainingJobModel(object):
                 "DataSource": {
                     "S3DataSource": {
                         "S3DataType": "S3Prefix",
-                        "S3Uri": "s3://{}/{}/train/".format(self.bucket, self.prefix),
+                        "S3Uri": f"s3://{self.bucket}/{self.prefix}/train/",
                         "S3DataDistributionType": "ShardedByS3Key",
                     }
                 },
@@ -60,9 +60,7 @@ class MyTrainingJobModel(object):
                 "DataSource": {
                     "S3DataSource": {
                         "S3DataType": "S3Prefix",
-                        "S3Uri": "s3://{}/{}/validation/".format(
-                            self.bucket, self.prefix
-                        ),
+                        "S3Uri": f"s3://{self.bucket}/{self.prefix}/validation/",
                         "S3DataDistributionType": "FullyReplicated",
                     }
                 },
@@ -71,7 +69,7 @@ class MyTrainingJobModel(object):
             },
         ]
         self.output_data_config = output_data_config or {
-            "S3OutputPath": "s3://{}/{}/".format(self.bucket, self.prefix)
+            "S3OutputPath": f"s3://{self.bucket}/{self.prefix}/"
         }
         self.hyper_parameters = hyper_parameters or {
             "feature_dim": "30",
@@ -105,7 +103,7 @@ def test_create_training_job():
     sagemaker = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
     training_job_name = "MyTrainingJob"
-    role_arn = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
+    role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
     container = "382416733822.dkr.ecr.us-east-1.amazonaws.com/linear-learner:1"
     bucket = "my-bucket"
     prefix = "sagemaker/DEMO-breast-cancer-prediction/"
@@ -124,7 +122,7 @@ def test_create_training_job():
             "DataSource": {
                 "S3DataSource": {
                     "S3DataType": "S3Prefix",
-                    "S3Uri": "s3://{}/{}/train/".format(bucket, prefix),
+                    "S3Uri": f"s3://{bucket}/{prefix}/train/",
                     "S3DataDistributionType": "ShardedByS3Key",
                 }
             },
@@ -136,7 +134,7 @@ def test_create_training_job():
             "DataSource": {
                 "S3DataSource": {
                     "S3DataType": "S3Prefix",
-                    "S3Uri": "s3://{}/{}/validation/".format(bucket, prefix),
+                    "S3Uri": f"s3://{bucket}/{prefix}/validation/",
                     "S3DataDistributionType": "FullyReplicated",
                 }
             },
@@ -144,7 +142,7 @@ def test_create_training_job():
             "RecordWrapperType": "None",
         },
     ]
-    output_data_config = {"S3OutputPath": "s3://{}/{}/".format(bucket, prefix)}
+    output_data_config = {"S3OutputPath": f"s3://{bucket}/{prefix}/"}
     hyper_parameters = {
         "feature_dim": "30",
         "mini_batch_size": "100",
@@ -170,13 +168,13 @@ def test_create_training_job():
     )
     resp = job.save()
     resp["TrainingJobArn"].should.match(
-        r"^arn:aws:sagemaker:.*:.*:training-job/{}$".format(training_job_name)
+        rf"^arn:aws:sagemaker:.*:.*:training-job/{training_job_name}$"
     )
 
     resp = sagemaker.describe_training_job(TrainingJobName=training_job_name)
     resp["TrainingJobName"].should.equal(training_job_name)
     resp["TrainingJobArn"].should.match(
-        r"^arn:aws:sagemaker:.*:.*:training-job/{}$".format(training_job_name)
+        rf"^arn:aws:sagemaker:.*:.*:training-job/{training_job_name}$"
     )
     assert resp["ModelArtifacts"]["S3ModelArtifacts"].startswith(
         output_data_config["S3OutputPath"]
@@ -233,7 +231,7 @@ def test_list_training_jobs():
     )
 
     assert training_jobs["TrainingJobSummaries"][0]["TrainingJobArn"].should.match(
-        r"^arn:aws:sagemaker:.*:.*:training-job/{}$".format(name)
+        rf"^arn:aws:sagemaker:.*:.*:training-job/{name}$"
     )
     assert training_jobs.get("NextToken") is None
 
@@ -293,12 +291,12 @@ def test_list_training_jobs_should_validate_input():
 def test_list_training_jobs_with_name_filters():
     client = boto3.client("sagemaker", region_name="us-east-1")
     for i in range(5):
-        name = "xgboost-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{}".format(i)
+        name = f"xgboost-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{i}"
         MyTrainingJobModel(training_job_name=name, role_arn=arn).save()
     for i in range(5):
-        name = "vgg-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{}".format(i)
+        name = f"vgg-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{i}"
         MyTrainingJobModel(training_job_name=name, role_arn=arn).save()
     xgboost_training_jobs = client.list_training_jobs(NameContains="xgboost")
     assert len(xgboost_training_jobs["TrainingJobSummaries"]).should.equal(5)
@@ -311,8 +309,8 @@ def test_list_training_jobs_with_name_filters():
 def test_list_training_jobs_paginated():
     client = boto3.client("sagemaker", region_name="us-east-1")
     for i in range(5):
-        name = "xgboost-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{}".format(i)
+        name = f"xgboost-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{i}"
         MyTrainingJobModel(training_job_name=name, role_arn=arn).save()
     xgboost_training_job_1 = client.list_training_jobs(
         NameContains="xgboost", MaxResults=1
@@ -339,12 +337,12 @@ def test_list_training_jobs_paginated():
 def test_list_training_jobs_paginated_with_target_in_middle():
     client = boto3.client("sagemaker", region_name="us-east-1")
     for i in range(5):
-        name = "xgboost-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{}".format(i)
+        name = f"xgboost-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{i}"
         MyTrainingJobModel(training_job_name=name, role_arn=arn).save()
     for i in range(5):
-        name = "vgg-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{}".format(i)
+        name = f"vgg-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{i}"
         MyTrainingJobModel(training_job_name=name, role_arn=arn).save()
 
     vgg_training_job_1 = client.list_training_jobs(NameContains="vgg", MaxResults=1)
@@ -372,12 +370,12 @@ def test_list_training_jobs_paginated_with_target_in_middle():
 def test_list_training_jobs_paginated_with_fragmented_targets():
     client = boto3.client("sagemaker", region_name="us-east-1")
     for i in range(5):
-        name = "xgboost-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{}".format(i)
+        name = f"xgboost-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/foobar-{i}"
         MyTrainingJobModel(training_job_name=name, role_arn=arn).save()
     for i in range(5):
-        name = "vgg-{}".format(i)
-        arn = "arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{}".format(i)
+        name = f"vgg-{i}"
+        arn = f"arn:aws:sagemaker:us-east-1:000000000000:x-x/barfoo-{i}"
         MyTrainingJobModel(training_job_name=name, role_arn=arn).save()
 
     training_jobs_with_2 = client.list_training_jobs(NameContains="2", MaxResults=8)

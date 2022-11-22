@@ -22,9 +22,7 @@ IV_LEN = 12
 TAG_LEN = 16
 HEADER_LEN = KEY_ID_LEN + IV_LEN + TAG_LEN
 # NOTE: This is just a simple binary format. It is not what KMS actually does.
-CIPHERTEXT_HEADER_FORMAT = ">{key_id_len}s{iv_len}s{tag_len}s".format(
-    key_id_len=KEY_ID_LEN, iv_len=IV_LEN, tag_len=TAG_LEN
-)
+CIPHERTEXT_HEADER_FORMAT = f">{KEY_ID_LEN}s{IV_LEN}s{TAG_LEN}s"
 Ciphertext = namedtuple("Ciphertext", ("key_id", "iv", "ciphertext", "tag"))
 
 RESERVED_ALIASES = [
@@ -134,11 +132,8 @@ def encrypt(master_keys, key_id, plaintext, encryption_context):
         key = master_keys[key_id]
     except KeyError:
         is_alias = key_id.startswith("alias/") or ":alias/" in key_id
-        raise NotFoundException(
-            "{id_type} {key_id} is not found.".format(
-                id_type="Alias" if is_alias else "keyId", key_id=key_id
-            )
-        )
+        id_type = "Alias" if is_alias else "keyId"
+        raise NotFoundException(f"{id_type} {key_id} is not found.")
 
     if plaintext == b"":
         raise ValidationException(

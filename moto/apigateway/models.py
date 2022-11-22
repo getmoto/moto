@@ -114,6 +114,7 @@ class IntegrationResponse(BaseModel):
         status_code: Union[str, int],
         selection_pattern: Optional[str] = None,
         response_templates: Optional[Dict[str, Any]] = None,
+        response_parameters: Optional[Dict[str, str]] = None,
         content_handling: Optional[Any] = None,
     ):
         if response_templates is None:
@@ -126,6 +127,7 @@ class IntegrationResponse(BaseModel):
         self.response_templates = response_templates
         self.status_code = status_code
         self.selection_pattern = selection_pattern
+        self.response_parameters = response_parameters
         self.content_handling = content_handling
 
     def to_json(self) -> Dict[str, Any]:
@@ -137,6 +139,8 @@ class IntegrationResponse(BaseModel):
             resp["selectionPattern"] = self.selection_pattern
         if self.content_handling:
             resp["contentHandling"] = self.content_handling
+        if self.response_parameters:
+            resp["responseParameters"] = self.response_parameters
         return resp
 
 
@@ -149,10 +153,12 @@ class Integration(BaseModel):
         request_templates: Optional[Dict[str, Any]] = None,
         passthrough_behavior: Optional[str] = "WHEN_NO_MATCH",
         cache_key_parameters: Optional[List[str]] = None,
-        tls_config: Optional[str] = None,
+        tls_config: Optional[Dict[str, Any]] = None,
         cache_namespace: Optional[str] = None,
         timeout_in_millis: Optional[str] = None,
         request_parameters: Optional[Dict[str, Any]] = None,
+        content_handling: Optional[str] = None,
+        credentials: Optional[str] = None,
     ):
         self.integration_type = integration_type
         self.uri = uri
@@ -164,6 +170,8 @@ class Integration(BaseModel):
         self.cache_namespace = cache_namespace
         self.timeout_in_millis = timeout_in_millis
         self.request_parameters = request_parameters
+        self.content_handling = content_handling
+        self.credentials = credentials
         self.integration_responses: Optional[Dict[str, IntegrationResponse]] = None
 
     def to_json(self) -> Dict[str, Any]:
@@ -184,6 +192,8 @@ class Integration(BaseModel):
             "cacheNamespace": self.cache_namespace,
             "timeoutInMillis": self.timeout_in_millis,
             "requestParameters": self.request_parameters,
+            "contentHandling": self.content_handling,
+            "credentials": self.credentials,
         }
 
     def create_integration_response(
@@ -191,10 +201,15 @@ class Integration(BaseModel):
         status_code: str,
         selection_pattern: str,
         response_templates: Dict[str, str],
+        response_parameters: Dict[str, str],
         content_handling: str,
     ) -> IntegrationResponse:
         integration_response = IntegrationResponse(
-            status_code, selection_pattern, response_templates or None, content_handling
+            status_code,
+            selection_pattern,
+            response_templates or None,
+            response_parameters,
+            content_handling,
         )
         if self.integration_responses is None:
             self.integration_responses = {}
@@ -479,10 +494,12 @@ class Resource(CloudFormationModel):
         request_templates: Optional[Dict[str, Any]] = None,
         passthrough_behavior: Optional[str] = None,
         integration_method: Optional[str] = None,
-        tls_config: Optional[str] = None,
+        tls_config: Optional[Dict[str, Any]] = None,
         cache_namespace: Optional[str] = None,
         timeout_in_millis: Optional[str] = None,
         request_parameters: Optional[Dict[str, Any]] = None,
+        content_handling: Optional[str] = None,
+        credentials: Optional[str] = None,
     ) -> Integration:
         integration_method = integration_method or method_type
         integration = Integration(
@@ -495,6 +512,8 @@ class Resource(CloudFormationModel):
             cache_namespace=cache_namespace,
             timeout_in_millis=timeout_in_millis,
             request_parameters=request_parameters,
+            content_handling=content_handling,
+            credentials=credentials,
         )
         self.resource_methods[method_type].method_integration = integration
         return integration
@@ -995,7 +1014,7 @@ class RestAPI(CloudFormationModel):
         }
         self.tags = kwargs.get(RestAPI.PROP_TAGS) or {}
         self.disableExecuteApiEndpoint = (
-            kwargs.get(RestAPI.PROP_DISABLE_EXECUTE_API_ENDPOINT) or False
+            kwargs.get("disable_execute_api_endpoint") or False
         )
         self.minimum_compression_size = kwargs.get("minimum_compression_size")
         self.deployments: Dict[str, Deployment] = {}
@@ -1517,6 +1536,7 @@ class APIGatewayBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]] = None,
         policy: Optional[str] = None,
         minimum_compression_size: Optional[int] = None,
+        disable_execute_api_endpoint: Optional[bool] = None,
     ) -> RestAPI:
         api_id = create_id()
         rest_api = RestAPI(
@@ -1530,6 +1550,7 @@ class APIGatewayBackend(BaseBackend):
             tags=tags,
             policy=policy,
             minimum_compression_size=minimum_compression_size,
+            disable_execute_api_endpoint=disable_execute_api_endpoint,
         )
         self.apis[api_id] = rest_api
         return rest_api
@@ -1826,10 +1847,11 @@ class APIGatewayBackend(BaseBackend):
         credentials: Optional[str] = None,
         request_templates: Optional[Dict[str, Any]] = None,
         passthrough_behavior: Optional[str] = None,
-        tls_config: Optional[str] = None,
+        tls_config: Optional[Dict[str, Any]] = None,
         cache_namespace: Optional[str] = None,
         timeout_in_millis: Optional[str] = None,
         request_parameters: Optional[Dict[str, Any]] = None,
+        content_handling: Optional[str] = None,
     ) -> Integration:
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
@@ -1872,6 +1894,8 @@ class APIGatewayBackend(BaseBackend):
             cache_namespace=cache_namespace,
             timeout_in_millis=timeout_in_millis,
             request_parameters=request_parameters,
+            content_handling=content_handling,
+            credentials=credentials,
         )
         return integration
 
@@ -1895,12 +1919,17 @@ class APIGatewayBackend(BaseBackend):
         status_code: str,
         selection_pattern: str,
         response_templates: Dict[str, str],
+        response_parameters: Dict[str, str],
         content_handling: str,
     ) -> IntegrationResponse:
         integration = self.get_integration(function_id, resource_id, method_type)
         if integration:
             return integration.create_integration_response(
-                status_code, selection_pattern, response_templates, content_handling
+                status_code,
+                selection_pattern,
+                response_templates,
+                response_parameters,
+                content_handling,
             )
         raise NoIntegrationResponseDefined()
 

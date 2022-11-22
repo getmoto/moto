@@ -1614,9 +1614,7 @@ def test_register_delegated_administrator():
     admin = response["DelegatedAdministrators"][0]
     admin["Id"].should.equal(account_id)
     admin["Arn"].should.equal(
-        "arn:aws:organizations::{0}:account/{1}/{2}".format(
-            ACCOUNT_ID, org_id, account_id
-        )
+        f"arn:aws:organizations::{ACCOUNT_ID}:account/{org_id}/{account_id}"
     )
     admin["Email"].should.equal(mockemail)
     admin["Name"].should.equal(mockname)
@@ -1740,9 +1738,7 @@ def test_list_delegated_administrators():
     admin = response["DelegatedAdministrators"][0]
     admin["Id"].should.equal(account_id_1)
     admin["Arn"].should.equal(
-        "arn:aws:organizations::{0}:account/{1}/{2}".format(
-            ACCOUNT_ID, org_id, account_id_1
-        )
+        f"arn:aws:organizations::{ACCOUNT_ID}:account/{org_id}/{account_id_1}"
     )
     admin["Email"].should.equal(mockemail)
     admin["Name"].should.equal(mockname)

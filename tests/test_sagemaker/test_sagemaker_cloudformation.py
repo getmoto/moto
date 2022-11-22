@@ -44,7 +44,7 @@ def test_sagemaker_cloudformation_create(test_config):
     # Utilize test configuration to set-up any mock SageMaker resources
     test_config.run_setup_procedure(sm)
 
-    stack_name = "{}_stack".format(test_config.resource_name)
+    stack_name = f"{test_config.resource_name}_stack"
     cf.create_stack(
         StackName=stack_name,
         TemplateBody=test_config.get_cloudformation_template(include_outputs=False),
@@ -77,7 +77,7 @@ def test_sagemaker_cloudformation_get_attr(test_config):
     test_config.run_setup_procedure(sm)
 
     # Create stack and get description for output values
-    stack_name = "{}_stack".format(test_config.resource_name)
+    stack_name = f"{test_config.resource_name}_stack"
     cf.create_stack(
         StackName=stack_name, TemplateBody=test_config.get_cloudformation_template()
     )
@@ -113,7 +113,7 @@ def test_sagemaker_cloudformation_notebook_instance_delete(test_config, error_me
     test_config.run_setup_procedure(sm)
 
     # Create stack and verify existence
-    stack_name = "{}_stack".format(test_config.resource_name)
+    stack_name = f"{test_config.resource_name}_stack"
     cf.create_stack(
         StackName=stack_name, TemplateBody=test_config.get_cloudformation_template()
     )
@@ -142,7 +142,7 @@ def test_sagemaker_cloudformation_notebook_instance_update():
     test_config = NotebookInstanceTestConfig()
 
     # Set up template for stack with two different instance types
-    stack_name = "{}_stack".format(test_config.resource_name)
+    stack_name = f"{test_config.resource_name}_stack"
     initial_instance_type = "ml.c4.xlarge"
     updated_instance_type = "ml.c4.4xlarge"
     initial_template_json = test_config.get_cloudformation_template(
@@ -184,7 +184,7 @@ def test_sagemaker_cloudformation_notebook_instance_lifecycle_config_update():
     test_config = NotebookInstanceLifecycleConfigTestConfig()
 
     # Set up template for stack with two different OnCreate scripts
-    stack_name = "{}_stack".format(test_config.resource_name)
+    stack_name = f"{test_config.resource_name}_stack"
     initial_on_create_script = "echo Hello World"
     updated_on_create_script = "echo Goodbye World"
     initial_template_json = test_config.get_cloudformation_template(
@@ -232,7 +232,7 @@ def test_sagemaker_cloudformation_model_update():
     test_config = ModelTestConfig()
 
     # Set up template for stack with two different image versions
-    stack_name = "{}_stack".format(test_config.resource_name)
+    stack_name = f"{test_config.resource_name}_stack"
     image = "404615174143.dkr.ecr.us-east-2.amazonaws.com/kmeans:{}"
     initial_image_version = 1
     updated_image_version = 2
@@ -282,7 +282,7 @@ def test_sagemaker_cloudformation_endpoint_config_update():
     test_config.run_setup_procedure(sm)
 
     # Set up template for stack with two different production variant counts
-    stack_name = "{}_stack".format(test_config.resource_name)
+    stack_name = f"{test_config.resource_name}_stack"
     initial_num_production_variants = 1
     updated_num_production_variants = 2
     initial_template_json = test_config.get_cloudformation_template(
@@ -328,7 +328,7 @@ def test_sagemaker_cloudformation_endpoint_update():
     test_config = EndpointTestConfig()
 
     # Set up template for stack with two different endpoint config names
-    stack_name = "{}_stack".format(test_config.resource_name)
+    stack_name = f"{test_config.resource_name}_stack"
     initial_endpoint_config_name = test_config.resource_name
     updated_endpoint_config_name = "updated-endpoint-config-name"
     initial_template_json = test_config.get_cloudformation_template(
@@ -341,7 +341,7 @@ def test_sagemaker_cloudformation_endpoint_update():
     # Create SM resources and stack with initial template and check attributes
     sm.create_model(
         ModelName=initial_endpoint_config_name,
-        ExecutionRoleArn="arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID),
+        ExecutionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
         PrimaryContainer={
             "Image": "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1",
         },
@@ -372,7 +372,7 @@ def test_sagemaker_cloudformation_endpoint_update():
     # Create additional SM resources and update stack
     sm.create_model(
         ModelName=updated_endpoint_config_name,
-        ExecutionRoleArn="arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID),
+        ExecutionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
         PrimaryContainer={
             "Image": "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1",
         },

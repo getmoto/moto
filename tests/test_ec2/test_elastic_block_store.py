@@ -107,9 +107,7 @@ def test_delete_attached_volume():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["Error"]["Code"].should.equal("VolumeInUse")
     ex.value.response["Error"]["Message"].should.equal(
-        "Volume {0} is currently attached to {1}".format(
-            volume.id, instance["InstanceId"]
-        )
+        f"Volume {volume.id} is currently attached to {instance['InstanceId']}"
     )
 
     volume.detach_from_instance(InstanceId=instance["InstanceId"])

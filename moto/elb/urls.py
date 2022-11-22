@@ -31,7 +31,7 @@ def api_version_elb_backend(*args, **kwargs):
     elif "2015-12-01" == version:
         return ELBV2Response.dispatch(*args, **kwargs)
     else:
-        raise Exception("Unknown ELB API version: {}".format(version))
+        raise Exception(f"Unknown ELB API version: {version}")
 
 
 url_bases = [r"https?://elasticloadbalancing\.(.+)\.amazonaws.com"]

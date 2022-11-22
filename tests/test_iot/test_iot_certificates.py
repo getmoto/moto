@@ -206,7 +206,7 @@ def test_delete_certificate_validation():
     with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
     e.value.response["Error"]["Message"].should.contain(
-        "Things must be detached before deletion (arn: %s)" % cert_arn
+        f"Things must be detached before deletion (arn: {cert_arn})"
     )
     res = client.list_certificates()
     res.should.have.key("certificates").which.should.have.length_of(1)
@@ -215,7 +215,7 @@ def test_delete_certificate_validation():
     with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
     e.value.response["Error"]["Message"].should.contain(
-        "Certificate policies must be detached before deletion (arn: %s)" % cert_arn
+        f"Certificate policies must be detached before deletion (arn: {cert_arn})"
     )
     res = client.list_certificates()
     res.should.have.key("certificates").which.should.have.length_of(1)

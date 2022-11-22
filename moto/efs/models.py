@@ -225,7 +225,7 @@ class FileSystem(CloudFormationModel):
                 raise ValueError("BackupPolicy must be of type BackupPolicy.")
             status = props.pop("backup_policy")["status"]
             if status not in ["ENABLED", "DISABLED"]:
-                raise ValueError('Invalid status: "{}".'.format(status))
+                raise ValueError(f'Invalid status: "{status}".')
             props["backup"] = status == "ENABLED"
         if "bypass_policy_lockout_safety_check" in props:
             raise ValueError(
@@ -293,7 +293,7 @@ class MountTarget(CloudFormationModel):
 
         # Init non-user-assigned values.
         self.owner_id = account_id
-        self.mount_target_id = "fsmt-{}".format(mock_random.get_random_hex())
+        self.mount_target_id = f"fsmt-{mock_random.get_random_hex()}"
         self.life_cycle_state = "available"
         self.network_interface_id = None
         self.availability_zone_id = subnet.availability_zone_id
@@ -414,7 +414,7 @@ class EFSBackend(BaseBackend):
 
         # Create a new file system ID:
         def make_id():
-            return "fs-{}".format(mock_random.get_random_hex())
+            return f"fs-{mock_random.get_random_hex()}"
 
         fsid = make_id()
         while fsid in self.file_systems_by_id:

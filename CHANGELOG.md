@@ -1,6 +1,25 @@
 Moto Changelog
 ==============
 
+4.0.10
+-----
+Docker Digest for 4.0.10: _sha256:faf0e4b591c47c7775da4f827c2ec2e1ff48a32b31169236fa604ffb95dafb78_
+
+    New Methods:
+        * CloudFront:
+            * get_distribution_config()
+        * Organizations:
+            * delete_organizational_unit()
+
+    Miscellaneous:
+        * APIGateway: put_integration_response() now supports the responseParameters-parameter
+        * Cloudformation now supports the creation/update/deletion of AWS::SSM::Parameter
+        * Cloudformation: create_stack() now returns the attribute EnableTerminationProtection
+        * CloudWatch: put_metric_data() now supports the MetricData.Values parameter
+        * DynamoDB: transact_write_items() now supports the ReturnValuesOnConditionCheckFailure-parameter
+        * RDS: describe_db_cluster now returns the EarliestRestorableTime-attribute
+        * S3: get_object() and head_object() now correctly handle the IfModifiedSince-parameter
+
 4.0.9
 -----
 Docker Digest for 4.0.9: _sha256:0c7a87255814035794733764d497fcb659ae0d6c843fae41040bb1a29c0726ab_

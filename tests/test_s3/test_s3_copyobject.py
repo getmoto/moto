@@ -28,7 +28,7 @@ def test_copy_key_boto3(key_name):
     key.put(Body=b"some value")
 
     key2 = s3.Object("foobar", "new-key")
-    key2.copy_from(CopySource="foobar/{}".format(key_name))
+    key2.copy_from(CopySource=f"foobar/{key_name}")
 
     resp = client.get_object(Bucket="foobar", Key=key_name)
     resp["Body"].read().should.equal(b"some value")
@@ -55,9 +55,7 @@ def test_copy_key_with_version_boto3():
     old_version = [v for v in all_versions if not v["IsLatest"]][0]
 
     key2 = s3.Object("foobar", "new-key")
-    key2.copy_from(
-        CopySource="foobar/the-key?versionId={}".format(old_version["VersionId"])
-    )
+    key2.copy_from(CopySource=f"foobar/the-key?versionId={old_version['VersionId']}")
 
     resp = client.get_object(Bucket="foobar", Key="the-key")
     resp["Body"].read().should.equal(b"another value")
@@ -155,7 +153,7 @@ def test_copy_key_without_changes_should_error():
     with pytest.raises(ClientError) as e:
         client.copy_object(
             Bucket=bucket_name,
-            CopySource="{}/{}".format(bucket_name, key_name),
+            CopySource=f"{bucket_name}/{key_name}",
             Key=key_name,
         )
         e.value.response["Error"]["Message"].should.equal(
@@ -176,7 +174,7 @@ def test_copy_key_without_changes_should_not_error():
 
     client.copy_object(
         Bucket=bucket_name,
-        CopySource="{}/{}".format(bucket_name, key_name),
+        CopySource=f"{bucket_name}/{key_name}",
         Key=key_name,
         Metadata={"some-key": "some-value"},
         MetadataDirective="REPLACE",

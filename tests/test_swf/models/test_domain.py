@@ -18,7 +18,7 @@ def test_domain_short_dict_representation():
         {
             "name": "foo",
             "status": "REGISTERED",
-            "arn": "arn:aws:swf:{0}:{1}:/domain/foo".format(TEST_REGION, ACCOUNT_ID),
+            "arn": f"arn:aws:swf:{TEST_REGION}:{ACCOUNT_ID}:/domain/foo",
         }
     )
 

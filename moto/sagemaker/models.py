@@ -406,9 +406,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
             elif "ServerlessConfig" in production_variant.keys():
                 self.validate_serverless_config(production_variant["ServerlessConfig"])
             else:
-                message = "Invalid Keys for ProductionVariant: received {} but expected it to contain one of {}".format(
-                    production_variant.keys(), ["InstanceType", "ServerlessConfig"]
-                )
+                message = f"Invalid Keys for ProductionVariant: received {production_variant.keys()} but expected it to contain one of {['InstanceType', 'ServerlessConfig']}"
                 raise ValidationError(message=message)
 
     def validate_serverless_config(self, serverless_config):
@@ -416,9 +414,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         if not validators.is_one_of(
             serverless_config["MemorySizeInMB"], VALID_SERVERLESS_MEMORY_SIZE
         ):
-            message = "Value '{}' at 'MemorySizeInMB' failed to satisfy constraint: Member must satisfy enum value set: {}".format(
-                serverless_config["MemorySizeInMB"], VALID_SERVERLESS_MEMORY_SIZE
-            )
+            message = f"Value '{serverless_config['MemorySizeInMB']}' at 'MemorySizeInMB' failed to satisfy constraint: Member must satisfy enum value set: {VALID_SERVERLESS_MEMORY_SIZE}"
             raise ValidationError(message=message)
 
     def validate_instance_type(self, instance_type):
@@ -491,9 +487,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
             "ml.m4.4xlarge",
         ]
         if not validators.is_one_of(instance_type, VALID_INSTANCE_TYPES):
-            message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: {}".format(
-                instance_type, VALID_INSTANCE_TYPES
-            )
+            message = f"Value '{instance_type}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: {VALID_INSTANCE_TYPES}"
             raise ValidationError(message=message)
 
     @property
@@ -824,15 +818,13 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
             "ml.m4.4xlarge",
         ]
         if not validators.is_one_of(instance_type, VALID_INSTANCE_TYPES):
-            message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: {}".format(
-                instance_type, VALID_INSTANCE_TYPES
-            )
+            message = f"Value '{instance_type}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: {VALID_INSTANCE_TYPES}"
             raise ValidationError(message=message)
 
     @property
     def url(self):
-        return "{}.notebook.{}.sagemaker.aws".format(
-            self.notebook_instance_name, self.region_name
+        return (
+            f"{self.notebook_instance_name}.notebook.{self.region_name}.sagemaker.aws"
         )
 
     def start(self):
@@ -1325,10 +1317,10 @@ class SageMakerModelBackend(BaseBackend):
         try:
             del self.experiments[experiment_name]
         except KeyError:
-            message = "Could not find experiment configuration '{}'.".format(
-                FakeTrial.arn_formatter(experiment_name, self.region_name)
+            arn = FakeTrial.arn_formatter(experiment_name, self.region_name)
+            raise ValidationError(
+                message=f"Could not find experiment configuration '{arn}'."
             )
-            raise ValidationError(message=message)
 
     def create_trial(self, trial_name, experiment_name):
         trial = FakeTrial(
@@ -1346,19 +1338,17 @@ class SageMakerModelBackend(BaseBackend):
         try:
             return self.trials[trial_name].response_object
         except KeyError:
-            message = "Could not find trial '{}'.".format(
-                FakeTrial.arn_formatter(trial_name, self.region_name)
-            )
-            raise ValidationError(message=message)
+            arn = FakeTrial.arn_formatter(trial_name, self.region_name)
+            raise ValidationError(message=f"Could not find trial '{arn}'.")
 
     def delete_trial(self, trial_name):
         try:
             del self.trials[trial_name]
         except KeyError:
-            message = "Could not find trial configuration '{}'.".format(
-                FakeTrial.arn_formatter(trial_name, self.region_name)
+            arn = FakeTrial.arn_formatter(trial_name, self.region_name)
+            raise ValidationError(
+                message=f"Could not find trial configuration '{arn}'."
             )
-            raise ValidationError(message=message)
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_trials(self, experiment_name=None, trial_component_name=None):
@@ -1396,21 +1386,19 @@ class SageMakerModelBackend(BaseBackend):
         try:
             del self.trial_components[trial_component_name]
         except KeyError:
-            message = "Could not find trial-component configuration '{}'.".format(
-                FakeTrial.arn_formatter(trial_component_name, self.region_name)
+            arn = FakeTrial.arn_formatter(trial_component_name, self.region_name)
+            raise ValidationError(
+                message=f"Could not find trial-component configuration '{arn}'."
             )
-            raise ValidationError(message=message)
 
     def describe_trial_component(self, trial_component_name):
         try:
             return self.trial_components[trial_component_name].response_object
         except KeyError:
-            message = "Could not find trial component '{}'.".format(
-                FakeTrialComponent.arn_formatter(
-                    trial_component_name, self.account_id, self.region_name
-                )
+            arn = FakeTrialComponent.arn_formatter(
+                trial_component_name, self.account_id, self.region_name
             )
-            raise ValidationError(message=message)
+            raise ValidationError(message=f"Could not find trial component '{arn}'.")
 
     def _update_trial_component_details(self, trial_component_name, details_json):
         self.trial_components[trial_component_name].update(details_json)
@@ -1511,9 +1499,7 @@ class SageMakerModelBackend(BaseBackend):
     def _validate_unique_notebook_instance_name(self, notebook_instance_name):
         if notebook_instance_name in self.notebook_instances:
             duplicate_arn = self.notebook_instances[notebook_instance_name].arn
-            message = "Cannot create a duplicate Notebook Instance ({})".format(
-                duplicate_arn
-            )
+            message = f"Cannot create a duplicate Notebook Instance ({duplicate_arn})"
             raise ValidationError(message=message)
 
     def get_notebook_instance(self, notebook_instance_name):
@@ -1533,9 +1519,7 @@ class SageMakerModelBackend(BaseBackend):
     def delete_notebook_instance(self, notebook_instance_name):
         notebook_instance = self.get_notebook_instance(notebook_instance_name)
         if not notebook_instance.is_deletable:
-            message = "Status ({}) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({})".format(
-                notebook_instance.status, notebook_instance.arn
-            )
+            message = f"Status ({notebook_instance.status}) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({notebook_instance.arn})"
             raise ValidationError(message=message)
         del self.notebook_instances[notebook_instance_name]
 
@@ -1546,13 +1530,12 @@ class SageMakerModelBackend(BaseBackend):
             notebook_instance_lifecycle_config_name
             in self.notebook_instance_lifecycle_configurations
         ):
-            message = "Unable to create Notebook Instance Lifecycle Config {}. (Details: Notebook Instance Lifecycle Config already exists.)".format(
-                FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
-                    notebook_instance_lifecycle_config_name,
-                    self.account_id,
-                    self.region_name,
-                )
+            arn = FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+                notebook_instance_lifecycle_config_name,
+                self.account_id,
+                self.region_name,
             )
+            message = f"Unable to create Notebook Instance Lifecycle Config {arn}. (Details: Notebook Instance Lifecycle Config already exists.)"
             raise ValidationError(message=message)
         lifecycle_config = FakeSageMakerNotebookInstanceLifecycleConfig(
             account_id=self.account_id,
@@ -1574,13 +1557,12 @@ class SageMakerModelBackend(BaseBackend):
                 notebook_instance_lifecycle_config_name
             ].response_object
         except KeyError:
-            message = "Unable to describe Notebook Instance Lifecycle Config '{}'. (Details: Notebook Instance Lifecycle Config does not exist.)".format(
-                FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
-                    notebook_instance_lifecycle_config_name,
-                    self.account_id,
-                    self.region_name,
-                )
+            arn = FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+                notebook_instance_lifecycle_config_name,
+                self.account_id,
+                self.region_name,
             )
+            message = f"Unable to describe Notebook Instance Lifecycle Config '{arn}'. (Details: Notebook Instance Lifecycle Config does not exist.)"
             raise ValidationError(message=message)
 
     def delete_notebook_instance_lifecycle_config(
@@ -1591,13 +1573,12 @@ class SageMakerModelBackend(BaseBackend):
                 notebook_instance_lifecycle_config_name
             ]
         except KeyError:
-            message = "Unable to delete Notebook Instance Lifecycle Config '{}'. (Details: Notebook Instance Lifecycle Config does not exist.)".format(
-                FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
-                    notebook_instance_lifecycle_config_name,
-                    self.account_id,
-                    self.region_name,
-                )
+            arn = FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+                notebook_instance_lifecycle_config_name,
+                self.account_id,
+                self.region_name,
             )
+            message = f"Unable to delete Notebook Instance Lifecycle Config '{arn}'. (Details: Notebook Instance Lifecycle Config does not exist.)"
             raise ValidationError(message=message)
 
     def create_endpoint_config(
@@ -1867,11 +1848,10 @@ class SageMakerModelBackend(BaseBackend):
         try:
             return self.training_jobs[training_job_name].response_object
         except KeyError:
-            message = "Could not find training job '{}'.".format(
-                FakeTrainingJob.arn_formatter(
-                    training_job_name, self.account_id, self.region_name
-                )
+            arn = FakeTrainingJob.arn_formatter(
+                training_job_name, self.account_id, self.region_name
             )
+            message = f"Could not find training job '{arn}'."
             raise ValidationError(message=message)
 
     def list_training_jobs(

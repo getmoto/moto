@@ -253,7 +253,7 @@ def test_execution_of_remove_in_list(table):
 @pytest.mark.parametrize("attr_name", ["s", "#placeholder"])
 def test_execution_of_delete_element_from_set(table, attr_name):
     expression_attribute_names = {"#placeholder": "s"}
-    update_expression = "delete {} :value".format(attr_name)
+    update_expression = f"delete {attr_name} :value"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
@@ -276,7 +276,7 @@ def test_execution_of_delete_element_from_set(table, attr_name):
     assert expected_item == item
 
     # delete last elements
-    update_expression = "delete {} :value".format(attr_name)
+    update_expression = f"delete {attr_name} :value"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     validated_ast = UpdateExpressionValidator(
         update_expression_ast,

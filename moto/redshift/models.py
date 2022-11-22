@@ -219,9 +219,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     @property
     def endpoint(self):
-        return "{0}.cg034hpkmmjt.{1}.redshift.amazonaws.com".format(
-            self.cluster_identifier, self.region
-        )
+        return f"{self.cluster_identifier}.cg034hpkmmjt.{self.region}.redshift.amazonaws.com"
 
     @property
     def security_groups(self):
@@ -524,10 +522,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
 
     @property
     def resource_id(self):
-        return "{cluster_id}/{snapshot_id}".format(
-            cluster_id=self.cluster.cluster_identifier,
-            snapshot_id=self.snapshot_identifier,
-        )
+        return f"{self.cluster.cluster_identifier}/{self.snapshot_identifier}"
 
     def to_json(self):
         return {
@@ -604,7 +599,7 @@ class RedshiftBackend(BaseBackend):
                 )
             if kwargs["destination_region"] == self.region_name:
                 raise UnknownSnapshotCopyRegionFaultError(
-                    "Invalid region {}".format(self.region_name)
+                    f"Invalid region {self.region_name}"
                 )
             status = {
                 "DestinationRegion": kwargs["destination_region"],
@@ -641,9 +636,7 @@ class RedshiftBackend(BaseBackend):
             raise ClusterAlreadyExistsFaultError()
         cluster = Cluster(self, **cluster_kwargs)
         self.clusters[cluster_identifier] = cluster
-        snapshot_id = "rs:{}-{}".format(
-            cluster_identifier, datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M")
-        )
+        snapshot_id = f"rs:{cluster_identifier}-{datetime.datetime.utcnow().strftime('%Y-%m-%d-%H-%M')}"
         # Automated snapshots don't copy over the tags
         self.create_cluster_snapshot(
             cluster_identifier,
@@ -972,9 +965,8 @@ class RedshiftBackend(BaseBackend):
         resources = self.RESOURCE_TYPE_MAP.get(resource_type)
         if resources is None:
             message = (
-                "Tagging is not supported for this type of resource: '{0}' "
-                "(the ARN is potentially malformed, please check the ARN "
-                "documentation for more information)".format(resource_type)
+                f"Tagging is not supported for this type of resource: '{resource_type}' "
+                "(the ARN is potentially malformed, please check the ARN documentation for more information)"
             )
             raise ResourceNotFoundFaultError(message=message)
         try:

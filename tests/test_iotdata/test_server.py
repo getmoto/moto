@@ -18,7 +18,7 @@ def test_iotdata_list():
 
     # just making sure that server is up
     thing_name = "nothing"
-    res = test_client.get("/things/{}/shadow".format(thing_name))
+    res = test_client.get(f"/things/{thing_name}/shadow")
     res.status_code.should.equal(404)
 
 
@@ -37,5 +37,5 @@ def test_publish(url_encode_topic):
     topic = "test/topic"
     topic_for_path = quote(topic, safe="") if url_encode_topic else topic
 
-    result = test_client.post("/topics/{}".format(topic_for_path))
+    result = test_client.post(f"/topics/{topic_for_path}")
     result.status_code.should.equal(200)

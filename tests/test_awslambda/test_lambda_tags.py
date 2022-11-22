@@ -106,15 +106,15 @@ def test_tags_not_found():
     """
     conn = boto3.client("lambda", _lambda_region)
     conn.list_tags.when.called_with(
-        Resource="arn:aws:lambda:{}:function:not-found".format(ACCOUNT_ID)
+        Resource=f"arn:aws:lambda:{ACCOUNT_ID}:function:not-found"
     ).should.throw(botocore.client.ClientError)
 
     conn.tag_resource.when.called_with(
-        Resource="arn:aws:lambda:{}:function:not-found".format(ACCOUNT_ID),
+        Resource=f"arn:aws:lambda:{ACCOUNT_ID}:function:not-found",
         Tags=dict(spam="eggs"),
     ).should.throw(botocore.client.ClientError)
 
     conn.untag_resource.when.called_with(
-        Resource="arn:aws:lambda:{}:function:not-found".format(ACCOUNT_ID),
+        Resource=f"arn:aws:lambda:{ACCOUNT_ID}:function:not-found",
         TagKeys=["spam"],
     ).should.throw(botocore.client.ClientError)

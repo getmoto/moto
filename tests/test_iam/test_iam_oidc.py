@@ -18,7 +18,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.com".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.com"
     )
 
     response = client.create_open_id_connect_provider(
@@ -26,7 +26,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.org".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.org"
     )
 
     response = client.create_open_id_connect_provider(
@@ -34,7 +34,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.org/oidc".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.org/oidc"
     )
 
     response = client.create_open_id_connect_provider(
@@ -42,7 +42,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.org/oidc-query".format(ACCOUNT_ID)
+        f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.org/oidc-query"
     )
 
 
@@ -106,7 +106,7 @@ def test_create_open_id_connect_provider_too_many_entries():
 def test_create_open_id_connect_provider_quota_error():
     client = boto3.client("iam", region_name="us-east-1")
 
-    too_many_client_ids = ["{}".format(i) for i in range(101)]
+    too_many_client_ids = [f"{i}" for i in range(101)]
     with pytest.raises(ClientError) as e:
         client.create_open_id_connect_provider(
             Url="http://example.org",
@@ -155,7 +155,7 @@ def test_delete_open_id_connect_provider():
     client.get_open_id_connect_provider.when.called_with(
         OpenIDConnectProviderArn=open_id_arn
     ).should.throw(
-        ClientError, "OpenIDConnect Provider not found for arn {}".format(open_id_arn)
+        ClientError, f"OpenIDConnect Provider not found for arn {open_id_arn}"
     )
 
     # deleting a non existing provider should be successful
@@ -206,13 +206,11 @@ def test_get_open_id_connect_provider_errors():
     )
     open_id_arn = response["OpenIDConnectProviderArn"]
 
+    unknown_arn = open_id_arn + "-not-existing"
     client.get_open_id_connect_provider.when.called_with(
-        OpenIDConnectProviderArn=open_id_arn + "-not-existing"
+        OpenIDConnectProviderArn=unknown_arn
     ).should.throw(
-        ClientError,
-        "OpenIDConnect Provider not found for arn {}".format(
-            open_id_arn + "-not-existing"
-        ),
+        ClientError, f"OpenIDConnect Provider not found for arn {unknown_arn}"
     )
 
 

@@ -49,8 +49,8 @@ def test_state_machine_cloudformation():
     state_machine["definition"].should.equal(definition)
     tags = sf.list_tags_for_resource(resourceArn=output["StateMachineArn"]).get("tags")
     for i, tag in enumerate(tags, 1):
-        tag["key"].should.equal("key{}".format(i))
-        tag["value"].should.equal("value{}".format(i))
+        tag["key"].should.equal(f"key{i}")
+        tag["value"].should.equal(f"value{i}")
 
     cf.Stack("test_stack").delete()
     with pytest.raises(ClientError) as ex:

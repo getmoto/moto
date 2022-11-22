@@ -143,12 +143,8 @@ def test_create_multiple_deployments():
 
     response = client.get_deployments(restApiId=api_id)
 
-    response["items"][0]["id"].should.match(
-        r"{0}|{1}".format(deployment_id2, deployment_id)
-    )
-    response["items"][1]["id"].should.match(
-        r"{0}|{1}".format(deployment_id2, deployment_id)
-    )
+    response["items"][0]["id"].should.match(rf"{deployment_id2}|{deployment_id}")
+    response["items"][1]["id"].should.match(rf"{deployment_id2}|{deployment_id}")
 
 
 @mock_apigateway

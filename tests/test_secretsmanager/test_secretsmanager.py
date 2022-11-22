@@ -65,9 +65,7 @@ def test_get_secret_value_by_arn():
     secret_value = "test_get_secret_value_by_arn"
     result = conn.create_secret(Name=name, SecretString=secret_value)
     arn = result["ARN"]
-    arn.should.match(
-        "^arn:aws:secretsmanager:us-west-2:{}:secret:{}".format(ACCOUNT_ID, name)
-    )
+    arn.should.match(f"^arn:aws:secretsmanager:us-west-2:{ACCOUNT_ID}:secret:{name}")
 
     result = conn.get_secret_value(SecretId=arn)
     assert result["SecretString"] == secret_value
@@ -643,6 +641,22 @@ def test_rotate_secret():
 
     describe_secret = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
 
+    assert describe_secret["Description"] == "foodescription"
+
+
+@mock_secretsmanager
+def test_rotate_secret_without_secretstring():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, Description="foodescription")
+
+    rotated_secret = conn.rotate_secret(SecretId=DEFAULT_SECRET_NAME)
+
+    assert rotated_secret
+    assert rotated_secret["ARN"] == rotated_secret["ARN"]
+    assert rotated_secret["Name"] == DEFAULT_SECRET_NAME
+    assert rotated_secret["VersionId"] == rotated_secret["VersionId"]
+
+    describe_secret = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
     assert describe_secret["Description"] == "foodescription"
 
 

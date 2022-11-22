@@ -11,7 +11,7 @@ class ELBClientError(RESTError):
 class DuplicateTagKeysError(ELBClientError):
     def __init__(self, cidr):
         super().__init__(
-            "DuplicateTagKeys", "Tag key was specified more than once: {0}".format(cidr)
+            "DuplicateTagKeys", f"Tag key was specified more than once: {cidr}"
         )
 
 
@@ -107,10 +107,10 @@ class InvalidConditionFieldError(ELBClientError):
     ]
 
     def __init__(self, invalid_name):
+        valid = ",".join(self.VALID_FIELDS)
         super().__init__(
             "ValidationError",
-            "Condition field '%s' must be one of '[%s]'"
-            % (invalid_name, ",".join(self.VALID_FIELDS)),
+            f"Condition field '{invalid_name}' must be one of '[{valid}]'",
         )
 
 
@@ -123,14 +123,13 @@ class InvalidActionTypeError(ELBClientError):
     def __init__(self, invalid_name, index):
         super().__init__(
             "ValidationError",
-            "1 validation error detected: Value '%s' at 'actions.%s.member.type' failed to satisfy constraint: Member must satisfy enum value set: [forward, redirect, fixed-response]"
-            % (invalid_name, index),
+            f"1 validation error detected: Value '{invalid_name}' at 'actions.{index}.member.type' failed to satisfy constraint: Member must satisfy enum value set: [forward, redirect, fixed-response]",
         )
 
 
 class ActionTargetGroupNotFoundError(ELBClientError):
     def __init__(self, arn):
-        super().__init__("TargetGroupNotFound", "Target group '%s' not found" % arn)
+        super().__init__("TargetGroupNotFound", f"Target group '{arn}' not found")
 
 
 class ListenerOrBalancerMissingError(ELBClientError):
@@ -160,8 +159,7 @@ class RuleNotFoundError(ELBClientError):
 class DuplicatePriorityError(ELBClientError):
     def __init__(self, invalid_value):
         super().__init__(
-            "ValidationError",
-            "Priority '%s' was provided multiple times" % invalid_value,
+            "ValidationError", f"Priority '{invalid_value}' was provided multiple times"
         )
 
 

@@ -5,12 +5,12 @@ import os
 
 import requests
 from botocore.awsrequest import AWSPreparedRequest
-from typing import Any, Optional
+from typing import Any, Optional, Union, Tuple
 from urllib.parse import urlparse
 
 
 class Recorder:
-    def __init__(self):
+    def __init__(self) -> None:
         self._location = str(os.environ.get("MOTO_RECORDER_FILEPATH", "moto_recording"))
         self._os_enabled = bool(os.environ.get("MOTO_ENABLE_RECORDING", False))
         self._user_enabled = self._os_enabled
@@ -33,15 +33,15 @@ class Recorder:
 
         if body is None:
             if isinstance(request, AWSPreparedRequest):
-                body, body_encoded = self._encode_body(body=request.body)
+                body_str, body_encoded = self._encode_body(body=request.body)
             else:
                 try:
                     request_body = None
                     request_body_size = int(request.headers["Content-Length"])
                     request_body = request.environ["wsgi.input"].read(request_body_size)
-                    body, body_encoded = self._encode_body(body=request_body)
+                    body_str, body_encoded = self._encode_body(body=request_body)
                 except (AttributeError, KeyError):
-                    body = ""
+                    body_str = ""  # type: ignore[]
                     body_encoded = False
                 finally:
                     if request_body is not None:
@@ -49,15 +49,15 @@ class Recorder:
                             request_body = request_body.encode("utf-8")
                         request.environ["wsgi.input"] = io.BytesIO(request_body)
         else:
-            body, body_encoded = self._encode_body(body)
-        entry.update({"body": body, "body_encoded": body_encoded})
+            body_str, body_encoded = self._encode_body(body)
+        entry.update({"body": body_str, "body_encoded": body_encoded})
 
         filepath = self._location
         with open(filepath, "a+") as file:
             file.write(json.dumps(entry))
             file.write("\n")
 
-    def _encode_body(self, body):
+    def _encode_body(self, body: Any) -> Tuple[str, bool]:
         body_encoded = False
         try:
             if isinstance(body, io.BytesIO):
@@ -69,7 +69,7 @@ class Recorder:
             body = None
         return body, body_encoded
 
-    def reset_recording(self):
+    def reset_recording(self) -> None:
         """
         Resets the recording. This will erase any requests made previously.
         """
@@ -77,16 +77,16 @@ class Recorder:
         with open(filepath, "w"):
             pass
 
-    def start_recording(self):
+    def start_recording(self) -> None:
         """
         Start the recording, and append incoming requests to the log.
         """
         self._user_enabled = True
 
-    def stop_recording(self):
+    def stop_recording(self) -> None:
         self._user_enabled = False
 
-    def upload_recording(self, data):
+    def upload_recording(self, data: Union[str, bytes]) -> None:
         """
         Replaces the current log. Remember to replay the recording afterwards.
         """
@@ -96,7 +96,7 @@ class Recorder:
         with open(filepath, "bw") as file:
             file.write(data)
 
-    def download_recording(self):
+    def download_recording(self) -> str:
         """
         Download the current recording. The result can be uploaded afterwards.
         """
@@ -104,7 +104,7 @@ class Recorder:
         with open(filepath, "r") as file:
             return file.read()
 
-    def replay_recording(self, target_host=None):
+    def replay_recording(self, target_host: Optional[str] = None) -> None:
         """
         Replays the current log, i.e. replay all requests that were made after the recorder was started.
         Download the recording if you want to manually verify the correct requests will be replayed.

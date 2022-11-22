@@ -26,7 +26,7 @@ class SecretHasNoValueException(SecretsManagerClientError):
         super().__init__(
             "ResourceNotFoundException",
             message="Secrets Manager can't find the specified secret "
-            "value for staging label: {}".format(version_stage),
+            f"value for staging label: {version_stage}",
         )
 
 

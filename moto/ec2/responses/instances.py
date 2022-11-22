@@ -363,9 +363,7 @@ class InstanceResponse(EC2BaseResponse):
         if "no_device" in device_mapping:
             assert isinstance(
                 device_mapping["no_device"], str
-            ), "botocore {} isn't limiting NoDevice to str type anymore, it is type:{}".format(
-                botocore_version, type(device_mapping["no_device"])
-            )
+            ), f"botocore {botocore_version} isn't limiting NoDevice to str type anymore, it is type:{type(device_mapping['no_device'])}"
             if device_mapping["no_device"] == "":
                 # the only legit value it can have is empty string
                 # and none of the other checks here matter if NoDevice

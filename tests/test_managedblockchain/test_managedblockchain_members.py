@@ -171,7 +171,7 @@ def test_create_another_member_withopts():
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidRequestException")
-    err["Message"].should.contain("Invitation {0} not valid".format(invitation_id))
+    err["Message"].should.contain(f"Invitation {invitation_id} not valid")
 
     # Delete member 2
     conn.delete_member(NetworkId=network_id, MemberId=member_id2)
@@ -186,7 +186,7 @@ def test_create_another_member_withopts():
         conn.get_member(NetworkId=network_id, MemberId=member_id2)
     err = ex.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Member {0} not found".format(member_id2))
+    err["Message"].should.contain(f"Member {member_id2} not found")
 
     # Delete member 1
     conn.delete_member(NetworkId=network_id, MemberId=member_id)
@@ -422,9 +422,7 @@ def test_create_another_member_alreadyhave():
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidRequestException")
     err["Message"].should.contain(
-        "Member name {0} already exists in network {1}".format(
-            "testmember1", network_id
-        )
+        f"Member name testmember1 already exists in network {network_id}"
     )
 
 

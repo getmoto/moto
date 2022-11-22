@@ -622,6 +622,7 @@ CREATE_INVALIDATION_TEMPLATE = """<?xml version="1.0"?>
 INVALIDATIONS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
 <InvalidationList>
    <IsTruncated>false</IsTruncated>
+   {% if invalidations %}
    <Items>
       {% for invalidation in invalidations %}
       <InvalidationSummary>
@@ -631,6 +632,7 @@ INVALIDATIONS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
       </InvalidationSummary>
       {% endfor %}
    </Items>
+   {% endif %}
    <Marker></Marker>
    <MaxItems>100</MaxItems>
    <Quantity>{{ invalidations|length }}</Quantity>

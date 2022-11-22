@@ -60,17 +60,13 @@ def test_list_functions():
     v1 = [f for f in our_functions if f["Version"] == "1"][0]
     v1["Description"].should.equal("v2")
     v1["FunctionArn"].should.equal(
-        "arn:aws:lambda:{}:{}:function:{}:1".format(
-            _lambda_region, ACCOUNT_ID, function_name
-        )
+        f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}:1"
     )
 
     latest = [f for f in our_functions if f["Version"] == "$LATEST"][0]
     latest["Description"].should.equal("")
     latest["FunctionArn"].should.equal(
-        "arn:aws:lambda:{}:{}:function:{}:$LATEST".format(
-            _lambda_region, ACCOUNT_ID, function_name
-        )
+        f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}:$LATEST"
     )
 
 
@@ -125,9 +121,7 @@ def test_create_function_from_aws_bucket():
 
     result.should.have.key("FunctionName").equals(function_name)
     result.should.have.key("FunctionArn").equals(
-        "arn:aws:lambda:{}:{}:function:{}".format(
-            _lambda_region, ACCOUNT_ID, function_name
-        )
+        f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}"
     )
     result.should.have.key("Runtime").equals("python2.7")
     result.should.have.key("Handler").equals("lambda_function.lambda_handler")
@@ -163,9 +157,7 @@ def test_create_function_from_zipfile():
     result.should.equal(
         {
             "FunctionName": function_name,
-            "FunctionArn": "arn:aws:lambda:{}:{}:function:{}".format(
-                _lambda_region, ACCOUNT_ID, function_name
-            ),
+            "FunctionArn": f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}",
             "Runtime": "python2.7",
             "Role": result["Role"],
             "Handler": "lambda_function.lambda_handler",
@@ -281,7 +273,7 @@ def test_get_function():
     result["Configuration"].pop("LastModified")
 
     result["Code"]["Location"].should.equal(
-        "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/test.zip".format(_lambda_region)
+        f"s3://awslambda-{_lambda_region}-tasks.s3-{_lambda_region}.amazonaws.com/test.zip"
     )
     result["Code"]["RepositoryType"].should.equal("S3")
 
@@ -309,9 +301,7 @@ def test_get_function():
     result = conn.get_function(FunctionName=function_name, Qualifier="$LATEST")
     result["Configuration"]["Version"].should.equal("$LATEST")
     result["Configuration"]["FunctionArn"].should.equal(
-        "arn:aws:lambda:us-west-2:{}:function:{}:$LATEST".format(
-            ACCOUNT_ID, function_name
-        )
+        f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:$LATEST"
     )
 
     # Test get function when can't find function name
@@ -376,9 +366,7 @@ def test_get_function_configuration(key):
     )
     result["Version"].should.equal("$LATEST")
     result["FunctionArn"].should.equal(
-        "arn:aws:lambda:{}:{}:function:{}:$LATEST".format(
-            _lambda_region, ACCOUNT_ID, function_name
-        )
+        f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}:$LATEST"
     )
 
     # Test get function when can't find function name
@@ -591,7 +579,7 @@ def test_publish():
 
     # #SetComprehension ;-)
     published_arn = list({f["FunctionArn"] for f in our_functions} - {latest_arn})[0]
-    published_arn.should.contain("{}:1".format(function_name))
+    published_arn.should.contain(f"{function_name}:1")
 
     conn.delete_function(FunctionName=function_name, Qualifier="1")
 
@@ -639,9 +627,7 @@ def test_list_create_list_get_delete_list():
     )
     expected_function_result = {
         "Code": {
-            "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/test.zip".format(
-                _lambda_region
-            ),
+            "Location": f"s3://awslambda-{_lambda_region}-tasks.s3-{_lambda_region}.amazonaws.com/test.zip",
             "RepositoryType": "S3",
         },
         "Configuration": {
@@ -673,9 +659,7 @@ def test_list_create_list_get_delete_list():
         f["FunctionArn"] for f in functions if f["FunctionName"] == function_name
     ][0]
     func_arn.should.equal(
-        "arn:aws:lambda:{}:{}:function:{}".format(
-            _lambda_region, ACCOUNT_ID, function_name
-        )
+        f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}"
     )
     functions = conn.list_functions(FunctionVersion="ALL")["Functions"]
     our_functions = [f for f in functions if f["FunctionName"] == function_name]
@@ -683,9 +667,7 @@ def test_list_create_list_get_delete_list():
 
     latest = [f for f in our_functions if f["Version"] == "$LATEST"][0]
     latest["FunctionArn"].should.equal(
-        "arn:aws:lambda:{}:{}:function:{}:$LATEST".format(
-            _lambda_region, ACCOUNT_ID, function_name
-        )
+        f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}:$LATEST"
     )
     latest.pop("FunctionArn")
     latest.pop("LastModified")
@@ -694,17 +676,13 @@ def test_list_create_list_get_delete_list():
     published = [f for f in our_functions if f["Version"] != "$LATEST"][0]
     published["Version"].should.equal("1")
     published["FunctionArn"].should.equal(
-        "arn:aws:lambda:{}:{}:function:{}:1".format(
-            _lambda_region, ACCOUNT_ID, function_name
-        )
+        f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}:1"
     )
 
     func = conn.get_function(FunctionName=function_name)
 
     func["Configuration"]["FunctionArn"].should.equal(
-        "arn:aws:lambda:{}:{}:function:{}".format(
-            _lambda_region, ACCOUNT_ID, function_name
-        )
+        f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}"
     )
 
     # this is hard to match against, so remove it
@@ -746,7 +724,7 @@ def test_get_function_created_with_zipfile():
     assert len(response["Code"]) == 2
     assert response["Code"]["RepositoryType"] == "S3"
     assert response["Code"]["Location"].startswith(
-        "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com".format(_lambda_region)
+        f"s3://awslambda-{_lambda_region}-tasks.s3-{_lambda_region}.amazonaws.com"
     )
     response.should.have.key("Configuration")
     config = response["Configuration"]
@@ -801,17 +779,18 @@ def test_list_versions_by_function():
     assert res["ResponseMetadata"]["HTTPStatusCode"] == 201
     versions = conn.list_versions_by_function(FunctionName=function_name)
     assert len(versions["Versions"]) == 3
-    assert versions["Versions"][0][
-        "FunctionArn"
-    ] == "arn:aws:lambda:us-west-2:{}:function:{}:$LATEST".format(
-        ACCOUNT_ID, function_name
+    assert (
+        versions["Versions"][0]["FunctionArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:$LATEST"
     )
-    assert versions["Versions"][1][
-        "FunctionArn"
-    ] == "arn:aws:lambda:us-west-2:{}:function:{}:1".format(ACCOUNT_ID, function_name)
-    assert versions["Versions"][2][
-        "FunctionArn"
-    ] == "arn:aws:lambda:us-west-2:{}:function:{}:2".format(ACCOUNT_ID, function_name)
+    assert (
+        versions["Versions"][1]["FunctionArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:1"
+    )
+    assert (
+        versions["Versions"][2]["FunctionArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:2"
+    )
 
     conn.create_function(
         FunctionName="testFunction_2",
@@ -826,10 +805,9 @@ def test_list_versions_by_function():
     )
     versions = conn.list_versions_by_function(FunctionName="testFunction_2")
     assert len(versions["Versions"]) == 1
-    assert versions["Versions"][0][
-        "FunctionArn"
-    ] == "arn:aws:lambda:us-west-2:{}:function:testFunction_2:$LATEST".format(
-        ACCOUNT_ID
+    assert (
+        versions["Versions"][0]["FunctionArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:testFunction_2:$LATEST"
     )
 
 
@@ -980,7 +958,7 @@ def test_update_function_zip(key):
     assert len(response["Code"]) == 2
     assert response["Code"]["RepositoryType"] == "S3"
     assert response["Code"]["Location"].startswith(
-        "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com".format(_lambda_region)
+        f"s3://awslambda-{_lambda_region}-tasks.s3-{_lambda_region}.amazonaws.com"
     )
 
     config = response["Configuration"]
@@ -1038,7 +1016,7 @@ def test_update_function_s3():
     assert len(response["Code"]) == 2
     assert response["Code"]["RepositoryType"] == "S3"
     assert response["Code"]["Location"].startswith(
-        "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com".format(_lambda_region)
+        f"s3://awslambda-{_lambda_region}-tasks.s3-{_lambda_region}.amazonaws.com"
     )
 
     config = response["Configuration"]

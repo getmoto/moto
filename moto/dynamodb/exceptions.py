@@ -157,18 +157,14 @@ class ItemSizeToUpdateTooLarge(MockValidationException):
 
 class HashKeyTooLong(MockValidationException):
     # deliberately no space between of and {lim}
-    key_too_large_msg = "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of{lim} bytes".format(
-        lim=HASH_KEY_MAX_LENGTH
-    )
+    key_too_large_msg = f"One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of{HASH_KEY_MAX_LENGTH} bytes"
 
     def __init__(self):
         super().__init__(self.key_too_large_msg)
 
 
 class RangeKeyTooLong(MockValidationException):
-    key_too_large_msg = "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of {lim} bytes".format(
-        lim=RANGE_KEY_MAX_LENGTH
-    )
+    key_too_large_msg = f"One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of {RANGE_KEY_MAX_LENGTH} bytes"
 
     def __init__(self):
         super().__init__(self.key_too_large_msg)
@@ -233,7 +229,10 @@ class MultipleTransactionsException(MockValidationException):
 
 
 class TooManyTransactionsException(MockValidationException):
-    msg = "Validation error at transactItems: Member must have length less than or equal to 25."
+    msg = (
+        "1 validation error detected at 'transactItems' failed to satisfy constraint: "
+        "Member must have length less than or equal to 100."
+    )
 
     def __init__(self):
         super().__init__(self.msg)
@@ -285,26 +284,25 @@ class ResourceNotFoundException(JsonRESTError):
 class TableNotFoundException(JsonRESTError):
     def __init__(self, name):
         err = "com.amazonaws.dynamodb.v20111205#TableNotFoundException"
-        msg = "Table not found: {}".format(name)
-        super().__init__(err, msg)
+        super().__init__(err, f"Table not found: {name}")
 
 
 class SourceTableNotFoundException(JsonRESTError):
     def __init__(self, source_table_name):
         er = "com.amazonaws.dynamodb.v20111205#SourceTableNotFoundException"
-        super().__init__(er, "Source table not found: %s" % source_table_name)
+        super().__init__(er, f"Source table not found: {source_table_name}")
 
 
 class BackupNotFoundException(JsonRESTError):
     def __init__(self, backup_arn):
         er = "com.amazonaws.dynamodb.v20111205#BackupNotFoundException"
-        super().__init__(er, "Backup not found: %s" % backup_arn)
+        super().__init__(er, f"Backup not found: {backup_arn}")
 
 
 class TableAlreadyExistsException(JsonRESTError):
     def __init__(self, target_table_name):
         er = "com.amazonaws.dynamodb.v20111205#TableAlreadyExistsException"
-        super().__init__(er, "Table already exists: %s" % target_table_name)
+        super().__init__(er, f"Table already exists: {target_table_name}")
 
 
 class ResourceInUseException(JsonRESTError):

@@ -120,7 +120,7 @@ def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
     )
     for i in range(1, 10):
         response = requests.get(presigned_url)
-        assert response.status_code == 200, "Failed on req number {}".format(i)
+        assert response.status_code == 200, f"Failed on req number {i}"
 
 
 @mock_s3

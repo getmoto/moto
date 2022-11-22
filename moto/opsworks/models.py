@@ -81,7 +81,7 @@ class OpsworkInstance(BaseModel):
         self.infrastructure_class = "ec2 (fixed)"
         self.platform = "linux (fixed)"
 
-        self.id = "{0}".format(random.uuid4())
+        self.id = str(random.uuid4())
         self.created_at = datetime.datetime.utcnow()
 
     def start(self):
@@ -271,7 +271,7 @@ class Layer(BaseModel):
         self.install_updates_on_boot = install_updates_on_boot
         self.use_ebs_optimized_instances = use_ebs_optimized_instances
 
-        self.id = "{0}".format(random.uuid4())
+        self.id = str(random.uuid4())
         self.created_at = datetime.datetime.utcnow()
 
     def __eq__(self, other):
@@ -367,7 +367,7 @@ class Stack(BaseModel):
         self.default_root_device_type = default_root_device_type
         self.agent_version = agent_version
 
-        self.id = "{0}".format(random.uuid4())
+        self.id = str(random.uuid4())
         self.layers = []
         self.apps = []
         self.account_number = account_id
@@ -378,16 +378,11 @@ class Stack(BaseModel):
 
     def generate_hostname(self):
         # this doesn't match amazon's implementation
-        return "{theme}-{rand}-(moto)".format(
-            theme=self.hostname_theme,
-            rand=[random.choice("abcdefghijhk") for _ in range(4)],
-        )
+        return f"{self.hostname_theme}-{[random.choice('abcdefghijhk') for _ in range(4)]}-(moto)"
 
     @property
     def arn(self):
-        return "arn:aws:opsworks:{region}:{account_number}:stack/{id}".format(
-            region=self.region, account_number=self.account_number, id=self.id
-        )
+        return f"arn:aws:opsworks:{self.region}:{self.account_number}:stack/{self.id}"
 
     def to_dict(self):
         response = {
@@ -468,7 +463,7 @@ class App(BaseModel):
         if environment is None:
             self.environment = {}
 
-        self.id = "{0}".format(random.uuid4())
+        self.id = str(random.uuid4())
         self.created_at = datetime.datetime.utcnow()
 
     def __eq__(self, other):
@@ -516,12 +511,11 @@ class OpsWorksBackend(BaseBackend):
             raise ResourceNotFoundException(stackid)
         if name in [layer.name for layer in self.stacks[stackid].layers]:
             raise ValidationException(
-                'There is already a layer named "{0}" ' "for this stack".format(name)
+                f'There is already a layer named "{name}" for this stack'
             )
         if shortname in [layer.shortname for layer in self.stacks[stackid].layers]:
             raise ValidationException(
-                'There is already a layer with shortname "{0}" '
-                "for this stack".format(shortname)
+                f'There is already a layer with shortname "{shortname}" for this stack'
             )
         layer = Layer(**kwargs)
         self.layers[layer.id] = layer
@@ -535,7 +529,7 @@ class OpsWorksBackend(BaseBackend):
             raise ResourceNotFoundException(stackid)
         if name in [a.name for a in self.stacks[stackid].apps]:
             raise ValidationException(
-                'There is already an app named "{0}" ' "for this stack".format(name)
+                f'There is already an app named "{name}" for this stack'
             )
         app = App(**kwargs)
         self.apps[app.id] = app
@@ -547,9 +541,7 @@ class OpsWorksBackend(BaseBackend):
         layer_ids = kwargs["layer_ids"]
 
         if stack_id not in self.stacks:
-            raise ResourceNotFoundException(
-                "Unable to find stack with ID {0}".format(stack_id)
-            )
+            raise ResourceNotFoundException(f"Unable to find stack with ID {stack_id}")
 
         unknown_layers = set(layer_ids) - set(self.layers.keys())
         if unknown_layers:
@@ -601,7 +593,7 @@ class OpsWorksBackend(BaseBackend):
         if stack_id is not None:
             if stack_id not in self.stacks:
                 raise ResourceNotFoundException(
-                    "Unable to find stack with ID {0}".format(stack_id)
+                    f"Unable to find stack with ID {stack_id}"
                 )
             return [layer.to_dict() for layer in self.stacks[stack_id].layers]
 
@@ -618,7 +610,7 @@ class OpsWorksBackend(BaseBackend):
         if stack_id is not None:
             if stack_id not in self.stacks:
                 raise ResourceNotFoundException(
-                    "Unable to find stack with ID {0}".format(stack_id)
+                    f"Unable to find stack with ID {stack_id}"
                 )
             return [app.to_dict() for app in self.stacks[stack_id].apps]
 
@@ -643,7 +635,7 @@ class OpsWorksBackend(BaseBackend):
         if layer_id:
             if layer_id not in self.layers:
                 raise ResourceNotFoundException(
-                    "Unable to find layer with ID {0}".format(layer_id)
+                    f"Unable to find layer with ID {layer_id}"
                 )
             instances = [
                 i.to_dict() for i in self.instances.values() if layer_id in i.layer_ids
@@ -653,7 +645,7 @@ class OpsWorksBackend(BaseBackend):
         if stack_id:
             if stack_id not in self.stacks:
                 raise ResourceNotFoundException(
-                    "Unable to find stack with ID {0}".format(stack_id)
+                    f"Unable to find stack with ID {stack_id}"
                 )
             instances = [
                 i.to_dict() for i in self.instances.values() if stack_id == i.stack_id
@@ -663,7 +655,7 @@ class OpsWorksBackend(BaseBackend):
     def start_instance(self, instance_id):
         if instance_id not in self.instances:
             raise ResourceNotFoundException(
-                "Unable to find instance with ID {0}".format(instance_id)
+                f"Unable to find instance with ID {instance_id}"
             )
         self.instances[instance_id].start()
 

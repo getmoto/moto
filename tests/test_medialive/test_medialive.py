@@ -11,7 +11,7 @@ region = "eu-west-1"
 def _create_input_config(name, **kwargs):
     role_arn = kwargs.get(
         "role_arn",
-        "arn:aws:iam::{}:role/TestMediaLiveInputCreateRole".format(ACCOUNT_ID),
+        f"arn:aws:iam::{ACCOUNT_ID}:role/TestMediaLiveInputCreateRole",
     )
     input_type = kwargs.get("type", "RTP_PUSH")
     request_id = kwargs.get("request_id", uuid4().hex)
@@ -52,7 +52,7 @@ def _create_input_config(name, **kwargs):
 def _create_channel_config(name, **kwargs):
     role_arn = kwargs.get(
         "role_arn",
-        "arn:aws:iam::{}:role/TestMediaLiveChannelCreateRole".format(ACCOUNT_ID),
+        f"arn:aws:iam::{ACCOUNT_ID}:role/TestMediaLiveChannelCreateRole",
     )
     input_id = kwargs.get("input_id", "an-attachment-id")
     input_settings = kwargs.get(
@@ -114,7 +114,7 @@ def test_create_channel_succeeds():
 
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     response["Channel"]["Arn"].should.equal(
-        "arn:aws:medialive:channel:{}".format(response["Channel"]["Id"])
+        f"arn:aws:medialive:channel:{response['Channel']['Id']}"
     )
     response["Channel"]["Destinations"].should.equal(channel_config["Destinations"])
     response["Channel"]["EncoderSettings"].should.equal(
@@ -175,7 +175,7 @@ def test_describe_channel_succeeds():
     )
 
     describe_response["Arn"].should.equal(
-        "arn:aws:medialive:channel:{}".format(describe_response["Id"])
+        f"arn:aws:medialive:channel:{describe_response['Id']}"
     )
     describe_response["Destinations"].should.equal(channel_config["Destinations"])
     describe_response["EncoderSettings"].should.equal(channel_config["EncoderSettings"])
@@ -256,7 +256,7 @@ def test_create_input_succeeds():
     r_input = create_response["Input"]
     input_id = r_input["Id"]
     assert len(input_id) > 1
-    r_input["Arn"].should.equal("arn:aws:medialive:input:{}".format(r_input["Id"]))
+    r_input["Arn"].should.equal(f"arn:aws:medialive:input:{r_input['Id']}")
     r_input["Name"].should.equal(input_name)
     r_input["AttachedChannels"].should.equal([])
     r_input["Destinations"].should.equal(input_config["Destinations"])

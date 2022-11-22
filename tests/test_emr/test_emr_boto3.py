@@ -183,9 +183,7 @@ def test_describe_cluster():
     cl["TerminationProtected"].should.equal(False)
     cl["VisibleToAllUsers"].should.equal(True)
     cl["ClusterArn"].should.equal(
-        "arn:aws:elasticmapreduce:{0}:{1}:cluster/{2}".format(
-            region_name, ACCOUNT_ID, cluster_id
-        )
+        f"arn:aws:elasticmapreduce:{region_name}:{ACCOUNT_ID}:cluster/{cluster_id}"
     )
 
 
@@ -396,7 +394,7 @@ def test_run_job_flow():
     args = deepcopy(run_job_flow_args)
     resp = client.run_job_flow(**args)
     resp["ClusterArn"].startswith(
-        "arn:aws:elasticmapreduce:{0}:{1}:cluster/".format(region_name, ACCOUNT_ID)
+        f"arn:aws:elasticmapreduce:{region_name}:{ACCOUNT_ID}:cluster/"
     )
     job_flow_id = resp["JobFlowId"]
     resp = client.describe_job_flows(JobFlowIds=[job_flow_id])["JobFlows"][0]
@@ -584,9 +582,7 @@ def test_put_remove_auto_scaling_policy():
     del resp["AutoScalingPolicy"]["Status"]
     resp["AutoScalingPolicy"].should.equal(auto_scaling_policy_with_cluster_id)
     resp["ClusterArn"].should.equal(
-        "arn:aws:elasticmapreduce:{0}:{1}:cluster/{2}".format(
-            region_name, ACCOUNT_ID, cluster_id
-        )
+        f"arn:aws:elasticmapreduce:{region_name}:{ACCOUNT_ID}:cluster/{cluster_id}"
     )
 
     core_instance_group = [

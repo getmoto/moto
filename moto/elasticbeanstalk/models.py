@@ -20,7 +20,7 @@ class FakeEnvironment(BaseModel):
 
     @property
     def environment_arn(self):
-        resource_path = "%s/%s" % (self.application_name, self.environment_name)
+        resource_path = f"{self.application_name}/{self.environment_name}"
         return make_arn(
             self.region, self.application.account_id, "environment", resource_path
         )
@@ -77,7 +77,7 @@ class EBBackend(BaseBackend):
     def create_application(self, application_name):
         if application_name in self.applications:
             raise InvalidParameterValueError(
-                "Application {} already exists.".format(application_name)
+                f"Application {application_name} already exists."
             )
         new_app = FakeApplication(backend=self, application_name=application_name)
         self.applications[application_name] = new_app
@@ -104,7 +104,7 @@ class EBBackend(BaseBackend):
             res = self._find_environment_by_arn(resource_arn)
         except KeyError:
             raise ResourceNotFoundException(
-                "Resource not found for ARN '{}'.".format(resource_arn)
+                f"Resource not found for ARN '{resource_arn}'."
             )
 
         for key, value in tags_to_add.items():
@@ -118,7 +118,7 @@ class EBBackend(BaseBackend):
             res = self._find_environment_by_arn(resource_arn)
         except KeyError:
             raise ResourceNotFoundException(
-                "Resource not found for ARN '{}'.".format(resource_arn)
+                f"Resource not found for ARN '{resource_arn}'."
             )
         return res.tags
 

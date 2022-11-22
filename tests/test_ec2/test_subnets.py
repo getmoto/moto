@@ -356,11 +356,7 @@ def test_create_subnet_response_fields():
     subnet.should.have.key("AssignIpv6AddressOnCreation").which.should.equal(False)
     subnet.should.have.key("Ipv6Native").which.should.equal(False)
 
-    subnet_arn = "arn:aws:ec2:{region}:{owner_id}:subnet/{subnet_id}".format(
-        region=subnet["AvailabilityZone"][0:-1],
-        owner_id=subnet["OwnerId"],
-        subnet_id=subnet["SubnetId"],
-    )
+    subnet_arn = f"arn:aws:ec2:{subnet['AvailabilityZone'][0:-1]}:{subnet['OwnerId']}:subnet/{subnet['SubnetId']}"
     subnet.should.have.key("SubnetArn").which.should.equal(subnet_arn)
     subnet.should.have.key("Ipv6CidrBlockAssociationSet").which.should.equal([])
 
@@ -393,11 +389,7 @@ def test_describe_subnet_response_fields():
     subnet.should.have.key("AssignIpv6AddressOnCreation").which.should.equal(False)
     subnet.should.have.key("Ipv6Native").which.should.equal(False)
 
-    subnet_arn = "arn:aws:ec2:{region}:{owner_id}:subnet/{subnet_id}".format(
-        region=subnet["AvailabilityZone"][0:-1],
-        owner_id=subnet["OwnerId"],
-        subnet_id=subnet["SubnetId"],
-    )
+    subnet_arn = f"arn:aws:ec2:{subnet['AvailabilityZone'][0:-1]}:{subnet['OwnerId']}:subnet/{subnet['SubnetId']}"
     subnet.should.have.key("SubnetArn").which.should.equal(subnet_arn)
     subnet.should.have.key("Ipv6CidrBlockAssociationSet").which.should.equal([])
 
@@ -418,9 +410,7 @@ def test_create_subnet_with_invalid_availability_zone():
         )
     assert str(ex.value).startswith(
         "An error occurred (InvalidParameterValue) when calling the CreateSubnet "
-        "operation: Value ({}) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: ".format(
-            subnet_availability_zone
-        )
+        f"operation: Value ({subnet_availability_zone}) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: "
     )
 
 
@@ -437,7 +427,7 @@ def test_create_subnet_with_invalid_cidr_range():
         ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
-        "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block)
+        f"operation: The CIDR '{subnet_cidr_block}' is invalid."
     )
 
 
@@ -455,7 +445,7 @@ def test_create_subnet_with_invalid_cidr_range_multiple_vpc_cidr_blocks():
         ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
-        "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block)
+        f"operation: The CIDR '{subnet_cidr_block}' is invalid."
     )
 
 
@@ -472,9 +462,7 @@ def test_create_subnet_with_invalid_cidr_block_parameter():
         ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateSubnet "
-        "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(
-            subnet_cidr_block
-        )
+        f"operation: Value ({subnet_cidr_block}) for parameter cidrBlock is invalid. This is not a valid CIDR block."
     )
 
 
@@ -532,9 +520,7 @@ def test_create_subnets_with_overlapping_cidr_blocks():
         ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidSubnet.Conflict) when calling the CreateSubnet "
-        "operation: The CIDR '{}' conflicts with another subnet".format(
-            subnet_cidr_block
-        )
+        f"operation: The CIDR '{subnet_cidr_block}' conflicts with another subnet"
     )
 
 

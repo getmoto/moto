@@ -168,7 +168,7 @@ class SWFBackend(BaseBackend):
         workflow_version,
         tag_list=None,
         workflow_input=None,
-        **kwargs
+        **kwargs,
     ):
         domain = self._get_domain(domain_name)
         wf_type = domain.get_type("workflow", workflow_name, workflow_version)
@@ -180,7 +180,7 @@ class SWFBackend(BaseBackend):
             workflow_id,
             tag_list=tag_list,
             workflow_input=workflow_input,
-            **kwargs
+            **kwargs,
         )
         domain.add_workflow_execution(wfe)
         wfe.start()
@@ -212,9 +212,27 @@ class SWFBackend(BaseBackend):
         #
         # TODO: handle long polling (case 2) for decision tasks
         candidates = []
-        for _task_list, tasks in domain.decision_task_lists.items():
-            if _task_list == task_list:
-                candidates += [t for t in tasks if t.state == "SCHEDULED"]
+
+        # Collect candidate scheduled tasks from open workflow executions
+        # matching the selected task list.
+        #
+        # If another decision task is already started, then no candidates
+        # will be produced for that workflow execution. This is because only one
+        # decision task can be started at any given time.
+        # See https://docs.aws.amazon.com/amazonswf/latest/developerguide/swf-dev-tasks.html
+        for wfe in domain.workflow_executions:
+            if wfe.task_list == task_list and wfe.open:
+                wfe_candidates = []
+                found_started = False
+                for task in wfe.decision_tasks:
+                    if task.state == "STARTED":
+                        found_started = True
+                        break
+                    elif task.state == "SCHEDULED":
+                        wfe_candidates.append(task)
+                if not found_started:
+                    candidates += wfe_candidates
+
         if any(candidates):
             # TODO: handle task priorities (but not supported by boto for now)
             task = min(candidates, key=lambda d: d.scheduled_at)
@@ -266,17 +284,13 @@ class SWFBackend(BaseBackend):
         if not wfe.open:
             raise SWFUnknownResourceFault(
                 "execution",
-                "WorkflowExecution=[workflowId={0}, runId={1}]".format(
-                    wfe.workflow_id, wfe.run_id
-                ),
+                f"WorkflowExecution=[workflowId={wfe.workflow_id}, runId={wfe.run_id}]",
             )
         # decision task found, but already completed
         if decision_task.state != "STARTED":
             if decision_task.state == "COMPLETED":
                 raise SWFUnknownResourceFault(
-                    "decision task, scheduledEventId = {0}".format(
-                        decision_task.scheduled_event_id
-                    )
+                    f"decision task, scheduledEventId = {decision_task.scheduled_event_id}"
                 )
             else:
                 raise ValueError(
@@ -357,17 +371,13 @@ class SWFBackend(BaseBackend):
         if not wfe.open:
             raise SWFUnknownResourceFault(
                 "execution",
-                "WorkflowExecution=[workflowId={0}, runId={1}]".format(
-                    wfe.workflow_id, wfe.run_id
-                ),
+                f"WorkflowExecution=[workflowId={wfe.workflow_id}, runId={wfe.run_id}]",
             )
         # activity task found, but already completed
         if activity_task.state != "STARTED":
             if activity_task.state == "COMPLETED":
                 raise SWFUnknownResourceFault(
-                    "activity, scheduledEventId = {0}".format(
-                        activity_task.scheduled_event_id
-                    )
+                    f"activity, scheduledEventId = {activity_task.scheduled_event_id}"
                 )
             else:
                 raise ValueError(

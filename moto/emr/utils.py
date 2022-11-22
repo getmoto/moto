@@ -15,15 +15,15 @@ def random_id(size=13):
 
 
 def random_cluster_id():
-    return "j-{0}".format(random_id())
+    return f"j-{random_id()}"
 
 
 def random_step_id():
-    return "s-{0}".format(random_id())
+    return f"s-{random_id()}"
 
 
 def random_instance_group_id():
-    return "i-{0}".format(random_id())
+    return f"i-{random_id()}"
 
 
 def steps_from_query_string(querystring_dict):
@@ -163,11 +163,11 @@ class ReleaseLabel(object):
     @classmethod
     def parse(cls, release_label):
         if not release_label:
-            raise ValueError("Invalid empty ReleaseLabel: %r" % release_label)
+            raise ValueError(f"Invalid empty ReleaseLabel: {release_label}")
 
         match = cls.version_re.match(release_label)
         if not match:
-            raise ValueError("Invalid ReleaseLabel: %r" % release_label)
+            raise ValueError(f"Invalid ReleaseLabel: {release_label}")
 
         major, minor, patch = match.groups()
 
@@ -178,11 +178,11 @@ class ReleaseLabel(object):
         return major, minor, patch
 
     def __str__(self):
-        version = "emr-%d.%d.%d" % (self.major, self.minor, self.patch)
+        version = f"emr-{self.major}.{self.minor}.{self.patch}"
         return version
 
     def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, str(self))
+        return f"{self.__class__.__name__}({str(self)})"
 
     def __iter__(self):
         return iter((self.major, self.minor, self.patch))
@@ -425,7 +425,7 @@ class EmrSecurityGroupManager(object):
         if group is None:
             if group_id_or_name != defaults.group_name:
                 raise ValueError(
-                    "The security group '{}' does not exist".format(group_id_or_name)
+                    f"The security group '{group_id_or_name}' does not exist"
                 )
             group = create_sg(defaults.group_name, defaults.description(), self.vpc_id)
         return group

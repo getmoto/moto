@@ -61,7 +61,7 @@ class TestAutoScalingGroup(TestCase):
     def test_list_many_autoscaling_groups(self):
 
         for i in range(51):
-            self._create_group("TestGroup%d" % i)
+            self._create_group(f"TestGroup{i}")
 
         response = self.as_client.describe_auto_scaling_groups()
         groups = response["AutoScalingGroups"]

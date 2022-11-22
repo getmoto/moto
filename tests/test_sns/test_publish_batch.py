@@ -124,7 +124,7 @@ def test_publish_batch_to_sqs():
     sqs_conn = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs_conn.create_queue(QueueName="test-queue")
 
-    queue_url = "arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID)
+    queue_url = f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue"
     client.subscribe(TopicArn=topic_arn, Protocol="sqs", Endpoint=queue_url)
 
     resp = client.publish_batch(TopicArn=topic_arn, PublishBatchRequestEntries=entries)
@@ -155,7 +155,7 @@ def test_publish_batch_to_sqs_raw():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-queue")
 
-    queue_url = "arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID)
+    queue_url = f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue"
     client.subscribe(
         TopicArn=topic_arn,
         Protocol="sqs",

@@ -9,13 +9,17 @@ from moto import mock_apigateway, mock_cognitoidp
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 import pytest
 
+from tests import DEFAULT_ACCOUNT_ID
+
 
 @freeze_time("2015-01-01")
 @mock_apigateway
 def test_create_and_get_rest_api():
     client = boto3.client("apigateway", region_name="us-west-2")
 
-    response = client.create_rest_api(name="my_api", description="this is my api")
+    response = client.create_rest_api(
+        name="my_api", description="this is my api", disableExecuteApiEndpoint=True
+    )
     api_id = response["id"]
 
     response = client.get_rest_api(restApiId=api_id)
@@ -32,7 +36,7 @@ def test_create_and_get_rest_api():
             "apiKeySource": "HEADER",
             "endpointConfiguration": {"types": ["EDGE"]},
             "tags": {},
-            "disableExecuteApiEndpoint": False,
+            "disableExecuteApiEndpoint": True,
         }
     )
 
@@ -526,7 +530,11 @@ def test_integrations():
         uri="http://httpbin.org/robots.txt",
         integrationHttpMethod="POST",
         requestParameters={"integration.request.header.X-Custom": "'Custom'"},
+        contentHandling="CONVERT_TO_TEXT",
+        credentials=f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+        tlsConfig={"insecureSkipVerification": True},
     )
+
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
@@ -539,6 +547,9 @@ def test_integrations():
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
             "cacheKeyParameters": [],
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
+            "contentHandling": "CONVERT_TO_TEXT",
+            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+            "tlsConfig": {"insecureSkipVerification": True},
         }
     )
 
@@ -557,6 +568,9 @@ def test_integrations():
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
             "cacheKeyParameters": [],
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
+            "contentHandling": "CONVERT_TO_TEXT",
+            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+            "tlsConfig": {"insecureSkipVerification": True},
         }
     )
 
@@ -574,6 +588,9 @@ def test_integrations():
             "cacheKeyParameters": [],
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
             "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
+            "contentHandling": "CONVERT_TO_TEXT",
+            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+            "tlsConfig": {"insecureSkipVerification": True},
         }
     )
 
@@ -652,6 +669,10 @@ def test_integration_response():
         httpMethod="GET",
         statusCode="200",
         selectionPattern="foobar",
+        responseParameters={
+            "method.response.header.Location": "integration.response.body.redirect.url",
+            "method.response.header.x-user-id": "integration.response.header.x-userid",
+        },
         responseTemplates={},
     )
 
@@ -664,6 +685,10 @@ def test_integration_response():
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 201},
             "responseTemplates": {},  # Note: TF compatibility
+            "responseParameters": {
+                "method.response.header.Location": "integration.response.body.redirect.url",
+                "method.response.header.x-user-id": "integration.response.header.x-userid",
+            },
         }
     )
 
@@ -679,6 +704,10 @@ def test_integration_response():
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
             "responseTemplates": {},  # Note: TF compatibility
+            "responseParameters": {
+                "method.response.header.Location": "integration.response.body.redirect.url",
+                "method.response.header.x-user-id": "integration.response.header.x-userid",
+            },
         }
     )
 
@@ -692,6 +721,10 @@ def test_integration_response():
                 "responseTemplates": {},  # Note: TF compatibility
                 "selectionPattern": "foobar",
                 "statusCode": "200",
+                "responseParameters": {
+                    "method.response.header.Location": "integration.response.body.redirect.url",
+                    "method.response.header.x-user-id": "integration.response.header.x-userid",
+                },
             }
         }
     )
@@ -915,12 +948,8 @@ def test_create_authorizer():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
 
-    response["items"][0]["id"].should.match(
-        r"{0}|{1}".format(authorizer_id2, authorizer_id)
-    )
-    response["items"][1]["id"].should.match(
-        r"{0}|{1}".format(authorizer_id2, authorizer_id)
-    )
+    response["items"][0]["id"].should.match(rf"{authorizer_id2}|{authorizer_id}")
+    response["items"][1]["id"].should.match(rf"{authorizer_id2}|{authorizer_id}")
 
     new_authorizer_name_with_vars = "authorizer_with_vars"
     response = client.create_authorizer(
@@ -1052,6 +1081,10 @@ def test_put_integration_response_with_response_template():
         httpMethod="GET",
         statusCode="200",
         selectionPattern="foobar",
+        responseParameters={
+            "method.response.header.Location": "integration.response.body.redirect.url",
+            "method.response.header.x-user-id": "integration.response.header.x-userid",
+        },
         responseTemplates={"application/json": json.dumps({"data": "test"})},
     )
 
@@ -1068,6 +1101,10 @@ def test_put_integration_response_with_response_template():
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
             "responseTemplates": {"application/json": json.dumps({"data": "test"})},
+            "responseParameters": {
+                "method.response.header.Location": "integration.response.body.redirect.url",
+                "method.response.header.x-user-id": "integration.response.header.x-userid",
+            },
         }
     )
 
@@ -1162,9 +1199,7 @@ def test_put_integration_validation():
         client.put_integration(
             restApiId=api_id,
             resourceId=root_id,
-            credentials="arn:aws:iam::{}:role/service-role/testfunction-role-oe783psq".format(
-                ACCOUNT_ID
-            ),
+            credentials=f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/testfunction-role-oe783psq",
             httpMethod="GET",
             type=_type,
             uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
@@ -1186,9 +1221,7 @@ def test_put_integration_validation():
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
-                credentials="arn:aws:iam::{}:role/service-role/testfunction-role-oe783psq".format(
-                    ACCOUNT_ID
-                ),
+                credentials=f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/testfunction-role-oe783psq",
                 httpMethod="GET",
                 type=_type,
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",

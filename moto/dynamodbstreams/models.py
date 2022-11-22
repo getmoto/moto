@@ -27,11 +27,7 @@ class ShardIterator(BaseModel):
 
     @property
     def arn(self):
-        return "{}/stream/{}|1|{}".format(
-            self.stream_shard.table.table_arn,
-            self.stream_shard.table.latest_stream_label,
-            self.id,
-        )
+        return f"{self.stream_shard.table.table_arn}/stream/{self.stream_shard.table.latest_stream_label}|1|{self.id}"
 
     def to_json(self):
         return {"ShardIterator": self.arn}

@@ -45,23 +45,19 @@ class RegionsAndZonesBackend:
     for region in Session().get_available_regions("ec2"):
         if region in regions_opt_in_not_required:
             regions.append(
-                Region(
-                    region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required"
-                )
+                Region(region, f"ec2.{region}.amazonaws.com", "opt-in-not-required")
             )
         else:
             regions.append(
-                Region(region, "ec2.{}.amazonaws.com".format(region), "not-opted-in")
+                Region(region, f"ec2.{region}.amazonaws.com", "not-opted-in")
             )
     for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
         regions.append(
-            Region(region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required")
+            Region(region, f"ec2.{region}.amazonaws.com", "opt-in-not-required")
         )
     for region in Session().get_available_regions("ec2", partition_name="aws-cn"):
         regions.append(
-            Region(
-                region, "ec2.{}.amazonaws.com.cn".format(region), "opt-in-not-required"
-            )
+            Region(region, f"ec2.{region}.amazonaws.com.cn", "opt-in-not-required")
         )
 
     zones = {

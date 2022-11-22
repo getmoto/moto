@@ -367,7 +367,7 @@ def test_simple_apigateway_with_lambda_proxy():
     statement = policy["Statement"][0]
     statement["FunctionName"].should.contain(fn_name)
     statement["Condition"]["ArnLike"]["AWS:SourceArn"].should.equal(
-        "arn:aws:execute-api:us-east-1:123456789012:{}/*/*".format(api_id)
+        f"arn:aws:execute-api:us-east-1:123456789012:{api_id}/*/*"
     )
 
 

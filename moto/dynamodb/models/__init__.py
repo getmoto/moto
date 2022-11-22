@@ -97,7 +97,7 @@ class Item(BaseModel):
         )
 
     def __repr__(self):
-        return "Item: {0}".format(self.to_json())
+        return f"Item: {self.to_json()}"
 
     def size(self):
         return sum(bytesize(key) + value.size() for key, value in self.attrs.items())
@@ -191,7 +191,7 @@ class Item(BaseModel):
                     )
             else:
                 raise NotImplementedError(
-                    "%s action not support for update_with_attribute_updates" % action
+                    f"{action} action not support for update_with_attribute_updates"
                 )
 
     # Filter using projection_expression
@@ -814,9 +814,9 @@ class Table(CloudFormationModel):
             all_indexes = self.all_indexes()
             indexes_by_name = dict((i.name, i) for i in all_indexes)
             if index_name not in indexes_by_name:
+                all_indexes = ", ".join(indexes_by_name.keys())
                 raise MockValidationException(
-                    "Invalid index: %s for table: %s. Available indexes are: %s"
-                    % (index_name, self.name, ", ".join(indexes_by_name.keys()))
+                    f"Invalid index: {index_name} for table: {self.name}. Available indexes are: {all_indexes}"
                 )
 
             index = indexes_by_name[index_name]
@@ -826,7 +826,7 @@ class Table(CloudFormationModel):
                 ][0]
             except IndexError:
                 raise MockValidationException(
-                    "Missing Hash Key. KeySchema: %s" % index.name
+                    f"Missing Hash Key. KeySchema: {index.name}"
                 )
 
             try:
@@ -945,7 +945,7 @@ class Table(CloudFormationModel):
         indexes_by_name = dict((i.name, i) for i in all_indexes)
         if error_if_not and index_name not in indexes_by_name:
             raise InvalidIndexNameError(
-                "The table does not have the specified index: %s" % index_name
+                f"The table does not have the specified index: {index_name}"
             )
         return indexes_by_name[index_name]
 
@@ -1139,16 +1139,11 @@ class Backup(object):
         timestamp_padded = str("0" + str(timestamp))[-16:16]
         guid = str(mock_random.uuid4())
         guid_shortened = guid[:8]
-        return "{}-{}".format(timestamp_padded, guid_shortened)
+        return f"{timestamp_padded}-{guid_shortened}"
 
     @property
     def arn(self):
-        return "arn:aws:dynamodb:{region}:{account}:table/{table_name}/backup/{identifier}".format(
-            region=self.backend.region_name,
-            account=self.backend.account_id,
-            table_name=self.table.name,
-            identifier=self.identifier,
-        )
+        return f"arn:aws:dynamodb:{self.backend.region_name}:{self.backend.account_id}:table/{self.table.name}/backup/{self.identifier}"
 
     @property
     def details(self):
@@ -1227,7 +1222,7 @@ class DynamoDBBackend(BaseBackend):
     def describe_endpoints(self):
         return [
             {
-                "Address": "dynamodb.{}.amazonaws.com".format(self.region_name),
+                "Address": f"dynamodb.{self.region_name}.amazonaws.com",
                 "CachePeriodInMinutes": 1440,
             }
         ]
@@ -1420,10 +1415,9 @@ class DynamoDBBackend(BaseBackend):
             all_indexes = (table.global_indexes or []) + (table.indexes or [])
             indexes_by_name = dict((i.name, i) for i in all_indexes)
             if index_name not in indexes_by_name:
+                all_indexes = ", ".join(indexes_by_name.keys())
                 raise ResourceNotFoundException(
-                    "Invalid index: {} for table: {}. Available indexes are: {}".format(
-                        index_name, table_name, ", ".join(indexes_by_name.keys())
-                    )
+                    f"Invalid index: {index_name} for table: {table_name}. Available indexes are: {all_indexes}"
                 )
 
             return indexes_by_name[index_name].schema
@@ -1654,7 +1648,7 @@ class DynamoDBBackend(BaseBackend):
         return table.ttl
 
     def transact_write_items(self, transact_items):
-        if len(transact_items) > 25:
+        if len(transact_items) > 100:
             raise TooManyTransactionsException()
         # Create a backup in case any of the transactions fail
         original_table_state = copy.deepcopy(self.tables)
@@ -1707,6 +1701,17 @@ class DynamoDBBackend(BaseBackend):
                     expression_attribute_values = item.get(
                         "ExpressionAttributeValues", None
                     )
+
+                    return_values_on_condition_check_failure = item.get(
+                        "ReturnValuesOnConditionCheckFailure", None
+                    )
+                    current = self.get_item(table_name, attrs)
+                    if (
+                        return_values_on_condition_check_failure == "ALL_OLD"
+                        and current
+                    ):
+                        item["Item"] = current.to_json()["Attributes"]
+
                     self.put_item(
                         table_name,
                         attrs,

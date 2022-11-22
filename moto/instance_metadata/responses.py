@@ -47,6 +47,6 @@ class InstanceMetadataResponse(BaseResponse):
             result = json.dumps(credentials)
         else:
             raise NotImplementedError(
-                "The {0} metadata path has not been implemented".format(path)
+                f"The {path} metadata path has not been implemented"
             )
         return 200, headers, result
