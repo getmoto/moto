@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import botocore.client
 import boto3
 import hashlib
@@ -207,26 +208,28 @@ def test_create_function__with_tracingmode(tracing_mode):
     result.should.have.key("TracingConfig").should.equal({"Mode": output})
 
 
-@pytest.fixture(name="with_ecr")
+@pytest.fixture(name="with_ecr_mock")
 def ecr_repo_fixture():
     with mock_ecr():
+        os.environ["LAMBDA_STUB_ECR"] = "FALSE"
+        repo_name = "testlambdaecr"
         ecr_client = ecr_client = boto3.client("ecr", "us-east-1")
-        ecr_client.create_repository(repositoryName="testlambdaecr")
+        ecr_client.create_repository(repositoryName=repo_name)
         ecr_client.put_image(
-            repositoryName="testlambdaecr",
+            repositoryName=repo_name,
             imageManifest=json.dumps(_create_image_manifest()),
             imageTag="latest",
         )
         yield
-        ecr_client.delete_repository(repositoryName="testlambdaecr", force=True)
+        ecr_client.delete_repository(repositoryName=repo_name, force=True)
+        os.environ["LAMBDA_STUB_ECR"] = "TRUE"
 
 
 @mock_lambda
-def test_create_function_from_image(with_ecr):  # pylint: disable=unused-argument
+def test_create_function_from_stubbed_ecr():
     lambda_client = boto3.client("lambda", "us-east-1")
-
     fn_name = str(uuid4())[0:6]
-    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:latest"
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambda:latest"
 
     dic = {
         "FunctionName": fn_name,
@@ -235,6 +238,7 @@ def test_create_function_from_image(with_ecr):  # pylint: disable=unused-argumen
         "PackageType": "Image",
         "Timeout": 100,
     }
+
     resp = lambda_client.create_function(**dic)
 
     resp.should.have.key("FunctionName").equals(fn_name)
@@ -255,8 +259,44 @@ def test_create_function_from_image(with_ecr):  # pylint: disable=unused-argumen
 
 
 @mock_lambda
+def test_create_function_from_mocked_ecr(
+    with_ecr_mock,
+):  # pylint: disable=unused-argument
+    lambda_client = boto3.client("lambda", "us-east-1")
+    fn_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:latest"
+
+    dic = {
+        "FunctionName": fn_name,
+        "Role": get_role_name(),
+        "Code": {"ImageUri": image_uri},
+        "PackageType": "Image",
+        "Timeout": 100,
+    }
+    resp = lambda_client.create_function(**dic)
+
+    resp.should.have.key("FunctionName").equals(fn_name)
+    resp.should.have.key("CodeSize").greater_than(0)
+    resp.should.have.key("CodeSha256")
+    resp.should.have.key("PackageType").equals("Image")
+
+    result = lambda_client.get_function(FunctionName=fn_name)
+    result.should.have.key("Configuration")
+    config = result["Configuration"]
+    config.should.have.key("CodeSha256").equals(resp["CodeSha256"])
+    config.should.have.key("CodeSize").equals(resp["CodeSize"])
+    result.should.have.key("Code")
+    code = result["Code"]
+    code.should.have.key("RepositoryType").equals("ECR")
+    code.should.have.key("ImageUri").equals(image_uri)
+    image_uri_without_tag = image_uri.split(":")[0]
+    resolved_image_uri = f"{image_uri_without_tag}@sha256:{config['CodeSha256']}"
+    code.should.have.key("ResolvedImageUri").equals(resolved_image_uri)
+
+
+@mock_lambda
 def test_create_function_from_missing_image(
-    with_ecr,
+    with_ecr_mock,
 ):  # pylint: disable=unused-argument
     lambda_client = boto3.client("lambda", "us-east-1")
 

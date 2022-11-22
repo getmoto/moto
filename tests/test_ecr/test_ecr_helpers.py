@@ -33,7 +33,7 @@ def _create_image_manifest(image_digest=None):
         "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
         "config": {
             "mediaType": "application/vnd.docker.container.image.v1+json",
-            "size": 7023,
+            "size": sum([layer["size"] for layer in layers]),
             "digest": image_digest,
         },
         "layers": layers,
