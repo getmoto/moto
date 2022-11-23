@@ -6,11 +6,11 @@ TEST_NAMES = "*"
 ifeq ($(TEST_SERVER_MODE), true)
 	# exclude test_kinesisvideoarchivedmedia
 	# because testing with moto_server is difficult with data-endpoint
-	TEST_EXCLUDE := --ignore tests/test_kinesisvideoarchivedmedia --ignore tests/test_awslambda --ignore tests/test_batch --ignore tests/test_ec2 --ignore tests/test_sqs --ignore tests/test_ec2/test_custom_amis.py
+	TEST_EXCLUDE := --ignore tests/test_kinesisvideoarchivedmedia --ignore tests/test_awslambda --ignore tests/test_batch --ignore tests/test_ec2 --ignore tests/test_sqs --ignore tests/test_special_cases
 	# Parallel tests will be run separate
 	PARALLEL_TESTS := ./tests/test_awslambda ./tests/test_batch ./tests/test_ec2 ./tests/test_sqs
 else
-	TEST_EXCLUDE := --ignore tests/test_batch --ignore tests/test_ec2 --ignore tests/test_sqs --ignore tests/test_ec2/test_custom_amis.py
+	TEST_EXCLUDE := --ignore tests/test_batch --ignore tests/test_ec2 --ignore tests/test_sqs --ignore tests/test_special_cases
 	PARALLEL_TESTS := ./tests/test_batch ./tests/test_ec2 ./tests/test_sqs
 endif
 
@@ -40,7 +40,7 @@ test-only:
 	# https://github.com/aws/aws-xray-sdk-python/issues/196 - Run these tests separately without Coverage enabled
 	pytest -sv ./tests/test_xray
 	# custom amis require specific env var to be set before moto imports, breaks this test
-	pytest -sv tests/test_ec2/test_custom_amis.py
+	pytest -sv test_special_cases
 	MOTO_CALL_RESET_API=false pytest --cov=moto --cov-report xml --cov-append -n 4 $(PARALLEL_TESTS)
 
 test: lint test-only
