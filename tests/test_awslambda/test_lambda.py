@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+from unittest import SkipTest
 import botocore.client
 import boto3
 import hashlib
@@ -10,7 +11,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from tests.test_ecr.test_ecr_helpers import _create_image_manifest
-from moto import mock_lambda, mock_s3, mock_ecr
+from moto import mock_lambda, mock_s3, mock_ecr, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from uuid import uuid4
 from .utilities import (
@@ -211,7 +212,7 @@ def test_create_function__with_tracingmode(tracing_mode):
 @pytest.fixture(name="with_ecr_mock")
 def ecr_repo_fixture():
     with mock_ecr():
-        os.environ["LAMBDA_STUB_ECR"] = "FALSE"
+        os.environ["MOTO_LAMBDA_STUB_ECR"] = "FALSE"
         repo_name = "testlambdaecr"
         ecr_client = ecr_client = boto3.client("ecr", "us-east-1")
         ecr_client.create_repository(repositoryName=repo_name)
@@ -222,14 +223,14 @@ def ecr_repo_fixture():
         )
         yield
         ecr_client.delete_repository(repositoryName=repo_name, force=True)
-        os.environ["LAMBDA_STUB_ECR"] = "TRUE"
+        os.environ["MOTO_LAMBDA_STUB_ECR"] = "TRUE"
 
 
 @mock_lambda
 def test_create_function_from_stubbed_ecr():
     lambda_client = boto3.client("lambda", "us-east-1")
     fn_name = str(uuid4())[0:6]
-    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambda:latest"
+    image_uri = "111122223333.dkr.ecr.us-east-1.amazonaws.com/testlambda:latest"
 
     dic = {
         "FunctionName": fn_name,
@@ -259,9 +260,14 @@ def test_create_function_from_stubbed_ecr():
 
 
 @mock_lambda
-def test_create_function_from_mocked_ecr(
+def test_create_function_from_mocked_ecr_image(
     with_ecr_mock,
 ):  # pylint: disable=unused-argument
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
+
     lambda_client = boto3.client("lambda", "us-east-1")
     fn_name = str(uuid4())[0:6]
     image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:latest"
@@ -295,9 +301,14 @@ def test_create_function_from_mocked_ecr(
 
 
 @mock_lambda
-def test_create_function_from_missing_image(
+def test_create_function_from_mocked_ecr_missing_image(
     with_ecr_mock,
 ):  # pylint: disable=unused-argument
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
+
     lambda_client = boto3.client("lambda", "us-east-1")
 
     fn_name = str(uuid4())[0:6]

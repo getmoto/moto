@@ -73,7 +73,7 @@ def lambda_stub_ecr() -> bool:
     # Whether to stub or mock ecr backend when deploying image based lambdas.
     # True => don't requiring image presence in moto ecr backend for `create_function`.
     # False => require image presence in moto ecr backend for `create_function`
-    return os.environ.get("LAMBDA_STUB_ECR", "TRUE").lower() != "false"
+    return os.environ.get("MOTO_LAMBDA_STUB_ECR", "TRUE").lower() != "false"
 
 
 def moto_server_port() -> str:
