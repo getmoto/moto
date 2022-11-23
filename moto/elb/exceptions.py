@@ -23,10 +23,17 @@ class CertificateNotFoundException(ELBClientError):
 
 
 class LoadBalancerNotFoundError(ELBClientError):
-    def __init__(self, cidr):
+    def __init__(self, name):
         super().__init__(
             "LoadBalancerNotFound",
-            f"The specified load balancer does not exist: {cidr}",
+            f"The specified load balancer does not exist: {name}",
+        )
+
+
+class NoActiveLoadBalancerFoundError(ELBClientError):
+    def __init__(self, name):
+        super().__init__(
+            "LoadBalancerNotFound", f"There is no ACTIVE Load Balancer named '{name}'"
         )
 
 
