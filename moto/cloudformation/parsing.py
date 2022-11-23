@@ -197,7 +197,7 @@ def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
                             resources_map,
                         )
                     if cleaned_ref is not None:
-                        fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)
+                        fn_sub_value = fn_sub_value.replace(sub, str(cleaned_ref))
                     else:
                         # The ref was not found in the template - either it didn't exist, or we couldn't parse it
                         pass
