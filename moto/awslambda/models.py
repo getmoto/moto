@@ -28,9 +28,11 @@ from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time_millis
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
+from moto.ecr.exceptions import ImageNotFoundException
 from moto.logs.models import logs_backends
 from moto.moto_api._internal import mock_random as random
 from moto.s3.models import s3_backends, FakeKey
+from moto.ecr.models import ecr_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
 from .exceptions import (
@@ -481,10 +483,29 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.code_size = 0
                 self.code_sha_256 = ""
         elif "ImageUri" in self.code:
-            self.code_sha_256 = hashlib.sha256(
-                self.code["ImageUri"].encode("utf-8")
-            ).hexdigest()
-            self.code_size = 0
+            if settings.lambda_stub_ecr():
+                self.code_sha_256 = hashlib.sha256(
+                    self.code["ImageUri"].encode("utf-8")
+                ).hexdigest()
+                self.code_size = 0
+            else:
+                uri, tag = self.code["ImageUri"].split(":")
+                repo_name = uri.split("/")[-1]
+                image_id = {"imageTag": tag}
+                ecr_backend = ecr_backends[self.account_id][self.region]
+                registry_id = ecr_backend.describe_registry()["registryId"]
+                images = ecr_backend.batch_get_image(
+                    repository_name=repo_name, image_ids=[image_id]
+                )["images"]
+
+                if len(images) == 0:
+                    raise ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
+                else:
+                    manifest = json.loads(images[0]["imageManifest"])
+                    self.code_sha_256 = images[0]["imageId"]["imageDigest"].replace(
+                        "sha256:", ""
+                    )
+                    self.code_size = manifest["config"]["size"]
 
         self.function_arn = make_function_arn(
             self.region, self.account_id, self.function_name
