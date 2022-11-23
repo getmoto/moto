@@ -40,7 +40,7 @@ test-only:
 	# https://github.com/aws/aws-xray-sdk-python/issues/196 - Run these tests separately without Coverage enabled
 	pytest -sv ./tests/test_xray
 	# custom amis require specific env var to be set before moto imports, breaks this test
-	pytest -sv test_special_cases
+	pytest -sv tests/test_special_cases
 	MOTO_CALL_RESET_API=false pytest --cov=moto --cov-report xml --cov-append -n 4 $(PARALLEL_TESTS)
 
 test: lint test-only
