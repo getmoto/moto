@@ -532,7 +532,7 @@ class CognitoIdpUserPool(BaseModel):
         payload = {
             "iss": f"https://cognito-idp.{self.region}.amazonaws.com/{self.id}",
             "sub": self._get_user(username).id,
-            "aud": client_id,
+            "client_id" if token_use == "access" else "aud": client_id,
             "token_use": token_use,
             "auth_time": now,
             "exp": now + expires_in,
