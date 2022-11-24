@@ -121,6 +121,22 @@ sub_template = {
     },
 }
 
+sub_num_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "Num": {"Type": "Number"},
+    },
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::Sub": "${AWS::StackName}-queue-${Num}"},
+                "VisibilityTimeout": 60,
+            },
+        },
+    },
+}
+
 export_value_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Resources": {
@@ -174,6 +190,7 @@ parameters_template_json = json.dumps(parameters_template)
 ssm_parameter_template_json = json.dumps(ssm_parameter_template)
 split_select_template_json = json.dumps(split_select_template)
 sub_template_json = json.dumps(sub_template)
+sub_num_template_json = json.dumps(sub_num_template)
 export_value_template_json = json.dumps(export_value_template)
 import_value_template_json = json.dumps(import_value_template)
 
@@ -487,6 +504,21 @@ def test_sub():
     queue1 = stack.resource_map["Queue1"]
     queue2 = stack.resource_map["Queue2"]
     queue2.name.should.equal(queue1.name)
+
+
+def test_sub_num():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=sub_num_template_json,
+        parameters={"Num": "42"},
+        account_id=ACCOUNT_ID,
+        region_name="us-west-1",
+    )
+
+    # Errors on moto<=4.0.10 because int(42) is used with str.replace
+    queue = stack.resource_map["Queue"]
+    queue.name.should.equal("test_stack-queue-42")
 
 
 def test_import():

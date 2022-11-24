@@ -1,11 +1,9 @@
-import hashlib
 import json
 from datetime import datetime
 
 import pytest
 from freezegun import freeze_time
 import os
-from random import random
 
 import re
 import sure  # noqa # pylint: disable=unused-import
@@ -19,41 +17,7 @@ from unittest import SkipTest
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-
-def _create_image_digest(contents=None):
-    if not contents:
-        contents = f"docker_image{int(random() * 10**6)}"
-    return "sha256:" + hashlib.sha256(contents.encode("utf-8")).hexdigest()
-
-
-def _create_image_manifest():
-    return {
-        "schemaVersion": 2,
-        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
-        "config": {
-            "mediaType": "application/vnd.docker.container.image.v1+json",
-            "size": 7023,
-            "digest": _create_image_digest("config"),
-        },
-        "layers": [
-            {
-                "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
-                "size": 32654,
-                "digest": _create_image_digest("layer1"),
-            },
-            {
-                "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
-                "size": 16724,
-                "digest": _create_image_digest("layer2"),
-            },
-            {
-                "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
-                "size": 73109,
-                # randomize image digest
-                "digest": _create_image_digest(),
-            },
-        ],
-    }
+from tests.test_ecr.test_ecr_helpers import _create_image_manifest
 
 
 @mock_ecr
@@ -1298,7 +1262,9 @@ def test_delete_batch_image_with_multiple_images():
     # Populate mock repo with images
     for i in range(10):
         client.put_image(
-            repositoryName=repo_name, imageManifest=f"manifest{i}", imageTag=f"tag{i}"
+            repositoryName=repo_name,
+            imageManifest=json.dumps(_create_image_manifest()),
+            imageTag=f"tag{i}",
         )
 
     # Pull down image digests for each image in the mock repo

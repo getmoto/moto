@@ -249,9 +249,11 @@ class Image(BaseObject):
         self.last_scan = None
 
     def _create_digest(self):
-        image_contents = f"docker_image{int(random.random() * 10**6)}"
+        image_manifest = json.loads(self.image_manifest)
+        layer_digests = [layer["digest"] for layer in image_manifest["layers"]]
         self.image_digest = (
-            "sha256:" + hashlib.sha256(image_contents.encode("utf-8")).hexdigest()
+            "sha256:"
+            + hashlib.sha256("".join(layer_digests).encode("utf-8")).hexdigest()
         )
 
     def get_image_digest(self):

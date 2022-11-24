@@ -14,6 +14,7 @@ from .exceptions import (
     EmptyListenersError,
     InvalidSecurityGroupError,
     LoadBalancerNotFoundError,
+    NoActiveLoadBalancerFoundError,
     PolicyNotFoundError,
     TooManyTagsError,
     CertificateNotFoundException,
@@ -372,8 +373,11 @@ class ELBBackend(BaseBackend):
         return policies
 
     def describe_instance_health(self, lb_name, instances):
+        elb = self.get_load_balancer(lb_name)
+        if elb is None:
+            raise NoActiveLoadBalancerFoundError(name=lb_name)
         provided_ids = [i["InstanceId"] for i in instances]
-        registered_ids = self.get_load_balancer(lb_name).instance_ids
+        registered_ids = elb.instance_ids
         ec2_backend = ec2_backends[self.account_id][self.region_name]
         if len(provided_ids) == 0:
             provided_ids = registered_ids

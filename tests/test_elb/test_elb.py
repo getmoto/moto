@@ -934,6 +934,17 @@ def test_describe_instance_health__with_instance_ids():
 
 
 @mock_elb
+def test_describe_instance_health_of_unknown_lb():
+    elb = boto3.client("elb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        elb.describe_instance_health(LoadBalancerName="what")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("LoadBalancerNotFound")
+    err["Message"].should.equal("There is no ACTIVE Load Balancer named 'what'")
+
+
+@mock_elb
 def test_add_remove_tags():
     client = boto3.client("elb", region_name="us-east-1")
 
