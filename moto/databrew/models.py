@@ -5,6 +5,7 @@ from collections import OrderedDict
 from copy import deepcopy
 import math
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import underscores_to_camelcase
@@ -56,22 +57,28 @@ class DataBrewBackend(BaseBackend):
         },
     }
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.recipes = OrderedDict()
-        self.rulesets = OrderedDict()
-        self.datasets = OrderedDict()
-        self.jobs = OrderedDict()
+        self.recipes: Dict[str, FakeRecipe] = OrderedDict()
+        self.rulesets: Dict[str, FakeRuleset] = OrderedDict()
+        self.datasets: Dict[str, FakeDataset] = OrderedDict()
+        self.jobs: Dict[str, FakeJob] = OrderedDict()
 
     @staticmethod
-    def validate_length(param, param_name, max_length):
+    def validate_length(param: str, param_name: str, max_length: int) -> None:
         if len(param) > max_length:
             raise ValidationException(
                 f"1 validation error detected: Value '{param}' at '{param_name}' failed to "
                 f"satisfy constraint: Member must have length less than or equal to {max_length}"
             )
 
-    def create_recipe(self, recipe_name, recipe_description, recipe_steps, tags):
+    def create_recipe(
+        self,
+        recipe_name: str,
+        recipe_description: str,
+        recipe_steps: List[Dict[str, Any]],
+        tags: Dict[str, str],
+    ) -> "FakeRecipeVersion":
         # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateRecipe.html
         if recipe_name in self.recipes:
             raise ConflictException(f"The recipe {recipe_name} already exists")
@@ -82,7 +89,7 @@ class DataBrewBackend(BaseBackend):
         self.recipes[recipe_name] = recipe
         return recipe.latest_working
 
-    def delete_recipe_version(self, recipe_name, recipe_version):
+    def delete_recipe_version(self, recipe_name: str, recipe_version: str) -> None:
         if not FakeRecipe.version_is_valid(recipe_version, latest_published=False):
             raise ValidationException(
                 f"Recipe {recipe_name} version {recipe_version} is invalid."
@@ -115,17 +122,20 @@ class DataBrewBackend(BaseBackend):
         else:
             recipe.delete_published_version(recipe_version)
 
-    def update_recipe(self, recipe_name, recipe_description, recipe_steps):
+    def update_recipe(
+        self,
+        recipe_name: str,
+        recipe_description: str,
+        recipe_steps: List[Dict[str, Any]],
+    ) -> None:
         if recipe_name not in self.recipes:
             raise ResourceNotFoundException(f"The recipe {recipe_name} wasn't found")
 
         recipe = self.recipes[recipe_name]
         recipe.update(recipe_description, recipe_steps)
 
-        return recipe.latest_working
-
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_recipes(self, recipe_version=None):
+    def list_recipes(self, recipe_version: Optional[str] = None) -> List["FakeRecipeVersion"]:  # type: ignore[misc]
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipes.html
         if recipe_version == FakeRecipe.LATEST_WORKING:
             version = "latest_working"
@@ -140,7 +150,7 @@ class DataBrewBackend(BaseBackend):
         return [r for r in recipes if r is not None]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_recipe_versions(self, recipe_name):
+    def list_recipe_versions(self, recipe_name: str) -> List["FakeRecipeVersion"]:  # type: ignore[misc]
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
         self.validate_length(recipe_name, "name", 255)
 
@@ -157,7 +167,9 @@ class DataBrewBackend(BaseBackend):
         ]
         return [r for r in recipe_versions if r is not None]
 
-    def describe_recipe(self, recipe_name, recipe_version=None):
+    def describe_recipe(
+        self, recipe_name: str, recipe_version: Optional[str] = None
+    ) -> "FakeRecipeVersion":
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DescribeRecipe.html
         self.validate_length(recipe_name, "name", 255)
 
@@ -184,7 +196,9 @@ class DataBrewBackend(BaseBackend):
             )
         return recipe
 
-    def publish_recipe(self, recipe_name, description=None):
+    def publish_recipe(
+        self, recipe_name: str, description: Optional[str] = None
+    ) -> None:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_PublishRecipe.html
         self.validate_length(recipe_name, "name", 255)
         try:
@@ -193,8 +207,13 @@ class DataBrewBackend(BaseBackend):
             raise ResourceNotFoundException(f"Recipe {recipe_name} wasn't found")
 
     def create_ruleset(
-        self, ruleset_name, ruleset_description, ruleset_rules, ruleset_target_arn, tags
-    ):
+        self,
+        ruleset_name: str,
+        ruleset_description: str,
+        ruleset_rules: List[Dict[str, Any]],
+        ruleset_target_arn: str,
+        tags: Dict[str, str],
+    ) -> "FakeRuleset":
         if ruleset_name in self.rulesets:
             raise RulesetAlreadyExistsException()
 
@@ -209,7 +228,13 @@ class DataBrewBackend(BaseBackend):
         self.rulesets[ruleset_name] = ruleset
         return ruleset
 
-    def update_ruleset(self, ruleset_name, ruleset_description, ruleset_rules, tags):
+    def update_ruleset(
+        self,
+        ruleset_name: str,
+        ruleset_description: str,
+        ruleset_rules: List[Dict[str, Any]],
+        tags: Dict[str, str],
+    ) -> "FakeRuleset":
         if ruleset_name not in self.rulesets:
             raise RulesetNotFoundException(ruleset_name)
 
@@ -223,16 +248,16 @@ class DataBrewBackend(BaseBackend):
 
         return ruleset
 
-    def describe_ruleset(self, ruleset_name):
+    def describe_ruleset(self, ruleset_name: str) -> "FakeRuleset":
         if ruleset_name not in self.rulesets:
             raise RulesetNotFoundException(ruleset_name)
         return self.rulesets[ruleset_name]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_rulesets(self):
+    def list_rulesets(self) -> List["FakeRuleset"]:  # type: ignore[misc]
         return list(self.rulesets.values())
 
-    def delete_ruleset(self, ruleset_name):
+    def delete_ruleset(self, ruleset_name: str) -> None:
         if ruleset_name not in self.rulesets:
             raise RulesetNotFoundException(ruleset_name)
 
@@ -240,13 +265,13 @@ class DataBrewBackend(BaseBackend):
 
     def create_dataset(
         self,
-        dataset_name,
-        dataset_format,
-        dataset_format_options,
-        dataset_input,
-        dataset_path_options,
-        tags,
-    ):
+        dataset_name: str,
+        dataset_format: str,
+        dataset_format_options: Dict[str, Any],
+        dataset_input: Dict[str, Any],
+        dataset_path_options: Dict[str, Any],
+        tags: Dict[str, str],
+    ) -> "FakeDataset":
         if dataset_name in self.datasets:
             raise AlreadyExistsException(dataset_name)
 
@@ -264,18 +289,18 @@ class DataBrewBackend(BaseBackend):
         return dataset
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_datasets(self):
+    def list_datasets(self) -> List["FakeDataset"]:  # type: ignore[misc]
         return list(self.datasets.values())
 
     def update_dataset(
         self,
-        dataset_name,
-        dataset_format,
-        dataset_format_options,
-        dataset_input,
-        dataset_path_options,
-        tags,
-    ):
+        dataset_name: str,
+        dataset_format: str,
+        dataset_format_options: Dict[str, Any],
+        dataset_input: Dict[str, Any],
+        dataset_path_options: Dict[str, Any],
+        tags: Dict[str, str],
+    ) -> "FakeDataset":
 
         if dataset_name not in self.datasets:
             raise ResourceNotFoundException("One or more resources can't be found.")
@@ -295,19 +320,19 @@ class DataBrewBackend(BaseBackend):
 
         return dataset
 
-    def delete_dataset(self, dataset_name):
+    def delete_dataset(self, dataset_name: str) -> None:
         if dataset_name not in self.datasets:
             raise ResourceNotFoundException("One or more resources can't be found.")
 
         del self.datasets[dataset_name]
 
-    def describe_dataset(self, dataset_name):
+    def describe_dataset(self, dataset_name: str) -> "FakeDataset":
         if dataset_name not in self.datasets:
             raise ResourceNotFoundException("One or more resources can't be found.")
 
         return self.datasets[dataset_name]
 
-    def describe_job(self, job_name):
+    def describe_job(self, job_name: str) -> "FakeJob":
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DescribeJob.html
         self.validate_length(job_name, "name", 240)
 
@@ -316,7 +341,7 @@ class DataBrewBackend(BaseBackend):
 
         return self.jobs[job_name]
 
-    def delete_job(self, job_name):
+    def delete_job(self, job_name: str) -> None:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DeleteJob.html
         self.validate_length(job_name, "name", 240)
 
@@ -325,7 +350,7 @@ class DataBrewBackend(BaseBackend):
 
         del self.jobs[job_name]
 
-    def create_profile_job(self, **kwargs):
+    def create_profile_job(self, **kwargs: Any) -> "FakeProfileJob":
         # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateProfileJob.html
         job_name = kwargs["name"]
         self.validate_length(job_name, "name", 240)
@@ -342,7 +367,7 @@ class DataBrewBackend(BaseBackend):
         self.jobs[job_name] = job
         return job
 
-    def create_recipe_job(self, **kwargs):
+    def create_recipe_job(self, **kwargs: Any) -> "FakeRecipeJob":
         # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateRecipeJob.html
         job_name = kwargs["name"]
         self.validate_length(job_name, "name", 240)
@@ -359,7 +384,7 @@ class DataBrewBackend(BaseBackend):
         self.jobs[job_name] = job
         return job
 
-    def update_job(self, **kwargs):
+    def update_job(self, **kwargs: Any) -> "FakeJob":
         job_name = kwargs["name"]
         self.validate_length(job_name, "name", 240)
 
@@ -372,23 +397,23 @@ class DataBrewBackend(BaseBackend):
             setattr(job, param, value)
         return job
 
-    def update_recipe_job(self, **kwargs):
+    def update_recipe_job(self, **kwargs: Any) -> "FakeJob":
         # https://docs.aws.amazon.com/databrew/latest/dg/API_UpdateRecipeJob.html
         return self.update_job(**kwargs)
 
-    def update_profile_job(self, **kwargs):
+    def update_profile_job(self, **kwargs: Any) -> "FakeJob":
         # https://docs.aws.amazon.com/databrew/latest/dg/API_UpdateProfileJob.html
         return self.update_job(**kwargs)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_jobs(self, dataset_name=None, project_name=None):
+    def list_jobs(self, dataset_name: Optional[str] = None, project_name: Optional[str] = None) -> List["FakeJob"]:  # type: ignore[misc]
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListJobs.html
         if dataset_name is not None:
             self.validate_length(dataset_name, "datasetName", 255)
         if project_name is not None:
             self.validate_length(project_name, "projectName", 255)
 
-        def filter_jobs(job):
+        def filter_jobs(job: FakeJob) -> bool:
             if dataset_name is not None and job.dataset_name != dataset_name:
                 return False
             if (
@@ -407,14 +432,16 @@ class FakeRecipe(BaseModel):
     LATEST_PUBLISHED = "LATEST_PUBLISHED"
 
     @classmethod
-    def version_is_valid(cls, version, latest_working=True, latest_published=True):
+    def version_is_valid(
+        cls, version: str, latest_working: bool = True, latest_published: bool = True
+    ) -> bool:
         validity = True
 
         if len(version) < 1 or len(version) > 16:
             validity = False
         else:
             try:
-                version = float(version)
+                float(version)
             except ValueError:
                 if not (
                     (version == cls.LATEST_WORKING and latest_working)
@@ -424,9 +451,14 @@ class FakeRecipe(BaseModel):
         return validity
 
     def __init__(
-        self, region_name, recipe_name, recipe_description, recipe_steps, tags
+        self,
+        region_name: str,
+        recipe_name: str,
+        recipe_description: str,
+        recipe_steps: List[Dict[str, Any]],
+        tags: Dict[str, str],
     ):
-        self.versions = OrderedDict()
+        self.versions: Dict[float, FakeRecipeVersion] = OrderedDict()
         self.versions[self.INITIAL_VERSION] = FakeRecipeVersion(
             region_name,
             recipe_name,
@@ -436,28 +468,30 @@ class FakeRecipe(BaseModel):
             version=self.INITIAL_VERSION,
         )
         self.latest_working = self.versions[self.INITIAL_VERSION]
-        self.latest_published = None
+        self.latest_published: Optional[FakeRecipeVersion] = None
 
-    def publish(self, description=None):
+    def publish(self, description: Optional[str] = None) -> None:
         self.latest_published = self.latest_working
         self.latest_working = deepcopy(self.latest_working)
-        self.latest_published.publish(description)
+        self.latest_published.publish(description)  # type: ignore[attr-defined]
         del self.versions[self.latest_working.version]
         self.versions[self.latest_published.version] = self.latest_published
         self.latest_working.version = self.latest_published.version + 0.1
         self.versions[self.latest_working.version] = self.latest_working
 
-    def update(self, description, steps):
+    def update(
+        self, description: Optional[str], steps: Optional[List[Dict[str, Any]]]
+    ) -> None:
         if description is not None:
             self.latest_working.description = description
         if steps is not None:
             self.latest_working.steps = steps
 
-    def delete_published_version(self, version):
-        version = float(version)
-        assert version.is_integer()
-        if version == self.latest_published.version:
-            prev_version = version - 1.0
+    def delete_published_version(self, version: str) -> None:
+        float_version = float(version)
+        assert float_version.is_integer()
+        if float_version == self.latest_published.version:  # type: ignore[union-attr]
+            prev_version = float_version - 1.0
             # Iterate back through the published versions until we find one that exists
             while prev_version >= 1.0:
                 if prev_version in self.versions:
@@ -467,12 +501,18 @@ class FakeRecipe(BaseModel):
             else:
                 # Didn't find an earlier published version
                 self.latest_published = None
-        del self.versions[version]
+        del self.versions[float_version]
 
 
 class FakeRecipeVersion(BaseModel):
     def __init__(
-        self, region_name, recipe_name, recipe_description, recipe_steps, tags, version
+        self,
+        region_name: str,
+        recipe_name: str,
+        recipe_description: str,
+        recipe_steps: List[Dict[str, Any]],
+        tags: Dict[str, str],
+        version: float,
     ):
         self.region_name = region_name
         self.name = recipe_name
@@ -480,10 +520,10 @@ class FakeRecipeVersion(BaseModel):
         self.steps = recipe_steps
         self.created_time = datetime.now()
         self.tags = tags
-        self.published_date = None
+        self.published_date: Optional[datetime] = None
         self.version = version
 
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Any]:
         dict_recipe = {
             "Name": self.name,
             "Steps": self.steps,
@@ -497,7 +537,7 @@ class FakeRecipeVersion(BaseModel):
 
         return dict_recipe
 
-    def publish(self, description):
+    def publish(self, description: Optional[str]) -> None:
         self.version = float(math.ceil(self.version))
         self.published_date = datetime.now()
         if description is not None:
@@ -507,12 +547,12 @@ class FakeRecipeVersion(BaseModel):
 class FakeRuleset(BaseModel):
     def __init__(
         self,
-        region_name,
-        ruleset_name,
-        ruleset_description,
-        ruleset_rules,
-        ruleset_target_arn,
-        tags,
+        region_name: str,
+        ruleset_name: str,
+        ruleset_description: str,
+        ruleset_rules: List[Dict[str, Any]],
+        ruleset_target_arn: str,
+        tags: Dict[str, str],
     ):
         self.region_name = region_name
         self.name = ruleset_name
@@ -523,7 +563,7 @@ class FakeRuleset(BaseModel):
 
         self.tags = tags
 
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Any]:
         return {
             "Name": self.name,
             "Rules": self.rules,
@@ -537,14 +577,14 @@ class FakeRuleset(BaseModel):
 class FakeDataset(BaseModel):
     def __init__(
         self,
-        region_name,
-        account_id,
-        dataset_name,
-        dataset_format,
-        dataset_format_options,
-        dataset_input,
-        dataset_path_options,
-        tags,
+        region_name: str,
+        account_id: str,
+        dataset_name: str,
+        dataset_format: str,
+        dataset_format_options: Dict[str, Any],
+        dataset_input: Dict[str, Any],
+        dataset_path_options: Dict[str, Any],
+        tags: Dict[str, str],
     ):
         self.region_name = region_name
         self.account_id = account_id
@@ -557,12 +597,12 @@ class FakeDataset(BaseModel):
         self.tags = tags
 
     @property
-    def resource_arn(self):
+    def resource_arn(self) -> str:
         return (
             f"arn:aws:databrew:{self.region_name}:{self.account_id}:dataset/{self.name}"
         )
 
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Any]:
         return {
             "Name": self.name,
             "Format": self.format,
@@ -575,21 +615,21 @@ class FakeDataset(BaseModel):
         }
 
 
-class BaseModelABCMeta(ABCMeta, type(BaseModel)):
+class BaseModelABCMeta(ABCMeta, type(BaseModel)):  # type: ignore[misc]
     pass
 
 
-class FakeJob(BaseModel, metaclass=BaseModelABCMeta):
+class FakeJob(BaseModel, metaclass=BaseModelABCMeta):  # type: ignore[misc]
 
     ENCRYPTION_MODES = ("SSE-S3", "SSE-KMS")
     LOG_SUBSCRIPTION_VALUES = ("ENABLE", "DISABLE")
 
     @property
     @abstractmethod
-    def local_attrs(self) -> tuple:
+    def local_attrs(self) -> List[str]:  # type: ignore[misc]
         raise NotImplementedError
 
-    def __init__(self, account_id, region_name, **kwargs):
+    def __init__(self, account_id: str, region_name: str, **kwargs: Any):
         self.account_id = account_id
         self.region_name = region_name
         self.name = kwargs.get("name")
@@ -606,7 +646,7 @@ class FakeJob(BaseModel, metaclass=BaseModelABCMeta):
         for k in self.local_attrs:
             setattr(self, k, kwargs.get(k))
 
-    def validate(self):
+    def validate(self) -> None:
         if self.encryption_mode is not None:
             if self.encryption_mode not in FakeJob.ENCRYPTION_MODES:
                 raise ValidationException(
@@ -624,10 +664,10 @@ class FakeJob(BaseModel, metaclass=BaseModelABCMeta):
         pass
 
     @property
-    def resource_arn(self):
+    def resource_arn(self) -> str:
         return f"arn:aws:databrew:{self.region_name}:{self.account_id}:job/{self.name}"
 
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Any]:
         rtn_dict = {
             "Name": self.name,
             "AccountId": self.account_id,
@@ -655,19 +695,19 @@ class FakeJob(BaseModel, metaclass=BaseModelABCMeta):
         return rtn_dict
 
 
-class FakeProfileJob(FakeJob):
+class FakeProfileJob(FakeJob):  # type: ignore[misc]
     job_type = "PROFILE"
-    local_attrs = ("output_location", "configuration", "validation_configurations")
+    local_attrs = ["output_location", "configuration", "validation_configurations"]
 
 
-class FakeRecipeJob(FakeJob):
-    local_attrs = (
+class FakeRecipeJob(FakeJob):  # type: ignore[misc]
+    local_attrs = [
         "database_outputs",
         "data_catalog_outputs",
         "outputs",
         "project_name",
         "recipe_reference",
-    )
+    ]
     job_type = "RECIPE"
 
 
