@@ -2844,7 +2844,7 @@ def test_token_legitimacy():
             id_claims[k].should.equal(v)
         access_claims = json.loads(jws.verify(access_token, json_web_key, "RS256"))
         access_claims["iss"].should.equal(issuer)
-        access_claims["aud"].should.equal(client_id)
+        access_claims["client_id"].should.equal(client_id)
         access_claims["token_use"].should.equal("access")
         access_claims["username"].should.equal(username)
 
