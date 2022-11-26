@@ -323,3 +323,138 @@ def test_update_api():
     resp.should.have.key("ProtocolType").equals("HTTP")
     resp.should.have.key("RouteSelectionExpression").equals("route_s3l3ction")
     resp.should.have.key("Version").equals("1.1")
+
+
+@mock_apigatewayv2
+def test_create_domain_name():
+    client = boto3.client("apigatewayv2", region_name="us-east-1")
+    domain_name = "dev"
+    tags = {"tag": "it"}
+    expected_keys = [
+        "DomainName",
+        "ApiMappingSelectionExpression",
+        "DomainNameConfigurations",
+        "MutualTlsAuthentication",
+        "Tags",
+    ]
+
+    post_resp = client.create_domain_name(DomainName=domain_name, Tags=tags)
+    get_resp = client.get_domain_name(DomainName=domain_name)
+
+    # check post response has all keys
+    for key in expected_keys:
+        post_resp.should.have.key(key)
+
+    # check get response has all keys
+    for key in expected_keys:
+        get_resp.should.have.key(key)
+
+    # check that values are equal for post and get of same resource
+    for key in expected_keys:
+        post_resp.get(key).should.equal(get_resp.get(key))
+
+    # ensure known values are set correct in post response
+    post_resp.get("DomainName").should.equal(domain_name)
+    post_resp.get("Tags").should.equal(tags)
+
+
+@mock_apigatewayv2
+def test_get_domain_names():
+    client = boto3.client("apigatewayv2", region_name="us-east-1")
+    dev_domain = client.create_domain_name(DomainName="dev.service.io")
+    prod_domain = client.create_domain_name(DomainName="prod.service.io")
+
+    # sanity check responses
+    dev_domain.should.have.key("DomainName").equals("dev.service.io")
+    prod_domain.should.have.key("DomainName").equals("prod.service.io")
+
+    # make comparable
+    del dev_domain["ResponseMetadata"]
+    del prod_domain["ResponseMetadata"]
+
+    get_resp = client.get_domain_names()
+    get_resp.should.have.key("Items")
+    get_resp.get("Items").should.contain(dev_domain)
+    get_resp.get("Items").should.contain(prod_domain)
+
+
+@mock_apigatewayv2
+def test_create_api_mapping():
+    client = boto3.client("apigatewayv2", region_name="us-east-1")
+    api = client.create_api(Name="test-api", ProtocolType="HTTP")
+    dev_domain = client.create_domain_name(DomainName="dev.service.io")
+    expected_keys = ["ApiId", "ApiMappingId", "ApiMappingKey", "Stage"]
+
+    post_resp = client.create_api_mapping(
+        DomainName=dev_domain["DomainName"],
+        ApiMappingKey="v1/api",
+        Stage="$default",
+        ApiId=api["ApiId"],
+    )
+
+    get_resp = client.get_api_mapping(
+        DomainName="dev.service.io", ApiMappingId=post_resp["ApiMappingId"]
+    )
+
+    # check post response has all expected keys
+    for key in expected_keys:
+        post_resp.should.have.key(key)
+
+    # check get response has all expected keys
+    for key in expected_keys:
+        get_resp.should.have.key(key)
+
+    # check that values are equal for post and get of same resource
+    for key in expected_keys:
+        post_resp.get(key).should.equal(get_resp.get(key))
+
+    # ensure known values are set correct in post response
+    post_resp.get("ApiId").should_not.equal(None)
+    post_resp.get("ApiMappingId").should_not.equal(None)
+    post_resp.get("ApiMappingKey").should.equal("v1/api")
+    post_resp.get("Stage").should.equal("$default")
+
+
+@mock_apigatewayv2
+def test_get_api_mappings():
+    client = boto3.client("apigatewayv2", region_name="eu-west-1")
+    api = client.create_api(Name="test-api", ProtocolType="HTTP")
+    included_domain = client.create_domain_name(DomainName="dev.service.io")
+    excluded_domain = client.create_domain_name(DomainName="hr.service.io")
+
+    v1_mapping = client.create_api_mapping(
+        DomainName=included_domain["DomainName"],
+        ApiMappingKey="v1/api",
+        Stage="$default",
+        ApiId=api["ApiId"],
+    )
+
+    v2_mapping = client.create_api_mapping(
+        DomainName=included_domain["DomainName"],
+        ApiMappingKey="v2/api",
+        Stage="$default",
+        ApiId=api["ApiId"],
+    )
+
+    hr_mapping = client.create_api_mapping(
+        DomainName=excluded_domain["DomainName"],
+        ApiMappingKey="hr/api",
+        Stage="$default",
+        ApiId=api["ApiId"],
+    )
+
+    # sanity check responses
+    v1_mapping.should.have.key("ApiMappingKey").equals("v1/api")
+    v2_mapping.should.have.key("ApiMappingKey").equals("v2/api")
+    hr_mapping.should.have.key("ApiMappingKey").equals("hr/api")
+
+    # make comparable
+    del v1_mapping["ResponseMetadata"]
+    del v2_mapping["ResponseMetadata"]
+    del hr_mapping["ResponseMetadata"]
+
+    get_resp = client.get_api_mappings(DomainName=included_domain["DomainName"])
+    get_resp.should.have.key("Items")
+    get_resp.get("Items").should.contain(v1_mapping)
+    get_resp.get("Items").should.contain(v2_mapping)
+    get_resp.get("Items").should_not.contain(hr_mapping)

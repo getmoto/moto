@@ -93,3 +93,21 @@ class UnknownProtocol(APIGatewayV2Error):
             "BadRequestException",
             "Invalid protocol specified. Must be one of [HTTP, WEBSOCKET]",
         )
+
+
+class DomainNameNotFound(APIGatewayV2Error):
+    def __init__(self) -> None:
+        super().__init__(
+            "NotFoundException",
+            "The domain name resource specified in the request was not found.",
+        )
+
+
+class ApiMappingNotFound(APIGatewayV2Error):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__(
+            "NotFoundException",
+            "The api mapping resource specified in the request was not found.",
+        )
