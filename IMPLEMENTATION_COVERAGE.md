@@ -175,13 +175,13 @@
 
 ## apigatewayv2
 <details>
-<summary>58% implemented</summary>
+<summary>69% implemented</summary>
 
 - [X] create_api
-- [ ] create_api_mapping
+- [X] create_api_mapping
 - [X] create_authorizer
 - [ ] create_deployment
-- [ ] create_domain_name
+- [X] create_domain_name
 - [X] create_integration
 - [X] create_integration_response
 - [X] create_model
@@ -191,11 +191,11 @@
 - [X] create_vpc_link
 - [ ] delete_access_log_settings
 - [X] delete_api
-- [ ] delete_api_mapping
+- [X] delete_api_mapping
 - [X] delete_authorizer
 - [X] delete_cors_configuration
 - [ ] delete_deployment
-- [ ] delete_domain_name
+- [X] delete_domain_name
 - [X] delete_integration
 - [X] delete_integration_response
 - [X] delete_model
@@ -207,15 +207,15 @@
 - [X] delete_vpc_link
 - [ ] export_api
 - [X] get_api
-- [ ] get_api_mapping
-- [ ] get_api_mappings
+- [X] get_api_mapping
+- [X] get_api_mappings
 - [X] get_apis
 - [X] get_authorizer
 - [ ] get_authorizers
 - [ ] get_deployment
 - [ ] get_deployments
-- [ ] get_domain_name
-- [ ] get_domain_names
+- [X] get_domain_name
+- [X] get_domain_names
 - [X] get_integration
 - [X] get_integration_response
 - [X] get_integration_responses

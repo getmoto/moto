@@ -31,4 +31,8 @@ url_paths = {
     "{0}/v2/tags/(?P<resource_arn_pt1>[^/]+)/vpclinks/(?P<resource_arn_pt2>[^/]+)$": response_v2.tags,
     "{0}/v2/vpclinks$": response_v2.vpc_links,
     "{0}/v2/vpclinks/(?P<vpc_link_id>[^/]+)$": response_v2.vpc_link,
+    "{0}/v2/domainnames$": response_v2.domain_names,
+    "{0}/v2/domainnames/(?P<domain_name>[^/]+)$": response_v2.domain_name,
+    "{0}/v2/domainnames/(?P<domain_name>[^/]+)/apimappings$": response_v2.api_mappings,
+    "{0}/v2/domainnames/(?P<domain_name>[^/]+)/apimappings/(?P<api_mapping_id>[^/]+)$": response_v2.api_mapping,
 }
