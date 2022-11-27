@@ -34,5 +34,5 @@ url_paths = {
     "{0}/v2/domainnames$": response_v2.domain_names,
     "{0}/v2/domainnames/(?P<domain_name>[^/]+)$": response_v2.domain_name,
     "{0}/v2/domainnames/(?P<domain_name>[^/]+)/apimappings$": response_v2.api_mappings,
-    "{0}/v2/domainnames/(?P<domain_name>[^/]+)/apimappings/(?P<api_mapping_id>[^/]+)*$": response_v2.api_mapping,
+    "{0}/v2/domainnames/(?P<domain_name>[^/]+)/apimappings/(?P<api_mapping_id>[^/]+)$": response_v2.api_mapping,
 }
