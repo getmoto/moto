@@ -801,16 +801,19 @@ class SQSBackend(BaseBackend):
         if message_attributes:
             message.message_attributes = message_attributes
 
+        # UPDATED Line 804-811
         if delay_seconds > MAXIMUM_MESSAGE_DELAY:
-            invalidDelay = True
-        else:
-            invalidDelay = False
+            msg = (
+                f"Value {delay_seconds} for parameter DelaySeconds is invalid. "
+                "Reason: DelaySeconds must be >= 0 and <= 900."
+            )
+            raise InvalidParameterValue(msg)
 
         message.mark_sent(delay_seconds=delay_seconds)
 
         queue.add_message(message)
 
-        return message, invalidDelay
+        return message
 
     def send_message_batch(self, queue_name, entries):
         self.get_queue(queue_name)
@@ -841,23 +844,22 @@ class SQSBackend(BaseBackend):
             raise TooManyEntriesInBatchRequest(len(entries))
 
         messages = []
-
+        # UPDATED Line 850-851, 853-868
         failedInvalidDelay = []
         for entry in entries.values():
-            # Loop through looking for messages
-            message, invalidDelay = self.send_message(
-                queue_name,
-                entry["MessageBody"],
-                message_attributes=entry["MessageAttributes"],
-                delay_seconds=entry["DelaySeconds"],
-                group_id=entry.get("MessageGroupId"),
-                deduplication_id=entry.get("MessageDeduplicationId"),
-            )
-            message.user_id = entry["Id"]
-
-            if not invalidDelay:
+            try:
+                # Loop through looking for messages
+                message = self.send_message(
+                    queue_name,
+                    entry["MessageBody"],
+                    message_attributes=entry["MessageAttributes"],
+                    delay_seconds=entry["DelaySeconds"],
+                    group_id=entry.get("MessageGroupId"),
+                    deduplication_id=entry.get("MessageDeduplicationId"),
+                )
+                message.user_id = entry["Id"]
                 messages.append(message)
-            else:
+            except InvalidParameterValue as e:
                 failedInvalidDelay.append(entry)
 
         return messages, failedInvalidDelay

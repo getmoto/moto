@@ -299,11 +299,10 @@ class SQSResponse(BaseResponse):
         if entries == {}:
             raise EmptyBatchRequest()
 
-        # UPDATED Line 302-317, 320
+        # UPDATED Line 302-314, 317
         messages, failedInvalidDelay = self.sqs_backend.send_message_batch(
             queue_name, entries
         )
-        # print(f'Failed due to invalid delay: {failedInvalidDelay}')
 
         errors = []
         for entry in failedInvalidDelay:
@@ -315,8 +314,6 @@ class SQSResponse(BaseResponse):
                     "Message": "Value 1800 for parameter DelaySeconds is invalid. Reason: DelaySeconds must be &gt;= 0 and &lt;= 900.",
                 }
             )
-
-        # print(f'Errors: {errors}')
 
         template = self.response_template(SEND_MESSAGE_BATCH_RESPONSE)
         return template.render(messages=messages, errors=errors)
