@@ -1,5 +1,10 @@
 acm:
   - TestAccACMCertificateDataSource
+acmpca:
+  - TestAccACMPCACertificateAuthority_
+  - TestAccACMPCACertificateAuthorityDataSource
+  - TestAccACMPCACertificateAuthorityCertificate
+  - TestAccACMPCACertificateDataSource
 amp:
   - TestAccAMPWorkspace
   - TestAccAMPRuleGroupNamespace
