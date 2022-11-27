@@ -180,6 +180,35 @@ class ApiGatewayV2Response(BaseResponse):
         if request.method == "POST":
             return self.create_vpc_link()
 
+    def domain_names(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        if request.method == "GET":
+            return self.get_domain_names()
+
+        if request.method == "POST":
+            return self.create_domain_name()
+
+    def domain_name(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        if request.method == "GET":
+            return self.get_domain_name()
+
+    def api_mappings(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        if request.method == "GET":
+            return self.get_api_mappings()
+        if request.method == "POST":
+            return self.create_api_mapping()
+
+    def api_mapping(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        if request.method == "GET":
+            return self.get_api_mapping()
+
     def create_api(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
 
@@ -751,35 +780,6 @@ class ApiGatewayV2Response(BaseResponse):
 
         vpc_link = self.apigatewayv2_backend.update_vpc_link(vpc_link_id, name=name)
         return 200, {}, json.dumps(vpc_link.to_json())
-
-    def domain_names(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if request.method == "GET":
-            return self.get_domain_names()
-
-        if request.method == "POST":
-            return self.create_domain_name()
-
-    def domain_name(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if request.method == "GET":
-            return self.get_domain_name()
-
-    def api_mappings(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if request.method == "GET":
-            return self.get_api_mappings()
-        if request.method == "POST":
-            return self.create_api_mapping()
-
-    def api_mapping(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if request.method == "GET":
-            return self.get_api_mapping()
 
     def create_domain_name(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)

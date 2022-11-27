@@ -36,7 +36,7 @@ organizations
 - [X] create_policy
 - [ ] decline_handshake
 - [X] delete_organization
-- [ ] delete_organizational_unit
+- [X] delete_organizational_unit
 - [X] delete_policy
 - [X] deregister_delegated_administrator
 - [X] describe_account
