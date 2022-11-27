@@ -801,7 +801,6 @@ class SQSBackend(BaseBackend):
         if message_attributes:
             message.message_attributes = message_attributes
 
-        # UPDATED Line 804-811
         if delay_seconds > MAXIMUM_MESSAGE_DELAY:
             msg = (
                 f"Value {delay_seconds} for parameter DelaySeconds is invalid. "
@@ -844,7 +843,6 @@ class SQSBackend(BaseBackend):
             raise TooManyEntriesInBatchRequest(len(entries))
 
         messages = []
-        # UPDATED Line 850-851, 853-868
         failedInvalidDelay = []
         for entry in entries.values():
             try:

@@ -299,7 +299,6 @@ class SQSResponse(BaseResponse):
         if entries == {}:
             raise EmptyBatchRequest()
 
-        # UPDATED Line 302-314, 317
         messages, failedInvalidDelay = self.sqs_backend.send_message_batch(
             queue_name, entries
         )

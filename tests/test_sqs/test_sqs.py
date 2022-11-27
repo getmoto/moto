@@ -3117,7 +3117,6 @@ def test_message_has_windows_return():
     messages[0].body.should.match(message)
 
 
-# UPDATED Line 3119-3182
 @mock_sqs
 def test_message_delay_is_more_than_15_minutes():
     client = boto3.client("sqs", region_name="us-east-1")
