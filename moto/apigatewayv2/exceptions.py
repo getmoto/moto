@@ -96,10 +96,22 @@ class UnknownProtocol(APIGatewayV2Error):
 
 
 class DomainNameNotFound(APIGatewayV2Error):
+    code = 404
+
     def __init__(self) -> None:
         super().__init__(
             "NotFoundException",
             "The domain name resource specified in the request was not found.",
+        )
+
+
+class DomainNameAlreadyExists(APIGatewayV2Error):
+    code = 409
+
+    def __init__(self) -> None:
+        super().__init__(
+            "ConflictException",
+            "The domain name resource already exists.",
         )
 
 

@@ -21,6 +21,7 @@ from .exceptions import (
     RouteNotFound,
     VpcLinkNotFound,
     DomainNameNotFound,
+    DomainNameAlreadyExists,
 )
 
 
@@ -1598,6 +1599,10 @@ class ApiGatewayV2Backend(BaseBackend):
         mutual_tls_authentication: Dict[str, str],
         tags: Dict[str, str],
     ) -> DomainName:
+
+        if domain_name in self.domain_names.keys():
+            raise DomainNameAlreadyExists
+
         domain = DomainName(
             domain_name=domain_name,
             domain_name_configurations=domain_name_configurations,
@@ -1617,6 +1622,16 @@ class ApiGatewayV2Backend(BaseBackend):
         Pagination is not yet implemented
         """
         return list(self.domain_names.values())
+
+    def delete_domain_name(self, domain_name: str) -> None:
+        if domain_name not in self.domain_names.keys():
+            raise DomainNameNotFound
+
+        for mapping_id, mapping in self.api_mappings.items():
+            if mapping.domain_name == domain_name:
+                del self.api_mappings[mapping_id]
+
+        del self.domain_names[domain_name]
 
     def _generate_api_maping_id(
         self, api_mapping_key: str, stage: str, domain_name: str
@@ -1674,6 +1689,17 @@ class ApiGatewayV2Backend(BaseBackend):
             if mapping.domain_name == domain_name:
                 domain_mappings.append(mapping)
         return domain_mappings
+
+    def delete_api_mapping(self, api_mapping_id: str, domain_name: str) -> None:
+        if api_mapping_id not in self.api_mappings.keys():
+            raise ApiMappingNotFound
+
+        if self.api_mappings[api_mapping_id].domain_name != domain_name:
+            raise BadRequestException(
+                f"given domain name {domain_name} does not match with mapping definition of mapping {api_mapping_id}"
+            )
+
+        del self.api_mappings[api_mapping_id]
 
 
 apigatewayv2_backends = BackendDict(ApiGatewayV2Backend, "apigatewayv2")

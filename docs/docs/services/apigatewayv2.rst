@@ -50,11 +50,11 @@ apigatewayv2
 - [X] create_vpc_link
 - [ ] delete_access_log_settings
 - [X] delete_api
-- [ ] delete_api_mapping
+- [X] delete_api_mapping
 - [X] delete_authorizer
 - [X] delete_cors_configuration
 - [ ] delete_deployment
-- [ ] delete_domain_name
+- [X] delete_domain_name
 - [X] delete_integration
 - [X] delete_integration_response
 - [X] delete_model

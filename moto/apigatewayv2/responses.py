@@ -185,7 +185,6 @@ class ApiGatewayV2Response(BaseResponse):
 
         if request.method == "GET":
             return self.get_domain_names()
-
         if request.method == "POST":
             return self.create_domain_name()
 
@@ -194,6 +193,8 @@ class ApiGatewayV2Response(BaseResponse):
 
         if request.method == "GET":
             return self.get_domain_name()
+        if request.method == "DELETE":
+            return self.delete_domain_name()
 
     def api_mappings(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
@@ -208,6 +209,8 @@ class ApiGatewayV2Response(BaseResponse):
 
         if request.method == "GET":
             return self.get_api_mapping()
+        if request.method == "DELETE":
+            return self.delete_api_mapping()
 
     def create_api(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
@@ -819,7 +822,7 @@ class ApiGatewayV2Response(BaseResponse):
             domain_name=domain_name,
             stage=stage,
         )
-        return 200, {}, json.dumps(mapping.to_json())
+        return 201, {}, json.dumps(mapping.to_json())
 
     def get_api_mapping(self) -> TYPE_RESPONSE:
         api_mapping_id = self.path.split("/")[-1]
@@ -835,3 +838,19 @@ class ApiGatewayV2Response(BaseResponse):
         mappings = self.apigatewayv2_backend.get_api_mappings(domain_name=domain_name)
         list_of_dict = [mapping.to_json() for mapping in mappings]
         return 200, {}, json.dumps(dict(items=list_of_dict))
+
+    def delete_domain_name(self) -> TYPE_RESPONSE:
+        domain_name = self.path.split("/")[-1]
+        self.apigatewayv2_backend.delete_domain_name(
+            domain_name=domain_name,
+        )
+        return 204, {}, ""
+
+    def delete_api_mapping(self) -> TYPE_RESPONSE:
+        api_mapping_id = self.path.split("/")[-1]
+        domain_name = self.path.split("/")[-3]
+        self.apigatewayv2_backend.delete_api_mapping(
+            api_mapping_id=api_mapping_id,
+            domain_name=domain_name,
+        )
+        return 204, {}, ""
