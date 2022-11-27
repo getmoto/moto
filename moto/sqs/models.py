@@ -857,7 +857,7 @@ class SQSBackend(BaseBackend):
                 )
                 message.user_id = entry["Id"]
                 messages.append(message)
-            except InvalidParameterValue as e:
+            except InvalidParameterValue:
                 failedInvalidDelay.append(entry)
 
         return messages, failedInvalidDelay

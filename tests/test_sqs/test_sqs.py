@@ -3158,7 +3158,7 @@ def test_message_delay_is_more_than_15_minutes():
 
     sorted([entry["Id"] for entry in response["Failed"]]).should.equal(["id_2"])
 
-    print(response)
+    # print(response)
 
     time.sleep(4)
 
