@@ -44,6 +44,8 @@ MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND = 1024
 MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND = MAXIMUM_MESSAGE_LENGTH
 
+MAXIMUM_MESSAGE_DELAY = 900
+
 TRANSPORT_TYPE_ENCODINGS = {
     "String": b"\x01",
     "Binary": b"\x02",
@@ -799,6 +801,13 @@ class SQSBackend(BaseBackend):
         if message_attributes:
             message.message_attributes = message_attributes
 
+        if delay_seconds > MAXIMUM_MESSAGE_DELAY:
+            msg = (
+                f"Value {delay_seconds} for parameter DelaySeconds is invalid. "
+                "Reason: DelaySeconds must be >= 0 and <= 900."
+            )
+            raise InvalidParameterValue(msg)
+
         message.mark_sent(delay_seconds=delay_seconds)
 
         queue.add_message(message)
@@ -834,21 +843,24 @@ class SQSBackend(BaseBackend):
             raise TooManyEntriesInBatchRequest(len(entries))
 
         messages = []
+        failedInvalidDelay = []
         for entry in entries.values():
-            # Loop through looking for messages
-            message = self.send_message(
-                queue_name,
-                entry["MessageBody"],
-                message_attributes=entry["MessageAttributes"],
-                delay_seconds=entry["DelaySeconds"],
-                group_id=entry.get("MessageGroupId"),
-                deduplication_id=entry.get("MessageDeduplicationId"),
-            )
-            message.user_id = entry["Id"]
+            try:
+                # Loop through looking for messages
+                message = self.send_message(
+                    queue_name,
+                    entry["MessageBody"],
+                    message_attributes=entry["MessageAttributes"],
+                    delay_seconds=entry["DelaySeconds"],
+                    group_id=entry.get("MessageGroupId"),
+                    deduplication_id=entry.get("MessageDeduplicationId"),
+                )
+                message.user_id = entry["Id"]
+                messages.append(message)
+            except InvalidParameterValue:
+                failedInvalidDelay.append(entry)
 
-            messages.append(message)
-
-        return messages
+        return messages, failedInvalidDelay
 
     def _get_first_duplicate_id(self, ids):
         unique_ids = set()

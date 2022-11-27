@@ -3115,3 +3115,68 @@ def test_message_has_windows_return():
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
     messages[0].body.should.match(message)
+
+
+@mock_sqs
+def test_message_delay_is_more_than_15_minutes():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
+    )
+    queue_url = response["QueueUrl"]
+
+    response = client.send_message_batch(
+        QueueUrl=queue_url,
+        Entries=[
+            {
+                "Id": "id_1",
+                "MessageBody": "body_1",
+                "DelaySeconds": 3,
+                "MessageAttributes": {
+                    "attribute_name_1": {
+                        "StringValue": "attribute_value_1",
+                        "DataType": "String",
+                    }
+                },
+                "MessageGroupId": "message_group_id_1",
+                "MessageDeduplicationId": "message_deduplication_id_1",
+            },
+            {
+                "Id": "id_2",
+                "MessageBody": "body_2",
+                "DelaySeconds": 1800,
+                "MessageAttributes": {
+                    "attribute_name_2": {"StringValue": "123", "DataType": "Number"}
+                },
+                "MessageGroupId": "message_group_id_2",
+                "MessageDeduplicationId": "message_deduplication_id_2",
+            },
+        ],
+    )
+
+    sorted([entry["Id"] for entry in response["Successful"]]).should.equal(["id_1"])
+
+    sorted([entry["Id"] for entry in response["Failed"]]).should.equal(["id_2"])
+
+    # print(response)
+
+    time.sleep(4)
+
+    response = client.receive_message(
+        QueueUrl=queue_url,
+        MaxNumberOfMessages=10,
+        MessageAttributeNames=["attribute_name_1", "attribute_name_2"],
+        AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
+    )
+
+    response["Messages"].should.have.length_of(1)
+    response["Messages"][0]["Body"].should.equal("body_1")
+    response["Messages"][0]["MessageAttributes"].should.equal(
+        {"attribute_name_1": {"StringValue": "attribute_value_1", "DataType": "String"}}
+    )
+    response["Messages"][0]["Attributes"]["MessageGroupId"].should.equal(
+        "message_group_id_1"
+    )
+    response["Messages"][0]["Attributes"]["MessageDeduplicationId"].should.equal(
+        "message_deduplication_id_1"
+    )
