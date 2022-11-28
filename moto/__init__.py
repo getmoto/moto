@@ -16,6 +16,7 @@ def lazy_load(module_name, element, boto3_name=None, backend=None):
 
 
 mock_acm = lazy_load(".acm", "mock_acm")
+mock_acmpca = lazy_load(".acmpca", "mock_acmpca", boto3_name="acm-pca")
 mock_amp = lazy_load(".amp", "mock_amp")
 mock_apigateway = lazy_load(".apigateway", "mock_apigateway")
 mock_apigatewayv2 = lazy_load(".apigatewayv2", "mock_apigatewayv2")
@@ -77,6 +78,9 @@ mock_elbv2 = lazy_load(".elbv2", "mock_elbv2")
 mock_emr = lazy_load(".emr", "mock_emr")
 mock_emrcontainers = lazy_load(
     ".emrcontainers", "mock_emrcontainers", boto3_name="emr-containers"
+)
+mock_emrserverless = lazy_load(
+    ".emrserverless", "mock_emrserverless", boto3_name="emr-serverless"
 )
 mock_es = lazy_load(".es", "mock_es")
 mock_events = lazy_load(".events", "mock_events")
@@ -163,9 +167,6 @@ mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_textract = lazy_load(".textract", "mock_textract")
-mock_emrserverless = lazy_load(
-    ".emrserverless", "mock_emrserverless", boto3_name="emr-serverless"
-)
 
 
 class MockAll(ContextDecorator):

@@ -149,12 +149,12 @@ def append_mock_to_init_py(service):
     with open(path, encoding="utf-8") as fhandle:
         lines = [_.replace("\n", "") for _ in fhandle.readlines()]
 
-    if any(_ for _ in lines if re.match(f"^mock_{service}.*lazy_load(.*)$", _)):
+    escaped_service = get_escaped_service(service)
+    if any(_ for _ in lines if _.startswith(f"^mock_{escaped_service} = lazy_load")):
         return
     filtered_lines = [_ for _ in lines if re.match("^mock_.*lazy_load(.*)$", _)]
     last_import_line_index = lines.index(filtered_lines[-1])
 
-    escaped_service = get_escaped_service(service)
     new_line = (
         f"mock_{escaped_service} = lazy_load("
         f'".{escaped_service}", "mock_{escaped_service}", boto3_name="{service}")'
