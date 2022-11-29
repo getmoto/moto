@@ -884,3 +884,33 @@ def test_submit_job_with_timeout_set_at_definition():
 
     # This should fail, as the job-duration is longer than the attemptDurationSeconds
     _wait_for_job_status(batch_client, job_id, "FAILED")
+
+
+@mock_batch
+def test_submit_job_invalid_name():
+    """
+    Test verifies that a `ClientException` is raised if `jobName` isn't valid
+    """
+    _, _, _, _, batch_client = _get_clients()
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        batch_client.submit_job(
+            jobName="containsinvalidcharacter.",
+            jobQueue="arn",
+            jobDefinition="job_def_name",
+        )
+    assert exc.match("ClientException")
+
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        batch_client.submit_job(
+            jobName="-startswithinvalidcharacter",
+            jobQueue="arn",
+            jobDefinition="job_def_name",
+        )
+    assert exc.match("ClientException")
+
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        too_long_job_name = "a" * 129
+        batch_client.submit_job(
+            jobName=too_long_job_name, jobQueue="arn", jobDefinition="job_def_name"
+        )
+    assert exc.match("ClientException")

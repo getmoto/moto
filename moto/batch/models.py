@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
     r"^[A-Za-z0-9][A-Za-z0-9_-]{1,126}[A-Za-z0-9]$"
 )
+JOB_NAME_REGEX = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{1,127}$")
 
 
 def datetime2int_milliseconds(date: datetime.datetime) -> int:
@@ -1523,6 +1524,9 @@ class BatchBackend(BaseBackend):
         """
         Parameters RetryStrategy and Parameters are not yet implemented.
         """
+        if JOB_NAME_REGEX.match(job_name) is None:
+            raise ClientException("Job name should match valid pattern")
+
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
         if job_def is None:
