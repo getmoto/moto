@@ -531,6 +531,7 @@ class DynamoHandler(BaseResponse):
                 "Too many items requested for the BatchGetItem call"
             )
 
+        result_size: int = 0
         for table_name, table_request in table_batches.items():
             keys = table_request["Keys"]
             if self._contains_duplicates(keys):
@@ -553,8 +554,16 @@ class DynamoHandler(BaseResponse):
                     table_name, key, projection_expression
                 )
                 if item:
-                    item_describe = item.describe_attrs(attributes_to_get)
-                    results["Responses"][table_name].append(item_describe["Item"])
+                    # A single operation can retrieve up to 16 MB of data [and] returns a partial result if the response size limit is exceeded
+                    if result_size + item.size() > (16 * 1024 * 1024):
+                        # Result is already getting too big - next results should be part of UnprocessedKeys
+                        if table_name not in results["UnprocessedKeys"]:
+                            results["UnprocessedKeys"][table_name] = {"Keys": []}
+                        results["UnprocessedKeys"][table_name]["Keys"].append(key)
+                    else:
+                        item_describe = item.describe_attrs(attributes_to_get)
+                        results["Responses"][table_name].append(item_describe["Item"])
+                        result_size += item.size()
 
             results["ConsumedCapacity"].append(
                 {"CapacityUnits": len(keys), "TableName": table_name}
