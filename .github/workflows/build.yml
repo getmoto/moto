@@ -155,7 +155,7 @@ jobs:
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        make test_server
+        make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v3
