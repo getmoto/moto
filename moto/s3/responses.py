@@ -1296,7 +1296,7 @@ class S3Response(BaseResponse):
             if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
             if key.last_modified.replace(microsecond=0) <= if_modified_since:
                 return 304, response_headers, "Not Modified"
-        if if_none_match and key.etag == if_none_match:
+        if if_none_match and key.etag in [if_none_match, f'"{if_none_match}"']:
             return 304, response_headers, "Not Modified"
 
         if "acl" in query:
