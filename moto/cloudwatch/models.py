@@ -576,6 +576,11 @@ class CloudWatchBackend(BaseBackend):
                         if sorted(md.dimensions) == sorted(dimensions)
                         and md.name == query_name
                     ]
+                query_period_data = [
+                    md
+                    for md in query_period_data
+                    if md.unit == query['metric_stat._unit']
+                ]
 
                 metric_values = [m.value for m in query_period_data]
 
