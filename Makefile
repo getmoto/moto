@@ -52,7 +52,7 @@ terraformtests:
 	cd tests/terraformtests && bin/run_go_test $(SERVICE_NAME) "$(TEST_NAMES)"
 
 test_server:
-	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report xml ./tests/
+	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report xml ./tests/ $(TEST_EXCLUDE)
 
 aws_managed_policies:
 	scripts/update_managed_policies.py
