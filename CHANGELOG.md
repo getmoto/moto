@@ -3,7 +3,7 @@ Moto Changelog
 
 4.0.11
 -----
-Docker Digest for 4.0.11: <autopopulateddigest>
+Docker Digest for 4.0.11: _sha256:ba07f61edd4f91b221ea20368586dce024e7da4d018e2741aceafa1f07f47ec5_
 
     New Services:
         * ACM-PCA:
