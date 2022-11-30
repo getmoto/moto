@@ -1,9 +1,9 @@
 Moto Changelog
 ==============
 
-4.0.10
+4.0.11
 -----
-Docker Digest for 4.0.10: <autopopulateddigest>
+Docker Digest for 4.0.11: <autopopulateddigest>
 
     New Services:
         * ACM-PCA:
