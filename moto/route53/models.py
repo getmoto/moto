@@ -1,4 +1,5 @@
 """Route53Backend class with methods for supported APIs."""
+import copy
 import itertools
 import re
 import string
@@ -17,6 +18,8 @@ from moto.route53.exceptions import (
     NoSuchQueryLoggingConfig,
     PublicZoneVPCAssociation,
     QueryLoggingConfigAlreadyExists,
+    DnsNameInvalidForZone,
+    ChangeSetAlreadyExists,
 )
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.moto_api._internal import mock_random as random
@@ -276,6 +279,7 @@ class FakeZone(CloudFormationModel):
         self.private_zone = private_zone
         self.rrsets = []
         self.delegation_set = delegation_set
+        self.rr_changes = []
 
     def add_rrset(self, record_set):
         record_set = RecordSet(record_set)
@@ -525,9 +529,14 @@ class Route53Backend(BaseBackend):
         is_truncated = next_record is not None
         return records, next_start_name, next_start_type, is_truncated
 
-    def change_resource_record_sets(self, zoneid, change_list):
+    def change_resource_record_sets(self, zoneid, change_list) -> None:
         the_zone = self.get_hosted_zone(zoneid)
+
+        if any([rr for rr in change_list if rr in the_zone.rr_changes]):
+            raise ChangeSetAlreadyExists
+
         for value in change_list:
+            original_change = copy.deepcopy(value)
             action = value["Action"]
 
             if action not in ("CREATE", "UPSERT", "DELETE"):
@@ -539,11 +548,9 @@ class Route53Backend(BaseBackend):
             cleaned_hosted_zone_name = the_zone.name.strip(".")
 
             if not cleaned_record_name.endswith(cleaned_hosted_zone_name):
-                error_msg = f"""
-                An error occurred (InvalidChangeBatch) when calling the ChangeResourceRecordSets operation:
-                RRSet with DNS name {record_set["Name"]} is not permitted in zone {the_zone.name}
-                """
-                return error_msg
+                raise DnsNameInvalidForZone(
+                    name=record_set["Name"], zone_name=the_zone.name
+                )
 
             if not record_set["Name"].endswith("."):
                 record_set["Name"] += "."
@@ -567,7 +574,7 @@ class Route53Backend(BaseBackend):
                     the_zone.delete_rrset_by_id(record_set["SetIdentifier"])
                 else:
                     the_zone.delete_rrset(record_set)
-        return None
+            the_zone.rr_changes.append(original_change)
 
     def list_hosted_zones(self):
         return self.zones.values()
@@ -612,7 +619,7 @@ class Route53Backend(BaseBackend):
 
         return zone_list
 
-    def get_hosted_zone(self, id_):
+    def get_hosted_zone(self, id_) -> FakeZone:
         the_zone = self.zones.get(id_.replace("/hostedzone/", ""))
         if not the_zone:
             raise NoSuchHostedZone(id_)

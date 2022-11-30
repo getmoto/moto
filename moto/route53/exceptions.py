@@ -162,3 +162,20 @@ class NoSuchDelegationSet(Route53ClientError):
     def __init__(self, delegation_set_id):
         super().__init__("NoSuchDelegationSet", delegation_set_id)
         self.content_type = "text/xml"
+
+
+class DnsNameInvalidForZone(Route53ClientError):
+    code = 400
+
+    def __init__(self, name, zone_name):
+        error_msg = (
+            f"""RRSet with DNS name {name} is not permitted in zone {zone_name}"""
+        )
+        super().__init__("InvalidChangeBatch", error_msg)
+
+
+class ChangeSetAlreadyExists(Route53ClientError):
+    code = 400
+
+    def __init__(self):
+        super().__init__("InvalidChangeBatch", "Provided Change is a duplicate")
