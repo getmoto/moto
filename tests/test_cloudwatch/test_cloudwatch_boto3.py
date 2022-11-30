@@ -1096,7 +1096,7 @@ def test_get_metric_data_for_unit():
                 "MetricName": "metric1",
                 "Value": -50,
                 "Timestamp": utc_now,
-            }
+            },
         ],
     )
     # get_metric_data
@@ -1122,9 +1122,9 @@ def test_get_metric_data_for_unit():
                     },
                     "Period": 60,
                     "Stat": "SampleCount",
-                    "Unit": unit
+                    "Unit": unit,
                 },
-            }
+            },
         ],
         StartTime=utc_now - timedelta(seconds=60),
         EndTime=utc_now + timedelta(seconds=60),
@@ -1139,11 +1139,11 @@ def test_get_metric_data_for_unit():
         metric_result_data = list(
             filter(
                 lambda result_data: result_data["Id"] == id_,
-                response["MetricDataResults"]
+                response["MetricDataResults"],
             )
         )
         len(metric_result_data).should.equal(1)
-        metric_result_data[0]['Values'][0].should.equal(expected_value)
+        metric_result_data[0]["Values"][0].should.equal(expected_value)
 
 
 @mock_cloudwatch
