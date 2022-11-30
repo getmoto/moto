@@ -1075,6 +1075,78 @@ def test_get_metric_data_for_dimensions():
 
 
 @mock_cloudwatch
+def test_get_metric_data_for_unit():
+    utc_now = datetime.now(tz=pytz.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace = "my_namespace/"
+
+    unit = "Seconds"
+
+    # put metric data
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 50,
+                "Unit": unit,
+                "Timestamp": utc_now,
+            },
+            {
+                "MetricName": "metric1",
+                "Value": -50,
+                "Timestamp": utc_now,
+            },
+        ],
+    )
+    # get_metric_data
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result_without_unit",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                },
+            },
+            {
+                "Id": "result_with_unit",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                    "Unit": unit,
+                },
+            },
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+
+    expected_values = {
+        "result_without_unit": 2.0,
+        "result_with_unit": 1.0,
+    }
+
+    for id_, expected_value in expected_values.items():
+        metric_result_data = list(
+            filter(
+                lambda result_data: result_data["Id"] == id_,
+                response["MetricDataResults"],
+            )
+        )
+        len(metric_result_data).should.equal(1)
+        metric_result_data[0]["Values"][0].should.equal(expected_value)
+
+
+@mock_cloudwatch
 @mock_s3
 def test_cloudwatch_return_s3_metrics():
     utc_now = datetime.now(tz=pytz.utc)
