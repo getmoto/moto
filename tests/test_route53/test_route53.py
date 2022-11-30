@@ -1119,6 +1119,37 @@ def test_change_resource_record_invalid_action_value():
 
 
 @mock_route53
+def test_change_resource_record_set_twice():
+    ZONE = "cname.local"
+    FQDN = f"test.{ZONE}"
+    FQDN_TARGET = "develop.domain.com"
+
+    client = boto3.client("route53", region_name="us-east-1")
+    zone_id = client.create_hosted_zone(
+        Name=ZONE, CallerReference="ref", DelegationSetId="string"
+    )["HostedZone"]["Id"]
+    changes = {
+        "Changes": [
+            {
+                "Action": "CREATE",
+                "ResourceRecordSet": {
+                    "Name": FQDN,
+                    "Type": "CNAME",
+                    "TTL": 600,
+                    "ResourceRecords": [{"Value": FQDN_TARGET}],
+                },
+            }
+        ]
+    }
+    client.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=changes)
+
+    with pytest.raises(ClientError) as exc:
+        client.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=changes)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidChangeBatch")
+
+
+@mock_route53
 def test_list_resource_record_sets_name_type_filters():
     conn = boto3.client("route53", region_name="us-east-1")
     create_hosted_zone_response = conn.create_hosted_zone(
