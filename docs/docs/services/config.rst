@@ -121,6 +121,7 @@ config
         exception).
         
 
+- [ ] get_resource_evaluation_summary
 - [ ] get_stored_query
 - [X] list_aggregate_discovered_resources
   Queries AWS Config listing function that must exist for resource backend.
@@ -153,6 +154,7 @@ config
         :return:
         
 
+- [ ] list_resource_evaluations
 - [ ] list_stored_queries
 - [X] list_tags_for_resource
   Return list of tags for AWS Config resource.
@@ -184,6 +186,7 @@ config
 - [ ] start_config_rules_evaluation
 - [X] start_configuration_recorder
 - [ ] start_remediation_execution
+- [ ] start_resource_evaluation
 - [X] stop_configuration_recorder
 - [X] tag_resource
   Add tags in config with a matching ARN.

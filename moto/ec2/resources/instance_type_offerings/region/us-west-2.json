@@ -464,6 +464,42 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "c6in.12xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6in.16xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6in.24xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6in.2xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6in.32xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6in.4xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6in.8xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6in.large",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6in.xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "c7g.12xlarge",
   "Location": "us-west-2"
  },
@@ -1912,6 +1948,78 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "r6idn.12xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6idn.16xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6idn.24xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6idn.2xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6idn.32xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6idn.4xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6idn.8xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6idn.large",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6idn.xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6in.12xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6in.16xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6in.24xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6in.2xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6in.32xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6in.4xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6in.8xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6in.large",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r6in.xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "t1.micro",
   "Location": "us-west-2"
  },
@@ -2028,7 +2136,19 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "trn1.2xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "u-18tb1.112xlarge",
   "Location": "us-west-2"
  },
  {

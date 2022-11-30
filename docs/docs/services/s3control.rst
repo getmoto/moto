@@ -65,6 +65,7 @@ s3control
 - [ ] get_multi_region_access_point
 - [ ] get_multi_region_access_point_policy
 - [ ] get_multi_region_access_point_policy_status
+- [ ] get_multi_region_access_point_routes
 - [X] get_public_access_block
 - [ ] get_storage_lens_configuration
 - [ ] get_storage_lens_configuration_tagging
@@ -86,6 +87,7 @@ s3control
 - [X] put_public_access_block
 - [ ] put_storage_lens_configuration
 - [ ] put_storage_lens_configuration_tagging
+- [ ] submit_multi_region_access_point_routes
 - [ ] update_job_priority
 - [ ] update_job_status
 

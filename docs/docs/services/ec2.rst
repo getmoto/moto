@@ -57,6 +57,7 @@ ec2
 - [ ] attach_classic_link_vpc
 - [X] attach_internet_gateway
 - [X] attach_network_interface
+- [ ] attach_verified_access_trust_provider
 - [X] attach_volume
 - [X] attach_vpn_gateway
 - [ ] authorize_client_vpn_ingress
@@ -148,6 +149,10 @@ ec2
 - [X] create_transit_gateway_route_table
 - [ ] create_transit_gateway_route_table_announcement
 - [X] create_transit_gateway_vpc_attachment
+- [ ] create_verified_access_endpoint
+- [ ] create_verified_access_group
+- [ ] create_verified_access_instance
+- [ ] create_verified_access_trust_provider
 - [X] create_volume
 - [X] create_vpc
 - [X] create_vpc_endpoint
@@ -216,6 +221,10 @@ ec2
 - [X] delete_transit_gateway_route_table
 - [ ] delete_transit_gateway_route_table_announcement
 - [X] delete_transit_gateway_vpc_attachment
+- [ ] delete_verified_access_endpoint
+- [ ] delete_verified_access_group
+- [ ] delete_verified_access_instance
+- [ ] delete_verified_access_trust_provider
 - [X] delete_volume
 - [X] delete_vpc
 - [ ] delete_vpc_endpoint_connection_notifications
@@ -238,6 +247,7 @@ ec2
 - [ ] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
 - [X] describe_availability_zones
+- [ ] describe_aws_network_performance_metric_subscriptions
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
 - [ ] describe_capacity_reservation_fleets
@@ -355,6 +365,11 @@ ec2
 - [X] describe_transit_gateway_vpc_attachments
 - [X] describe_transit_gateways
 - [ ] describe_trunk_interface_associations
+- [ ] describe_verified_access_endpoints
+- [ ] describe_verified_access_groups
+- [ ] describe_verified_access_instance_logging_configurations
+- [ ] describe_verified_access_instances
+- [ ] describe_verified_access_trust_providers
 - [ ] describe_volume_attribute
 - [ ] describe_volume_status
 - [X] describe_volumes
@@ -394,9 +409,11 @@ ec2
 - [ ] detach_classic_link_vpc
 - [X] detach_internet_gateway
 - [X] detach_network_interface
+- [ ] detach_verified_access_trust_provider
 - [X] detach_volume
 - [X] detach_vpn_gateway
 - [ ] disable_address_transfer
+- [ ] disable_aws_network_performance_metric_subscription
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
@@ -420,11 +437,13 @@ ec2
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
 - [ ] enable_address_transfer
+- [ ] enable_aws_network_performance_metric_subscription
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account
+- [ ] enable_reachability_analyzer_organization_sharing
 - [ ] enable_serial_console_access
 - [X] enable_transit_gateway_route_table_propagation
 - [ ] enable_vgw_route_propagation
@@ -437,6 +456,7 @@ ec2
 - [ ] export_transit_gateway_routes
 - [ ] get_associated_enclave_certificate_iam_roles
 - [ ] get_associated_ipv6_pool_cidrs
+- [ ] get_aws_network_performance_data
 - [ ] get_capacity_reservation_usage
 - [ ] get_coip_pool_usage
 - [ ] get_console_output
@@ -470,6 +490,8 @@ ec2
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations
+- [ ] get_verified_access_endpoint_policy
+- [ ] get_verified_access_group_policy
 - [ ] get_vpn_connection_device_sample_configuration
 - [ ] get_vpn_connection_device_types
 - [ ] import_client_vpn_client_certificate_revocation_list
@@ -522,6 +544,13 @@ ec2
 - [X] modify_transit_gateway
 - [ ] modify_transit_gateway_prefix_list_reference
 - [X] modify_transit_gateway_vpc_attachment
+- [ ] modify_verified_access_endpoint
+- [ ] modify_verified_access_endpoint_policy
+- [ ] modify_verified_access_group
+- [ ] modify_verified_access_group_policy
+- [ ] modify_verified_access_instance
+- [ ] modify_verified_access_instance_logging_configuration
+- [ ] modify_verified_access_trust_provider
 - [X] modify_volume
 - [ ] modify_volume_attribute
 - [X] modify_vpc_attribute

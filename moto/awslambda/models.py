@@ -1525,6 +1525,9 @@ class LambdaBackend(BaseBackend):
         )
 
     def create_function(self, spec: Dict[str, Any]) -> LambdaFunction:
+        """
+        The Code.ImageUri is not validated by default. Set environment variable MOTO_LAMBDA_STUB_ECR=false if you want to validate the image exists in our mocked ECR.
+        """
         function_name = spec.get("FunctionName", None)
         if function_name is None:
             raise RESTError("InvalidParameterValueException", "Missing FunctionName")
