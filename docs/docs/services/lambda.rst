@@ -33,6 +33,10 @@ lambda
 - [ ] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
+  
+        The Code.ImageUri is not validated by default. Set environment variable MOTO_LAMBDA_STUB_ECR=false if you want to validate the image exists in our mocked ECR.
+        
+
 - [X] create_function_url_config
   
         The Qualifier-parameter is not yet implemented.

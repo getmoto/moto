@@ -20,6 +20,35 @@
 - [ ] update_certificate_options
 </details>
 
+## acm-pca
+<details>
+<summary>56% implemented</summary>
+
+- [X] create_certificate_authority
+- [ ] create_certificate_authority_audit_report
+- [ ] create_permission
+- [X] delete_certificate_authority
+- [ ] delete_permission
+- [ ] delete_policy
+- [X] describe_certificate_authority
+- [ ] describe_certificate_authority_audit_report
+- [X] get_certificate
+- [X] get_certificate_authority_certificate
+- [X] get_certificate_authority_csr
+- [ ] get_policy
+- [X] import_certificate_authority_certificate
+- [X] issue_certificate
+- [ ] list_certificate_authorities
+- [ ] list_permissions
+- [X] list_tags
+- [ ] put_policy
+- [ ] restore_certificate_authority
+- [X] revoke_certificate
+- [X] tag_certificate_authority
+- [X] untag_certificate_authority
+- [X] update_certificate_authority
+</details>
+
 ## amp
 <details>
 <summary>80% implemented</summary>
@@ -1201,7 +1230,7 @@
 
 ## config
 <details>
-<summary>35% implemented</summary>
+<summary>34% implemented</summary>
 
 - [X] batch_get_aggregate_resource_config
 - [X] batch_get_resource_config
@@ -1263,10 +1292,12 @@
 - [X] get_organization_conformance_pack_detailed_status
 - [ ] get_organization_custom_rule_policy
 - [X] get_resource_config_history
+- [ ] get_resource_evaluation_summary
 - [ ] get_stored_query
 - [X] list_aggregate_discovered_resources
 - [ ] list_conformance_pack_compliance_scores
 - [X] list_discovered_resources
+- [ ] list_resource_evaluations
 - [ ] list_stored_queries
 - [X] list_tags_for_resource
 - [X] put_aggregation_authorization
@@ -1289,6 +1320,7 @@
 - [ ] start_config_rules_evaluation
 - [X] start_configuration_recorder
 - [ ] start_remediation_execution
+- [ ] start_resource_evaluation
 - [X] stop_configuration_recorder
 - [X] tag_resource
 - [X] untag_resource
@@ -1673,7 +1705,7 @@
 
 ## ec2
 <details>
-<summary>35% implemented</summary>
+<summary>33% implemented</summary>
 
 - [ ] accept_address_transfer
 - [ ] accept_reserved_instances_exchange_quote
@@ -1705,6 +1737,7 @@
 - [ ] attach_classic_link_vpc
 - [X] attach_internet_gateway
 - [X] attach_network_interface
+- [ ] attach_verified_access_trust_provider
 - [X] attach_volume
 - [X] attach_vpn_gateway
 - [ ] authorize_client_vpn_ingress
@@ -1792,6 +1825,10 @@
 - [X] create_transit_gateway_route_table
 - [ ] create_transit_gateway_route_table_announcement
 - [X] create_transit_gateway_vpc_attachment
+- [ ] create_verified_access_endpoint
+- [ ] create_verified_access_group
+- [ ] create_verified_access_instance
+- [ ] create_verified_access_trust_provider
 - [X] create_volume
 - [X] create_vpc
 - [X] create_vpc_endpoint
@@ -1860,6 +1897,10 @@
 - [X] delete_transit_gateway_route_table
 - [ ] delete_transit_gateway_route_table_announcement
 - [X] delete_transit_gateway_vpc_attachment
+- [ ] delete_verified_access_endpoint
+- [ ] delete_verified_access_group
+- [ ] delete_verified_access_instance
+- [ ] delete_verified_access_trust_provider
 - [X] delete_volume
 - [X] delete_vpc
 - [ ] delete_vpc_endpoint_connection_notifications
@@ -1882,6 +1923,7 @@
 - [ ] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
 - [X] describe_availability_zones
+- [ ] describe_aws_network_performance_metric_subscriptions
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
 - [ ] describe_capacity_reservation_fleets
@@ -1995,6 +2037,11 @@
 - [X] describe_transit_gateway_vpc_attachments
 - [X] describe_transit_gateways
 - [ ] describe_trunk_interface_associations
+- [ ] describe_verified_access_endpoints
+- [ ] describe_verified_access_groups
+- [ ] describe_verified_access_instance_logging_configurations
+- [ ] describe_verified_access_instances
+- [ ] describe_verified_access_trust_providers
 - [ ] describe_volume_attribute
 - [ ] describe_volume_status
 - [X] describe_volumes
@@ -2015,9 +2062,11 @@
 - [ ] detach_classic_link_vpc
 - [X] detach_internet_gateway
 - [X] detach_network_interface
+- [ ] detach_verified_access_trust_provider
 - [X] detach_volume
 - [X] detach_vpn_gateway
 - [ ] disable_address_transfer
+- [ ] disable_aws_network_performance_metric_subscription
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
@@ -2041,11 +2090,13 @@
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
 - [ ] enable_address_transfer
+- [ ] enable_aws_network_performance_metric_subscription
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account
+- [ ] enable_reachability_analyzer_organization_sharing
 - [ ] enable_serial_console_access
 - [X] enable_transit_gateway_route_table_propagation
 - [ ] enable_vgw_route_propagation
@@ -2058,6 +2109,7 @@
 - [ ] export_transit_gateway_routes
 - [ ] get_associated_enclave_certificate_iam_roles
 - [ ] get_associated_ipv6_pool_cidrs
+- [ ] get_aws_network_performance_data
 - [ ] get_capacity_reservation_usage
 - [ ] get_coip_pool_usage
 - [ ] get_console_output
@@ -2091,6 +2143,8 @@
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations
+- [ ] get_verified_access_endpoint_policy
+- [ ] get_verified_access_group_policy
 - [ ] get_vpn_connection_device_sample_configuration
 - [ ] get_vpn_connection_device_types
 - [ ] import_client_vpn_client_certificate_revocation_list
@@ -2143,6 +2197,13 @@
 - [X] modify_transit_gateway
 - [ ] modify_transit_gateway_prefix_list_reference
 - [X] modify_transit_gateway_vpc_attachment
+- [ ] modify_verified_access_endpoint
+- [ ] modify_verified_access_endpoint_policy
+- [ ] modify_verified_access_group
+- [ ] modify_verified_access_group_policy
+- [ ] modify_verified_access_instance
+- [ ] modify_verified_access_instance_logging_configuration
+- [ ] modify_verified_access_trust_provider
 - [X] modify_volume
 - [ ] modify_volume_attribute
 - [X] modify_vpc_attribute
@@ -2281,7 +2342,7 @@
 
 ## ecs
 <details>
-<summary>75% implemented</summary>
+<summary>74% implemented</summary>
 
 - [X] create_capacity_provider
 - [X] create_cluster
@@ -2310,6 +2371,7 @@
 - [X] list_clusters
 - [X] list_container_instances
 - [X] list_services
+- [ ] list_services_by_namespace
 - [X] list_tags_for_resource
 - [X] list_task_definition_families
 - [X] list_task_definitions
@@ -3970,13 +4032,14 @@
 
 ## logs
 <details>
-<summary>55% implemented</summary>
+<summary>52% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
 - [X] create_export_task
 - [X] create_log_group
 - [X] create_log_stream
+- [ ] delete_data_protection_policy
 - [ ] delete_destination
 - [X] delete_log_group
 - [X] delete_log_stream
@@ -3996,12 +4059,14 @@
 - [X] describe_subscription_filters
 - [ ] disassociate_kms_key
 - [X] filter_log_events
+- [ ] get_data_protection_policy
 - [X] get_log_events
 - [ ] get_log_group_fields
 - [ ] get_log_record
 - [ ] get_query_results
 - [ ] list_tags_for_resource
 - [X] list_tags_log_group
+- [ ] put_data_protection_policy
 - [ ] put_destination
 - [ ] put_destination_policy
 - [X] put_log_events
@@ -4336,7 +4401,7 @@
 
 ## organizations
 <details>
-<summary>78% implemented</summary>
+<summary>74% implemented</summary>
 
 - [ ] accept_handshake
 - [X] attach_policy
@@ -4351,6 +4416,7 @@
 - [X] delete_organization
 - [X] delete_organizational_unit
 - [X] delete_policy
+- [ ] delete_resource_policy
 - [X] deregister_delegated_administrator
 - [X] describe_account
 - [X] describe_create_account_status
@@ -4359,6 +4425,7 @@
 - [X] describe_organization
 - [X] describe_organizational_unit
 - [X] describe_policy
+- [ ] describe_resource_policy
 - [X] detach_policy
 - [X] disable_aws_service_access
 - [X] disable_policy_type
@@ -4384,6 +4451,7 @@
 - [X] list_tags_for_resource
 - [X] list_targets_for_policy
 - [X] move_account
+- [ ] put_resource_policy
 - [X] register_delegated_administrator
 - [X] remove_account_from_organization
 - [X] tag_resource
@@ -4648,8 +4716,10 @@
 - [ ] describe_account_settings
 - [ ] describe_account_subscription
 - [ ] describe_analysis
+- [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
 - [ ] describe_dashboard
+- [ ] describe_dashboard_definition
 - [ ] describe_dashboard_permissions
 - [ ] describe_data_set
 - [ ] describe_data_set_permissions
@@ -4666,6 +4736,7 @@
 - [ ] describe_namespace
 - [ ] describe_template
 - [ ] describe_template_alias
+- [ ] describe_template_definition
 - [ ] describe_template_permissions
 - [ ] describe_theme
 - [ ] describe_theme_alias
@@ -4781,6 +4852,7 @@
 - [ ] copy_db_parameter_group
 - [ ] copy_db_snapshot
 - [ ] copy_option_group
+- [ ] create_blue_green_deployment
 - [ ] create_custom_db_engine_version
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
@@ -4797,6 +4869,7 @@
 - [X] create_event_subscription
 - [ ] create_global_cluster
 - [X] create_option_group
+- [ ] delete_blue_green_deployment
 - [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_endpoint
@@ -4815,6 +4888,7 @@
 - [X] delete_option_group
 - [ ] deregister_db_proxy_targets
 - [ ] describe_account_attributes
+- [ ] describe_blue_green_deployments
 - [ ] describe_certificates
 - [ ] describe_db_cluster_backtracks
 - [ ] describe_db_cluster_endpoints
@@ -4904,6 +4978,7 @@
 - [X] stop_db_cluster
 - [X] stop_db_instance
 - [ ] stop_db_instance_automated_backups_replication
+- [ ] switchover_blue_green_deployment
 - [ ] switchover_read_replica
 </details>
 
@@ -5403,7 +5478,7 @@
 
 ## s3control
 <details>
-<summary>15% implemented</summary>
+<summary>14% implemented</summary>
 
 - [X] create_access_point
 - [ ] create_access_point_for_object_lambda
@@ -5441,6 +5516,7 @@
 - [ ] get_multi_region_access_point
 - [ ] get_multi_region_access_point_policy
 - [ ] get_multi_region_access_point_policy_status
+- [ ] get_multi_region_access_point_routes
 - [X] get_public_access_block
 - [ ] get_storage_lens_configuration
 - [ ] get_storage_lens_configuration_tagging
@@ -5462,6 +5538,7 @@
 - [X] put_public_access_block
 - [ ] put_storage_lens_configuration
 - [ ] put_storage_lens_configuration_tagging
+- [ ] submit_multi_region_access_point_routes
 - [ ] update_job_priority
 - [ ] update_job_status
 </details>
@@ -6306,7 +6383,7 @@
 
 ## textract
 <details>
-<summary>20% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] analyze_document
 - [ ] analyze_expense
@@ -6315,9 +6392,12 @@
 - [ ] get_document_analysis
 - [X] get_document_text_detection
 - [ ] get_expense_analysis
+- [ ] get_lending_analysis
+- [ ] get_lending_analysis_summary
 - [ ] start_document_analysis
 - [X] start_document_text_detection
 - [ ] start_expense_analysis
+- [ ] start_lending_analysis
 </details>
 
 ## timestream-write
@@ -6445,7 +6525,6 @@
 
 - accessanalyzer
 - account
-- acm-pca
 - alexaforbusiness
 - amplify
 - amplifybackend
@@ -6460,6 +6539,7 @@
 - appmesh
 - apprunner
 - appstream
+- arc-zonal-shift
 - auditmanager
 - autoscaling-plans
 - backup
@@ -6592,7 +6672,10 @@
 - network-firewall
 - networkmanager
 - nimble
+- oam
+- omics
 - opensearch
+- opensearchserverless
 - opsworkscm
 - outposts
 - panorama
@@ -6628,11 +6711,13 @@
 - scheduler
 - schemas
 - securityhub
+- securitylake
 - serverlessrepo
 - servicecatalog
 - servicecatalog-appregistry
 - sesv2
 - shield
+- simspaceweaver
 - sms
 - sms-voice
 - snow-device-management

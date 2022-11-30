@@ -16,8 +16,8 @@ def test_ssm_get_latest_ami_by_path():
 
     ami = [p for p in params if p["Name"] == test_ami][0]
     ami["Type"].should.equal("String")
-    ami["Version"].should.equal(11)
-    ami["Value"].should.equal("ami-0b4659d78cb302fd7")
+    ami["Version"].should.equal(18)
+    ami["Value"].should.equal("ami-0f4e67e32313f0d0e")
     ami.should.have.key("LastModifiedDate")
 
 
