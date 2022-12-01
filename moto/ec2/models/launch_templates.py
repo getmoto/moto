@@ -11,7 +11,7 @@ from ..utils import (
 from ..exceptions import (
     InvalidLaunchTemplateNameAlreadyExistsError,
     InvalidLaunchTemplateNameNotFoundError,
-    InvalidLaunchTemplateNameNotFoundWithNameError,
+    InvalidLaunchTemplateNameNotFoundWithNameError, MissingParameterError,
 )
 
 
@@ -189,8 +189,14 @@ class LaunchTemplateBackend:
 
     def delete_launch_template(self, name, tid):
         if name:
-            tid = self.launch_template_name_to_ids[name]
-        return self.launch_templates.pop(tid)
+            tid = self.launch_template_name_to_ids.get(name)
+        if tid is None:
+            raise MissingParameterError("launch template ID or launch template name")
+        if tid not in self.launch_templates:
+            raise InvalidLaunchTemplateNameNotFoundError()
+        template = self.launch_templates.pop(tid)
+        self.launch_template_name_to_ids.pop(template.name, None)
+        return template
 
     def describe_launch_templates(
         self, template_names=None, template_ids=None, filters=None
