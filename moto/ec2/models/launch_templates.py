@@ -11,7 +11,8 @@ from ..utils import (
 from ..exceptions import (
     InvalidLaunchTemplateNameAlreadyExistsError,
     InvalidLaunchTemplateNameNotFoundError,
-    InvalidLaunchTemplateNameNotFoundWithNameError, MissingParameterError,
+    InvalidLaunchTemplateNameNotFoundWithNameError,
+    MissingParameterError,
 )
 
 

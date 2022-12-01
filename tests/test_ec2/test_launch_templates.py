@@ -488,7 +488,9 @@ def test_delete_launch_template__by_name():
         ]
     err = exc.value.response["Error"]
     err.should.have.key("Code").equals("InvalidLaunchTemplateName.NotFoundException")
-    err.should.have.key("Message").equals("At least one of the launch templates specified in the request does not exist.")
+    err.should.have.key("Message").equals(
+        "At least one of the launch templates specified in the request does not exist."
+    )
 
     # Ensure deleted template name can be reused
     cli.create_launch_template(
@@ -507,7 +509,9 @@ def test_delete_launch_template__by_id():
         cli.delete_launch_template()
     err = exc.value.response["Error"]
     err.should.have.key("Code").equals("MissingParameter")
-    err.should.have.key("Message").equals("The request must contain the parameter launch template ID or launch template name")
+    err.should.have.key("Message").equals(
+        "The request must contain the parameter launch template ID or launch template name"
+    )
 
     template_id = cli.create_launch_template(
         LaunchTemplateName=template_name, LaunchTemplateData={"ImageId": "ami-abc123"}
@@ -525,7 +529,9 @@ def test_delete_launch_template__by_id():
         ]
     err = exc.value.response["Error"]
     err.should.have.key("Code").equals("InvalidLaunchTemplateName.NotFoundException")
-    err.should.have.key("Message").equals("At least one of the launch templates specified in the request does not exist.")
+    err.should.have.key("Message").equals(
+        "At least one of the launch templates specified in the request does not exist."
+    )
 
     # Ensure deleted template name can be reused
     cli.create_launch_template(
