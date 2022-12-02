@@ -78,12 +78,22 @@ def test_eip_allocate_vpc():
     vpc.should.have.key("AllocationId")
     vpc.should.have.key("Domain").equal("vpc")
 
+    # Ensure that correct fallback is used for the optional attribute `Domain` contains an empty or invalid value
+    vpc2 = client.allocate_address(Domain="")
+    vpc3 = client.allocate_address(Domain="xyz")
+
+    vpc2.should.have.key("Domain").equal("vpc")
+    vpc3.should.have.key("Domain").equal("vpc")
+
     allocation_id = vpc["AllocationId"]
+    allocation_id2 = vpc["AllocationId"]
+    allocation_id3 = vpc["AllocationId"]
 
     all_addresses = client.describe_addresses()["Addresses"]
-    [a["AllocationId"] for a in all_addresses if "AllocationId" in a].should.contain(
-        allocation_id
-    )
+    allocation_ids = [a["AllocationId"] for a in all_addresses if "AllocationId" in a]
+    allocation_ids.should.contain(allocation_id)
+    allocation_ids.should.contain(allocation_id2)
+    allocation_ids.should.contain(allocation_id3)
 
     vpc = ec2.VpcAddress(allocation_id)
     vpc.release()
