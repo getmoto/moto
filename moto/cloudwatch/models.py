@@ -603,7 +603,13 @@ class CloudWatchBackend(BaseBackend):
             if scan_by == "TimestampDescending" and len(timestamps) > 0:
                 timestamps.reverse()
                 result_vals.reverse()
-            label = query["metric_stat._metric._metric_name"] + " " + stat
+
+            label = (
+                query["label"]
+                if "label" in query
+                else query["metric_stat._metric._metric_name"] + " " + stat
+            )
+
             results.append(
                 {
                     "id": query["id"],
