@@ -1513,3 +1513,74 @@ def test_put_metric_alarm_error_evaluate_low_sample_count_percentile():
         "Option unknown is not supported. "
         "Supported options for parameter EvaluateLowSampleCountPercentile are evaluate and ignore."
     )
+
+
+@mock_cloudwatch
+def test_get_metric_data_with_custom_label():
+    utc_now = datetime.now(tz=pytz.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace = "my_namespace/"
+
+    label = "MyCustomLabel"
+
+    # put metric data
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 50,
+                "Timestamp": utc_now,
+            },
+            {
+                "MetricName": "metric1",
+                "Value": -50,
+                "Timestamp": utc_now,
+            },
+        ],
+    )
+    # get_metric_data
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result_without_custom_label",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                },
+            },
+            {
+                "Id": "result_with_custom_label",
+                "Label": label,
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                },
+            },
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+
+    expected_values = {
+        "result_without_custom_label": "metric1 SampleCount",
+        "result_with_custom_label": label,
+    }
+
+    for id_, expected_value in expected_values.items():
+        metric_result_data = list(
+            filter(
+                lambda result_data: result_data["Id"] == id_,
+                response["MetricDataResults"],
+            )
+        )
+        len(metric_result_data).should.equal(1)
+        metric_result_data[0]["Label"].should.equal(expected_value)
