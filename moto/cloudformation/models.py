@@ -14,6 +14,7 @@ from moto.core.utils import (
 )
 from moto.moto_api._internal import mock_random
 from moto.sns.models import sns_backends
+from moto.organizations.models import organizations_backends, OrganizationsBackend
 
 from .custom_model import CustomModel
 from .parsing import ResourceMap, Output, OutputMap, Export
@@ -25,7 +26,7 @@ from .utils import (
     yaml_tag_constructor,
     validate_template_cfn_lint,
 )
-from .exceptions import ValidationError
+from .exceptions import ValidationError, StackSetNotEmpty
 
 
 class FakeStackSet(BaseModel):
@@ -38,6 +39,7 @@ class FakeStackSet(BaseModel):
         region: str,
         description: Optional[str],
         parameters: Dict[str, str],
+        permission_model: str,
         tags: Optional[Dict[str, str]] = None,
         admin_role: str = "AWSCloudFormationStackSetAdministrationRole",
         execution_role: str = "AWSCloudFormationStackSetExecutionRole",
@@ -53,9 +55,12 @@ class FakeStackSet(BaseModel):
         self.admin_role_arn = f"arn:aws:iam::{account_id}:role/{self.admin_role}"
         self.execution_role = execution_role
         self.status = "ACTIVE"
-        self.instances = FakeStackInstances(parameters, self.id, self.name)
+        self.instances = FakeStackInstances(
+            account_id, template, parameters, self.id, self.name
+        )
         self.stack_instances = self.instances.stack_instances
         self.operations: List[Dict[str, Any]] = []
+        self.permission_model = permission_model or "SELF_MANAGED"
 
     def _create_operation(
         self,
@@ -128,13 +133,35 @@ class FakeStackSet(BaseModel):
         return operation
 
     def create_stack_instances(
-        self, accounts: List[str], regions: List[str], parameters: List[Dict[str, Any]]
-    ) -> None:
+        self,
+        accounts: List[str],
+        regions: List[str],
+        deployment_targets: Optional[Dict[str, Any]],
+        parameters: List[Dict[str, Any]],
+    ) -> str:
+        if self.permission_model == "SERVICE_MANAGED":
+            if not deployment_targets:
+                raise ValidationError(
+                    message="StackSets with SERVICE_MANAGED permission model can only have OrganizationalUnit as target"
+                )
+            elif "OrganizationalUnitIds" not in deployment_targets:
+                raise ValidationError(message="OrganizationalUnitIds are required")
+        if self.permission_model == "SELF_MANAGED":
+            if deployment_targets and "OrganizationalUnitIds" in deployment_targets:
+                raise ValidationError(
+                    message="StackSets with SELF_MANAGED permission model can only have accounts as target"
+                )
         operation_id = str(mock_random.uuid4())
         if not parameters:
             parameters = self.parameters  # type: ignore[assignment]
 
-        self.instances.create_instances(accounts, regions, parameters)
+        self.instances.create_instances(
+            accounts,
+            regions,
+            parameters,  # type: ignore[arg-type]
+            deployment_targets or {},
+            permission_model=self.permission_model,
+        )
         self._create_operation(
             operation_id=operation_id,
             action="CREATE",
@@ -142,6 +169,7 @@ class FakeStackSet(BaseModel):
             accounts=accounts,
             regions=regions,
         )
+        return operation_id
 
     def delete_stack_instances(self, accounts: List[str], regions: List[str]) -> None:
         operation_id = str(mock_random.uuid4())
@@ -172,36 +200,136 @@ class FakeStackSet(BaseModel):
         return operation
 
 
+class FakeStackInstance(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        stackset_id: str,
+        stack_name: str,
+        name: str,
+        template: str,
+        parameters: Optional[List[Dict[str, Any]]],
+        permission_model: str,
+    ):
+        self.account_id = account_id
+        self.region_name = region_name
+        self.stackset_id = stackset_id
+        self.stack_name = stack_name
+        self.name = name
+        self.template = template
+        self.parameters = parameters or []
+        self.permission_model = permission_model
+
+        # Incoming parameters can be in two formats: {key: value} or [{"": key, "": value}, ..]
+        if isinstance(parameters, dict):
+            params = parameters
+        elif isinstance(parameters, list):
+            params = {p["ParameterKey"]: p["ParameterValue"] for p in parameters}
+
+        if permission_model == "SELF_MANAGED":
+            self.stack = cloudformation_backends[account_id][region_name].create_stack(
+                name=f"StackSet:{name}", template=template, parameters=params
+            )
+        else:
+            stack_id = generate_stack_id(
+                "hiddenstackfor" + self.name, self.region_name, self.account_id
+            )
+            self.stack = FakeStack(
+                stack_id=stack_id,
+                name=self.name,
+                template=self.template,
+                parameters=params,
+                account_id=self.account_id,
+                region_name=self.region_name,
+                notification_arns=[],
+                tags=None,
+                role_arn=None,
+                cross_stack_resources={},
+                enable_termination_protection=False,
+            )
+            self.stack.create_resources()
+
+    def delete(self) -> None:
+        if self.permission_model == "SELF_MANAGED":
+            cloudformation_backends[self.account_id][self.region_name].delete_stack(
+                self.stack.name
+            )
+        else:
+            # Our stack is hidden - we have to delete it manually
+            self.stack.delete()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "StackId": generate_stack_id(
+                self.stack_name, self.region_name, self.account_id
+            ),
+            "StackSetId": self.stackset_id,
+            "Region": self.region_name,
+            "Account": self.account_id,
+            "Status": "CURRENT",
+            "ParameterOverrides": self.parameters,
+        }
+
+
 class FakeStackInstances(BaseModel):
     def __init__(
-        self, parameters: Dict[str, str], stackset_id: str, stackset_name: str
+        self,
+        account_id: str,
+        template: str,
+        parameters: Dict[str, str],
+        stackset_id: str,
+        stackset_name: str,
     ):
+        self.account_id = account_id
+        self.template = template
         self.parameters = parameters or {}
         self.stackset_id = stackset_id
         self.stack_name = f"StackSet-{stackset_id}"
         self.stackset_name = stackset_name
-        self.stack_instances: List[Dict[str, Any]] = []
+        self.stack_instances: List[FakeStackInstance] = []
+
+    @property
+    def org_backend(self) -> OrganizationsBackend:
+        return organizations_backends[self.account_id]["global"]
 
     def create_instances(
         self,
         accounts: List[str],
         regions: List[str],
         parameters: Optional[List[Dict[str, Any]]],
+        deployment_targets: Dict[str, Any],
+        permission_model: str,
     ) -> List[Dict[str, Any]]:
-        new_instances = []
+        targets: List[Tuple[str, str]] = []
+        all_accounts = self.org_backend.accounts
+        requested_ous = deployment_targets.get("OrganizationalUnitIds", [])
+        child_ous = [
+            ou.id for ou in self.org_backend.ou if ou.parent_id in requested_ous
+        ]
         for region in regions:
             for account in accounts:
-                instance = {
-                    "StackId": generate_stack_id(self.stack_name, region, account),
-                    "StackSetId": self.stackset_id,
-                    "Region": region,
-                    "Account": account,
-                    "Status": "CURRENT",
-                    "ParameterOverrides": parameters or [],
-                }
-                new_instances.append(instance)
+                targets.append((region, account))
+            for ou_id in requested_ous + child_ous:
+                for acnt in all_accounts:
+                    if acnt.parent_id == ou_id:
+                        targets.append((region, acnt.id))
+
+        new_instances = []
+        for region, account in targets:
+            instance = FakeStackInstance(
+                account_id=account,
+                region_name=region,
+                stackset_id=self.stackset_id,
+                stack_name=self.stack_name,
+                name=self.stackset_name,
+                template=self.template,
+                parameters=parameters,
+                permission_model=permission_model,
+            )
+            new_instances.append(instance)
         self.stack_instances += new_instances
-        return new_instances
+        return [i.to_dict() for i in new_instances]
 
     def update(
         self,
@@ -212,19 +340,17 @@ class FakeStackInstances(BaseModel):
         for account in accounts:
             for region in regions:
                 instance = self.get_instance(account, region)
-                if parameters:
-                    instance["ParameterOverrides"] = parameters
-                else:
-                    instance["ParameterOverrides"] = []
+                instance.parameters = parameters or []
 
     def delete(self, accounts: List[str], regions: List[str]) -> None:
         for i, instance in enumerate(self.stack_instances):
-            if instance["Region"] in regions and instance["Account"] in accounts:
+            if instance.region_name in regions and instance.account_id in accounts:
+                instance.delete()
                 self.stack_instances.pop(i)
 
-    def get_instance(self, account: str, region: str) -> Dict[str, Any]:  # type: ignore[return]
+    def get_instance(self, account: str, region: str) -> FakeStackInstance:  # type: ignore[return]
         for i, instance in enumerate(self.stack_instances):
-            if instance["Region"] == region and instance["Account"] == account:
+            if instance.region_name == region and instance.account_id == account:
                 return self.stack_instances[i]
 
 
@@ -589,7 +715,11 @@ class CloudFormationBackend(BaseBackend):
         template: str,
         parameters: Dict[str, str],
         tags: Dict[str, str],
+        permission_model: str,
     ) -> FakeStackSet:
+        """
+        The following parameters are not yet implemented: StackId, AdministrationRoleARN, AutoDeployment, ExecutionRoleName, CallAs, ClientRequestToken, ManagedExecution
+        """
         stackset_id = generate_stackset_id(name)
         new_stackset = FakeStackSet(
             stackset_id=stackset_id,
@@ -600,6 +730,7 @@ class CloudFormationBackend(BaseBackend):
             parameters=parameters,
             description=None,
             tags=tags,
+            permission_model=permission_model,
         )
         self.stacksets[stackset_id] = new_stackset
         return new_stackset
@@ -614,12 +745,17 @@ class CloudFormationBackend(BaseBackend):
         raise ValidationError(name)
 
     def delete_stack_set(self, name: str) -> None:
-        stacksets = self.stacksets.keys()
-        if name in stacksets:
-            self.stacksets[name].delete()
-        for stackset in stacksets:
-            if self.stacksets[stackset].name == name:
-                self.stacksets[stackset].delete()
+        stackset_to_delete: Optional[FakeStackSet] = None
+        if name in self.stacksets:
+            stackset_to_delete = self.stacksets[name]
+        for stackset in self.stacksets.values():
+            if stackset.name == name:
+                stackset_to_delete = stackset
+
+        if stackset_to_delete is not None:
+            if stackset_to_delete.stack_instances:
+                raise StackSetNotEmpty()
+            stackset_to_delete.delete()
 
     def create_stack_instances(
         self,
@@ -627,15 +763,20 @@ class CloudFormationBackend(BaseBackend):
         accounts: List[str],
         regions: List[str],
         parameters: List[Dict[str, str]],
-    ) -> FakeStackSet:
+        deployment_targets: Optional[Dict[str, Any]],
+    ) -> str:
+        """
+        The following parameters are not yet implemented: DeploymentTargets.AccountFilterType, DeploymentTargets.AccountsUrl, OperationPreferences, CallAs
+        """
         stackset = self.get_stack_set(stackset_name)
 
-        stackset.create_stack_instances(
+        operation_id = stackset.create_stack_instances(
             accounts=accounts,
             regions=regions,
+            deployment_targets=deployment_targets,
             parameters=parameters,
         )
-        return stackset
+        return operation_id
 
     def update_stack_instances(
         self,
@@ -644,6 +785,9 @@ class CloudFormationBackend(BaseBackend):
         regions: List[str],
         parameters: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
+        """
+        Calling this will update the parameters, but the actual resources are not updated
+        """
         stack_set = self.get_stack_set(stackset_name)
         return stack_set.update_instances(accounts, regions, parameters)
 
@@ -680,6 +824,9 @@ class CloudFormationBackend(BaseBackend):
     def delete_stack_instances(
         self, stackset_name: str, accounts: List[str], regions: List[str]
     ) -> FakeStackSet:
+        """
+        The following parameters are not  yet implemented: DeploymentTargets, OperationPreferences, RetainStacks, OperationId, CallAs
+        """
         stackset = self.get_stack_set(stackset_name)
         stackset.delete_stack_instances(accounts, regions)
         return stackset
@@ -861,6 +1008,20 @@ class CloudFormationBackend(BaseBackend):
             raise ValidationError(name_or_stack_id)
         else:
             return list(stacks)
+
+    def describe_stack_instance(
+        self, stack_set_name: str, account_id: str, region: str
+    ) -> Dict[str, Any]:
+        stack_set = self.get_stack_set(stack_set_name)
+        return stack_set.instances.get_instance(account_id, region).to_dict()
+
+    def list_stack_instances(self, stackset_name: str) -> List[Dict[str, Any]]:
+        """
+        Pagination is not yet implemented.
+        The parameters StackInstanceAccount/StackInstanceRegion are not yet implemented.
+        """
+        stack_set = self.get_stack_set(stackset_name)
+        return [i.to_dict() for i in stack_set.instances.stack_instances]
 
     def list_change_sets(self) -> Iterable[FakeChangeSet]:
         return self.change_sets.values()

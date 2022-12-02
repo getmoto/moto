@@ -38,11 +38,23 @@ cloudformation
         
 
 - [X] create_stack_instances
+  
+        The following parameters are not yet implemented: DeploymentTargets.AccountFilterType, DeploymentTargets.AccountsUrl, OperationPreferences, CallAs
+        
+
 - [X] create_stack_set
+  
+        The following parameters are not yet implemented: StackId, AdministrationRoleARN, AutoDeployment, ExecutionRoleName, CallAs, ClientRequestToken, ManagedExecution
+        
+
 - [ ] deactivate_type
 - [X] delete_change_set
 - [X] delete_stack
 - [X] delete_stack_instances
+  
+        The following parameters are not  yet implemented: DeploymentTargets, OperationPreferences, RetainStacks, OperationId, CallAs
+        
+
 - [X] delete_stack_set
 - [ ] deregister_type
 - [ ] describe_account_limits
@@ -51,7 +63,7 @@ cloudformation
 - [ ] describe_publisher
 - [ ] describe_stack_drift_detection_status
 - [ ] describe_stack_events
-- [ ] describe_stack_instance
+- [X] describe_stack_instance
 - [ ] describe_stack_resource
 - [ ] describe_stack_resource_drifts
 - [ ] describe_stack_resources
@@ -72,7 +84,12 @@ cloudformation
 - [X] list_change_sets
 - [X] list_exports
 - [ ] list_imports
-- [ ] list_stack_instances
+- [X] list_stack_instances
+  
+        Pagination is not yet implemented.
+        The parameters StackInstanceAccount/StackInstanceRegion are not yet implemented.
+        
+
 - [X] list_stack_resources
 - [ ] list_stack_set_operation_results
 - [ ] list_stack_set_operations
@@ -98,6 +115,10 @@ cloudformation
 - [ ] test_type
 - [X] update_stack
 - [X] update_stack_instances
+  
+        Calling this will update the parameters, but the actual resources are not updated
+        
+
 - [X] update_stack_set
 - [ ] update_termination_protection
 - [X] validate_template
