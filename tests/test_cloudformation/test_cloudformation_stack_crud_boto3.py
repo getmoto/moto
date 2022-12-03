@@ -321,19 +321,18 @@ def test_create_stack():
 
 
 @mock_cloudformation
-def test_create_stack_with_termination_protection():
+def test_create_stack_with_additional_properties():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(
         StackName="test_stack",
         TemplateBody=dummy_template_json,
         EnableTerminationProtection=True,
+        TimeoutInMinutes=25,
     )
     stack = cf_conn.describe_stacks()["Stacks"][0]
     stack.should.have.key("StackName").equal("test_stack")
     stack.should.have.key("EnableTerminationProtection").equal(True)
-
-    template = cf_conn.get_template(StackName="test_stack")["TemplateBody"]
-    template.should.equal(dummy_template)
+    stack.should.have.key("TimeoutInMinutes").equals(25)
 
 
 @mock_cloudformation
@@ -765,9 +764,16 @@ def test_delete_stack_set_by_name():
     )
     cf_conn.delete_stack_set(StackSetName="teststackset")
 
-    cf_conn.describe_stack_set(StackSetName="teststackset")["StackSet"][
-        "Status"
-    ].should.equal("DELETED")
+    stacks = cf_conn.list_stack_sets()["Summaries"]
+    stacks.should.have.length_of(1)
+    stacks[0].should.have.key("StackSetName").equals("teststackset")
+    stacks[0].should.have.key("Status").equals("DELETED")
+
+    with pytest.raises(ClientError) as exc:
+        cf_conn.describe_stack_set(StackSetName="teststackset")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("StackSetNotFoundException")
+    err["Message"].should.equal("StackSet teststackset not found")
 
 
 @mock_cloudformation
@@ -779,9 +785,10 @@ def test_delete_stack_set_by_id():
     stack_set_id = response["StackSetId"]
     cf_conn.delete_stack_set(StackSetName=stack_set_id)
 
-    cf_conn.describe_stack_set(StackSetName="teststackset")["StackSet"][
-        "Status"
-    ].should.equal("DELETED")
+    stacks = cf_conn.list_stack_sets()["Summaries"]
+    stacks.should.have.length_of(1)
+    stacks[0].should.have.key("StackSetName").equals("teststackset")
+    stacks[0].should.have.key("Status").equals("DELETED")
 
 
 @mock_cloudformation
@@ -814,13 +821,19 @@ def test_delete_stack_set__while_instances_are_running():
 def test_create_stack_set():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.create_stack_set(
-        StackSetName="teststackset", TemplateBody=dummy_template_json
+        StackSetName="teststackset",
+        TemplateBody=dummy_template_json,
+        Description="desc",
+        AdministrationRoleARN="admin/role/arn:asdfasdfadsf",
     )
-
-    cf_conn.describe_stack_set(StackSetName="teststackset")["StackSet"][
-        "TemplateBody"
-    ].should.equal(dummy_template_json)
     response["StackSetId"].should_not.equal(None)
+
+    stack_set = cf_conn.describe_stack_set(StackSetName="teststackset")["StackSet"]
+    stack_set["TemplateBody"].should.equal(dummy_template_json)
+    stack_set.should.have.key("AdministrationRoleARN").should.equal(
+        "admin/role/arn:asdfasdfadsf"
+    )
+    stack_set.should.have.key("Description").equals("desc")
 
 
 @mock_cloudformation

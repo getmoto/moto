@@ -26,7 +26,7 @@ from .utils import (
     yaml_tag_constructor,
     validate_template_cfn_lint,
 )
-from .exceptions import ValidationError, StackSetNotEmpty
+from .exceptions import ValidationError, StackSetNotEmpty, StackSetNotFoundException
 
 
 class FakeStackSet(BaseModel):
@@ -40,9 +40,9 @@ class FakeStackSet(BaseModel):
         description: Optional[str],
         parameters: Dict[str, str],
         permission_model: str,
-        tags: Optional[Dict[str, str]] = None,
-        admin_role: str = "AWSCloudFormationStackSetAdministrationRole",
-        execution_role: str = "AWSCloudFormationStackSetExecutionRole",
+        tags: Optional[Dict[str, str]],
+        admin_role: Optional[str],
+        execution_role: Optional[str],
     ):
         self.id = stackset_id
         self.arn = generate_stackset_arn(stackset_id, region, account_id)
@@ -53,7 +53,7 @@ class FakeStackSet(BaseModel):
         self.tags = tags
         self.admin_role = admin_role
         self.admin_role_arn = f"arn:aws:iam::{account_id}:role/{self.admin_role}"
-        self.execution_role = execution_role
+        self.execution_role = execution_role or "AWSCloudFormationStackSetExecutionRole"
         self.status = "ACTIVE"
         self.instances = FakeStackInstances(
             account_id, template, parameters, self.id, self.name
@@ -76,8 +76,10 @@ class FakeStackSet(BaseModel):
             "OperationId": operation_id,
             "Action": action,
             "Status": status,
-            "CreationTimestamp": datetime.now(),
-            "EndTimestamp": datetime.now() + timedelta(minutes=2),
+            "CreationTimestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f"),
+            "EndTimestamp": (datetime.now() + timedelta(minutes=2)).strftime(
+                "%Y-%m-%dT%H:%M:%S.%f"
+            ),
             "Instances": [
                 {account: region} for account in accounts for region in regions
             ],
@@ -368,6 +370,8 @@ class FakeStack(BaseModel):
         role_arn: Optional[str] = None,
         cross_stack_resources: Optional[Dict[str, Export]] = None,
         enable_termination_protection: Optional[bool] = False,
+        timeout_in_mins: Optional[int] = None,
+        stack_policy_body: Optional[str] = None,
     ):
         self.stack_id = stack_id
         self.name = name
@@ -385,7 +389,8 @@ class FakeStack(BaseModel):
         self.role_arn = role_arn
         self.tags = tags if tags else {}
         self.events: List[FakeEvent] = []
-        self.policy = ""
+        self.timeout_in_mins = timeout_in_mins
+        self.policy = stack_policy_body or ""
 
         self.cross_stack_resources: Dict[str, Export] = cross_stack_resources or {}
         self.enable_termination_protection: bool = (
@@ -716,6 +721,9 @@ class CloudFormationBackend(BaseBackend):
         parameters: Dict[str, str],
         tags: Dict[str, str],
         permission_model: str,
+        admin_role: Optional[str],
+        exec_role: Optional[str],
+        description: Optional[str],
     ) -> FakeStackSet:
         """
         The following parameters are not yet implemented: StackId, AdministrationRoleARN, AutoDeployment, ExecutionRoleName, CallAs, ClientRequestToken, ManagedExecution
@@ -728,21 +736,26 @@ class CloudFormationBackend(BaseBackend):
             region=self.region_name,
             template=template,
             parameters=parameters,
-            description=None,
+            description=description,
             tags=tags,
             permission_model=permission_model,
+            admin_role=admin_role,
+            execution_role=exec_role,
         )
         self.stacksets[stackset_id] = new_stackset
         return new_stackset
 
-    def get_stack_set(self, name: str) -> FakeStackSet:
+    def describe_stack_set(self, name: str) -> FakeStackSet:
         stacksets = self.stacksets.keys()
-        if name in stacksets:
+        if name in stacksets and self.stacksets[name].status != "DELETED":
             return self.stacksets[name]
         for stackset in stacksets:
-            if self.stacksets[stackset].name == name:
+            if (
+                self.stacksets[stackset].name == name
+                and self.stacksets[stackset].status != "DELETED"
+            ):
                 return self.stacksets[stackset]
-        raise ValidationError(name)
+        raise StackSetNotFoundException(name)
 
     def delete_stack_set(self, name: str) -> None:
         stackset_to_delete: Optional[FakeStackSet] = None
@@ -755,7 +768,32 @@ class CloudFormationBackend(BaseBackend):
         if stackset_to_delete is not None:
             if stackset_to_delete.stack_instances:
                 raise StackSetNotEmpty()
+            # We don't remove StackSets from the list - they still show up when calling list_stack_sets
             stackset_to_delete.delete()
+
+    def list_stack_sets(self) -> Iterable[FakeStackSet]:
+        return self.stacksets.values()
+
+    def list_stack_set_operations(self, stackset_name: str) -> List[Dict[str, Any]]:
+        stackset = self.describe_stack_set(stackset_name)
+        return stackset.operations
+
+    def stop_stack_set_operation(self, stackset_name: str, operation_id: str) -> None:
+        stackset = self.describe_stack_set(stackset_name)
+        stackset.update_operation(operation_id, "STOPPED")
+
+    def describe_stack_set_operation(
+        self, stackset_name: str, operation_id: str
+    ) -> Tuple[FakeStackSet, Dict[str, Any]]:
+        stackset = self.describe_stack_set(stackset_name)
+        operation = stackset.get_operation(operation_id)
+        return stackset, operation
+
+    def list_stack_set_operation_results(
+        self, stackset_name: str, operation_id: str
+    ) -> Dict[str, Any]:
+        stackset = self.describe_stack_set(stackset_name)
+        return stackset.get_operation(operation_id)
 
     def create_stack_instances(
         self,
@@ -768,7 +806,7 @@ class CloudFormationBackend(BaseBackend):
         """
         The following parameters are not yet implemented: DeploymentTargets.AccountFilterType, DeploymentTargets.AccountsUrl, OperationPreferences, CallAs
         """
-        stackset = self.get_stack_set(stackset_name)
+        stackset = self.describe_stack_set(stackset_name)
 
         operation_id = stackset.create_stack_instances(
             accounts=accounts,
@@ -788,7 +826,7 @@ class CloudFormationBackend(BaseBackend):
         """
         Calling this will update the parameters, but the actual resources are not updated
         """
-        stack_set = self.get_stack_set(stackset_name)
+        stack_set = self.describe_stack_set(stackset_name)
         return stack_set.update_instances(accounts, regions, parameters)
 
     def update_stack_set(
@@ -804,7 +842,7 @@ class CloudFormationBackend(BaseBackend):
         regions: List[str],
         operation_id: str,
     ) -> Dict[str, Any]:
-        stackset = self.get_stack_set(stackset_name)
+        stackset = self.describe_stack_set(stackset_name)
         resolved_parameters = self._resolve_update_parameters(
             instance=stackset, incoming_params=parameters
         )
@@ -827,7 +865,7 @@ class CloudFormationBackend(BaseBackend):
         """
         The following parameters are not  yet implemented: DeploymentTargets, OperationPreferences, RetainStacks, OperationId, CallAs
         """
-        stackset = self.get_stack_set(stackset_name)
+        stackset = self.describe_stack_set(stackset_name)
         stackset.delete_stack_instances(accounts, regions)
         return stackset
 
@@ -840,6 +878,8 @@ class CloudFormationBackend(BaseBackend):
         tags: Optional[Dict[str, str]] = None,
         role_arn: Optional[str] = None,
         enable_termination_protection: Optional[bool] = False,
+        timeout_in_mins: Optional[int] = None,
+        stack_policy_body: Optional[str] = None,
     ) -> FakeStack:
         """
         The functionality behind EnableTerminationProtection is not yet implemented.
@@ -857,6 +897,8 @@ class CloudFormationBackend(BaseBackend):
             role_arn=role_arn,
             cross_stack_resources=self.exports,
             enable_termination_protection=enable_termination_protection,
+            timeout_in_mins=timeout_in_mins,
+            stack_policy_body=stack_policy_body,
         )
         self.stacks[stack_id] = new_stack
         self._validate_export_uniqueness(new_stack)
@@ -1012,7 +1054,7 @@ class CloudFormationBackend(BaseBackend):
     def describe_stack_instance(
         self, stack_set_name: str, account_id: str, region: str
     ) -> Dict[str, Any]:
-        stack_set = self.get_stack_set(stack_set_name)
+        stack_set = self.describe_stack_set(stack_set_name)
         return stack_set.instances.get_instance(account_id, region).to_dict()
 
     def list_stack_instances(self, stackset_name: str) -> List[Dict[str, Any]]:
@@ -1020,7 +1062,7 @@ class CloudFormationBackend(BaseBackend):
         Pagination is not yet implemented.
         The parameters StackInstanceAccount/StackInstanceRegion are not yet implemented.
         """
-        stack_set = self.get_stack_set(stackset_name)
+        stack_set = self.describe_stack_set(stackset_name)
         return [i.to_dict() for i in stack_set.instances.stack_instances]
 
     def list_change_sets(self) -> Iterable[FakeChangeSet]:
@@ -1076,6 +1118,26 @@ class CloudFormationBackend(BaseBackend):
             raise ValidationError(message=f"Stack: {stack_name} does not exist")
         stack.policy = policy_body
 
+    def describe_stack_resource(
+        self, stack_name: str, logical_resource_id: str
+    ) -> Tuple[FakeStack, Type[CloudFormationModel]]:
+        stack = self.get_stack(stack_name)
+
+        for stack_resource in stack.stack_resources:
+            if stack_resource.logical_resource_id == logical_resource_id:  # type: ignore[attr-defined]
+                return stack, stack_resource
+
+        message = (
+            f"Resource {logical_resource_id} does not exist for stack {stack_name}"
+        )
+        raise ValidationError(stack_name, message)
+
+    def describe_stack_resources(
+        self, stack_name: str
+    ) -> Tuple[FakeStack, Iterable[Type[CloudFormationModel]]]:
+        stack = self.get_stack(stack_name)
+        return stack, stack.stack_resources
+
     def list_stack_resources(
         self, stack_name_or_id: str
     ) -> Iterable[Type[CloudFormationModel]]:
@@ -1110,6 +1172,12 @@ class CloudFormationBackend(BaseBackend):
             exports = all_exports[token : token + 100]
             next_token = str(token + 100) if len(all_exports) > token + 100 else None
         return exports, next_token
+
+    def describe_stack_events(self, stack_name: str) -> List[FakeEvent]:
+        return self.get_stack(stack_name).events
+
+    def get_template(self, name_or_stack_id: str) -> Union[str, Dict[str, Any]]:
+        return self.get_stack(name_or_stack_id).template
 
     def validate_template(self, template: str) -> List[Any]:
         return validate_template_cfn_lint(template)
