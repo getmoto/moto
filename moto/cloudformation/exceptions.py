@@ -48,6 +48,16 @@ class StackSetNotEmpty(RESTError):
         )
 
 
+class StackSetNotFoundException(RESTError):
+    def __init__(self, name: str):
+        template = Template(ERROR_RESPONSE)
+        message = f"StackSet {name} not found"
+        super().__init__(error_type="StackSetNotFoundException", message=message)
+        self.description = template.render(
+            code="StackSetNotFoundException", message=message
+        )
+
+
 class UnsupportedAttribute(ValidationError):
     def __init__(self, resource: str, attr: str):
         template = Template(ERROR_RESPONSE)
