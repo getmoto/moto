@@ -1,4 +1,5 @@
 import json
+import re
 import yaml
 from typing import Any, Dict, Tuple, List, Optional, Union
 from urllib.parse import urlparse
@@ -462,8 +463,13 @@ class CloudFormationResponse(BaseResponse):
 
     def create_stack_set(self) -> str:
         stackset_name = self._get_param("StackSetName")
+        if not re.match(r"^[a-zA-Z][-a-zA-Z0-9]*$", stackset_name):
+            raise ValidationError(
+                message=f"1 validation error detected: Value '{stackset_name}' at 'stackSetName' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*"
+            )
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
+        permission_model = self._get_param("PermissionModel")
         parameters_list = self._get_list_prefix("Parameters.member")
         tags = dict(
             (item["key"], item["value"])
@@ -481,7 +487,11 @@ class CloudFormationResponse(BaseResponse):
             stack_body = self._get_stack_from_s3_url(template_url)
 
         stackset = self.cloudformation_backend.create_stack_set(
-            name=stackset_name, template=stack_body, parameters=parameters, tags=tags
+            name=stackset_name,
+            template=stack_body,
+            parameters=parameters,
+            tags=tags,
+            permission_model=permission_model,
         )
         if self.request_json:
             return json.dumps(
@@ -500,11 +510,25 @@ class CloudFormationResponse(BaseResponse):
         accounts = self._get_multi_param("Accounts.member")
         regions = self._get_multi_param("Regions.member")
         parameters = self._get_multi_param("ParameterOverrides.member")
-        self.cloudformation_backend.create_stack_instances(
-            stackset_name, accounts, regions, parameters
+        deployment_targets = self._get_params().get("DeploymentTargets")
+        if deployment_targets and "OrganizationalUnitIds" in deployment_targets:
+            for ou_id in deployment_targets.get("OrganizationalUnitIds", []):
+                if not re.match(
+                    r"^(ou-[a-z0-9]{4,32}-[a-z0-9]{8,32}|r-[a-z0-9]{4,32})$", ou_id
+                ):
+                    raise ValidationError(
+                        message=f"1 validation error detected: Value '[{ou_id}]' at 'deploymentTargets.organizationalUnitIds' failed to satisfy constraint: Member must satisfy constraint: [Member must have length less than or equal to 68, Member must have length greater than or equal to 6, Member must satisfy regular expression pattern: ^(ou-[a-z0-9]{{4,32}}-[a-z0-9]{{8,32}}|r-[a-z0-9]{{4,32}})$]"
+                    )
+
+        operation_id = self.cloudformation_backend.create_stack_instances(
+            stackset_name,
+            accounts,
+            regions,
+            parameters,
+            deployment_targets=deployment_targets,
         )
         template = self.response_template(CREATE_STACK_INSTANCES_TEMPLATE)
-        return template.render()
+        return template.render(operation_id=operation_id)
 
     def delete_stack_set(self) -> str:
         stackset_name = self._get_param("StackSetName")
@@ -540,9 +564,9 @@ class CloudFormationResponse(BaseResponse):
         account = self._get_param("StackInstanceAccount")
         region = self._get_param("StackInstanceRegion")
 
-        instance = self.cloudformation_backend.get_stack_set(
-            stackset_name
-        ).instances.get_instance(account, region)
+        instance = self.cloudformation_backend.describe_stack_instance(
+            stackset_name, account, region
+        )
         template = self.response_template(DESCRIBE_STACK_INSTANCE_TEMPLATE)
         rendered = template.render(instance=instance)
         return rendered
@@ -554,9 +578,9 @@ class CloudFormationResponse(BaseResponse):
 
     def list_stack_instances(self) -> str:
         stackset_name = self._get_param("StackSetName")
-        stackset = self.cloudformation_backend.get_stack_set(stackset_name)
+        instances = self.cloudformation_backend.list_stack_instances(stackset_name)
         template = self.response_template(LIST_STACK_INSTANCES_TEMPLATE)
-        return template.render(stackset=stackset)
+        return template.render(instances=instances)
 
     def list_stack_set_operations(self) -> str:
         stackset_name = self._get_param("StackSetName")
@@ -1046,7 +1070,7 @@ DELETE_STACK_SET_RESPONSE_TEMPLATE = """<DeleteStackSetResponse xmlns="http://in
 
 CREATE_STACK_INSTANCES_TEMPLATE = """<CreateStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <CreateStackInstancesResult>
-    <OperationId>1459ad6d-63cc-4c96-a73e-example</OperationId>
+    <OperationId>{{ operation_id }}</OperationId>
   </CreateStackInstancesResult>
   <ResponseMetadata>
     <RequestId>6b29f7e3-69be-4d32-b374-example</RequestId>
@@ -1057,13 +1081,13 @@ CREATE_STACK_INSTANCES_TEMPLATE = """<CreateStackInstancesResponse xmlns="http:/
 LIST_STACK_INSTANCES_TEMPLATE = """<ListStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <ListStackInstancesResult>
     <Summaries>
-    {% for instance in stackset.stack_instances %}
+    {% for instance in instances %}
       <member>
-        <StackId>{{ instance.StackId }}</StackId>
-        <StackSetId>{{ instance.StackSetId }}</StackSetId>
-        <Region>{{ instance.Region }}</Region>
-        <Account>{{ instance.Account }}</Account>
-        <Status>{{ instance.Status }}</Status>
+        <StackId>{{ instance["StackId"] }}</StackId>
+        <StackSetId>{{ instance["StackSetId"] }}</StackSetId>
+        <Region>{{ instance["Region"] }}</Region>
+        <Account>{{ instance["Account"] }}</Account>
+        <Status>{{ instance["Status"] }}</Status>
       </member>
     {% endfor %}
     </Summaries>
@@ -1087,16 +1111,16 @@ DELETE_STACK_INSTANCES_TEMPLATE = """<DeleteStackInstancesResponse xmlns="http:/
 DESCRIBE_STACK_INSTANCE_TEMPLATE = """<DescribeStackInstanceResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <DescribeStackInstanceResult>
     <StackInstance>
-      <StackId>{{ instance.StackId }}</StackId>
-      <StackSetId>{{ instance.StackSetId }}</StackSetId>
-    {% if instance.ParameterOverrides %}
+      <StackId>{{ instance["StackId"] }}</StackId>
+      <StackSetId>{{ instance["StackSetId"] }}</StackSetId>
+    {% if instance["ParameterOverrides"] %}
       <ParameterOverrides>
-      {% for override in instance.ParameterOverrides %}
+      {% for override in instance["ParameterOverrides"] %}
       {% if override['ParameterKey'] or override['ParameterValue'] %}
         <member>
-          <ParameterKey>{{ override.ParameterKey }}</ParameterKey>
+          <ParameterKey>{{ override["ParameterKey"] }}</ParameterKey>
           <UsePreviousValue>false</UsePreviousValue>
-          <ParameterValue>{{ override.ParameterValue }}</ParameterValue>
+          <ParameterValue>{{ override["ParameterValue"] }}</ParameterValue>
         </member>
       {% endif %}
       {% endfor %}
@@ -1104,9 +1128,9 @@ DESCRIBE_STACK_INSTANCE_TEMPLATE = """<DescribeStackInstanceResponse xmlns="http
     {% else %}
       <ParameterOverrides/>
     {% endif %}
-      <Region>{{ instance.Region }}</Region>
-      <Account>{{ instance.Account }}</Account>
-      <Status>{{ instance.Status }}</Status>
+      <Region>{{ instance["Region"] }}</Region>
+      <Account>{{ instance["Account"] }}</Account>
+      <Status>{{ instance["Status"] }}</Status>
     </StackInstance>
   </DescribeStackInstanceResult>
   <ResponseMetadata>

@@ -341,20 +341,20 @@ def test_create_stack_with_termination_protection():
 def test_describe_stack_instances():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
     cf_conn.create_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
     )
     usw2_instance = cf_conn.describe_stack_instance(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-west-2",
     )
     use1_instance = cf_conn.describe_stack_instance(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-east-1",
     )
@@ -377,10 +377,10 @@ def test_describe_stack_instances():
 def test_list_stacksets_length():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set2", TemplateBody=dummy_template_yaml
+        StackSetName="teststackset2", TemplateBody=dummy_template_yaml
     )
     stacksets = cf_conn.list_stack_sets()
     stacksets.should.have.length_of(2)
@@ -403,11 +403,11 @@ def test_filter_stacks():
 def test_list_stacksets_contents():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
     stacksets = cf_conn.list_stack_sets()
     stacksets["Summaries"][0].should.have.key("StackSetName").which.should.equal(
-        "test_stack_set"
+        "teststackset"
     )
     stacksets["Summaries"][0].should.have.key("Status").which.should.equal("ACTIVE")
 
@@ -416,49 +416,43 @@ def test_list_stacksets_contents():
 def test_stop_stack_set_operation():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
     cf_conn.create_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-1", "us-west-2"],
     )
-    operation_id = cf_conn.list_stack_set_operations(StackSetName="test_stack_set")[
+    operation_id = cf_conn.list_stack_set_operations(StackSetName="teststackset")[
         "Summaries"
     ][-1]["OperationId"]
     cf_conn.stop_stack_set_operation(
-        StackSetName="test_stack_set", OperationId=operation_id
+        StackSetName="teststackset", OperationId=operation_id
     )
-    list_operation = cf_conn.list_stack_set_operations(StackSetName="test_stack_set")
+    list_operation = cf_conn.list_stack_set_operations(StackSetName="teststackset")
     list_operation["Summaries"][-1]["Status"].should.equal("STOPPED")
 
 
 @mock_cloudformation
 def test_describe_stack_set_operation():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
-    )
-    cf_conn.create_stack_instances(
-        StackSetName="test_stack_set",
+    cf_conn.create_stack_set(StackSetName="name", TemplateBody=dummy_template_json)
+    operation_id = cf_conn.create_stack_instances(
+        StackSetName="name",
         Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-1", "us-west-2"],
-    )
-    operation_id = cf_conn.list_stack_set_operations(StackSetName="test_stack_set")[
-        "Summaries"
-    ][-1]["OperationId"]
-    cf_conn.stop_stack_set_operation(
-        StackSetName="test_stack_set", OperationId=operation_id
-    )
+    )["OperationId"]
+
+    cf_conn.stop_stack_set_operation(StackSetName="name", OperationId=operation_id)
     response = cf_conn.describe_stack_set_operation(
-        StackSetName="test_stack_set", OperationId=operation_id
+        StackSetName="name", OperationId=operation_id
     )
 
     response["StackSetOperation"]["Status"].should.equal("STOPPED")
     response["StackSetOperation"]["Action"].should.equal("CREATE")
     with pytest.raises(ClientError) as exp:
         cf_conn.describe_stack_set_operation(
-            StackSetName="test_stack_set", OperationId="non_existing_operation"
+            StackSetName="name", OperationId="non_existing_operation"
         )
     exp_err = exp.value.response.get("Error")
     exp_metadata = exp.value.response.get("ResponseMetadata")
@@ -474,22 +468,22 @@ def test_describe_stack_set_operation():
 def test_list_stack_set_operation_results():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
     cf_conn.create_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-1", "us-west-2"],
     )
-    operation_id = cf_conn.list_stack_set_operations(StackSetName="test_stack_set")[
+    operation_id = cf_conn.list_stack_set_operations(StackSetName="teststackset")[
         "Summaries"
     ][-1]["OperationId"]
 
     cf_conn.stop_stack_set_operation(
-        StackSetName="test_stack_set", OperationId=operation_id
+        StackSetName="teststackset", OperationId=operation_id
     )
     response = cf_conn.list_stack_set_operation_results(
-        StackSetName="test_stack_set", OperationId=operation_id
+        StackSetName="teststackset", OperationId=operation_id
     )
 
     response["Summaries"].should.have.length_of(3)
@@ -501,41 +495,41 @@ def test_list_stack_set_operation_results():
 def test_update_stack_instances():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     param = [
-        {"ParameterKey": "SomeParam", "ParameterValue": "StackSetValue"},
-        {"ParameterKey": "AnotherParam", "ParameterValue": "StackSetValue2"},
+        {"ParameterKey": "TagDescription", "ParameterValue": "StackSetValue"},
+        {"ParameterKey": "TagName", "ParameterValue": "StackSetValue2"},
     ]
     param_overrides = [
-        {"ParameterKey": "SomeParam", "ParameterValue": "OverrideValue"},
-        {"ParameterKey": "AnotherParam", "ParameterValue": "OverrideValue2"},
+        {"ParameterKey": "TagDescription", "ParameterValue": "OverrideValue"},
+        {"ParameterKey": "TagName", "ParameterValue": "OverrideValue2"},
     ]
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         TemplateBody=dummy_template_yaml_with_ref,
         Parameters=param,
     )
     cf_conn.create_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-1", "us-west-2"],
     )
     cf_conn.update_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
         Regions=["us-west-1", "us-west-2"],
         ParameterOverrides=param_overrides,
     )
     usw2_instance = cf_conn.describe_stack_instance(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-west-2",
     )
     usw1_instance = cf_conn.describe_stack_instance(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-west-1",
     )
     use1_instance = cf_conn.describe_stack_instance(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-east-1",
     )
@@ -573,25 +567,26 @@ def test_update_stack_instances():
 def test_delete_stack_instances():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
     cf_conn.create_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
     )
 
     cf_conn.delete_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
-        Regions=["us-east-1"],
+        # Also delete unknown region for good measure - that should be a no-op
+        Regions=["us-east-1", "us-east-2"],
         RetainStacks=False,
     )
 
-    cf_conn.list_stack_instances(StackSetName="test_stack_set")[
+    cf_conn.list_stack_instances(StackSetName="teststackset")[
         "Summaries"
     ].should.have.length_of(1)
-    cf_conn.list_stack_instances(StackSetName="test_stack_set")["Summaries"][0][
+    cf_conn.list_stack_instances(StackSetName="teststackset")["Summaries"][0][
         "Region"
     ].should.equal("us-west-2")
 
@@ -600,18 +595,18 @@ def test_delete_stack_instances():
 def test_create_stack_instances():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
     cf_conn.create_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
     )
 
-    cf_conn.list_stack_instances(StackSetName="test_stack_set")[
+    cf_conn.list_stack_instances(StackSetName="teststackset")[
         "Summaries"
     ].should.have.length_of(2)
-    cf_conn.list_stack_instances(StackSetName="test_stack_set")["Summaries"][0][
+    cf_conn.list_stack_instances(StackSetName="teststackset")["Summaries"][0][
         "Account"
     ].should.equal(ACCOUNT_ID)
 
@@ -628,18 +623,18 @@ def test_create_stack_instances_with_param_overrides():
         {"ParameterKey": "TagName", "ParameterValue": "OverrideValue2"},
     ]
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         TemplateBody=dummy_template_yaml_with_ref,
         Parameters=param,
     )
     cf_conn.create_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
         ParameterOverrides=param_overrides,
     )
     usw2_instance = cf_conn.describe_stack_instance(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-west-2",
     )
@@ -670,16 +665,16 @@ def test_update_stack_set():
         {"ParameterKey": "TagName", "ParameterValue": "OverrideValue2"},
     ]
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         TemplateBody=dummy_template_yaml_with_ref,
         Parameters=param,
     )
     cf_conn.update_stack_set(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         TemplateBody=dummy_template_yaml_with_ref,
         Parameters=param_overrides,
     )
-    stackset = cf_conn.describe_stack_set(StackSetName="test_stack_set")
+    stackset = cf_conn.describe_stack_set(StackSetName="teststackset")
 
     stackset["StackSet"]["Parameters"][0]["ParameterValue"].should.equal(
         param_overrides[0]["ParameterValue"]
@@ -707,16 +702,16 @@ def test_update_stack_set_with_previous_value():
         {"ParameterKey": "TagName", "UsePreviousValue": True},
     ]
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         TemplateBody=dummy_template_yaml_with_ref,
         Parameters=param,
     )
     cf_conn.update_stack_set(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         TemplateBody=dummy_template_yaml_with_ref,
         Parameters=param_overrides,
     )
-    stackset = cf_conn.describe_stack_set(StackSetName="test_stack_set")
+    stackset = cf_conn.describe_stack_set(StackSetName="teststackset")
 
     stackset["StackSet"]["Parameters"][0]["ParameterValue"].should.equal(
         param_overrides[0]["ParameterValue"]
@@ -736,20 +731,20 @@ def test_update_stack_set_with_previous_value():
 def test_list_stack_set_operations():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
     cf_conn.create_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
     )
     cf_conn.update_stack_instances(
-        StackSetName="test_stack_set",
+        StackSetName="teststackset",
         Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
     )
 
-    list_operation = cf_conn.list_stack_set_operations(StackSetName="test_stack_set")
+    list_operation = cf_conn.list_stack_set_operations(StackSetName="teststackset")
     list_operation["Summaries"].should.have.length_of(2)
     list_operation["Summaries"][-1]["Action"].should.equal("UPDATE")
 
@@ -759,18 +754,18 @@ def test_bad_list_stack_resources():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
 
     with pytest.raises(ClientError):
-        cf_conn.list_stack_resources(StackName="test_stack_set")
+        cf_conn.list_stack_resources(StackName="teststackset")
 
 
 @mock_cloudformation
 def test_delete_stack_set_by_name():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
-    cf_conn.delete_stack_set(StackSetName="test_stack_set")
+    cf_conn.delete_stack_set(StackSetName="teststackset")
 
-    cf_conn.describe_stack_set(StackSetName="test_stack_set")["StackSet"][
+    cf_conn.describe_stack_set(StackSetName="teststackset")["StackSet"][
         "Status"
     ].should.equal("DELETED")
 
@@ -779,37 +774,76 @@ def test_delete_stack_set_by_name():
 def test_delete_stack_set_by_id():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
     stack_set_id = response["StackSetId"]
     cf_conn.delete_stack_set(StackSetName=stack_set_id)
 
-    cf_conn.describe_stack_set(StackSetName="test_stack_set")["StackSet"][
+    cf_conn.describe_stack_set(StackSetName="teststackset")["StackSet"][
         "Status"
     ].should.equal("DELETED")
+
+
+@mock_cloudformation
+def test_delete_stack_set__while_instances_are_running():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    cf_conn.create_stack_set(StackSetName="a", TemplateBody=json.dumps(dummy_template3))
+    cf_conn.create_stack_instances(
+        StackSetName="a",
+        Accounts=[ACCOUNT_ID],
+        Regions=["us-east-1"],
+    )
+    with pytest.raises(ClientError) as exc:
+        cf_conn.delete_stack_set(StackSetName="a")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("StackSetNotEmptyException")
+    err["Message"].should.equal("StackSet is not empty")
+
+    cf_conn.delete_stack_instances(
+        StackSetName="a",
+        Accounts=[ACCOUNT_ID],
+        Regions=["us-east-1"],
+        RetainStacks=False,
+    )
+
+    # This will succeed when no StackInstances are left
+    cf_conn.delete_stack_set(StackSetName="a")
 
 
 @mock_cloudformation
 def test_create_stack_set():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+        StackSetName="teststackset", TemplateBody=dummy_template_json
     )
 
-    cf_conn.describe_stack_set(StackSetName="test_stack_set")["StackSet"][
+    cf_conn.describe_stack_set(StackSetName="teststackset")["StackSet"][
         "TemplateBody"
     ].should.equal(dummy_template_json)
     response["StackSetId"].should_not.equal(None)
 
 
 @mock_cloudformation
+@pytest.mark.parametrize("name", ["1234", "stack_set", "-set"])
+def test_create_stack_set__invalid_name(name):
+    client = boto3.client("cloudformation", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_stack_set(StackSetName=name)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal(
+        f"1 validation error detected: Value '{name}' at 'stackSetName' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*"
+    )
+
+
+@mock_cloudformation
 def test_create_stack_set_with_yaml():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
-        StackSetName="test_stack_set", TemplateBody=dummy_template_yaml
+        StackSetName="teststackset", TemplateBody=dummy_template_yaml
     )
 
-    cf_conn.describe_stack_set(StackSetName="test_stack_set")["StackSet"][
+    cf_conn.describe_stack_set(StackSetName="teststackset")["StackSet"][
         "TemplateBody"
     ].should.equal(dummy_template_yaml)
 
@@ -827,8 +861,8 @@ def test_create_stack_set_from_s3_url():
     )
 
     cf_conn = boto3.client("cloudformation", region_name="us-west-1")
-    cf_conn.create_stack_set(StackSetName="stack_from_url", TemplateURL=key_url)
-    cf_conn.describe_stack_set(StackSetName="stack_from_url")["StackSet"][
+    cf_conn.create_stack_set(StackSetName="stackfromurl", TemplateURL=key_url)
+    cf_conn.describe_stack_set(StackSetName="stackfromurl")["StackSet"][
         "TemplateBody"
     ].should.equal(dummy_template_json)
 
@@ -841,12 +875,12 @@ def test_create_stack_set_with_ref_yaml():
         {"ParameterKey": "TagName", "ParameterValue": "name_ref"},
     ]
     cf_conn.create_stack_set(
-        StackSetName="test_stack",
+        StackSetName="teststack",
         TemplateBody=dummy_template_yaml_with_ref,
         Parameters=params,
     )
 
-    cf_conn.describe_stack_set(StackSetName="test_stack")["StackSet"][
+    cf_conn.describe_stack_set(StackSetName="teststack")["StackSet"][
         "TemplateBody"
     ].should.equal(dummy_template_yaml_with_ref)
 
@@ -859,12 +893,12 @@ def test_describe_stack_set_params():
         {"ParameterKey": "TagName", "ParameterValue": "name_ref"},
     ]
     cf_conn.create_stack_set(
-        StackSetName="test_stack",
+        StackSetName="teststack",
         TemplateBody=dummy_template_yaml_with_ref,
         Parameters=params,
     )
 
-    cf_conn.describe_stack_set(StackSetName="test_stack")["StackSet"][
+    cf_conn.describe_stack_set(StackSetName="teststack")["StackSet"][
         "Parameters"
     ].should.equal(params)
 
@@ -873,7 +907,7 @@ def test_describe_stack_set_params():
 def test_describe_stack_set_by_id():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.create_stack_set(
-        StackSetName="test_stack", TemplateBody=dummy_template_json
+        StackSetName="teststack", TemplateBody=dummy_template_json
     )
 
     stack_set_id = response["StackSetId"]
@@ -968,7 +1002,7 @@ def test_get_template_summary():
     key_url = s3.generate_presigned_url(
         ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
     )
-    conn.create_stack(StackName="stack_from_url", TemplateURL=key_url)
+    conn.create_stack(StackName="stackfromurl", TemplateURL=key_url)
     result = conn.get_template_summary(TemplateURL=key_url)
     result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
     result["Version"].should.equal("2010-09-09")
@@ -1169,8 +1203,8 @@ def test_create_stack_from_s3_url():
     )
 
     cf_conn = boto3.client("cloudformation", region_name="us-west-1")
-    cf_conn.create_stack(StackName="stack_from_url", TemplateURL=key_url)
-    cf_conn.get_template(StackName="stack_from_url")["TemplateBody"].should.equal(
+    cf_conn.create_stack(StackName="stackfromurl", TemplateURL=key_url)
+    cf_conn.get_template(StackName="stackfromurl")["TemplateBody"].should.equal(
         json.loads(dummy_template_json, object_pairs_hook=OrderedDict)
     )
 

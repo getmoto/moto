@@ -565,7 +565,7 @@
 
 ## cloudformation
 <details>
-<summary>31% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] activate_type
 - [ ] batch_describe_type_configurations
@@ -587,7 +587,7 @@
 - [ ] describe_publisher
 - [ ] describe_stack_drift_detection_status
 - [ ] describe_stack_events
-- [ ] describe_stack_instance
+- [X] describe_stack_instance
 - [ ] describe_stack_resource
 - [ ] describe_stack_resource_drifts
 - [ ] describe_stack_resources
@@ -608,7 +608,7 @@
 - [X] list_change_sets
 - [X] list_exports
 - [ ] list_imports
-- [ ] list_stack_instances
+- [X] list_stack_instances
 - [X] list_stack_resources
 - [ ] list_stack_set_operation_results
 - [ ] list_stack_set_operations
