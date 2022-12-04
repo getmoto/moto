@@ -1310,7 +1310,14 @@ class LambdaStorage(object):
         if not self._functions[name]["latest"]:
             return None
 
-        new_version = len(self._functions[name]["versions"]) + 1
+        all_versions = self._functions[name]["versions"]
+        if all_versions:
+            latest_published = all_versions[-1]
+            if latest_published.code_sha_256 == function.code_sha_256:
+                # Nothing has changed, don't publish
+                return latest_published
+
+        new_version = len(all_versions) + 1
         fn = copy.copy(self._functions[name]["latest"])
         fn.set_version(new_version)
         if description:
@@ -1879,6 +1886,7 @@ class LambdaBackend(BaseBackend):
         self, function_name: str, qualifier: str, body: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         fn: LambdaFunction = self.get_function(function_name, qualifier)
+        fn.update_function_code(body)
 
         if body.get("Publish", False):
             fn = self.publish_function(function_name)  # type: ignore[assignment]
