@@ -3184,7 +3184,7 @@ def test_message_delay_is_more_than_15_minutes():
 
 @mock_sqs
 def test_receive_message_that_becomes_visible_while_long_polling():
-    sqs = boto3.resource("sqs")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-queue")
     msg_body = str(uuid4())
     queue.send_message(MessageBody=msg_body)
