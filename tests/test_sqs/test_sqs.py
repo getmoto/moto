@@ -3180,3 +3180,20 @@ def test_message_delay_is_more_than_15_minutes():
     response["Messages"][0]["Attributes"]["MessageDeduplicationId"].should.equal(
         "message_deduplication_id_1"
     )
+
+
+@mock_sqs
+def test_receive_message_that_becomes_visible_while_long_polling():
+    sqs = boto3.resource("sqs")
+    queue = sqs.create_queue(QueueName="test-queue")
+    msg_body = str(uuid4())
+    queue.send_message(MessageBody=msg_body)
+    messages = queue.receive_messages()
+    messages[0].change_visibility(VisibilityTimeout=1)
+    time_to_wait = 2
+    begin = time.time()
+    messages = queue.receive_messages(WaitTimeSeconds=time_to_wait)
+    end = time.time()
+    assert len(messages) == 1
+    assert messages[0].body == msg_body
+    assert end - begin < time_to_wait
