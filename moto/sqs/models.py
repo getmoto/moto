@@ -949,7 +949,7 @@ class SQSBackend(BaseBackend):
                     # so break to avoid an infinite loop.
                     break
 
-                queue.wait_for_messages(wait_seconds_timeout)
+                queue.wait_for_messages(1)
                 continue
 
             previous_result_count = len(result)
