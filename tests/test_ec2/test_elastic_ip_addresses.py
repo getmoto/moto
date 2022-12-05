@@ -24,7 +24,7 @@ def test_eip_allocate_classic():
         "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    standard = client.allocate_address(Domain='standard')
+    standard = client.allocate_address(Domain="standard")
     standard.should.have.key("PublicIp")
     standard.should.have.key("Domain").equal("standard")
 
