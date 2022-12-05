@@ -18,7 +18,9 @@ from .utilities import (
     get_role_name,
     get_test_zip_file1,
     get_test_zip_file2,
+    get_test_zip_file3,
     create_invalid_lambda,
+    _process_lambda,
 )
 
 _lambda_region = "us-west-2"
@@ -870,6 +872,7 @@ def test_list_versions_by_function():
         MemorySize=128,
         Publish=True,
     )
+    conn.update_function_code(FunctionName=function_name, ZipFile=get_test_zip_file1())
 
     res = conn.publish_version(FunctionName=function_name)
     assert res["ResponseMetadata"]["HTTPStatusCode"] == 201
@@ -1041,12 +1044,14 @@ def test_update_function_zip(key):
         Publish=True,
     )
     name_or_arn = fxn[key]
+    first_sha = fxn["CodeSha256"]
 
     zip_content_two = get_test_zip_file2()
 
-    conn.update_function_code(
+    update1 = conn.update_function_code(
         FunctionName=name_or_arn, ZipFile=zip_content_two, Publish=True
     )
+    update1["CodeSha256"].shouldnt.equal(first_sha)
 
     response = conn.get_function(FunctionName=function_name, Qualifier="2")
 
@@ -1066,6 +1071,30 @@ def test_update_function_zip(key):
     config.should.have.key("FunctionName").equals(function_name)
     config.should.have.key("Version").equals("2")
     config.should.have.key("LastUpdateStatus").equals("Successful")
+    config.should.have.key("CodeSha256").equals(update1["CodeSha256"])
+
+    most_recent_config = conn.get_function(FunctionName=function_name)
+    most_recent_config["Configuration"]["CodeSha256"].should.equal(
+        update1["CodeSha256"]
+    )
+
+    # Publishing this again, with the same code, gives us the same version
+    same_update = conn.update_function_code(
+        FunctionName=name_or_arn, ZipFile=zip_content_two, Publish=True
+    )
+    same_update["FunctionArn"].should.equal(
+        most_recent_config["Configuration"]["FunctionArn"] + ":2"
+    )
+    same_update["Version"].should.equal("2")
+
+    # Only when updating the code should we have a new version
+    new_update = conn.update_function_code(
+        FunctionName=name_or_arn, ZipFile=get_test_zip_file3(), Publish=True
+    )
+    new_update["FunctionArn"].should.equal(
+        most_recent_config["Configuration"]["FunctionArn"] + ":3"
+    )
+    new_update["Version"].should.equal("3")
 
 
 @mock_lambda
@@ -1191,6 +1220,8 @@ def test_multiple_qualifiers():
     )
 
     for _ in range(10):
+        new_zip = _process_lambda(f"func content {_}")
+        client.update_function_code(FunctionName=fn_name, ZipFile=new_zip)
         client.publish_version(FunctionName=fn_name)
 
     resp = client.list_versions_by_function(FunctionName=fn_name)["Versions"]
