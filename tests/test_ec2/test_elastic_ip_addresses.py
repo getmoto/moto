@@ -24,7 +24,7 @@ def test_eip_allocate_classic():
         "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    standard = client.allocate_address()
+    standard = client.allocate_address(Domain='standard')
     standard.should.have.key("PublicIp")
     standard.should.have.key("Domain").equal("standard")
 
@@ -112,18 +112,6 @@ def test_specific_eip_allocate_vpc():
     vpc = client.allocate_address(Domain="vpc", Address="127.38.43.222")
     vpc["Domain"].should.be.equal("vpc")
     vpc["PublicIp"].should.be.equal("127.38.43.222")
-
-
-@mock_ec2
-def test_eip_allocate_invalid_domain():
-    """Allocate EIP invalid domain"""
-    client = boto3.client("ec2", region_name="us-east-1")
-
-    with pytest.raises(ClientError) as ex:
-        client.allocate_address(Domain="bogus")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
 
 
 @mock_ec2
