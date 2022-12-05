@@ -2,7 +2,6 @@ from moto.core import CloudFormationModel
 from .core import TaggedEC2Resource
 from ..exceptions import (
     FilterNotImplementedError,
-    InvalidDomainError,
     InvalidAddressError,
     InvalidAllocationIdError,
     ResourceAlreadyAssociatedError,
@@ -113,7 +112,7 @@ class ElasticAddressBackend:
 
     def allocate_address(self, domain, address=None, tags=None):
         if domain not in ["standard", "vpc"]:
-            raise InvalidDomainError(domain)
+            domain = "vpc"
         if address:
             address = ElasticAddress(self, domain=domain, address=address, tags=tags)
         else:

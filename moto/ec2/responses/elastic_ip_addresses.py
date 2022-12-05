@@ -4,7 +4,7 @@ from ._base_response import EC2BaseResponse
 
 class ElasticIPAddresses(EC2BaseResponse):
     def allocate_address(self):
-        domain = self._get_param("Domain", if_none="standard")
+        domain = self._get_param("Domain", if_none=None)
         reallocate_address = self._get_param("Address", if_none=None)
         tags = self._get_multi_param("TagSpecification")
         tags = add_tag_specification(tags)

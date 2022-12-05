@@ -333,13 +333,6 @@ class VolumeInUseError(EC2ClientError):
         )
 
 
-class InvalidDomainError(EC2ClientError):
-    def __init__(self, domain):
-        super().__init__(
-            "InvalidParameterValue", f"Invalid value '{domain}' for domain."
-        )
-
-
 class InvalidAddressError(EC2ClientError):
     def __init__(self, ip):
         super().__init__("InvalidAddress.NotFound", f"Address '{ip}' not found.")
