@@ -12,7 +12,10 @@ def example_distribution_config(ref):
                 {
                     "Id": "origin1",
                     "DomainName": "asdf.s3.us-east-1.amazonaws.com",
-                    "S3OriginConfig": {"OriginAccessIdentity": ""},
+                    "OriginPath": "/example",
+                    "S3OriginConfig": {
+                        "OriginAccessIdentity": "origin-access-identity/cloudfront/00000000000001"
+                    },
                 }
             ],
         },

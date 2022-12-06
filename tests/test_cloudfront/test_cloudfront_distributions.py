@@ -49,7 +49,7 @@ def test_create_distribution_s3_minimum():
     origin = origins["Items"][0]
     origin.should.have.key("Id").equals("origin1")
     origin.should.have.key("DomainName").equals("asdf.s3.us-east-1.amazonaws.com")
-    origin.should.have.key("OriginPath").equals("")
+    origin.should.have.key("OriginPath").equals("/example")
 
     origin.should.have.key("CustomHeaders")
     origin["CustomHeaders"].should.have.key("Quantity").equals(0)
@@ -656,7 +656,7 @@ def test_get_distribution_config():
     origin = origins["Items"][0]
     origin.should.have.key("Id").equals("origin1")
     origin.should.have.key("DomainName").equals("asdf.s3.us-east-1.amazonaws.com")
-    origin.should.have.key("OriginPath").equals("")
+    origin.should.have.key("OriginPath").equals("/example")
 
     origin.should.have.key("CustomHeaders")
     origin["CustomHeaders"].should.have.key("Quantity").equals(0)
