@@ -121,6 +121,7 @@ class FakeKey(BaseModel, ManagedState):
         self.last_modified = datetime.datetime.utcnow()
         self.acl = get_canned_acl("private")
         self.website_redirect_location = None
+        self.checksum_algorithm = None
         self._storage_class = storage if storage else "STANDARD"
         self._metadata = LowercaseDict()
         self._expiry = None
@@ -258,6 +259,8 @@ class FakeKey(BaseModel, ManagedState):
         if self._is_versioned:
             res["x-amz-version-id"] = str(self.version_id)
 
+        if self.checksum_algorithm is not None:
+            res["x-amz-sdk-checksum-algorithm"] = self.checksum_algorithm
         if self.website_redirect_location:
             res["x-amz-website-redirect-location"] = self.website_redirect_location
         if self.lock_legal_status:

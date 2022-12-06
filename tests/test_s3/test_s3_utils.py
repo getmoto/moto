@@ -6,6 +6,7 @@ from moto.s3.utils import (
     parse_region_from_url,
     clean_key_name,
     undo_clean_key_name,
+    compute_checksum,
 )
 from unittest.mock import patch
 
@@ -119,3 +120,24 @@ def test_clean_key_name(key, expected):
 )
 def test_undo_clean_key_name(key, expected):
     undo_clean_key_name(key).should.equal(expected)
+
+
+def test_checksum_sha256():
+    checksum = b"ODdkMTQ5Y2I0MjRjMDM4NzY1NmYyMTFkMjU4OWZiNWIxZTE2MjI5OTIxMzA5ZTk4NTg4NDE5Y2NjYThhNzM2Mg=="
+    compute_checksum(b"somedata", "SHA256").should.equal(checksum)
+    # Unknown algorithms fallback to SHA256 for now
+    compute_checksum(b"somedata", algorithm="unknown").should.equal(checksum)
+
+
+def test_checksum_sha1():
+    compute_checksum(b"somedata", "SHA1").should.equal(
+        b"ZWZhYTMxMWFlNDQ4YTczNzRjMTIyMDYxYmZlZDk1MmQ5NDBlOWUzNw=="
+    )
+
+
+def test_checksum_crc32():
+    compute_checksum(b"somedata", "CRC32").should.equal(b"MTM5MzM0Mzk1Mg==")
+
+
+def test_checksum_crc32c():
+    compute_checksum(b"somedata", "CRC32C").should.equal(b"MTM5MzM0Mzk1Mg==")
