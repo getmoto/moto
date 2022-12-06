@@ -53,7 +53,12 @@ from .exceptions import (
 )
 from .models import s3_backends
 from .models import get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
-from .utils import bucket_name_from_url, metadata_from_headers, parse_region_from_url
+from .utils import (
+    bucket_name_from_url,
+    metadata_from_headers,
+    parse_region_from_url,
+    compute_checksum,
+)
 from xml.dom import minidom
 
 
@@ -1386,6 +1391,12 @@ class S3Response(BaseResponse):
             checksum_value = search.group(1) if search else None
 
         if checksum_value:
+            # TODO: AWS computes the provided value and verifies it's the same
+            # Afterwards, it should be returned in every subsequent call
+            response_headers.update({checksum_header: checksum_value})
+        elif checksum_algorithm:
+            # If the value is not provided, we compute it and only return it as part of this request
+            checksum_value = compute_checksum(body, algorithm=checksum_algorithm)
             response_headers.update({checksum_header: checksum_value})
 
         # Extract the actual data from the body second
@@ -1545,6 +1556,7 @@ class S3Response(BaseResponse):
         new_key.website_redirect_location = request.headers.get(
             "x-amz-website-redirect-location"
         )
+        new_key.checksum_algorithm = checksum_algorithm
         self.backend.set_key_tags(new_key, tagging)
 
         response_headers.update(new_key.response_dict)
@@ -2180,6 +2192,9 @@ S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
         <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
         <DisplayName>webfile</DisplayName>
       </Owner>
+      {% endif %}
+      {% if key.checksum_algorithm %}
+      <ChecksumAlgorithm>{{ key.checksum_algorithm }}</ChecksumAlgorithm>
       {% endif %}
     </Contents>
   {% endfor %}
