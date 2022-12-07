@@ -673,15 +673,15 @@ def test_promote_read_replica():
 
     conn.create_db_instance_read_replica(
         DBInstanceIdentifier="db-replica-1",
-        SourceDBInstanceIdentifier="db-master-1",
+        SourceDBInstanceIdentifier="db-primary-1",
         DBInstanceClass="db.m1.small",
     )
     conn.promote_read_replica(DBInstanceIdentifier="db-replica-1")
 
-    replicas = conn.describe_db_instance(DBInstanceIdentifier="db-primary-1").get(
+    replicas = conn.describe_db_instances(DBInstanceIdentifier="db-primary-1").get(
         "ReadReplicaDBInstanceIdentifiers"
     )
-    replicas.should.have.length_of(0)
+    assert replicas is None
 
 
 @mock_rds
