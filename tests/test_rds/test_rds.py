@@ -657,6 +657,34 @@ def test_describe_db_snapshots():
 
 
 @mock_rds
+def test_promote_read_replica():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+
+    conn.create_db_instance_read_replica(
+        DBInstanceIdentifier="db-replica-1",
+        SourceDBInstanceIdentifier="db-master-1",
+        DBInstanceClass="db.m1.small",
+    )
+    conn.promote_read_replica(DBInstanceIdentifier="db-replica-1")
+
+    replicas = conn.describe_db_instance(DBInstanceIdentifier="db-primary-1").get(
+        "ReadReplicaDBInstanceIdentifiers"
+    )
+    replicas.should.have.length_of(0)
+
+
+@mock_rds
 def test_delete_db_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_instance(
