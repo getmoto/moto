@@ -161,12 +161,11 @@ class FakeKey(BaseModel, ManagedState):
 
     @property
     def value(self):
-        self.lock.acquire()
-        self._value_buffer.seek(0)
-        r = self._value_buffer.read()
-        r = copy.copy(r)
-        self.lock.release()
-        return r
+        with self.lock:
+            self._value_buffer.seek(0)
+            r = self._value_buffer.read()
+            r = copy.copy(r)
+            return r
 
     @property
     def arn(self):
