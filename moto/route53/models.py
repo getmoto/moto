@@ -20,6 +20,7 @@ from moto.route53.exceptions import (
     QueryLoggingConfigAlreadyExists,
     DnsNameInvalidForZone,
     ChangeSetAlreadyExists,
+    InvalidInput,
 )
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.moto_api._internal import mock_random as random
@@ -534,6 +535,20 @@ class Route53Backend(BaseBackend):
 
         if any([rr for rr in change_list if rr in the_zone.rr_changes]):
             raise ChangeSetAlreadyExists
+
+        for value in change_list:
+            if value["Action"] == "DELETE":
+                # To delete a resource record set, you must specify all the same values that you specified when you created it.
+                corresponding_create = copy.deepcopy(value)
+                corresponding_create["Action"] = "CREATE"
+                corresponding_upsert = copy.deepcopy(value)
+                corresponding_upsert["Action"] = "UPSERT"
+                if (
+                    corresponding_create not in the_zone.rr_changes
+                    and corresponding_upsert not in the_zone.rr_changes
+                ):
+                    msg = f"Invalid request: Expected exactly one of [AliasTarget, all of [TTL, and ResourceRecords], or TrafficPolicyInstanceId], but found none in Change with [Action=DELETE, Name={value['ResourceRecordSet']['Name']}, Type={value['ResourceRecordSet']['Type']}, SetIdentifier={value['ResourceRecordSet'].get('SetIdentifier', 'null')}]"
+                    raise InvalidInput(msg)
 
         for value in change_list:
             original_change = copy.deepcopy(value)
