@@ -1385,6 +1385,15 @@ class RDSBackend(BaseBackend):
 
         return self.database_snapshots.pop(db_snapshot_identifier)
 
+    def promote_read_replica(self, db_kwargs):
+        database_id = db_kwargs["db_instance_identifier"]
+        database = self.databases.get(database_id)
+        if database.is_replica:
+            database.is_replica = False
+            database.update(db_kwargs)
+
+        return database
+
     def create_db_instance_read_replica(self, db_kwargs):
         database_id = db_kwargs["db_instance_identifier"]
         source_database_id = db_kwargs["source_db_identifier"]

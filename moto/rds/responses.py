@@ -295,6 +295,14 @@ class RDSResponse(BaseResponse):
         template = self.response_template(DESCRIBE_SNAPSHOTS_TEMPLATE)
         return template.render(snapshots=snapshots)
 
+    def promote_read_replica(self):
+        db_instance_identifier = self._get_param("DBInstanceIdentifier")
+        db_kwargs = self._get_db_kwargs()
+        database = self.backend.promote_read_replica(db_kwargs)
+        database = self.backend.modify_db_instance(db_instance_identifier, db_kwargs)
+        template = self.response_template(PROMOTE_REPLICA_TEMPLATE)
+        return template.render(database=database)
+
     def delete_db_snapshot(self):
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
         snapshot = self.backend.delete_db_snapshot(db_snapshot_identifier)
@@ -703,6 +711,15 @@ MODIFY_DATABASE_TEMPLATE = """<ModifyDBInstanceResponse xmlns="http://rds.amazon
     <RequestId>bb58476c-a1a8-11e4-99cf-55e92d4bbada</RequestId>
   </ResponseMetadata>
 </ModifyDBInstanceResponse>"""
+
+PROMOTE_REPLICA_TEMPLATE = """<PromoteReadReplicaResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <PromoteReadReplicaResult>
+  {{ database.to_xml() }}
+  </PromoteReadReplicaResult>
+  <ResponseMetadata>
+    <RequestId>8e8c0d64-be21-11d3-a71c-13dc2f771e41</RequestId>
+  </ResponseMetadata>
+</PromoteReadReplicaResponse>"""
 
 REBOOT_DATABASE_TEMPLATE = """<RebootDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <RebootDBInstanceResult>
