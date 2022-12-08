@@ -899,6 +899,13 @@ class CognitoResourceServer(BaseModel):
 
 class CognitoIdpBackend(BaseBackend):
     """
+    Moto mocks the JWK uris.
+    If you're using decorators, you can retrieve this information by making a call to `https://cognito-idp.us-west-2.amazonaws.com/someuserpoolid/.well-known/jwks.json`.
+
+    Call `http://localhost:5000/userpoolid/.well-known/jwks.json` instead of you're running Moto in ServerMode or Docker.
+    Because Moto cannot determine this is a CognitoIDP-request based on the URL alone, you have to add an Authorization-header instead:
+    `Authorization: AWS4-HMAC-SHA256 Credential=mock_access_key/20220524/us-east-1/cognito-idp/aws4_request, SignedHeaders=content-length;content-type;host;x-amz-date, Signature=asdf`
+
     In some cases, you need to have reproducible IDs for the user pool.
     For example, a single initialization before the start of integration tests.
 
