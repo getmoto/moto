@@ -5,7 +5,8 @@ on: [push, pull_request]
 jobs:
   cache:
     name: Caching
-    runs-on: ubuntu-latest
+    # Change to ubuntu-latest after dropping Py3.6
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [ 3.6, 3.7, 3.8, 3.9, "3.10", "3.11" ]
@@ -72,7 +73,7 @@ jobs:
 
   test:
     name: Unit test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: lint
     strategy:
       fail-fast: false
@@ -116,7 +117,7 @@ jobs:
 
   testserver:
     name: Unit tests in Server Mode
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: lint
     strategy:
       fail-fast: false
