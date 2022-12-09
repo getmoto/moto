@@ -290,8 +290,8 @@ route53|1:
   - TestAccRoute53Record_setIdentifierChange
   - TestAccRoute53Record_empty
   - TestAccRoute53Record_longTXTrecord
-  - TestAccRoute53Record_doNotAllowOverwrite
-  - TestAccRoute53Record_allowOverwrite
+  - TestAccRoute53Record_Allow_doNotOverwrite
+  - TestAccRoute53Record_Allow_overwrite
 route53|2:
   - TestAccRoute53Zone_
   - TestAccRoute53ZoneAssociation

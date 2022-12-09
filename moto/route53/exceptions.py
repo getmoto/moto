@@ -177,5 +177,8 @@ class DnsNameInvalidForZone(Route53ClientError):
 class ChangeSetAlreadyExists(Route53ClientError):
     code = 400
 
-    def __init__(self):
-        super().__init__("InvalidChangeBatch", "Provided Change is a duplicate")
+    def __init__(self, action: str, name: str, _type: str):
+        super().__init__(
+            "InvalidChangeBatch",
+            f"Tried to {action.lower()} resource record set [name='{name}', type='{_type}'] but it already exists",
+        )
