@@ -204,7 +204,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     default_region = "us-east-1"
     # to extract region, use [^.]
-    region_regex = re.compile(r"\.(?P<region>[a-z]{2}-[a-z]+-\d{1})\.amazonaws\.com")
+    # Note that the URL region can be anything, thanks to our MOTO_ALLOW_NONEXISTENT_REGION-config - so we can't have a very specific regex
+    region_regex = re.compile(r"\.(?P<region>[^.]+)\.amazonaws\.com")
     region_from_useragent_regex = re.compile(
         r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
     )
