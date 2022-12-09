@@ -263,6 +263,20 @@ def reverse_domain_name(domain_name):
     return ".".join(reversed(domain_name.split(".")))
 
 
+class ChangeList(list):
+    """
+    Contains a 'clean' list of ResourceRecordChangeSets
+    """
+
+    def append(self, item) -> None:
+        item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
+        super().append(item)
+
+    def __contains__(self, item):
+        item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
+        return super().__contains__(item)
+
+
 class FakeZone(CloudFormationModel):
     def __init__(
         self,
@@ -280,7 +294,7 @@ class FakeZone(CloudFormationModel):
         self.private_zone = private_zone
         self.rrsets = []
         self.delegation_set = delegation_set
-        self.rr_changes = []
+        self.rr_changes = ChangeList()
 
     def add_rrset(self, record_set):
         record_set = RecordSet(record_set)
