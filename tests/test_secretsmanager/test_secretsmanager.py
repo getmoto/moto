@@ -8,9 +8,8 @@ from moto import mock_secretsmanager, mock_lambda, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from botocore.exceptions import ClientError, ParamValidationError
 import string
-import pytz
 from freezegun import freeze_time
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta, timezone
 import sure  # noqa # pylint: disable=unused-import
 from uuid import uuid4
 import pytest
@@ -259,13 +258,13 @@ def test_delete_secret():
 
     assert deleted_secret["ARN"]
     assert deleted_secret["Name"] == "test-secret"
-    assert deleted_secret["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert deleted_secret["DeletionDate"] > datetime.fromtimestamp(1, timezone.utc)
 
     secret_details = conn.describe_secret(SecretId="test-secret")
 
     assert secret_details["ARN"]
     assert secret_details["Name"] == "test-secret"
-    assert secret_details["DeletedDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert secret_details["DeletedDate"] > datetime.fromtimestamp(1, timezone.utc)
 
 
 @mock_secretsmanager
@@ -278,13 +277,13 @@ def test_delete_secret_by_arn():
 
     assert deleted_secret["ARN"] == secret["ARN"]
     assert deleted_secret["Name"] == "test-secret"
-    assert deleted_secret["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert deleted_secret["DeletionDate"] > datetime.fromtimestamp(1, timezone.utc)
 
     secret_details = conn.describe_secret(SecretId="test-secret")
 
     assert secret_details["ARN"] == secret["ARN"]
     assert secret_details["Name"] == "test-secret"
-    assert secret_details["DeletedDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert secret_details["DeletedDate"] > datetime.fromtimestamp(1, timezone.utc)
 
 
 @mock_secretsmanager
@@ -296,7 +295,7 @@ def test_delete_secret_force():
     result = conn.delete_secret(SecretId="test-secret", ForceDeleteWithoutRecovery=True)
 
     assert result["ARN"]
-    assert result["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert result["DeletionDate"] > datetime.fromtimestamp(1, timezone.utc)
     assert result["Name"] == "test-secret"
 
     with pytest.raises(ClientError):
@@ -325,7 +324,7 @@ def test_delete_secret_force_with_arn():
     )
 
     assert result["ARN"]
-    assert result["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert result["DeletionDate"] > datetime.fromtimestamp(1, timezone.utc)
     assert result["Name"] == "test-secret"
 
     with pytest.raises(ClientError):
@@ -533,13 +532,17 @@ def test_describe_secret():
     assert secret_description_2["Name"] == ("test-secret-2")
     assert secret_description_2["ARN"] != ""  # Test arn not empty
     assert secret_description["CreatedDate"] <= datetime.now(tz=tzlocal())
-    assert secret_description["CreatedDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert secret_description["CreatedDate"] > datetime.fromtimestamp(1, timezone.utc)
     assert secret_description_2["CreatedDate"] <= datetime.now(tz=tzlocal())
-    assert secret_description_2["CreatedDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert secret_description_2["CreatedDate"] > datetime.fromtimestamp(1, timezone.utc)
     assert secret_description["LastChangedDate"] <= datetime.now(tz=tzlocal())
-    assert secret_description["LastChangedDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert secret_description["LastChangedDate"] > datetime.fromtimestamp(
+        1, timezone.utc
+    )
     assert secret_description_2["LastChangedDate"] <= datetime.now(tz=tzlocal())
-    assert secret_description_2["LastChangedDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert secret_description_2["LastChangedDate"] > datetime.fromtimestamp(
+        1, timezone.utc
+    )
 
 
 @mock_secretsmanager
@@ -596,7 +599,9 @@ def test_restore_secret():
     conn.delete_secret(SecretId="test-secret")
 
     described_secret_before = conn.describe_secret(SecretId="test-secret")
-    assert described_secret_before["DeletedDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert described_secret_before["DeletedDate"] > datetime.fromtimestamp(
+        1, timezone.utc
+    )
 
     restored_secret = conn.restore_secret(SecretId="test-secret")
     assert restored_secret["ARN"]

@@ -3,7 +3,6 @@ import datetime
 
 import boto3
 from botocore.exceptions import ClientError
-import pytz
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, settings
@@ -27,8 +26,8 @@ def test_request_spot_instances():
     conn.create_security_group(GroupName=sec_name_1, Description="description")
     conn.create_security_group(GroupName=sec_name_2, Description="description")
 
-    start_dt = datetime.datetime(2013, 1, 1).replace(tzinfo=pytz.utc)
-    end_dt = datetime.datetime(2013, 1, 2).replace(tzinfo=pytz.utc)
+    start_dt = datetime.datetime(2013, 1, 1).replace(tzinfo=datetime.timezone.utc)
+    end_dt = datetime.datetime(2013, 1, 2).replace(tzinfo=datetime.timezone.utc)
     start = iso_8601_datetime_with_milliseconds(start_dt)
     end = iso_8601_datetime_with_milliseconds(end_dt)
 

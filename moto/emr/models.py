@@ -1,9 +1,7 @@
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import warnings
 
-import pytz
 from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.emr.exceptions import (
@@ -79,9 +77,9 @@ class FakeInstanceGroup(BaseModel):
         self.type = instance_type
         self.ebs_configuration = ebs_configuration
         self.auto_scaling_policy = auto_scaling_policy
-        self.creation_datetime = datetime.now(pytz.utc)
-        self.start_datetime = datetime.now(pytz.utc)
-        self.ready_datetime = datetime.now(pytz.utc)
+        self.creation_datetime = datetime.now(timezone.utc)
+        self.start_datetime = datetime.now(timezone.utc)
+        self.ready_datetime = datetime.now(timezone.utc)
         self.end_datetime = None
         self.state = "RUNNING"
 
@@ -135,14 +133,14 @@ class FakeStep(BaseModel):
         self.jar = jar
         self.properties = properties or {}
 
-        self.creation_datetime = datetime.now(pytz.utc)
+        self.creation_datetime = datetime.now(timezone.utc)
         self.end_datetime = None
         self.ready_datetime = None
         self.start_datetime = None
         self.state = state
 
     def start(self):
-        self.start_datetime = datetime.now(pytz.utc)
+        self.start_datetime = datetime.now(timezone.utc)
 
 
 class FakeCluster(BaseModel):
@@ -260,7 +258,7 @@ class FakeCluster(BaseModel):
         self.service_role = service_role
         self.step_concurrency_level = step_concurrency_level
 
-        self.creation_datetime = datetime.now(pytz.utc)
+        self.creation_datetime = datetime.now(timezone.utc)
         self.start_datetime = None
         self.ready_datetime = None
         self.end_datetime = None
@@ -298,11 +296,11 @@ class FakeCluster(BaseModel):
 
     def start_cluster(self):
         self.state = "STARTING"
-        self.start_datetime = datetime.now(pytz.utc)
+        self.start_datetime = datetime.now(timezone.utc)
 
     def run_bootstrap_actions(self):
         self.state = "BOOTSTRAPPING"
-        self.ready_datetime = datetime.now(pytz.utc)
+        self.ready_datetime = datetime.now(timezone.utc)
         self.state = "WAITING"
         if not self.steps:
             if not self.keep_job_flow_alive_when_no_steps:
@@ -310,7 +308,7 @@ class FakeCluster(BaseModel):
 
     def terminate(self):
         self.state = "TERMINATING"
-        self.end_datetime = datetime.now(pytz.utc)
+        self.end_datetime = datetime.now(timezone.utc)
         self.state = "TERMINATED"
 
     def add_applications(self, applications):
@@ -383,7 +381,7 @@ class FakeSecurityConfiguration(BaseModel):
     def __init__(self, name, security_configuration):
         self.name = name
         self.security_configuration = security_configuration
-        self.creation_date_time = datetime.now(pytz.utc)
+        self.creation_date_time = datetime.now(timezone.utc)
 
 
 class ElasticMapReduceBackend(BaseBackend):
@@ -454,7 +452,7 @@ class ElasticMapReduceBackend(BaseBackend):
     ):
         clusters = self.clusters.values()
 
-        within_two_month = datetime.now(pytz.utc) - timedelta(days=60)
+        within_two_month = datetime.now(timezone.utc) - timedelta(days=60)
         clusters = [c for c in clusters if c.creation_datetime >= within_two_month]
 
         if job_flow_ids:

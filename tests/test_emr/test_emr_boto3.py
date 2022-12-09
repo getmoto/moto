@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import time
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
 import json
-import pytz
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
@@ -173,7 +172,7 @@ def test_describe_cluster():
     status["State"].should.equal("TERMINATED")
     # cluster['Status']['StateChangeReason']
     status["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
-    # status['Timeline']['EndDateTime'].should.equal(datetime(2014, 1, 24, 2, 19, 46, tzinfo=pytz.utc))
+    # status['Timeline']['EndDateTime'].should.equal(datetime(2014, 1, 24, 2, 19, 46, tzinfo=timezone.utc))
     status["Timeline"]["ReadyDateTime"].should.be.a("datetime.datetime")
 
     dict((t["Key"], t["Value"]) for t in cl["Tags"]).should.equal(
@@ -215,7 +214,7 @@ def test_describe_job_flows():
     # need sleep since it appears the timestamp is always rounded to
     # the nearest second internally
     time.sleep(1)
-    timestamp = datetime.now(pytz.utc)
+    timestamp = datetime.now(timezone.utc)
     time.sleep(1)
 
     for idx in range(4, 6):
@@ -338,7 +337,7 @@ def test_list_clusters():
     # need sleep since it appears the timestamp is always rounded to
     # the nearest second internally
     time.sleep(1)
-    timestamp = datetime.now(pytz.utc)
+    timestamp = datetime.now(timezone.utc)
     time.sleep(1)
 
     for idx in range(40, 70):
