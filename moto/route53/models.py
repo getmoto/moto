@@ -532,8 +532,13 @@ class Route53Backend(BaseBackend):
     def change_resource_record_sets(self, zoneid, change_list) -> None:
         the_zone = self.get_hosted_zone(zoneid)
 
-        if any([rr for rr in change_list if rr in the_zone.rr_changes]):
-            raise ChangeSetAlreadyExists
+        for rr in change_list:
+            if rr in the_zone.rr_changes:
+                name = rr["ResourceRecordSet"]["Name"] + "."
+                _type = rr["ResourceRecordSet"]["Type"]
+                raise ChangeSetAlreadyExists(
+                    action=rr["Action"], name=name, _type=_type
+                )
 
         for value in change_list:
             original_change = copy.deepcopy(value)
