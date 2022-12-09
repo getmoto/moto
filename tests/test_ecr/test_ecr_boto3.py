@@ -17,7 +17,7 @@ from unittest import SkipTest
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-from tests.test_ecr.test_ecr_helpers import _create_image_manifest
+from tests.test_ecr.test_ecr_helpers import _create_image_manifest, _create_image_manifest_list, _generate_random_sha
 
 
 @mock_ecr
@@ -346,6 +346,33 @@ def test_put_image():
     response["image"]["repositoryName"].should.equal("test_repository")
     response["image"]["registryId"].should.equal(ACCOUNT_ID)
 
+@mock_ecr()
+def test_put_manifest_list():
+    client = boto3.client("ecr", region_name="us-east-1")
+    _ = client.create_repository(repositoryName="test_repository")
+
+    manifest_list = _create_image_manifest_list()
+    for image_manifest in manifest_list['image_manifests']:
+        _ = client.put_image(
+            repositoryName="test_repository",
+            imageManifest=json.dumps(image_manifest),
+        )
+
+    response = client.put_image(
+        repositoryName="test_repository",
+        imageManifest=json.dumps(manifest_list['manifest_list']),
+        imageTag="multiArch"
+    )
+
+    response["image"]["imageId"]["imageTag"].should.equal("multiArch")
+    response["image"]["imageId"]["imageDigest"].should.contain("sha")
+    response["image"]["repositoryName"].should.equal("test_repository")
+    response["image"]["registryId"].should.equal(ACCOUNT_ID)
+    response["image"].should.have.key("imageManifest")
+    image_manifest = json.loads(response['image']["imageManifest"])
+    image_manifest.should.have.key("mediaType")
+    image_manifest.should.have.key("manifests")
+
 
 @mock_ecr
 def test_put_image_with_push_date():
@@ -571,29 +598,63 @@ def test_describe_images():
         imageTag="v2",
     )
 
+    manifest_list = _create_image_manifest_list()
+    for image_manifest in manifest_list['image_manifests']:
+        _ = client.put_image(
+            repositoryName="test_repository",
+            imageManifest=json.dumps(image_manifest),
+        )
+
+    _ = client.put_image(
+        repositoryName="test_repository",
+        imageManifest=json.dumps(manifest_list['manifest_list']),
+        imageTag="multiArch"
+    )
+
     response = client.describe_images(repositoryName="test_repository")
     type(response["imageDetails"]).should.be(list)
-    len(response["imageDetails"]).should.be(4)
+    len(response["imageDetails"]).should.be(7)
+    
+    response["imageDetails"][0]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
+    response["imageDetails"][1]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
+    response["imageDetails"][2]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
+    response["imageDetails"][3]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
+    response["imageDetails"][4]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
+    response["imageDetails"][5]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
+    response["imageDetails"][6]["imageManifestMediaType"].should.contain("distribution.manifest.list.v2+json")
 
     response["imageDetails"][0]["imageDigest"].should.contain("sha")
     response["imageDetails"][1]["imageDigest"].should.contain("sha")
     response["imageDetails"][2]["imageDigest"].should.contain("sha")
     response["imageDetails"][3]["imageDigest"].should.contain("sha")
+    response["imageDetails"][4]["imageDigest"].should.contain("sha")
+    response["imageDetails"][5]["imageDigest"].should.contain("sha")
+    response["imageDetails"][6]["imageDigest"].should.contain("sha")
 
     response["imageDetails"][0]["registryId"].should.equal(ACCOUNT_ID)
     response["imageDetails"][1]["registryId"].should.equal(ACCOUNT_ID)
     response["imageDetails"][2]["registryId"].should.equal(ACCOUNT_ID)
     response["imageDetails"][3]["registryId"].should.equal(ACCOUNT_ID)
+    response["imageDetails"][4]["registryId"].should.equal(ACCOUNT_ID)
+    response["imageDetails"][5]["registryId"].should.equal(ACCOUNT_ID)
+    response["imageDetails"][6]["registryId"].should.equal(ACCOUNT_ID)
 
     response["imageDetails"][0]["repositoryName"].should.equal("test_repository")
     response["imageDetails"][1]["repositoryName"].should.equal("test_repository")
     response["imageDetails"][2]["repositoryName"].should.equal("test_repository")
     response["imageDetails"][3]["repositoryName"].should.equal("test_repository")
+    response["imageDetails"][4]["repositoryName"].should.equal("test_repository")
+    response["imageDetails"][5]["repositoryName"].should.equal("test_repository")
+    response["imageDetails"][6]["repositoryName"].should.equal("test_repository")
 
     response["imageDetails"][0].should_not.have.key("imageTags")
+    response["imageDetails"][4].should_not.have.key("imageTags")
+    response["imageDetails"][5].should_not.have.key("imageTags")
+
     len(response["imageDetails"][1]["imageTags"]).should.be(1)
     len(response["imageDetails"][2]["imageTags"]).should.be(1)
     len(response["imageDetails"][3]["imageTags"]).should.be(1)
+    len(response["imageDetails"][6]["imageTags"]).should.be(1)
 
     image_tags = ["latest", "v1", "v2"]
     set(
@@ -604,11 +665,15 @@ def test_describe_images():
         ]
     ).should.equal(set(image_tags))
 
-    response["imageDetails"][0]["imageSizeInBytes"].should.equal(52428800)
-    response["imageDetails"][1]["imageSizeInBytes"].should.equal(52428800)
-    response["imageDetails"][2]["imageSizeInBytes"].should.equal(52428800)
-    response["imageDetails"][3]["imageSizeInBytes"].should.equal(52428800)
+    response["imageDetails"][6].should_not.have.key("imageSizeInBytes")
 
+    response["imageDetails"][0]["imageSizeInBytes"].should.be.greater_than(0)
+    response["imageDetails"][1]["imageSizeInBytes"].should.be.greater_than(0)
+    response["imageDetails"][2]["imageSizeInBytes"].should.be.greater_than(0)
+    response["imageDetails"][3]["imageSizeInBytes"].should.be.greater_than(0)
+    response["imageDetails"][4]["imageSizeInBytes"].should.be.greater_than(0)
+    response["imageDetails"][5]["imageSizeInBytes"].should.be.greater_than(0)    
+    
 
 @mock_ecr
 def test_describe_images_by_tag():
