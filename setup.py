@@ -33,7 +33,6 @@ install_requires = [
     "requests>=2.5",
     "xmltodict",
     "werkzeug>=0.5,!=2.2.0,!=2.2.1",
-    "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "responses>=0.13.0",
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken

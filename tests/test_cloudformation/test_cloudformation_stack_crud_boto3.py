@@ -1,9 +1,8 @@
 import copy
 import json
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
-import pytz
 import pytest
 from unittest import SkipTest
 import boto3
@@ -1453,9 +1452,9 @@ def test_describe_change_set():
     stack["StackName"].should.equal("NewStack")
     stack["Status"].should.equal("CREATE_COMPLETE")
     stack["ExecutionStatus"].should.equal("AVAILABLE")
-    two_secs_ago = datetime.now(tz=pytz.UTC) - timedelta(seconds=2)
+    two_secs_ago = datetime.now(tz=timezone.utc) - timedelta(seconds=2)
     assert (
-        two_secs_ago < stack["CreationTime"] < datetime.now(tz=pytz.UTC)
+        two_secs_ago < stack["CreationTime"] < datetime.now(tz=timezone.utc)
     ), "Change set should have been created recently"
     stack["Changes"].should.have.length_of(1)
     stack["Changes"][0].should.equal(
@@ -1616,9 +1615,9 @@ def test_describe_stack_by_name():
 
     stack = cf_conn.describe_stacks(StackName="test_stack")["Stacks"][0]
     stack["StackName"].should.equal("test_stack")
-    two_secs_ago = datetime.now(tz=pytz.UTC) - timedelta(seconds=2)
+    two_secs_ago = datetime.now(tz=timezone.utc) - timedelta(seconds=2)
     assert (
-        two_secs_ago < stack["CreationTime"] < datetime.now(tz=pytz.UTC)
+        two_secs_ago < stack["CreationTime"] < datetime.now(tz=timezone.utc)
     ), "Stack should have been created recently"
 
 

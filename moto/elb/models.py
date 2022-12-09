@@ -1,5 +1,4 @@
 import datetime
-import pytz
 from collections import OrderedDict
 from typing import List, Iterable
 
@@ -75,7 +74,7 @@ class FakeLoadBalancer(CloudFormationModel):
         self.zones = zones
         self.listeners = []
         self.backends = []
-        self.created_time = datetime.datetime.now(pytz.utc)
+        self.created_time = datetime.datetime.now(datetime.timezone.utc)
         self.scheme = scheme or "internet-facing"
         self.attributes = FakeLoadBalancer.get_default_attributes()
         self.policies = []

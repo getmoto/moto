@@ -8,7 +8,6 @@ import codecs
 import string
 import tempfile
 import threading
-import pytz
 import sys
 import urllib.parse
 
@@ -913,7 +912,7 @@ class FakeBucket(CloudFormationModel):
         self.notification_configuration = None
         self.accelerate_configuration = None
         self.payer = "BucketOwner"
-        self.creation_date = datetime.datetime.now(tz=pytz.utc)
+        self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
         self.public_access_block = None
         self.encryption = None
         self.object_lock_enabled = False
@@ -1517,7 +1516,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                         {"Name": "StorageType", "Value": "StandardStorage"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                    timestamp=datetime.datetime.now(tz=datetime.timezone.utc).replace(
                         hour=0, minute=0, second=0, microsecond=0
                     ),
                     unit="Bytes",
@@ -1532,7 +1531,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                         {"Name": "StorageType", "Value": "AllStorageTypes"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                    timestamp=datetime.datetime.now(tz=datetime.timezone.utc).replace(
                         hour=0, minute=0, second=0, microsecond=0
                     ),
                     unit="Count",

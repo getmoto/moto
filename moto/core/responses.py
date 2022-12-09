@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import requests
-import pytz
 import xmltodict
 
 from collections import defaultdict, OrderedDict
@@ -985,7 +984,7 @@ def to_str(value: Any, spec: Dict[str, Any]) -> str:
     elif vtype == "timestamp":
         return (
             datetime.datetime.utcfromtimestamp(value)
-            .replace(tzinfo=pytz.utc)
+            .replace(tzinfo=datetime.timezone.utc)
             .isoformat()
         )
     elif vtype == "string":
