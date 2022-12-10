@@ -557,9 +557,17 @@ class IAMTrustPolicyDocumentValidator(BaseIAMPolicyValidator):
 
     @staticmethod
     def _validate_trust_policy_action(action):
+        # https://docs.aws.amazon.com/service-authorization/latest/reference/list_awssecuritytokenservice.html
         assert action in (
             "sts:AssumeRole",
             "sts:AssumeRoleWithSAML",
             "sts:AssumeRoleWithWebIdentity",
+            "sts:DecodeAuthorizationMessage",
+            "sts:GetAccessKeyInfo",
+            "sts:GetCallerIdentity",
+            "sts:GetFederationToken",
+            "sts:GetServiceBearerToken",
+            "sts:GetSessionToken",
+            "sts:SetSourceIdentity",
             "sts:TagSession",
         )
