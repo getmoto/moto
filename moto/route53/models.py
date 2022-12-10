@@ -20,6 +20,7 @@ from moto.route53.exceptions import (
     QueryLoggingConfigAlreadyExists,
     DnsNameInvalidForZone,
     ChangeSetAlreadyExists,
+    InvalidInput,
 )
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.moto_api._internal import mock_random as random
@@ -262,6 +263,20 @@ def reverse_domain_name(domain_name):
     return ".".join(reversed(domain_name.split(".")))
 
 
+class ChangeList(list):
+    """
+    Contains a 'clean' list of ResourceRecordChangeSets
+    """
+
+    def append(self, item) -> None:
+        item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
+        super().append(item)
+
+    def __contains__(self, item):
+        item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
+        return super().__contains__(item)
+
+
 class FakeZone(CloudFormationModel):
     def __init__(
         self,
@@ -279,7 +294,7 @@ class FakeZone(CloudFormationModel):
         self.private_zone = private_zone
         self.rrsets = []
         self.delegation_set = delegation_set
-        self.rr_changes = []
+        self.rr_changes = ChangeList()
 
     def add_rrset(self, record_set):
         record_set = RecordSet(record_set)
@@ -539,6 +554,20 @@ class Route53Backend(BaseBackend):
                 raise ChangeSetAlreadyExists(
                     action=rr["Action"], name=name, _type=_type
                 )
+
+        for value in change_list:
+            if value["Action"] == "DELETE":
+                # To delete a resource record set, you must specify all the same values that you specified when you created it.
+                corresponding_create = copy.deepcopy(value)
+                corresponding_create["Action"] = "CREATE"
+                corresponding_upsert = copy.deepcopy(value)
+                corresponding_upsert["Action"] = "UPSERT"
+                if (
+                    corresponding_create not in the_zone.rr_changes
+                    and corresponding_upsert not in the_zone.rr_changes
+                ):
+                    msg = f"Invalid request: Expected exactly one of [AliasTarget, all of [TTL, and ResourceRecords], or TrafficPolicyInstanceId], but found none in Change with [Action=DELETE, Name={value['ResourceRecordSet']['Name']}, Type={value['ResourceRecordSet']['Type']}, SetIdentifier={value['ResourceRecordSet'].get('SetIdentifier', 'null')}]"
+                    raise InvalidInput(msg)
 
         for value in change_list:
             original_change = copy.deepcopy(value)

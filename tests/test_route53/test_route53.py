@@ -308,6 +308,7 @@ def test_deleting_weighted_route():
                         "Name": "cname.testdns.aws.com",
                         "Type": "CNAME",
                         "SetIdentifier": "success-test-foo",
+                        "Weight": 50,
                     },
                 }
             ]
@@ -374,6 +375,8 @@ def test_deleting_latency_route():
                         "Name": "cname.testdns.aws.com",
                         "Type": "CNAME",
                         "SetIdentifier": "success-test-foo",
+                        "Region": "us-west-2",
+                        "ResourceRecords": [{"Value": "example.com"}],
                     },
                 }
             ]
@@ -708,29 +711,18 @@ def test_change_resource_record_sets_crud_valid():
     )
     cname_alias_record_detail.should_not.contain("ResourceRecords")
 
-    # Delete record with wrong type.
-    delete_payload = {
-        "Comment": "delete prod.redis.db",
-        "Changes": [
-            {
-                "Action": "DELETE",
-                "ResourceRecordSet": {"Name": "prod.redis.db", "Type": "CNAME"},
-            }
-        ],
-    }
-    conn.change_resource_record_sets(
-        HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload
-    )
-    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    len(response["ResourceRecordSets"]).should.equal(2)
-
     # Delete record.
     delete_payload = {
         "Comment": "delete prod.redis.db",
         "Changes": [
             {
                 "Action": "DELETE",
-                "ResourceRecordSet": {"Name": "prod.redis.db", "Type": "A"},
+                "ResourceRecordSet": {
+                    "Name": "prod.redis.db.",
+                    "Type": "A",
+                    "TTL": 60,
+                    "ResourceRecords": [{"Value": "192.168.1.1"}],
+                },
             }
         ],
     }
@@ -818,7 +810,12 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
         "Changes": [
             {
                 "Action": "DELETE",
-                "ResourceRecordSet": {"Name": "prod.redis.db", "Type": "TXT"},
+                "ResourceRecordSet": {
+                    "Name": "prod.redis.db.",
+                    "Type": "TXT",
+                    "TTL": 10,
+                    "ResourceRecords": [{"Value": "SomeInitialValue"}],
+                },
             }
         ],
     }
@@ -827,6 +824,57 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
     )
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
     len(response["ResourceRecordSets"]).should.equal(1)
+
+
+@mock_route53
+def test_change_resource_record_set__delete_should_match_create():
+    # To delete a resource record set, you must specify all the same values that you specified when you created it.
+    client = boto3.client("route53", region_name="us-east-1")
+    name = "example.com"
+    hosted_zone_id = client.create_hosted_zone(Name=name, CallerReference=name)[
+        "HostedZone"
+    ]["Id"]
+
+    create_call = client.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": name,
+                        "Type": "A",
+                        "TTL": 300,
+                        "ResourceRecords": [{"Value": "192.168.0.1"}],
+                    },
+                }
+            ]
+        },
+    )
+    waiter = client.get_waiter("resource_record_sets_changed")
+    waiter.wait(Id=create_call["ChangeInfo"]["Id"])
+
+    with pytest.raises(ClientError) as exc:
+        client.change_resource_record_sets(
+            HostedZoneId=hosted_zone_id,
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "DELETE",
+                        "ResourceRecordSet": {
+                            "Name": name,
+                            "Type": "A"
+                            # Missing TTL and ResourceRecords
+                        },
+                    }
+                ]
+            },
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInput")
+    err["Message"].should.equal(
+        "Invalid request: Expected exactly one of [AliasTarget, all of [TTL, and ResourceRecords], or TrafficPolicyInstanceId], but found none in Change with [Action=DELETE, Name=example.com, Type=A, SetIdentifier=null]"
+    )
 
 
 @mock_route53
