@@ -67,21 +67,14 @@ def test_delete_parameters():
 def test_get_parameters_by_path():
     client = boto3.client("ssm", region_name="us-east-1")
 
-    client.put_parameter(
-        Name="/foo/name1", Description="A test parameter", Value="value1", Type="String"
-    )
+    client.put_parameter(Name="/foo/name1", Value="value1", Type="String")
 
-    client.put_parameter(
-        Name="/foo/name2", Description="A test parameter", Value="value2", Type="String"
-    )
+    client.put_parameter(Name="/foo/name2", Value="value2", Type="String")
 
-    client.put_parameter(
-        Name="/bar/name3", Description="A test parameter", Value="value3", Type="String"
-    )
+    client.put_parameter(Name="/bar/name3", Value="value3", Type="String")
 
     client.put_parameter(
         Name="/bar/name3/name4",
-        Description="A test parameter",
         Value="value4",
         Type="String",
     )
@@ -93,9 +86,7 @@ def test_get_parameters_by_path():
         Type="StringList",
     )
 
-    client.put_parameter(
-        Name="/baz/name2", Description="A test parameter", Value="value1", Type="String"
-    )
+    client.put_parameter(Name="/baz/name2", Value="value1", Type="String")
 
     client.put_parameter(
         Name="/baz/pwd",
@@ -105,13 +96,9 @@ def test_get_parameters_by_path():
         KeyId="alias/aws/ssm",
     )
 
-    client.put_parameter(
-        Name="foo", Description="A test parameter", Value="bar", Type="String"
-    )
+    client.put_parameter(Name="foo", Value="bar", Type="String")
 
-    client.put_parameter(
-        Name="baz", Description="A test parameter", Value="qux", Type="String"
-    )
+    client.put_parameter(Name="baz", Value="qux", Type="String")
 
     response = client.get_parameters_by_path(Path="/", Recursive=False)
     len(response["Parameters"]).should.equal(2)
@@ -1043,6 +1030,48 @@ def test_describe_parameters_tags():
     parameters.should.have.length_of(1)
 
     parameters[0]["Name"].should.equal("/spam/eggs")
+
+
+@mock_ssm
+def test_describe_parameters__multiple_tags():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    for x in "ab":
+        client.put_parameter(
+            Name=f"test_my_param_01_{x}",
+            Value=f"Contents of param {x}",
+            Type="String",
+            Tags=[{"Key": "hello", "Value": "world"}, {"Key": "x", "Value": x}],
+        )
+
+    response = client.describe_parameters(
+        ParameterFilters=[
+            {"Key": "tag:x", "Option": "Equals", "Values": ["b"]},
+            {"Key": "tag:hello", "Option": "Equals", "Values": ["world"]},
+        ]
+    )
+    response["Parameters"].should.have.length_of(1)
+
+    # Both params contains hello:world - ensure we also check the second tag, x=b
+    response = client.describe_parameters(
+        ParameterFilters=[
+            {"Key": "tag:hello", "Option": "Equals", "Values": ["world"]},
+            {"Key": "tag:x", "Option": "Equals", "Values": ["b"]},
+        ]
+    )
+    response["Parameters"].should.have.length_of(1)
+
+    # tag begins_with should also work
+    client.describe_parameters(
+        ParameterFilters=[
+            {"Key": "tag:hello", "Option": "BeginsWith", "Values": ["w"]},
+        ]
+    )["Parameters"].should.have.length_of(2)
+    client.describe_parameters(
+        ParameterFilters=[
+            {"Key": "tag:x", "Option": "BeginsWith", "Values": ["a"]},
+        ]
+    )["Parameters"].should.have.length_of(1)
 
 
 @mock_ssm
