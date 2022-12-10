@@ -71,16 +71,3 @@ def _create_image_manifest_list():
         "image_manifests": [arm_image_manifest, amd_image_manifest],
         "manifest_list": manifest_list,
     }
-
-
-# {
-#             'registryId': '677771948337',
-#             'repositoryName': 'kaixo',
-#             'imageDigest': 'sha256:1b9176ea7c94fb3adf5b75770201d07c9f3c4659d745c53bd4b4f6090de2df85',
-#             'imageTags': ['0.0.1'],
-#             'imageSizeInBytes': 180225217,
-#             'imagePushedAt': datetime.datetime(2022, 12, 9, 10, 24, 12, tzinfo=tzlocal()),
-#             'imageManifestMediaType': 'application/vnd.docker.distribution.manifest.v2+json',
-#             'artifactMediaType': 'application/vnd.docker.container.image.v1+json',
-#             'lastRecordedPullTime': datetime.datetime(2022, 12, 9, 10, 24, 22, 519000, tzinfo=tzlocal())
-#         },
