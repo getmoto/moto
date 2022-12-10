@@ -489,9 +489,16 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 ).hexdigest()
                 self.code_size = 0
             else:
-                uri, tag = self.code["ImageUri"].split(":")
+                if "@" in self.code["ImageUri"]:
+                    # deploying via digest
+                    uri, digest = self.code["ImageUri"].split("@")
+                    image_id = { "imageDigest": digest }
+                else:
+                    # deploying via tag
+                    uri, tag = self.code["ImageUri"].split(":")
+                    image_id = {"imageTag": tag}
+
                 repo_name = uri.split("/")[-1]
-                image_id = {"imageTag": tag}
                 ecr_backend = ecr_backends[self.account_id][self.region]
                 registry_id = ecr_backend.describe_registry()["registryId"]
                 images = ecr_backend.batch_get_image(
