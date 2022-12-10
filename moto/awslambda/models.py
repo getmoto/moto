@@ -492,7 +492,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 if "@" in self.code["ImageUri"]:
                     # deploying via digest
                     uri, digest = self.code["ImageUri"].split("@")
-                    image_id = { "imageDigest": digest }
+                    image_id = {"imageDigest": digest}
                 else:
                     # deploying via tag
                     uri, tag = self.code["ImageUri"].split(":")

@@ -17,7 +17,10 @@ from unittest import SkipTest
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-from tests.test_ecr.test_ecr_helpers import _create_image_manifest, _create_image_manifest_list, _generate_random_sha
+from tests.test_ecr.test_ecr_helpers import (
+    _create_image_manifest,
+    _create_image_manifest_list,
+)
 
 
 @mock_ecr
@@ -346,13 +349,14 @@ def test_put_image():
     response["image"]["repositoryName"].should.equal("test_repository")
     response["image"]["registryId"].should.equal(ACCOUNT_ID)
 
+
 @mock_ecr()
 def test_put_manifest_list():
     client = boto3.client("ecr", region_name="us-east-1")
     _ = client.create_repository(repositoryName="test_repository")
 
     manifest_list = _create_image_manifest_list()
-    for image_manifest in manifest_list['image_manifests']:
+    for image_manifest in manifest_list["image_manifests"]:
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(image_manifest),
@@ -360,8 +364,8 @@ def test_put_manifest_list():
 
     response = client.put_image(
         repositoryName="test_repository",
-        imageManifest=json.dumps(manifest_list['manifest_list']),
-        imageTag="multiArch"
+        imageManifest=json.dumps(manifest_list["manifest_list"]),
+        imageTag="multiArch",
     )
 
     response["image"]["imageId"]["imageTag"].should.equal("multiArch")
@@ -369,7 +373,7 @@ def test_put_manifest_list():
     response["image"]["repositoryName"].should.equal("test_repository")
     response["image"]["registryId"].should.equal(ACCOUNT_ID)
     response["image"].should.have.key("imageManifest")
-    image_manifest = json.loads(response['image']["imageManifest"])
+    image_manifest = json.loads(response["image"]["imageManifest"])
     image_manifest.should.have.key("mediaType")
     image_manifest.should.have.key("manifests")
 
@@ -599,7 +603,7 @@ def test_describe_images():
     )
 
     manifest_list = _create_image_manifest_list()
-    for image_manifest in manifest_list['image_manifests']:
+    for image_manifest in manifest_list["image_manifests"]:
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(image_manifest),
@@ -607,21 +611,35 @@ def test_describe_images():
 
     _ = client.put_image(
         repositoryName="test_repository",
-        imageManifest=json.dumps(manifest_list['manifest_list']),
-        imageTag="multiArch"
+        imageManifest=json.dumps(manifest_list["manifest_list"]),
+        imageTag="multiArch",
     )
 
     response = client.describe_images(repositoryName="test_repository")
     type(response["imageDetails"]).should.be(list)
     len(response["imageDetails"]).should.be(7)
-    
-    response["imageDetails"][0]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
-    response["imageDetails"][1]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
-    response["imageDetails"][2]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
-    response["imageDetails"][3]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
-    response["imageDetails"][4]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
-    response["imageDetails"][5]["imageManifestMediaType"].should.contain("distribution.manifest.v2+json")
-    response["imageDetails"][6]["imageManifestMediaType"].should.contain("distribution.manifest.list.v2+json")
+
+    response["imageDetails"][0]["imageManifestMediaType"].should.contain(
+        "distribution.manifest.v2+json"
+    )
+    response["imageDetails"][1]["imageManifestMediaType"].should.contain(
+        "distribution.manifest.v2+json"
+    )
+    response["imageDetails"][2]["imageManifestMediaType"].should.contain(
+        "distribution.manifest.v2+json"
+    )
+    response["imageDetails"][3]["imageManifestMediaType"].should.contain(
+        "distribution.manifest.v2+json"
+    )
+    response["imageDetails"][4]["imageManifestMediaType"].should.contain(
+        "distribution.manifest.v2+json"
+    )
+    response["imageDetails"][5]["imageManifestMediaType"].should.contain(
+        "distribution.manifest.v2+json"
+    )
+    response["imageDetails"][6]["imageManifestMediaType"].should.contain(
+        "distribution.manifest.list.v2+json"
+    )
 
     response["imageDetails"][0]["imageDigest"].should.contain("sha")
     response["imageDetails"][1]["imageDigest"].should.contain("sha")
@@ -672,8 +690,8 @@ def test_describe_images():
     response["imageDetails"][2]["imageSizeInBytes"].should.be.greater_than(0)
     response["imageDetails"][3]["imageSizeInBytes"].should.be.greater_than(0)
     response["imageDetails"][4]["imageSizeInBytes"].should.be.greater_than(0)
-    response["imageDetails"][5]["imageSizeInBytes"].should.be.greater_than(0)    
-    
+    response["imageDetails"][5]["imageSizeInBytes"].should.be.greater_than(0)
+
 
 @mock_ecr
 def test_describe_images_by_tag():
