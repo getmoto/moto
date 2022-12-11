@@ -3,6 +3,7 @@ import random
 
 # Manifests Spec: https://docs.docker.com/registry/spec/manifest-v2-2/
 
+
 def _generate_random_sha():
     random_sha = hashlib.sha256(f"{random.randint(0,100)}".encode("utf-8")).hexdigest()
     return f"sha256:{random_sha}"
