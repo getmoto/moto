@@ -1,6 +1,7 @@
 import hashlib
 import random
 
+# Manifests Spec: https://docs.docker.com/registry/spec/manifest-v2-2/
 
 def _generate_random_sha():
     random_sha = hashlib.sha256(f"{random.randint(0,100)}".encode("utf-8")).hexdigest()
@@ -22,7 +23,8 @@ def _create_image_layers(n):
 
 def _create_image_digest(layers):
     layer_digests = "".join([layer["digest"] for layer in layers])
-    return hashlib.sha256(f"{layer_digests}".encode("utf-8")).hexdigest()
+    summed_digest = hashlib.sha256(f"{layer_digests}".encode("utf-8")).hexdigest()
+    return f"sha256:{summed_digest}"
 
 
 def _create_image_manifest(image_digest=None):
@@ -35,7 +37,7 @@ def _create_image_manifest(image_digest=None):
         "config": {
             "mediaType": "application/vnd.docker.container.image.v1+json",
             "size": sum([layer["size"] for layer in layers]),
-            "digest": f"sha256:{image_digest}",
+            "digest": image_digest,
         },
         "layers": layers,
     }
