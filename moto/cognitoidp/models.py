@@ -798,6 +798,9 @@ class CognitoIdpUser(BaseModel):
 
     def update_attributes(self, new_attributes):
         flat_attributes = flatten_attrs(self.attributes)
+        for attr in flat_attributes:
+            if new_attributes['email'] in attr.values():
+                raise InvalidParameterException('Email already exists')
         flat_attributes.update(flatten_attrs(new_attributes))
         self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
