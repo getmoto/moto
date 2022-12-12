@@ -1984,12 +1984,7 @@ class CognitoIdpBackend(BaseBackend):
                     else:
                         flagsc = False
                     
-                for i in tmp:
-                    if(bool(re.match('[A-Z]', i))):
-                        flagu = True
-                        break
-                    else:
-                        flagu = False
+                flagu = bool(re.match('[A-Z]+', tmp))
                         
                 for i in tmp:
                     if(bool(re.match('[a-z]', i))):
