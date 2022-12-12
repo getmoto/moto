@@ -1971,11 +1971,7 @@ class CognitoIdpBackend(BaseBackend):
                     flagl = True
                 else:
                     flagl = False
-                for i in tmp:
-                    if i in "0123456789":
-                        flagn = True
-                    else:
-                        flagn = False
+                flagn = bool(re.match("\d", tmp))
                 sc = "^ $ * . [ ] { } ( ) ? ! @ # % & / \ , > < ' : ; | _ ~ ` = + -"
                 for i in tmp:
                     if i in sc:
