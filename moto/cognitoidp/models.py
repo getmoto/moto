@@ -21,6 +21,7 @@ from .exceptions import (
     UserNotConfirmedException,
     InvalidParameterException,
     ExpiredCodeException,
+    InvalidPasswordException,
 )
 from .utils import (
     create_id,
@@ -1988,9 +1989,9 @@ class CognitoIdpBackend(BaseBackend):
 			#print("Password is valid")
 			return True
 		else:
-			raise InvalidPasswordException
-	except InvalidPasswordException:
-		print("Invalid password")
+			raise InvalidPasswordException("The Password is invalid")
+	#except InvalidPasswordException:
+	#	print("Invalid password")
 	except ClientError as e:
 		print(e)
 					        
