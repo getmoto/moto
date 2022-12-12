@@ -1986,12 +1986,7 @@ class CognitoIdpBackend(BaseBackend):
                     
                 flagu = bool(re.match('[A-Z]+', tmp))
                         
-                for i in tmp:
-                    if(bool(re.match('[a-z]', i))):
-                        flaglo = True
-                        break
-                    else:
-                        flaglo = False
+                flaglo = bool(re.match('[a-z]+', tmp))
                 #print(flagl,flagn,flagsc,flagu,flaglo)
 		if(flagl and flagn and flagsc and flagu and flaglo):
 			#print("Password is valid")
