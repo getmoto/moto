@@ -7,6 +7,10 @@ class ResourceNotFoundError(JsonRESTError):
         super().__init__(error_type="ResourceNotFoundException", message=message or "")
 
 
+class InvalidPasswordException(JsonRESTError):
+	def __init__(self, message: Optional[str]):
+        super().__init__(error_type="InvalidPasswordException", message=message or "")
+        
 class UserNotFoundError(JsonRESTError):
     def __init__(self, message: str):
         super().__init__(error_type="UserNotFoundException", message=message)
