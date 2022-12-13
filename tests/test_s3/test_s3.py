@@ -1401,6 +1401,11 @@ def test_list_objects_v2_checksum_algo():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
     resp = s3.put_object(
+        Bucket="mybucket", Key="0", Body="a"
+    )
+    resp.should_not.have.key("ChecksumCRC32")
+    resp["ResponseMetadata"]["HTTPHeaders"].should_not.have.key("x-amz-sdk-checksum-algorithm")
+    resp = s3.put_object(
         Bucket="mybucket", Key="1", Body="a", ChecksumAlgorithm="CRC32"
     )
     resp.should.have.key("ChecksumCRC32")
@@ -1416,8 +1421,9 @@ def test_list_objects_v2_checksum_algo():
     ].should.equal("SHA256")
 
     resp = s3.list_objects_v2(Bucket="mybucket")["Contents"]
-    resp[0].should.have.key("ChecksumAlgorithm").equals(["CRC32"])
-    resp[1].should.have.key("ChecksumAlgorithm").equals(["SHA256"])
+    resp[0].should_not.have.key("ChecksumAlgorithm")
+    resp[1].should.have.key("ChecksumAlgorithm").equals(["CRC32"])
+    resp[2].should.have.key("ChecksumAlgorithm").equals(["SHA256"])
 
 
 @mock_s3
