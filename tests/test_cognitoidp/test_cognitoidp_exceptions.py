@@ -18,18 +18,21 @@ class TestCognitoUserDeleter(TestCase):
 
     def test_authenticate_with_signed_out_user(self):
         self.client.admin_create_user(
-            UserPoolId=self.pool_id, Username="foo", TemporaryPassword="bar"
+            UserPoolId=self.pool_id, Username="foo", TemporaryPassword="P2$Sword"
         )
 
         self.client.admin_set_user_password(
-            UserPoolId=self.pool_id, Username="foo", Password="bar", Permanent=True
+            UserPoolId=self.pool_id,
+            Username="foo",
+            Password="P2$Sword2",
+            Permanent=True,
         )
 
         response = self.client.admin_initiate_auth(
             UserPoolId=self.pool_id,
             ClientId=self.client_id,
             AuthFlow="ADMIN_USER_PASSWORD_AUTH",
-            AuthParameters={"USERNAME": "foo", "PASSWORD": "bar"},
+            AuthParameters={"USERNAME": "foo", "PASSWORD": "P2$Sword2"},
         )
 
         refresh_token = response["AuthenticationResult"]["RefreshToken"]
