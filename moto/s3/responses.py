@@ -1556,7 +1556,8 @@ class S3Response(BaseResponse):
         new_key.website_redirect_location = request.headers.get(
             "x-amz-website-redirect-location"
         )
-        new_key.checksum_algorithm = checksum_algorithm
+        if checksum_algorithm:
+            new_key.checksum_algorithm = checksum_algorithm
         self.backend.set_key_tags(new_key, tagging)
 
         response_headers.update(new_key.response_dict)
