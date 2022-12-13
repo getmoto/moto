@@ -2109,4 +2109,3 @@ def find_account_region_by_value(key: str, value: str) -> Tuple[str, str]:
     # back a default backend region, which will raise the appropriate
     # error message (e.g. NotAuthorized or NotFound).
     return account_id, region
-    
