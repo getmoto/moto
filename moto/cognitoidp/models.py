@@ -1990,6 +1990,7 @@ class CognitoIdpBackend(BaseBackend):
 			return True
 		else:
 			raise InvalidPasswordException("The Password is invalid")
+	    
 	#except InvalidPasswordException:
 	#	print("Invalid password")
 	    except ClientError as e:
