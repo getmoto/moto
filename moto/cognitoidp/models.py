@@ -1963,38 +1963,31 @@ class CognitoIdpBackend(BaseBackend):
             if sms_mfa_settings.get("PreferredMfa"):
                 user.preferred_mfa_setting = "SMS_MFA"
         return None
-        def validate_password(password):            
-            tmp = password
-            lgt = len(tmp)
-            #print(tmp)
-            try:
-                if(lgt > 5 and lgt <99):
-                    flagl = True
+		
+    def validate_password(password):            
+        tmp = password
+        lgt = len(tmp)
+        try:
+            if(lgt > 5 and lgt <99):
+                flagl = True
+            else:
+                flagl = False
+            flagn = bool(re.match("\d", tmp))
+            sc = "^ $ * . [ ] { } ( ) ? ! @ # % & / \ , > < ' : ; | _ ~ ` = + -"
+            for i in tmp:
+                if i in sc:
+                    flagsc = True
+                    break
                 else:
-                    flagl = False
-                flagn = bool(re.match("\d", tmp))
-                sc = "^ $ * . [ ] { } ( ) ? ! @ # % & / \ , > < ' : ; | _ ~ ` = + -"
-                for i in tmp:
-                    if i in sc:
-                        flagsc = True
-                        break
-                    else:
-                        flagsc = False
+                    flagsc = False
                     
-                flagu = bool(re.match('[A-Z]+', tmp))
-                        
-                flaglo = bool(re.match('[a-z]+', tmp))
-                #print(flagl,flagn,flagsc,flagu,flaglo)
-				
-				if(flagl and flagn and flagsc and flagu and flaglo):
-				    #print("Password is valid")
-					return True
-				else:
-					raise InvalidPasswordException("The Password is invalid")
-
-		#except InvalidPasswordException:
-		#	print("Invalid password")
-			except ClientError as e:
+            flagu = bool(re.match('[A-Z]+', tmp))           
+            flaglo = bool(re.match('[a-z]+', tmp))	
+		    if(flagl and flagn and flagsc and flagu and flaglo):
+				return True
+			else:
+				raise InvalidPasswordException("The Password is invalid")
+		except ClientError as e:
 			print(e)
 					        
 
