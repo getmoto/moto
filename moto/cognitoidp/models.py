@@ -4,6 +4,9 @@ import os
 import time
 import typing
 import enum
+import re
+import boto3
+from botocore.exceptions import ClientError
 from jose import jws
 from collections import OrderedDict
 from typing import Any, Dict, List, Tuple, Optional, Set
@@ -18,6 +21,7 @@ from .exceptions import (
     UserNotConfirmedException,
     InvalidParameterException,
     ExpiredCodeException,
+    InvalidPasswordException,
 )
 from .utils import (
     create_id,
@@ -38,6 +42,10 @@ class UserStatus(str, enum.Enum):
     CONFIRMED = "CONFIRMED"
     UNCONFIRMED = "UNCONFIRMED"
     RESET_REQUIRED = "RESET_REQUIRED"
+
+class InvalidPasswordException(Exception):
+	"Raised when the input value is less than 18"
+	pass
 
 
 class AuthFlow(str, enum.Enum):
@@ -1962,12 +1970,43 @@ class CognitoIdpBackend(BaseBackend):
             if sms_mfa_settings.get("PreferredMfa"):
                 user.preferred_mfa_setting = "SMS_MFA"
         return None
+		
+    def validate_password(password):            
+        tmp = password
+        lgt = len(tmp)
+        try:
+            if(lgt > 5 and lgt <99):
+                flagl = True
+            else:
+                flagl = False
+            flagn = bool(re.match("\d", tmp))
+            sc = "^ $ * . [ ] { } ( ) ? ! @ # % & / \ , > < ' : ; | _ ~ ` = + -"
+            for i in tmp:
+                if i in sc:
+                    flagsc = True
+                    break
+                else:
+                    flagsc = False
+                    
+            flagu = bool(re.match('[A-Z]+', tmp))           
+            flaglo = bool(re.match('[a-z]+', tmp))	
+            if(flagl and flagn and flagsc and flagu and flaglo):
+	        return True
+	    else:
+		raise InvalidPasswordException("The Password is invalid")
+	except ClientError as e:
+	    print(e)
+					        
 
     def admin_set_user_password(
         self, user_pool_id: str, username: str, password: str, permanent: bool
     ) -> None:
         user = self.admin_get_user(user_pool_id, username)
-        user.password = password
+        #user.password = password
+        flag = False
+        flag = validate_password(password)
+        if(flag == True):	
+        	user.password = password        
         if permanent:
             user.status = UserStatus.CONFIRMED
         else:
