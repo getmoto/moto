@@ -1400,11 +1400,11 @@ def test_list_objects_v2_truncate_combined_keys_and_folders():
 def test_list_objects_v2_checksum_algo():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
-    resp = s3.put_object(
-        Bucket="mybucket", Key="0", Body="a"
-    )
+    resp = s3.put_object(Bucket="mybucket", Key="0", Body="a")
     resp.should_not.have.key("ChecksumCRC32")
-    resp["ResponseMetadata"]["HTTPHeaders"].should_not.have.key("x-amz-sdk-checksum-algorithm")
+    resp["ResponseMetadata"]["HTTPHeaders"].should_not.have.key(
+        "x-amz-sdk-checksum-algorithm"
+    )
     resp = s3.put_object(
         Bucket="mybucket", Key="1", Body="a", ChecksumAlgorithm="CRC32"
     )
