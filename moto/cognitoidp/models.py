@@ -1987,8 +1987,7 @@ class CognitoIdpBackend(BaseBackend):
                 #print(flagl,flagn,flagsc,flagu,flaglo)
 				
 				if(flagl and flagn and flagsc and flagu and flaglo):
-
-					#print("Password is valid")
+				    #print("Password is valid")
 					return True
 				else:
 					raise InvalidPasswordException("The Password is invalid")
