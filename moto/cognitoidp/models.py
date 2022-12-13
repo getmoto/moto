@@ -1983,12 +1983,12 @@ class CognitoIdpBackend(BaseBackend):
                     
             flagu = bool(re.match('[A-Z]+', tmp))           
             flaglo = bool(re.match('[a-z]+', tmp))	
-		    if(flagl and flagn and flagsc and flagu and flaglo):
-				return True
-			else:
-				raise InvalidPasswordException("The Password is invalid")
-		except ClientError as e:
-			print(e)
+            if(flagl and flagn and flagsc and flagu and flaglo):
+	        return True
+	    else:
+		raise InvalidPasswordException("The Password is invalid")
+	except ClientError as e:
+	    print(e)
 					        
 
     def admin_set_user_password(
