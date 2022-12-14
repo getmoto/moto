@@ -43,3 +43,11 @@ class InvalidParameterException(JsonRESTError):
         super().__init__(
             "InvalidParameterException", msg or "A parameter is specified incorrectly."
         )
+
+
+class InvalidPasswordException(JsonRESTError):
+    def __init__(self) -> None:
+        super().__init__(
+            error_type="InvalidPasswordException",
+            message="The provided password does not confirm to the configured password policy",
+        )

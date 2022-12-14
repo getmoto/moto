@@ -5,8 +5,6 @@ import time
 import typing
 import enum
 import re
-import boto3
-from botocore.exceptions import ClientError
 from jose import jws
 from collections import OrderedDict
 from typing import Any, Dict, List, Tuple, Optional, Set
@@ -42,10 +40,6 @@ class UserStatus(str, enum.Enum):
     CONFIRMED = "CONFIRMED"
     UNCONFIRMED = "UNCONFIRMED"
     RESET_REQUIRED = "RESET_REQUIRED"
-
-class InvalidPasswordException(Exception):
-	"Raised when the input value is less than 18"
-	pass
 
 
 class AuthFlow(str, enum.Enum):
@@ -1612,6 +1606,10 @@ class CognitoIdpBackend(BaseBackend):
     ) -> None:
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
+                self._validate_password(
+                    user_pool_id=user_pool.id, password=proposed_password
+                )
+
                 _, username = user_pool.access_tokens[access_token]
                 user = self.admin_get_user(user_pool.id, username)
 
@@ -1729,6 +1727,8 @@ class CognitoIdpBackend(BaseBackend):
                 raise InvalidParameterException(
                     "Username should be either an email or a phone number."
                 )
+
+        self._validate_password(user_pool.id, password)
 
         user = CognitoIdpUser(
             user_pool_id=user_pool.id,
@@ -1970,43 +1970,41 @@ class CognitoIdpBackend(BaseBackend):
             if sms_mfa_settings.get("PreferredMfa"):
                 user.preferred_mfa_setting = "SMS_MFA"
         return None
-		
-    def validate_password(password):            
-        tmp = password
-        lgt = len(tmp)
-        try:
-            if(lgt > 5 and lgt <99):
-                flagl = True
-            else:
-                flagl = False
-            flagn = bool(re.match("\d", tmp))
-            sc = "^ $ * . [ ] { } ( ) ? ! @ # % & / \ , > < ' : ; | _ ~ ` = + -"
-            for i in tmp:
-                if i in sc:
-                    flagsc = True
-                    break
-                else:
-                    flagsc = False
-                    
-            flagu = bool(re.match('[A-Z]+', tmp))           
-            flaglo = bool(re.match('[a-z]+', tmp))	
-            if(flagl and flagn and flagsc and flagu and flaglo):
-	        return True
-	    else:
-		raise InvalidPasswordException("The Password is invalid")
-	except ClientError as e:
-	    print(e)
-					        
+
+    def _validate_password(self, user_pool_id: str, password: str) -> None:
+        user_pool = self.describe_user_pool(user_pool_id)
+        password_policy = user_pool.extended_config.get("Policies", {}).get(
+            "PasswordPolicy", {}
+        )
+        minimum = password_policy.get("MinimumLength", 5)
+        maximum = password_policy.get("MaximumLength", 99)
+        require_uppercase = password_policy.get("RequireUppercase", True)
+        require_lowercase = password_policy.get("RequireLowercase", True)
+        require_numbers = password_policy.get("RequireNumbers", True)
+        require_symbols = password_policy.get("RequireSymbols", True)
+
+        flagl = minimum <= len(password) < maximum
+        flagn = not require_numbers or bool(re.search(r"\d", password))
+        # If we require symbols, we assume False - and check a symbol is present
+        # If we don't require symbols, we assume True - and we could technically skip the for-loop
+        flag_sc = not require_symbols
+        sc = "^ $ * . [ ] { } ( ) ? ! @ # % & / \\ , > < ' : ; | _ ~ ` = + -"
+        for i in password:
+            if i in sc:
+                flag_sc = True
+
+        flag_u = not require_uppercase or bool(re.search(r"[A-Z]+", password))
+        flag_lo = not require_lowercase or bool(re.search(r"[a-z]+", password))
+        if not (flagl and flagn and flag_sc and flag_u and flag_lo):
+            raise InvalidPasswordException()
 
     def admin_set_user_password(
         self, user_pool_id: str, username: str, password: str, permanent: bool
     ) -> None:
         user = self.admin_get_user(user_pool_id, username)
-        #user.password = password
-        flag = False
-        flag = validate_password(password)
-        if(flag == True):	
-        	user.password = password        
+        # user.password = password
+        self._validate_password(user_pool_id, password)
+        user.password = password
         if permanent:
             user.status = UserStatus.CONFIRMED
         else:
