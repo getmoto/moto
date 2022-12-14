@@ -1855,12 +1855,6 @@ class SageMakerModelBackend(BaseBackend):
             for pipeline_data in pipelines_fetched
         ]
 
-        # pipeline_summaries_sorted = sorted(
-        #     pipeline_summaries,
-        #     key=lambda d: d[sort_by],
-        #     reverse=True if sort_order == 'Descending' else False
-        # )
-
         return {
             "PipelineSummaries": pipeline_summaries,
             "NextToken": str(next_index) if next_index is not None else None,
