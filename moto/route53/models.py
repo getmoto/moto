@@ -484,7 +484,7 @@ class Route53Backend(BaseBackend):
         # and a start of authority (SOA) record.
         # https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/SOA-NSrecords.html
         soa_record_set = {
-            "Name": f"{name}.",
+            "Name": f"{name}" + ("" if name.endswith(".") else "."),
             "Type": "SOA",
             "TTL": 900,
             "ResourceRecords": [
