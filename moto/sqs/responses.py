@@ -583,7 +583,8 @@ SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
     </ResponseMetadata>
 </SendMessageResponse>"""
 
-RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
+RECEIVE_MESSAGE_RESPONSE = """<?xml version="1.0"?>
+<ReceiveMessageResponse  xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
   <ReceiveMessageResult>
     {% for message in messages %}
         <Message>
@@ -650,7 +651,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
                 {% if 'Binary' in value.data_type %}
                 <BinaryValue>{{ value.binary_value }}</BinaryValue>
                 {% else %}
-                <StringValue><![CDATA[{{ value.string_value }}]]></StringValue>
+                <StringValue>{{ value.string_value|e }}</StringValue>
                 {% endif %}
               </Value>
             </MessageAttribute>
@@ -659,7 +660,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
     {% endfor %}
   </ReceiveMessageResult>
   <ResponseMetadata>
-    <RequestId></RequestId>
+    <RequestId>5bdc09f4-0a03-5425-8468-55e04a092ed8</RequestId>
   </ResponseMetadata>
 </ReceiveMessageResponse>"""
 
