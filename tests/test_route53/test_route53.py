@@ -296,7 +296,7 @@ def test_deleting_weighted_route():
     cnames = conn.list_resource_record_sets(
         HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
     )["ResourceRecordSets"]
-    cnames.should.have.length_of(3)
+    cnames.should.have.length_of(4)
 
     conn.change_resource_record_sets(
         HostedZoneId=zone_id,
@@ -318,9 +318,9 @@ def test_deleting_weighted_route():
     cnames = conn.list_resource_record_sets(
         HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
     )["ResourceRecordSets"]
-    cnames.should.have.length_of(2)
-    cnames[1]["Name"].should.equal("cname.testdns.aws.com.")
-    cnames[1]["SetIdentifier"].should.equal("success-test-bar")
+    cnames.should.have.length_of(3)
+    cnames[-1]["Name"].should.equal("cname.testdns.aws.com.")
+    cnames[-1]["SetIdentifier"].should.equal("success-test-bar")
 
 
 @mock_route53
@@ -357,7 +357,7 @@ def test_deleting_latency_route():
     cnames = conn.list_resource_record_sets(
         HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
     )["ResourceRecordSets"]
-    cnames.should.have.length_of(3)
+    cnames.should.have.length_of(4)
     foo_cname = [
         cname
         for cname in cnames
@@ -385,9 +385,9 @@ def test_deleting_latency_route():
     cnames = conn.list_resource_record_sets(
         HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
     )["ResourceRecordSets"]
-    cnames.should.have.length_of(2)
-    cnames[1]["SetIdentifier"].should.equal("success-test-bar")
-    cnames[1]["Region"].should.equal("us-west-1")
+    cnames.should.have.length_of(3)
+    cnames[-1]["SetIdentifier"].should.equal("success-test-bar")
+    cnames[-1]["Region"].should.equal("us-west-1")
 
 
 @mock_route53
@@ -925,8 +925,10 @@ def test_change_weighted_resource_record_sets():
         },
     )
 
-    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    record = response["ResourceRecordSets"][1]
+    rr_sets = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)[
+        "ResourceRecordSets"
+    ]
+    record = [r for r in rr_sets if r["Type"] == "A"][0]
     # Update the first record to have a weight of 90
     conn.change_resource_record_sets(
         HostedZoneId=hosted_zone_id,
@@ -952,7 +954,7 @@ def test_change_weighted_resource_record_sets():
         },
     )
 
-    record = response["ResourceRecordSets"][2]
+    record = [r for r in rr_sets if r["Type"] == "A"][1]
     # Update the second record to have a weight of 10
     conn.change_resource_record_sets(
         HostedZoneId=hosted_zone_id,
