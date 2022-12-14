@@ -74,6 +74,49 @@ class BaseObject(BaseModel):
         return self.gen_response_object()
 
 
+class FakePipeline(BaseObject):
+    def __init__(
+        self,
+        pipeline_name,
+        pipeline_display_name,
+        pipeline_definition,
+        pipeline_description,
+        role_arn,
+        tags,
+        account_id,
+        region_name,
+        parallelism_configuration,
+        pipeline_definition_s3_location,
+    ):
+        self.pipeline_name = pipeline_name
+        self.pipeline_arn = arn_formatter(
+            "pipeline", pipeline_name, account_id, region_name
+        )
+        self.pipeline_display_name = pipeline_display_name
+        self.pipeline_definition = pipeline_definition
+        self.pipeline_description = pipeline_description
+        self.role_arn = role_arn
+        self.tags = tags or []
+        self.parallelism_configuration = parallelism_configuration
+        self.pipeline_definition_s3_location = pipeline_definition_s3_location
+
+        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = now_string
+        self.last_modified_time = now_string
+        self.last_execution_time = now_string
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        return {
+            k: v for k, v in response_object.items() if v is not None and v != [None]
+        }
+
+    @property
+    def response_create(self):
+        return {"PipelineArn": self.pipeline_arn}
+
+
 class FakeProcessingJob(BaseObject):
     def __init__(
         self,
@@ -1039,6 +1082,7 @@ class SageMakerModelBackend(BaseBackend):
         self.endpoint_configs = {}
         self.endpoints = {}
         self.experiments = {}
+        self.pipelines = {}
         self.processing_jobs = {}
         self.trials = {}
         self.trial_components = {}
@@ -1160,6 +1204,7 @@ class SageMakerModelBackend(BaseBackend):
             "experiment-trial": self.trials,
             "experiment-trial-component": self.trial_components,
             "processing-job": self.processing_jobs,
+            "pipeline": self.pipelines,
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
@@ -1712,6 +1757,114 @@ class SageMakerModelBackend(BaseBackend):
                 processing_job_name, self.account_id, self.region_name
             )
             raise ValidationError(message=f"Could not find processing job '{arn}'.")
+
+    def create_pipeline(
+        self,
+        pipeline_name,
+        pipeline_display_name,
+        pipeline_definition,
+        pipeline_definition_s3_location,
+        pipeline_description,
+        role_arn,
+        tags,
+        parallelism_configuration,
+    ):
+        pipeline = FakePipeline(
+            pipeline_name,
+            pipeline_display_name,
+            pipeline_definition,
+            pipeline_description,
+            role_arn,
+            tags,
+            self.account_id,
+            self.region_name,
+            pipeline_definition_s3_location,
+            parallelism_configuration,
+        )
+
+        self.pipelines[pipeline_name] = pipeline
+        return pipeline
+
+    def list_pipelines(
+        self,
+        pipeline_name_prefix,
+        created_after,
+        created_before,
+        next_token,
+        max_results,
+        sort_by,
+        sort_order,
+    ):
+        if next_token:
+            try:
+                starting_index = int(next_token)
+                if starting_index > len(self.pipelines):
+                    raise ValueError  # invalid next_token
+            except ValueError:
+                raise AWSValidationException('Invalid pagination token because "{0}".')
+        else:
+            starting_index = 0
+
+        if max_results:
+            end_index = max_results + starting_index
+            pipelines_fetched = list(self.pipelines.values())[starting_index:end_index]
+            if end_index >= len(self.pipelines):
+                next_index = None
+            else:
+                next_index = end_index
+        else:
+            pipelines_fetched = list(self.pipelines.values())
+            next_index = None
+
+        if pipeline_name_prefix is not None:
+            pipelines_fetched = filter(
+                lambda x: pipeline_name_prefix in x.pipeline_name,
+                pipelines_fetched,
+            )
+
+        if created_after is not None:
+            pipelines_fetched = filter(
+                lambda x: x.creation_time > created_after, pipelines_fetched
+            )
+
+        if created_before is not None:
+            pipelines_fetched = filter(
+                lambda x: x.creation_time < created_before,
+                pipelines_fetched,
+            )
+
+        sort_key = "pipeline_name" if sort_by == "Name" else "creation_time"
+        sort_order = False if sort_order == "Ascending" else True
+        pipelines_fetched = sorted(
+            pipelines_fetched,
+            key=lambda pipeline_fetched: getattr(pipeline_fetched, sort_key),
+            reverse=sort_order,
+        )
+
+        pipeline_summaries = [
+            {
+                "PipelineArn": pipeline_data.pipeline_arn,
+                "PipelineName": pipeline_data.pipeline_name,
+                "PipelineDisplayName": pipeline_data.pipeline_display_name,
+                "PipelineDescription": pipeline_data.pipeline_description,
+                "RoleArn": pipeline_data.role_arn,
+                "CreationTime": pipeline_data.creation_time,
+                "LastModifiedTime": pipeline_data.last_modified_time,
+                "LastExecutionTime": pipeline_data.last_execution_time,
+            }
+            for pipeline_data in pipelines_fetched
+        ]
+
+        # pipeline_summaries_sorted = sorted(
+        #     pipeline_summaries,
+        #     key=lambda d: d[sort_by],
+        #     reverse=True if sort_order == 'Descending' else False
+        # )
+
+        return {
+            "PipelineSummaries": pipeline_summaries,
+            "NextToken": str(next_index) if next_index is not None else None,
+        }
 
     def list_processing_jobs(
         self,
