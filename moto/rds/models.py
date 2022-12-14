@@ -1594,17 +1594,29 @@ class RDSBackend(BaseBackend):
 
     def create_option_group(self, option_group_kwargs):
         option_group_id = option_group_kwargs["name"]
+        # This list was verified against the AWS Console on 14 Dec 2022
+        # Having an automated way (using the CLI) would be nice, but AFAICS that's not possible
+        #
+        # Some options that are allowed in the CLI, but that do now show up in the Console:
+        # - Mysql 5.5
+        # - All postgres-versions
+        # - oracle-se and oracle-se1 - I could not deduct the available versions
+        #   `Cannot find major version 19 for oracle-se`
+        #   (The engines do exist, otherwise the error would be `Invalid DB engine`
         valid_option_group_engines = {
-            "mariadb": ["10.0", "10.1", "10.2", "10.3"],
+            "mariadb": ["10.0", "10.1", "10.2", "10.3", "10.4", "10.5", "10.6"],
             "mysql": ["5.5", "5.6", "5.7", "8.0"],
-            "oracle-se2": ["11.2", "12.1", "12.2"],
-            "oracle-se1": ["11.2", "12.1", "12.2"],
-            "oracle-se": ["11.2", "12.1", "12.2"],
-            "oracle-ee": ["11.2", "12.1", "12.2"],
-            "sqlserver-se": ["10.50", "11.00"],
-            "sqlserver-ee": ["10.50", "11.00"],
-            "sqlserver-ex": ["10.50", "11.00"],
-            "sqlserver-web": ["10.50", "11.00"],
+            "oracle-ee": ["19"],
+            "oracle-ee-cdb": ["19", "21"],
+            "oracle-se": [],
+            "oracle-se1": [],
+            "oracle-se2": ["19"],
+            "oracle-se2-cdb": ["19", "21"],
+            "postgres": ["10", "11", "12", "13"],
+            "sqlserver-ee": ["11.00", "12.00", "13.00", "14.00", "15.00"],
+            "sqlserver-ex": ["11.00", "12.00", "13.00", "14.00", "15.00"],
+            "sqlserver-se": ["11.00", "12.00", "13.00", "14.00", "15.00"],
+            "sqlserver-web": ["11.00", "12.00", "13.00", "14.00", "15.00"],
         }
         if option_group_id in self.option_groups:
             raise RDSClientError(
@@ -1631,6 +1643,18 @@ class RDSBackend(BaseBackend):
                 "InvalidParameterCombination",
                 f"Cannot find major version {option_group_kwargs['major_engine_version']} for {option_group_kwargs['engine_name']}",
             )
+        # AWS also creates default option groups, if they do not yet exist, when creating an option group in the CLI
+        # Maybe we should do the same
+        # {
+        #     "OptionGroupName": "default:postgres-10",
+        #     "OptionGroupDescription": "Default option group for postgres 10",
+        #     "EngineName": "postgres",
+        #     "MajorEngineVersion": "10",
+        #     "Options": [],
+        #     "AllowsVpcAndNonVpcInstanceMemberships": true,
+        #     "OptionGroupArn": "arn:aws:rds:us-east-1:{account}:og:default:postgres-10"
+        # }
+        # The CLI does not allow deletion of default groups
         option_group = OptionGroup(**option_group_kwargs)
         self.option_groups[option_group_id] = option_group
         return option_group
