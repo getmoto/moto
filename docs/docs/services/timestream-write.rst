@@ -12,6 +12,8 @@
 timestream-write
 ================
 
+.. autoclass:: moto.timestreamwrite.models.TimestreamWriteBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
