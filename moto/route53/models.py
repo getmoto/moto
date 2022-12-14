@@ -480,14 +480,28 @@ class Route53Backend(BaseBackend):
             comment=comment,
             delegation_set=delegation_set,
         )
+        # For each public hosted zone that you create, Amazon Route 53 automatically creates a name server (NS) record
+        # and a start of authority (SOA) record.
+        # https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/SOA-NSrecords.html
+        soa_record_set = {
+            "Name": f"{name}" + ("" if name.endswith(".") else "."),
+            "Type": "SOA",
+            "TTL": 900,
+            "ResourceRecords": [
+                {
+                    "Value": f"{delegation_set.name_servers[0]}. hostmaster.example.com. 1 7200 900 1209600 86400"
+                }
+            ],
+        }
         # default nameservers are also part of rrset
-        record_set = {
+        ns_record_set = {
             "Name": name,
             "ResourceRecords": delegation_set.name_servers,
             "TTL": "172800",
             "Type": "NS",
         }
-        new_zone.add_rrset(record_set)
+        new_zone.add_rrset(ns_record_set)
+        new_zone.add_rrset(soa_record_set)
         new_zone.add_vpc(vpcid, vpcregion)
         self.zones[new_id] = new_zone
         return new_zone
