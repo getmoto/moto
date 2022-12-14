@@ -64,7 +64,7 @@ sagemaker
 - [ ] create_monitoring_schedule
 - [X] create_notebook_instance
 - [X] create_notebook_instance_lifecycle_config
-- [ ] create_pipeline
+- [X] create_pipeline
 - [ ] create_presigned_domain_url
 - [ ] create_presigned_notebook_instance_url
 - [X] create_processing_job
@@ -222,7 +222,7 @@ sagemaker
 - [ ] list_pipeline_execution_steps
 - [ ] list_pipeline_executions
 - [ ] list_pipeline_parameters_for_execution
-- [ ] list_pipelines
+- [X] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
 - [ ] list_stage_devices
