@@ -19,6 +19,10 @@ from ..utils import (
     utc_date_and_time,
 )
 
+IOPS_REQUIRED_VOLUME_TYPES = ["io1", "io2"]
+IOPS_SUPPORTED_VOLUME_TYPES = ["gp3", "io1", "io2"]
+GP3_DEFAULT_IOPS = 3000
+
 
 class VolumeModification(object):
     def __init__(self, volume, target_size=None, target_volume_type=None):
@@ -97,6 +101,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         encrypted=False,
         kms_key_id=None,
         volume_type=None,
+        iops=None,
     ):
         self.id = volume_id
         self.volume_type = volume_type or "gp2"
@@ -109,6 +114,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         self.encrypted = encrypted
         self.kms_key_id = kms_key_id
         self.modifications = []
+        self.iops = iops
 
     def modify(self, target_size=None, target_volume_type=None):
         modification = VolumeModification(
@@ -240,11 +246,19 @@ class EBSBackend:
         encrypted=False,
         kms_key_id=None,
         volume_type=None,
+        iops=None,
     ):
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
         if encrypted and not kms_key_id:
             kms_key_id = self._get_default_encryption_key()
+        if volume_type in IOPS_REQUIRED_VOLUME_TYPES and not iops:
+            raise InvalidParameterDependency("VolumeType", "Iops")
+        elif volume_type == "gp3" and not iops:
+            iops = GP3_DEFAULT_IOPS
+        elif volume_type not in IOPS_SUPPORTED_VOLUME_TYPES and iops:
+            raise InvalidParameterDependency("VolumeType", "Iops")
+
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)
         if snapshot_id:
@@ -262,6 +276,7 @@ class EBSBackend:
             encrypted=encrypted,
             kms_key_id=kms_key_id,
             volume_type=volume_type,
+            iops=iops,
         )
         self.volumes[volume_id] = volume
         return volume

@@ -5,6 +5,7 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_ec2
 from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
+from moto.ec2.models.elastic_block_store import IOPS_REQUIRED_VOLUME_TYPES
 from moto.kms import mock_kms
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
@@ -925,7 +926,7 @@ def test_kms_key_id_property_hidden_when_volume_not_encrypted():
 @mock_ec2
 def test_create_volume_with_standard_type():
     ec2 = boto3.client("ec2", region_name="us-east-1")
-    volume = ec2.create_volume(AvailabilityZone="us-east-1a", Size=100, Iops=1000)
+    volume = ec2.create_volume(AvailabilityZone="us-east-1a", Size=100)
     volume["VolumeType"].should.equal("gp2")
 
     volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
@@ -936,9 +937,14 @@ def test_create_volume_with_standard_type():
 @mock_ec2
 def test_create_volume_with_non_standard_type(volume_type):
     ec2 = boto3.client("ec2", region_name="us-east-1")
-    volume = ec2.create_volume(
-        AvailabilityZone="us-east-1a", Size=100, Iops=1000, VolumeType=volume_type
-    )
+    if volume_type in IOPS_REQUIRED_VOLUME_TYPES:
+        volume = ec2.create_volume(
+            AvailabilityZone="us-east-1a", Size=100, Iops=3000, VolumeType=volume_type
+        )
+    else:
+        volume = ec2.create_volume(
+            AvailabilityZone="us-east-1a", Size=100, VolumeType=volume_type
+        )
     volume["VolumeType"].should.equal(volume_type)
 
     volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
@@ -1083,3 +1089,15 @@ def test_create_snapshots_multiple_volumes_without_boot():
 
     snapshot2 = next(s for s in snapshots if s["VolumeId"] == volume2.volume_id)
     snapshot2.should.have.key("VolumeSize").equals(100)
+
+
+@mock_ec2
+def test_create_volume_with_iops():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    volume = ec2.create_volume(
+        AvailabilityZone="us-east-1a", Size=10, VolumeType="gp3", Iops=4000
+    )
+    volume["Iops"].should.equal(4000)
+
+    volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
+    volume["Iops"].should.equal(4000)
