@@ -134,7 +134,7 @@ def test_get_query_execution():
     details["StatementType"].should.equal("DDL")
     details["ResultConfiguration"]["OutputLocation"].should.equal(location)
     details["QueryExecutionContext"]["Database"].should.equal(database)
-    details["Status"]["State"].should.equal("QUEUED")
+    details["Status"]["State"].should.equal("SUCCEEDED")
     details["Statistics"].should.equal(
         {
             "EngineExecutionTimeInMillis": 0,
@@ -273,3 +273,31 @@ def test_create_and_get_data_catalog():
             "Parameters": {"catalog-id": "AWS Test account ID"},
         }
     )
+
+
+@mock_athena
+def test_get_query_results():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    result = client.get_query_results(QueryExecutionId="test")
+
+    result["ResultSet"]["Rows"].should.equal([])
+    result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"].should.equal([])
+
+
+@mock_athena
+def test_list_query_executions():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    exec_result = client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+    exec_id = exec_result["QueryExecutionId"]
+
+    executions = client.list_query_executions()
+    executions["QueryExecutionIds"].should.have.length_of(1)
+    executions["QueryExecutionIds"][0].should.equal(exec_id)
