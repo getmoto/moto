@@ -104,6 +104,19 @@ class TimestreamDatabase(BaseModel):
 
 
 class TimestreamWriteBackend(BaseBackend):
+    """
+    When using the decorators, you can use the following internal API to verify records have arrived:
+
+    .. sourcecode:: python
+
+        from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+        from moto.timestreamwrite.models import timestreamwrite_backends
+
+        backend = timestreamwrite_backends[ACCOUNT_ID]["us-east-1"]
+        records = backend.databases["mydatabase"].tables["mytable"].records
+
+    """
+
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.databases = dict()
