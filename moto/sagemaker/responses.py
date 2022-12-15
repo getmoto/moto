@@ -1,4 +1,3 @@
-import datetime
 import json
 
 from moto.sagemaker.exceptions import AWSValidationException
