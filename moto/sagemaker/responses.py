@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from moto.sagemaker.exceptions import AWSValidationException
@@ -488,8 +489,9 @@ class SageMakerResponse(BaseResponse):
     @amzn_request_id
     def list_pipelines(self):
         max_results_range = range(1, 101)
-        allowed_sort_by = ["Name", "CreationTime"]
-        allowed_sort_order = ["Ascending", "Descending"]
+        allowed_sort_by = ("Name", "CreationTime")
+        allowed_sort_order = ("Ascending", "Descending")
+        allowed_time_formats = (str, int, datetime.datetime)
 
         pipeline_name_prefix = self._get_param("PipelineNamePrefix")
         created_after = self._get_param("CreatedAfter")
@@ -506,12 +508,11 @@ class SageMakerResponse(BaseResponse):
             )
 
         if sort_by not in allowed_sort_by:
-            errors.append(format_enum_error(sort_by, "sortBy", allowed_sort_by))
+            errors.append(format_enum_error(sort_by, "SortBy", allowed_sort_by))
         if sort_order not in allowed_sort_order:
             errors.append(
-                format_enum_error(sort_order, "sortOrder", allowed_sort_order)
+                format_enum_error(sort_order, "SortOrder", allowed_sort_order)
             )
-
         if errors:
             raise AWSValidationException(
                 f"{len(errors)} validation errors detected: {';'.join(errors)}"
