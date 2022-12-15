@@ -1,5 +1,4 @@
 import json
-
 from moto.core.exceptions import JsonRESTError
 
 
