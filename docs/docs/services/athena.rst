@@ -40,8 +40,8 @@ athena
 - [ ] get_database
 - [X] get_named_query
 - [ ] get_prepared_statement
-- [ ] get_query_execution
-- [ ] get_query_results
+- [X] get_query_execution
+- [X] get_query_results
 - [ ] get_query_runtime_statistics
 - [ ] get_table_metadata
 - [X] get_work_group
@@ -50,7 +50,7 @@ athena
 - [ ] list_engine_versions
 - [ ] list_named_queries
 - [ ] list_prepared_statements
-- [ ] list_query_executions
+- [X] list_query_executions
 - [ ] list_table_metadata
 - [ ] list_tags_for_resource
 - [X] list_work_groups
