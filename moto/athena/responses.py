@@ -81,8 +81,9 @@ class AthenaResponse(BaseResponse):
         return json.dumps(result)
 
     def get_query_results(self) -> str:
-        result = self.athena_backend.get_query_results()
-        return json.dumps(result)
+        exec_id = self._get_param("QueryExecutionId")
+        result = self.athena_backend.get_query_results(exec_id)
+        return json.dumps(result.__dict__())
 
     def list_query_executions(self) -> str:
         executions = self.athena_backend.list_query_executions()

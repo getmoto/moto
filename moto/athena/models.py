@@ -93,6 +93,32 @@ class Execution(BaseModel):
         self.status = "SUCCEEDED"
 
 
+class QueryResultsMetadata(BaseModel):
+    def __init__(self, column_info: List[str] = []):
+        self.column_info = column_info
+
+    def __dict__(self):
+        return {"ColumnInfo": self.column_info}
+
+
+class QueryResults(BaseModel):
+    def __init__(
+        self,
+        rows: List[Dict[str, Any]] = [],
+        metadata: QueryResultsMetadata = QueryResultsMetadata(),
+    ):
+        self.rows = rows
+        self.metadata = metadata
+
+    def __dict__(self):
+        return {
+            "ResultSet": {
+                "Rows": self.rows,
+                "ResultSetMetadata": self.metadata.__dict__(),
+            },
+        }
+
+
 class NamedQuery(BaseModel):
     def __init__(
         self,
@@ -178,8 +204,9 @@ class AthenaBackend(BaseBackend):
     def list_query_executions(self) -> Dict[str, Execution]:
         return self.executions
 
-    def get_query_results(self) -> dict[str, dict[str, Any]]:
-        return {"ResultSet": {"Rows": [], "ResultSetMetadata": {"ColumnInfo": []}}}
+    def get_query_results(self, exec_id: str) -> QueryResults:
+        results = QueryResults()
+        return results
 
     def stop_query_execution(self, exec_id: str) -> None:
         execution = self.executions[exec_id]
