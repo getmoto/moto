@@ -1,7 +1,7 @@
-import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
+import pytest
+import boto3
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_athena
 
