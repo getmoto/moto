@@ -93,28 +93,16 @@ class Execution(BaseModel):
         self.status = "SUCCEEDED"
 
 
-class QueryResultsMetadata(BaseModel):
-    def __init__(self, column_info: List[str] = []):
+class QueryResults(BaseModel):
+    def __init__(self, rows: List[Dict[str, Any]], column_info: List[str]):
+        self.rows = rows
         self.column_info = column_info
 
-    def __dict__(self):
-        return {"ColumnInfo": self.column_info}
-
-
-class QueryResults(BaseModel):
-    def __init__(
-        self,
-        rows: List[Dict[str, Any]] = [],
-        metadata: QueryResultsMetadata = QueryResultsMetadata(),
-    ):
-        self.rows = rows
-        self.metadata = metadata
-
-    def __dict__(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "ResultSet": {
                 "Rows": self.rows,
-                "ResultSetMetadata": self.metadata.__dict__(),
+                "ResultSetMetadata": {"ColumnInfo": self.column_info},
             },
         }
 
@@ -143,6 +131,7 @@ class AthenaBackend(BaseBackend):
         self.executions: Dict[str, Execution] = {}
         self.named_queries: Dict[str, NamedQuery] = {}
         self.data_catalogs: Dict[str, DataCatalog] = {}
+        self.query_results: Dict[str, QueryResults] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -205,7 +194,11 @@ class AthenaBackend(BaseBackend):
         return self.executions
 
     def get_query_results(self, exec_id: str) -> QueryResults:
-        results = QueryResults()
+        results = (
+            self.query_results[exec_id]
+            if exec_id in self.query_results
+            else QueryResults(rows=[], column_info=[])
+        )
         return results
 
     def stop_query_execution(self, exec_id: str) -> None:
