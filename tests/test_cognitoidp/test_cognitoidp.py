@@ -5,7 +5,7 @@ import os
 import random
 import re
 
-import mock
+from unittest import mock
 import moto.cognitoidp.models
 import requests
 import hmac

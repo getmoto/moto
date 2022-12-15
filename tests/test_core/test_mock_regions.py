@@ -1,5 +1,5 @@
 import boto3
-import mock
+from unittest import mock
 import os
 import pytest
 from moto import mock_dynamodb, mock_sns, settings

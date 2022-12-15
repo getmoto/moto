@@ -2,7 +2,7 @@ from datetime import datetime
 
 from botocore.exceptions import ClientError
 import boto3
-import mock
+from unittest import mock
 import sure  # noqa # pylint: disable=unused-import
 import json
 import os

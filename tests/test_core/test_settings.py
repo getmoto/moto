@@ -1,5 +1,5 @@
 import os
-import mock
+from unittest import mock
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 
