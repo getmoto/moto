@@ -491,7 +491,6 @@ class SageMakerResponse(BaseResponse):
         max_results_range = range(1, 101)
         allowed_sort_by = ("Name", "CreationTime")
         allowed_sort_order = ("Ascending", "Descending")
-        allowed_time_formats = (str, int, datetime.datetime)
 
         pipeline_name_prefix = self._get_param("PipelineNamePrefix")
         created_after = self._get_param("CreatedAfter")
