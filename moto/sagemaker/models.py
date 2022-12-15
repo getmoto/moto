@@ -1822,14 +1822,22 @@ class SageMakerModelBackend(BaseBackend):
                 pipelines_fetched,
             )
 
+        def format_time(x):
+            return (
+                x
+                if isinstance(x, str)
+                else datetime.fromtimestamp(x).strftime("%Y-%m-%d " "%H:%M:%S")
+            )
+
         if created_after is not None:
             pipelines_fetched = filter(
-                lambda x: x.creation_time > created_after, pipelines_fetched
+                lambda x: x.creation_time > format_time(created_after),
+                pipelines_fetched,
             )
 
         if created_before is not None:
             pipelines_fetched = filter(
-                lambda x: x.creation_time < created_before,
+                lambda x: x.creation_time < format_time(created_before),
                 pipelines_fetched,
             )
 
