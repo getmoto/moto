@@ -2,27 +2,27 @@ import json
 
 from moto.core.responses import BaseResponse
 
-from .models import datasync_backends
+from .models import datasync_backends, DataSyncBackend, Location
 
 
 class DataSyncResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="datasync")
 
     @property
-    def datasync_backend(self):
+    def datasync_backend(self) -> DataSyncBackend:
         return datasync_backends[self.current_account][self.region]
 
-    def list_locations(self):
+    def list_locations(self) -> str:
         locations = list()
         for arn, location in self.datasync_backend.locations.items():
             locations.append({"LocationArn": arn, "LocationUri": location.uri})
         return json.dumps({"Locations": locations})
 
-    def _get_location(self, location_arn, typ):
+    def _get_location(self, location_arn: str, typ: str) -> Location:
         return self.datasync_backend._get_location(location_arn, typ)
 
-    def create_location_s3(self):
+    def create_location_s3(self) -> str:
         # s3://bucket_name/folder/
         s3_bucket_arn = self._get_param("S3BucketArn")
         subdirectory = self._get_param("Subdirectory")
@@ -36,7 +36,7 @@ class DataSyncResponse(BaseResponse):
         )
         return json.dumps({"LocationArn": arn})
 
-    def describe_location_s3(self):
+    def describe_location_s3(self) -> str:
         location_arn = self._get_param("LocationArn")
         location = self._get_location(location_arn, typ="S3")
         return json.dumps(
@@ -47,7 +47,7 @@ class DataSyncResponse(BaseResponse):
             }
         )
 
-    def create_location_smb(self):
+    def create_location_smb(self) -> str:
         # smb://smb.share.fqdn/AWS_Test/
         subdirectory = self._get_param("Subdirectory")
         server_hostname = self._get_param("ServerHostname")
@@ -64,7 +64,7 @@ class DataSyncResponse(BaseResponse):
         )
         return json.dumps({"LocationArn": arn})
 
-    def describe_location_smb(self):
+    def describe_location_smb(self) -> str:
         location_arn = self._get_param("LocationArn")
         location = self._get_location(location_arn, typ="SMB")
         return json.dumps(
@@ -78,12 +78,12 @@ class DataSyncResponse(BaseResponse):
             }
         )
 
-    def delete_location(self):
+    def delete_location(self) -> str:
         location_arn = self._get_param("LocationArn")
         self.datasync_backend.delete_location(location_arn)
         return json.dumps({})
 
-    def create_task(self):
+    def create_task(self) -> str:
         destination_location_arn = self._get_param("DestinationLocationArn")
         source_location_arn = self._get_param("SourceLocationArn")
         name = self._get_param("Name")
@@ -98,7 +98,7 @@ class DataSyncResponse(BaseResponse):
         )
         return json.dumps({"TaskArn": arn})
 
-    def update_task(self):
+    def update_task(self) -> str:
         task_arn = self._get_param("TaskArn")
         self.datasync_backend.update_task(
             task_arn,
@@ -112,18 +112,18 @@ class DataSyncResponse(BaseResponse):
         )
         return json.dumps({})
 
-    def list_tasks(self):
+    def list_tasks(self) -> str:
         tasks = list()
         for arn, task in self.datasync_backend.tasks.items():
             tasks.append({"Name": task.name, "Status": task.status, "TaskArn": arn})
         return json.dumps({"Tasks": tasks})
 
-    def delete_task(self):
+    def delete_task(self) -> str:
         task_arn = self._get_param("TaskArn")
         self.datasync_backend.delete_task(task_arn)
         return json.dumps({})
 
-    def describe_task(self):
+    def describe_task(self) -> str:
         task_arn = self._get_param("TaskArn")
         task = self.datasync_backend._get_task(task_arn)
         return json.dumps(
@@ -140,17 +140,17 @@ class DataSyncResponse(BaseResponse):
             }
         )
 
-    def start_task_execution(self):
+    def start_task_execution(self) -> str:
         task_arn = self._get_param("TaskArn")
         arn = self.datasync_backend.start_task_execution(task_arn)
         return json.dumps({"TaskExecutionArn": arn})
 
-    def cancel_task_execution(self):
+    def cancel_task_execution(self) -> str:
         task_execution_arn = self._get_param("TaskExecutionArn")
         self.datasync_backend.cancel_task_execution(task_execution_arn)
         return json.dumps({})
 
-    def describe_task_execution(self):
+    def describe_task_execution(self) -> str:
         task_execution_arn = self._get_param("TaskExecutionArn")
         task_execution = self.datasync_backend._get_task_execution(task_execution_arn)
         result = json.dumps(

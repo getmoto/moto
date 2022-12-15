@@ -74,6 +74,7 @@ ecs
 
 - [X] list_container_instances
 - [X] list_services
+- [ ] list_services_by_namespace
 - [X] list_tags_for_resource
   Currently implemented only for task definitions and services
 

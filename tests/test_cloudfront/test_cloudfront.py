@@ -23,6 +23,7 @@ def test_update_distribution():
 
     dist_config = dist["Distribution"]["DistributionConfig"]
     aliases = ["alias1", "alias2"]
+    dist_config["Origins"]["Items"][0]["OriginPath"] = "/updated"
     dist_config["Aliases"] = {"Quantity": len(aliases), "Items": aliases}
 
     resp = client.update_distribution(
@@ -64,14 +65,16 @@ def test_update_distribution():
     origin = origins["Items"][0]
     origin.should.have.key("Id").equals("origin1")
     origin.should.have.key("DomainName").equals("asdf.s3.us-east-1.amazonaws.com")
-    origin.should.have.key("OriginPath").equals("")
+    origin.should.have.key("OriginPath").equals("/updated")
 
     origin.should.have.key("CustomHeaders")
     origin["CustomHeaders"].should.have.key("Quantity").equals(0)
 
     origin.should.have.key("ConnectionAttempts").equals(3)
     origin.should.have.key("ConnectionTimeout").equals(10)
-    origin.should.have.key("OriginShield").equals({"Enabled": False})
+    origin.should.have.key("OriginShield").equals(
+        {"Enabled": False, "OriginShieldRegion": "None"}
+    )
 
     config.should.have.key("OriginGroups").equals({"Quantity": 0})
 

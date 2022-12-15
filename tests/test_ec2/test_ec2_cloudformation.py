@@ -938,6 +938,10 @@ def test_launch_template_delete():
 
     cf.delete_stack(StackName=stack_name)
 
-    ec2.describe_launch_templates(LaunchTemplateNames=[launch_template_name])[
-        "LaunchTemplates"
-    ].should.have.length_of(0)
+    with pytest.raises(ClientError) as exc:
+        ec2.describe_launch_templates(LaunchTemplateNames=[launch_template_name])
+    err = exc.value.response["Error"]
+    err.should.have.key("Code").equals("InvalidLaunchTemplateName.NotFoundException")
+    err.should.have.key("Message").equals(
+        "At least one of the launch templates specified in the request does not exist."
+    )

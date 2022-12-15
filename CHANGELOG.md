@@ -1,6 +1,49 @@
 Moto Changelog
 ==============
 
+4.0.11
+-----
+Docker Digest for 4.0.11: _sha256:ba07f61edd4f91b221ea20368586dce024e7da4d018e2741aceafa1f07f47ec5_
+
+    New Services:
+        * ACM-PCA:
+            * create_certificate_authority()
+            * delete_certificate_authority()
+            * describe_certificate_authority()
+            * get_certificate()
+            * get_certificate_authority_certificate()
+            * get_certificate_authority_csr()
+            * import_certificate_authority_certificate()
+            * issue_certificate()
+            * list_tags()
+            * revoke_certificate()
+            * tag_certificate_authority()
+            * update_certificate_authority()
+            * untag_certificate_authority()
+
+    New Methods:
+        * create_api_mapping()
+        * create_domain_name()
+        * delete_api_mapping()
+        * delete_domain_name()
+        * get_api_mapping()
+        * get_api_mappings()
+        * get_domain_name()
+        * get_domain_names()
+
+    Miscellaneous:
+        * APIGateway: create_rest_api() now supports the propagation of parameter disableExecuteApiEndpoint (not the actual behaviour)
+        * APIGateway: put_integration() now supports the parameters contentHandling, credentials, tlsConfig
+        * AWSLambda: create_function() is now able to validate the existence of the provided ImageURI. Set environment variable MOTO_LAMBDA_STUB_ECR=false to enable this.
+        * Batch: submit_job() now adds validation for the jobName parameter
+        * CloudWatch: get_metric_data() now adds support for filtering by the unit-value
+        * DynamoDB: transact_write_items() now supports up to 100 items instead of 25, in line with AWS
+        * ELB: describe_instance_health() now validates the existence of the provided LoadBalancer
+        * Polly: The list of available voices has been updated.
+        * S3: put_object() now has improved support for filenames containing spaces
+        * SQS: send_message() and send_message_batch() now adds validation for the DelaySeconds-parameter
+
+
 4.0.10
 -----
 Docker Digest for 4.0.10: _sha256:faf0e4b591c47c7775da4f827c2ec2e1ff48a32b31169236fa604ffb95dafb78_

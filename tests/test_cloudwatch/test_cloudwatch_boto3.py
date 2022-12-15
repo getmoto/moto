@@ -1,10 +1,9 @@
 import boto3
 import pytest
-import pytz
 import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dateutil.tz import tzutc
 from decimal import Decimal
 from freezegun import freeze_time
@@ -32,7 +31,7 @@ def test_put_metric_data_no_dimensions():
 @mock_cloudwatch
 def test_put_metric_data_can_not_have_nan():
     client = boto3.client("cloudwatch", region_name="us-west-2")
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     with pytest.raises(ClientError) as exc:
         client.put_metric_data(
             Namespace="mynamespace",
@@ -55,7 +54,7 @@ def test_put_metric_data_can_not_have_nan():
 @mock_cloudwatch
 def test_put_metric_data_can_not_have_value_and_values():
     client = boto3.client("cloudwatch", region_name="us-west-2")
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     with pytest.raises(ClientError) as exc:
         client.put_metric_data(
             Namespace="mynamespace",
@@ -79,7 +78,7 @@ def test_put_metric_data_can_not_have_value_and_values():
 @mock_cloudwatch
 def test_put_metric_data_can_not_have_and_values_mismatched_counts():
     client = boto3.client("cloudwatch", region_name="us-west-2")
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     with pytest.raises(ClientError) as exc:
         client.put_metric_data(
             Namespace="mynamespace",
@@ -103,7 +102,7 @@ def test_put_metric_data_can_not_have_and_values_mismatched_counts():
 @mock_cloudwatch
 def test_put_metric_data_values_and_counts():
     client = boto3.client("cloudwatch", region_name="us-west-2")
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     namespace = "values"
     metric = "mymetric"
     client.put_metric_data(
@@ -134,7 +133,7 @@ def test_put_metric_data_values_and_counts():
 @mock_cloudwatch
 def test_put_metric_data_values_without_counts():
     client = boto3.client("cloudwatch", region_name="us-west-2")
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     namespace = "values"
     metric = "mymetric"
     client.put_metric_data(
@@ -164,7 +163,7 @@ def test_put_metric_data_values_without_counts():
 @mock_cloudwatch
 def test_put_metric_data_with_statistics():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
 
     conn.put_metric_data(
         Namespace="tester",
@@ -192,7 +191,7 @@ def test_put_metric_data_with_statistics():
 @mock_cloudwatch
 def test_get_metric_statistics():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
 
     conn.put_metric_data(
         Namespace="tester",
@@ -217,7 +216,7 @@ def test_get_metric_statistics():
 @mock_cloudwatch
 def test_get_metric_invalid_parameter_combination():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
 
     conn.put_metric_data(
         Namespace="tester",
@@ -242,7 +241,7 @@ def test_get_metric_invalid_parameter_combination():
 @mock_cloudwatch
 def test_get_metric_statistics_dimensions():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
 
     # put metric data with different dimensions
     dimensions1 = [{"Name": "dim1", "Value": "v1"}]
@@ -311,7 +310,7 @@ def test_get_metric_statistics_dimensions():
 @mock_cloudwatch
 def test_duplicate_put_metric_data():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
 
     conn.put_metric_data(
         Namespace="tester",
@@ -412,7 +411,7 @@ def test_duplicate_put_metric_data():
 @mock_cloudwatch
 @freeze_time("2020-02-10 18:44:05")
 def test_custom_timestamp():
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     time = "2020-02-10T18:44:09Z"
     cw = boto3.client("cloudwatch", "eu-west-1")
 
@@ -609,7 +608,7 @@ def create_metrics_with_dimensions(cloudwatch, namespace, data_points=5):
 
 @mock_cloudwatch
 def test_get_metric_data_for_multiple_metrics_w_same_dimensions():
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     namespace = "my_namespace/"
     cloudwatch.put_metric_data(
@@ -681,7 +680,7 @@ def test_get_metric_data_for_multiple_metrics_w_same_dimensions():
 
 @mock_cloudwatch
 def test_get_metric_data_within_timeframe():
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     namespace1 = "my_namespace/"
     # put metric data
@@ -742,7 +741,7 @@ def test_get_metric_data_within_timeframe():
 
 @mock_cloudwatch
 def test_get_metric_data_partially_within_timeframe():
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     yesterday = utc_now - timedelta(days=1)
     last_week = utc_now - timedelta(days=7)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
@@ -866,7 +865,7 @@ def test_get_metric_data_partially_within_timeframe():
 
 @mock_cloudwatch
 def test_get_metric_data_outside_timeframe():
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     last_week = utc_now - timedelta(days=7)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     namespace1 = "my_namespace/"
@@ -907,7 +906,7 @@ def test_get_metric_data_outside_timeframe():
 
 @mock_cloudwatch
 def test_get_metric_data_for_multiple_metrics():
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     namespace = "my_namespace/"
     # put metric data
@@ -968,7 +967,7 @@ def test_get_metric_data_for_multiple_metrics():
 
 @mock_cloudwatch
 def test_get_metric_data_for_dimensions():
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     namespace = "my_namespace/"
 
@@ -1075,9 +1074,81 @@ def test_get_metric_data_for_dimensions():
 
 
 @mock_cloudwatch
+def test_get_metric_data_for_unit():
+    utc_now = datetime.now(tz=timezone.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace = "my_namespace/"
+
+    unit = "Seconds"
+
+    # put metric data
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 50,
+                "Unit": unit,
+                "Timestamp": utc_now,
+            },
+            {
+                "MetricName": "metric1",
+                "Value": -50,
+                "Timestamp": utc_now,
+            },
+        ],
+    )
+    # get_metric_data
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result_without_unit",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                },
+            },
+            {
+                "Id": "result_with_unit",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                    "Unit": unit,
+                },
+            },
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+
+    expected_values = {
+        "result_without_unit": 2.0,
+        "result_with_unit": 1.0,
+    }
+
+    for id_, expected_value in expected_values.items():
+        metric_result_data = list(
+            filter(
+                lambda result_data: result_data["Id"] == id_,
+                response["MetricDataResults"],
+            )
+        )
+        len(metric_result_data).should.equal(1)
+        metric_result_data[0]["Values"][0].should.equal(expected_value)
+
+
+@mock_cloudwatch
 @mock_s3
 def test_cloudwatch_return_s3_metrics():
-    utc_now = datetime.now(tz=pytz.utc)
+    utc_now = datetime.now(tz=timezone.utc)
     bucket_name = "examplebucket"
     cloudwatch = boto3.client("cloudwatch", "eu-west-3")
 
@@ -1441,3 +1512,74 @@ def test_put_metric_alarm_error_evaluate_low_sample_count_percentile():
         "Option unknown is not supported. "
         "Supported options for parameter EvaluateLowSampleCountPercentile are evaluate and ignore."
     )
+
+
+@mock_cloudwatch
+def test_get_metric_data_with_custom_label():
+    utc_now = datetime.now(tz=timezone.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace = "my_namespace/"
+
+    label = "MyCustomLabel"
+
+    # put metric data
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 50,
+                "Timestamp": utc_now,
+            },
+            {
+                "MetricName": "metric1",
+                "Value": -50,
+                "Timestamp": utc_now,
+            },
+        ],
+    )
+    # get_metric_data
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result_without_custom_label",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                },
+            },
+            {
+                "Id": "result_with_custom_label",
+                "Label": label,
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                },
+            },
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+
+    expected_values = {
+        "result_without_custom_label": "metric1 SampleCount",
+        "result_with_custom_label": label,
+    }
+
+    for id_, expected_value in expected_values.items():
+        metric_result_data = list(
+            filter(
+                lambda result_data: result_data["Id"] == id_,
+                response["MetricDataResults"],
+            )
+        )
+        len(metric_result_data).should.equal(1)
+        metric_result_data[0]["Label"].should.equal(expected_value)

@@ -4,6 +4,7 @@ import os
 import time
 import typing
 import enum
+import re
 from jose import jws
 from collections import OrderedDict
 from typing import Any, Dict, List, Tuple, Optional, Set
@@ -18,6 +19,7 @@ from .exceptions import (
     UserNotConfirmedException,
     InvalidParameterException,
     ExpiredCodeException,
+    InvalidPasswordException,
 )
 from .utils import (
     create_id,
@@ -532,7 +534,7 @@ class CognitoIdpUserPool(BaseModel):
         payload = {
             "iss": f"https://cognito-idp.{self.region}.amazonaws.com/{self.id}",
             "sub": self._get_user(username).id,
-            "aud": client_id,
+            "client_id" if token_use == "access" else "aud": client_id,
             "token_use": token_use,
             "auth_time": now,
             "exp": now + expires_in,
@@ -899,6 +901,13 @@ class CognitoResourceServer(BaseModel):
 
 class CognitoIdpBackend(BaseBackend):
     """
+    Moto mocks the JWK uris.
+    If you're using decorators, you can retrieve this information by making a call to `https://cognito-idp.us-west-2.amazonaws.com/someuserpoolid/.well-known/jwks.json`.
+
+    Call `http://localhost:5000/userpoolid/.well-known/jwks.json` instead of you're running Moto in ServerMode or Docker.
+    Because Moto cannot determine this is a CognitoIDP-request based on the URL alone, you have to add an Authorization-header instead:
+    `Authorization: AWS4-HMAC-SHA256 Credential=mock_access_key/20220524/us-east-1/cognito-idp/aws4_request, SignedHeaders=content-length;content-type;host;x-amz-date, Signature=asdf`
+
     In some cases, you need to have reproducible IDs for the user pool.
     For example, a single initialization before the start of integration tests.
 
@@ -1597,6 +1606,10 @@ class CognitoIdpBackend(BaseBackend):
     ) -> None:
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
+                self._validate_password(
+                    user_pool_id=user_pool.id, password=proposed_password
+                )
+
                 _, username = user_pool.access_tokens[access_token]
                 user = self.admin_get_user(user_pool.id, username)
 
@@ -1714,6 +1727,8 @@ class CognitoIdpBackend(BaseBackend):
                 raise InvalidParameterException(
                     "Username should be either an email or a phone number."
                 )
+
+        self._validate_password(user_pool.id, password)
 
         user = CognitoIdpUser(
             user_pool_id=user_pool.id,
@@ -1956,10 +1971,39 @@ class CognitoIdpBackend(BaseBackend):
                 user.preferred_mfa_setting = "SMS_MFA"
         return None
 
+    def _validate_password(self, user_pool_id: str, password: str) -> None:
+        user_pool = self.describe_user_pool(user_pool_id)
+        password_policy = user_pool.extended_config.get("Policies", {}).get(
+            "PasswordPolicy", {}
+        )
+        minimum = password_policy.get("MinimumLength", 5)
+        maximum = password_policy.get("MaximumLength", 99)
+        require_uppercase = password_policy.get("RequireUppercase", True)
+        require_lowercase = password_policy.get("RequireLowercase", True)
+        require_numbers = password_policy.get("RequireNumbers", True)
+        require_symbols = password_policy.get("RequireSymbols", True)
+
+        flagl = minimum <= len(password) < maximum
+        flagn = not require_numbers or bool(re.search(r"\d", password))
+        # If we require symbols, we assume False - and check a symbol is present
+        # If we don't require symbols, we assume True - and we could technically skip the for-loop
+        flag_sc = not require_symbols
+        sc = "^ $ * . [ ] { } ( ) ? ! @ # % & / \\ , > < ' : ; | _ ~ ` = + -"
+        for i in password:
+            if i in sc:
+                flag_sc = True
+
+        flag_u = not require_uppercase or bool(re.search(r"[A-Z]+", password))
+        flag_lo = not require_lowercase or bool(re.search(r"[a-z]+", password))
+        if not (flagl and flagn and flag_sc and flag_u and flag_lo):
+            raise InvalidPasswordException()
+
     def admin_set_user_password(
         self, user_pool_id: str, username: str, password: str, permanent: bool
     ) -> None:
         user = self.admin_get_user(user_pool_id, username)
+        # user.password = password
+        self._validate_password(user_pool_id, password)
         user.password = password
         if permanent:
             user.status = UserStatus.CONFIRMED

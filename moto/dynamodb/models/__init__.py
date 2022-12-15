@@ -1588,6 +1588,7 @@ class DynamoDBBackend(BaseBackend):
                 table=table,
             )
             validated_ast = validator.validate()
+            validated_ast.normalize()
             try:
                 UpdateExpressionExecutor(
                     validated_ast, item, expression_attribute_names

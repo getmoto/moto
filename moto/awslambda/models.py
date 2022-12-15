@@ -28,9 +28,11 @@ from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time_millis
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
+from moto.ecr.exceptions import ImageNotFoundException
 from moto.logs.models import logs_backends
 from moto.moto_api._internal import mock_random as random
 from moto.s3.models import s3_backends, FakeKey
+from moto.ecr.models import ecr_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
 from .exceptions import (
@@ -481,10 +483,29 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.code_size = 0
                 self.code_sha_256 = ""
         elif "ImageUri" in self.code:
-            self.code_sha_256 = hashlib.sha256(
-                self.code["ImageUri"].encode("utf-8")
-            ).hexdigest()
-            self.code_size = 0
+            if settings.lambda_stub_ecr():
+                self.code_sha_256 = hashlib.sha256(
+                    self.code["ImageUri"].encode("utf-8")
+                ).hexdigest()
+                self.code_size = 0
+            else:
+                uri, tag = self.code["ImageUri"].split(":")
+                repo_name = uri.split("/")[-1]
+                image_id = {"imageTag": tag}
+                ecr_backend = ecr_backends[self.account_id][self.region]
+                registry_id = ecr_backend.describe_registry()["registryId"]
+                images = ecr_backend.batch_get_image(
+                    repository_name=repo_name, image_ids=[image_id]
+                )["images"]
+
+                if len(images) == 0:
+                    raise ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
+                else:
+                    manifest = json.loads(images[0]["imageManifest"])
+                    self.code_sha_256 = images[0]["imageId"]["imageDigest"].replace(
+                        "sha256:", ""
+                    )
+                    self.code_size = manifest["config"]["size"]
 
         self.function_arn = make_function_arn(
             self.region, self.account_id, self.function_name
@@ -506,7 +527,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, self.account_id, self.function_name, version
         )
         self.version = version
-        self.last_modified = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        self.last_modified = datetime.datetime.utcnow().strftime(
+            "%Y-%m-%dT%H:%M:%S.000+0000"
+        )
 
     @property
     def vpc_config(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -977,7 +1000,7 @@ class FunctionUrlConfig:
         self.function = function
         self.config = config
         self.url = f"https://{random.uuid4().hex}.lambda-url.{function.region}.on.aws"
-        self.created = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        self.created = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000+0000")
         self.last_modified = self.created
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1287,7 +1310,14 @@ class LambdaStorage(object):
         if not self._functions[name]["latest"]:
             return None
 
-        new_version = len(self._functions[name]["versions"]) + 1
+        all_versions = self._functions[name]["versions"]
+        if all_versions:
+            latest_published = all_versions[-1]
+            if latest_published.code_sha_256 == function.code_sha_256:
+                # Nothing has changed, don't publish
+                return latest_published
+
+        new_version = len(all_versions) + 1
         fn = copy.copy(self._functions[name]["latest"])
         fn.set_version(new_version)
         if description:
@@ -1502,6 +1532,9 @@ class LambdaBackend(BaseBackend):
         )
 
     def create_function(self, spec: Dict[str, Any]) -> LambdaFunction:
+        """
+        The Code.ImageUri is not validated by default. Set environment variable MOTO_LAMBDA_STUB_ECR=false if you want to validate the image exists in our mocked ECR.
+        """
         function_name = spec.get("FunctionName", None)
         if function_name is None:
             raise RESTError("InvalidParameterValueException", "Missing FunctionName")
@@ -1853,6 +1886,7 @@ class LambdaBackend(BaseBackend):
         self, function_name: str, qualifier: str, body: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         fn: LambdaFunction = self.get_function(function_name, qualifier)
+        fn.update_function_code(body)
 
         if body.get("Publish", False):
             fn = self.publish_function(function_name)  # type: ignore[assignment]

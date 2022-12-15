@@ -1,5 +1,10 @@
 acm:
   - TestAccACMCertificateDataSource
+acmpca:
+  - TestAccACMPCACertificateAuthority_
+  - TestAccACMPCACertificateAuthorityDataSource
+  - TestAccACMPCACertificateAuthorityCertificate
+  - TestAccACMPCACertificateDataSource
 amp:
   - TestAccAMPWorkspace
   - TestAccAMPRuleGroupNamespace
@@ -56,6 +61,24 @@ batch:
   - TestAccBatchJobQueue_ComputeEnvironments_externalOrderUpdate
 ce:
   - TestAccCECostCategory
+cloudformation:
+  - TestAccCloudFormationExportDataSource
+  - TestAccCloudFormationStackDataSource_DataSource
+  - TestAccCloudFormationStackSet_basic
+  - TestAccCloudFormationStackSet_templateBody
+  - TestAccCloudFormationStackSet_templateURL
+  - TestAccCloudFormationStackSet_description
+  - TestAccCloudFormationStackSet_operationPreferences
+  - TestAccCloudFormationStackSet_name
+  - TestAccCloudFormationStackSet_executionRoleName
+  - TestAccCloudFormationStackSet_disappears
+  - TestAccCloudFormationStack_basic
+  - TestAccCloudFormationStack_disappears
+  - TestAccCloudFormationStack_onFailure
+  - TestAccCloudFormationStack_yaml
+  - TestAccCloudFormationStack_withTransform
+  - TestAccCloudFormationStack_WithURLWithParams_withYAML
+  - TestAccCloudFormationStack_WithURL_withParams
 cloudfront:
   - TestAccCloudFrontDistributionDataSource_basic
   - TestAccCloudFrontDistribution_isIPV6Enabled
@@ -267,8 +290,8 @@ route53|1:
   - TestAccRoute53Record_setIdentifierChange
   - TestAccRoute53Record_empty
   - TestAccRoute53Record_longTXTrecord
-  - TestAccRoute53Record_doNotAllowOverwrite
-  - TestAccRoute53Record_allowOverwrite
+  - TestAccRoute53Record_Allow_doNotOverwrite
+  - TestAccRoute53Record_Allow_overwrite
 route53|2:
   - TestAccRoute53Zone_
   - TestAccRoute53ZoneAssociation

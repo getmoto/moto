@@ -38,6 +38,26 @@ class ExportNotFound(RESTError):
         self.description = template.render(code="ExportNotFound", message=message)
 
 
+class StackSetNotEmpty(RESTError):
+    def __init__(self) -> None:
+        template = Template(ERROR_RESPONSE)
+        message = "StackSet is not empty"
+        super().__init__(error_type="StackSetNotEmptyException", message=message)
+        self.description = template.render(
+            code="StackSetNotEmptyException", message=message
+        )
+
+
+class StackSetNotFoundException(RESTError):
+    def __init__(self, name: str):
+        template = Template(ERROR_RESPONSE)
+        message = f"StackSet {name} not found"
+        super().__init__(error_type="StackSetNotFoundException", message=message)
+        self.description = template.render(
+            code="StackSetNotFoundException", message=message
+        )
+
+
 class UnsupportedAttribute(ValidationError):
     def __init__(self, resource: str, attr: str):
         template = Template(ERROR_RESPONSE)

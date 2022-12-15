@@ -1,7 +1,8 @@
 """ApiGatewayV2Backend class with methods for supported APIs."""
+import hashlib
 import string
 import yaml
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import unix_time
@@ -9,6 +10,7 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import (
+    ApiMappingNotFound,
     ApiNotFound,
     AuthorizerNotFound,
     BadRequestException,
@@ -18,6 +20,8 @@ from .exceptions import (
     IntegrationResponseNotFound,
     RouteNotFound,
     VpcLinkNotFound,
+    DomainNameNotFound,
+    DomainNameAlreadyExists,
 )
 
 
@@ -1011,6 +1015,55 @@ class VpcLink(BaseModel):
         }
 
 
+class DomainName(BaseModel):
+    def __init__(
+        self,
+        domain_name: str,
+        domain_name_configurations: List[Dict[str, str]],
+        mutual_tls_authentication: Dict[str, str],
+        tags: Dict[str, str],
+    ):
+        self.api_mapping_selection_expression = "$request.basepath"
+        self.domain_name = domain_name
+        self.domain_name_configurations = domain_name_configurations
+        self.mutual_tls_authentication = mutual_tls_authentication
+        self.tags = tags
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "apiMappingSelectionExpression": self.api_mapping_selection_expression,
+            "domainName": self.domain_name,
+            "domainNameConfigurations": self.domain_name_configurations,
+            "mutualTlsAuthentication": self.mutual_tls_authentication,
+            "tags": self.tags,
+        }
+
+
+class ApiMapping(BaseModel):
+    def __init__(
+        self,
+        api_id: str,
+        api_mapping_key: str,
+        api_mapping_id: str,
+        domain_name: str,
+        stage: str,
+    ) -> None:
+        self.api_id = api_id
+        self.api_mapping_key = api_mapping_key
+        self.api_mapping_id = api_mapping_id
+        self.domain_name = domain_name
+        self.stage = stage
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "apiId": self.api_id,
+            "apiMappingId": self.api_mapping_id,
+            "apiMappingKey": self.api_mapping_key,
+            "domainName": self.domain_name,
+            "stage": self.stage,
+        }
+
+
 class ApiGatewayV2Backend(BaseBackend):
     """Implementation of ApiGatewayV2 APIs."""
 
@@ -1018,6 +1071,8 @@ class ApiGatewayV2Backend(BaseBackend):
         super().__init__(region_name, account_id)
         self.apis: Dict[str, Api] = dict()
         self.vpc_links: Dict[str, VpcLink] = dict()
+        self.domain_names: Dict[str, DomainName] = dict()
+        self.api_mappings: Dict[str, ApiMapping] = dict()
         self.tagger = TaggingService()
 
     def create_api(
@@ -1536,6 +1591,115 @@ class ApiGatewayV2Backend(BaseBackend):
         vpc_link = self.get_vpc_link(vpc_link_id)
         vpc_link.update(name)
         return vpc_link
+
+    def create_domain_name(
+        self,
+        domain_name: str,
+        domain_name_configurations: List[Dict[str, str]],
+        mutual_tls_authentication: Dict[str, str],
+        tags: Dict[str, str],
+    ) -> DomainName:
+
+        if domain_name in self.domain_names.keys():
+            raise DomainNameAlreadyExists
+
+        domain = DomainName(
+            domain_name=domain_name,
+            domain_name_configurations=domain_name_configurations,
+            mutual_tls_authentication=mutual_tls_authentication,
+            tags=tags,
+        )
+        self.domain_names[domain.domain_name] = domain
+        return domain
+
+    def get_domain_name(self, domain_name: Union[str, None]) -> DomainName:
+        if domain_name is None or domain_name not in self.domain_names:
+            raise DomainNameNotFound
+        return self.domain_names[domain_name]
+
+    def get_domain_names(self) -> List[DomainName]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.domain_names.values())
+
+    def delete_domain_name(self, domain_name: str) -> None:
+        if domain_name not in self.domain_names.keys():
+            raise DomainNameNotFound
+
+        for mapping_id, mapping in self.api_mappings.items():
+            if mapping.domain_name == domain_name:
+                del self.api_mappings[mapping_id]
+
+        del self.domain_names[domain_name]
+
+    def _generate_api_maping_id(
+        self, api_mapping_key: str, stage: str, domain_name: str
+    ) -> str:
+        return str(
+            hashlib.sha256(
+                f"{stage} {domain_name}/{api_mapping_key}".encode("utf-8")
+            ).hexdigest()
+        )[:5]
+
+    def create_api_mapping(
+        self, api_id: str, api_mapping_key: str, domain_name: str, stage: str
+    ) -> ApiMapping:
+        if domain_name not in self.domain_names.keys():
+            raise DomainNameNotFound
+
+        if api_id not in self.apis.keys():
+            raise ApiNotFound("The resource specified in the request was not found.")
+
+        if api_mapping_key.startswith("/") or "//" in api_mapping_key:
+            raise BadRequestException(
+                "API mapping key should not start with a '/' or have consecutive '/'s."
+            )
+
+        if api_mapping_key.endswith("/"):
+            raise BadRequestException("API mapping key should not end with a '/'.")
+
+        api_mapping_id = self._generate_api_maping_id(
+            api_mapping_key=api_mapping_key, stage=stage, domain_name=domain_name
+        )
+
+        mapping = ApiMapping(
+            domain_name=domain_name,
+            api_id=api_id,
+            api_mapping_key=api_mapping_key,
+            api_mapping_id=api_mapping_id,
+            stage=stage,
+        )
+
+        self.api_mappings[api_mapping_id] = mapping
+        return mapping
+
+    def get_api_mapping(self, api_mapping_id: str, domain_name: str) -> ApiMapping:
+        if domain_name not in self.domain_names.keys():
+            raise DomainNameNotFound
+
+        if api_mapping_id not in self.api_mappings.keys():
+            raise ApiMappingNotFound
+
+        return self.api_mappings[api_mapping_id]
+
+    def get_api_mappings(self, domain_name: str) -> List[ApiMapping]:
+        domain_mappings = []
+        for mapping in self.api_mappings.values():
+            if mapping.domain_name == domain_name:
+                domain_mappings.append(mapping)
+        return domain_mappings
+
+    def delete_api_mapping(self, api_mapping_id: str, domain_name: str) -> None:
+        if api_mapping_id not in self.api_mappings.keys():
+            raise ApiMappingNotFound
+
+        if self.api_mappings[api_mapping_id].domain_name != domain_name:
+            raise BadRequestException(
+                f"given domain name {domain_name} does not match with mapping definition of mapping {api_mapping_id}"
+            )
+
+        del self.api_mappings[api_mapping_id]
 
 
 apigatewayv2_backends = BackendDict(ApiGatewayV2Backend, "apigatewayv2")

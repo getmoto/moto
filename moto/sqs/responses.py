@@ -299,10 +299,23 @@ class SQSResponse(BaseResponse):
         if entries == {}:
             raise EmptyBatchRequest()
 
-        messages = self.sqs_backend.send_message_batch(queue_name, entries)
+        messages, failedInvalidDelay = self.sqs_backend.send_message_batch(
+            queue_name, entries
+        )
+
+        errors = []
+        for entry in failedInvalidDelay:
+            errors.append(
+                {
+                    "Id": entry["Id"],
+                    "SenderFault": "true",
+                    "Code": "InvalidParameterValue",
+                    "Message": "Value 1800 for parameter DelaySeconds is invalid. Reason: DelaySeconds must be &gt;= 0 and &lt;= 900.",
+                }
+            )
 
         template = self.response_template(SEND_MESSAGE_BATCH_RESPONSE)
-        return template.render(messages=messages)
+        return template.render(messages=messages, errors=errors)
 
     def delete_message(self):
         queue_name = self._get_queue_name()
@@ -570,7 +583,8 @@ SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
     </ResponseMetadata>
 </SendMessageResponse>"""
 
-RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
+RECEIVE_MESSAGE_RESPONSE = """<?xml version="1.0"?>
+<ReceiveMessageResponse  xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
   <ReceiveMessageResult>
     {% for message in messages %}
         <Message>
@@ -637,7 +651,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
                 {% if 'Binary' in value.data_type %}
                 <BinaryValue>{{ value.binary_value }}</BinaryValue>
                 {% else %}
-                <StringValue><![CDATA[{{ value.string_value }}]]></StringValue>
+                <StringValue>{{ value.string_value|e }}</StringValue>
                 {% endif %}
               </Value>
             </MessageAttribute>
@@ -646,10 +660,11 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
     {% endfor %}
   </ReceiveMessageResult>
   <ResponseMetadata>
-    <RequestId></RequestId>
+    <RequestId>5bdc09f4-0a03-5425-8468-55e04a092ed8</RequestId>
   </ResponseMetadata>
 </ReceiveMessageResponse>"""
 
+# UPDATED Line 681-688
 SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
 <SendMessageBatchResult>
     {% for message in messages %}
@@ -661,6 +676,14 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
             <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
             {% endif %}
         </SendMessageBatchResultEntry>
+    {% endfor %}
+    {% for error_dict in errors %}
+    <BatchResultErrorEntry>
+        <Id>{{ error_dict['Id'] }}</Id>
+        <Code>{{ error_dict['Code'] }}</Code>
+        <Message>{{ error_dict['Message'] }}</Message>
+        <SenderFault>{{ error_dict['SenderFault'] }}</SenderFault>
+    </BatchResultErrorEntry>
     {% endfor %}
 </SendMessageBatchResult>
 <ResponseMetadata>

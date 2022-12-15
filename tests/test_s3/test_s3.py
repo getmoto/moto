@@ -1397,6 +1397,36 @@ def test_list_objects_v2_truncate_combined_keys_and_folders():
 
 
 @mock_s3
+def test_list_objects_v2_checksum_algo():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+    resp = s3.put_object(Bucket="mybucket", Key="0", Body="a")
+    resp.should_not.have.key("ChecksumCRC32")
+    resp["ResponseMetadata"]["HTTPHeaders"].should_not.have.key(
+        "x-amz-sdk-checksum-algorithm"
+    )
+    resp = s3.put_object(
+        Bucket="mybucket", Key="1", Body="a", ChecksumAlgorithm="CRC32"
+    )
+    resp.should.have.key("ChecksumCRC32")
+    resp["ResponseMetadata"]["HTTPHeaders"][
+        "x-amz-sdk-checksum-algorithm"
+    ].should.equal("CRC32")
+    resp = s3.put_object(
+        Bucket="mybucket", Key="2", Body="b", ChecksumAlgorithm="SHA256"
+    )
+    resp.should.have.key("ChecksumSHA256")
+    resp["ResponseMetadata"]["HTTPHeaders"][
+        "x-amz-sdk-checksum-algorithm"
+    ].should.equal("SHA256")
+
+    resp = s3.list_objects_v2(Bucket="mybucket")["Contents"]
+    resp[0].should_not.have.key("ChecksumAlgorithm")
+    resp[1].should.have.key("ChecksumAlgorithm").equals(["CRC32"])
+    resp[2].should.have.key("ChecksumAlgorithm").equals(["SHA256"])
+
+
+@mock_s3
 def test_bucket_create():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="blah")
@@ -3285,7 +3315,9 @@ if settings.TEST_SERVER_MODE:
 
 
 @mock_s3
-@pytest.mark.parametrize("prefix", ["file", "file+else", "file&another"])
+@pytest.mark.parametrize(
+    "prefix", ["file", "file+else", "file&another", "file another"]
+)
 def test_get_object_versions_with_prefix(prefix):
     bucket_name = "testbucket-3113"
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)

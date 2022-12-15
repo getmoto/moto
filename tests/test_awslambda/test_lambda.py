@@ -1,4 +1,7 @@
 import base64
+import json
+import os
+from unittest import SkipTest
 import botocore.client
 import boto3
 import hashlib
@@ -7,14 +10,17 @@ import pytest
 
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-from moto import mock_lambda, mock_s3
+from tests.test_ecr.test_ecr_helpers import _create_image_manifest
+from moto import mock_lambda, mock_s3, mock_ecr, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from uuid import uuid4
 from .utilities import (
     get_role_name,
     get_test_zip_file1,
     get_test_zip_file2,
+    get_test_zip_file3,
     create_invalid_lambda,
+    _process_lambda,
 )
 
 _lambda_region = "us-west-2"
@@ -205,11 +211,29 @@ def test_create_function__with_tracingmode(tracing_mode):
     result.should.have.key("TracingConfig").should.equal({"Mode": output})
 
 
+@pytest.fixture(name="with_ecr_mock")
+def ecr_repo_fixture():
+    with mock_ecr():
+        os.environ["MOTO_LAMBDA_STUB_ECR"] = "FALSE"
+        repo_name = "testlambdaecr"
+        ecr_client = ecr_client = boto3.client("ecr", "us-east-1")
+        ecr_client.create_repository(repositoryName=repo_name)
+        ecr_client.put_image(
+            repositoryName=repo_name,
+            imageManifest=json.dumps(_create_image_manifest()),
+            imageTag="latest",
+        )
+        yield
+        ecr_client.delete_repository(repositoryName=repo_name, force=True)
+        os.environ["MOTO_LAMBDA_STUB_ECR"] = "TRUE"
+
+
 @mock_lambda
-def test_create_function_from_image():
+def test_create_function_from_stubbed_ecr():
     lambda_client = boto3.client("lambda", "us-east-1")
     fn_name = str(uuid4())[0:6]
     image_uri = "111122223333.dkr.ecr.us-east-1.amazonaws.com/testlambda:latest"
+
     dic = {
         "FunctionName": fn_name,
         "Role": get_role_name(),
@@ -217,6 +241,7 @@ def test_create_function_from_image():
         "PackageType": "Image",
         "Timeout": 100,
     }
+
     resp = lambda_client.create_function(**dic)
 
     resp.should.have.key("FunctionName").equals(fn_name)
@@ -234,6 +259,79 @@ def test_create_function_from_image():
     image_uri_without_tag = image_uri.split(":")[0]
     resolved_image_uri = f"{image_uri_without_tag}@sha256:{config['CodeSha256']}"
     code.should.have.key("ResolvedImageUri").equals(resolved_image_uri)
+
+
+@mock_lambda
+def test_create_function_from_mocked_ecr_image(
+    with_ecr_mock,
+):  # pylint: disable=unused-argument
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
+
+    lambda_client = boto3.client("lambda", "us-east-1")
+    fn_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:latest"
+
+    dic = {
+        "FunctionName": fn_name,
+        "Role": get_role_name(),
+        "Code": {"ImageUri": image_uri},
+        "PackageType": "Image",
+        "Timeout": 100,
+    }
+    resp = lambda_client.create_function(**dic)
+
+    resp.should.have.key("FunctionName").equals(fn_name)
+    resp.should.have.key("CodeSize").greater_than(0)
+    resp.should.have.key("CodeSha256")
+    resp.should.have.key("PackageType").equals("Image")
+
+    result = lambda_client.get_function(FunctionName=fn_name)
+    result.should.have.key("Configuration")
+    config = result["Configuration"]
+    config.should.have.key("CodeSha256").equals(resp["CodeSha256"])
+    config.should.have.key("CodeSize").equals(resp["CodeSize"])
+    result.should.have.key("Code")
+    code = result["Code"]
+    code.should.have.key("RepositoryType").equals("ECR")
+    code.should.have.key("ImageUri").equals(image_uri)
+    image_uri_without_tag = image_uri.split(":")[0]
+    resolved_image_uri = f"{image_uri_without_tag}@sha256:{config['CodeSha256']}"
+    code.should.have.key("ResolvedImageUri").equals(resolved_image_uri)
+
+
+@mock_lambda
+def test_create_function_from_mocked_ecr_missing_image(
+    with_ecr_mock,
+):  # pylint: disable=unused-argument
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
+
+    lambda_client = boto3.client("lambda", "us-east-1")
+
+    fn_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:dne"
+
+    dic = {
+        "FunctionName": fn_name,
+        "Role": get_role_name(),
+        "Code": {"ImageUri": image_uri},
+        "PackageType": "Image",
+        "Timeout": 100,
+    }
+
+    with pytest.raises(ClientError) as exc:
+        lambda_client.create_function(**dic)
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ImageNotFoundException")
+    err["Message"].should.equal(
+        "The image with imageId {'imageTag': 'dne'} does not exist within the repository with name 'testlambdaecr' in the registry with id '123456789012'"
+    )
 
 
 @mock_lambda
@@ -774,6 +872,7 @@ def test_list_versions_by_function():
         MemorySize=128,
         Publish=True,
     )
+    conn.update_function_code(FunctionName=function_name, ZipFile=get_test_zip_file1())
 
     res = conn.publish_version(FunctionName=function_name)
     assert res["ResponseMetadata"]["HTTPStatusCode"] == 201
@@ -945,12 +1044,14 @@ def test_update_function_zip(key):
         Publish=True,
     )
     name_or_arn = fxn[key]
+    first_sha = fxn["CodeSha256"]
 
     zip_content_two = get_test_zip_file2()
 
-    conn.update_function_code(
+    update1 = conn.update_function_code(
         FunctionName=name_or_arn, ZipFile=zip_content_two, Publish=True
     )
+    update1["CodeSha256"].shouldnt.equal(first_sha)
 
     response = conn.get_function(FunctionName=function_name, Qualifier="2")
 
@@ -970,6 +1071,30 @@ def test_update_function_zip(key):
     config.should.have.key("FunctionName").equals(function_name)
     config.should.have.key("Version").equals("2")
     config.should.have.key("LastUpdateStatus").equals("Successful")
+    config.should.have.key("CodeSha256").equals(update1["CodeSha256"])
+
+    most_recent_config = conn.get_function(FunctionName=function_name)
+    most_recent_config["Configuration"]["CodeSha256"].should.equal(
+        update1["CodeSha256"]
+    )
+
+    # Publishing this again, with the same code, gives us the same version
+    same_update = conn.update_function_code(
+        FunctionName=name_or_arn, ZipFile=zip_content_two, Publish=True
+    )
+    same_update["FunctionArn"].should.equal(
+        most_recent_config["Configuration"]["FunctionArn"] + ":2"
+    )
+    same_update["Version"].should.equal("2")
+
+    # Only when updating the code should we have a new version
+    new_update = conn.update_function_code(
+        FunctionName=name_or_arn, ZipFile=get_test_zip_file3(), Publish=True
+    )
+    new_update["FunctionArn"].should.equal(
+        most_recent_config["Configuration"]["FunctionArn"] + ":3"
+    )
+    new_update["Version"].should.equal("3")
 
 
 @mock_lambda
@@ -1095,6 +1220,8 @@ def test_multiple_qualifiers():
     )
 
     for _ in range(10):
+        new_zip = _process_lambda(f"func content {_}")
+        client.update_function_code(FunctionName=fn_name, ZipFile=new_zip)
         client.publish_version(FunctionName=fn_name)
 
     resp = client.list_versions_by_function(FunctionName=fn_name)["Versions"]

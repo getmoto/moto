@@ -38,11 +38,23 @@ cloudformation
         
 
 - [X] create_stack_instances
+  
+        The following parameters are not yet implemented: DeploymentTargets.AccountFilterType, DeploymentTargets.AccountsUrl, OperationPreferences, CallAs
+        
+
 - [X] create_stack_set
+  
+        The following parameters are not yet implemented: StackId, AdministrationRoleARN, AutoDeployment, ExecutionRoleName, CallAs, ClientRequestToken, ManagedExecution
+        
+
 - [ ] deactivate_type
 - [X] delete_change_set
 - [X] delete_stack
 - [X] delete_stack_instances
+  
+        The following parameters are not  yet implemented: DeploymentTargets, OperationPreferences, RetainStacks, OperationId, CallAs
+        
+
 - [X] delete_stack_set
 - [ ] deregister_type
 - [ ] describe_account_limits
@@ -50,13 +62,13 @@ cloudformation
 - [ ] describe_change_set_hooks
 - [ ] describe_publisher
 - [ ] describe_stack_drift_detection_status
-- [ ] describe_stack_events
-- [ ] describe_stack_instance
-- [ ] describe_stack_resource
+- [X] describe_stack_events
+- [X] describe_stack_instance
+- [X] describe_stack_resource
 - [ ] describe_stack_resource_drifts
-- [ ] describe_stack_resources
-- [ ] describe_stack_set
-- [ ] describe_stack_set_operation
+- [X] describe_stack_resources
+- [X] describe_stack_set
+- [X] describe_stack_set_operation
 - [X] describe_stacks
 - [ ] describe_type
 - [ ] describe_type_registration
@@ -66,17 +78,22 @@ cloudformation
 - [ ] estimate_template_cost
 - [X] execute_change_set
 - [X] get_stack_policy
-- [ ] get_template
+- [X] get_template
 - [ ] get_template_summary
 - [ ] import_stacks_to_stack_set
 - [X] list_change_sets
 - [X] list_exports
 - [ ] list_imports
-- [ ] list_stack_instances
+- [X] list_stack_instances
+  
+        Pagination is not yet implemented.
+        The parameters StackInstanceAccount/StackInstanceRegion are not yet implemented.
+        
+
 - [X] list_stack_resources
-- [ ] list_stack_set_operation_results
-- [ ] list_stack_set_operations
-- [ ] list_stack_sets
+- [X] list_stack_set_operation_results
+- [X] list_stack_set_operations
+- [X] list_stack_sets
 - [X] list_stacks
 - [ ] list_type_registrations
 - [ ] list_type_versions
@@ -94,10 +111,14 @@ cloudformation
 - [ ] set_type_configuration
 - [ ] set_type_default_version
 - [ ] signal_resource
-- [ ] stop_stack_set_operation
+- [X] stop_stack_set_operation
 - [ ] test_type
 - [X] update_stack
 - [X] update_stack_instances
+  
+        Calling this will update the parameters, but the actual resources are not updated
+        
+
 - [X] update_stack_set
 - [ ] update_termination_protection
 - [X] validate_template

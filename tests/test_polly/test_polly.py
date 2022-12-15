@@ -29,7 +29,7 @@ def test_describe_voices():
     len(resp["Voices"]).should.be.greater_than(1)
 
     resp = client.describe_voices(LanguageCode="en-GB")
-    len(resp["Voices"]).should.equal(3)
+    len(resp["Voices"]).should.equal(4)
 
     try:
         client.describe_voices(LanguageCode="SOME_LANGUAGE")

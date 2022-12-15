@@ -72,6 +72,19 @@ def test_set_stack_policy_with_body():
 
 
 @mock_cloudformation
+def test_set_stack_policy_on_create():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_json,
+        StackPolicyBody="stack_policy_body",
+    )
+
+    resp = cf_conn.get_stack_policy(StackName="test_stack")
+    resp.should.have.key("StackPolicyBody").equals("stack_policy_body")
+
+
+@mock_cloudformation
 @mock_s3
 def test_set_stack_policy_with_url():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")

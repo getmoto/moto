@@ -1,6 +1,8 @@
 import logging
-
+import base64
+import binascii
 import re
+import hashlib
 from urllib.parse import urlparse, unquote, quote
 from requests.structures import CaseInsensitiveDict
 from typing import Union, Tuple
@@ -174,3 +176,21 @@ class _VersionedKeyStore(dict):
     items = iteritems = _iteritems
     lists = iterlists = _iterlists
     values = itervalues = _itervalues
+
+
+def compute_checksum(body, algorithm):
+    if algorithm == "SHA1":
+        hashed_body = _hash(hashlib.sha1, (body,))
+    elif algorithm == "CRC32" or algorithm == "CRC32C":
+        hashed_body = f"{binascii.crc32(body)}".encode("utf-8")
+    else:
+        hashed_body = _hash(hashlib.sha256, (body,))
+    return base64.b64encode(hashed_body)
+
+
+def _hash(fn, args) -> bytes:
+    try:
+        return fn(*args, usedforsecurity=False).hexdigest().encode("utf-8")
+    except TypeError:
+        # The usedforsecurity-parameter is only available as of Python 3.9
+        return fn(*args).hexdigest().encode("utf-8")

@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from moto import mock_lambda, mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from uuid import uuid4
-from .utilities import get_role_name, get_test_zip_file1
+from .utilities import get_role_name, get_test_zip_file1, get_test_zip_file2
 
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
@@ -139,7 +139,7 @@ def test_get_policy_with_qualifier():
         Publish=True,
     )
 
-    zip_content_two = get_test_zip_file1()
+    zip_content_two = get_test_zip_file2()
 
     conn.update_function_code(
         FunctionName=function_name, ZipFile=zip_content_two, Publish=True
@@ -250,7 +250,7 @@ def test_remove_function_permission__with_qualifier(key):
     name_or_arn = f[key]
 
     # Ensure Qualifier=2 exists
-    zip_content_two = get_test_zip_file1()
+    zip_content_two = get_test_zip_file2()
     conn.update_function_code(
         FunctionName=function_name, ZipFile=zip_content_two, Publish=True
     )

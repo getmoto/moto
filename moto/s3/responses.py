@@ -53,7 +53,12 @@ from .exceptions import (
 )
 from .models import s3_backends
 from .models import get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
-from .utils import bucket_name_from_url, metadata_from_headers, parse_region_from_url
+from .utils import (
+    bucket_name_from_url,
+    metadata_from_headers,
+    parse_region_from_url,
+    compute_checksum,
+)
 from xml.dom import minidom
 
 
@@ -261,7 +266,7 @@ class S3Response(BaseResponse):
             return status_code, headers, response_content
 
     def _bucket_response(self, request, full_url):
-        querystring = self._get_querystring(full_url)
+        querystring = self._get_querystring(request, full_url)
         method = request.method
         region_name = parse_region_from_url(full_url, use_default_region=False)
         if region_name is None:
@@ -297,7 +302,17 @@ class S3Response(BaseResponse):
             )
 
     @staticmethod
-    def _get_querystring(full_url):
+    def _get_querystring(request, full_url):
+        # Flask's Request has the querystring already parsed
+        # In ServerMode, we can use this, instead of manually parsing this
+        if hasattr(request, "args"):
+            query_dict = dict()
+            for key, val in dict(request.args).items():
+                # The parse_qs-method returns List[str, List[Any]]
+                # Ensure that we confirm to the same response-type here
+                query_dict[key] = val if isinstance(val, list) else [val]
+            return query_dict
+
         parsed_url = urlparse(full_url)
         # full_url can be one of two formats, depending on the version of werkzeug used:
         # http://foobaz.localhost:5000/?prefix=bar%2Bbaz
@@ -1286,7 +1301,7 @@ class S3Response(BaseResponse):
             if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
             if key.last_modified.replace(microsecond=0) <= if_modified_since:
                 return 304, response_headers, "Not Modified"
-        if if_none_match and key.etag == if_none_match:
+        if if_none_match and key.etag in [if_none_match, f'"{if_none_match}"']:
             return 304, response_headers, "Not Modified"
 
         if "acl" in query:
@@ -1376,6 +1391,12 @@ class S3Response(BaseResponse):
             checksum_value = search.group(1) if search else None
 
         if checksum_value:
+            # TODO: AWS computes the provided value and verifies it's the same
+            # Afterwards, it should be returned in every subsequent call
+            response_headers.update({checksum_header: checksum_value})
+        elif checksum_algorithm:
+            # If the value is not provided, we compute it and only return it as part of this request
+            checksum_value = compute_checksum(body, algorithm=checksum_algorithm)
             response_headers.update({checksum_header: checksum_value})
 
         # Extract the actual data from the body second
@@ -1535,6 +1556,8 @@ class S3Response(BaseResponse):
         new_key.website_redirect_location = request.headers.get(
             "x-amz-website-redirect-location"
         )
+        if checksum_algorithm:
+            new_key.checksum_algorithm = checksum_algorithm
         self.backend.set_key_tags(new_key, tagging)
 
         response_headers.update(new_key.response_dict)
@@ -2170,6 +2193,9 @@ S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
         <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
         <DisplayName>webfile</DisplayName>
       </Owner>
+      {% endif %}
+      {% if key.checksum_algorithm %}
+      <ChecksumAlgorithm>{{ key.checksum_algorithm }}</ChecksumAlgorithm>
       {% endif %}
     </Contents>
   {% endfor %}

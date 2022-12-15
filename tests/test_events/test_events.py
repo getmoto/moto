@@ -1,11 +1,10 @@
 import json
 import random
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
 import pytest
-import pytz
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
@@ -1825,8 +1824,8 @@ def test_describe_replay():
         ReplayName=name,
         Description="test replay",
         EventSourceArn=archive_arn,
-        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
-        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        EventStartTime=datetime(2021, 2, 1, tzinfo=timezone.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=timezone.utc),
         Destination={"Arn": event_bus_arn},
     )
 
@@ -1837,8 +1836,8 @@ def test_describe_replay():
     response["Description"].should.equal("test replay")
     response["Destination"].should.equal({"Arn": event_bus_arn})
     response["EventSourceArn"].should.equal(archive_arn)
-    response["EventStartTime"].should.equal(datetime(2021, 2, 1, tzinfo=pytz.utc))
-    response["EventEndTime"].should.equal(datetime(2021, 2, 2, tzinfo=pytz.utc))
+    response["EventStartTime"].should.equal(datetime(2021, 2, 1, tzinfo=timezone.utc))
+    response["EventEndTime"].should.equal(datetime(2021, 2, 2, tzinfo=timezone.utc))
     response["ReplayArn"].should.equal(
         f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:replay/{name}"
     )
@@ -1879,8 +1878,8 @@ def test_list_replays():
         ReplayName=name,
         Description="test replay",
         EventSourceArn=archive_arn,
-        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
-        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        EventStartTime=datetime(2021, 2, 1, tzinfo=timezone.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=timezone.utc),
         Destination={"Arn": event_bus_arn},
     )
 
@@ -1891,8 +1890,8 @@ def test_list_replays():
     replays.should.have.length_of(1)
     replay = replays[0]
     replay["EventSourceArn"].should.equal(archive_arn)
-    replay["EventStartTime"].should.equal(datetime(2021, 2, 1, tzinfo=pytz.utc))
-    replay["EventEndTime"].should.equal(datetime(2021, 2, 2, tzinfo=pytz.utc))
+    replay["EventStartTime"].should.equal(datetime(2021, 2, 1, tzinfo=timezone.utc))
+    replay["EventEndTime"].should.equal(datetime(2021, 2, 2, tzinfo=timezone.utc))
     replay["ReplayName"].should.equal(name)
     replay["ReplayStartTime"].should.be.a(datetime)
     replay["ReplayEndTime"].should.be.a(datetime)
@@ -1910,15 +1909,15 @@ def test_list_replays_with_name_prefix():
     client.start_replay(
         ReplayName="test",
         EventSourceArn=archive_arn,
-        EventStartTime=datetime(2021, 1, 1, tzinfo=pytz.utc),
-        EventEndTime=datetime(2021, 1, 2, tzinfo=pytz.utc),
+        EventStartTime=datetime(2021, 1, 1, tzinfo=timezone.utc),
+        EventEndTime=datetime(2021, 1, 2, tzinfo=timezone.utc),
         Destination={"Arn": event_bus_arn},
     )
     client.start_replay(
         ReplayName="test-replay",
         EventSourceArn=archive_arn,
-        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
-        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        EventStartTime=datetime(2021, 2, 1, tzinfo=timezone.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=timezone.utc),
         Destination={"Arn": event_bus_arn},
     )
 
@@ -1941,15 +1940,15 @@ def test_list_replays_with_source_arn():
     client.start_replay(
         ReplayName="test",
         EventSourceArn=archive_arn,
-        EventStartTime=datetime(2021, 1, 1, tzinfo=pytz.utc),
-        EventEndTime=datetime(2021, 1, 2, tzinfo=pytz.utc),
+        EventStartTime=datetime(2021, 1, 1, tzinfo=timezone.utc),
+        EventEndTime=datetime(2021, 1, 2, tzinfo=timezone.utc),
         Destination={"Arn": event_bus_arn},
     )
     client.start_replay(
         ReplayName="test-replay",
         EventSourceArn=archive_arn,
-        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
-        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        EventStartTime=datetime(2021, 2, 1, tzinfo=timezone.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=timezone.utc),
         Destination={"Arn": event_bus_arn},
     )
 
@@ -1971,15 +1970,15 @@ def test_list_replays_with_state():
     client.start_replay(
         ReplayName="test",
         EventSourceArn=archive_arn,
-        EventStartTime=datetime(2021, 1, 1, tzinfo=pytz.utc),
-        EventEndTime=datetime(2021, 1, 2, tzinfo=pytz.utc),
+        EventStartTime=datetime(2021, 1, 1, tzinfo=timezone.utc),
+        EventEndTime=datetime(2021, 1, 2, tzinfo=timezone.utc),
         Destination={"Arn": event_bus_arn},
     )
     client.start_replay(
         ReplayName="test-replay",
         EventSourceArn=archive_arn,
-        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
-        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        EventStartTime=datetime(2021, 2, 1, tzinfo=timezone.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=timezone.utc),
         Destination={"Arn": event_bus_arn},
     )
 
@@ -2045,8 +2044,8 @@ def test_cancel_replay():
         ReplayName=name,
         Description="test replay",
         EventSourceArn=archive_arn,
-        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
-        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        EventStartTime=datetime(2021, 2, 1, tzinfo=timezone.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=timezone.utc),
         Destination={"Arn": event_bus_arn},
     )
 
@@ -2094,8 +2093,8 @@ def test_cancel_replay_error_illegal_state():
         ReplayName=name,
         Description="test replay",
         EventSourceArn=archive_arn,
-        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
-        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        EventStartTime=datetime(2021, 2, 1, tzinfo=timezone.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=timezone.utc),
         Destination={"Arn": event_bus_arn},
     )
     client.cancel_replay(ReplayName=name)

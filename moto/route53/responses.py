@@ -219,9 +219,7 @@ class Route53(BaseResponse):
             if effective_rr_count > 1000:
                 raise InvalidChangeBatch
 
-            error_msg = self.backend.change_resource_record_sets(zoneid, change_list)
-            if error_msg:
-                return 400, headers, error_msg
+            self.backend.change_resource_record_sets(zoneid, change_list)
 
             return 200, headers, CHANGE_RRSET_RESPONSE
 

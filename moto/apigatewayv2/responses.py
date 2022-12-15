@@ -180,6 +180,38 @@ class ApiGatewayV2Response(BaseResponse):
         if request.method == "POST":
             return self.create_vpc_link()
 
+    def domain_names(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        if request.method == "GET":
+            return self.get_domain_names()
+        if request.method == "POST":
+            return self.create_domain_name()
+
+    def domain_name(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        if request.method == "GET":
+            return self.get_domain_name()
+        if request.method == "DELETE":
+            return self.delete_domain_name()
+
+    def api_mappings(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        if request.method == "GET":
+            return self.get_api_mappings()
+        if request.method == "POST":
+            return self.create_api_mapping()
+
+    def api_mapping(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        if request.method == "GET":
+            return self.get_api_mapping()
+        if request.method == "DELETE":
+            return self.delete_api_mapping()
+
     def create_api(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
 
@@ -751,3 +783,74 @@ class ApiGatewayV2Response(BaseResponse):
 
         vpc_link = self.apigatewayv2_backend.update_vpc_link(vpc_link_id, name=name)
         return 200, {}, json.dumps(vpc_link.to_json())
+
+    def create_domain_name(self) -> TYPE_RESPONSE:
+        params = json.loads(self.body)
+        domain_name = params.get("domainName")
+        domain_name_configurations = params.get("domainNameConfigurations", [{}])
+        mutual_tls_authentication = params.get("mutualTlsAuthentication", {})
+        tags = params.get("tags", {})
+        domain_name = self.apigatewayv2_backend.create_domain_name(
+            domain_name=domain_name,
+            domain_name_configurations=domain_name_configurations,
+            mutual_tls_authentication=mutual_tls_authentication,
+            tags=tags,
+        )
+        return 201, {}, json.dumps(domain_name.to_json())
+
+    def get_domain_name(self) -> TYPE_RESPONSE:
+        domain_name_param = self.path.split("/")[-1]
+        domain_name = self.apigatewayv2_backend.get_domain_name(
+            domain_name=domain_name_param
+        )
+        return 200, {}, json.dumps(domain_name.to_json())
+
+    def get_domain_names(self) -> TYPE_RESPONSE:
+        domain_names = self.apigatewayv2_backend.get_domain_names()
+        list_of_dict = [domain_name.to_json() for domain_name in domain_names]
+        return 200, {}, json.dumps(dict(items=list_of_dict))
+
+    def create_api_mapping(self) -> TYPE_RESPONSE:
+        domain_name = self.path.split("/")[-2]
+        params = json.loads(self.body)
+        api_id = params.get("apiId")
+        api_mapping_key = params.get("apiMappingKey", "")
+        stage = params.get("stage")
+        mapping = self.apigatewayv2_backend.create_api_mapping(
+            api_id=api_id,
+            api_mapping_key=api_mapping_key,
+            domain_name=domain_name,
+            stage=stage,
+        )
+        return 201, {}, json.dumps(mapping.to_json())
+
+    def get_api_mapping(self) -> TYPE_RESPONSE:
+        api_mapping_id = self.path.split("/")[-1]
+        domain_name = self.path.split("/")[-3]
+        mapping = self.apigatewayv2_backend.get_api_mapping(
+            api_mapping_id=api_mapping_id,
+            domain_name=domain_name,
+        )
+        return 200, {}, json.dumps(mapping.to_json())
+
+    def get_api_mappings(self) -> TYPE_RESPONSE:
+        domain_name = self.path.split("/")[-2]
+        mappings = self.apigatewayv2_backend.get_api_mappings(domain_name=domain_name)
+        list_of_dict = [mapping.to_json() for mapping in mappings]
+        return 200, {}, json.dumps(dict(items=list_of_dict))
+
+    def delete_domain_name(self) -> TYPE_RESPONSE:
+        domain_name = self.path.split("/")[-1]
+        self.apigatewayv2_backend.delete_domain_name(
+            domain_name=domain_name,
+        )
+        return 204, {}, ""
+
+    def delete_api_mapping(self) -> TYPE_RESPONSE:
+        api_mapping_id = self.path.split("/")[-1]
+        domain_name = self.path.split("/")[-3]
+        self.apigatewayv2_backend.delete_api_mapping(
+            api_mapping_id=api_mapping_id,
+            domain_name=domain_name,
+        )
+        return 204, {}, ""

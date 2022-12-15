@@ -553,6 +553,7 @@ class CloudWatchBackend(BaseBackend):
             query_name = query["metric_stat._metric._metric_name"]
             delta = timedelta(seconds=int(query["metric_stat._period"]))
             dimensions = self._extract_dimensions_from_get_metric_data_query(query)
+            unit = query.get("metric_stat._unit")
             result_vals: List[SupportsFloat] = []
             timestamps: List[str] = []
             stat = query["metric_stat._stat"]
@@ -576,6 +577,11 @@ class CloudWatchBackend(BaseBackend):
                         if sorted(md.dimensions) == sorted(dimensions)
                         and md.name == query_name
                     ]
+                # Filter based on unit value
+                if unit:
+                    query_period_data = [
+                        md for md in query_period_data if md.unit == unit
+                    ]
 
                 metric_values = [m.value for m in query_period_data]
 
@@ -597,7 +603,13 @@ class CloudWatchBackend(BaseBackend):
             if scan_by == "TimestampDescending" and len(timestamps) > 0:
                 timestamps.reverse()
                 result_vals.reverse()
-            label = query["metric_stat._metric._metric_name"] + " " + stat
+
+            label = (
+                query["label"]
+                if "label" in query
+                else query["metric_stat._metric._metric_name"] + " " + stat
+            )
+
             results.append(
                 {
                     "id": query["id"],

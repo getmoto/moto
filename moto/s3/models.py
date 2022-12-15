@@ -8,7 +8,6 @@ import codecs
 import string
 import tempfile
 import threading
-import pytz
 import sys
 import urllib.parse
 
@@ -121,6 +120,7 @@ class FakeKey(BaseModel, ManagedState):
         self.last_modified = datetime.datetime.utcnow()
         self.acl = get_canned_acl("private")
         self.website_redirect_location = None
+        self.checksum_algorithm = None
         self._storage_class = storage if storage else "STANDARD"
         self._metadata = LowercaseDict()
         self._expiry = None
@@ -160,12 +160,11 @@ class FakeKey(BaseModel, ManagedState):
 
     @property
     def value(self):
-        self.lock.acquire()
-        self._value_buffer.seek(0)
-        r = self._value_buffer.read()
-        r = copy.copy(r)
-        self.lock.release()
-        return r
+        with self.lock:
+            self._value_buffer.seek(0)
+            r = self._value_buffer.read()
+            r = copy.copy(r)
+            return r
 
     @property
     def arn(self):
@@ -258,6 +257,8 @@ class FakeKey(BaseModel, ManagedState):
         if self._is_versioned:
             res["x-amz-version-id"] = str(self.version_id)
 
+        if self.checksum_algorithm is not None:
+            res["x-amz-sdk-checksum-algorithm"] = self.checksum_algorithm
         if self.website_redirect_location:
             res["x-amz-website-redirect-location"] = self.website_redirect_location
         if self.lock_legal_status:
@@ -911,7 +912,7 @@ class FakeBucket(CloudFormationModel):
         self.notification_configuration = None
         self.accelerate_configuration = None
         self.payer = "BucketOwner"
-        self.creation_date = datetime.datetime.now(tz=pytz.utc)
+        self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
         self.public_access_block = None
         self.encryption = None
         self.object_lock_enabled = False
@@ -1515,7 +1516,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                         {"Name": "StorageType", "Value": "StandardStorage"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                    timestamp=datetime.datetime.now(tz=datetime.timezone.utc).replace(
                         hour=0, minute=0, second=0, microsecond=0
                     ),
                     unit="Bytes",
@@ -1530,7 +1531,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                         {"Name": "StorageType", "Value": "AllStorageTypes"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                    timestamp=datetime.datetime.now(tz=datetime.timezone.utc).replace(
                         hour=0, minute=0, second=0, microsecond=0
                     ),
                     unit="Count",

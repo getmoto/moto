@@ -38,6 +38,7 @@ organizations
 - [X] delete_organization
 - [X] delete_organizational_unit
 - [X] delete_policy
+- [ ] delete_resource_policy
 - [X] deregister_delegated_administrator
 - [X] describe_account
 - [X] describe_create_account_status
@@ -46,6 +47,7 @@ organizations
 - [X] describe_organization
 - [X] describe_organizational_unit
 - [X] describe_policy
+- [ ] describe_resource_policy
 - [X] detach_policy
 - [X] disable_aws_service_access
 - [X] disable_policy_type
@@ -71,6 +73,7 @@ organizations
 - [X] list_tags_for_resource
 - [X] list_targets_for_policy
 - [X] move_account
+- [ ] put_resource_policy
 - [X] register_delegated_administrator
 - [X] remove_account_from_organization
 - [X] tag_resource

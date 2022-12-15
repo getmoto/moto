@@ -1,4 +1,5 @@
 """Route53Backend class with methods for supported APIs."""
+import copy
 import itertools
 import re
 import string
@@ -17,6 +18,9 @@ from moto.route53.exceptions import (
     NoSuchQueryLoggingConfig,
     PublicZoneVPCAssociation,
     QueryLoggingConfigAlreadyExists,
+    DnsNameInvalidForZone,
+    ChangeSetAlreadyExists,
+    InvalidInput,
 )
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.moto_api._internal import mock_random as random
@@ -259,6 +263,20 @@ def reverse_domain_name(domain_name):
     return ".".join(reversed(domain_name.split(".")))
 
 
+class ChangeList(list):
+    """
+    Contains a 'clean' list of ResourceRecordChangeSets
+    """
+
+    def append(self, item) -> None:
+        item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
+        super().append(item)
+
+    def __contains__(self, item):
+        item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
+        return super().__contains__(item)
+
+
 class FakeZone(CloudFormationModel):
     def __init__(
         self,
@@ -276,6 +294,7 @@ class FakeZone(CloudFormationModel):
         self.private_zone = private_zone
         self.rrsets = []
         self.delegation_set = delegation_set
+        self.rr_changes = ChangeList()
 
     def add_rrset(self, record_set):
         record_set = RecordSet(record_set)
@@ -461,14 +480,28 @@ class Route53Backend(BaseBackend):
             comment=comment,
             delegation_set=delegation_set,
         )
+        # For each public hosted zone that you create, Amazon Route 53 automatically creates a name server (NS) record
+        # and a start of authority (SOA) record.
+        # https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/SOA-NSrecords.html
+        soa_record_set = {
+            "Name": f"{name}" + ("" if name.endswith(".") else "."),
+            "Type": "SOA",
+            "TTL": 900,
+            "ResourceRecords": [
+                {
+                    "Value": f"{delegation_set.name_servers[0]}. hostmaster.example.com. 1 7200 900 1209600 86400"
+                }
+            ],
+        }
         # default nameservers are also part of rrset
-        record_set = {
+        ns_record_set = {
             "Name": name,
             "ResourceRecords": delegation_set.name_servers,
             "TTL": "172800",
             "Type": "NS",
         }
-        new_zone.add_rrset(record_set)
+        new_zone.add_rrset(ns_record_set)
+        new_zone.add_rrset(soa_record_set)
         new_zone.add_vpc(vpcid, vpcregion)
         self.zones[new_id] = new_zone
         return new_zone
@@ -525,9 +558,33 @@ class Route53Backend(BaseBackend):
         is_truncated = next_record is not None
         return records, next_start_name, next_start_type, is_truncated
 
-    def change_resource_record_sets(self, zoneid, change_list):
+    def change_resource_record_sets(self, zoneid, change_list) -> None:
         the_zone = self.get_hosted_zone(zoneid)
+
+        for rr in change_list:
+            if rr in the_zone.rr_changes:
+                name = rr["ResourceRecordSet"]["Name"] + "."
+                _type = rr["ResourceRecordSet"]["Type"]
+                raise ChangeSetAlreadyExists(
+                    action=rr["Action"], name=name, _type=_type
+                )
+
         for value in change_list:
+            if value["Action"] == "DELETE":
+                # To delete a resource record set, you must specify all the same values that you specified when you created it.
+                corresponding_create = copy.deepcopy(value)
+                corresponding_create["Action"] = "CREATE"
+                corresponding_upsert = copy.deepcopy(value)
+                corresponding_upsert["Action"] = "UPSERT"
+                if (
+                    corresponding_create not in the_zone.rr_changes
+                    and corresponding_upsert not in the_zone.rr_changes
+                ):
+                    msg = f"Invalid request: Expected exactly one of [AliasTarget, all of [TTL, and ResourceRecords], or TrafficPolicyInstanceId], but found none in Change with [Action=DELETE, Name={value['ResourceRecordSet']['Name']}, Type={value['ResourceRecordSet']['Type']}, SetIdentifier={value['ResourceRecordSet'].get('SetIdentifier', 'null')}]"
+                    raise InvalidInput(msg)
+
+        for value in change_list:
+            original_change = copy.deepcopy(value)
             action = value["Action"]
 
             if action not in ("CREATE", "UPSERT", "DELETE"):
@@ -539,11 +596,9 @@ class Route53Backend(BaseBackend):
             cleaned_hosted_zone_name = the_zone.name.strip(".")
 
             if not cleaned_record_name.endswith(cleaned_hosted_zone_name):
-                error_msg = f"""
-                An error occurred (InvalidChangeBatch) when calling the ChangeResourceRecordSets operation:
-                RRSet with DNS name {record_set["Name"]} is not permitted in zone {the_zone.name}
-                """
-                return error_msg
+                raise DnsNameInvalidForZone(
+                    name=record_set["Name"], zone_name=the_zone.name
+                )
 
             if not record_set["Name"].endswith("."):
                 record_set["Name"] += "."
@@ -567,7 +622,7 @@ class Route53Backend(BaseBackend):
                     the_zone.delete_rrset_by_id(record_set["SetIdentifier"])
                 else:
                     the_zone.delete_rrset(record_set)
-        return None
+            the_zone.rr_changes.append(original_change)
 
     def list_hosted_zones(self):
         return self.zones.values()
@@ -612,7 +667,7 @@ class Route53Backend(BaseBackend):
 
         return zone_list
 
-    def get_hosted_zone(self, id_):
+    def get_hosted_zone(self, id_) -> FakeZone:
         the_zone = self.zones.get(id_.replace("/hostedzone/", ""))
         if not the_zone:
             raise NoSuchHostedZone(id_)

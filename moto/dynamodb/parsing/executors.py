@@ -273,6 +273,8 @@ class UpdateExpressionExecutor(object):
         and process the nodes 1-by-1. If no specific execution for the node type is defined we can execute the children
         in order since it will be a container node that is expandable and left child will be first in the statement.
 
+        Note that, if `normalize()` is called before, the list of children will be flattened and sorted (if appropriate).
+
         Args:
             node(Node):
 

@@ -47,7 +47,7 @@ def test_sign_up_user_without_authentication():
     json.loads(res.data)["UserPoolClients"].should.have.length_of(1)
 
     # Sign Up User
-    data = {"ClientId": client_id, "Username": "test@gmail.com", "Password": "12345678"}
+    data = {"ClientId": client_id, "Username": "test@gmail.com", "Password": "P2$Sword"}
     res = test_client.post(
         "/",
         data=json.dumps(data),
@@ -72,7 +72,7 @@ def test_sign_up_user_without_authentication():
     data = {
         "ClientId": client_id,
         "AuthFlow": "USER_PASSWORD_AUTH",
-        "AuthParameters": {"USERNAME": "test@gmail.com", "PASSWORD": "12345678"},
+        "AuthParameters": {"USERNAME": "test@gmail.com", "PASSWORD": "P2$Sword"},
     }
     res = test_client.post(
         "/",

@@ -1,9 +1,7 @@
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
-
-import pytz
 
 from urllib.parse import urlparse
 from moto.core.responses import AWSServiceSpec
@@ -29,7 +27,7 @@ def generate_boto3_response(operation):
                 self.response_headers.update(
                     {
                         "x-amzn-requestid": "2690d7eb-ed86-11dd-9877-6fad448a8419",
-                        "date": datetime.now(pytz.utc).strftime(
+                        "date": datetime.now(timezone.utc).strftime(
                             "%a, %d %b %Y %H:%M:%S %Z"
                         ),
                         "content-type": "application/x-amz-json-1.1",

@@ -156,6 +156,42 @@
   "Location": "eu-west-3"
  },
  {
+  "InstanceType": "c6gd.12xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c6gd.16xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c6gd.2xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c6gd.4xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c6gd.8xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c6gd.large",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c6gd.medium",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c6gd.metal",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c6gd.xlarge",
+  "Location": "eu-west-3"
+ },
+ {
   "InstanceType": "c6gn.12xlarge",
   "Location": "eu-west-3"
  },
@@ -1061,6 +1097,54 @@
  },
  {
   "InstanceType": "x1.32xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2idn.metal",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2iedn.16xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2iedn.24xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2iedn.2xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2iedn.32xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2iedn.4xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2iedn.8xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2iedn.metal",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "x2iedn.xlarge",
   "Location": "eu-west-3"
  }
 ]
