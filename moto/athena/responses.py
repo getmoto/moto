@@ -1,7 +1,7 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import AthenaBackend, athena_backends
+from .models import athena_backends, AthenaBackend
 from typing import Dict, Tuple, Union
 
 
