@@ -1,5 +1,5 @@
 import boto3
-import mock
+from unittest import mock
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from datetime import datetime

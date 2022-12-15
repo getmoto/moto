@@ -2,7 +2,7 @@ from copy import deepcopy
 from unittest import SkipTest
 
 import boto3
-import mock
+from unittest import mock
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
