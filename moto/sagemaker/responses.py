@@ -466,6 +466,69 @@ class SageMakerResponse(BaseResponse):
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
+    def create_pipeline(self):
+        pipeline = self.sagemaker_backend.create_pipeline(
+            pipeline_name=self._get_param("PipelineName"),
+            pipeline_display_name=self._get_param("PipelineDisplayName"),
+            pipeline_definition=self._get_param("PipelineDefinition"),
+            pipeline_definition_s3_location=self._get_param(
+                "PipelineDefinitionS3Location"
+            ),
+            pipeline_description=self._get_param("PipelineDescription"),
+            role_arn=self._get_param("RoleArn"),
+            tags=self._get_param("Tags"),
+            parallelism_configuration=self._get_param("ParallelismConfiguration"),
+        )
+        response = {
+            "PipelineArn": pipeline.pipeline_arn,
+        }
+
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def list_pipelines(self):
+        max_results_range = range(1, 101)
+        allowed_sort_by = ("Name", "CreationTime")
+        allowed_sort_order = ("Ascending", "Descending")
+
+        pipeline_name_prefix = self._get_param("PipelineNamePrefix")
+        created_after = self._get_param("CreatedAfter")
+        created_before = self._get_param("CreatedBefore")
+        sort_by = self._get_param("SortBy", "CreationTime")
+        sort_order = self._get_param("SortOrder", "Descending")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+
+        errors = []
+        if max_results and max_results not in max_results_range:
+            errors.append(
+                f"Value '{max_results}' at 'maxResults' failed to satisfy constraint: Member must have value less than or equal to {max_results_range[-1]}"
+            )
+
+        if sort_by not in allowed_sort_by:
+            errors.append(format_enum_error(sort_by, "SortBy", allowed_sort_by))
+        if sort_order not in allowed_sort_order:
+            errors.append(
+                format_enum_error(sort_order, "SortOrder", allowed_sort_order)
+            )
+        if errors:
+            raise AWSValidationException(
+                f"{len(errors)} validation errors detected: {';'.join(errors)}"
+            )
+
+        response = self.sagemaker_backend.list_pipelines(
+            pipeline_name_prefix=pipeline_name_prefix,
+            created_after=created_after,
+            created_before=created_before,
+            next_token=next_token,
+            max_results=max_results,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
     def list_processing_jobs(self):
         max_results_range = range(1, 101)
         allowed_sort_by = ["Name", "CreationTime", "Status"]
