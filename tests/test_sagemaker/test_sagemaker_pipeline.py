@@ -183,12 +183,22 @@ def test_list_pipelines_invalid_values(sagemaker_client, list_pipelines_kwargs):
 def test_delete_pipeline_exists(sagemaker_client):
     fake_pipeline_names = ["APipelineName", "BPipelineName", "CPipelineName"]
     _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names, 0.0)
-    to_be_deleted = fake_pipeline_names[0]
-    response = sagemaker_client.delete_pipeline(PipelineName=to_be_deleted)
-    assert response["PipelineArn"].endswith(to_be_deleted)
+    pipeline_name_delete, pipeline_names_remain = (
+        fake_pipeline_names[0],
+        fake_pipeline_names[1:],
+    )
 
-    response = sagemaker_client.list_pipelines(PipelineNamePrefix=to_be_deleted)
+    response = sagemaker_client.delete_pipeline(PipelineName=pipeline_name_delete)
+    assert response["PipelineArn"].endswith(pipeline_name_delete)
+
+    response = sagemaker_client.list_pipelines(PipelineNamePrefix=pipeline_name_delete)
     assert response["PipelineSummaries"].should.be.empty
+
+    response = sagemaker_client.list_pipelines()
+    pipeline_names_exist = [
+        pipeline["PipelineName"] for pipeline in response["PipelineSummaries"]
+    ]
+    assert pipeline_names_remain == pipeline_names_exist
 
 
 def test_delete_pipeline_not_exists(sagemaker_client):
