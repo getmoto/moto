@@ -199,6 +199,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         delete_on_termination=False,
         kms_key_id=None,
         volume_type=None,
+        iops=None,
     ):
         volume = self.ec2_backend.create_volume(
             size=size,
@@ -207,6 +208,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             encrypted=encrypted,
             kms_key_id=kms_key_id,
             volume_type=volume_type,
+            iops=iops,
         )
         self.ec2_backend.attach_volume(
             volume.id, self.id, device_path, delete_on_termination

@@ -61,6 +61,7 @@ class ElasticBlockStore(EC2BaseResponse):
         volume_tags = tags.get("volume", {})
         encrypted = self._get_bool_param("Encrypted", if_none=False)
         kms_key_id = self._get_param("KmsKeyId")
+        iops = self._get_param("Iops")
         if self.is_not_dryrun("CreateVolume"):
             volume = self.ec2_backend.create_volume(
                 size=size,
@@ -69,6 +70,7 @@ class ElasticBlockStore(EC2BaseResponse):
                 encrypted=encrypted,
                 kms_key_id=kms_key_id,
                 volume_type=volume_type,
+                iops=iops,
             )
             volume.add_tags(volume_tags)
             template = self.response_template(CREATE_VOLUME_RESPONSE)
@@ -209,7 +211,7 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   {% endif %}
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
   <status>creating</status>
-  <createTime>{{ volume.create_time}}</createTime>
+  <createTime>{{ volume.create_time }}</createTime>
   {% if volume.get_tags() %}
     <tagSet>
       {% for tag in volume.get_tags() %}
@@ -223,6 +225,9 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
     </tagSet>
   {% endif %}
   <volumeType>{{ volume.volume_type }}</volumeType>
+  {% if volume.iops %}
+    <iops>{{ volume.iops }}</iops>
+  {% endif %}
 </CreateVolumeResponse>"""
 
 DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -243,7 +248,7 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
              {% endif %}
              <availabilityZone>{{ volume.zone.name }}</availabilityZone>
              <status>{{ volume.status }}</status>
-             <createTime>{{ volume.create_time}}</createTime>
+             <createTime>{{ volume.create_time }}</createTime>
              <attachmentSet>
                 {% if volume.attachment %}
                     <item>
@@ -269,6 +274,9 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
                </tagSet>
              {% endif %}
              <volumeType>{{ volume.volume_type }}</volumeType>
+             {% if volume.iops %}
+               <iops>{{ volume.iops }}</iops>
+             {% endif %}
           </item>
       {% endfor %}
    </volumeSet>
