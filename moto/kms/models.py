@@ -274,6 +274,14 @@ class KmsBackend(BaseBackend):
     def create_key(
         self, policy, key_usage, key_spec, description, tags, multi_region=False
     ):
+        """
+        The provided Policy currently does not need to be valid. If it is valid, Moto will perform authorization checks on key-related operations, just like AWS does.
+
+        These authorization checks are quite basic for now. Moto will only throw an AccessDeniedException if the following conditions are met:
+         - The principal is set to "*"
+         - The resource is set to "*"
+         - The Action matches `describe_key`
+        """
         key = Key(
             policy,
             key_usage,

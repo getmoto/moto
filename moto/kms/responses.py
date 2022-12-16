@@ -6,7 +6,8 @@ import warnings
 
 from moto.core.responses import BaseResponse
 from moto.kms.utils import RESERVED_ALIASES
-from .models import kms_backends
+from .models import kms_backends, KmsBackend
+from .policy_validator import validate_policy
 from .exceptions import (
     NotFoundException,
     ValidationException,
@@ -30,7 +31,7 @@ class KmsResponse(BaseResponse):
         return params
 
     @property
-    def kms_backend(self):
+    def kms_backend(self) -> KmsBackend:
         return kms_backends[self.current_account][self.region]
 
     def _display_arn(self, key_id):
@@ -104,6 +105,13 @@ class KmsResponse(BaseResponse):
 
         self._validate_cmk_id(key_id)
 
+    def _validate_key_policy(self, key_id, action):
+        """
+        Validate whether the specified action is allowed, given the key policy
+        """
+        key = self.kms_backend.describe_key(self.kms_backend.get_key_id(key_id))
+        validate_policy(key, action)
+
     def create_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html"""
         policy = self.parameters.get("Policy")
@@ -170,6 +178,7 @@ class KmsResponse(BaseResponse):
         key_id = self.parameters.get("KeyId")
 
         self._validate_key_id(key_id)
+        self._validate_key_policy(key_id, "kms:DescribeKey")
 
         key = self.kms_backend.describe_key(self.kms_backend.get_key_id(key_id))
 
