@@ -47,7 +47,7 @@ def test_create_pipeline(sagemaker_client):
 def test_list_pipelines_none(sagemaker_client):
     response = sagemaker_client.list_pipelines()
     assert isinstance(response, dict)
-    response["PipelineSummaries"].should.be.empty
+    assert response["PipelineSummaries"].should.be.empty
 
 
 def test_list_pipelines_single(sagemaker_client):
@@ -138,15 +138,15 @@ def test_list_pipelines_created_after(sagemaker_client):
 
     created_after_str = "2099-12-31 23:59:59"
     response = sagemaker_client.list_pipelines(CreatedAfter=created_after_str)
-    response["PipelineSummaries"].should.be.empty
+    assert response["PipelineSummaries"].should.be.empty
 
     created_after_datetime = datetime.strptime(created_after_str, "%Y-%m-%d %H:%M:%S")
     response = sagemaker_client.list_pipelines(CreatedAfter=created_after_datetime)
-    response["PipelineSummaries"].should.be.empty
+    assert response["PipelineSummaries"].should.be.empty
 
     created_after_timestamp = datetime.timestamp(created_after_datetime)
     response = sagemaker_client.list_pipelines(CreatedAfter=created_after_timestamp)
-    response["PipelineSummaries"].should.be.empty
+    assert response["PipelineSummaries"].should.be.empty
 
 
 def test_list_pipelines_created_before(sagemaker_client):
@@ -155,15 +155,15 @@ def test_list_pipelines_created_before(sagemaker_client):
 
     created_before_str = "2000-12-31 23:59:59"
     response = sagemaker_client.list_pipelines(CreatedBefore=created_before_str)
-    response["PipelineSummaries"].should.be.empty
+    assert response["PipelineSummaries"].should.be.empty
 
     created_before_datetime = datetime.strptime(created_before_str, "%Y-%m-%d %H:%M:%S")
     response = sagemaker_client.list_pipelines(CreatedBefore=created_before_datetime)
-    response["PipelineSummaries"].should.be.empty
+    assert response["PipelineSummaries"].should.be.empty
 
     created_before_timestamp = datetime.timestamp(created_before_datetime)
     response = sagemaker_client.list_pipelines(CreatedBefore=created_before_timestamp)
-    response["PipelineSummaries"].should.be.empty
+    assert response["PipelineSummaries"].should.be.empty
 
 
 @pytest.mark.parametrize(
