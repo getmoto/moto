@@ -105,17 +105,6 @@ class FakePipeline(BaseObject):
         self.last_modified_time = now_string
         self.last_execution_time = now_string
 
-    @property
-    def response_object(self):
-        response_object = self.gen_response_object()
-        return {
-            k: v for k, v in response_object.items() if v is not None and v != [None]
-        }
-
-    @property
-    def response_create(self):
-        return {"PipelineArn": self.pipeline_arn}
-
 
 class FakeProcessingJob(BaseObject):
     def __init__(
