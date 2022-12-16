@@ -98,11 +98,14 @@ def test_describe_stream_consumer_unknown():
     client = boto3.client("kinesis", region_name="us-east-2")
     create_stream(client)
 
+    unknown_arn = f"arn:aws:kinesis:us-east-2:{ACCOUNT_ID}:stream/unknown"
     with pytest.raises(ClientError) as exc:
-        client.describe_stream_consumer(ConsumerARN="unknown")
+        client.describe_stream_consumer(ConsumerARN=unknown_arn)
     err = exc.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(f"Consumer unknown, account {ACCOUNT_ID} not found.")
+    err["Message"].should.equal(
+        f"Consumer {unknown_arn}, account {ACCOUNT_ID} not found."
+    )
 
 
 @mock_kinesis
