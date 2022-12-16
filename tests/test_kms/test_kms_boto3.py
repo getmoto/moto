@@ -1,6 +1,8 @@
 import json
 from datetime import datetime
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import rsa
+from unittest import mock
 from dateutil.tz import tzutc
 import base64
 import os
@@ -167,7 +169,10 @@ def test_replicate_key():
     with pytest.raises(to_region_client.exceptions.NotFoundException):
         to_region_client.describe_key(KeyId=key_id)
 
-    from_region_client.replicate_key(KeyId=key_id, ReplicaRegion=region_to_replicate_to)
+    with mock.patch.object(rsa, "generate_private_key", return_value=""):
+        from_region_client.replicate_key(
+            KeyId=key_id, ReplicaRegion=region_to_replicate_to
+        )
     to_region_client.describe_key(KeyId=key_id)
     from_region_client.describe_key(KeyId=key_id)
 
@@ -212,7 +217,7 @@ def test_describe_key(id_or_arn):
 def test_get_key_policy_default():
     # given
     client = boto3.client("kms", region_name="us-east-1")
-    key_id = client.create_key()["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
 
     # when
     policy = client.get_key_policy(KeyId=key_id, PolicyName="default")["Policy"]
@@ -238,8 +243,7 @@ def test_get_key_policy_default():
 @mock_kms
 def test_describe_key_via_alias():
     client = boto3.client("kms", region_name="us-east-1")
-    response = client.create_key(Description="my key")
-    key_id = response["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client, description="my key")
 
     client.create_alias(AliasName="alias/my-alias", TargetKeyId=key_id)
 
@@ -250,8 +254,7 @@ def test_describe_key_via_alias():
 @mock_kms
 def test__create_alias__can_create_multiple_aliases_for_same_key_id():
     client = boto3.client("kms", region_name="us-east-1")
-    response = client.create_key(Description="my key")
-    key_id = response["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
 
     alias_names = ["alias/al1", "alias/al2", "alias/al3"]
     for name in alias_names:
@@ -270,7 +273,7 @@ def test__create_alias__can_create_multiple_aliases_for_same_key_id():
 def test_list_aliases():
     region = "us-west-1"
     client = boto3.client("kms", region_name=region)
-    client.create_key(Description="my key")
+    create_simple_key(client)
 
     aliases = client.list_aliases()["Aliases"]
     aliases.should.have.length_of(14)
@@ -292,7 +295,6 @@ def test_list_aliases():
 @mock_kms
 def test_describe_key_via_alias_invalid_alias(key_id):
     client = boto3.client("kms", region_name="us-east-1")
-    client.create_key(Description="key")
 
     with pytest.raises(client.exceptions.NotFoundException):
         client.describe_key(KeyId=key_id)
@@ -301,8 +303,9 @@ def test_describe_key_via_alias_invalid_alias(key_id):
 @mock_kms
 def test_list_keys():
     client = boto3.client("kms", region_name="us-east-1")
-    k1 = client.create_key(Description="key1")["KeyMetadata"]
-    k2 = client.create_key(Description="key2")["KeyMetadata"]
+    with mock.patch.object(rsa, "generate_private_key", return_value=""):
+        k1 = client.create_key(Description="key1")["KeyMetadata"]
+        k2 = client.create_key(Description="key2")["KeyMetadata"]
 
     keys = client.list_keys()["Keys"]
     keys.should.have.length_of(2)
@@ -314,8 +317,7 @@ def test_list_keys():
 @mock_kms
 def test_enable_key_rotation(id_or_arn):
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1")["KeyMetadata"]
-    key_id = key[id_or_arn]
+    key_id = create_simple_key(client, id_or_arn=id_or_arn)
 
     client.get_key_rotation_status(KeyId=key_id)["KeyRotationEnabled"].should.equal(
         False
@@ -335,8 +337,7 @@ def test_enable_key_rotation(id_or_arn):
 @mock_kms
 def test_enable_key_rotation_with_alias_name_should_fail():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="my key")["KeyMetadata"]
-    key_id = key["KeyId"]
+    key_id = create_simple_key(client)
 
     client.create_alias(AliasName="alias/my-alias", TargetKeyId=key_id)
     with pytest.raises(ClientError) as ex:
@@ -443,10 +444,10 @@ def test_kms_encrypt(plaintext):
 @mock_kms
 def test_disable_key():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="disable-key")
-    client.disable_key(KeyId=key["KeyMetadata"]["KeyId"])
+    key_id = create_simple_key(client)
+    client.disable_key(KeyId=key_id)
 
-    result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
+    result = client.describe_key(KeyId=key_id)
     assert result["KeyMetadata"]["Enabled"] is False
     assert result["KeyMetadata"]["KeyState"] == "Disabled"
 
@@ -454,11 +455,11 @@ def test_disable_key():
 @mock_kms
 def test_enable_key():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="enable-key")
-    client.disable_key(KeyId=key["KeyMetadata"]["KeyId"])
-    client.enable_key(KeyId=key["KeyMetadata"]["KeyId"])
+    key_id = create_simple_key(client)
+    client.disable_key(KeyId=key_id)
+    client.enable_key(KeyId=key_id)
 
-    result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
+    result = client.describe_key(KeyId=key_id)
     assert result["KeyMetadata"]["Enabled"] is True
     assert result["KeyMetadata"]["KeyState"] == "Enabled"
 
@@ -466,20 +467,20 @@ def test_enable_key():
 @mock_kms
 def test_schedule_key_deletion():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="schedule-key-deletion")
+    key_id = create_simple_key(client)
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "false":
         with freeze_time("2015-01-01 12:00:00"):
-            response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
-            assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
+            response = client.schedule_key_deletion(KeyId=key_id)
+            assert response["KeyId"] == key_id
             assert response["DeletionDate"] == datetime(
                 2015, 1, 31, 12, 0, tzinfo=tzutc()
             )
     else:
         # Can't manipulate time in server mode
-        response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
-        assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
+        response = client.schedule_key_deletion(KeyId=key_id)
+        assert response["KeyId"] == key_id
 
-    result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
+    result = client.describe_key(KeyId=key_id)
     assert result["KeyMetadata"]["Enabled"] is False
     assert result["KeyMetadata"]["KeyState"] == "PendingDeletion"
     assert "DeletionDate" in result["KeyMetadata"]
@@ -528,8 +529,7 @@ def test_cancel_key_deletion():
 @mock_kms
 def test_update_key_description():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="old_description")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
 
     result = client.update_key_description(KeyId=key_id, Description="new_description")
     assert "ResponseMetadata" in result
@@ -606,21 +606,19 @@ def test_unknown_tag_methods():
 @mock_kms
 def test_list_resource_tags_after_untagging():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="cancel-key-deletion")
-    response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
+    key_id = create_simple_key(client)
 
-    keyid = response["KeyId"]
     client.tag_resource(
-        KeyId=keyid,
+        KeyId=key_id,
         Tags=[
             {"TagKey": "key1", "TagValue": "s1"},
             {"TagKey": "key2", "TagValue": "s2"},
         ],
     )
 
-    client.untag_resource(KeyId=keyid, TagKeys=["key2"])
+    client.untag_resource(KeyId=key_id, TagKeys=["key2"])
 
-    tags = client.list_resource_tags(KeyId=keyid)["Tags"]
+    tags = client.list_resource_tags(KeyId=key_id)["Tags"]
     tags.should.equal([{"TagKey": "key1", "TagValue": "s1"}])
 
 
@@ -637,9 +635,9 @@ def test_list_resource_tags_after_untagging():
 @mock_kms
 def test_generate_data_key_sizes(kwargs, expected_key_length):
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="generate-data-key-size")
+    key_id = create_simple_key(client)
 
-    response = client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], **kwargs)
+    response = client.generate_data_key(KeyId=key_id, **kwargs)
 
     assert len(response["Plaintext"]) == expected_key_length
 
@@ -920,8 +918,7 @@ def test_get_key_policy(id_or_arn):
 @mock_kms
 def test_put_key_policy(id_or_arn):
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1", Policy="initial policy")
-    key_id = key["KeyMetadata"][id_or_arn]
+    key_id = create_simple_key(client, id_or_arn)
 
     client.put_key_policy(KeyId=key_id, PolicyName="default", Policy="policy 2.0")
 
@@ -932,8 +929,7 @@ def test_put_key_policy(id_or_arn):
 @mock_kms
 def test_put_key_policy_using_alias_shouldnt_work():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1", Policy="initial policy")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client, policy="my policy")
     client.create_alias(AliasName="alias/my-alias", TargetKeyId=key_id)
 
     with pytest.raises(ClientError) as ex:
@@ -945,14 +941,13 @@ def test_put_key_policy_using_alias_shouldnt_work():
     err["Message"].should.equal("Invalid keyId alias/my-alias")
 
     response = client.get_key_policy(KeyId=key_id, PolicyName="default")
-    response["Policy"].should.equal("initial policy")
+    response["Policy"].should.equal("my policy")
 
 
 @mock_kms
 def test_list_key_policies():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1", Policy="initial policy")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
 
     policies = client.list_key_policies(KeyId=key_id)
     policies["PolicyNames"].should.equal(["default"])
@@ -965,8 +960,7 @@ def test_list_key_policies():
 @mock_kms
 def test__create_alias__raises_if_reserved_alias(reserved_alias):
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1", Policy="initial policy")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
 
     with pytest.raises(ClientError) as ex:
         client.create_alias(AliasName=reserved_alias, TargetKeyId=key_id)
@@ -981,8 +975,7 @@ def test__create_alias__raises_if_reserved_alias(reserved_alias):
 @mock_kms
 def test__create_alias__raises_if_alias_has_restricted_characters(name):
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1", Policy="initial policy")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
 
     with pytest.raises(ClientError) as ex:
         client.create_alias(AliasName=name, TargetKeyId=key_id)
@@ -997,8 +990,7 @@ def test__create_alias__raises_if_alias_has_restricted_characters(name):
 def test__create_alias__raises_if_alias_has_restricted_characters_semicolon():
     # Similar test as above, but with different error msg
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1", Policy="initial policy")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
 
     with pytest.raises(ClientError) as ex:
         client.create_alias(AliasName="alias/my:alias", TargetKeyId=key_id)
@@ -1013,8 +1005,7 @@ def test__create_alias__raises_if_alias_has_restricted_characters_semicolon():
 @mock_kms
 def test__create_alias__accepted_characters(name):
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1", Policy="initial policy")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
 
     client.create_alias(AliasName=name, TargetKeyId=key_id)
 
@@ -1022,8 +1013,7 @@ def test__create_alias__accepted_characters(name):
 @mock_kms
 def test__create_alias__raises_if_target_key_id_is_existing_alias():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1", Policy="initial policy")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
     name = "alias/my-alias"
 
     client.create_alias(AliasName=name, TargetKeyId=key_id)
@@ -1038,8 +1028,7 @@ def test__create_alias__raises_if_target_key_id_is_existing_alias():
 @mock_kms
 def test__create_alias__raises_if_wrong_prefix():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1", Policy="initial policy")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
 
     with pytest.raises(ClientError) as ex:
         client.create_alias(AliasName="wrongprefix/my-alias", TargetKeyId=key_id)
@@ -1051,8 +1040,7 @@ def test__create_alias__raises_if_wrong_prefix():
 @mock_kms
 def test__create_alias__raises_if_duplicate():
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key1", Policy="initial policy")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
     alias = "alias/my-alias"
 
     client.create_alias(AliasName=alias, TargetKeyId=key_id)
@@ -1070,16 +1058,16 @@ def test__create_alias__raises_if_duplicate():
 def test__delete_alias():
     client = boto3.client("kms", region_name="us-east-1")
 
-    key = client.create_key(Description="key1", Policy="initial policy")
-    client.create_alias(AliasName="alias/a1", TargetKeyId=key["KeyMetadata"]["KeyId"])
+    key_id = create_simple_key(client)
+    client.create_alias(AliasName="alias/a1", TargetKeyId=key_id)
 
-    key = client.create_key(Description="key2", Policy="initial policy")
-    client.create_alias(AliasName="alias/a2", TargetKeyId=key["KeyMetadata"]["KeyId"])
+    key_id = create_simple_key(client)
+    client.create_alias(AliasName="alias/a2", TargetKeyId=key_id)
 
     client.delete_alias(AliasName="alias/a1")
 
     # we can create the alias again, since it has been deleted
-    client.create_alias(AliasName="alias/a1", TargetKeyId=key["KeyMetadata"]["KeyId"])
+    client.create_alias(AliasName="alias/a1", TargetKeyId=key_id)
 
 
 @mock_kms
@@ -1150,8 +1138,7 @@ def test_key_tag_on_create_key_on_arn_happy():
 def test_key_tag_added_happy():
     client = boto3.client("kms", region_name="us-east-1")
 
-    key = client.create_key(Description="test-key-tagging")
-    key_id = key["KeyMetadata"]["KeyId"]
+    key_id = create_simple_key(client)
     tags = [
         {"TagKey": "key1", "TagValue": "value1"},
         {"TagKey": "key2", "TagValue": "value2"},
@@ -1164,8 +1151,7 @@ def test_key_tag_added_happy():
 def test_key_tag_added_arn_based_happy():
     client = boto3.client("kms", region_name="us-east-1")
 
-    key = client.create_key(Description="test-key-tagging")
-    key_id = key["KeyMetadata"]["Arn"]
+    key_id = create_simple_key(client)
     tags = [
         {"TagKey": "key1", "TagValue": "value1"},
         {"TagKey": "key2", "TagValue": "value2"},
@@ -1430,3 +1416,13 @@ def test_verify_empty_signature():
     err["Message"].should.equal(
         "1 validation error detected: Value at 'Signature' failed to satisfy constraint: Member must have length greater than or equal to 1"
     )
+
+
+def create_simple_key(client, id_or_arn="KeyId", description=None, policy=None):
+    with mock.patch.object(rsa, "generate_private_key", return_value=""):
+        params = {}
+        if description:
+            params["Description"] = description
+        if policy:
+            params["Policy"] = policy
+        return client.create_key(**params)["KeyMetadata"][id_or_arn]

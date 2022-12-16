@@ -1,6 +1,8 @@
 import boto3
 import sure  # noqa # pylint: disable=unused-import
 import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
+from unittest import mock
 
 from moto import mock_kms
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -14,7 +16,7 @@ grantee_principal = (
 @mock_kms
 def test_create_grant():
     client = boto3.client("kms", region_name="us-east-1")
-    key_id = client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
+    key_id = create_key(client)
 
     resp = client.create_grant(
         KeyId=key_id,
@@ -29,7 +31,7 @@ def test_create_grant():
 @mock_kms
 def test_list_grants():
     client = boto3.client("kms", region_name="us-east-1")
-    key_id = client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
+    key_id = create_key(client)
 
     client.list_grants(KeyId=key_id).should.have.key("Grants").equals([])
 
@@ -81,8 +83,8 @@ def test_list_grants():
 @mock_kms
 def test_list_retirable_grants():
     client = boto3.client("kms", region_name="us-east-1")
-    key_id1 = client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
-    key_id2 = client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
+    key_id1 = create_key(client)
+    key_id2 = create_key(client)
 
     client.create_grant(
         KeyId=key_id1,
@@ -121,7 +123,7 @@ def test_list_retirable_grants():
 def test_revoke_grant():
 
     client = boto3.client("kms", region_name="us-east-1")
-    key_id = client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
+    key_id = create_key(client)
 
     client.list_grants(KeyId=key_id).should.have.key("Grants").equals([])
 
@@ -140,7 +142,7 @@ def test_revoke_grant():
 @mock_kms
 def test_revoke_grant_raises_when_grant_does_not_exist():
     client = boto3.client("kms", region_name="us-east-1")
-    key_id = client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
+    key_id = create_key(client)
     not_existent_grant_id = "aabbccdd"
 
     with pytest.raises(client.exceptions.NotFoundException) as ex:
@@ -156,7 +158,7 @@ def test_revoke_grant_raises_when_grant_does_not_exist():
 def test_retire_grant_by_token():
 
     client = boto3.client("kms", region_name="us-east-1")
-    key_id = client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
+    key_id = create_key(client)
 
     for idx in range(0, 3):
         grant_token = client.create_grant(
@@ -175,7 +177,7 @@ def test_retire_grant_by_token():
 def test_retire_grant_by_grant_id():
 
     client = boto3.client("kms", region_name="us-east-1")
-    key_id = client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
+    key_id = create_key(client)
 
     for idx in range(0, 3):
         grant_id = client.create_grant(
@@ -188,3 +190,8 @@ def test_retire_grant_by_grant_id():
     client.retire_grant(KeyId=key_id, GrantId=grant_id)
 
     client.list_grants(KeyId=key_id)["Grants"].should.have.length_of(2)
+
+
+def create_key(client):
+    with mock.patch.object(rsa, "generate_private_key", return_value=""):
+        return client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
