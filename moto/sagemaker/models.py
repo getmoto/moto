@@ -1774,6 +1774,21 @@ class SageMakerModelBackend(BaseBackend):
         self.pipelines[pipeline_name] = pipeline
         return pipeline
 
+    def delete_pipeline(
+        self,
+        pipeline_name,
+    ):
+        for ix, pipeline in enumerate(self.pipelines):
+            if pipeline.pipeline_name == pipeline_name:
+                pipeline_arn = pipeline.pipeline_arn
+                self.pipelines.pop(ix)
+        try:
+            return {"PipelineArn": pipeline_arn}
+        except NameError:
+            raise ValidationError(
+                message=f"Could not find pipeline with name {pipeline_name}."
+            )
+
     def list_pipelines(
         self,
         pipeline_name_prefix,
