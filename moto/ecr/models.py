@@ -236,12 +236,19 @@ class Repository(BaseObject, CloudFormationModel):
 
 class Image(BaseObject):
     def __init__(
-        self, account_id, tag, manifest, repository, digest=None, registry_id=None
+        self,
+        account_id,
+        tag,
+        manifest,
+        repository,
+        image_manifest_mediatype=None,
+        digest=None,
+        registry_id=None,
     ):
         self.image_tag = tag
         self.image_tags = [tag] if tag is not None else []
         self.image_manifest = manifest
-        self.image_size_in_bytes = 50 * 1024 * 1024
+        self.image_manifest_mediatype = image_manifest_mediatype
         self.repository = repository
         self.registry_id = registry_id or account_id
         self.image_digest = digest
@@ -250,16 +257,32 @@ class Image(BaseObject):
 
     def _create_digest(self):
         image_manifest = json.loads(self.image_manifest)
-        layer_digests = [layer["digest"] for layer in image_manifest["layers"]]
-        self.image_digest = (
-            "sha256:"
-            + hashlib.sha256("".join(layer_digests).encode("utf-8")).hexdigest()
-        )
+        if "layers" in image_manifest:
+            layer_digests = [layer["digest"] for layer in image_manifest["layers"]]
+            self.image_digest = (
+                "sha256:"
+                + hashlib.sha256("".join(layer_digests).encode("utf-8")).hexdigest()
+            )
+        else:
+            random_sha = hashlib.sha256(
+                f"{random.randint(0,100)}".encode("utf-8")
+            ).hexdigest()
+            self.image_digest = f"sha256:{random_sha}"
 
     def get_image_digest(self):
         if not self.image_digest:
             self._create_digest()
         return self.image_digest
+
+    def get_image_size_in_bytes(self):
+        image_manifest = json.loads(self.image_manifest)
+        if "layers" in image_manifest:
+            try:
+                return image_manifest["config"]["size"]
+            except KeyError:
+                return 50 * 1024 * 1024
+        else:
+            return None
 
     def get_image_manifest(self):
         return self.image_manifest
@@ -303,9 +326,10 @@ class Image(BaseObject):
         response_object["imageTags"] = self.image_tags
         response_object["imageDigest"] = self.get_image_digest()
         response_object["imageManifest"] = self.image_manifest
+        response_object["imageManifestMediaType"] = self.image_manifest_mediatype
         response_object["repositoryName"] = self.repository
         response_object["registryId"] = self.registry_id
-        response_object["imageSizeInBytes"] = self.image_size_in_bytes
+        response_object["imageSizeInBytes"] = self.get_image_size_in_bytes()
         response_object["imagePushedAt"] = self.image_pushed_at
         return {k: v for k, v in response_object.items() if v is not None and v != []}
 
@@ -486,11 +510,30 @@ class ECRBackend(BaseBackend):
 
         return response
 
-    def put_image(self, repository_name, image_manifest, image_tag):
+    def put_image(
+        self, repository_name, image_manifest, image_tag, image_manifest_mediatype=None
+    ):
         if repository_name in self.repositories:
             repository = self.repositories[repository_name]
         else:
             raise Exception(f"{repository_name} is not a repository")
+
+        try:
+            parsed_image_manifest = json.loads(image_manifest)
+        except json.JSONDecodeError:
+            raise Exception(
+                "Invalid parameter at 'ImageManifest' failed to satisfy constraint: 'Invalid JSON syntax'"
+            )
+
+        if image_manifest_mediatype:
+            parsed_image_manifest["imageManifest"] = image_manifest_mediatype
+        else:
+            if "mediaType" not in parsed_image_manifest:
+                raise Exception(
+                    "image manifest mediatype not provided in manifest or parameter"
+                )
+            else:
+                image_manifest_mediatype = parsed_image_manifest["mediaType"]
 
         # Tags are unique, so delete any existing image with this tag first
         self.batch_delete_image(
@@ -503,9 +546,16 @@ class ECRBackend(BaseBackend):
                 repository.images,
             )
         )
+
         if not existing_images:
             # this image is not in ECR yet
-            image = Image(self.account_id, image_tag, image_manifest, repository_name)
+            image = Image(
+                self.account_id,
+                image_tag,
+                image_manifest,
+                repository_name,
+                image_manifest_mediatype,
+            )
             repository.images.append(image)
             return image
         else:

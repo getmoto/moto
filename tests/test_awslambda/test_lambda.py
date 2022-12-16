@@ -218,12 +218,12 @@ def ecr_repo_fixture():
         repo_name = "testlambdaecr"
         ecr_client = ecr_client = boto3.client("ecr", "us-east-1")
         ecr_client.create_repository(repositoryName=repo_name)
-        ecr_client.put_image(
+        response = ecr_client.put_image(
             repositoryName=repo_name,
             imageManifest=json.dumps(_create_image_manifest()),
             imageTag="latest",
         )
-        yield
+        yield response["image"]["imageId"]
         ecr_client.delete_repository(repositoryName=repo_name, force=True)
         os.environ["MOTO_LAMBDA_STUB_ECR"] = "TRUE"
 
@@ -262,7 +262,7 @@ def test_create_function_from_stubbed_ecr():
 
 
 @mock_lambda
-def test_create_function_from_mocked_ecr_image(
+def test_create_function_from_mocked_ecr_image_tag(
     with_ecr_mock,
 ):  # pylint: disable=unused-argument
     if settings.TEST_SERVER_MODE:
@@ -272,7 +272,8 @@ def test_create_function_from_mocked_ecr_image(
 
     lambda_client = boto3.client("lambda", "us-east-1")
     fn_name = str(uuid4())[0:6]
-    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:latest"
+    image = with_ecr_mock
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:{image['imageTag']}"
 
     dic = {
         "FunctionName": fn_name,
@@ -291,7 +292,9 @@ def test_create_function_from_mocked_ecr_image(
     result = lambda_client.get_function(FunctionName=fn_name)
     result.should.have.key("Configuration")
     config = result["Configuration"]
-    config.should.have.key("CodeSha256").equals(resp["CodeSha256"])
+    config.should.have.key("CodeSha256").equals(
+        image["imageDigest"].replace("sha256:", "")
+    )
     config.should.have.key("CodeSize").equals(resp["CodeSize"])
     result.should.have.key("Code")
     code = result["Code"]
@@ -300,6 +303,35 @@ def test_create_function_from_mocked_ecr_image(
     image_uri_without_tag = image_uri.split(":")[0]
     resolved_image_uri = f"{image_uri_without_tag}@sha256:{config['CodeSha256']}"
     code.should.have.key("ResolvedImageUri").equals(resolved_image_uri)
+
+
+@mock_lambda
+def test_create_function_from_mocked_ecr_image_digest(
+    with_ecr_mock,
+):  # pylint: disable=unused-argument
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
+    lambda_client = boto3.client("lambda", "us-east-1")
+    fn_name = str(uuid4())[0:6]
+    image = with_ecr_mock
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr@{image['imageDigest']}"
+
+    dic = {
+        "FunctionName": fn_name,
+        "Role": get_role_name(),
+        "Code": {"ImageUri": image_uri},
+        "PackageType": "Image",
+        "Timeout": 100,
+    }
+    resp = lambda_client.create_function(**dic)
+    resp.should.have.key("FunctionName").equals(fn_name)
+    resp.should.have.key("CodeSize").greater_than(0)
+    resp.should.have.key("CodeSha256").equals(
+        image["imageDigest"].replace("sha256:", "")
+    )
+    resp.should.have.key("PackageType").equals("Image")
 
 
 @mock_lambda
