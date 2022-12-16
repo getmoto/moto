@@ -108,7 +108,7 @@ sagemaker
 - [ ] delete_monitoring_schedule
 - [X] delete_notebook_instance
 - [X] delete_notebook_instance_lifecycle_config
-- [ ] delete_pipeline
+- [X] delete_pipeline
 - [ ] delete_project
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
