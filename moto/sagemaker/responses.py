@@ -486,6 +486,14 @@ class SageMakerResponse(BaseResponse):
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
+    def delete_pipeline(self):
+        pipeline_arn = self.sagemaker_backend.delete_pipeline(
+            pipeline_name=self._get_param("PipelineName"),
+        )
+        response = {"PipelineArn": pipeline_arn}
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
     def list_pipelines(self):
         max_results_range = range(1, 101)
         allowed_sort_by = ("Name", "CreationTime")

@@ -178,3 +178,29 @@ def test_list_pipelines_created_before(sagemaker_client):
 def test_list_pipelines_invalid_values(sagemaker_client, list_pipelines_kwargs):
     with pytest.raises(botocore.exceptions.ClientError):
         _ = sagemaker_client.list_pipelines(**list_pipelines_kwargs)
+
+
+def test_delete_pipeline_exists(sagemaker_client):
+    fake_pipeline_names = ["APipelineName", "BPipelineName", "CPipelineName"]
+    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names, 0.0)
+    pipeline_name_delete, pipeline_names_remain = (
+        fake_pipeline_names[0],
+        fake_pipeline_names[1:],
+    )
+
+    response = sagemaker_client.delete_pipeline(PipelineName=pipeline_name_delete)
+    assert response["PipelineArn"].endswith(pipeline_name_delete)
+
+    response = sagemaker_client.list_pipelines(PipelineNamePrefix=pipeline_name_delete)
+    assert response["PipelineSummaries"].should.be.empty
+
+    response = sagemaker_client.list_pipelines()
+    pipeline_names_exist = [
+        pipeline["PipelineName"] for pipeline in response["PipelineSummaries"]
+    ]
+    assert pipeline_names_remain == pipeline_names_exist
+
+
+def test_delete_pipeline_not_exists(sagemaker_client):
+    with pytest.raises(botocore.exceptions.ClientError):
+        _ = sagemaker_client.delete_pipeline(PipelineName="some-pipeline-name")
