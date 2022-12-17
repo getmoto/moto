@@ -3,7 +3,9 @@ import pytest
 import boto3
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import mock_athena
+from moto import mock_athena, settings
+from moto.athena.models import athena_backends, QueryResults
+from moto.core import DEFAULT_ACCOUNT_ID
 
 
 @mock_athena
@@ -283,6 +285,30 @@ def test_get_query_results():
 
     result["ResultSet"]["Rows"].should.equal([])
     result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"].should.equal([])
+
+    if not settings.TEST_SERVER_MODE:
+        backend = athena_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+        rows = [{"Data": [{"VarCharValue": ".."}]}]
+        column_info = [
+            {
+                "CatalogName": "string",
+                "SchemaName": "string",
+                "TableName": "string",
+                "Name": "string",
+                "Label": "string",
+                "Type": "string",
+                "Precision": 123,
+                "Scale": 123,
+                "Nullable": "NOT_NULL",
+                "CaseSensitive": True,
+            }
+        ]
+        results = QueryResults(rows=rows, column_info=column_info)
+        backend.query_results["test"] = results
+
+        result = client.get_query_results(QueryExecutionId="test")
+        result["ResultSet"]["Rows"].should.equal(rows)
+        result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"].should.equal(column_info)
 
 
 @mock_athena

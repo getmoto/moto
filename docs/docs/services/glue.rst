@@ -33,6 +33,7 @@ glue
 - [ ] batch_get_blueprints
 - [ ] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
+- [ ] batch_get_data_quality_result
 - [ ] batch_get_dev_endpoints
 - [ ] batch_get_jobs
 - [X] batch_get_partition
@@ -40,6 +41,8 @@ glue
 - [ ] batch_get_workflows
 - [ ] batch_stop_job_run
 - [X] batch_update_partition
+- [ ] cancel_data_quality_rule_recommendation_run
+- [ ] cancel_data_quality_ruleset_evaluation_run
 - [ ] cancel_ml_task_run
 - [ ] cancel_statement
 - [ ] check_schema_version_validity
@@ -48,6 +51,7 @@ glue
 - [ ] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
+- [ ] create_data_quality_ruleset
 - [X] create_database
 - [ ] create_dev_endpoint
 - [X] create_job
@@ -74,6 +78,7 @@ glue
 - [ ] delete_connection
 - [X] delete_crawler
 - [ ] delete_custom_entity_type
+- [ ] delete_data_quality_ruleset
 - [X] delete_database
 - [ ] delete_dev_endpoint
 - [ ] delete_job
@@ -106,6 +111,10 @@ glue
 - [X] get_crawlers
 - [ ] get_custom_entity_type
 - [ ] get_data_catalog_encryption_settings
+- [ ] get_data_quality_result
+- [ ] get_data_quality_rule_recommendation_run
+- [ ] get_data_quality_ruleset
+- [ ] get_data_quality_ruleset_evaluation_run
 - [X] get_database
 - [X] get_databases
 - [ ] get_dataflow_graph
@@ -170,6 +179,10 @@ glue
 - [X] list_crawlers
 - [ ] list_crawls
 - [ ] list_custom_entity_types
+- [ ] list_data_quality_results
+- [ ] list_data_quality_rule_recommendation_runs
+- [ ] list_data_quality_ruleset_evaluation_runs
+- [ ] list_data_quality_rulesets
 - [ ] list_dev_endpoints
 - [X] list_jobs
 - [ ] list_ml_transforms
@@ -194,6 +207,8 @@ glue
 - [ ] start_blueprint_run
 - [X] start_crawler
 - [ ] start_crawler_schedule
+- [ ] start_data_quality_rule_recommendation_run
+- [ ] start_data_quality_ruleset_evaluation_run
 - [ ] start_export_labels_task_run
 - [ ] start_import_labels_task_run
 - [X] start_job_run
@@ -215,6 +230,7 @@ glue
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule
+- [ ] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint
 - [ ] update_job

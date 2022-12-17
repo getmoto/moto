@@ -49,14 +49,18 @@ sagemaker
 - [X] create_experiment
 - [ ] create_feature_group
 - [ ] create_flow_definition
+- [ ] create_hub
 - [ ] create_human_task_ui
 - [ ] create_hyper_parameter_tuning_job
 - [ ] create_image
 - [ ] create_image_version
+- [ ] create_inference_experiment
 - [ ] create_inference_recommendations_job
 - [ ] create_labeling_job
 - [X] create_model
 - [ ] create_model_bias_job_definition
+- [ ] create_model_card
+- [ ] create_model_card_export_job
 - [ ] create_model_explainability_job_definition
 - [ ] create_model_package
 - [ ] create_model_package_group
@@ -69,6 +73,7 @@ sagemaker
 - [ ] create_presigned_notebook_instance_url
 - [X] create_processing_job
 - [ ] create_project
+- [ ] create_space
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
 - [ ] create_transform_job
@@ -95,11 +100,15 @@ sagemaker
 - [X] delete_experiment
 - [ ] delete_feature_group
 - [ ] delete_flow_definition
+- [ ] delete_hub
+- [ ] delete_hub_content
 - [ ] delete_human_task_ui
 - [ ] delete_image
 - [ ] delete_image_version
+- [ ] delete_inference_experiment
 - [X] delete_model
 - [ ] delete_model_bias_job_definition
+- [ ] delete_model_card
 - [ ] delete_model_explainability_job_definition
 - [ ] delete_model_package
 - [ ] delete_model_package_group
@@ -110,6 +119,7 @@ sagemaker
 - [X] delete_notebook_instance_lifecycle_config
 - [X] delete_pipeline
 - [ ] delete_project
+- [ ] delete_space
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
 - [X] delete_trial
@@ -139,15 +149,20 @@ sagemaker
 - [ ] describe_feature_group
 - [ ] describe_feature_metadata
 - [ ] describe_flow_definition
+- [ ] describe_hub
+- [ ] describe_hub_content
 - [ ] describe_human_task_ui
 - [ ] describe_hyper_parameter_tuning_job
 - [ ] describe_image
 - [ ] describe_image_version
+- [ ] describe_inference_experiment
 - [ ] describe_inference_recommendations_job
 - [ ] describe_labeling_job
 - [ ] describe_lineage_group
 - [X] describe_model
 - [ ] describe_model_bias_job_definition
+- [ ] describe_model_card
+- [ ] describe_model_card_export_job
 - [ ] describe_model_explainability_job_definition
 - [ ] describe_model_package
 - [ ] describe_model_package_group
@@ -160,6 +175,7 @@ sagemaker
 - [ ] describe_pipeline_execution
 - [X] describe_processing_job
 - [ ] describe_project
+- [ ] describe_space
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
@@ -177,6 +193,7 @@ sagemaker
 - [ ] get_model_package_group_policy
 - [ ] get_sagemaker_servicecatalog_portfolio_status
 - [ ] get_search_suggestions
+- [ ] import_hub_content
 - [ ] list_actions
 - [ ] list_algorithms
 - [ ] list_app_image_configs
@@ -199,22 +216,31 @@ sagemaker
 - [X] list_experiments
 - [ ] list_feature_groups
 - [ ] list_flow_definitions
+- [ ] list_hub_content_versions
+- [ ] list_hub_contents
+- [ ] list_hubs
 - [ ] list_human_task_uis
 - [ ] list_hyper_parameter_tuning_jobs
 - [ ] list_image_versions
 - [ ] list_images
+- [ ] list_inference_experiments
 - [ ] list_inference_recommendations_job_steps
 - [ ] list_inference_recommendations_jobs
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
 - [ ] list_model_bias_job_definitions
+- [ ] list_model_card_export_jobs
+- [ ] list_model_card_versions
+- [ ] list_model_cards
 - [ ] list_model_explainability_job_definitions
 - [ ] list_model_metadata
 - [ ] list_model_package_groups
 - [ ] list_model_packages
 - [ ] list_model_quality_job_definitions
 - [X] list_models
+- [ ] list_monitoring_alert_history
+- [ ] list_monitoring_alerts
 - [ ] list_monitoring_executions
 - [ ] list_monitoring_schedules
 - [ ] list_notebook_instance_lifecycle_configs
@@ -225,6 +251,7 @@ sagemaker
 - [X] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
+- [ ] list_spaces
 - [ ] list_stage_devices
 - [ ] list_studio_lifecycle_configs
 - [ ] list_subscribed_workteams
@@ -246,6 +273,7 @@ sagemaker
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
 - [ ] start_edge_deployment_stage
+- [ ] start_inference_experiment
 - [ ] start_monitoring_schedule
 - [X] start_notebook_instance
 - [ ] start_pipeline_execution
@@ -254,6 +282,7 @@ sagemaker
 - [ ] stop_edge_deployment_stage
 - [ ] stop_edge_packaging_job
 - [ ] stop_hyper_parameter_tuning_job
+- [ ] stop_inference_experiment
 - [ ] stop_inference_recommendations_job
 - [ ] stop_labeling_job
 - [ ] stop_monitoring_schedule
@@ -275,14 +304,19 @@ sagemaker
 - [ ] update_experiment
 - [ ] update_feature_group
 - [ ] update_feature_metadata
+- [ ] update_hub
 - [ ] update_image
+- [ ] update_inference_experiment
+- [ ] update_model_card
 - [ ] update_model_package
+- [ ] update_monitoring_alert
 - [ ] update_monitoring_schedule
 - [ ] update_notebook_instance
 - [ ] update_notebook_instance_lifecycle_config
 - [ ] update_pipeline
 - [ ] update_pipeline_execution
 - [ ] update_project
+- [ ] update_space
 - [ ] update_training_job
 - [ ] update_trial
 - [ ] update_trial_component

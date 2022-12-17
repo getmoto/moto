@@ -28,6 +28,7 @@ autoscaling
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
 - [X] attach_load_balancers
+- [ ] attach_traffic_sources
 - [ ] batch_delete_scheduled_action
 - [ ] batch_put_scheduled_update_group_action
 - [ ] cancel_instance_refresh
@@ -67,10 +68,12 @@ autoscaling
         
 
 - [ ] describe_termination_policy_types
+- [ ] describe_traffic_sources
 - [ ] describe_warm_pool
 - [X] detach_instances
 - [X] detach_load_balancer_target_groups
 - [X] detach_load_balancers
+- [ ] detach_traffic_sources
 - [ ] disable_metrics_collection
 - [X] enable_metrics_collection
 - [ ] enter_standby

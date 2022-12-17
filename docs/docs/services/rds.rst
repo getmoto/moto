@@ -135,7 +135,7 @@ rds
 - [ ] modify_event_subscription
 - [ ] modify_global_cluster
 - [X] modify_option_group
-- [ ] promote_read_replica
+- [X] promote_read_replica
 - [ ] promote_read_replica_db_cluster
 - [ ] purchase_reserved_db_instances_offering
 - [ ] reboot_db_cluster
