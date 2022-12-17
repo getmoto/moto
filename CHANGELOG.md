@@ -11,7 +11,6 @@ Docker Digest for 4.0.12: <autopopulateddigest>
     New Methods:
         * Athena:
             * get_query_results()
-# TODO: add docs on how to add query results using the internal API
             * list_query_executions()
         * RDS:
             * promote_read_replica()
