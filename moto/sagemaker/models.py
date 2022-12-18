@@ -1796,7 +1796,7 @@ class SageMakerModelBackend(BaseBackend):
         pipeline_description=None,
         role_arn=None,
         parallelism_configuration=None,
-    ):
+    ):  # noqa: F504
         try:
             pipeline_arn = self.pipelines[pipeline_name].pipeline_arn
         except KeyError:
