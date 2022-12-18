@@ -1,6 +1,7 @@
 import json
 
 from datetime import datetime
+from typing import Any, Dict, List, Iterable, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
 
 from .exceptions import (
@@ -12,12 +13,12 @@ from .utils import filter_tasks
 
 
 class DatabaseMigrationServiceBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.replication_tasks = {}
+        self.replication_tasks: Dict[str, "FakeReplicationTask"] = {}
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region, zones):
+    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "dms"
@@ -25,14 +26,14 @@ class DatabaseMigrationServiceBackend(BaseBackend):
 
     def create_replication_task(
         self,
-        replication_task_identifier,
-        source_endpoint_arn,
-        target_endpoint_arn,
-        replication_instance_arn,
-        migration_type,
-        table_mappings,
-        replication_task_settings,
-    ):
+        replication_task_identifier: str,
+        source_endpoint_arn: str,
+        target_endpoint_arn: str,
+        replication_instance_arn: str,
+        migration_type: str,
+        table_mappings: str,
+        replication_task_settings: str,
+    ) -> "FakeReplicationTask":
         """
         The following parameters are not yet implemented:
         CDCStartTime, CDCStartPosition, CDCStopPosition, Tags, TaskData, ResourceIdentifier
@@ -58,7 +59,9 @@ class DatabaseMigrationServiceBackend(BaseBackend):
 
         return replication_task
 
-    def start_replication_task(self, replication_task_arn):
+    def start_replication_task(
+        self, replication_task_arn: str
+    ) -> "FakeReplicationTask":
         """
         The following parameters have not yet been implemented:
         StartReplicationTaskType, CDCStartTime, CDCStartPosition, CDCStopPosition
@@ -68,13 +71,15 @@ class DatabaseMigrationServiceBackend(BaseBackend):
 
         return self.replication_tasks[replication_task_arn].start()
 
-    def stop_replication_task(self, replication_task_arn):
+    def stop_replication_task(self, replication_task_arn: str) -> "FakeReplicationTask":
         if not self.replication_tasks.get(replication_task_arn):
             raise ResourceNotFoundFault("Replication task could not be found.")
 
         return self.replication_tasks[replication_task_arn].stop()
 
-    def delete_replication_task(self, replication_task_arn):
+    def delete_replication_task(
+        self, replication_task_arn: str
+    ) -> "FakeReplicationTask":
         if not self.replication_tasks.get(replication_task_arn):
             raise ResourceNotFoundFault("Replication task could not be found.")
 
@@ -84,7 +89,9 @@ class DatabaseMigrationServiceBackend(BaseBackend):
 
         return task
 
-    def describe_replication_tasks(self, filters, max_records):
+    def describe_replication_tasks(
+        self, filters: List[Dict[str, Any]], max_records: int
+    ) -> Iterable["FakeReplicationTask"]:
         """
         The parameter WithoutSettings has not yet been implemented
         """
@@ -99,15 +106,15 @@ class DatabaseMigrationServiceBackend(BaseBackend):
 class FakeReplicationTask(BaseModel):
     def __init__(
         self,
-        replication_task_identifier,
-        migration_type,
-        replication_instance_arn,
-        source_endpoint_arn,
-        target_endpoint_arn,
-        table_mappings,
-        replication_task_settings,
-        account_id,
-        region_name,
+        replication_task_identifier: str,
+        migration_type: str,
+        replication_instance_arn: str,
+        source_endpoint_arn: str,
+        target_endpoint_arn: str,
+        table_mappings: str,
+        replication_task_settings: str,
+        account_id: str,
+        region_name: str,
     ):
         self.id = replication_task_identifier
         self.region = region_name
@@ -122,10 +129,10 @@ class FakeReplicationTask(BaseModel):
         self.status = "creating"
 
         self.creation_date = datetime.utcnow()
-        self.start_date = None
-        self.stop_date = None
+        self.start_date: Optional[datetime] = None
+        self.stop_date: Optional[datetime] = None
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         start_date = self.start_date.isoformat() if self.start_date else None
         stop_date = self.stop_date.isoformat() if self.stop_date else None
 
@@ -156,17 +163,17 @@ class FakeReplicationTask(BaseModel):
             },
         }
 
-    def ready(self):
+    def ready(self) -> "FakeReplicationTask":
         self.status = "ready"
         return self
 
-    def start(self):
+    def start(self) -> "FakeReplicationTask":
         self.status = "starting"
         self.start_date = datetime.utcnow()
         self.run()
         return self
 
-    def stop(self):
+    def stop(self) -> "FakeReplicationTask":
         if self.status != "running":
             raise InvalidResourceStateFault("Replication task is not running")
 
@@ -174,11 +181,11 @@ class FakeReplicationTask(BaseModel):
         self.stop_date = datetime.utcnow()
         return self
 
-    def delete(self):
+    def delete(self) -> "FakeReplicationTask":
         self.status = "deleting"
         return self
 
-    def run(self):
+    def run(self) -> "FakeReplicationTask":
         self.status = "running"
         return self
 

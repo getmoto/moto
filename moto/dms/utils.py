@@ -1,23 +1,28 @@
-def match_task_arn(task, arns):
+from typing import Any, Dict, List, Iterable
+
+
+def match_task_arn(task: Dict[str, Any], arns: List[str]) -> bool:
     return task["ReplicationTaskArn"] in arns
 
 
-def match_task_id(task, ids):
+def match_task_id(task: Dict[str, Any], ids: List[str]) -> bool:
     return task["ReplicationTaskIdentifier"] in ids
 
 
-def match_task_migration_type(task, migration_types):
+def match_task_migration_type(task: Dict[str, Any], migration_types: List[str]) -> bool:
     return task["MigrationType"] in migration_types
 
 
-def match_task_endpoint_arn(task, endpoint_arns):
+def match_task_endpoint_arn(task: Dict[str, Any], endpoint_arns: List[str]) -> bool:
     return (
         task["SourceEndpointArn"] in endpoint_arns
         or task["TargetEndpointArn"] in endpoint_arns
     )
 
 
-def match_task_replication_instance_arn(task, replication_instance_arns):
+def match_task_replication_instance_arn(
+    task: Dict[str, Any], replication_instance_arns: List[str]
+) -> bool:
     return task["ReplicationInstanceArn"] in replication_instance_arns
 
 
@@ -30,17 +35,18 @@ task_filter_functions = {
 }
 
 
-def filter_tasks(tasks, filters):
+def filter_tasks(tasks: Iterable[Any], filters: List[Dict[str, Any]]) -> Any:
     matching_tasks = tasks
 
     for f in filters:
-        filter_function = task_filter_functions[f["Name"]]
+        filter_function = task_filter_functions.get(f["Name"])
 
         if not filter_function:
             continue
 
+        # https://github.com/python/mypy/issues/12682
         matching_tasks = filter(
-            lambda task: filter_function(task, f["Values"]), matching_tasks
+            lambda task: filter_function(task, f["Values"]), matching_tasks  # type: ignore[arg-type]
         )
 
     return matching_tasks
