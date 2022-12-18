@@ -238,6 +238,7 @@ def test_update_pipeline_add_attribute(sagemaker_client):
     response["PipelineSummaries"][0]["PipelineDisplayName"].should.equal(
         pipeline_display_name_update
     )
+    response["PipelineSummaries"][0].should.have.length_of(7)
 
 
 def test_update_pipeline_update_change_attribute(sagemaker_client):
@@ -251,3 +252,4 @@ def test_update_pipeline_update_change_attribute(sagemaker_client):
     )
     response = sagemaker_client.list_pipelines()
     response["PipelineSummaries"][0]["RoleArn"].should.equal(role_arn_update)
+    response["PipelineSummaries"][0].should.have.length_of(6)
