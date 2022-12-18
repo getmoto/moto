@@ -313,7 +313,7 @@ sagemaker
 - [ ] update_monitoring_schedule
 - [ ] update_notebook_instance
 - [ ] update_notebook_instance_lifecycle_config
-- [ ] update_pipeline
+- [X] update_pipeline
 - [ ] update_pipeline_execution
 - [ ] update_project
 - [ ] update_space
