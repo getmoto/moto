@@ -1,17 +1,17 @@
 from moto.core.responses import BaseResponse
-from .models import dms_backends
+from .models import dms_backends, DatabaseMigrationServiceBackend
 import json
 
 
 class DatabaseMigrationServiceResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="dms")
 
     @property
-    def dms_backend(self):
+    def dms_backend(self) -> DatabaseMigrationServiceBackend:
         return dms_backends[self.current_account][self.region]
 
-    def create_replication_task(self):
+    def create_replication_task(self) -> str:
         replication_task_identifier = self._get_param("ReplicationTaskIdentifier")
         source_endpoint_arn = self._get_param("SourceEndpointArn")
         target_endpoint_arn = self._get_param("TargetEndpointArn")
@@ -31,7 +31,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
 
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
 
-    def start_replication_task(self):
+    def start_replication_task(self) -> str:
         replication_task_arn = self._get_param("ReplicationTaskArn")
         replication_task = self.dms_backend.start_replication_task(
             replication_task_arn=replication_task_arn
@@ -39,7 +39,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
 
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
 
-    def stop_replication_task(self):
+    def stop_replication_task(self) -> str:
         replication_task_arn = self._get_param("ReplicationTaskArn")
         replication_task = self.dms_backend.stop_replication_task(
             replication_task_arn=replication_task_arn
@@ -47,7 +47,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
 
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
 
-    def delete_replication_task(self):
+    def delete_replication_task(self) -> str:
         replication_task_arn = self._get_param("ReplicationTaskArn")
         replication_task = self.dms_backend.delete_replication_task(
             replication_task_arn=replication_task_arn
@@ -55,7 +55,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
 
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
 
-    def describe_replication_tasks(self):
+    def describe_replication_tasks(self) -> str:
         filters = self._get_list_prefix("Filters.member")
         max_records = self._get_int_param("MaxRecords")
         replication_tasks = self.dms_backend.describe_replication_tasks(
