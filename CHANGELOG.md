@@ -3,7 +3,7 @@ Moto Changelog
 
 4.0.12
 -----
-Docker Digest for 4.0.12: <autopopulateddigest>
+Docker Digest for 4.0.12: _sha256:06916d3f310c68fd445468f06d6d4ae6f855e7f2b80e007a90bd11eeb421b5ed_
 
     General:
         * Fixes our Kinesis-compatibility with botocore>=1.29.31 - earlier Moto-versions will connect to AWS when using this botocore-version 
