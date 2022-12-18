@@ -86,9 +86,8 @@ See the following example:
             [b["Name"] for b in buckets].should.equal(["test"])
 
 This example shows it is possible to create state using the TreadedMotoServer, and access that state using the usual decorators.  :raw-html:`<br />`
-0Note that the decorators will destroy any resources on start, so make sure to not accidentally destroy any resources created by the ThreadedMotoServer that should be kept.
+Note that the decorators will destroy any resources on start, so make sure to not accidentally destroy any resources created by the ThreadedMotoServer that should be kept.
 
-.. note:: The ThreadedMotoServer is considered in beta for now, and the exact interface and behaviour may still change.   :raw-html:`<br />` Please let us know if you'd like to see any changes.
 
 Run using Docker
 ----------------------
