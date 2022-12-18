@@ -144,6 +144,7 @@ cloudfront
         Calling this function without a value is invalid, per AWS' behaviour
         
 
+- [ ] update_distribution_with_staging_config
 - [ ] update_field_level_encryption_config
 - [ ] update_field_level_encryption_profile
 - [ ] update_function

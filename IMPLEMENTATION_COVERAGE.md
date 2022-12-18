@@ -355,54 +355,78 @@
 
 ## athena
 <details>
-<summary>27% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_prepared_statement
 - [ ] batch_get_query_execution
 - [X] create_data_catalog
 - [X] create_named_query
+- [ ] create_notebook
 - [ ] create_prepared_statement
+- [ ] create_presigned_notebook_url
 - [X] create_work_group
 - [ ] delete_data_catalog
 - [ ] delete_named_query
+- [ ] delete_notebook
 - [ ] delete_prepared_statement
 - [ ] delete_work_group
+- [ ] export_notebook
+- [ ] get_calculation_execution
+- [ ] get_calculation_execution_code
+- [ ] get_calculation_execution_status
 - [X] get_data_catalog
 - [ ] get_database
 - [X] get_named_query
+- [ ] get_notebook_metadata
 - [ ] get_prepared_statement
-- [ ] get_query_execution
-- [ ] get_query_results
+- [X] get_query_execution
+- [X] get_query_results
 - [ ] get_query_runtime_statistics
+- [ ] get_session
+- [ ] get_session_status
 - [ ] get_table_metadata
 - [X] get_work_group
+- [ ] import_notebook
+- [ ] list_application_dpu_sizes
+- [ ] list_calculation_executions
 - [X] list_data_catalogs
 - [ ] list_databases
 - [ ] list_engine_versions
+- [ ] list_executors
 - [ ] list_named_queries
+- [ ] list_notebook_metadata
+- [ ] list_notebook_sessions
 - [ ] list_prepared_statements
-- [ ] list_query_executions
+- [X] list_query_executions
+- [ ] list_sessions
 - [ ] list_table_metadata
 - [ ] list_tags_for_resource
 - [X] list_work_groups
+- [ ] start_calculation_execution
 - [X] start_query_execution
+- [ ] start_session
+- [ ] stop_calculation_execution
 - [X] stop_query_execution
 - [ ] tag_resource
+- [ ] terminate_session
 - [ ] untag_resource
 - [ ] update_data_catalog
 - [ ] update_named_query
+- [ ] update_notebook
+- [ ] update_notebook_metadata
 - [ ] update_prepared_statement
 - [ ] update_work_group
 </details>
 
 ## autoscaling
 <details>
-<summary>55% implemented</summary>
+<summary>53% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
 - [X] attach_load_balancers
+- [ ] attach_traffic_sources
 - [ ] batch_delete_scheduled_action
 - [ ] batch_put_scheduled_update_group_action
 - [ ] cancel_instance_refresh
@@ -437,10 +461,12 @@
 - [X] describe_scheduled_actions
 - [X] describe_tags
 - [ ] describe_termination_policy_types
+- [ ] describe_traffic_sources
 - [ ] describe_warm_pool
 - [X] detach_instances
 - [X] detach_load_balancer_target_groups
 - [X] detach_load_balancers
+- [ ] detach_traffic_sources
 - [ ] disable_metrics_collection
 - [X] enable_metrics_collection
 - [ ] enter_standby
@@ -524,7 +550,7 @@
 
 ## ce
 <details>
-<summary>20% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] create_anomaly_monitor
 - [ ] create_anomaly_subscription
@@ -553,8 +579,10 @@
 - [ ] get_usage_forecast
 - [ ] list_cost_allocation_tags
 - [ ] list_cost_category_definitions
+- [ ] list_savings_plans_purchase_recommendation_generation
 - [X] list_tags_for_resource
 - [ ] provide_anomaly_feedback
+- [ ] start_savings_plans_purchase_recommendation_generation
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_anomaly_monitor
@@ -734,6 +762,7 @@
 - [ ] update_cloud_front_origin_access_identity
 - [ ] update_continuous_deployment_policy
 - [X] update_distribution
+- [ ] update_distribution_with_staging_config
 - [ ] update_field_level_encryption_config
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
@@ -2439,7 +2468,7 @@
 
 ## eks
 <details>
-<summary>44% implemented</summary>
+<summary>42% implemented</summary>
 
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
@@ -2453,6 +2482,7 @@
 - [X] delete_nodegroup
 - [ ] deregister_cluster
 - [ ] describe_addon
+- [ ] describe_addon_configuration
 - [ ] describe_addon_versions
 - [X] describe_cluster
 - [X] describe_fargate_profile
@@ -3049,7 +3079,7 @@
 
 ## glue
 <details>
-<summary>19% implemented</summary>
+<summary>18% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3059,6 +3089,7 @@
 - [ ] batch_get_blueprints
 - [ ] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
+- [ ] batch_get_data_quality_result
 - [ ] batch_get_dev_endpoints
 - [ ] batch_get_jobs
 - [X] batch_get_partition
@@ -3066,6 +3097,8 @@
 - [ ] batch_get_workflows
 - [ ] batch_stop_job_run
 - [X] batch_update_partition
+- [ ] cancel_data_quality_rule_recommendation_run
+- [ ] cancel_data_quality_ruleset_evaluation_run
 - [ ] cancel_ml_task_run
 - [ ] cancel_statement
 - [ ] check_schema_version_validity
@@ -3074,6 +3107,7 @@
 - [ ] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
+- [ ] create_data_quality_ruleset
 - [X] create_database
 - [ ] create_dev_endpoint
 - [X] create_job
@@ -3096,6 +3130,7 @@
 - [ ] delete_connection
 - [X] delete_crawler
 - [ ] delete_custom_entity_type
+- [ ] delete_data_quality_ruleset
 - [X] delete_database
 - [ ] delete_dev_endpoint
 - [ ] delete_job
@@ -3128,6 +3163,10 @@
 - [X] get_crawlers
 - [ ] get_custom_entity_type
 - [ ] get_data_catalog_encryption_settings
+- [ ] get_data_quality_result
+- [ ] get_data_quality_rule_recommendation_run
+- [ ] get_data_quality_ruleset
+- [ ] get_data_quality_ruleset_evaluation_run
 - [X] get_database
 - [X] get_databases
 - [ ] get_dataflow_graph
@@ -3179,6 +3218,10 @@
 - [X] list_crawlers
 - [ ] list_crawls
 - [ ] list_custom_entity_types
+- [ ] list_data_quality_results
+- [ ] list_data_quality_rule_recommendation_runs
+- [ ] list_data_quality_ruleset_evaluation_runs
+- [ ] list_data_quality_rulesets
 - [ ] list_dev_endpoints
 - [X] list_jobs
 - [ ] list_ml_transforms
@@ -3203,6 +3246,8 @@
 - [ ] start_blueprint_run
 - [X] start_crawler
 - [ ] start_crawler_schedule
+- [ ] start_data_quality_rule_recommendation_run
+- [ ] start_data_quality_ruleset_evaluation_run
 - [ ] start_export_labels_task_run
 - [ ] start_import_labels_task_run
 - [X] start_job_run
@@ -3224,6 +3269,7 @@
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule
+- [ ] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint
 - [ ] update_job
@@ -3878,12 +3924,13 @@
 
 ## kinesisvideo
 <details>
-<summary>21% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] create_signaling_channel
 - [X] create_stream
 - [ ] delete_signaling_channel
 - [X] delete_stream
+- [ ] describe_edge_configuration
 - [ ] describe_image_generation_configuration
 - [ ] describe_notification_configuration
 - [ ] describe_signaling_channel
@@ -3894,6 +3941,7 @@
 - [X] list_streams
 - [ ] list_tags_for_resource
 - [ ] list_tags_for_stream
+- [ ] start_edge_configuration_update
 - [ ] tag_resource
 - [ ] tag_stream
 - [ ] untag_resource
@@ -4949,7 +4997,7 @@
 - [ ] modify_event_subscription
 - [ ] modify_global_cluster
 - [X] modify_option_group
-- [ ] promote_read_replica
+- [X] promote_read_replica
 - [ ] promote_read_replica_db_cluster
 - [ ] purchase_reserved_db_instances_offering
 - [ ] reboot_db_cluster
@@ -5571,14 +5619,18 @@
 - [X] create_experiment
 - [ ] create_feature_group
 - [ ] create_flow_definition
+- [ ] create_hub
 - [ ] create_human_task_ui
 - [ ] create_hyper_parameter_tuning_job
 - [ ] create_image
 - [ ] create_image_version
+- [ ] create_inference_experiment
 - [ ] create_inference_recommendations_job
 - [ ] create_labeling_job
 - [X] create_model
 - [ ] create_model_bias_job_definition
+- [ ] create_model_card
+- [ ] create_model_card_export_job
 - [ ] create_model_explainability_job_definition
 - [ ] create_model_package
 - [ ] create_model_package_group
@@ -5586,11 +5638,12 @@
 - [ ] create_monitoring_schedule
 - [X] create_notebook_instance
 - [X] create_notebook_instance_lifecycle_config
-- [ ] create_pipeline
+- [X] create_pipeline
 - [ ] create_presigned_domain_url
 - [ ] create_presigned_notebook_instance_url
 - [X] create_processing_job
 - [ ] create_project
+- [ ] create_space
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
 - [ ] create_transform_job
@@ -5617,11 +5670,15 @@
 - [X] delete_experiment
 - [ ] delete_feature_group
 - [ ] delete_flow_definition
+- [ ] delete_hub
+- [ ] delete_hub_content
 - [ ] delete_human_task_ui
 - [ ] delete_image
 - [ ] delete_image_version
+- [ ] delete_inference_experiment
 - [X] delete_model
 - [ ] delete_model_bias_job_definition
+- [ ] delete_model_card
 - [ ] delete_model_explainability_job_definition
 - [ ] delete_model_package
 - [ ] delete_model_package_group
@@ -5630,8 +5687,9 @@
 - [ ] delete_monitoring_schedule
 - [X] delete_notebook_instance
 - [X] delete_notebook_instance_lifecycle_config
-- [ ] delete_pipeline
+- [X] delete_pipeline
 - [ ] delete_project
+- [ ] delete_space
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
 - [X] delete_trial
@@ -5661,15 +5719,20 @@
 - [ ] describe_feature_group
 - [ ] describe_feature_metadata
 - [ ] describe_flow_definition
+- [ ] describe_hub
+- [ ] describe_hub_content
 - [ ] describe_human_task_ui
 - [ ] describe_hyper_parameter_tuning_job
 - [ ] describe_image
 - [ ] describe_image_version
+- [ ] describe_inference_experiment
 - [ ] describe_inference_recommendations_job
 - [ ] describe_labeling_job
 - [ ] describe_lineage_group
 - [X] describe_model
 - [ ] describe_model_bias_job_definition
+- [ ] describe_model_card
+- [ ] describe_model_card_export_job
 - [ ] describe_model_explainability_job_definition
 - [ ] describe_model_package
 - [ ] describe_model_package_group
@@ -5682,6 +5745,7 @@
 - [ ] describe_pipeline_execution
 - [X] describe_processing_job
 - [ ] describe_project
+- [ ] describe_space
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
@@ -5699,6 +5763,7 @@
 - [ ] get_model_package_group_policy
 - [ ] get_sagemaker_servicecatalog_portfolio_status
 - [ ] get_search_suggestions
+- [ ] import_hub_content
 - [ ] list_actions
 - [ ] list_algorithms
 - [ ] list_app_image_configs
@@ -5721,22 +5786,31 @@
 - [X] list_experiments
 - [ ] list_feature_groups
 - [ ] list_flow_definitions
+- [ ] list_hub_content_versions
+- [ ] list_hub_contents
+- [ ] list_hubs
 - [ ] list_human_task_uis
 - [ ] list_hyper_parameter_tuning_jobs
 - [ ] list_image_versions
 - [ ] list_images
+- [ ] list_inference_experiments
 - [ ] list_inference_recommendations_job_steps
 - [ ] list_inference_recommendations_jobs
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
 - [ ] list_model_bias_job_definitions
+- [ ] list_model_card_export_jobs
+- [ ] list_model_card_versions
+- [ ] list_model_cards
 - [ ] list_model_explainability_job_definitions
 - [ ] list_model_metadata
 - [ ] list_model_package_groups
 - [ ] list_model_packages
 - [ ] list_model_quality_job_definitions
 - [X] list_models
+- [ ] list_monitoring_alert_history
+- [ ] list_monitoring_alerts
 - [ ] list_monitoring_executions
 - [ ] list_monitoring_schedules
 - [ ] list_notebook_instance_lifecycle_configs
@@ -5744,9 +5818,10 @@
 - [ ] list_pipeline_execution_steps
 - [ ] list_pipeline_executions
 - [ ] list_pipeline_parameters_for_execution
-- [ ] list_pipelines
+- [X] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
+- [ ] list_spaces
 - [ ] list_stage_devices
 - [ ] list_studio_lifecycle_configs
 - [ ] list_subscribed_workteams
@@ -5768,6 +5843,7 @@
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
 - [ ] start_edge_deployment_stage
+- [ ] start_inference_experiment
 - [ ] start_monitoring_schedule
 - [X] start_notebook_instance
 - [ ] start_pipeline_execution
@@ -5776,6 +5852,7 @@
 - [ ] stop_edge_deployment_stage
 - [ ] stop_edge_packaging_job
 - [ ] stop_hyper_parameter_tuning_job
+- [ ] stop_inference_experiment
 - [ ] stop_inference_recommendations_job
 - [ ] stop_labeling_job
 - [ ] stop_monitoring_schedule
@@ -5797,14 +5874,19 @@
 - [ ] update_experiment
 - [ ] update_feature_group
 - [ ] update_feature_metadata
+- [ ] update_hub
 - [ ] update_image
+- [ ] update_inference_experiment
+- [ ] update_model_card
 - [ ] update_model_package
+- [ ] update_monitoring_alert
 - [ ] update_monitoring_schedule
 - [ ] update_notebook_instance
 - [ ] update_notebook_instance_lifecycle_config
 - [ ] update_pipeline
 - [ ] update_pipeline_execution
 - [ ] update_project
+- [ ] update_space
 - [ ] update_training_job
 - [ ] update_trial
 - [ ] update_trial_component
@@ -6277,7 +6359,7 @@
 
 ## stepfunctions
 <details>
-<summary>56% implemented</summary>
+<summary>50% implemented</summary>
 
 - [ ] create_activity
 - [X] create_state_machine
@@ -6285,12 +6367,14 @@
 - [X] delete_state_machine
 - [ ] describe_activity
 - [X] describe_execution
+- [ ] describe_map_run
 - [X] describe_state_machine
 - [ ] describe_state_machine_for_execution
 - [ ] get_activity_task
 - [X] get_execution_history
 - [ ] list_activities
 - [X] list_executions
+- [ ] list_map_runs
 - [X] list_state_machines
 - [X] list_tags_for_resource
 - [ ] send_task_failure
@@ -6301,6 +6385,7 @@
 - [X] stop_execution
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_map_run
 - [X] update_state_machine
 </details>
 
@@ -6561,6 +6646,7 @@
 - cloudsearch
 - cloudsearchdomain
 - codeartifact
+- codecatalyst
 - codedeploy
 - codeguru-reviewer
 - codeguruprofiler
@@ -6586,6 +6672,7 @@
 - discovery
 - dlm
 - docdb
+- docdb-elastic
 - drs
 - ecr-public
 - elastic-inference
@@ -6685,6 +6772,7 @@
 - pinpoint-email
 - pinpoint-sms-voice
 - pinpoint-sms-voice-v2
+- pipes
 - pricing
 - privatenetworks
 - proton
@@ -6706,6 +6794,8 @@
 - sagemaker-a2i-runtime
 - sagemaker-edge
 - sagemaker-featurestore-runtime
+- sagemaker-geospatial
+- sagemaker-metrics
 - sagemaker-runtime
 - savingsplans
 - scheduler

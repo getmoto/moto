@@ -1,6 +1,46 @@
 Moto Changelog
 ==============
 
+4.0.12
+-----
+Docker Digest for 4.0.12: <autopopulateddigest>
+
+    General:
+        * Fixes our Kinesis-compatibility with botocore>=1.29.31 - earlier Moto-versions will connect to AWS when using this botocore-version 
+
+    New Methods:
+        * Athena:
+            * get_query_results()
+            * list_query_executions()
+        * RDS:
+            * promote_read_replica()
+        * Sagemaker:
+            * create_pipeline()
+            * delete_pipeline()
+            * list_pipelines()
+
+    Miscellaneous:
+        * AWSLambda: publish_function() and update_function_code() now only increment the version if the source code has changed
+        * CognitoIDP: Passwords are now validated using the PasswordPolicy (either supplied, or the default)
+        * CloudFormation: create_stack() now propagates parameters StackPolicyBody and TimeoutInMinutes
+        * CloudFormation: create_stack_instances() now returns the actual OperationId
+        * CloudFormation: create_stack_set() now validates the provided name
+        * CloudFormation: create_stack_set() now supports the DeploymentTargets-parameter
+        * CloudFormation: create_stack_set() now actually creates the provided resources
+        * CloudFormation: create_stack_set() now propagates parameters AdministrationRoleARN and ExecutionRoleName
+        * CloudFormation: describe_stack_set() now returns the attributes Description, PermissionModel
+        * CloudFormation: delete_stack_set() now validates that no instances are present before deleting the set
+        * CloudWatch: get_metric_data() now supports the Label-parameter
+        * EC2: allocate_address() now has improved behaviour for the Domain-parameter
+        * EC2: create_volume() now supports the Iops-parameter
+        * ECR: Improved ImageManifest support
+        * KMS: describe_key() now returns an AccessDeniedException if the supplied policy does not allow this action
+        * Route53: change_resource_record_sets() has additional validations
+        * Route53: create_hosted_zone() now also creates a SOA-record by default
+        * S3: put_object() now returns the ChecksumAlgorithm-attribute if supplied
+        * SSM: describe_parameters() now has improved support for filtering by tags 
+
+
 4.0.11
 -----
 Docker Digest for 4.0.11: _sha256:ba07f61edd4f91b221ea20368586dce024e7da4d018e2741aceafa1f07f47ec5_
