@@ -1787,6 +1787,29 @@ class SageMakerModelBackend(BaseBackend):
         del self.pipelines[pipeline_name]
         return pipeline_arn
 
+    def update_pipeline(
+        self,
+        pipeline_name,
+        pipeline_display_name=None,
+        pipeline_definition=None,
+        pipeline_definition_s3_location=None,
+        pipeline_description=None,
+        role_arn=None,
+        parallelism_configuration=None,
+    ):
+        try:
+            pipeline_arn = self.pipelines[pipeline_name].pipeline_arn
+        except KeyError:
+            raise ValidationError(
+                message=f"Could not find pipeline with name {pipeline_name}."
+            )
+
+        for attr_key, attr_value in locals().items():
+            if attr_value and attr_key != "pipeline_name":
+                setattr(self.pipelines[pipeline_name], attr_key, attr_value)
+
+        return pipeline_arn
+
     def list_pipelines(
         self,
         pipeline_name_prefix,

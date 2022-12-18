@@ -494,6 +494,23 @@ class SageMakerResponse(BaseResponse):
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
+    def update_pipeline(self):
+        pipeline_arn = self.sagemaker_backend.update_pipeline(
+            pipeline_name=self._get_param("PipelineName"),
+            pipeline_display_name=self._get_param("PipelineDisplayName"),
+            pipeline_definition=self._get_param("PipelineDefinition"),
+            pipeline_definition_s3_location=self._get_param(
+                "PipelineDefinitionS3Location"
+            ),
+            pipeline_description=self._get_param("PipelineDescription"),
+            role_arn=self._get_param("RoleArn"),
+            parallelism_configuration=self._get_param("ParallelismConfiguration"),
+        )
+
+        response = {"PipelineArn": pipeline_arn}
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
     def list_pipelines(self):
         max_results_range = range(1, 101)
         allowed_sort_by = ("Name", "CreationTime")
