@@ -204,3 +204,52 @@ def test_delete_pipeline_exists(sagemaker_client):
 def test_delete_pipeline_not_exists(sagemaker_client):
     with pytest.raises(botocore.exceptions.ClientError):
         _ = sagemaker_client.delete_pipeline(PipelineName="some-pipeline-name")
+
+
+def test_update_pipeline(sagemaker_client):
+    with pytest.raises(botocore.exceptions.ClientError):
+        _ = sagemaker_client.update_pipeline(PipelineName="some-pipeline-name")
+
+
+def test_update_pipeline_no_update(sagemaker_client):
+    pipeline_name = "APipelineName"
+    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline_name])
+    response = sagemaker_client.update_pipeline(PipelineName=pipeline_name)
+    response["PipelineArn"].should.equal(
+        arn_formatter("pipeline", pipeline_name, ACCOUNT_ID, TEST_REGION_NAME)
+    )
+    response = sagemaker_client.list_pipelines()
+    response["PipelineSummaries"][0]["PipelineName"].should.equal(pipeline_name)
+
+
+def test_update_pipeline_add_attribute(sagemaker_client):
+    pipeline_name = "APipelineName"
+    pipeline_display_name_update = "APipelineDisplayName"
+
+    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline_name])
+    response = sagemaker_client.list_pipelines()
+    assert "PipelineDisplayName" not in response["PipelineSummaries"][0]
+
+    _ = sagemaker_client.update_pipeline(
+        PipelineName=pipeline_name,
+        PipelineDisplayName=pipeline_display_name_update,
+    )
+    response = sagemaker_client.list_pipelines()
+    response["PipelineSummaries"][0]["PipelineDisplayName"].should.equal(
+        pipeline_display_name_update
+    )
+    response["PipelineSummaries"][0].should.have.length_of(7)
+
+
+def test_update_pipeline_update_change_attribute(sagemaker_client):
+    pipeline_name = "APipelineName"
+    role_arn_update = f"{FAKE_ROLE_ARN}Test"
+
+    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline_name])
+    _ = sagemaker_client.update_pipeline(
+        PipelineName=pipeline_name,
+        RoleArn=role_arn_update,
+    )
+    response = sagemaker_client.list_pipelines()
+    response["PipelineSummaries"][0]["RoleArn"].should.equal(role_arn_update)
+    response["PipelineSummaries"][0].should.have.length_of(6)

@@ -1787,6 +1787,40 @@ class SageMakerModelBackend(BaseBackend):
         del self.pipelines[pipeline_name]
         return pipeline_arn
 
+    def update_pipeline(
+        self,
+        pipeline_name,
+        **kwargs,
+    ):
+        try:
+            pipeline_arn = self.pipelines[pipeline_name].pipeline_arn
+        except KeyError:
+            raise ValidationError(
+                message=f"Could not find pipeline with name {pipeline_name}."
+            )
+
+        provided_kwargs = set(kwargs.keys())
+        allowed_kwargs = {
+            "pipeline_display_name",
+            "pipeline_definition",
+            "pipeline_definition_s3_location",
+            "pipeline_description",
+            "role_arn",
+            "parallelism_configuration",
+        }
+        invalid_kwargs = provided_kwargs - allowed_kwargs
+
+        if invalid_kwargs:
+            raise TypeError(
+                f"update_pipeline got unexpected keyword arguments '{invalid_kwargs}'"
+            )
+
+        for attr_key, attr_value in kwargs.items():
+            if attr_value:
+                setattr(self.pipelines[pipeline_name], attr_key, attr_value)
+
+        return pipeline_arn
+
     def list_pipelines(
         self,
         pipeline_name_prefix,
