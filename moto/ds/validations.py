@@ -3,11 +3,12 @@
 Note that ValidationExceptions are accumulative.
 """
 import re
+from typing import Any
 
 from moto.ds.exceptions import DsValidationException
 
 
-def validate_args(validators):
+def validate_args(validators: Any) -> None:
     """Raise exception if any of the validations fails.
 
     validators is a list of tuples each containing the following:
@@ -42,7 +43,7 @@ def validate_args(validators):
         raise DsValidationException(err_msgs)
 
 
-def validate_alias(value):
+def validate_alias(value: str) -> str:
     """Raise exception if alias fails to conform to length and constraints."""
     if len(value) > 62:
         return "have length less than or equal to 62"
@@ -53,14 +54,14 @@ def validate_alias(value):
     return ""
 
 
-def validate_description(value):
+def validate_description(value: str) -> str:
     """Raise exception if description exceeds length."""
     if value and len(value) > 128:
         return "have length less than or equal to 128"
     return ""
 
 
-def validate_directory_id(value):
+def validate_directory_id(value: str) -> str:
     """Raise exception if the directory id is invalid."""
     id_pattern = r"^d-[0-9a-f]{10}$"
     if not re.match(id_pattern, value):
@@ -68,7 +69,7 @@ def validate_directory_id(value):
     return ""
 
 
-def validate_dns_ips(value):
+def validate_dns_ips(value: str) -> str:
     """Raise exception if DNS IPs fail to match constraints."""
     dnsip_pattern = (
         r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}"
@@ -80,14 +81,14 @@ def validate_dns_ips(value):
     return ""
 
 
-def validate_edition(value):
+def validate_edition(value: str) -> str:
     """Raise exception if edition not one of the allowed values."""
     if value and value not in ["Enterprise", "Standard"]:
         return "satisfy enum value set: [Enterprise, Standard]"
     return ""
 
 
-def validate_name(value):
+def validate_name(value: str) -> str:
     """Raise exception if name fails to match constraints."""
     name_pattern = r"^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+$"
     if not re.match(name_pattern, value):
@@ -95,7 +96,7 @@ def validate_name(value):
     return ""
 
 
-def validate_password(value):
+def validate_password(value: str) -> str:
     """Raise exception if password fails to match constraints."""
     passwd_pattern = (
         r"^(?=^.{8,64}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|"
@@ -108,7 +109,7 @@ def validate_password(value):
     return ""
 
 
-def validate_short_name(value):
+def validate_short_name(value: str) -> str:
     """Raise exception if short name fails to match constraints."""
     short_name_pattern = r'^[^\/:*?"<>|.]+[^\/:*?"<>|]*$'
     if value and not re.match(short_name_pattern, value):
@@ -116,21 +117,21 @@ def validate_short_name(value):
     return ""
 
 
-def validate_size(value):
+def validate_size(value: str) -> str:
     """Raise exception if size fails to match constraints."""
     if value.lower() not in ["small", "large"]:
         return "satisfy enum value set: [Small, Large]"
     return ""
 
 
-def validate_sso_password(value):
+def validate_sso_password(value: str) -> str:
     """Raise exception is SSO password exceeds length."""
     if value and len(value) > 128:
         return "have length less than or equal to 128"
     return ""
 
 
-def validate_subnet_ids(value):
+def validate_subnet_ids(value: str) -> str:
     """Raise exception is subnet IDs fail to match constraints."""
     subnet_id_pattern = r"^(subnet-[0-9a-f]{8}|subnet-[0-9a-f]{17})$"
     for subnet in value:
@@ -139,7 +140,7 @@ def validate_subnet_ids(value):
     return ""
 
 
-def validate_user_name(value):
+def validate_user_name(value: str) -> str:
     """Raise exception is username fails to match constraints."""
     username_pattern = r"^[a-zA-Z0-9._-]+$"
     if value and not re.match(username_pattern, value):
