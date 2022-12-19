@@ -1790,13 +1790,8 @@ class SageMakerModelBackend(BaseBackend):
     def update_pipeline(
         self,
         pipeline_name,
-        pipeline_display_name=None,
-        pipeline_definition=None,
-        pipeline_definition_s3_location=None,
-        pipeline_description=None,
-        role_arn=None,
-        parallelism_configuration=None,
-    ):  # noqa: F504
+        **kwargs,
+    ):
         try:
             pipeline_arn = self.pipelines[pipeline_name].pipeline_arn
         except KeyError:
@@ -1804,8 +1799,24 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find pipeline with name {pipeline_name}."
             )
 
-        for attr_key, attr_value in locals().items():
-            if attr_value and attr_key != "pipeline_name":
+        provided_kwargs = set(kwargs.keys())
+        allowed_kwargs = {
+            "pipeline_display_name",
+            "pipeline_definition",
+            "pipeline_definition_s3_location",
+            "pipeline_description",
+            "role_arn",
+            "parallelism_configuration",
+        }
+        invalid_kwargs = provided_kwargs - allowed_kwargs
+
+        if invalid_kwargs:
+            raise TypeError(
+                f"update_pipeline got unexpected keyword arguments '{invalid_kwargs}'"
+            )
+
+        for attr_key, attr_value in kwargs.items():
+            if attr_value:
                 setattr(self.pipelines[pipeline_name], attr_key, attr_value)
 
         return pipeline_arn
