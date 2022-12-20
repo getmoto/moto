@@ -1,5 +1,6 @@
 """Exceptions raised by the Directory Service service."""
 from moto.core.exceptions import JsonRESTError
+from typing import List, Tuple
 
 
 class DsValidationException(JsonRESTError):
@@ -7,7 +8,7 @@ class DsValidationException(JsonRESTError):
 
     code = 400
 
-    def __init__(self, error_tuples):
+    def __init__(self, error_tuples: List[Tuple[str, str, str]]):
         """Validation errors are concatenated into one exception message.
 
         error_tuples is a list of tuples.  Each tuple contains:
@@ -35,7 +36,7 @@ class ClientException(JsonRESTError):
 
     code = 400
 
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__("ClientException", message)
 
 
@@ -44,7 +45,7 @@ class DirectoryLimitExceededException(JsonRESTError):
 
     code = 400
 
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__("DirectoryLimitExceededException", message)
 
 
@@ -53,7 +54,7 @@ class EntityDoesNotExistException(JsonRESTError):
 
     code = 400
 
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__("EntityDoesNotExistException", message)
 
 
@@ -62,7 +63,7 @@ class EntityAlreadyExistsException(JsonRESTError):
 
     code = 400
 
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__("EntityAlreadyExistsException", message)
 
 
@@ -71,7 +72,7 @@ class InvalidNextTokenException(JsonRESTError):
 
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidNextTokenException",
             "Invalid value passed for the NextToken parameter",
@@ -83,7 +84,7 @@ class InvalidParameterException(JsonRESTError):
 
     code = 400
 
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__("InvalidParameterException", message)
 
 
@@ -92,7 +93,7 @@ class TagLimitExceededException(JsonRESTError):
 
     code = 400
 
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__("TagLimitExceededException", message)
 
 
@@ -101,5 +102,5 @@ class ValidationException(JsonRESTError):
 
     code = 400
 
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__("ValidationException", message)
