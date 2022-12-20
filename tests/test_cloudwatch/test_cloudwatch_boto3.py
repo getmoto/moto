@@ -161,6 +161,29 @@ def test_put_metric_data_values_without_counts():
 
 
 @mock_cloudwatch
+def test_put_metric_data_value_and_statistics():
+    conn = boto3.client("cloudwatch", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        conn.put_metric_data(
+            Namespace="statistics",
+            MetricData=[
+                dict(
+                    MetricName="stats",
+                    Value=123.0,
+                    StatisticValues=dict(
+                        Sum=10.0, Maximum=9.0, Minimum=1.0, SampleCount=2
+                    ),
+                )
+            ],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterCombination")
+    err["Message"].should.equal(
+        "The parameters MetricData.member.1.Value and MetricData.member.1.StatisticValues are mutually exclusive and you have specified both."
+    )
+
+
+@mock_cloudwatch
 def test_put_metric_data_with_statistics():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=timezone.utc)
@@ -173,7 +196,7 @@ def test_put_metric_data_with_statistics():
                 Timestamp=utc_now,
                 # no Value to test  https://github.com/spulec/moto/issues/1615
                 StatisticValues=dict(
-                    SampleCount=123.0, Sum=123.0, Minimum=123.0, Maximum=123.0
+                    SampleCount=3.0, Sum=123.0, Maximum=100.0, Minimum=12.0
                 ),
                 Unit="Milliseconds",
                 StorageResolution=123,
@@ -185,7 +208,53 @@ def test_put_metric_data_with_statistics():
     metrics.should.contain(
         {"Namespace": "tester", "MetricName": "statmetric", "Dimensions": []}
     )
-    # TODO: test statistics - https://github.com/spulec/moto/issues/1615
+
+    stats = conn.get_metric_statistics(
+        Namespace="tester",
+        MetricName="statmetric",
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+        Period=60,
+        Statistics=["SampleCount", "Sum", "Maximum", "Minimum", "Average"],
+    )
+
+    stats["Datapoints"].should.have.length_of(1)
+    datapoint = stats["Datapoints"][0]
+    datapoint["SampleCount"].should.equal(3.0)
+    datapoint["Sum"].should.equal(123.0)
+    datapoint["Minimum"].should.equal(12.0)
+    datapoint["Maximum"].should.equal(100.0)
+    datapoint["Average"].should.equal(41.0)
+
+    # add single value
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName="statmetric",
+                Timestamp=utc_now,
+                Value=101.0,
+                Unit="Milliseconds",
+            )
+        ],
+    )
+    # check stats again - should have changed, because there is one more datapoint
+    stats = conn.get_metric_statistics(
+        Namespace="tester",
+        MetricName="statmetric",
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+        Period=60,
+        Statistics=["SampleCount", "Sum", "Maximum", "Minimum", "Average"],
+    )
+
+    stats["Datapoints"].should.have.length_of(1)
+    datapoint = stats["Datapoints"][0]
+    datapoint["SampleCount"].should.equal(4.0)
+    datapoint["Sum"].should.equal(224.0)
+    datapoint["Minimum"].should.equal(12.0)
+    datapoint["Maximum"].should.equal(101.0)
+    datapoint["Average"].should.equal(56.0)
 
 
 @mock_cloudwatch
