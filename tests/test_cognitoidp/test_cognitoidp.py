@@ -3212,6 +3212,12 @@ def test_global_sign_out():
     err["Code"].should.equal("NotAuthorizedException")
     err["Message"].should.equal("Refresh Token has been revoked")
 
+    with pytest.raises(ClientError) as ex:
+        conn.get_user(AccessToken=result["access_token"])
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+
 
 @mock_cognitoidp
 def test_global_sign_out_unknown_accesstoken():
