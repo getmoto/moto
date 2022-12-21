@@ -18,7 +18,11 @@ class Windows(BaseResponse):
         instance_id = self._get_param("InstanceId")
         password_data = self.ec2_backend.get_password_data(instance_id)
         template = self.response_template(GET_PASSWORD_DATA_RESPONSE)
-        return template.render(password_data=password_data, instance_id=instance_id, timestamp=utc_date_and_time())
+        return template.render(
+            password_data=password_data,
+            instance_id=instance_id,
+            timestamp=utc_date_and_time(),
+        )
 
 
 GET_PASSWORD_DATA_RESPONSE = """
@@ -30,3 +34,4 @@ GET_PASSWORD_DATA_RESPONSE = """
   <passwordData>{{ password_data }}</passwordData>
 </GetPasswordDataResponse>
 """
+
