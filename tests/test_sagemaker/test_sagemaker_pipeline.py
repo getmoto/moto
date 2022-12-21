@@ -17,6 +17,20 @@ def arn_formatter(_type, _id, account_id, region_name):
     return f"arn:aws:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
 
 
+@mock_s3
+def setup_s3_pipeline_definition(bucket, object_key, pipeline_definition):
+    client = boto3.client("s3")
+    client.create_bucket(
+        Bucket="some-bucket",
+        CreateBucketConfiguration={"LocationConstraint": TEST_REGION_NAME},
+    )
+    client.put_object(
+        Body=json.dumps(pipeline_definition),
+        Bucket=bucket,
+        Key=object_key,
+    )
+
+
 @pytest.fixture(name="sagemaker_client")
 def fixture_sagemaker_client():
     with mock_sagemaker():
@@ -44,21 +58,11 @@ def test_create_pipeline(sagemaker_client):
     )
 
 
-@mock_s3
 def test_create_pipeline_pipeline_definition_s3_location(sagemaker_client):
-    bucket_name = "some-bucket"
+    bucket = "some-bucket"
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
-    client = boto3.client("s3")
-    client.create_bucket(
-        Bucket="some-bucket",
-        CreateBucketConfiguration={"LocationConstraint": TEST_REGION_NAME},
-    )
-    client.put_object(
-        Body=json.dumps(pipeline_definition),
-        Bucket=bucket_name,
-        Key=object_key,
-    )
+    setup_s3_pipeline_definition(bucket, object_key, pipeline_definition)
 
     fake_pipeline_name = "APipelineName"
     pipelines = [
@@ -66,7 +70,7 @@ def test_create_pipeline_pipeline_definition_s3_location(sagemaker_client):
             "PipelineName": fake_pipeline_name,
             "RoleArn": FAKE_ROLE_ARN,
             "PipelineDefinitionS3Location": {
-                "Bucket": bucket_name,
+                "Bucket": bucket,
                 "ObjectKey": object_key,
             },
         },
@@ -90,7 +94,7 @@ def test_create_pipeline_pipeline_definition_s3_location(sagemaker_client):
         },
     ],
 )
-def test_create_pipeline_missing_required_kwargs(
+def test_create_pipeline_invalid_required_kwargs(
     sagemaker_client, create_pipeline_kwargs
 ):
     with pytest.raises(
@@ -350,9 +354,25 @@ def test_delete_pipeline_not_exists(sagemaker_client):
         _ = sagemaker_client.delete_pipeline(PipelineName="some-pipeline-name")
 
 
-def test_update_pipeline(sagemaker_client):
+def test_update_pipeline_not_exists(sagemaker_client):
     with pytest.raises(botocore.exceptions.ClientError):
         _ = sagemaker_client.update_pipeline(PipelineName="some-pipeline-name")
+
+
+def test_update_pipeline_invalid_kwargs(sagemaker_client):
+    pipeline_name = "APipelineName"
+    pipeline = {
+        "PipelineName": pipeline_name,
+        "RoleArn": FAKE_ROLE_ARN,
+        "PipelineDefinition": " ",
+    }
+    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
+
+    with pytest.raises(botocore.exceptions.ParamValidationError):
+        sagemaker_client.update_pipeline(
+            PipelineName=pipeline_name,
+            **{"InvalidKwarg": "some-value"},
+        )
 
 
 def test_update_pipeline_no_update(sagemaker_client):
@@ -398,14 +418,14 @@ def test_update_pipeline_add_attribute(sagemaker_client):
 
 def test_update_pipeline_update_change_attribute(sagemaker_client):
     pipeline_name = "APipelineName"
+    role_arn_update = f"{FAKE_ROLE_ARN}Test"
     pipeline = {
         "PipelineName": pipeline_name,
         "RoleArn": FAKE_ROLE_ARN,
         "PipelineDefinition": " ",
     }
-    role_arn_update = f"{FAKE_ROLE_ARN}Test"
-
     _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
+
     _ = sagemaker_client.update_pipeline(
         PipelineName=pipeline_name,
         RoleArn=role_arn_update,
@@ -413,6 +433,33 @@ def test_update_pipeline_update_change_attribute(sagemaker_client):
     response = sagemaker_client.list_pipelines()
     response["PipelineSummaries"][0]["RoleArn"].should.equal(role_arn_update)
     response["PipelineSummaries"][0].should.have.length_of(6)
+
+
+def test_update_pipeline_update_pipeline_definition_s3_location(sagemaker_client):
+    pipeline_name = "APipelineName"
+    pipeline = {
+        "PipelineName": pipeline_name,
+        "RoleArn": FAKE_ROLE_ARN,
+        "PipelineDefinition": " ",
+    }
+    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
+
+    bucket_name = "some-bucket"
+    object_key = "some/object/key.json"
+    pipeline_definition = {"key": "value"}
+    setup_s3_pipeline_definition(
+        bucket_name, object_key, pipeline_definition=pipeline_definition
+    )
+    _ = sagemaker_client.update_pipeline(
+        PipelineName=pipeline_name,
+        PipelineDefinitionS3Location={
+            "Bucket": bucket_name,
+            "ObjectKey": object_key,
+        },
+    )
+
+    response = sagemaker_client.describe_pipeline(PipelineName=pipeline_name)
+    response["PipelineDefinition"].should.equal(pipeline_definition)
 
 
 def test_describe_pipeline_not_exists(sagemaker_client):

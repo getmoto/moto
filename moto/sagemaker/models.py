@@ -1,4 +1,3 @@
-import boto3
 import json
 import os
 from datetime import datetime
@@ -11,6 +10,7 @@ from .exceptions import (
     AWSValidationException,
     ResourceNotFound,
 )
+from .utils import load_pipeline_definition_from_s3
 
 
 PAGINATION_MODEL = {
@@ -1789,12 +1789,9 @@ class SageMakerModelBackend(BaseBackend):
             )
 
         if pipeline_definition_s3_location:
-            client = boto3.client("s3")
-            result = client.get_object(
-                Bucket=pipeline_definition_s3_location["Bucket"],
-                Key=pipeline_definition_s3_location["ObjectKey"],
+            pipeline_definition = load_pipeline_definition_from_s3(
+                pipeline_definition_s3_location
             )
-            pipeline_definition = json.loads(result["Body"].read())
 
         pipeline = FakePipeline(
             pipeline_name,
@@ -1836,24 +1833,24 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find pipeline with name {pipeline_name}."
             )
 
-        provided_kwargs = set(kwargs.keys())
-        allowed_kwargs = {
-            "pipeline_display_name",
-            "pipeline_definition",
-            "pipeline_definition_s3_location",
-            "pipeline_description",
-            "role_arn",
-            "parallelism_configuration",
-        }
-        invalid_kwargs = provided_kwargs - allowed_kwargs
-
-        if invalid_kwargs:
-            raise TypeError(
-                f"update_pipeline got unexpected keyword arguments '{invalid_kwargs}'"
+        if all(
+            [
+                kwargs.get("pipeline_definition"),
+                kwargs.get("pipeline_definition_s3_location"),
+            ]
+        ):
+            raise ValidationError(
+                "An error occurred (ValidationException) when calling the UpdatePipeline operation: "
+                "Both Pipeline Definition and Pipeline Definition S3 Location shouldn't be present"
             )
 
         for attr_key, attr_value in kwargs.items():
             if attr_value:
+                if attr_key == "pipeline_definition_s3_location":
+                    self.pipelines[
+                        pipeline_name
+                    ].pipeline_definition = load_pipeline_definition_from_s3(attr_value)
+                    continue
                 setattr(self.pipelines[pipeline_name], attr_key, attr_value)
 
         return pipeline_arn
