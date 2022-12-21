@@ -3,12 +3,14 @@ from time import sleep
 from datetime import datetime
 import boto3
 import botocore
+import json
 import pytest
+from moto import mock_s3
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
-TEST_REGION_NAME = "us-east-1"
+TEST_REGION_NAME = "us-west-1"
 
 
 def arn_formatter(_type, _id, account_id, region_name):
@@ -42,12 +44,50 @@ def test_create_pipeline(sagemaker_client):
     )
 
 
+@mock_s3
+def test_create_pipeline_pipeline_definition_s3_location(sagemaker_client):
+    bucket_name = "some-bucket"
+    object_key = "some/object/key.json"
+    pipeline_definition = {"key": "value"}
+    client = boto3.client("s3")
+    client.create_bucket(
+        Bucket="some-bucket",
+        CreateBucketConfiguration={"LocationConstraint": TEST_REGION_NAME},
+    )
+    client.put_object(
+        Body=json.dumps(pipeline_definition),
+        Bucket=bucket_name,
+        Key=object_key,
+    )
+
+    fake_pipeline_name = "APipelineName"
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_name,
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinitionS3Location": {
+                "Bucket": bucket_name,
+                "ObjectKey": object_key,
+            },
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+    response = sagemaker_client.describe_pipeline(PipelineName=fake_pipeline_name)
+    response["PipelineDefinition"].should.equal(pipeline_definition)
+
+
 @pytest.mark.parametrize(
     "create_pipeline_kwargs",
     [
         {"PipelineName": "MyPipelineName", "RoleArn": FAKE_ROLE_ARN},
         {"RoleArn": FAKE_ROLE_ARN, "PipelineDefinition": " "},
         {"PipelineName": "MyPipelineName", "PipelineDefinition": " "},
+        {
+            "PipelineName": "MyPipelineName",
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+            "PipelineDefinitionS3Location": {"key": "value"},
+        },
     ],
 )
 def test_create_pipeline_missing_required_kwargs(

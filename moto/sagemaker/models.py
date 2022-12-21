@@ -1,3 +1,4 @@
+import boto3
 import json
 import os
 from datetime import datetime
@@ -86,7 +87,6 @@ class FakePipeline(BaseObject):
         account_id,
         region_name,
         parallelism_configuration,
-        pipeline_definition_s3_location,
     ):
         self.pipeline_name = pipeline_name
         self.pipeline_arn = arn_formatter(
@@ -98,7 +98,6 @@ class FakePipeline(BaseObject):
         self.role_arn = role_arn
         self.tags = tags or []
         self.parallelism_configuration = parallelism_configuration
-        self.pipeline_definition_s3_location = pipeline_definition_s3_location
 
         now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.creation_time = now_string
@@ -1778,17 +1777,25 @@ class SageMakerModelBackend(BaseBackend):
         tags,
         parallelism_configuration,
     ):
-        if pipeline_definition_s3_location:
-            raise NotImplementedError(
-                "Loading a Pipeline Definition from a mocked S3 bucket via "
-                "PipelineDefinitionS3Location is not implemented yet. Please, directly "
-                "pass a PipelineDefinition."
+        if not any([pipeline_definition, pipeline_definition_s3_location]):
+            raise ValidationError(
+                "An error occurred (ValidationException) when calling the CreatePipeline operation: Either "
+                "Pipeline Definition or Pipeline Definition S3 location should be provided"
             )
-        if not pipeline_definition:
+        if all([pipeline_definition, pipeline_definition_s3_location]):
             raise ValidationError(
                 "An error occurred (ValidationException) when calling the CreatePipeline operation: "
-                "Pipeline Definition must be provided"
+                "Both Pipeline Definition and Pipeline Definition S3 Location shouldn't be present"
             )
+
+        if pipeline_definition_s3_location:
+            client = boto3.client("s3")
+            result = client.get_object(
+                Bucket=pipeline_definition_s3_location["Bucket"],
+                Key=pipeline_definition_s3_location["ObjectKey"],
+            )
+            pipeline_definition = json.loads(result["Body"].read())
+
         pipeline = FakePipeline(
             pipeline_name,
             pipeline_display_name,
@@ -1798,7 +1805,6 @@ class SageMakerModelBackend(BaseBackend):
             tags,
             self.account_id,
             self.region_name,
-            pipeline_definition_s3_location,
             parallelism_configuration,
         )
 
