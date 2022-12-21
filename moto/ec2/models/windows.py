@@ -9,4 +9,3 @@ class WindowsBackend(BaseModel):
         if instance.platform == "windows":
             return random.get_random_string(length=128)
         return ""
-

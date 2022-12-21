@@ -34,4 +34,3 @@ GET_PASSWORD_DATA_RESPONSE = """
   <passwordData>{{ password_data }}</passwordData>
 </GetPasswordDataResponse>
 """
-
