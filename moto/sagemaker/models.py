@@ -1778,10 +1778,16 @@ class SageMakerModelBackend(BaseBackend):
         tags,
         parallelism_configuration,
     ):
-        if not any([pipeline_definition, pipeline_definition_s3_location]):
+        if pipeline_definition_s3_location:
+            raise NotImplementedError(
+                "Loading a Pipeline Definition from a mocked S3 bucket via "
+                "PipelineDefinitionS3Location is not implemented yet. Please, directly "
+                "pass a PipelineDefinition."
+            )
+        if not pipeline_definition:
             raise ValidationError(
-                "An error occurred (ValidationException) when calling the CreatePipeline operation: Either "
-                "Pipeline Definition or Pipeline Definition S3 location should be provided"
+                "An error occurred (ValidationException) when calling the CreatePipeline operation: "
+                "Pipeline Definition must be provided"
             )
         pipeline = FakePipeline(
             pipeline_name,
