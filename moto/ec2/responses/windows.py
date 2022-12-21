@@ -1,4 +1,5 @@
 from moto.core.responses import BaseResponse
+from moto.ec2.utils import utc_date_and_time
 
 
 class Windows(BaseResponse):
@@ -14,4 +15,18 @@ class Windows(BaseResponse):
         )
 
     def get_password_data(self):
-        raise NotImplementedError("Windows.get_password_data is not yet implemented")
+        instance_id = self._get_param("InstanceId")
+        password_data = self.ec2_backend.get_password_data(instance_id)
+        template = self.response_template(GET_PASSWORD_DATA_RESPONSE)
+        return template.render(password_data=password_data, instance_id=instance_id, timestamp=utc_date_and_time())
+
+
+GET_PASSWORD_DATA_RESPONSE = """
+<?xml version="1.0" encoding="UTF-8"?>
+<GetPasswordDataResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>6b9528d5-6818-4bd0-8936-cdedaEXAMPLE</requestId>
+  <instanceId>{{ instance_id }}</instanceId>
+  <timestamp>{{ timestamp }}</timestamp>
+  <passwordData>{{ password_data }}</passwordData>
+</GetPasswordDataResponse>
+"""
