@@ -8,13 +8,10 @@ import pytest
 from moto import mock_s3
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.sagemaker.utils import arn_formatter
 
 FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
 TEST_REGION_NAME = "us-west-1"
-
-
-def arn_formatter(_type, _id, account_id, region_name):
-    return f"arn:aws:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
 
 
 @mock_s3
