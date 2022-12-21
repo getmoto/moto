@@ -10,7 +10,7 @@ from .exceptions import (
     AWSValidationException,
     ResourceNotFound,
 )
-from .utils import load_pipeline_definition_from_s3
+from .utils import load_pipeline_definition_from_s3, arn_formatter
 
 
 PAGINATION_MODEL = {
@@ -43,10 +43,6 @@ PAGINATION_MODEL = {
         "fail_on_invalid_token": True,
     },
 }
-
-
-def arn_formatter(_type, _id, account_id, region_name):
-    return f"arn:aws:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
 
 
 class BaseObject(BaseModel):

@@ -10,3 +10,7 @@ def load_pipeline_definition_from_s3(pipeline_definition_s3_location):
     )
     pipeline_definition = json.loads(result["Body"].read())
     return pipeline_definition
+
+
+def arn_formatter(_type, _id, account_id, region_name):
+    return f"arn:aws:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
