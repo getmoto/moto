@@ -6,7 +6,7 @@ from tests import EXAMPLE_AMI_WINDOWS, EXAMPLE_AMI_PARAVIRTUAL
 
 
 @mock_ec2
-def test__get_password_data():
+def test_get_password_data():
     client = boto3.client("ec2", region_name="us-east-1")
 
     # Ensure non-windows instances return empty password data
