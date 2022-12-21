@@ -105,6 +105,20 @@ def test_create_pipeline_invalid_required_kwargs(
         )
 
 
+def test_create_pipeline_duplicate_pipeline_name(sagemaker_client):
+    with pytest.raises(botocore.exceptions.ClientError):
+        _ = sagemaker_client.create_pipeline(
+            PipelineName="APipelineName",
+            RoleArn=FAKE_ROLE_ARN,
+            PipelineDefinition=" ",
+        )
+        _ = sagemaker_client.create_pipeline(
+            PipelineName="APipelineName",
+            RoleArn=FAKE_ROLE_ARN,
+            PipelineDefinition=" ",
+        )
+
+
 def test_list_pipelines_none(sagemaker_client):
     response = sagemaker_client.list_pipelines()
     assert isinstance(response, dict)

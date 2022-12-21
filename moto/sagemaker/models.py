@@ -1,6 +1,9 @@
 import json
 import os
 from datetime import datetime
+
+import botocore.exceptions
+
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
@@ -1782,6 +1785,12 @@ class SageMakerModelBackend(BaseBackend):
             raise ValidationError(
                 "An error occurred (ValidationException) when calling the CreatePipeline operation: "
                 "Both Pipeline Definition and Pipeline Definition S3 Location shouldn't be present"
+            )
+
+        if pipeline_name in self.pipelines:
+            raise ValidationError(
+                f"An error occurred (ValidationException) when calling the CreatePipeline operation: Pipeline names "
+                f"must be unique within an AWS account and region. Pipeline with name ({pipeline_name}) already exists."
             )
 
         if pipeline_definition_s3_location:
