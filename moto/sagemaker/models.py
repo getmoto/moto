@@ -2,8 +2,6 @@ import json
 import os
 from datetime import datetime
 
-import botocore.exceptions
-
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
