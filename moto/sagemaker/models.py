@@ -1,6 +1,9 @@
 import json
 import os
 from datetime import datetime
+
+import botocore.exceptions
+
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
@@ -92,7 +95,7 @@ class FakePipeline(BaseObject):
         self.pipeline_arn = arn_formatter(
             "pipeline", pipeline_name, account_id, region_name
         )
-        self.pipeline_display_name = pipeline_display_name
+        self.pipeline_display_name = pipeline_display_name or pipeline_name
         self.pipeline_definition = pipeline_definition
         self.pipeline_description = pipeline_description
         self.role_arn = role_arn
@@ -103,7 +106,27 @@ class FakePipeline(BaseObject):
         now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.creation_time = now_string
         self.last_modified_time = now_string
-        self.last_execution_time = now_string
+        self.last_execution_time = None
+
+        self.pipeline_status = "Active"
+        fake_user_profile_name = "fake-user-profile-name"
+        fake_domain_id = "fake-domain-id"
+        fake_user_profile_arn = arn_formatter(
+            "user-profile",
+            f"{fake_domain_id}/{fake_user_profile_name}",
+            account_id,
+            region_name,
+        )
+        self.created_by = {
+            "UserProfileArn": fake_user_profile_arn,
+            "UserProfileName": fake_user_profile_name,
+            "DomainId": fake_domain_id,
+        }
+        self.last_modified_by = {
+            "UserProfileArn": fake_user_profile_arn,
+            "UserProfileName": fake_user_profile_name,
+            "DomainId": fake_domain_id,
+        }
 
 
 class FakeProcessingJob(BaseObject):
@@ -1758,6 +1781,11 @@ class SageMakerModelBackend(BaseBackend):
         tags,
         parallelism_configuration,
     ):
+        if not any([pipeline_definition, pipeline_definition_s3_location]):
+            raise ValidationError(
+                "An error occurred (ValidationException) when calling the CreatePipeline operation: Either "
+                "Pipeline Definition or Pipeline Definition S3 location should be provided"
+            )
         pipeline = FakePipeline(
             pipeline_name,
             pipeline_display_name,
@@ -1820,6 +1848,35 @@ class SageMakerModelBackend(BaseBackend):
                 setattr(self.pipelines[pipeline_name], attr_key, attr_value)
 
         return pipeline_arn
+
+    def describe_pipeline(
+        self,
+        pipeline_name,
+    ):
+        try:
+            pipeline = self.pipelines[pipeline_name]
+        except KeyError:
+            raise ValidationError(
+                message=f"Could not find pipeline with name {pipeline_name}."
+            )
+
+        response = {
+            "PipelineArn": pipeline.pipeline_arn,
+            "PipelineName": pipeline.pipeline_name,
+            "PipelineDisplayName": pipeline.pipeline_display_name,
+            "PipelineDescription": pipeline.pipeline_description,
+            "PipelineDefinition": pipeline.pipeline_definition,
+            "RoleArn": pipeline.role_arn,
+            "PipelineStatus": pipeline.pipeline_status,
+            "CreationTime": pipeline.creation_time,
+            "LastModifiedTime": pipeline.last_modified_time,
+            "LastRunTime": pipeline.last_execution_time,
+            "CreatedBy": pipeline.created_by,
+            "LastModifiedBy": pipeline.last_modified_by,
+            "ParallelismConfiguration": pipeline.parallelism_configuration,
+        }
+
+        return response
 
     def list_pipelines(
         self,

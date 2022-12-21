@@ -21,13 +21,10 @@ def fixture_sagemaker_client():
         yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
-def create_sagemaker_pipelines(sagemaker_client, pipeline_names, wait_seconds=0.0):
+def create_sagemaker_pipelines(sagemaker_client, pipelines, wait_seconds=0.0):
     responses = []
-    for pipeline_name in pipeline_names:
-        responses += sagemaker_client.create_pipeline(
-            PipelineName=pipeline_name,
-            RoleArn=FAKE_ROLE_ARN,
-        )
+    for pipeline in pipelines:
+        responses += sagemaker_client.create_pipeline(**pipeline)
         sleep(wait_seconds)
     return responses
 
@@ -37,11 +34,34 @@ def test_create_pipeline(sagemaker_client):
     response = sagemaker_client.create_pipeline(
         PipelineName=fake_pipeline_name,
         RoleArn=FAKE_ROLE_ARN,
+        PipelineDefinition=" ",
     )
     assert isinstance(response, dict)
     response["PipelineArn"].should.equal(
         arn_formatter("pipeline", fake_pipeline_name, ACCOUNT_ID, TEST_REGION_NAME)
     )
+
+
+@pytest.mark.parametrize(
+    "create_pipeline_kwargs",
+    [
+        {"PipelineName": "MyPipelineName", "RoleArn": FAKE_ROLE_ARN},
+        {"RoleArn": FAKE_ROLE_ARN, "PipelineDefinition": " "},
+        {"PipelineName": "MyPipelineName", "PipelineDefinition": " "},
+    ],
+)
+def test_create_pipeline_missing_required_kwargs(
+    sagemaker_client, create_pipeline_kwargs
+):
+    with pytest.raises(
+        (
+            botocore.exceptions.ParamValidationError,
+            botocore.exceptions.ClientError,
+        )
+    ):
+        _ = sagemaker_client.create_pipeline(
+            **create_pipeline_kwargs,
+        )
 
 
 def test_list_pipelines_none(sagemaker_client):
@@ -52,7 +72,15 @@ def test_list_pipelines_none(sagemaker_client):
 
 def test_list_pipelines_single(sagemaker_client):
     fake_pipeline_names = ["APipelineName"]
-    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names)
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+
     response = sagemaker_client.list_pipelines()
     response["PipelineSummaries"].should.have.length_of(1)
     response["PipelineSummaries"][0]["PipelineArn"].should.equal(
@@ -62,7 +90,20 @@ def test_list_pipelines_single(sagemaker_client):
 
 def test_list_pipelines_multiple(sagemaker_client):
     fake_pipeline_names = ["APipelineName", "BPipelineName"]
-    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names)
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[1],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+
     response = sagemaker_client.list_pipelines(
         SortBy="Name",
         SortOrder="Ascending",
@@ -72,7 +113,25 @@ def test_list_pipelines_multiple(sagemaker_client):
 
 def test_list_pipelines_sort_name_ascending(sagemaker_client):
     fake_pipeline_names = ["APipelineName", "BPipelineName", "CPipelineName"]
-    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names)
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[1],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[2],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+
     response = sagemaker_client.list_pipelines(
         SortBy="Name",
         SortOrder="Ascending",
@@ -90,7 +149,25 @@ def test_list_pipelines_sort_name_ascending(sagemaker_client):
 
 def test_list_pipelines_sort_creation_time_descending(sagemaker_client):
     fake_pipeline_names = ["APipelineName", "BPipelineName", "CPipelineName"]
-    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names, 1)
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[1],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[2],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines, 1.0)
+
     response = sagemaker_client.list_pipelines(
         SortBy="CreationTime",
         SortOrder="Descending",
@@ -108,14 +185,39 @@ def test_list_pipelines_sort_creation_time_descending(sagemaker_client):
 
 def test_list_pipelines_max_results(sagemaker_client):
     fake_pipeline_names = ["APipelineName", "BPipelineName", "CPipelineName"]
-    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names, 0.0)
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[1],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[2],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+
     response = sagemaker_client.list_pipelines(MaxResults=2)
     response["PipelineSummaries"].should.have.length_of(2)
 
 
 def test_list_pipelines_next_token(sagemaker_client):
     fake_pipeline_names = ["APipelineName"]
-    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names, 0.0)
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
 
     response = sagemaker_client.list_pipelines(NextToken="0")
     response["PipelineSummaries"].should.have.length_of(1)
@@ -123,7 +225,25 @@ def test_list_pipelines_next_token(sagemaker_client):
 
 def test_list_pipelines_pipeline_name_prefix(sagemaker_client):
     fake_pipeline_names = ["APipelineName", "BPipelineName", "CPipelineName"]
-    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names, 0.0)
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[1],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[2],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+
     response = sagemaker_client.list_pipelines(PipelineNamePrefix="APipe")
     response["PipelineSummaries"].should.have.length_of(1)
     response["PipelineSummaries"][0]["PipelineName"].should.equal("APipelineName")
@@ -134,7 +254,24 @@ def test_list_pipelines_pipeline_name_prefix(sagemaker_client):
 
 def test_list_pipelines_created_after(sagemaker_client):
     fake_pipeline_names = ["APipelineName", "BPipelineName", "CPipelineName"]
-    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names, 0.0)
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[1],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[2],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
 
     created_after_str = "2099-12-31 23:59:59"
     response = sagemaker_client.list_pipelines(CreatedAfter=created_after_str)
@@ -151,7 +288,24 @@ def test_list_pipelines_created_after(sagemaker_client):
 
 def test_list_pipelines_created_before(sagemaker_client):
     fake_pipeline_names = ["APipelineName", "BPipelineName", "CPipelineName"]
-    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names, 0.0)
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[1],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[2],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
 
     created_before_str = "2000-12-31 23:59:59"
     response = sagemaker_client.list_pipelines(CreatedBefore=created_before_str)
@@ -182,7 +336,24 @@ def test_list_pipelines_invalid_values(sagemaker_client, list_pipelines_kwargs):
 
 def test_delete_pipeline_exists(sagemaker_client):
     fake_pipeline_names = ["APipelineName", "BPipelineName", "CPipelineName"]
-    _ = create_sagemaker_pipelines(sagemaker_client, fake_pipeline_names, 0.0)
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[1],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+        {
+            "PipelineName": fake_pipeline_names[2],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
     pipeline_name_delete, pipeline_names_remain = (
         fake_pipeline_names[0],
         fake_pipeline_names[1:],
@@ -213,7 +384,13 @@ def test_update_pipeline(sagemaker_client):
 
 def test_update_pipeline_no_update(sagemaker_client):
     pipeline_name = "APipelineName"
-    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline_name])
+    pipeline = {
+        "PipelineName": pipeline_name,
+        "RoleArn": FAKE_ROLE_ARN,
+        "PipelineDefinition": " ",
+    }
+    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
+
     response = sagemaker_client.update_pipeline(PipelineName=pipeline_name)
     response["PipelineArn"].should.equal(
         arn_formatter("pipeline", pipeline_name, ACCOUNT_ID, TEST_REGION_NAME)
@@ -226,9 +403,14 @@ def test_update_pipeline_add_attribute(sagemaker_client):
     pipeline_name = "APipelineName"
     pipeline_display_name_update = "APipelineDisplayName"
 
-    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline_name])
+    pipeline = {
+        "PipelineName": pipeline_name,
+        "RoleArn": FAKE_ROLE_ARN,
+        "PipelineDefinition": " ",
+    }
+    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
     response = sagemaker_client.list_pipelines()
-    assert "PipelineDisplayName" not in response["PipelineSummaries"][0]
+    response["PipelineSummaries"][0]["PipelineDisplayName"].should.equal(pipeline_name)
 
     _ = sagemaker_client.update_pipeline(
         PipelineName=pipeline_name,
@@ -238,14 +420,19 @@ def test_update_pipeline_add_attribute(sagemaker_client):
     response["PipelineSummaries"][0]["PipelineDisplayName"].should.equal(
         pipeline_display_name_update
     )
-    response["PipelineSummaries"][0].should.have.length_of(7)
+    response["PipelineSummaries"][0].should.have.length_of(6)
 
 
 def test_update_pipeline_update_change_attribute(sagemaker_client):
     pipeline_name = "APipelineName"
+    pipeline = {
+        "PipelineName": pipeline_name,
+        "RoleArn": FAKE_ROLE_ARN,
+        "PipelineDefinition": " ",
+    }
     role_arn_update = f"{FAKE_ROLE_ARN}Test"
 
-    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline_name])
+    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
     _ = sagemaker_client.update_pipeline(
         PipelineName=pipeline_name,
         RoleArn=role_arn_update,
@@ -253,3 +440,36 @@ def test_update_pipeline_update_change_attribute(sagemaker_client):
     response = sagemaker_client.list_pipelines()
     response["PipelineSummaries"][0]["RoleArn"].should.equal(role_arn_update)
     response["PipelineSummaries"][0].should.have.length_of(6)
+
+
+def test_describe_pipeline_not_exists(sagemaker_client):
+    with pytest.raises(botocore.exceptions.ClientError):
+        _ = sagemaker_client.describe_pipeline(PipelineName="some-pipeline-name")
+
+
+@pytest.mark.parametrize(
+    "pipeline,expected_response_length",
+    [
+        (
+            {
+                "PipelineName": "APipelineName",
+                "RoleArn": FAKE_ROLE_ARN,
+                "PipelineDefinition": " ",
+            },
+            11,
+        ),
+        (
+            {
+                "PipelineName": "BPipelineName",
+                "RoleArn": FAKE_ROLE_ARN,
+                "PipelineDefinition": " ",
+                "PipelineDescription": "some pipeline description",
+            },
+            12,
+        ),
+    ],
+)
+def test_describe_pipeline_exists(sagemaker_client, pipeline, expected_response_length):
+    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
+    response = sagemaker_client.describe_pipeline(PipelineName=pipeline["PipelineName"])
+    response.should.have.length_of(expected_response_length)
