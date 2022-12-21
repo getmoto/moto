@@ -1,5 +1,4 @@
 import json
-import statistics
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudWatchMetricProvider
 from moto.core.utils import (
@@ -16,6 +15,7 @@ from .exceptions import (
     ValidationError,
     InvalidParameterValue,
     ResourceNotFoundException,
+    InvalidParameterCombination,
 )
 from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
@@ -211,19 +211,21 @@ def are_dimensions_same(
     return True
 
 
-class MetricDatum(BaseModel):
+class MetricDatumBase(BaseModel):
+    """
+    Base class for Metrics Datum (represents value or statistics set by put-metric-data)
+    """
+
     def __init__(
         self,
         namespace: str,
         name: str,
-        value: float,
         dimensions: List[Dict[str, str]],
         timestamp: datetime,
         unit: Any = None,
     ):
         self.namespace = namespace
         self.name = name
-        self.value = value
         self.timestamp = timestamp or datetime.utcnow().replace(tzinfo=tzutc())
         self.dimensions = [
             Dimension(dimension["Name"], dimension["Value"]) for dimension in dimensions
@@ -235,7 +237,7 @@ class MetricDatum(BaseModel):
         namespace: Optional[str],
         name: Optional[str],
         dimensions: List[Dict[str, str]],
-        already_present_metrics: Optional[List["MetricDatum"]] = None,
+        already_present_metrics: Optional[List["MetricDatumBase"]] = None,
     ) -> bool:
         if namespace and namespace != self.namespace:
             return False
@@ -259,6 +261,48 @@ class MetricDatum(BaseModel):
         ):
             return False
         return True
+
+
+class MetricDatum(MetricDatumBase):
+    """
+    Single Metric value, represents the "value" (or a single value from the list "values") used in put-metric-data
+    """
+
+    def __init__(
+        self,
+        namespace: str,
+        name: str,
+        value: float,
+        dimensions: List[Dict[str, str]],
+        timestamp: datetime,
+        unit: Any = None,
+    ):
+        super().__init__(namespace, name, dimensions, timestamp, unit)
+        self.value = value
+
+
+class MetricAggregatedDatum(MetricDatumBase):
+    """
+    Metric Statistics, represents "statistics-values" used in put-metric-data
+    """
+
+    def __init__(
+        self,
+        namespace: str,
+        name: str,
+        min_stat: float,
+        max_stat: float,
+        sample_count: float,
+        sum_stat: float,
+        dimensions: List[Dict[str, str]],
+        timestamp: datetime,
+        unit: Any = None,
+    ):
+        super().__init__(namespace, name, dimensions, timestamp, unit)
+        self.min = min_stat
+        self.max = max_stat
+        self.sample_count = sample_count
+        self.sum = sum_stat
 
 
 class Dashboard(BaseModel):
@@ -285,46 +329,115 @@ class Dashboard(BaseModel):
 
 
 class Statistics:
-    def __init__(self, stats: List[str], dt: datetime):
-        self.timestamp = iso_8601_datetime_without_milliseconds(dt)
-        self.values: List[float] = []
+    """
+    Helper class to calculate statics for a list of metrics (MetricDatum, or MetricAggregatedDatum)
+    """
+
+    def __init__(self, stats: List[str], dt: datetime, unit: Optional[str] = None):
+        self.timestamp: str = (
+            iso_8601_datetime_without_milliseconds(dt) or self.timestamp_iso_8601_now()
+        )
+        self.metric_data: List[MetricDatumBase] = []
         self.stats = stats
-        self.unit = None
+        self.unit = unit
+
+    def get_statistics_for_type(self, stat: str) -> Optional[SupportsFloat]:
+        """Calculates the statistic for the metric_data provided
+
+        :param stat: the statistic that should be returned, case-sensitive (Sum, Average, Minium, Maximum, SampleCount)
+        :return: the statistic of the current 'metric_data' in this class, or 0
+        """
+        if stat == "Sum":
+            return self.sum
+        if stat == "Average":
+            return self.average
+        if stat == "Minimum":
+            return self.minimum
+        if stat == "Maximum":
+            return self.maximum
+        if stat == "SampleCount":
+            return self.sample_count
+        return None
+
+    @property
+    def metric_single_values_list(self) -> List[float]:
+        """
+        :return: list of all values for the MetricDatum instances of the metric_data list
+        """
+        return [m.value for m in self.metric_data or [] if isinstance(m, MetricDatum)]
+
+    @property
+    def metric_aggregated_list(self) -> List[MetricAggregatedDatum]:
+        """
+        :return: list of all MetricAggregatedDatum instances from the metric_data list
+        """
+        return [
+            s for s in self.metric_data or [] if isinstance(s, MetricAggregatedDatum)
+        ]
 
     @property
     def sample_count(self) -> Optional[SupportsFloat]:
         if "SampleCount" not in self.stats:
             return None
 
-        return len(self.values)
+        return self.calc_sample_count()
 
     @property
     def sum(self) -> Optional[SupportsFloat]:
         if "Sum" not in self.stats:
             return None
 
-        return sum(self.values)
+        return self.calc_sum()
 
     @property
     def minimum(self) -> Optional[SupportsFloat]:
         if "Minimum" not in self.stats:
             return None
+        if not self.metric_single_values_list and not self.metric_aggregated_list:
+            return None
 
-        return min(self.values)
+        metrics = self.metric_single_values_list + [
+            s.min for s in self.metric_aggregated_list
+        ]
+        return min(metrics)
 
     @property
     def maximum(self) -> Optional[SupportsFloat]:
         if "Maximum" not in self.stats:
             return None
 
-        return max(self.values)
+        if not self.metric_single_values_list and not self.metric_aggregated_list:
+            return None
+
+        metrics = self.metric_single_values_list + [
+            s.max for s in self.metric_aggregated_list
+        ]
+        return max(metrics)
 
     @property
     def average(self) -> Optional[SupportsFloat]:
         if "Average" not in self.stats:
             return None
 
-        return statistics.mean(self.values)
+        sample_count = self.calc_sample_count()
+
+        if not sample_count:
+            return None
+
+        return self.calc_sum() / sample_count
+
+    def calc_sample_count(self) -> float:
+        return len(self.metric_single_values_list) + sum(
+            [s.sample_count for s in self.metric_aggregated_list]
+        )
+
+    def calc_sum(self) -> float:
+        return sum(self.metric_single_values_list) + sum(
+            [s.sum for s in self.metric_aggregated_list]
+        )
+
+    def timestamp_iso_8601_now(self) -> str:
+        return iso_8601_datetime_without_milliseconds(datetime.now())  # type: ignore[return-value]
 
 
 class CloudWatchBackend(BaseBackend):
@@ -332,8 +445,8 @@ class CloudWatchBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.alarms: Dict[str, FakeAlarm] = {}
         self.dashboards: Dict[str, Dashboard] = {}
-        self.metric_data: List[MetricDatum] = []
-        self.paged_metric_data: Dict[str, List[MetricDatum]] = {}
+        self.metric_data: List[MetricDatumBase] = []
+        self.paged_metric_data: Dict[str, List[MetricDatumBase]] = {}
         self.tagger = TaggingService()
 
     @staticmethod
@@ -348,7 +461,7 @@ class CloudWatchBackend(BaseBackend):
     @property
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
     # Computed on the fly
-    def aws_metric_data(self) -> List[MetricDatum]:
+    def aws_metric_data(self) -> List[MetricDatumBase]:
         providers = CloudWatchMetricProvider.__subclasses__()
         md = []
         for provider in providers:
@@ -469,25 +582,7 @@ class CloudWatchBackend(BaseBackend):
         self, namespace: str, metric_data: List[Dict[str, Any]]
     ) -> None:
         for i, metric in enumerate(metric_data):
-            if metric.get("Value") == "NaN":
-                raise InvalidParameterValue(
-                    f"The value NaN for parameter MetricData.member.{i + 1}.Value is invalid."
-                )
-            if metric.get("Values.member"):
-                if "Value" in metric:
-                    raise InvalidParameterValue(
-                        f"The parameters MetricData.member.{i+1}.Value and MetricData.member.{i+1}.Values are mutually exclusive and you have specified both."
-                    )
-                if metric.get("Counts.member"):
-                    if len(metric["Counts.member"]) != len(metric["Values.member"]):
-                        raise InvalidParameterValue(
-                            f"The parameters MetricData.member.{i+1}.Values and MetricData.member.{i+1}.Counts must be of the same size."
-                        )
-                for value in metric["Values.member"]:
-                    if value.lower() == "nan":
-                        raise InvalidParameterValue(
-                            f"The value {value} for parameter MetricData.member.{i + 1}.Values is invalid."
-                        )
+            self._validate_parameters_put_metric_data(metric, i + 1)
 
         for metric_member in metric_data:
             # Preserve "datetime" for get_metric_statistics comparisons
@@ -513,14 +608,29 @@ class CloudWatchBackend(BaseBackend):
                     for _ in range(0, int(float(counts[i]))):
                         self.metric_data.append(
                             MetricDatum(
-                                namespace,
-                                metric_name,
-                                float(value),
-                                dimension,
-                                timestamp,
-                                unit,
+                                namespace=namespace,
+                                name=metric_name,
+                                value=float(value),
+                                dimensions=dimension,
+                                timestamp=timestamp,
+                                unit=unit,
                             )
                         )
+            elif metric_member.get("StatisticValues"):
+                stats = metric_member["StatisticValues"]
+                self.metric_data.append(
+                    MetricAggregatedDatum(
+                        namespace=namespace,
+                        name=metric_name,
+                        sum_stat=float(stats["Sum"]),
+                        min_stat=float(stats["Minimum"]),
+                        max_stat=float(stats["Maximum"]),
+                        sample_count=float(stats["SampleCount"]),
+                        dimensions=dimension,
+                        timestamp=timestamp,
+                        unit=unit,
+                    )
+                )
             else:
                 # there is only a single value
                 self.metric_data.append(
@@ -543,7 +653,7 @@ class CloudWatchBackend(BaseBackend):
     ) -> List[Dict[str, Any]]:
 
         period_data = [
-            md for md in self.metric_data if start_time <= md.timestamp < end_time
+            md for md in self.get_all_metrics() if start_time <= md.timestamp < end_time
         ]
 
         results = []
@@ -583,22 +693,12 @@ class CloudWatchBackend(BaseBackend):
                         md for md in query_period_data if md.unit == unit
                     ]
 
-                metric_values = [m.value for m in query_period_data]
+                if len(query_period_data) > 0:
+                    stats = Statistics([stat], period_start_time)
+                    stats.metric_data = query_period_data
+                    result_vals.append(stats.get_statistics_for_type(stat))  # type: ignore[arg-type]
 
-                if len(metric_values) > 0:
-                    if stat == "SampleCount":
-                        result_vals.append(len(metric_values))
-                    elif stat == "Average":
-                        result_vals.append(sum(metric_values) / len(metric_values))
-                    elif stat == "Minimum":
-                        result_vals.append(min(metric_values))
-                    elif stat == "Maximum":
-                        result_vals.append(max(metric_values))
-                    elif stat == "Sum":
-                        result_vals.append(sum(metric_values))
-                    timestamps.append(
-                        iso_8601_datetime_without_milliseconds(period_start_time)  # type: ignore[arg-type]
-                    )
+                    timestamps.append(stats.timestamp)
                 period_start_time += delta
             if scan_by == "TimestampDescending" and len(timestamps) > 0:
                 timestamps.reverse()
@@ -663,18 +763,18 @@ class CloudWatchBackend(BaseBackend):
             while idx < len(filtered_data) and filtered_data[idx].timestamp < (
                 dt + period_delta
             ):
-                s.values.append(filtered_data[idx].value)
+                s.metric_data.append(filtered_data[idx])
                 s.unit = filtered_data[idx].unit
                 idx += 1
 
-            if not s.values:
+            if not s.metric_data:
                 continue
 
             data.append(s)
 
         return data
 
-    def get_all_metrics(self) -> List[MetricDatum]:
+    def get_all_metrics(self) -> List[MetricDatumBase]:
         return self.metric_data + self.aws_metric_data
 
     def put_dashboard(self, name: str, body: str) -> None:
@@ -730,7 +830,7 @@ class CloudWatchBackend(BaseBackend):
         namespace: str,
         metric_name: str,
         dimensions: List[Dict[str, str]],
-    ) -> Tuple[Optional[str], List[MetricDatum]]:
+    ) -> Tuple[Optional[str], List[MetricDatumBase]]:
         if next_token:
             if next_token not in self.paged_metric_data:
                 raise InvalidParameterValue("Request parameter NextToken is invalid")
@@ -744,9 +844,9 @@ class CloudWatchBackend(BaseBackend):
 
     def get_filtered_metrics(
         self, metric_name: str, namespace: str, dimensions: List[Dict[str, str]]
-    ) -> List[MetricDatum]:
+    ) -> List[MetricDatumBase]:
         metrics = self.get_all_metrics()
-        new_metrics: List[MetricDatum] = []
+        new_metrics: List[MetricDatumBase] = []
         for md in metrics:
             if md.filter(
                 namespace=namespace,
@@ -776,8 +876,8 @@ class CloudWatchBackend(BaseBackend):
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
     def _get_paginated(
-        self, metrics: List[MetricDatum]
-    ) -> Tuple[Optional[str], List[MetricDatum]]:
+        self, metrics: List[MetricDatumBase]
+    ) -> Tuple[Optional[str], List[MetricDatumBase]]:
         if len(metrics) > 500:
             next_token = str(mock_random.uuid4())
             self.paged_metric_data[next_token] = metrics[500:]
@@ -801,6 +901,54 @@ class CloudWatchBackend(BaseBackend):
             counter = counter + 1
 
         return dimensions
+
+    def _validate_parameters_put_metric_data(
+        self, metric: Dict[str, Any], query_num: int
+    ) -> None:
+        """Runs some basic validation of the Metric Query
+
+        :param metric: represents one metric query
+        :param query_num: the query number (starting from 1)
+        :returns: nothing if the validation passes, else an exception is thrown
+        :raises: InvalidParameterValue
+        :raises: InvalidParameterCombination
+        """
+        # basic validation of input
+        if metric.get("Value") == "NaN":
+            # single value
+            raise InvalidParameterValue(
+                f"The value NaN for parameter MetricData.member.{query_num}.Value is invalid."
+            )
+        if metric.get("Values.member"):
+            # list of values
+            if "Value" in metric:
+                raise InvalidParameterValue(
+                    f"The parameters MetricData.member.{query_num}.Value and MetricData.member.{query_num}.Values are mutually exclusive and you have specified both."
+                )
+            if metric.get("Counts.member"):
+                if len(metric["Counts.member"]) != len(metric["Values.member"]):
+                    raise InvalidParameterValue(
+                        f"The parameters MetricData.member.{query_num}.Values and MetricData.member.{query_num}.Counts must be of the same size."
+                    )
+            for value in metric["Values.member"]:
+                if value.lower() == "nan":
+                    raise InvalidParameterValue(
+                        f"The value {value} for parameter MetricData.member.{query_num}.Values is invalid."
+                    )
+        if metric.get("StatisticValues"):
+            if metric.get("Value"):
+                raise InvalidParameterCombination(
+                    f"The parameters MetricData.member.{query_num}.Value and MetricData.member.{query_num}.StatisticValues are mutually exclusive and you have specified both."
+                )
+
+            # aggregated (statistic) for values, must contain sum, maximum, minimum and sample count
+            statistic_values = metric["StatisticValues"]
+            expected = ["Sum", "Maximum", "Minimum", "SampleCount"]
+            for stat in expected:
+                if stat not in statistic_values:
+                    raise InvalidParameterValue(
+                        f'Missing required parameter in MetricData[{query_num}].StatisticValues: "{stat}"'
+                    )
 
 
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")
