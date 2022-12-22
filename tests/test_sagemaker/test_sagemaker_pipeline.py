@@ -8,24 +8,18 @@ import pytest
 from moto import mock_s3
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.sagemaker.utils import arn_formatter
+from moto.sagemaker.utils import arn_formatter, load_pipeline_definition_from_s3
 
 FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
-TEST_REGION_NAME = "us-west-1"
+TEST_REGION_NAME = "us-east-1"
 
 
 @mock_s3
 def setup_s3_pipeline_definition(bucket, object_key, pipeline_definition):
-    client = boto3.client("s3")
-    client.create_bucket(
-        Bucket="some-bucket",
-        CreateBucketConfiguration={"LocationConstraint": TEST_REGION_NAME},
-    )
-    client.put_object(
-        Body=json.dumps(pipeline_definition),
-        Bucket=bucket,
-        Key=object_key,
-    )
+    s3 = boto3.resource("s3", region_name=TEST_REGION_NAME)
+    s3.create_bucket(Bucket=bucket)
+    key = s3.Object(bucket, object_key)
+    key.put(Body=json.dumps(pipeline_definition))
 
 
 @pytest.fixture(name="sagemaker_client")
@@ -40,6 +34,23 @@ def create_sagemaker_pipelines(sagemaker_client, pipelines, wait_seconds=0.0):
         responses += sagemaker_client.create_pipeline(**pipeline)
         sleep(wait_seconds)
     return responses
+
+
+def test_load_pipeline_definition_from_s3(sagemaker_client):
+    bucket_name = "some-bucket"
+    object_key = "some/object/key.json"
+    pipeline_definition = {"key": "value"}
+    setup_s3_pipeline_definition(
+        bucket_name, object_key, pipeline_definition=pipeline_definition
+    )
+    observed_pipeline_definition = load_pipeline_definition_from_s3(
+        pipeline_definition_s3_location={
+            "Bucket": bucket_name,
+            "ObjectKey": object_key,
+        },
+        account_id=ACCOUNT_ID,
+    )
+    observed_pipeline_definition.should.equal(pipeline_definition)
 
 
 def test_create_pipeline(sagemaker_client):
