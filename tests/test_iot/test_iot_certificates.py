@@ -41,10 +41,16 @@ def test_create_key_and_certificate():
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert.should.have.key("certificateArn").which.should_not.be.none
     cert.should.have.key("certificateId").which.should_not.be.none
-    cert.should.have.key("certificatePem").which.should.match(r'^-----BEGIN CERTIFICATE-----')
+    cert.should.have.key("certificatePem").which.should.match(
+        r"^-----BEGIN CERTIFICATE-----"
+    )
     cert.should.have.key("keyPair")
-    cert["keyPair"].should.have.key("PublicKey").which.should.match(r'^-----BEGIN PUBLIC KEY-----')
-    cert["keyPair"].should.have.key("PrivateKey").which.should.match(r'^-----BEGIN RSA PRIVATE KEY-----')
+    cert["keyPair"].should.have.key("PublicKey").which.should.match(
+        r"^-----BEGIN PUBLIC KEY-----"
+    )
+    cert["keyPair"].should.have.key("PrivateKey").which.should.match(
+        r"^-----BEGIN RSA PRIVATE KEY-----"
+    )
 
 
 @mock_iot
