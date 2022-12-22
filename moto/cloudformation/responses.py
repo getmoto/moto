@@ -367,7 +367,7 @@ class CloudFormationResponse(BaseResponse):
             new_params = self._get_param_values(incoming_params, old_stack.parameters)
             if old_stack.template == stack_body and old_stack.parameters == new_params:
                 raise ValidationError(
-                    old_stack.name, message=f"Stack [{old_stack.name}] already exists"
+                    old_stack.name, message="No updates are to be performed."
                 )
 
     def _validate_status(self, stack: FakeStack) -> None:
