@@ -849,6 +849,7 @@ class IamResponse(BaseResponse):
             groups=account_details["groups"],
             roles=account_details["roles"],
             get_groups_for_user=self.backend.get_groups_for_user,
+            list_tags_for_user=self.backend.list_user_tags,
         )
 
     def create_saml_provider(self):
@@ -2279,6 +2280,14 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         {% endfor %}
         </UserPolicyList>
         {% endif %}
+        <Tags>
+        {% for tag in list_tags_for_user(user.name).get("Tags", []) %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+        {% endfor %}
+        </Tags>
       </member>
     {% endfor %}
     </UserDetailList>
