@@ -478,7 +478,7 @@ ec2
 - [X] get_managed_prefix_list_entries
 - [ ] get_network_insights_access_scope_analysis_findings
 - [ ] get_network_insights_access_scope_content
-- [ ] get_password_data
+- [x] get_password_data
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_serial_console_access_status
 - [ ] get_spot_placement_scores
