@@ -36,7 +36,7 @@ def create_sagemaker_pipelines(sagemaker_client, pipelines, wait_seconds=0.0):
     return responses
 
 
-def test_load_pipeline_definition_from_s3(sagemaker_client):
+def test_load_pipeline_definition_from_s3():
     bucket_name = "some-bucket"
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
