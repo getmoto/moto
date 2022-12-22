@@ -1793,7 +1793,7 @@ class SageMakerModelBackend(BaseBackend):
 
         if pipeline_definition_s3_location:
             pipeline_definition = load_pipeline_definition_from_s3(
-                pipeline_definition_s3_location, self.account_id
+                pipeline_definition_s3_location
             )
 
         pipeline = FakePipeline(
@@ -1852,9 +1852,7 @@ class SageMakerModelBackend(BaseBackend):
                 if attr_key == "pipeline_definition_s3_location":
                     self.pipelines[
                         pipeline_name
-                    ].pipeline_definition = load_pipeline_definition_from_s3(
-                        attr_value, self.account_id
-                    )
+                    ].pipeline_definition = load_pipeline_definition_from_s3(attr_value)
                     continue
                 setattr(self.pipelines[pipeline_name], attr_key, attr_value)
 
