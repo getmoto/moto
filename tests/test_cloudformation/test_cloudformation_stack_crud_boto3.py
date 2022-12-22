@@ -1258,7 +1258,7 @@ def test_update_stack_fail_update_same_template_body():
     exp_metadata = exp.value.response.get("ResponseMetadata")
 
     exp_err.get("Code").should.equal("ValidationError")
-    exp_err.get("Message").should.equal(f"Stack [{name}] already exists")
+    exp_err.get("Message").should.equal("No updates are to be performed.")
     exp_metadata.get("HTTPStatusCode").should.equal(400)
 
     cf_conn.update_stack(
