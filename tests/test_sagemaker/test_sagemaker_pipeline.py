@@ -43,7 +43,7 @@ def create_sagemaker_pipelines(sagemaker_client, pipelines, wait_seconds=0.0):
 
 
 def test_load_pipeline_definition_from_s3():
-    bucket_name = "some-bucket"
+    bucket_name = "some-bucket-1"
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
 
@@ -74,7 +74,7 @@ def test_create_pipeline(sagemaker_client):
 
 
 def test_create_pipeline_pipeline_definition_s3_location(sagemaker_client):
-    bucket = "some-bucket"
+    bucket_name = "some-bucket-2"
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
     fake_pipeline_name = "APipelineName"
@@ -83,13 +83,13 @@ def test_create_pipeline_pipeline_definition_s3_location(sagemaker_client):
             "PipelineName": fake_pipeline_name,
             "RoleArn": FAKE_ROLE_ARN,
             "PipelineDefinitionS3Location": {
-                "Bucket": bucket,
+                "Bucket": bucket_name,
                 "ObjectKey": object_key,
             },
         },
     ]
     with setup_s3_pipeline_definition(
-        bucket, object_key, pipeline_definition, ACCOUNT_ID
+        bucket_name, object_key, pipeline_definition, ACCOUNT_ID
     ):
         _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
     response = sagemaker_client.describe_pipeline(PipelineName=fake_pipeline_name)
@@ -474,7 +474,7 @@ def test_update_pipeline_update_pipeline_definition_s3_location(sagemaker_client
     }
     _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
 
-    bucket_name = "some-bucket"
+    bucket_name = "some-bucket-3"
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
     with setup_s3_pipeline_definition(
