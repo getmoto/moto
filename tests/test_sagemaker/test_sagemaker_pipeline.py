@@ -6,26 +6,32 @@ import boto3
 import botocore
 import json
 import pytest
-from moto.s3.models import s3_backends
+from moto.s3 import mock_s3
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sagemaker.utils import arn_formatter, load_pipeline_definition_from_s3
 
 FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
-TEST_REGION_NAME = "us-east-1"
+TEST_REGION_NAME = "us-west-1"
 
 
 @contextmanager
-def setup_s3_pipeline_definition(bucket, object_key, pipeline_definition, account_id):
-    s3_backend = s3_backends[account_id]["global"]
-    s3_backend.create_bucket(bucket_name=bucket, region_name=TEST_REGION_NAME)
-    s3_backend.put_object(
-        bucket_name=bucket, key_name=object_key, value=json.dumps(pipeline_definition)
+@mock_s3
+def setup_s3_pipeline_definition(bucket_name, object_key, pipeline_definition):
+    client = boto3.client("s3")
+    client.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": TEST_REGION_NAME},
+    )
+    client.put_object(
+        Body=json.dumps(pipeline_definition),
+        Bucket=bucket_name,
+        Key=object_key,
     )
     yield
 
-    s3_backend.delete_object(bucket_name=bucket, key_name=object_key)
-    s3_backend.delete_bucket(bucket_name=bucket)
+    client.delete_object(Bucket=bucket_name, Key=object_key)
+    client.delete_bucket(Bucket=bucket_name)
 
 
 @pytest.fixture(name="sagemaker_client")
@@ -47,16 +53,19 @@ def test_load_pipeline_definition_from_s3():
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
 
-    with setup_s3_pipeline_definition(
-        bucket_name, object_key, pipeline_definition, ACCOUNT_ID
-    ):
-        observed_pipeline_definition = load_pipeline_definition_from_s3(
-            pipeline_definition_s3_location={
-                "Bucket": bucket_name,
-                "ObjectKey": object_key,
-            },
-            account_id=ACCOUNT_ID,
-        )
+    with mock_s3():
+        with setup_s3_pipeline_definition(
+            bucket_name,
+            object_key,
+            pipeline_definition,
+        ):
+            observed_pipeline_definition = load_pipeline_definition_from_s3(
+                pipeline_definition_s3_location={
+                    "Bucket": bucket_name,
+                    "ObjectKey": object_key,
+                },
+                account_id=ACCOUNT_ID,
+            )
     observed_pipeline_definition.should.equal(pipeline_definition)
 
 
@@ -89,7 +98,9 @@ def test_create_pipeline_pipeline_definition_s3_location(sagemaker_client):
         },
     ]
     with setup_s3_pipeline_definition(
-        bucket_name, object_key, pipeline_definition, ACCOUNT_ID
+        bucket_name,
+        object_key,
+        pipeline_definition,
     ):
         _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
     response = sagemaker_client.describe_pipeline(PipelineName=fake_pipeline_name)
@@ -478,7 +489,9 @@ def test_update_pipeline_update_pipeline_definition_s3_location(sagemaker_client
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
     with setup_s3_pipeline_definition(
-        bucket_name, object_key, pipeline_definition, ACCOUNT_ID
+        bucket_name,
+        object_key,
+        pipeline_definition,
     ):
         _ = sagemaker_client.update_pipeline(
             PipelineName=pipeline_name,
