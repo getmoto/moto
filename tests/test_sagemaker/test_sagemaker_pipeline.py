@@ -68,6 +68,20 @@ def test_start_pipeline_execution(sagemaker_client):
     )
 
 
+def test_describe_pipeline_execution_not_exists(sagemaker_client):
+    pipeline_execution_arn = arn_formatter(  # TODO: validate _type passed --> should probably include some
+        # random ID (execution ID)
+        "pipeline-execution",
+        "some-pipeline-name",
+        ACCOUNT_ID,
+        TEST_REGION_NAME,
+    )
+    with pytest.raises(botocore.exceptions.ClientError):
+        _ = sagemaker_client.describe_pipeline_execution(
+            PipelineExecutionArn=pipeline_execution_arn
+        )
+
+
 def test_describe_pipeline_execution(sagemaker_client):
     fake_pipeline_names = ["APipelineName", "BPipelineName"]
     pipelines = [
