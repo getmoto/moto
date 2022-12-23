@@ -48,6 +48,49 @@ def create_sagemaker_pipelines(sagemaker_client, pipelines, wait_seconds=0.0):
     return responses
 
 
+def test_start_pipeline_execution(sagemaker_client):
+    fake_pipeline_names = ["APipelineName"]
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+    pipeline_execution_arn = sagemaker_client.start_pipeline_execution(
+        PipelineName=fake_pipeline_names[0]
+    )
+    pipeline_execution_arn["PipelineExecutionArn"].should.be.equal(
+        arn_formatter(
+            "pipeline-execution", fake_pipeline_names[0], ACCOUNT_ID, TEST_REGION_NAME
+        )
+    )
+
+
+def test_describe_pipeline_execution(sagemaker_client):
+    fake_pipeline_names = ["APipelineName", "BPipelineName"]
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_name,
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        }
+        for fake_pipeline_name in fake_pipeline_names
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+    response = sagemaker_client.start_pipeline_execution(
+        PipelineName=fake_pipeline_names[0]
+    )
+    _ = sagemaker_client.start_pipeline_execution(PipelineName=fake_pipeline_names[1])
+    expected_pipeline_execution_arn = response["PipelineExecutionArn"]
+    pipeline_execution_summary = sagemaker_client.describe_pipeline_execution(
+        PipelineExecutionArn=response["PipelineExecutionArn"]
+    )
+    observed_pipeline_execution_arn = pipeline_execution_summary["PipelineExecutionArn"]
+    observed_pipeline_execution_arn.should.be.equal(expected_pipeline_execution_arn)
+
+
 def test_load_pipeline_definition_from_s3():
     bucket_name = "some-bucket-1"
     object_key = "some/object/key.json"
