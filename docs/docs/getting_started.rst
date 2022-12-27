@@ -288,7 +288,7 @@ If it is not possible to rearrange imports, we can patch the boto3-client or res
 .. sourcecode:: python
 
     # The client can come from an import, an __init__-file, wherever..
-    client = boto3.client("s3")
+    outside_client = boto3.client("s3")
     s3 = boto3.resource("s3")
 
     @mock_s3
@@ -297,7 +297,7 @@ If it is not possible to rearrange imports, we can patch the boto3-client or res
         patch_client(outside_client)
         patch_resource(s3)
 
-        assert client.list_buckets()["Buckets"] == []
+        assert outside_client.list_buckets()["Buckets"] == []
 
         assert list(s3.buckets.all()) == []
 
