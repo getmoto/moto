@@ -283,7 +283,9 @@ def test_list_aliases():
         full_name = f"alias/{name}"
         arn = f"arn:aws:kms:{region}:{ACCOUNT_ID}:{full_name}"
         target_key_id = str(uuid.UUID(int=abs(hash(arn)), version=4))
-        aliases.should.contain({"AliasName": full_name, "AliasArn": arn, "TargetKeyId": target_key_id})
+        aliases.should.contain(
+            {"AliasName": full_name, "AliasArn": arn, "TargetKeyId": target_key_id}
+        )
 
 
 @pytest.mark.parametrize(
