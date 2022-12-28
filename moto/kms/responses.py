@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import re
+import uuid
 import warnings
 
 from moto.core.responses import BaseResponse
@@ -278,9 +279,11 @@ class KmsResponse(BaseResponse):
                 a for a in response_aliases if a["AliasName"] == reserved_alias
             ]
             if not exsisting:
+                arn = f"arn:aws:kms:{region}:{self.current_account}:{reserved_alias}"
                 response_aliases.append(
                     {
-                        "AliasArn": f"arn:aws:kms:{region}:{self.current_account}:{reserved_alias}",
+                        "TargetKeyId": str(uuid.UUID(int=abs(hash(arn)), version=4)),
+                        "AliasArn": arn,
                         "AliasName": reserved_alias,
                     }
                 )

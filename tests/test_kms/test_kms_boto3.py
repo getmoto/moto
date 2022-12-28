@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+import uuid
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
 from unittest import mock
@@ -281,7 +282,8 @@ def test_list_aliases():
     for name in default_alias_names:
         full_name = f"alias/{name}"
         arn = f"arn:aws:kms:{region}:{ACCOUNT_ID}:{full_name}"
-        aliases.should.contain({"AliasName": full_name, "AliasArn": arn})
+        target_key_id = str(uuid.UUID(int=abs(hash(arn)), version=4))
+        aliases.should.contain({"AliasName": full_name, "AliasArn": arn, "TargetKeyId": target_key_id})
 
 
 @pytest.mark.parametrize(
