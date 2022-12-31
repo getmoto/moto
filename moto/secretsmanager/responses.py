@@ -35,6 +35,10 @@ class SecretsManagerResponse(BaseResponse):
     def backend(self):
         return secretsmanager_backends[self.current_account][self.region]
 
+    def cancel_rotate_secret(self):
+        secret_id = self._get_param("SecretId")
+        return self.backend.cancel_rotate_secret(secret_id=secret_id)
+
     def get_secret_value(self):
         secret_id = self._get_param("SecretId")
         version_id = self._get_param("VersionId")
