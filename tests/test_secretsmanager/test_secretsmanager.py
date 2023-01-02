@@ -635,7 +635,8 @@ def test_restore_secret_that_does_not_exist():
 def test_cancel_rotate_secret_with_invalid_secret_id():
     conn = boto3.client("secretsmanager", region_name="us-east-1")
     with pytest.raises(ClientError):
-        conn.cancel_rotate_secret(SecretId = "invalid_id")
+        conn.cancel_rotate_secret(SecretId="invalid_id")
+
 
 @mock_secretsmanager
 def test_cancel_rotate_secret_after_delete():
@@ -644,12 +645,13 @@ def test_cancel_rotate_secret_after_delete():
         Name=DEFAULT_SECRET_NAME, SecretString="foosecret", Description="foodescription"
     )
     conn.delete_secret(
-        SecretId = DEFAULT_SECRET_NAME,
-        RecoveryWindowInDays = 7,
-        ForceDeleteWithoutRecovery = False
+        SecretId=DEFAULT_SECRET_NAME,
+        RecoveryWindowInDays=7,
+        ForceDeleteWithoutRecovery=False,
     )
     with pytest.raises(ClientError):
-        conn.cancel_rotate_secret(SecretId = DEFAULT_SECRET_NAME)
+        conn.cancel_rotate_secret(SecretId=DEFAULT_SECRET_NAME)
+
 
 @mock_secretsmanager
 def test_cancel_rotate_secret_before_enable():
@@ -658,13 +660,15 @@ def test_cancel_rotate_secret_before_enable():
         Name=DEFAULT_SECRET_NAME, SecretString="foosecret", Description="foodescription"
     )
     with pytest.raises(ClientError):
-        conn.cancel_rotate_secret(SecretId = DEFAULT_SECRET_NAME)
+        conn.cancel_rotate_secret(SecretId=DEFAULT_SECRET_NAME)
+
 
 @mock_secretsmanager
 def test_cancel_rotate_secret():
     if not settings.TEST_SERVER_MODE:
-        raise SkipTest('rotation requires a server to be running')
+        raise SkipTest("rotation requires a server to be running")
     from tests.test_awslambda.utilities import get_role_name
+
     lambda_conn = boto3.client(
         "lambda", region_name="us-east-1", endpoint_url="http://localhost:5000"
     )
@@ -683,18 +687,17 @@ def test_cancel_rotate_secret():
     secrets_conn.create_secret(
         Name=DEFAULT_SECRET_NAME, SecretString="foosecret", Description="foodescription"
     )
-    before = secrets_conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
     secrets_conn.rotate_secret(
-            SecretId=DEFAULT_SECRET_NAME,
-            RotationLambdaARN=func["FunctionArn"],
-            RotationRules=dict(AutomaticallyAfterDays=30),
+        SecretId=DEFAULT_SECRET_NAME,
+        RotationLambdaARN=func["FunctionArn"],
+        RotationRules=dict(AutomaticallyAfterDays=30),
     )
-    secrets_conn.cancel_rotate_secret(SecretId = DEFAULT_SECRET_NAME)
+    secrets_conn.cancel_rotate_secret(SecretId=DEFAULT_SECRET_NAME)
     cancelled_rotation = secrets_conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
 
-    assert not cancelled_rotation['RotationEnabled']
+    assert not cancelled_rotation["RotationEnabled"]
     # The function config should be preserved
-    assert cancelled_rotation['RotationLambdaARN']
+    assert cancelled_rotation["RotationLambdaARN"]
 
 
 @mock_secretsmanager
