@@ -25,7 +25,7 @@ secretsmanager
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] cancel_rotate_secret
+- [X] cancel_rotate_secret
 - [X] create_secret
 - [ ] delete_resource_policy
 - [X] delete_secret

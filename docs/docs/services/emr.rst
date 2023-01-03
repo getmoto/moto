@@ -45,6 +45,7 @@ emr
 - [ ] describe_studio
 - [ ] get_auto_termination_policy
 - [ ] get_block_public_access_configuration
+- [ ] get_cluster_session_credentials
 - [ ] get_managed_scaling_policy
 - [ ] get_studio_session_mapping
 - [X] list_bootstrap_actions

@@ -1,6 +1,26 @@
 Moto Changelog
 ==============
 
+
+4.0.13
+-----
+Docker Digest for 4.0.13: <autopopulateddigest>
+
+    New Methods:
+        * EC2:
+            * get_password_data()
+        * Sagemaker:
+            * update_pipeline()
+        * SecretsManager:
+            * cancel_rotate_secret()
+
+    Miscellaneous:
+        * CloudWatch: put_metric_data() now supports the StatisticValues-parameter
+        * CognitoIDP: sign_out() now also invalidates the AccessToken
+        * IAM: get_account_authorization_details() now returns the Tags-attribute
+        * IOT: create_keys_and_certificate() now creates valid certificates, instead of random data
+
+
 4.0.12
 -----
 Docker Digest for 4.0.12: _sha256:06916d3f310c68fd445468f06d6d4ae6f855e7f2b80e007a90bd11eeb421b5ed_
