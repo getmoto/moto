@@ -229,6 +229,29 @@ class SecretsManagerBackend(BaseBackend):
             version_id = str(mock_random.uuid4())
         return version_id
 
+    def cancel_rotate_secret(self, secret_id: str):
+        if not self._is_valid_identifier(secret_id):
+            raise SecretNotFoundException()
+
+        if self.secrets[secret_id].is_deleted():
+            raise InvalidRequestException(
+                "You tried to perform the operation on a secret that's currently marked deleted."
+            )
+
+        secret = self.secrets.get(key=secret_id)
+        if not secret.rotation_lambda_arn:
+            # This response doesn't make much sense for  `CancelRotateSecret`, but this is what AWS has documented ...
+            # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_CancelRotateSecret.html
+            raise InvalidRequestException(
+                (
+                    "You tried to enable rotation on a secret that doesn't already have a Lambda function ARN configured"
+                    "and you didn't include such an ARN as a parameter in this call."
+                )
+            )
+
+        secret.rotation_enabled = False
+        return secret.to_short_dict()
+
     def get_secret_value(self, secret_id, version_id, version_stage):
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
