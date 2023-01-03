@@ -41,7 +41,7 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest -sv tests/test_core ./tests/test_apigateway/test_apigateway_integration.py ./tests/test_s3/test_server.py
+        pytest -sv tests/test_core ./tests/test_apigateway/test_apigateway_integration.py tests/test_iotdata ./tests/test_s3/test_server.py
 
     - name: Start MotoServer
       run: |
@@ -52,7 +52,7 @@ jobs:
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        pytest -sv tests/test_core tests/test_awslambda tests/test_cloudformation
+        pytest -sv tests/test_core tests/test_awslambda tests/test_cloudformation tests/test_iotdata
     - name: "Stop MotoServer"
       if: always()
       run: |

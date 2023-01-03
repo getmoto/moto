@@ -110,12 +110,16 @@ def test_update():
 def test_publish():
     region_name = "ap-northeast-1"
     client = boto3.client("iot-data", region_name=region_name)
-    client.publish(topic="test/topic", qos=1, payload=b"pl")
+    client.publish(topic="test/topic1", qos=1, payload=b"pl1")
+    client.publish(topic="test/topic2", qos=1, payload=b"pl2")
+    client.publish(topic="test/topic3", qos=1, payload=b"pl3")
 
     if not settings.TEST_SERVER_MODE:
         mock_backend = moto.iotdata.models.iotdata_backends[ACCOUNT_ID][region_name]
-        mock_backend.published_payloads.should.have.length_of(1)
-        mock_backend.published_payloads.should.contain(("test/topic", "pl"))
+        mock_backend.published_payloads.should.have.length_of(3)
+        mock_backend.published_payloads.should.contain(("test/topic1", "pl1"))
+        mock_backend.published_payloads.should.contain(("test/topic2", "pl2"))
+        mock_backend.published_payloads.should.contain(("test/topic3", "pl3"))
 
 
 @mock_iot
