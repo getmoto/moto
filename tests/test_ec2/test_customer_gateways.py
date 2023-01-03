@@ -1,11 +1,9 @@
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
-import sys
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2
-from unittest import SkipTest
 
 
 @mock_ec2
@@ -21,11 +19,6 @@ def test_create_customer_gateways():
 
 @mock_ec2
 def test_create_customer_gateways_using_publicip_argument():
-    version_info = sys.version_info
-    if version_info.major == 3 and version_info.minor <= 6:
-        raise SkipTest(
-            "Py 3.6 has an older versions of botocore, and does not support the IpAddress-argument"
-        )
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     # The PublicIp-argument is deprecated, but should still be supported by Moto
