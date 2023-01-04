@@ -2339,6 +2339,14 @@ def test_get_account_authorization_details():
         RoleName="my-role",
         PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/testPolicy",
     )
+    # add tags to the user
+    conn.tag_user(
+        UserName="testUser",
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
 
     result = conn.get_account_authorization_details(Filter=["Role"])
     assert len(result["RoleDetailList"]) == 1
@@ -2377,6 +2385,7 @@ def test_get_account_authorization_details():
     assert len(result["UserDetailList"][0]["GroupList"]) == 1
     assert len(result["UserDetailList"][0]["UserPolicyList"]) == 1
     assert len(result["UserDetailList"][0]["AttachedManagedPolicies"]) == 1
+    assert len(result["UserDetailList"][0]["Tags"]) == 2
     assert len(result["GroupDetailList"]) == 0
     assert len(result["Policies"]) == 0
     assert (

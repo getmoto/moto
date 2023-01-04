@@ -47,6 +47,7 @@ from .vpn_connections import VPNConnectionBackend
 from .vpcs import VPCBackend
 from .vpc_peering_connections import VPCPeeringConnectionBackend
 from .vpc_service_configuration import VPCServiceConfigurationBackend
+from .windows import WindowsBackend
 from ..utils import (
     EC2_RESOURCE_TO_PREFIX,
     is_valid_resource_id,
@@ -122,6 +123,7 @@ class EC2Backend(
     IamInstanceProfileAssociationBackend,
     CarrierGatewayBackend,
     FleetsBackend,
+    WindowsBackend,
 ):
     """
     moto includes a limited set of AMIs in `moto/ec2/resources/amis.json`.
