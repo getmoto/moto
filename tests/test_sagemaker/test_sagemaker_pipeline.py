@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from moto import mock_sagemaker, settings
+from moto import mock_sagemaker
 from time import sleep
 from datetime import datetime
 import boto3
@@ -7,7 +7,6 @@ import botocore
 import json
 import pytest
 from moto.s3 import mock_s3
-from unittest import SkipTest
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sagemaker.utils import arn_formatter, load_pipeline_definition_from_s3
@@ -53,9 +52,6 @@ def test_load_pipeline_definition_from_s3():
     bucket_name = "some-bucket-1"
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
-
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't access S3 backend in server mode.")
 
     with mock_s3():
         with setup_s3_pipeline_definition(
