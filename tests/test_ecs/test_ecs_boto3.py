@@ -1889,45 +1889,13 @@ def test_run_task_exceptions():
 @mock_ecs
 def test_start_task():
     client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
     test_cluster_name = "test_ecs_cluster"
-
-    _ = client.create_cluster(clusterName=test_cluster_name)
-
-    test_instance = ec2.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
-    )[0]
-
-    instance_id_document = json.dumps(
-        ec2_utils.generate_instance_identity_document(test_instance)
-    )
-
-    client.register_container_instance(
-        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
-    )
+    setup_ecs_cluster_with_ec2_instance(client, test_cluster_name)
 
     container_instances = client.list_container_instances(cluster=test_cluster_name)
     container_instance_id = container_instances["containerInstanceArns"][0].split("/")[
         -1
     ]
-
-    _ = client.register_task_definition(
-        family="test_ecs_task",
-        containerDefinitions=[
-            {
-                "name": "hello_world",
-                "image": "docker/hello-world:latest",
-                "cpu": 1024,
-                "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
-            }
-        ],
-    )
 
     response = client.start_task(
         cluster="test_ecs_cluster",
@@ -1949,6 +1917,54 @@ def test_start_task():
     )
     response["tasks"][0]["containerInstanceArn"].should.equal(
         f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/test_ecs_cluster/{container_instance_id}"
+    )
+    response["tasks"][0]["tags"].should.equal(
+        [],
+    )
+    response["tasks"][0]["overrides"].should.equal({})
+    response["tasks"][0]["lastStatus"].should.equal("RUNNING")
+    response["tasks"][0]["desiredStatus"].should.equal("RUNNING")
+    response["tasks"][0]["startedBy"].should.equal("moto")
+    response["tasks"][0]["stoppedReason"].should.equal("")
+
+
+@mock_ec2
+@mock_ecs
+def test_start_task_with_tags():
+    client = boto3.client("ecs", region_name="us-east-1")
+    test_cluster_name = "test_ecs_cluster"
+    setup_ecs_cluster_with_ec2_instance(client, test_cluster_name)
+
+    container_instances = client.list_container_instances(cluster=test_cluster_name)
+    container_instance_id = container_instances["containerInstanceArns"][0].split("/")[
+        -1
+    ]
+
+    task_tags = [{"key": "Name", "value": "test_ecs_start_task"}]
+    response = client.start_task(
+        cluster="test_ecs_cluster",
+        taskDefinition="test_ecs_task",
+        overrides={},
+        containerInstances=[container_instance_id],
+        startedBy="moto",
+        tags=task_tags,
+    )
+
+    len(response["tasks"]).should.equal(1)
+    response["tasks"][0]["taskArn"].should.contain(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task/"
+    )
+    response["tasks"][0]["clusterArn"].should.equal(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:cluster/test_ecs_cluster"
+    )
+    response["tasks"][0]["taskDefinitionArn"].should.equal(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task-definition/test_ecs_task:1"
+    )
+    response["tasks"][0]["containerInstanceArn"].should.equal(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/test_ecs_cluster/{container_instance_id}"
+    )
+    response["tasks"][0]["tags"].should.equal(
+        task_tags,
     )
     response["tasks"][0]["overrides"].should.equal({})
     response["tasks"][0]["lastStatus"].should.equal("RUNNING")
@@ -2056,40 +2072,9 @@ def test_list_tasks_exceptions():
 @mock_ecs
 def test_describe_tasks():
     client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
     test_cluster_name = "test_ecs_cluster"
+    setup_ecs_cluster_with_ec2_instance(client, test_cluster_name)
 
-    _ = client.create_cluster(clusterName=test_cluster_name)
-
-    test_instance = ec2.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
-    )[0]
-
-    instance_id_document = json.dumps(
-        ec2_utils.generate_instance_identity_document(test_instance)
-    )
-
-    client.register_container_instance(
-        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
-    )
-
-    _ = client.register_task_definition(
-        family="test_ecs_task",
-        containerDefinitions=[
-            {
-                "name": "hello_world",
-                "image": "docker/hello-world:latest",
-                "cpu": 1024,
-                "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
-            }
-        ],
-    )
     tasks_arns = [
         task["taskArn"]
         for task in client.run_task(
@@ -2113,6 +2098,69 @@ def test_describe_tasks():
     )
     len(response["tasks"]).should.equal(1)
 
+@mock_ec2
+@mock_ecs
+def test_describe_tasks_empty_tags():
+    client = boto3.client("ecs", region_name="us-east-1")
+    test_cluster_name = "test_ecs_cluster"
+    setup_ecs_cluster_with_ec2_instance(client, test_cluster_name)
+
+    tasks_arns = [
+        task["taskArn"]
+        for task in client.run_task(
+            cluster="test_ecs_cluster",
+            overrides={},
+            taskDefinition="test_ecs_task",
+            count=2,
+            startedBy="moto",
+        )["tasks"]
+    ]
+    response = client.describe_tasks(cluster="test_ecs_cluster", tasks=tasks_arns, include=["TAGS"])
+
+    len(response["tasks"]).should.equal(2)
+    set(
+        [response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]]
+    ).should.equal(set(tasks_arns))
+    response["tasks"][0]["tags"].should.equal([])
+
+    # Test we can pass task ids instead of ARNs
+    response = client.describe_tasks(
+        cluster="test_ecs_cluster", tasks=[tasks_arns[0].split("/")[-1]]
+    )
+    len(response["tasks"]).should.equal(1)
+
+@mock_ec2
+@mock_ecs
+def test_describe_tasks_include_tags():
+    client = boto3.client("ecs", region_name="us-east-1")
+    test_cluster_name = "test_ecs_cluster"
+    setup_ecs_cluster_with_ec2_instance(client, test_cluster_name)
+
+    task_tags = [{"key": "Name", "value": "test_ecs_task"}]
+    tasks_arns = [
+        task["taskArn"]
+        for task in client.run_task(
+            cluster="test_ecs_cluster",
+            overrides={},
+            taskDefinition="test_ecs_task",
+            count=2,
+            startedBy="moto",
+            tags=task_tags,
+        )["tasks"]
+    ]
+    response = client.describe_tasks(cluster="test_ecs_cluster", tasks=tasks_arns, include=["TAGS"])
+
+    len(response["tasks"]).should.equal(2)
+    set(
+        [response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]]
+    ).should.equal(set(tasks_arns))
+    response["tasks"][0]["tags"].should.equal(task_tags)
+
+    # Test we can pass task ids instead of ARNs
+    response = client.describe_tasks(
+        cluster="test_ecs_cluster", tasks=[tasks_arns[0].split("/")[-1]]
+    )
+    len(response["tasks"]).should.equal(1)
 
 @mock_ecs
 def test_describe_tasks_exceptions():
@@ -3721,3 +3769,35 @@ def setup_ecs(client, ec2):
     )
 
     return subnet, sg
+
+
+def setup_ecs_cluster_with_ec2_instance(client, test_cluster_name):
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    _ = client.create_cluster(clusterName=test_cluster_name)
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+    client.register_container_instance(
+        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
+    )
+
+    _ = client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
