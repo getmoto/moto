@@ -15,7 +15,6 @@ else
 endif
 
 init:
-    # TODO: How to install editable mode using pyproject.toml (PEP660)
 	@pip install -e .
 	@pip install -r requirements-dev.txt
 
