@@ -4,7 +4,7 @@ Moto Changelog
 
 4.0.13
 -----
-Docker Digest for 4.0.13: <autopopulateddigest>
+Docker Digest for 4.0.13: _sha256:703a9d464c11e1f4cacff66acdc9b46f9fa8fb0b969ca9f1e79fa4eb41678565_
 
     New Methods:
         * EC2:
