@@ -56,7 +56,7 @@ def create_sagemaker_pipelines(sagemaker_client, pipelines, wait_seconds=0.0):
     return responses
 
 
-def test_utils_get_pipeline_from_name_exists(sagemaker_client):
+def test_utils_get_pipeline_from_name_exists():
     fake_pipeline_names = ["APipelineName", "BPipelineName"]
     pipelines = {
         fake_pipeline_name: FakePipeline(
@@ -78,7 +78,7 @@ def test_utils_get_pipeline_from_name_exists(sagemaker_client):
     assert retrieved_pipeline == pipelines[fake_pipeline_names[0]]
 
 
-def test_utils_get_pipeline_from_name_not_exists(sagemaker_client):
+def test_utils_get_pipeline_from_name_not_exists():
     with pytest.raises(ValidationError):
         _ = get_pipeline_from_name(pipelines={}, pipeline_name="foo")
 
@@ -92,7 +92,7 @@ def test_utils_get_pipeline_name_from_execution_arn():
     assert expected_pipeline_name == observed_pipeline_name
 
 
-def test_utils_get_pipeline_execution_from_arn_not_exists(sagemaker_client):
+def test_utils_get_pipeline_execution_from_arn_not_exists():
     with pytest.raises(ValidationError):
         _ = get_pipeline_execution_from_arn(
             pipelines={},
