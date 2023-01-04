@@ -16,7 +16,6 @@ TEST_REGION_NAME = "us-west-1"
 
 
 @contextmanager
-@mock_s3
 def setup_s3_pipeline_definition(bucket_name, object_key, pipeline_definition):
     client = boto3.client("s3")
     client.create_bucket(
@@ -97,12 +96,13 @@ def test_create_pipeline_pipeline_definition_s3_location(sagemaker_client):
             },
         },
     ]
-    with setup_s3_pipeline_definition(
-        bucket_name,
-        object_key,
-        pipeline_definition,
-    ):
-        _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+    with mock_s3():
+        with setup_s3_pipeline_definition(
+            bucket_name,
+            object_key,
+            pipeline_definition,
+        ):
+            _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
     response = sagemaker_client.describe_pipeline(PipelineName=fake_pipeline_name)
     response["PipelineDefinition"].should.equal(pipeline_definition)
 
@@ -483,23 +483,25 @@ def test_update_pipeline_update_pipeline_definition_s3_location(sagemaker_client
         "RoleArn": FAKE_ROLE_ARN,
         "PipelineDefinition": " ",
     }
-    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
 
     bucket_name = "some-bucket-3"
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
-    with setup_s3_pipeline_definition(
-        bucket_name,
-        object_key,
-        pipeline_definition,
-    ):
-        _ = sagemaker_client.update_pipeline(
-            PipelineName=pipeline_name,
-            PipelineDefinitionS3Location={
-                "Bucket": bucket_name,
-                "ObjectKey": object_key,
-            },
-        )
+
+    with mock_s3():
+        with setup_s3_pipeline_definition(
+            bucket_name,
+            object_key,
+            pipeline_definition,
+        ):
+            _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
+            _ = sagemaker_client.update_pipeline(
+                PipelineName=pipeline_name,
+                PipelineDefinitionS3Location={
+                    "Bucket": bucket_name,
+                    "ObjectKey": object_key,
+                },
+            )
 
     response = sagemaker_client.describe_pipeline(PipelineName=pipeline_name)
     response["PipelineDefinition"].should.equal(pipeline_definition)
