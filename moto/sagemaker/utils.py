@@ -1,4 +1,5 @@
 from moto.s3.models import s3_backends
+from moto import mock_s3
 from moto import settings
 import json
 import boto3
@@ -7,11 +8,12 @@ import boto3
 def load_pipeline_definition_from_s3(pipeline_definition_s3_location, account_id):
     if settings.TEST_SERVER_MODE:
         # In ServerMode, we must get the object via boto3
-        s3_client = boto3.client("s3")
-        result = s3_client.get_object(
-            Bucket=pipeline_definition_s3_location["Bucket"],
-            Key=pipeline_definition_s3_location["ObjectKey"],
-        )
+        with mock_s3():
+            s3_client = boto3.client("s3")
+            result = s3_client.get_object(
+                Bucket=pipeline_definition_s3_location["Bucket"],
+                Key=pipeline_definition_s3_location["ObjectKey"],
+            )
         pipeline_definition_raw = result["Body"].read()
     else:
         # Otherwise, we can fetch it directly from the s3_backend
