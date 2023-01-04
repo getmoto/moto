@@ -11,7 +11,13 @@ from .exceptions import (
     AWSValidationException,
     ResourceNotFound,
 )
-from .utils import load_pipeline_definition_from_s3, arn_formatter
+from .utils import (
+    load_pipeline_definition_from_s3,
+    arn_formatter,
+    get_pipeline_from_name,
+    get_pipeline_execution_from_arn,
+    get_pipeline_name_from_execution_arn,
+)
 
 
 PAGINATION_MODEL = {
@@ -80,13 +86,16 @@ class FakePipelineExecution(BaseObject):
         pipeline_parameters,
         pipeline_execution_description,
         parallelism_configuration,
+        pipeline_definition,
     ):
         self.pipeline_execution_arn = pipeline_execution_arn
         self.pipeline_execution_display_name = pipeline_execution_display_name
         self.pipeline_parameters = pipeline_parameters
         self.pipeline_execution_description = pipeline_execution_description
         self.pipeline_execution_status = "Succeeded"
+        self.pipeline_execution_failure_reason = None
         self.parallelism_configuration = parallelism_configuration
+        self.pipeline_definition_for_execution = pipeline_definition
 
         now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.creation_time = now_string
@@ -1858,26 +1867,16 @@ class SageMakerModelBackend(BaseBackend):
         self,
         pipeline_name,
     ):
-        try:
-            pipeline_arn = self.pipelines[pipeline_name].pipeline_arn
-        except KeyError:
-            raise ValidationError(
-                message=f"Could not find pipeline with name {pipeline_name}."
-            )
-        del self.pipelines[pipeline_name]
-        return pipeline_arn
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
+        del self.pipelines[pipeline.pipeline_name]
+        return pipeline.pipeline_arn
 
     def update_pipeline(
         self,
         pipeline_name,
         **kwargs,
     ):
-        try:
-            pipeline_arn = self.pipelines[pipeline_name].pipeline_arn
-        except KeyError:
-            raise ValidationError(
-                message=f"Could not find pipeline with name {pipeline_name}."
-            )
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
 
         if all(
             [
@@ -1901,7 +1900,7 @@ class SageMakerModelBackend(BaseBackend):
                     continue
                 setattr(self.pipelines[pipeline_name], attr_key, attr_value)
 
-        return pipeline_arn
+        return pipeline.pipeline_arn
 
     def start_pipeline_execution(
         self,
@@ -1911,13 +1910,7 @@ class SageMakerModelBackend(BaseBackend):
         pipeline_execution_description,
         parallelism_configuration,
     ):
-        try:
-            pipeline = self.pipelines[pipeline_name]
-        except KeyError:
-            raise ValidationError(
-                message=f"Could not find pipeline with name {pipeline_name}."
-            )
-
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
         pipeline_execution_arn = arn_formatter(  # TODO: validate _type passed --> should probably include some
             # random ID (execution ID)
             "pipeline-execution",
@@ -1931,6 +1924,7 @@ class SageMakerModelBackend(BaseBackend):
             pipeline_execution_display_name=pipeline_execution_display_name,
             pipeline_parameters=pipeline_parameters,
             pipeline_execution_description=pipeline_execution_description,
+            pipeline_definition=pipeline.pipeline_definition,
             parallelism_configuration=parallelism_configuration
             or pipeline.parallelism_configuration,
         )
@@ -1945,18 +1939,65 @@ class SageMakerModelBackend(BaseBackend):
         response = {"PipelineExecutionArn": pipeline_execution_arn}
         return response
 
+    def list_pipeline_executions(
+        self,
+        pipeline_name,
+    ):
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
+        response = {
+            "PipelineExecutionSummaries": [
+                {
+                    "PipelineExecutionArn": pipeline_execution_arn,
+                    "StartTime": pipeline_execution.start_time,
+                    "PipelineExecutionStatus": pipeline_execution.pipeline_execution_status,
+                    "PipelineExecutionDescription": pipeline_execution.pipeline_execution_description,
+                    "PipelineExecutionDisplayName": pipeline_execution.pipeline_execution_display_name,
+                    "PipelineExecutionFailureReason": str(
+                        pipeline_execution.pipeline_execution_failure_reason
+                    ),
+                }
+                for pipeline_execution_arn, pipeline_execution in pipeline.pipeline_executions.items()
+            ]
+        }
+        return response
+
+    def describe_pipeline_definition_for_execution(
+        self,
+        pipeline_execution_arn,
+    ):
+        pipeline_execution = get_pipeline_execution_from_arn(
+            self.pipelines, pipeline_execution_arn
+        )
+        response = {
+            "PipelineDefinition": str(
+                pipeline_execution.pipeline_definition_for_execution
+            ),
+            "CreationTime": pipeline_execution.creation_time,
+        }
+        return response
+
+    def list_pipeline_parameters_for_execution(
+        self,
+        pipeline_execution_arn,
+    ):
+        pipeline_execution = get_pipeline_execution_from_arn(
+            self.pipelines, pipeline_execution_arn
+        )
+        response = {
+            "PipelineParameters": pipeline_execution.pipeline_parameters,
+        }
+        return response
+
     def describe_pipeline_execution(
         self,
         pipeline_execution_arn,
     ):
-        try:
-            pipeline_name = pipeline_execution_arn.split("/")[1].split(":")[-1]
-            pipeline = self.pipelines[pipeline_name]
-            pipeline_execution = pipeline.pipeline_executions[pipeline_execution_arn]
-        except KeyError:
-            raise ValidationError(
-                message=f"Could not find pipeline execution with pipeline execution ARN {pipeline_name}."
-            )
+        pipeline_execution = get_pipeline_execution_from_arn(
+            self.pipelines, pipeline_execution_arn
+        )
+        pipeline_name = get_pipeline_name_from_execution_arn(pipeline_execution_arn)
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
+
         pipeline_execution_summaries = {
             "PipelineArn": pipeline.pipeline_arn,
             "PipelineExecutionArn": pipeline_execution.pipeline_execution_arn,
@@ -1977,13 +2018,7 @@ class SageMakerModelBackend(BaseBackend):
         self,
         pipeline_name,
     ):
-        try:
-            pipeline = self.pipelines[pipeline_name]
-        except KeyError:
-            raise ValidationError(
-                message=f"Could not find pipeline with name {pipeline_name}."
-            )
-
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
         response = {
             "PipelineArn": pipeline.pipeline_arn,
             "PipelineName": pipeline.pipeline_name,

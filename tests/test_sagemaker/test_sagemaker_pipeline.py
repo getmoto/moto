@@ -48,6 +48,41 @@ def create_sagemaker_pipelines(sagemaker_client, pipelines, wait_seconds=0.0):
     return responses
 
 
+def test_utils_get_pipeline_from_name(sagemaker_client):
+    # TODO
+    pass
+
+
+def test_utils_get_pipeline_name_from_execution_arn():
+    # TODO
+    pass
+
+
+def test_utils_get_pipeline_execution_from_arn(sagemaker_client):
+    # TODO
+    pass
+
+
+def test_utils_arn_formatter():
+    # TODO
+    pass
+
+
+def test_list_pipeline_executions(sagemaker_client):
+    # TODO
+    pass
+
+
+def test_describe_pipeline_definition_for_execution(sagemaker_client):
+    # TODO
+    pass
+
+
+def test_list_pipeline_parameters_for_execution(sagemaker_client):
+    # TODO
+    pass
+
+
 def test_start_pipeline_execution(sagemaker_client):
     fake_pipeline_names = ["APipelineName"]
     pipelines = [
