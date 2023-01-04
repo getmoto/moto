@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import string
 from datetime import datetime
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
@@ -1911,12 +1913,14 @@ class SageMakerModelBackend(BaseBackend):
         parallelism_configuration,
     ):
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
-        pipeline_execution_arn = arn_formatter(  # TODO: validate _type passed --> should probably include some
-            # random ID (execution ID)
-            "pipeline-execution",
-            pipeline.pipeline_name,
-            self.account_id,
-            self.region_name,
+        execution_id = "".join(
+            random.choices(string.ascii_lowercase + string.digits, k=12)
+        )
+        pipeline_execution_arn = arn_formatter(
+            _type="pipeline",
+            _id=f"{pipeline.pipeline_name}/execution/{execution_id}",
+            account_id=self.account_id,
+            region_name=self.region_name,
         )
 
         fake_pipeline_execution = FakePipelineExecution(

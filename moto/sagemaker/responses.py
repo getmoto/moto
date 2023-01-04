@@ -498,6 +498,13 @@ class SageMakerResponse(BaseResponse):
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
+    def list_pipeline_parameters_for_execution(self):
+        response = self.sagemaker_backend.list_pipeline_parameters_for_execution(
+            self._get_param("PipelineExecutionArn")
+        )
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
     def list_pipeline_executions(self):
         response = self.sagemaker_backend.list_pipeline_executions(
             self._get_param("PipelineName")
