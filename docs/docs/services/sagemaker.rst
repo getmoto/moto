@@ -196,6 +196,7 @@ sagemaker
 - [ ] import_hub_content
 - [ ] list_actions
 - [ ] list_algorithms
+- [ ] list_aliases
 - [ ] list_app_image_configs
 - [ ] list_apps
 - [ ] list_artifacts
@@ -306,6 +307,7 @@ sagemaker
 - [ ] update_feature_metadata
 - [ ] update_hub
 - [ ] update_image
+- [ ] update_image_version
 - [ ] update_inference_experiment
 - [ ] update_model_card
 - [ ] update_model_package
