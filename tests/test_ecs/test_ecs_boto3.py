@@ -2098,6 +2098,7 @@ def test_describe_tasks():
     )
     len(response["tasks"]).should.equal(1)
 
+
 @mock_ec2
 @mock_ecs
 def test_describe_tasks_empty_tags():
@@ -2128,6 +2129,7 @@ def test_describe_tasks_empty_tags():
         cluster="test_ecs_cluster", tasks=[tasks_arns[0].split("/")[-1]]
     )
     len(response["tasks"]).should.equal(1)
+
 
 @mock_ec2
 @mock_ecs
@@ -2161,6 +2163,7 @@ def test_describe_tasks_include_tags():
         cluster="test_ecs_cluster", tasks=[tasks_arns[0].split("/")[-1]]
     )
     len(response["tasks"]).should.equal(1)
+
 
 @mock_ecs
 def test_describe_tasks_exceptions():
