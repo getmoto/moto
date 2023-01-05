@@ -2116,7 +2116,9 @@ def test_describe_tasks_empty_tags():
             startedBy="moto",
         )["tasks"]
     ]
-    response = client.describe_tasks(cluster="test_ecs_cluster", tasks=tasks_arns, include=["TAGS"])
+    response = client.describe_tasks(
+        cluster="test_ecs_cluster", tasks=tasks_arns, include=["TAGS"]
+    )
 
     len(response["tasks"]).should.equal(2)
     set(
@@ -2150,7 +2152,9 @@ def test_describe_tasks_include_tags():
             tags=task_tags,
         )["tasks"]
     ]
-    response = client.describe_tasks(cluster="test_ecs_cluster", tasks=tasks_arns, include=["TAGS"])
+    response = client.describe_tasks(
+        cluster="test_ecs_cluster", tasks=tasks_arns, include=["TAGS"]
+    )
 
     len(response["tasks"]).should.equal(2)
     set(

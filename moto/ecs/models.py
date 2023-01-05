@@ -1143,7 +1143,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instances,
         overrides,
         started_by,
-        tags=None
+        tags=None,
     ):
         cluster = self._get_cluster(cluster_str)
 
@@ -1170,7 +1170,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 backend=self,
                 overrides=overrides or {},
                 started_by=started_by or "",
-                tags=tags
+                tags=tags,
             )
             tasks.append(task)
             self.update_container_instance_resources(
