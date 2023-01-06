@@ -226,7 +226,11 @@ class LaunchTemplates(EC2BaseResponse):
             ret_versions = []
             if versions:
                 for v in versions:
-                    ret_versions.append(template.get_version(int(v)))
+                    if str(v).lower() == "$latest" or "$default":
+                        tv = template.get_version(v)
+                    else:
+                        tv = template.get_version(int(v))
+                    ret_versions.append(tv)
             elif min_version:
                 if max_version:
                     vMax = max_version
