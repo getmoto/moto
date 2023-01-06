@@ -1,5 +1,4 @@
 import boto3
-import sys
 import unittest
 from moto import mock_amp
 
@@ -7,10 +6,6 @@ from moto import mock_amp
 @mock_amp
 class TestAmpLoggingConfig(unittest.TestCase):
     def setUp(self) -> None:
-        if sys.version_info < (3, 7):
-            raise unittest.SkipTest(
-                "Cannot test this in Py3.6; outdated botocore dependencies do not yet support this feature"
-            )
         self.client = boto3.client("amp", region_name="us-east-2")
 
         workspace = self.client.create_workspace(alias="test", tags={"t": "v"})

@@ -1351,8 +1351,6 @@ class DynamoDBBackend(BaseBackend):
                     gsi_to_create, table.table_key_attrs
                 )
 
-        # in python 3.6, dict.values() returns a dict_values object, but we expect it to be a list in other
-        # parts of the codebase
         table.global_indexes = list(gsis_by_name.values())
         return table
 
