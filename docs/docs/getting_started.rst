@@ -21,7 +21,7 @@ If you want to install ``moto`` from source::
 
     git clone git://github.com/spulec/moto.git
     cd moto
-    python setup.py install
+    pip install '.[all]'
 
 
 Moto usage

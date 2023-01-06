@@ -25,7 +25,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
-          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
+          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}-4
       - name: Update pip
         if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
@@ -57,7 +57,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
     # Update PIP
     - name: Update pip
       run: |
@@ -95,7 +95,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
     - name: Update pip
       run: |
         python -m pip install --upgrade pip
@@ -133,7 +133,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Start MotoServer
       run: |
-        python setup.py sdist
+        pip install build
+        python -m build
         docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
         python scripts/ci_wait_for_server.py
     - name: Get pip cache dir
@@ -144,7 +145,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
     - name: Update pip
       run: |
         python -m pip install --upgrade pip
@@ -196,9 +197,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Update & Build
         run: |
-          pip install wheel packaging
+          pip install build
           python update_version_from_git.py
-          python setup.py sdist bdist_wheel
+          python -m build
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
