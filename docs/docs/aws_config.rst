@@ -109,7 +109,7 @@ The aggregation and non-aggregation querying can and should just use the same ov
 1. Non-aggregated listing will specify the region-name of the resource backend `backend_region`
 1. Aggregated listing will need to be able to list resource types across ALL backends and filter optionally by passing in `resource_region`.
 
-An example of a working implementation of this is `S3 <https://github.com/spulec/moto/blob/master/moto/s3/config.py>`_.
+An example of a working implementation of this is `S3 <https://github.com/getmoto/moto/blob/master/moto/s3/config.py>`_.
 
 Pagination should generally be able to pull out the resource across any region so should be sharded by `region-item-name` -- not done for S3
 because S3 has a globally unique name space.
@@ -131,4 +131,4 @@ return for it.
 When implementing resource config fetching, you will need to return at a minimum `None` if the resource is not found, or a `dict` that looks
 like what AWS Config would return.
 
-It's recommended to read the comment for the `ConfigQueryModel` 's `get_config_resource` function in `the base class <https://github.com/spulec/moto/blob/master/moto/core/models.py>`_.
+It's recommended to read the comment for the `ConfigQueryModel` 's `get_config_resource` function in `the base class <https://github.com/getmoto/moto/blob/master/moto/core/models.py>`_.

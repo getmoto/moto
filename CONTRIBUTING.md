@@ -8,7 +8,7 @@
 
 # Contributing code
 
-Moto has a [Code of Conduct](https://github.com/spulec/moto/blob/master/CODE_OF_CONDUCT.md), you can expect to be treated with respect at all times when interacting with this project.
+Moto has a [Code of Conduct](https://github.com/getmoto/moto/blob/master/CODE_OF_CONDUCT.md), you can expect to be treated with respect at all times when interacting with this project.
 
 # Development Guide
 Please see our documentation for information on how to contribute:
@@ -33,7 +33,7 @@ Use `make format` to automatically format your code, if it does not conform to `
 ## Releasing a new version of Moto
 
 * Ensure the CHANGELOG document mentions the new release, and lists all significant changes.
-* Go to the dedicated [Release Action](https://github.com/spulec/moto/actions/workflows/release.yml) in our CI
+* Go to the dedicated [Release Action](https://github.com/getmoto/moto/actions/workflows/release.yml) in our CI
 * Click 'Run workflow' on the top right
 * Provide the version you want to release
 * That's it - everything else is automated.

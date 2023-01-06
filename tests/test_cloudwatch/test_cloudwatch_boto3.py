@@ -194,7 +194,7 @@ def test_put_metric_data_with_statistics():
             dict(
                 MetricName="statmetric",
                 Timestamp=utc_now,
-                # no Value to test  https://github.com/spulec/moto/issues/1615
+                # no Value to test  https://github.com/getmoto/moto/issues/1615
                 StatisticValues=dict(
                     SampleCount=3.0, Sum=123.0, Maximum=100.0, Minimum=12.0
                 ),

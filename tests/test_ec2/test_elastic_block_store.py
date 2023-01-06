@@ -715,7 +715,7 @@ def test_modify_attribute_blockDeviceMapping():
     Reproduces the missing feature explained at [0], where we want to mock a
     call to modify an instance attribute of type: blockDeviceMapping.
 
-    [0] https://github.com/spulec/moto/issues/160
+    [0] https://github.com/getmoto/moto/issues/160
     """
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")

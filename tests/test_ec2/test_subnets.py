@@ -680,7 +680,7 @@ def validate_subnet_details_after_creating_eni(
 
 @mock_ec2
 def test_run_instances_should_attach_to_default_subnet():
-    # https://github.com/spulec/moto/issues/2877
+    # https://github.com/getmoto/moto/issues/2877
     ec2 = boto3.resource("ec2", region_name="sa-east-1")
     client = boto3.client("ec2", region_name="sa-east-1")
     sec_group_name = str(uuid4())[0:6]

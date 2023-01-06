@@ -29,7 +29,7 @@ if not settings.TEST_SERVER_MODE:
 @mock_s3
 def test_decorator_ordering() -> None:
     """
-    https://github.com/spulec/moto/issues/3790#issuecomment-803979809
+    https://github.com/getmoto/moto/issues/3790#issuecomment-803979809
     """
     bucket_name = "banana-slugs"
     key = "trash-file"

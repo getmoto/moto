@@ -202,7 +202,7 @@ def test_s3_server_post_cors():
 
 def test_s3_server_post_cors_exposed_header():
     """Test that we can override default CORS headers with custom bucket rules"""
-    # github.com/spulec/moto/issues/4220
+    # github.com/getmoto/moto/issues/4220
 
     cors_config_payload = """<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <CORSRule>

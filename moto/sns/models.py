@@ -642,7 +642,7 @@ class SNSBackend(BaseBackend):
         group_id=None,
     ):
         if subject is not None and len(subject) > 100:
-            # Note that the AWS docs around length are wrong: https://github.com/spulec/moto/issues/1503
+            # Note that the AWS docs around length are wrong: https://github.com/getmoto/moto/issues/1503
             raise ValueError("Subject must be less than 100 characters")
 
         if phone_number:

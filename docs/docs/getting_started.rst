@@ -19,7 +19,7 @@ If you don't care about the number of dependencies, or if you want to mock many 
 
 If you want to install ``moto`` from source::
 
-    git clone git://github.com/spulec/moto.git
+    git clone git://github.com/getmoto/moto.git
     cd moto
     pip install '.[all]'
 

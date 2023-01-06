@@ -54,7 +54,7 @@ def dynamo_json_dump(dynamo_object):
     return json.dumps(dynamo_object, cls=DynamoJsonEncoder)
 
 
-# https://github.com/spulec/moto/issues/1874
+# https://github.com/getmoto/moto/issues/1874
 # Ensure that the total size of an item does not exceed 400kb
 class LimitedSizeDict(dict):
     def __init__(self, *args, **kwargs):

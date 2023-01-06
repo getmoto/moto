@@ -1920,7 +1920,7 @@ def test_update_continuous_backups_errors():
     ex.response["Error"]["Message"].should.equal("Table not found: not-existing-table")
 
 
-# https://github.com/spulec/moto/issues/1043
+# https://github.com/getmoto/moto/issues/1043
 @mock_dynamodb
 def test_query_missing_expr_names():
     client = boto3.client("dynamodb", region_name="us-east-1")
@@ -1964,7 +1964,7 @@ def test_query_missing_expr_names():
     resp["Items"][0]["client"]["S"].should.equal("test2")
 
 
-# https://github.com/spulec/moto/issues/2328
+# https://github.com/getmoto/moto/issues/2328
 @mock_dynamodb
 def test_update_item_with_list():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -1986,7 +1986,7 @@ def test_update_item_with_list():
     resp["Item"].should.equal({"key": "the-key", "list": [1, 2]})
 
 
-# https://github.com/spulec/moto/issues/2328
+# https://github.com/getmoto/moto/issues/2328
 @mock_dynamodb
 def test_update_item_with_no_action_passed_with_list():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -2010,7 +2010,7 @@ def test_update_item_with_no_action_passed_with_list():
     resp["Item"].should.equal({"key": "the-key", "list": [1, 2]})
 
 
-# https://github.com/spulec/moto/issues/1342
+# https://github.com/getmoto/moto/issues/1342
 @mock_dynamodb
 def test_update_item_on_map():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -2089,7 +2089,7 @@ def test_update_item_on_map():
         )
 
 
-# https://github.com/spulec/moto/issues/1358
+# https://github.com/getmoto/moto/issues/1358
 @mock_dynamodb
 def test_update_if_not_exists():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -2133,7 +2133,7 @@ def test_update_if_not_exists():
     assert resp["Items"][0]["created_at"] == 123
 
 
-# https://github.com/spulec/moto/issues/1937
+# https://github.com/getmoto/moto/issues/1937
 @mock_dynamodb
 def test_update_return_attributes():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
@@ -2175,7 +2175,7 @@ def test_update_return_attributes():
     err["Message"].should.equal("Return values set to invalid value")
 
 
-# https://github.com/spulec/moto/issues/3448
+# https://github.com/getmoto/moto/issues/3448
 @mock_dynamodb
 def test_update_return_updated_new_attributes_when_same():
     dynamo_client = boto3.resource("dynamodb", region_name="us-east-1")
@@ -2872,7 +2872,7 @@ def test_sorted_query_with_numerical_sort_key():
     ), "result items are not sorted by numerical value"
 
 
-# https://github.com/spulec/moto/issues/1874
+# https://github.com/getmoto/moto/issues/1874
 @mock_dynamodb
 def test_item_size_is_under_400KB():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -4206,7 +4206,7 @@ def create_simple_table_and_return_client():
     return dynamodb
 
 
-# https://github.com/spulec/moto/issues/2806
+# https://github.com/getmoto/moto/issues/2806
 # https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateItem.html
 #       #DDB-UpdateItem-request-UpdateExpression
 @mock_dynamodb
@@ -4357,7 +4357,7 @@ def test_summing_up_2_strings_raises_exception():
         )
 
 
-# https://github.com/spulec/moto/issues/2806
+# https://github.com/getmoto/moto/issues/2806
 @mock_dynamodb
 def test_update_item_with_attribute_in_right_hand_side():
     """
@@ -5412,7 +5412,7 @@ def test_describe_endpoints(region):
 @mock_dynamodb
 def test_update_non_existing_item_raises_error_and_does_not_contain_item_afterwards():
     """
-    https://github.com/spulec/moto/issues/3729
+    https://github.com/getmoto/moto/issues/3729
     Exception is raised, but item was persisted anyway
     Happened because we would create a placeholder, before validating/executing the UpdateExpression
     :return:
@@ -5484,7 +5484,7 @@ def test_batch_write_item():
 
 @mock_dynamodb
 def test_gsi_lastevaluatedkey():
-    # github.com/spulec/moto/issues/3968
+    # github.com/getmoto/moto/issues/3968
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     name = "test-table"
     table = conn.Table(name)
@@ -5544,7 +5544,7 @@ def test_gsi_lastevaluatedkey():
 
 @mock_dynamodb
 def test_filter_expression_execution_order():
-    # As mentioned here: https://github.com/spulec/moto/issues/3909
+    # As mentioned here: https://github.com/getmoto/moto/issues/3909
     # and documented here: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html#Query.FilterExpression
     # the filter expression should be evaluated after the query.
     # The same applies to scan operations:

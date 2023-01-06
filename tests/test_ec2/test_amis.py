@@ -833,7 +833,7 @@ def test_ami_attribute_user_and_group_permissions():
 
 @mock_ec2
 def test_filter_description():
-    # https://github.com/spulec/moto/issues/4460
+    # https://github.com/getmoto/moto/issues/4460
     client = boto3.client("ec2", region_name="us-west-2")
 
     # Search for partial description
