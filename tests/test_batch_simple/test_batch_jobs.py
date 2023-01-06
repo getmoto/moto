@@ -70,6 +70,7 @@ def test_submit_job_by_name():
     job["status"].should.equal("SUCCEEDED")
     job.should.contain("container")
     job["container"].should.contain("command")
+    job["container"].should.contain("logStreamName")
 
 
 @mock_batch_simple
