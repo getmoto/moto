@@ -99,7 +99,7 @@ class BaseMockAWS:
                 try:
                     self.default_session_mock.stop()
                 except RuntimeError:
-                    # We only need to check for this exception in Python 3.6 and 3.7
+                    # We only need to check for this exception in Python 3.7
                     # https://bugs.python.org/issue36366
                     pass
                 self.unmock_env_variables()

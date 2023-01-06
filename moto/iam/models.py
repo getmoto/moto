@@ -1,7 +1,6 @@
 import base64
 import os
 import string
-import sys
 from datetime import datetime
 import json
 import re
@@ -2399,10 +2398,7 @@ class IAMBackend(BaseBackend):
 
         # Validate the signing cert:
         try:
-            if sys.version_info < (3, 0):
-                data = bytes(body)
-            else:
-                data = bytes(body, "utf8")
+            data = bytes(body, "utf8")
 
             x509.load_pem_x509_certificate(data, default_backend())
 

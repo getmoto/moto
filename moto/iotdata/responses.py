@@ -38,6 +38,8 @@ class IoTDataPlaneResponse(BaseResponse):
 
     def publish(self):
         topic = self.path.split("/topics/")[-1]
+        # a uri parameter containing forward slashes is not correctly url encoded when we're running in server mode.
+        # https://github.com/pallets/flask/issues/900
         topic = unquote(topic) if "%" in topic else topic
         self.iotdata_backend.publish(topic=topic, payload=self.body)
         return json.dumps(dict())

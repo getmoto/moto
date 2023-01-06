@@ -2160,7 +2160,7 @@
 - [X] get_managed_prefix_list_entries
 - [ ] get_network_insights_access_scope_analysis_findings
 - [ ] get_network_insights_access_scope_content
-- [x] get_password_data
+- [X] get_password_data
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_serial_console_access_status
 - [ ] get_spot_placement_scores
@@ -2731,7 +2731,7 @@
 
 ## emr
 <details>
-<summary>42% implemented</summary>
+<summary>41% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -2753,6 +2753,7 @@
 - [ ] describe_studio
 - [ ] get_auto_termination_policy
 - [ ] get_block_public_access_configuration
+- [ ] get_cluster_session_credentials
 - [ ] get_managed_scaling_policy
 - [ ] get_studio_session_mapping
 - [X] list_bootstrap_actions
@@ -3924,7 +3925,7 @@
 
 ## kinesisvideo
 <details>
-<summary>20% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] create_signaling_channel
 - [X] create_stream
@@ -3932,6 +3933,8 @@
 - [X] delete_stream
 - [ ] describe_edge_configuration
 - [ ] describe_image_generation_configuration
+- [ ] describe_mapped_resource_configuration
+- [ ] describe_media_storage_configuration
 - [ ] describe_notification_configuration
 - [ ] describe_signaling_channel
 - [X] describe_stream
@@ -3948,6 +3951,7 @@
 - [ ] untag_stream
 - [ ] update_data_retention
 - [ ] update_image_generation_configuration
+- [ ] update_media_storage_configuration
 - [ ] update_notification_configuration
 - [ ] update_signaling_channel
 - [ ] update_stream
@@ -5766,6 +5770,7 @@
 - [ ] import_hub_content
 - [ ] list_actions
 - [ ] list_algorithms
+- [ ] list_aliases
 - [ ] list_app_image_configs
 - [ ] list_apps
 - [ ] list_artifacts
@@ -5876,6 +5881,7 @@
 - [ ] update_feature_metadata
 - [ ] update_hub
 - [ ] update_image
+- [ ] update_image_version
 - [ ] update_inference_experiment
 - [ ] update_model_card
 - [ ] update_model_package
@@ -5883,7 +5889,7 @@
 - [ ] update_monitoring_schedule
 - [ ] update_notebook_instance
 - [ ] update_notebook_instance_lifecycle_config
-- [ ] update_pipeline
+- [X] update_pipeline
 - [ ] update_pipeline_execution
 - [ ] update_project
 - [ ] update_space
@@ -5913,9 +5919,9 @@
 
 ## secretsmanager
 <details>
-<summary>68% implemented</summary>
+<summary>72% implemented</summary>
 
-- [ ] cancel_rotate_secret
+- [X] cancel_rotate_secret
 - [X] create_secret
 - [ ] delete_resource_policy
 - [X] delete_secret
@@ -6721,6 +6727,7 @@
 - keyspaces
 - kinesis-video-media
 - kinesis-video-signaling
+- kinesis-video-webrtc-storage
 - kinesisanalytics
 - kinesisanalyticsv2
 - lakeformation
@@ -6729,6 +6736,7 @@
 - lexv2-models
 - lexv2-runtime
 - license-manager
+- license-manager-linux-subscriptions
 - license-manager-user-subscriptions
 - lightsail
 - location
