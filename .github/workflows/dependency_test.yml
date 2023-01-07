@@ -32,4 +32,4 @@ jobs:
       with:
         name: buildfolder-${{ matrix.python-version }}
         path: |
-          test_results_*.log
+          *.log
