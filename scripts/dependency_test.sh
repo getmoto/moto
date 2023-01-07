@@ -50,7 +50,7 @@ test_service() {
   overwrite "Running tests for ${service}.."
   python -m venv ${venv_path} >$install_result_filename
   source ${venv_path}/bin/activate >>$install_result_filename
-  pip install --upgrade pip >$install_result_filename
+  pip install --upgrade pip setuptools >$install_result_filename
   # Can't just install requirements-file, as it points to all dependencies
   pip install -r requirements-tests.txt >>$install_result_filename
   pip install .[$service] >>$install_result_filename 2>&1
