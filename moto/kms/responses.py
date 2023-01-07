@@ -2,11 +2,10 @@ import base64
 import json
 import os
 import re
-import uuid
 import warnings
 
 from moto.core.responses import BaseResponse
-from moto.kms.utils import RESERVED_ALIASES
+from moto.kms.utils import RESERVED_ALIASES, RESERVED_ALIASE_TARGET_KEY_IDS
 from .models import kms_backends, KmsBackend
 from .policy_validator import validate_policy
 from .exceptions import (
@@ -274,7 +273,7 @@ class KmsResponse(BaseResponse):
                         "TargetKeyId": target_key_id,
                     }
                 )
-        for reserved_alias in RESERVED_ALIASES:
+        for reserved_alias, target_key_id in RESERVED_ALIASE_TARGET_KEY_IDS.items():
             exsisting = [
                 a for a in response_aliases if a["AliasName"] == reserved_alias
             ]
@@ -282,7 +281,7 @@ class KmsResponse(BaseResponse):
                 arn = f"arn:aws:kms:{region}:{self.current_account}:{reserved_alias}"
                 response_aliases.append(
                     {
-                        "TargetKeyId": str(uuid.UUID(int=abs(hash(arn)), version=4)),
+                        "TargetKeyId": target_key_id,
                         "AliasArn": arn,
                         "AliasName": reserved_alias,
                     }

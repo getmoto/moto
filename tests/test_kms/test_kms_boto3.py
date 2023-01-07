@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-import uuid
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
 from unittest import mock
@@ -276,13 +275,20 @@ def test_list_aliases():
     client = boto3.client("kms", region_name=region)
     create_simple_key(client)
 
+    default_alias_target_keys = {
+        "aws/ebs": "7adeb491-68c9-4a5b-86ec-a86ce5364094",
+        "aws/s3": "8c3faf07-f43c-4d11-abdb-9183079214c7",
+        "aws/redshift": "dcdae9aa-593a-4e0b-9153-37325591901f",
+        "aws/rds": "f5f30938-abed-41a2-a0f6-5482d02a2489",
+    }
+    default_alias_names = list(default_alias_target_keys.keys())
+
     aliases = client.list_aliases()["Aliases"]
     aliases.should.have.length_of(14)
-    default_alias_names = ["aws/ebs", "aws/s3", "aws/redshift", "aws/rds"]
     for name in default_alias_names:
         full_name = f"alias/{name}"
         arn = f"arn:aws:kms:{region}:{ACCOUNT_ID}:{full_name}"
-        target_key_id = str(uuid.UUID(int=abs(hash(arn)), version=4))
+        target_key_id = default_alias_target_keys[name]
         aliases.should.contain(
             {"AliasName": full_name, "AliasArn": arn, "TargetKeyId": target_key_id}
         )
