@@ -108,7 +108,7 @@ def test_submit_job():
     job_id = resp["jobId"]
 
     # Test that describe_jobs() returns 'createdAt'
-    # github.com/spulec/moto/issues/4364
+    # github.com/getmoto/moto/issues/4364
     resp = batch_client.describe_jobs(jobs=[job_id])
     created_at = resp["jobs"][0]["createdAt"]
     created_at.should.be.greater_than(start_time_milliseconds)
@@ -127,7 +127,7 @@ def test_submit_job():
     [event["message"] for event in resp["events"]].should.equal(["hello"])
 
     # Test that describe_jobs() returns timestamps in milliseconds
-    # github.com/spulec/moto/issues/4364
+    # github.com/getmoto/moto/issues/4364
     job = batch_client.describe_jobs(jobs=[job_id])["jobs"][0]
     created_at = job["createdAt"]
     started_at = job["startedAt"]

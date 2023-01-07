@@ -103,7 +103,7 @@ def not_implemented_callback(
 
 
 # Modify behaviour of the matcher to only/always return the first match
-# Default behaviour is to return subsequent matches for subsequent requests, which leads to https://github.com/spulec/moto/issues/2567
+# Default behaviour is to return subsequent matches for subsequent requests, which leads to https://github.com/getmoto/moto/issues/2567
 #  - First request matches on the appropriate S3 URL
 #  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
 # Fix: Always return the first match

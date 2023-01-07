@@ -200,7 +200,7 @@ def _validate_uuid(uuid):
 
 # For unknown reasons I cannot use the service name "redshift-data" as I should
 # It seems boto3 is unable to get the list of available regions for "redshift-data"
-# See code here https://github.com/spulec/moto/blob/master/moto/core/utils.py#L407
+# See code here https://github.com/getmoto/moto/blob/master/moto/core/utils.py#L407
 # sess.get_available_regions("redshift-data") returns an empty list
 # Then I use the service redshift since they share the same regions
 # See https://docs.aws.amazon.com/general/latest/gr/redshift-service.html

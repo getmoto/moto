@@ -20,7 +20,7 @@ def test_sqs_list_identities():
 
     # Make sure that we can receive messages from queues whose name contains dots (".")
     # The AWS API mandates that the names of FIFO queues use the suffix ".fifo"
-    # See: https://github.com/spulec/moto/issues/866
+    # See: https://github.com/getmoto/moto/issues/866
 
     for queue_name in ("testqueue", "otherqueue.fifo"):
 

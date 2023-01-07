@@ -291,7 +291,7 @@ def test_access_denied_with_not_allowing_policy():
 @set_initial_no_auth_action_count(3)
 @mock_ec2
 def test_access_denied_for_run_instances():
-    # https://github.com/spulec/moto/issues/2774
+    # https://github.com/getmoto/moto/issues/2774
     # The run-instances method was broken between botocore versions 1.15.8 and 1.15.12
     # This was due to the inclusion of '"idempotencyToken":true' in the response, somehow altering the signature and breaking the authentication
     # Keeping this test in place in case botocore decides to break again

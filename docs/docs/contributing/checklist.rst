@@ -23,4 +23,4 @@ Create the PR anyway! Others can use your work and build on it to finish the fea
 .. note::  You can indicate a PR that's not quite ready with the `needs-help`-label.
 
 Are you not sure on what you want to implement, or want some advice on how to approach things?
-Feel free to open a new issue on Github: https://github.com/spulec/moto/issues
+Feel free to open a new issue on Github: https://github.com/getmoto/moto/issues

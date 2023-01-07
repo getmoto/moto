@@ -520,7 +520,7 @@ class MotoNotImplementedError(NotImplementedError):
         super().__init__(
             f"{blurb} has not been implemented in Moto yet."
             " Feel free to open an issue at"
-            " https://github.com/spulec/moto/issues"
+            " https://github.com/getmoto/moto/issues"
         )
 
 

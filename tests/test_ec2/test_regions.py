@@ -145,7 +145,7 @@ def test_describe_regions_dryrun():
 def test_describe_zones_and_get_instance_types(region_name):
     """
     Verify that instance types exist in all exposed Availability Zones
-    https://github.com/spulec/moto/issues/5494
+    https://github.com/getmoto/moto/issues/5494
     """
     client = boto3.client("ec2", region_name=region_name)
     zones = client.describe_availability_zones()["AvailabilityZones"]

@@ -13,7 +13,7 @@ service_names = [
 
 class TestMockBucketStartingWithServiceName:
     """
-    https://github.com/spulec/moto/issues/4099
+    https://github.com/getmoto/moto/issues/4099
     """
 
     @pytest.mark.parametrize("service_name,decorator", service_names)

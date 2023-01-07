@@ -5,7 +5,7 @@ from moto import mock_dynamodb
 
 @mock_dynamodb
 def test_update_different_map_elements_in_single_request():
-    # https://github.com/spulec/moto/issues/5552
+    # https://github.com/getmoto/moto/issues/5552
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
         TableName="example_table",

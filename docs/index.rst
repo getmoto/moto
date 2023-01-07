@@ -22,8 +22,8 @@ Additional Resources
 * `Moto Issue Tracker`_
 
 .. _AWS infrastructure: http://aws.amazon.com/
-.. _Moto Issue Tracker: https://github.com/spulec/moto/issues
-.. _Moto Source Repository: https://github.com/spulec/moto
+.. _Moto Issue Tracker: https://github.com/getmoto/moto/issues
+.. _Moto Source Repository: https://github.com/getmoto/moto
 
 .. toctree::
    :maxdepth: 2

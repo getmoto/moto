@@ -190,7 +190,7 @@ class TestS3FileHandleClosures(TestCase):
 
 
 def test_verify_key_can_be_copied_after_disposing():
-    # https://github.com/spulec/moto/issues/5588
+    # https://github.com/getmoto/moto/issues/5588
     # Multithreaded bug where:
     #  - User: calls list_object_versions
     #  - Moto creates a list of all keys

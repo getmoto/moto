@@ -1437,7 +1437,7 @@ Docker Digest for 3.0.4: _sha256:320e1d2ab89729d5580dbe08d8c2153a28db4c28023c577
 -----
     General:
         * The mock_dynamodb and mock_rds-decorators have been deprecated, and will be repurposed in a later release.
-          Please see https://github.com/spulec/moto/issues/4526 for more information.
+          Please see https://github.com/getmoto/moto/issues/4526 for more information.
 
     New Methods:
         * API Gateway:
@@ -2339,7 +2339,7 @@ Docker Digest for 3.0.4: _sha256:320e1d2ab89729d5580dbe08d8c2153a28db4c28023c577
 2.0.0
 ----
 Full list of PRs merged in this release:
-https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..2021-02-23
+https://github.com/getmoto/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..2021-02-23
 
     General Changes:
         * When installing, it is now required to specify the service you want to use:
@@ -2530,7 +2530,7 @@ https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..
 1.3.16
 -----
 Full list of PRs merged in this release:
-https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2019-11-14..2020-09-07
+https://github.com/getmoto/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2019-11-14..2020-09-07
 
 
     General Changes:
