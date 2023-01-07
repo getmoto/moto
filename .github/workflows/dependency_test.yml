@@ -37,10 +37,3 @@ jobs:
         AWS_SECRET_ACCESS_KEY: secret
       run: |
         scripts/dependency_test.sh ${{ matrix.service }}
-    - name: Archive logs
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: buildfolder-${{ matrix.python-version }}
-        path: |
-          *.log

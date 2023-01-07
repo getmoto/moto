@@ -44,47 +44,45 @@ valid_service() {
 test_service() {
   service=$1
   path_to_test_file=$2
-  install_result_filename="install_results_${service}.log"
-  touch $install_result_filename
   venv_path="test_venv_${service}"
   overwrite "Running tests for ${service}.."
-  python -m venv ${venv_path} >$install_result_filename
-  source ${venv_path}/bin/activate >>$install_result_filename
-  pip install --upgrade pip setuptools >$install_result_filename
+  python -m venv ${venv_path}
+  source ${venv_path}/bin/activate
+  pip install --upgrade pip setuptools
   # Can't just install requirements-file, as it points to all dependencies
-  pip install -r requirements-tests.txt >>$install_result_filename
-  pip install .[$service] >>$install_result_filename 2>&1
-  pip install boto >>$install_result_filename 2>&1
+  pip install -r requirements-tests.txt
+  pip install .[$service]
+  pip install boto
   if [[ $service != "xray" ]]; then
-    pip uninstall setuptools pkg_resources -y >>$install_result_filename 2>&1
+    pip uninstall setuptools pkg_resources -y
   fi
   # Restart venv - ensure these deps are loaded
   deactivate
-  source ${venv_path}/bin/activate >>$install_result_filename
+  source ${venv_path}/bin/activate
   # Run tests for this service
-  test_result_filename="test_results_${service}.log"
-  touch $test_result_filename
-  pytest -sv --ignore-glob="**/test_server.py" --ignore-glob="**/test_*_cloudformation.py" --ignore-glob="**/test_*_integration.py" $path_to_test_file >$test_result_filename 2>&1
+  pytest -sv --ignore-glob="**/test_server.py" --ignore-glob="**/test_*_cloudformation.py" --ignore-glob="**/test_*_integration.py" $path_to_test_file
   RESULT=$?
-  if [[ $RESULT != 0 ]]; then
-    echo -e "Tests for ${service} have failed!\n"
-  else
-    rm $test_result_filename
-    rm $install_result_filename
-  fi
   deactivate
   rm -rf ${venv_path}
+  if [[ $RESULT != 0 ]]; then
+    echo -e "Tests for ${service} have failed!\n"
+    exit -1
+  fi
 }
 
-echo "Running Dependency tests for {$1}..."
 service=$1
+if [[ $# -eq 0 ]] ; then
+    echo 'Please add the name of the service you want to test as the first argument:'
+    echo '    scripts/dependency_test.sh acm'
+    exit 0
+fi
+echo "Running Dependency tests for {$1}..."
 path_to_test_file="tests/test_${service}"
 if valid_service $service && [[ -d $path_to_test_file ]]; then
   test_service $service $path_to_test_file
+  if [[ $? != 0 ]]; then
+    exit -1
+  fi
 elif valid_service $service; then
   echo -e "No tests for ${service} can be found on ${path_to_test_file}!\n"
 fi
-
-nr_of_failed_services=$(ls -1q test_results*.log 2>/dev/null | wc -l)
-echo "Nr of failed services: ${nr_of_failed_services}"
-exit $((nr_of_failed_services))
