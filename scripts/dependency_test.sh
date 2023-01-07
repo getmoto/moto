@@ -33,7 +33,7 @@ valid_service() {
   # Verify whether this is a valid service
   # We'll ignore metadata folders, and folders that test generic Moto behaviour
   # We'll also ignore CloudFormation, as it will always depend on other services
-  local ignore_moto_folders="core instance_metadata __pycache__ templates cloudformation moto_api resourcegroupstaggingapi packages utilities s3bucket_path"
+  local ignore_moto_folders="core instance_metadata __pycache__ templates cloudformation moto_api moto_server resourcegroupstaggingapi packages utilities s3bucket_path"
   if echo $ignore_moto_folders | grep -q "$1"; then
     return 1
   else
@@ -76,26 +76,14 @@ test_service() {
   rm -rf ${venv_path}
 }
 
-echo "Running Dependency tests..."
-ITER=0
-for file in moto/*
-do
-    if [[ -d $file ]]; then
-      service=${file:5}
-      path_to_test_file="tests/test_${service}"
-      if valid_service $service && [[ -d $path_to_test_file ]]; then
-        test_service $service $path_to_test_file &
-      elif valid_service $service; then
-        echo -e "No tests for ${service} can be found on ${path_to_test_file}!\n"
-      fi
-      if (( $ITER % 4 == 0 )); then
-        # Ensure we're only processing 4 services at the time
-        wait
-      fi
-    fi
-    ITER=$(expr $ITER + 1)
-done
-wait
+echo "Running Dependency tests for {$1}..."
+service=$1
+path_to_test_file="tests/test_${service}"
+if valid_service $service && [[ -d $path_to_test_file ]]; then
+  test_service $service $path_to_test_file
+elif valid_service $service; then
+  echo -e "No tests for ${service} can be found on ${path_to_test_file}!\n"
+fi
 
 nr_of_failed_services=$(ls -1q test_results*.log 2>/dev/null | wc -l)
 echo "Nr of failed services: ${nr_of_failed_services}"
