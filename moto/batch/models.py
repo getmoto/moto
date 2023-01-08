@@ -473,8 +473,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.name = "MOTO-BATCH-" + self.job_id
 
         self._log_backend = log_backend
-        self._log_group = "/aws/batch/job"
-        self.log_stream_name = f"{self.job_definition.name}/default/{self.job_id}"
+        self.log_stream_name: Optional[str] = None
 
         self.attempts: List[Dict[str, Any]] = []
         self.latest_attempt: Optional[Dict[str, Any]] = None
@@ -521,7 +520,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         details["memory"] = self._get_container_property("memory", 512)
         details["volumes"] = self._get_container_property("volumes", [])
         details["environment"] = self._get_container_property("environment", [])
-        details["logStreamName"] = self.log_stream_name
+        if self.log_stream_name:
+            details["logStreamName"] = self.log_stream_name
         return details
 
     def _get_container_property(self, p: str, default: Any) -> Any:
@@ -729,13 +729,12 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 logs = sorted(logs, key=lambda log: log["timestamp"])
 
                 # Send to cloudwatch
-                self._log_backend.ensure_log_group(self._log_group, None)
-                self._log_backend.create_log_stream(
-                    self._log_group, self.log_stream_name
-                )
-                self._log_backend.put_log_events(
-                    self._log_group, self.log_stream_name, logs
-                )
+                log_group = "/aws/batch/job"
+                stream_name = f"{self.job_definition.name}/default/{self.job_id}"
+                self.log_stream_name = stream_name
+                self._log_backend.ensure_log_group(log_group, None)
+                self._log_backend.create_log_stream(log_group, stream_name)
+                self._log_backend.put_log_events(log_group, stream_name, logs)
 
                 result = container.wait() or {}
                 exit_code = result.get("StatusCode", 0)
