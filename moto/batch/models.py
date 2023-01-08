@@ -473,6 +473,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.name = "MOTO-BATCH-" + self.job_id
 
         self._log_backend = log_backend
+        self._log_group = "/aws/batch/job"
+        self._stream_name = f"{self.job_definition.name}/default/{self.job_id}"
         self.log_stream_name: Optional[str] = None
 
         self.attempts: List[Dict[str, Any]] = []
@@ -729,12 +731,12 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 logs = sorted(logs, key=lambda log: log["timestamp"])
 
                 # Send to cloudwatch
-                log_group = "/aws/batch/job"
-                stream_name = f"{self.job_definition.name}/default/{self.job_id}"
-                self.log_stream_name = stream_name
-                self._log_backend.ensure_log_group(log_group, None)
-                self._log_backend.create_log_stream(log_group, stream_name)
-                self._log_backend.put_log_events(log_group, stream_name, logs)
+                self.log_stream_name = self._stream_name
+                self._log_backend.ensure_log_group(self._log_group, None)
+                self._log_backend.create_log_stream(self._log_group, self._stream_name)
+                self._log_backend.put_log_events(
+                    self._log_group, self._stream_name, logs
+                )
 
                 result = container.wait() or {}
                 exit_code = result.get("StatusCode", 0)
