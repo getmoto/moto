@@ -234,6 +234,7 @@ def test_terminate_job():
     resp["jobs"][0]["jobName"].should.equal("test1")
     resp["jobs"][0]["status"].should.equal("FAILED")
     resp["jobs"][0]["statusReason"].should.equal("test_terminate")
+    resp["jobs"][0]["container"].should.have.key("logStreamName")
 
     ls_name = f"{job_def_name}/default/{job_id}"
 
@@ -308,6 +309,7 @@ def test_cancel_pending_job():
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test_job_name")
     resp["jobs"][0]["statusReason"].should.equal("test_cancel")
+    resp["jobs"][0]["container"].shouldnt.have.key("logStreamName")
 
 
 @mock_logs
@@ -341,6 +343,7 @@ def test_cancel_running_job():
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test_job_name")
     resp["jobs"][0].shouldnt.have.key("statusReason")
+    resp["jobs"][0]["container"].should.have.key("logStreamName")
 
 
 @mock_batch
@@ -399,7 +402,7 @@ def test_failed_job():
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = "exit-1"
-    commands = ["exit", "1"]
+    commands = ["kill"]
     job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
 
     resp = batch_client.submit_job(
@@ -413,6 +416,7 @@ def test_failed_job():
         resp = batch_client.describe_jobs(jobs=[job_id])
 
         if resp["jobs"][0]["status"] == "FAILED":
+            resp["jobs"][0]["container"].should.have.key("logStreamName")
             break
         if resp["jobs"][0]["status"] == "SUCCEEDED":
             raise RuntimeError("Batch job succeeded even though it had exit code 1")
@@ -552,7 +556,7 @@ def test_failed_dependencies():
             "image": "busybox:latest",
             "vcpus": 1,
             "memory": 128,
-            "command": ["exit", "1"],
+            "command": ["kill"],
         },
     )
     job_def_arn_failure = resp["jobDefinitionArn"]
@@ -592,6 +596,13 @@ def test_failed_dependencies():
         assert resp["jobs"][1]["status"] != "SUCCEEDED", "Job 3 cannot succeed"
 
         if resp["jobs"][1]["status"] == "FAILED":
+            assert resp["jobs"][0]["container"].should.have.key(
+                "logStreamName"
+            ), "Job 2 should have logStreamName because it FAILED but was in RUNNING state"
+            assert resp["jobs"][1]["container"].shouldnt.have.key(
+                "logStreamName"
+            ), "Job 3 shouldn't have logStreamName because it was never in RUNNING state"
+
             break
 
         time.sleep(0.5)
