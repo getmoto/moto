@@ -2,6 +2,6 @@ coverage
 pytest
 pytest-cov
 pytest-xdist
-sure
+surer
 freezegun
 pylint
