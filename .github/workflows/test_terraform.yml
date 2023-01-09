@@ -1,4 +1,10 @@
-on: [pull_request]
+on:
+  push:
+    paths-ignore:
+      - 'README.md'
+    branches:
+      - localstack
+  pull_request:
 name: TestTerraform
 jobs:
   prepare_list:
