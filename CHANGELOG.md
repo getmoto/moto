@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.0
 -----
-Docker Digest for 4.1.0: <autopopulateddigest>
+Docker Digest for 4.1.0: _sha256:1c38613f7273054650d08f3cb3ce118753296d08ffbfee8c96400c89a529c9ca_
 
     General:
         * Dropped support for Py 3.6
