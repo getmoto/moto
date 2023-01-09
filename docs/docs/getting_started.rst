@@ -217,6 +217,9 @@ You need to ensure that the mocks are actually in place.
         export AWS_SESSION_TOKEN='testing'
         export AWS_DEFAULT_REGION='us-east-1'
 
+ #. Do no embed credentials directly in your code. This is always considered bad practice, regardless of whether you use Moto. It also makes it impossible to configure fake credentials for testing purposes.
+
+
  #. **VERY IMPORTANT**: ensure that you have your mocks set up *BEFORE* your `boto3` client is established.
     This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
     See the pesky imports section below on how to work around this.

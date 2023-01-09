@@ -131,7 +131,7 @@ In Scala:
 
 In Terraform:
 
-.. code-block::
+.. code-block:: bash
 
     provider "aws" {
         region                      = "us-east-1"
