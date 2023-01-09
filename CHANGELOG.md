@@ -2,6 +2,15 @@ Moto Changelog
 ==============
 
 
+4.1.0
+-----
+Docker Digest for 4.1.0: <autopopulateddigest>
+
+    General:
+        * Dropped support for Py 3.6
+        * Moto now uses setup.cfg to hold our packaging configuration, instead of setup.py, making Moto compatible with more recent Pip-versions
+
+
 4.0.13
 -----
 Docker Digest for 4.0.13: _sha256:703a9d464c11e1f4cacff66acdc9b46f9fa8fb0b969ca9f1e79fa4eb41678565_
