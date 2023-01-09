@@ -1,6 +1,12 @@
 name: TestNDeploy
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - 'README.md'
+    branches:
+      - localstack
+  pull_request:
 
 jobs:
   cache:
