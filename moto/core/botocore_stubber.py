@@ -43,18 +43,13 @@ class BotocoreStubber:
 
         response = None
         response_callback = None
-        found_index = None
-        matchers = self.methods.get(request.method)
+        matchers = self.methods.get(request.method, [])
 
         base_url = request.url.split("?", 1)[0]
-        for i, (pattern, callback) in enumerate(matchers):  # type: ignore[arg-type]
+        for pattern, callback in matchers:
             if pattern.match(base_url):
-                if found_index is None:
-                    found_index = i
-                    response_callback = callback
-                else:
-                    matchers.pop(found_index)
-                    break
+                response_callback = callback
+                break
 
         if response_callback is not None:
             for header, value in request.headers.items():
