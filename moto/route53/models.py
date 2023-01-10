@@ -19,7 +19,7 @@ from moto.route53.exceptions import (
     PublicZoneVPCAssociation,
     QueryLoggingConfigAlreadyExists,
     DnsNameInvalidForZone,
-    ChangeSetAlreadyExists,
+    ResourceRecordAlreadyExists,
     InvalidInput,
 )
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
@@ -561,13 +561,11 @@ class Route53Backend(BaseBackend):
     def change_resource_record_sets(self, zoneid, change_list) -> None:
         the_zone = self.get_hosted_zone(zoneid)
 
-        for rr in change_list:
-            if rr in the_zone.rr_changes:
-                name = rr["ResourceRecordSet"]["Name"] + "."
-                _type = rr["ResourceRecordSet"]["Type"]
-                raise ChangeSetAlreadyExists(
-                    action=rr["Action"], name=name, _type=_type
-                )
+        for value in change_list:
+            if value["Action"] == "CREATE" and value in the_zone.rr_changes:
+                name = value["ResourceRecordSet"]["Name"] + "."
+                _type = value["ResourceRecordSet"]["Type"]
+                raise ResourceRecordAlreadyExists(name=name, _type=_type)
 
         for value in change_list:
             if value["Action"] == "DELETE":

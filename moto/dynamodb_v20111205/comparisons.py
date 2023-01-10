@@ -1,3 +1,6 @@
+from typing import Callable, Any
+
+
 # TODO add tests for all of these
 COMPARISON_FUNCS = {
     "EQ": lambda item_value, test_value: item_value == test_value,
@@ -18,5 +21,5 @@ COMPARISON_FUNCS = {
 }
 
 
-def get_comparison_func(range_comparison):
-    return COMPARISON_FUNCS.get(range_comparison)
+def get_comparison_func(range_comparison: str) -> Callable[..., Any]:
+    return COMPARISON_FUNCS.get(range_comparison)  # type: ignore[return-value]

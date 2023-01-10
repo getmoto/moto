@@ -1169,7 +1169,7 @@ def test_change_resource_record_invalid_action_value():
 
 
 @mock_route53
-def test_change_resource_record_set_twice():
+def test_change_resource_record_set_create__should_fail_when_record_already_exists():
     ZONE = "cname.local"
     FQDN = f"test.{ZONE}"
     FQDN_TARGET = "develop.domain.com"
@@ -1195,8 +1195,54 @@ def test_change_resource_record_set_twice():
 
     with pytest.raises(ClientError) as exc:
         client.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=changes)
+
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidChangeBatch")
+    err["Message"].should.equal(
+        "Tried to create resource record set [name='test.cname.local.', type='CNAME'] but it already exists"
+    )
+
+
+@mock_route53
+def test_change_resource_record_set__should_create_record_when_using_upsert():
+    route53_client = boto3.client("route53", region_name="us-east-1")
+
+    hosted_zone = route53_client.create_hosted_zone(
+        Name="example.com", CallerReference="irrelevant"
+    )["HostedZone"]
+
+    resource_record = {
+        "Name": "test.example.com.",
+        "Type": "CNAME",
+        "TTL": 60,
+        "ResourceRecords": [{"Value": "www.test.example.com"}],
+    }
+
+    route53_client.change_resource_record_sets(
+        HostedZoneId=hosted_zone["Id"],
+        ChangeBatch={
+            "Changes": [{"Action": "UPSERT", "ResourceRecordSet": resource_record}],
+        },
+    )
+
+    response = route53_client.list_resource_record_sets(HostedZoneId=hosted_zone["Id"])
+
+    # The 1st and 2nd records are NS and SOA records, respectively.
+    len(response["ResourceRecordSets"]).should.equal(3)
+    response["ResourceRecordSets"][2].should.equal(resource_record)
+
+    # a subsequest UPSERT with the same ChangeBatch should succeed as well
+    route53_client.change_resource_record_sets(
+        HostedZoneId=hosted_zone["Id"],
+        ChangeBatch={
+            "Changes": [{"Action": "UPSERT", "ResourceRecordSet": resource_record}],
+        },
+    )
+    response = route53_client.list_resource_record_sets(HostedZoneId=hosted_zone["Id"])
+
+    # The 1st and 2nd records are NS and SOA records, respectively.
+    len(response["ResourceRecordSets"]).should.equal(3)
+    response["ResourceRecordSets"][2].should.equal(resource_record)
 
 
 @mock_route53
