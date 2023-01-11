@@ -25,22 +25,26 @@ HEADER_LEN = KEY_ID_LEN + IV_LEN + TAG_LEN
 CIPHERTEXT_HEADER_FORMAT = f">{KEY_ID_LEN}s{IV_LEN}s{TAG_LEN}s"
 Ciphertext = namedtuple("Ciphertext", ("key_id", "iv", "ciphertext", "tag"))
 
-RESERVED_ALIASES = [
-    "alias/aws/acm",
-    "alias/aws/dynamodb",
-    "alias/aws/ebs",
-    "alias/aws/elasticfilesystem",
-    "alias/aws/es",
-    "alias/aws/glue",
-    "alias/aws/kinesisvideo",
-    "alias/aws/lambda",
-    "alias/aws/rds",
-    "alias/aws/redshift",
-    "alias/aws/s3",
-    "alias/aws/secretsmanager",
-    "alias/aws/ssm",
-    "alias/aws/xray",
-]
+RESERVED_ALIASE_TARGET_KEY_IDS = {
+    # NOTE: These would technically differ across account, but in that they are
+    # out of customer control, testing that they are different would be redundant.
+    "alias/aws/acm": "4f58743d-e279-4214-9270-8cc28277958d",
+    "alias/aws/dynamodb": "7e6aa0ea-15a4-4e72-8b32-58e46e776888",
+    "alias/aws/ebs": "7adeb491-68c9-4a5b-86ec-a86ce5364094",
+    "alias/aws/elasticfilesystem": "0ef0f111-cdc8-4dda-b0bc-bf625bd5f154",
+    "alias/aws/es": "3c7c1880-c353-4cea-9866-d8bc12f05573",
+    "alias/aws/glue": "90fd783f-e582-4cc2-a207-672ee67f8d58",
+    "alias/aws/kinesisvideo": "7fd4bff3-6eb7-4283-8f11-a7e0a793a181",
+    "alias/aws/lambda": "ff9c4f27-2f29-4d9b-bf38-02f88b52a70c",
+    "alias/aws/rds": "f5f30938-abed-41a2-a0f6-5482d02a2489",
+    "alias/aws/redshift": "dcdae9aa-593a-4e0b-9153-37325591901f",
+    "alias/aws/s3": "8c3faf07-f43c-4d11-abdb-9183079214c7",
+    "alias/aws/secretsmanager": "fee5173a-3972-428e-ae73-cd4c2a371222",
+    "alias/aws/ssm": "cb3f6250-5078-48c0-a75f-0290bf47694e",
+    "alias/aws/xray": "e9b758eb-6230-4744-93d1-ad3b7d71f2f6",
+}
+
+RESERVED_ALIASES = list(RESERVED_ALIASE_TARGET_KEY_IDS.keys())
 
 
 def generate_key_id(multi_region=False):
