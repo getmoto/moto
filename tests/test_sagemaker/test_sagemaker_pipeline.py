@@ -1,13 +1,14 @@
 from contextlib import contextmanager
-from moto import mock_sagemaker
+from moto import mock_sagemaker, settings
 from time import sleep
 from datetime import datetime
 import boto3
 import botocore
 import json
 import pytest
-from moto.s3 import mock_s3
+from unittest import SkipTest
 
+from moto.s3 import mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sagemaker.exceptions import ValidationError
 from moto.sagemaker.utils import (
@@ -240,6 +241,11 @@ def test_describe_pipeline_execution(sagemaker_client):
 
 
 def test_load_pipeline_definition_from_s3():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Skipping test in server mode due to lack of access to s3_backend."
+        )
+
     bucket_name = "some-bucket-1"
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
