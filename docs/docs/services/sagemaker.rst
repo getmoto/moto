@@ -170,7 +170,7 @@ sagemaker
 - [ ] describe_monitoring_schedule
 - [ ] describe_notebook_instance
 - [X] describe_notebook_instance_lifecycle_config
-- [ ] describe_pipeline
+- [X] describe_pipeline
 - [ ] describe_pipeline_definition_for_execution
 - [ ] describe_pipeline_execution
 - [X] describe_processing_job

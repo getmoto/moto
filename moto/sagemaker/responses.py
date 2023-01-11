@@ -466,6 +466,13 @@ class SageMakerResponse(BaseResponse):
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
+    def describe_pipeline(self):
+        response = self.sagemaker_backend.describe_pipeline(
+            self._get_param("PipelineName")
+        )
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
     def create_pipeline(self):
         pipeline = self.sagemaker_backend.create_pipeline(
             pipeline_name=self._get_param("PipelineName"),

@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
@@ -10,6 +11,7 @@ from .exceptions import (
     AWSValidationException,
     ResourceNotFound,
 )
+from .utils import load_pipeline_definition_from_s3, arn_formatter
 
 
 PAGINATION_MODEL = {
@@ -42,10 +44,6 @@ PAGINATION_MODEL = {
         "fail_on_invalid_token": True,
     },
 }
-
-
-def arn_formatter(_type, _id, account_id, region_name):
-    return f"arn:aws:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
 
 
 class BaseObject(BaseModel):
@@ -86,24 +84,42 @@ class FakePipeline(BaseObject):
         account_id,
         region_name,
         parallelism_configuration,
-        pipeline_definition_s3_location,
     ):
         self.pipeline_name = pipeline_name
         self.pipeline_arn = arn_formatter(
             "pipeline", pipeline_name, account_id, region_name
         )
-        self.pipeline_display_name = pipeline_display_name
+        self.pipeline_display_name = pipeline_display_name or pipeline_name
         self.pipeline_definition = pipeline_definition
         self.pipeline_description = pipeline_description
         self.role_arn = role_arn
         self.tags = tags or []
         self.parallelism_configuration = parallelism_configuration
-        self.pipeline_definition_s3_location = pipeline_definition_s3_location
 
         now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.creation_time = now_string
         self.last_modified_time = now_string
-        self.last_execution_time = now_string
+        self.last_execution_time = None
+
+        self.pipeline_status = "Active"
+        fake_user_profile_name = "fake-user-profile-name"
+        fake_domain_id = "fake-domain-id"
+        fake_user_profile_arn = arn_formatter(
+            "user-profile",
+            f"{fake_domain_id}/{fake_user_profile_name}",
+            account_id,
+            region_name,
+        )
+        self.created_by = {
+            "UserProfileArn": fake_user_profile_arn,
+            "UserProfileName": fake_user_profile_name,
+            "DomainId": fake_domain_id,
+        }
+        self.last_modified_by = {
+            "UserProfileArn": fake_user_profile_arn,
+            "UserProfileName": fake_user_profile_name,
+            "DomainId": fake_domain_id,
+        }
 
 
 class FakeProcessingJob(BaseObject):
@@ -1758,6 +1774,28 @@ class SageMakerModelBackend(BaseBackend):
         tags,
         parallelism_configuration,
     ):
+        if not any([pipeline_definition, pipeline_definition_s3_location]):
+            raise ValidationError(
+                "An error occurred (ValidationException) when calling the CreatePipeline operation: Either "
+                "Pipeline Definition or Pipeline Definition S3 location should be provided"
+            )
+        if all([pipeline_definition, pipeline_definition_s3_location]):
+            raise ValidationError(
+                "An error occurred (ValidationException) when calling the CreatePipeline operation: "
+                "Both Pipeline Definition and Pipeline Definition S3 Location shouldn't be present"
+            )
+
+        if pipeline_name in self.pipelines:
+            raise ValidationError(
+                f"An error occurred (ValidationException) when calling the CreatePipeline operation: Pipeline names "
+                f"must be unique within an AWS account and region. Pipeline with name ({pipeline_name}) already exists."
+            )
+
+        if pipeline_definition_s3_location:
+            pipeline_definition = load_pipeline_definition_from_s3(
+                pipeline_definition_s3_location, self.account_id
+            )
+
         pipeline = FakePipeline(
             pipeline_name,
             pipeline_display_name,
@@ -1767,7 +1805,6 @@ class SageMakerModelBackend(BaseBackend):
             tags,
             self.account_id,
             self.region_name,
-            pipeline_definition_s3_location,
             parallelism_configuration,
         )
 
@@ -1799,27 +1836,58 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find pipeline with name {pipeline_name}."
             )
 
-        provided_kwargs = set(kwargs.keys())
-        allowed_kwargs = {
-            "pipeline_display_name",
-            "pipeline_definition",
-            "pipeline_definition_s3_location",
-            "pipeline_description",
-            "role_arn",
-            "parallelism_configuration",
-        }
-        invalid_kwargs = provided_kwargs - allowed_kwargs
-
-        if invalid_kwargs:
-            raise TypeError(
-                f"update_pipeline got unexpected keyword arguments '{invalid_kwargs}'"
+        if all(
+            [
+                kwargs.get("pipeline_definition"),
+                kwargs.get("pipeline_definition_s3_location"),
+            ]
+        ):
+            raise ValidationError(
+                "An error occurred (ValidationException) when calling the UpdatePipeline operation: "
+                "Both Pipeline Definition and Pipeline Definition S3 Location shouldn't be present"
             )
 
         for attr_key, attr_value in kwargs.items():
             if attr_value:
+                if attr_key == "pipeline_definition_s3_location":
+                    self.pipelines[
+                        pipeline_name
+                    ].pipeline_definition = load_pipeline_definition_from_s3(
+                        attr_value, self.account_id
+                    )
+                    continue
                 setattr(self.pipelines[pipeline_name], attr_key, attr_value)
 
         return pipeline_arn
+
+    def describe_pipeline(
+        self,
+        pipeline_name,
+    ):
+        try:
+            pipeline = self.pipelines[pipeline_name]
+        except KeyError:
+            raise ValidationError(
+                message=f"Could not find pipeline with name {pipeline_name}."
+            )
+
+        response = {
+            "PipelineArn": pipeline.pipeline_arn,
+            "PipelineName": pipeline.pipeline_name,
+            "PipelineDisplayName": pipeline.pipeline_display_name,
+            "PipelineDescription": pipeline.pipeline_description,
+            "PipelineDefinition": pipeline.pipeline_definition,
+            "RoleArn": pipeline.role_arn,
+            "PipelineStatus": pipeline.pipeline_status,
+            "CreationTime": pipeline.creation_time,
+            "LastModifiedTime": pipeline.last_modified_time,
+            "LastRunTime": pipeline.last_execution_time,
+            "CreatedBy": pipeline.created_by,
+            "LastModifiedBy": pipeline.last_modified_by,
+            "ParallelismConfiguration": pipeline.parallelism_configuration,
+        }
+
+        return response
 
     def list_pipelines(
         self,
