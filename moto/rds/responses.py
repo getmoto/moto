@@ -44,8 +44,12 @@ class RDSResponse(BaseResponse):
             "multi_az": self._get_bool_param("MultiAZ"),
             "option_group_name": self._get_param("OptionGroupName"),
             "port": self._get_param("Port"),
-            # PreferredBackupWindow
-            # PreferredMaintenanceWindow
+            "preferred_backup_window": self._get_param(
+                "PreferredBackupWindow", "13:14-13:44"
+            ),
+            "preferred_maintenance_window": self._get_param(
+                "PreferredMaintenanceWindow", "wed:06:38-wed:07:08"
+            ).lower(),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "account_id": self.current_account,
             "region": self.region,
