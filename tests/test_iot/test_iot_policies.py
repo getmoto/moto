@@ -33,6 +33,10 @@ def test_attach_policy(iot_client, policy):
     res.should.have.key("policies").which.should.have.length_of(1)
     res["policies"][0]["policyName"].should.equal("my-policy")
 
+    res = iot_client.list_attached_policies(target=cert_arn)
+    res.should.have.key("policies").which.should.have.length_of(1)
+    res["policies"][0]["policyName"].should.equal("my-policy")
+
 
 @mock_cognitoidentity
 def test_attach_policy_to_identity(region_name, iot_client, policy):
