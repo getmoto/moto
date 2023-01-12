@@ -31,7 +31,7 @@ For each request we need to know two things:
  #. Which service is this request for?
  #. Which feature is called?
 
-When using one ore more decorators, Moto will load all urls from `{service}/urls.py::url_bases`.
+When using one or more decorators, Moto will load all urls from `{service}/urls.py::url_bases`.
 Incoming requests are matched against those to figure out which service the request has to go to.
 After that, we try to find right feature by looking at:
 
