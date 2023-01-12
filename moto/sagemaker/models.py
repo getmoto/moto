@@ -2039,7 +2039,6 @@ class SageMakerModelBackend(BaseBackend):
 
         return response
 
-
     def list_pipelines(
         self,
         pipeline_name_prefix,
