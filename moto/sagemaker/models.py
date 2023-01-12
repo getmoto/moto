@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import string
 from datetime import datetime
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
@@ -10,6 +12,11 @@ from .exceptions import (
     ValidationError,
     AWSValidationException,
     ResourceNotFound,
+)
+from .utils import (
+    get_pipeline_from_name,
+    get_pipeline_execution_from_arn,
+    get_pipeline_name_from_execution_arn,
 )
 from .utils import load_pipeline_definition_from_s3, arn_formatter
 
@@ -72,6 +79,50 @@ class BaseObject(BaseModel):
         return self.gen_response_object()
 
 
+class FakePipelineExecution(BaseObject):
+    def __init__(
+        self,
+        pipeline_execution_arn,
+        pipeline_execution_display_name,
+        pipeline_parameters,
+        pipeline_execution_description,
+        parallelism_configuration,
+        pipeline_definition,
+    ):
+        self.pipeline_execution_arn = pipeline_execution_arn
+        self.pipeline_execution_display_name = pipeline_execution_display_name
+        self.pipeline_parameters = pipeline_parameters
+        self.pipeline_execution_description = pipeline_execution_description
+        self.pipeline_execution_status = "Succeeded"
+        self.pipeline_execution_failure_reason = None
+        self.parallelism_configuration = parallelism_configuration
+        self.pipeline_definition_for_execution = pipeline_definition
+
+        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = now_string
+        self.last_modified_time = now_string
+        self.start_time = now_string
+
+        fake_user_profile_name = "fake-user-profile-name"
+        fake_domain_id = "fake-domain-id"
+        fake_user_profile_arn = arn_formatter(
+            "user-profile",
+            f"{fake_domain_id}/{fake_user_profile_name}",
+            pipeline_execution_arn.split(":")[4],
+            pipeline_execution_arn.split(":")[3],
+        )
+        self.created_by = {
+            "UserProfileArn": fake_user_profile_arn,
+            "UserProfileName": fake_user_profile_name,
+            "DomainId": fake_domain_id,
+        }
+        self.last_modified_by = {
+            "UserProfileArn": fake_user_profile_arn,
+            "UserProfileName": fake_user_profile_name,
+            "DomainId": fake_domain_id,
+        }
+
+
 class FakePipeline(BaseObject):
     def __init__(
         self,
@@ -92,6 +143,7 @@ class FakePipeline(BaseObject):
         self.pipeline_display_name = pipeline_display_name or pipeline_name
         self.pipeline_definition = pipeline_definition
         self.pipeline_description = pipeline_description
+        self.pipeline_executions = dict()
         self.role_arn = role_arn
         self.tags = tags or []
         self.parallelism_configuration = parallelism_configuration
@@ -1088,6 +1140,7 @@ class SageMakerModelBackend(BaseBackend):
         self.endpoints = {}
         self.experiments = {}
         self.pipelines = {}
+        self.pipeline_executions = {}
         self.processing_jobs = {}
         self.trials = {}
         self.trial_components = {}
@@ -1815,27 +1868,16 @@ class SageMakerModelBackend(BaseBackend):
         self,
         pipeline_name,
     ):
-        try:
-            pipeline_arn = self.pipelines[pipeline_name].pipeline_arn
-        except KeyError:
-            raise ValidationError(
-                message=f"Could not find pipeline with name {pipeline_name}."
-            )
-        del self.pipelines[pipeline_name]
-        return pipeline_arn
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
+        del self.pipelines[pipeline.pipeline_name]
+        return pipeline.pipeline_arn
 
     def update_pipeline(
         self,
         pipeline_name,
         **kwargs,
     ):
-        try:
-            pipeline_arn = self.pipelines[pipeline_name].pipeline_arn
-        except KeyError:
-            raise ValidationError(
-                message=f"Could not find pipeline with name {pipeline_name}."
-            )
-
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
         if all(
             [
                 kwargs.get("pipeline_definition"),
@@ -1858,19 +1900,127 @@ class SageMakerModelBackend(BaseBackend):
                     continue
                 setattr(self.pipelines[pipeline_name], attr_key, attr_value)
 
-        return pipeline_arn
+        return pipeline.pipeline_arn
+
+    def start_pipeline_execution(
+        self,
+        pipeline_name,
+        pipeline_execution_display_name,
+        pipeline_parameters,
+        pipeline_execution_description,
+        parallelism_configuration,
+    ):
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
+        execution_id = "".join(
+            random.choices(string.ascii_lowercase + string.digits, k=12)
+        )
+        pipeline_execution_arn = arn_formatter(
+            _type="pipeline",
+            _id=f"{pipeline.pipeline_name}/execution/{execution_id}",
+            account_id=self.account_id,
+            region_name=self.region_name,
+        )
+
+        fake_pipeline_execution = FakePipelineExecution(
+            pipeline_execution_arn=pipeline_execution_arn,
+            pipeline_execution_display_name=pipeline_execution_display_name,
+            pipeline_parameters=pipeline_parameters,
+            pipeline_execution_description=pipeline_execution_description,
+            pipeline_definition=pipeline.pipeline_definition,
+            parallelism_configuration=parallelism_configuration
+            or pipeline.parallelism_configuration,
+        )
+
+        self.pipelines[pipeline_name].pipeline_executions[
+            pipeline_execution_arn
+        ] = fake_pipeline_execution
+        self.pipelines[
+            pipeline_name
+        ].last_execution_time = fake_pipeline_execution.start_time
+
+        response = {"PipelineExecutionArn": pipeline_execution_arn}
+        return response
+
+    def list_pipeline_executions(
+        self,
+        pipeline_name,
+    ):
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
+        response = {
+            "PipelineExecutionSummaries": [
+                {
+                    "PipelineExecutionArn": pipeline_execution_arn,
+                    "StartTime": pipeline_execution.start_time,
+                    "PipelineExecutionStatus": pipeline_execution.pipeline_execution_status,
+                    "PipelineExecutionDescription": pipeline_execution.pipeline_execution_description,
+                    "PipelineExecutionDisplayName": pipeline_execution.pipeline_execution_display_name,
+                    "PipelineExecutionFailureReason": str(
+                        pipeline_execution.pipeline_execution_failure_reason
+                    ),
+                }
+                for pipeline_execution_arn, pipeline_execution in pipeline.pipeline_executions.items()
+            ]
+        }
+        return response
+
+    def describe_pipeline_definition_for_execution(
+        self,
+        pipeline_execution_arn,
+    ):
+        pipeline_execution = get_pipeline_execution_from_arn(
+            self.pipelines, pipeline_execution_arn
+        )
+        response = {
+            "PipelineDefinition": str(
+                pipeline_execution.pipeline_definition_for_execution
+            ),
+            "CreationTime": pipeline_execution.creation_time,
+        }
+        return response
+
+    def list_pipeline_parameters_for_execution(
+        self,
+        pipeline_execution_arn,
+    ):
+        pipeline_execution = get_pipeline_execution_from_arn(
+            self.pipelines, pipeline_execution_arn
+        )
+        response = {
+            "PipelineParameters": pipeline_execution.pipeline_parameters,
+        }
+        return response
+
+    def describe_pipeline_execution(
+        self,
+        pipeline_execution_arn,
+    ):
+        pipeline_execution = get_pipeline_execution_from_arn(
+            self.pipelines, pipeline_execution_arn
+        )
+        pipeline_name = get_pipeline_name_from_execution_arn(pipeline_execution_arn)
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
+
+        pipeline_execution_summaries = {
+            "PipelineArn": pipeline.pipeline_arn,
+            "PipelineExecutionArn": pipeline_execution.pipeline_execution_arn,
+            "PipelineExecutionDisplayName": pipeline_execution.pipeline_execution_display_name,
+            "PipelineExecutionStatus": pipeline_execution.pipeline_execution_status,
+            "PipelineExecutionDescription": pipeline_execution.pipeline_execution_description,
+            "PipelineExperimentConfig": {},
+            "FailureReason": "",
+            "CreationTime": pipeline_execution.creation_time,
+            "LastModifiedTime": pipeline_execution.last_modified_time,
+            "CreatedBy": pipeline_execution.created_by,
+            "LastModifiedBy": pipeline_execution.last_modified_by,
+            "ParallelismConfiguration": pipeline_execution.parallelism_configuration,
+        }
+        return pipeline_execution_summaries
 
     def describe_pipeline(
         self,
         pipeline_name,
     ):
-        try:
-            pipeline = self.pipelines[pipeline_name]
-        except KeyError:
-            raise ValidationError(
-                message=f"Could not find pipeline with name {pipeline_name}."
-            )
-
+        pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
         response = {
             "PipelineArn": pipeline.pipeline_arn,
             "PipelineName": pipeline.pipeline_name,

@@ -171,8 +171,8 @@ sagemaker
 - [ ] describe_notebook_instance
 - [X] describe_notebook_instance_lifecycle_config
 - [X] describe_pipeline
-- [ ] describe_pipeline_definition_for_execution
-- [ ] describe_pipeline_execution
+- [X] describe_pipeline_definition_for_execution
+- [X] describe_pipeline_execution
 - [X] describe_processing_job
 - [ ] describe_project
 - [ ] describe_space
@@ -247,8 +247,8 @@ sagemaker
 - [ ] list_notebook_instance_lifecycle_configs
 - [ ] list_notebook_instances
 - [ ] list_pipeline_execution_steps
-- [ ] list_pipeline_executions
-- [ ] list_pipeline_parameters_for_execution
+- [X] list_pipeline_executions
+- [X] list_pipeline_parameters_for_execution
 - [X] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
@@ -277,7 +277,7 @@ sagemaker
 - [ ] start_inference_experiment
 - [ ] start_monitoring_schedule
 - [X] start_notebook_instance
-- [ ] start_pipeline_execution
+- [X] start_pipeline_execution
 - [ ] stop_auto_ml_job
 - [ ] stop_compilation_job
 - [ ] stop_edge_deployment_stage

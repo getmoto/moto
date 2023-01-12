@@ -10,7 +10,15 @@ from unittest import SkipTest
 
 from moto.s3 import mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.sagemaker.exceptions import ValidationError
+from moto.sagemaker.utils import (
+    get_pipeline_from_name,
+    get_pipeline_execution_from_arn,
+    get_pipeline_name_from_execution_arn,
+)
+from moto.sagemaker.models import FakePipeline
 from moto.sagemaker.utils import arn_formatter, load_pipeline_definition_from_s3
+
 
 FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
 TEST_REGION_NAME = "us-west-1"
@@ -46,6 +54,190 @@ def create_sagemaker_pipelines(sagemaker_client, pipelines, wait_seconds=0.0):
         responses += sagemaker_client.create_pipeline(**pipeline)
         sleep(wait_seconds)
     return responses
+
+
+def test_utils_get_pipeline_from_name_exists():
+    fake_pipeline_names = ["APipelineName", "BPipelineName"]
+    pipelines = {
+        fake_pipeline_name: FakePipeline(
+            pipeline_name="BFakePipeline",
+            pipeline_display_name="BFakePipeline",
+            pipeline_description=" ",
+            tags=[],
+            parallelism_configuration={},
+            pipeline_definition=" ",
+            role_arn=FAKE_ROLE_ARN,
+            account_id=ACCOUNT_ID,
+            region_name=TEST_REGION_NAME,
+        )
+        for fake_pipeline_name in fake_pipeline_names
+    }
+    retrieved_pipeline = get_pipeline_from_name(
+        pipelines=pipelines, pipeline_name=fake_pipeline_names[0]
+    )
+    assert retrieved_pipeline == pipelines[fake_pipeline_names[0]]
+
+
+def test_utils_get_pipeline_from_name_not_exists():
+    with pytest.raises(ValidationError):
+        _ = get_pipeline_from_name(pipelines={}, pipeline_name="foo")
+
+
+def test_utils_get_pipeline_name_from_execution_arn():
+    expected_pipeline_name = "some-pipeline-name"
+    pipeline_execution_arn = f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:pipeline/{expected_pipeline_name}/execution/abc123def456"
+    observed_pipeline_name = get_pipeline_name_from_execution_arn(
+        pipeline_execution_arn=pipeline_execution_arn
+    )
+    assert expected_pipeline_name == observed_pipeline_name
+
+
+def test_utils_get_pipeline_execution_from_arn_not_exists():
+    with pytest.raises(ValidationError):
+        _ = get_pipeline_execution_from_arn(
+            pipelines={},
+            pipeline_execution_arn="some/random/non/existent/arn",
+        )
+
+
+def test_utils_arn_formatter():
+    expected_arn = (
+        f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:pipeline/some-pipeline-name"
+    )
+    observed_arn = arn_formatter(
+        _type="pipeline",
+        _id="some-pipeline-name",
+        region_name=TEST_REGION_NAME,
+        account_id=ACCOUNT_ID,
+    )
+    assert expected_arn == observed_arn
+
+
+def test_list_pipeline_executions(sagemaker_client):
+    fake_pipeline_names = ["APipelineName"]
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+    _ = sagemaker_client.start_pipeline_execution(PipelineName=fake_pipeline_names[0])
+    _ = sagemaker_client.start_pipeline_execution(PipelineName=fake_pipeline_names[0])
+    response = sagemaker_client.list_pipeline_executions(
+        PipelineName=fake_pipeline_names[0]
+    )
+    assert len(response["PipelineExecutionSummaries"]) == 2
+    assert (
+        fake_pipeline_names[0]
+        in response["PipelineExecutionSummaries"][0]["PipelineExecutionArn"]
+    )
+
+
+def test_describe_pipeline_definition_for_execution(sagemaker_client):
+    fake_pipeline_names = ["APipelineName"]
+    pipeline_definition = "some-pipeline-definition"
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": pipeline_definition,
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+    response = sagemaker_client.start_pipeline_execution(
+        PipelineName=fake_pipeline_names[0]
+    )
+    pipeline_execution_arn = response["PipelineExecutionArn"]
+    response = sagemaker_client.describe_pipeline_definition_for_execution(
+        PipelineExecutionArn=pipeline_execution_arn
+    )
+    assert set(response.keys()) == {
+        "PipelineDefinition",
+        "CreationTime",
+        "ResponseMetadata",
+    }
+    assert response["PipelineDefinition"] == pipeline_definition
+
+
+def test_list_pipeline_parameters_for_execution(sagemaker_client):
+    fake_pipeline_names = ["APipelineName"]
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+    pipeline_execution_arn = sagemaker_client.start_pipeline_execution(
+        PipelineName=fake_pipeline_names[0],
+        PipelineParameters=[
+            {"Name": "foo", "Value": "bar"},
+        ],
+    )["PipelineExecutionArn"]
+
+    response = sagemaker_client.list_pipeline_parameters_for_execution(
+        PipelineExecutionArn=pipeline_execution_arn
+    )
+    assert isinstance(response["PipelineParameters"], list)
+    assert len(response["PipelineParameters"]) == 1
+    assert response["PipelineParameters"][0]["Name"] == "foo"
+    assert response["PipelineParameters"][0]["Value"] == "bar"
+
+
+def test_start_pipeline_execution(sagemaker_client):
+    fake_pipeline_names = ["APipelineName"]
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+    pipeline_execution_arn = sagemaker_client.start_pipeline_execution(
+        PipelineName=fake_pipeline_names[0]
+    )
+    assert fake_pipeline_names[0] in pipeline_execution_arn["PipelineExecutionArn"]
+
+
+def test_describe_pipeline_execution_not_exists(sagemaker_client):
+    pipeline_execution_arn = arn_formatter(
+        # random ID (execution ID)
+        "pipeline-execution",
+        "some-pipeline-name",
+        ACCOUNT_ID,
+        TEST_REGION_NAME,
+    )
+    with pytest.raises(botocore.exceptions.ClientError):
+        _ = sagemaker_client.describe_pipeline_execution(
+            PipelineExecutionArn=pipeline_execution_arn
+        )
+
+
+def test_describe_pipeline_execution(sagemaker_client):
+    fake_pipeline_names = ["APipelineName", "BPipelineName"]
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_name,
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        }
+        for fake_pipeline_name in fake_pipeline_names
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+    response = sagemaker_client.start_pipeline_execution(
+        PipelineName=fake_pipeline_names[0]
+    )
+    _ = sagemaker_client.start_pipeline_execution(PipelineName=fake_pipeline_names[1])
+    expected_pipeline_execution_arn = response["PipelineExecutionArn"]
+    pipeline_execution_summary = sagemaker_client.describe_pipeline_execution(
+        PipelineExecutionArn=response["PipelineExecutionArn"]
+    )
+    observed_pipeline_execution_arn = pipeline_execution_summary["PipelineExecutionArn"]
+    observed_pipeline_execution_arn.should.be.equal(expected_pipeline_execution_arn)
 
 
 def test_load_pipeline_definition_from_s3():
