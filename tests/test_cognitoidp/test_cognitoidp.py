@@ -2881,7 +2881,7 @@ def test_change_password():
 
 @mock_cognitoidp
 def test_change_password__using_custom_user_agent_header():
-    # https://github.com/spulec/moto/issues/3098
+    # https://github.com/getmoto/moto/issues/3098
     # As the admin_initiate_auth-method is unauthenticated, we use the user-agent header to pass in the region
     # This test verifies this works, even if we pass in our own user-agent header
     from botocore.config import Config
@@ -4327,7 +4327,7 @@ if not settings.TEST_SERVER_MODE:
 
     @mock_cognitoidp
     def test_idtoken_contains_kid_header():
-        # https://github.com/spulec/moto/issues/3078
+        # https://github.com/getmoto/moto/issues/3078
         # Setup
         cognito = boto3.client("cognito-idp", "us-west-2")
         user_pool_id = cognito.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"][

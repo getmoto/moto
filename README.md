@@ -2,8 +2,8 @@
 
 [![Join the chat at https://gitter.im/awsmoto/Lobby](https://badges.gitter.im/awsmoto/Lobby.svg)](https://gitter.im/awsmoto/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Build Status](https://github.com/spulec/moto/workflows/TestNDeploy/badge.svg)](https://github.com/spulec/moto/actions)
-[![Coverage Status](https://codecov.io/gh/spulec/moto/branch/master/graph/badge.svg)](https://codecov.io/gh/spulec/moto)
+[![Build Status](https://github.com/getmoto/moto/workflows/TestNDeploy/badge.svg)](https://github.com/getmoto/moto/actions)
+[![Coverage Status](https://codecov.io/gh/getmoto/moto/branch/master/graph/badge.svg)](https://codecov.io/gh/getmoto/moto)
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
 [![PyPI](https://img.shields.io/pypi/v/moto.svg)](https://pypi.org/project/moto/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)](#)
@@ -61,7 +61,7 @@ def test_my_model_save():
 
 With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps the state of the buckets and keys.
 
-For a full list of which services and features are covered, please see our [implementation coverage](https://github.com/spulec/moto/blob/master/IMPLEMENTATION_COVERAGE.md).
+For a full list of which services and features are covered, please see our [implementation coverage](https://github.com/getmoto/moto/blob/master/IMPLEMENTATION_COVERAGE.md).
 
 
 ### Documentation

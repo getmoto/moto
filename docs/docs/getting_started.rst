@@ -19,9 +19,9 @@ If you don't care about the number of dependencies, or if you want to mock many 
 
 If you want to install ``moto`` from source::
 
-    git clone git://github.com/spulec/moto.git
+    git clone git://github.com/getmoto/moto.git
     cd moto
-    python setup.py install
+    pip install '.[all]'
 
 
 Moto usage
@@ -33,14 +33,14 @@ For example, we have the following code we want to test:
 
     import boto3
 
-    class MyModel(object):
+    class MyModel:
         def __init__(self, name, value):
             self.name = name
             self.value = value
 
         def save(self):
-            s3 = boto3.client('s3', region_name='us-east-1')
-            s3.put_object(Bucket='mybucket', Key=self.name, Body=self.value)
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.put_object(Bucket="mybucket", Key=self.name, Body=self.value)
 
 There are several ways to verify that the value will be persisted successfully.
 
@@ -57,17 +57,17 @@ With a decorator wrapping, all the calls to S3 are automatically mocked out.
 
     @mock_s3
     def test_my_model_save():
-        conn = boto3.resource('s3', region_name='us-east-1')
+        conn = boto3.resource("s3", region_name="us-east-1")
         # We need to create the bucket since this is all in Moto's 'virtual' AWS account
-        conn.create_bucket(Bucket='mybucket')
+        conn.create_bucket(Bucket="mybucket")
 
-        model_instance = MyModel('steve', 'is awesome')
+        model_instance = MyModel("steve", "is awesome")
         model_instance.save()
 
-        body = conn.Object('mybucket', 'steve').get()[
-            'Body'].read().decode("utf-8")
+        body = conn.Object("mybucket", "steve").get()[
+            "Body"].read().decode("utf-8")
 
-        assert body == 'is awesome'
+        assert body == "is awesome"
 
 Context manager
 ~~~~~~~~~~~~~~~
@@ -78,16 +78,16 @@ Same as the Decorator, every call inside the ``with`` statement is mocked out.
 
     def test_my_model_save():
         with mock_s3():
-            conn = boto3.resource('s3', region_name='us-east-1')
-            conn.create_bucket(Bucket='mybucket')
+            conn = boto3.resource("s3", region_name="us-east-1")
+            conn.create_bucket(Bucket="mybucket")
 
-            model_instance = MyModel('steve', 'is awesome')
+            model_instance = MyModel("steve", "is awesome")
             model_instance.save()
 
-            body = conn.Object('mybucket', 'steve').get()[
-                'Body'].read().decode("utf-8")
+            body = conn.Object("mybucket", "steve").get()[
+                "Body"].read().decode("utf-8")
 
-            assert body == 'is awesome'
+            assert body == "is awesome"
 
 Raw
 ~~~
@@ -100,16 +100,16 @@ You can also start and stop the mocking manually.
         mock = mock_s3()
         mock.start()
 
-        conn = boto3.resource('s3', region_name='us-east-1')
-        conn.create_bucket(Bucket='mybucket')
+        conn = boto3.resource("s3", region_name="us-east-1")
+        conn.create_bucket(Bucket="mybucket")
 
-        model_instance = MyModel('steve', 'is awesome')
+        model_instance = MyModel("steve", "is awesome")
         model_instance.save()
 
-        body = conn.Object('mybucket', 'steve').get()[
-            'Body'].read().decode("utf-8")
+        body = conn.Object("mybucket", "steve").get()[
+            "Body"].read().decode("utf-8")
 
-        assert body == 'is awesome'
+        assert body == "is awesome"
 
         mock.stop()
 
@@ -125,18 +125,18 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
     import boto3
 
     def func_to_test(bucket_name, key, content):
-        s3 = boto3.resource('s3')
+        s3 = boto3.resource("s3")
         object = s3.Object(bucket_name, key)
         object.put(Body=content)
 
     class MyTest(unittest.TestCase):
         mock_s3 = mock_s3()
-        bucket_name = 'test-bucket'
+        bucket_name = "test-bucket"
         def setUp(self):
             self.mock_s3.start()
 
-            # you can use boto3.client('s3') if you prefer
-            s3 = boto3.resource('s3')
+            # you can use boto3.client("s3") if you prefer
+            s3 = boto3.resource("s3")
             bucket = s3.Bucket(self.bucket_name)
             bucket.create()
 
@@ -145,15 +145,15 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
 
         def test(self):
             content = b"abc"
-            key = '/path/to/obj'
+            key = "/path/to/obj"
 
             # run the file which uploads to S3
             func_to_test(self.bucket_name, key, content)
 
             # check the file was uploaded as expected
-            s3 = boto3.resource('s3')
+            s3 = boto3.resource("s3")
             object = s3.Object(self.bucket_name, key)
-            actual = object.get()['Body'].read()
+            actual = object.get()["Body"].read()
             self.assertEqual(actual, content)
 
 Class Decorator
@@ -217,6 +217,9 @@ You need to ensure that the mocks are actually in place.
         export AWS_SESSION_TOKEN='testing'
         export AWS_DEFAULT_REGION='us-east-1'
 
+ #. Do no embed credentials directly in your code. This is always considered bad practice, regardless of whether you use Moto. It also makes it impossible to configure fake credentials for testing purposes.
+
+
  #. **VERY IMPORTANT**: ensure that you have your mocks set up *BEFORE* your `boto3` client is established.
     This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
     See the pesky imports section below on how to work around this.
@@ -231,19 +234,19 @@ Here is an example:
 
 .. sourcecode:: python
 
-    @pytest.fixture(scope='function')
+    @pytest.fixture(scope="function")
     def aws_credentials():
         """Mocked AWS Credentials for moto."""
-        os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
-        os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
-        os.environ['AWS_SECURITY_TOKEN'] = 'testing'
-        os.environ['AWS_SESSION_TOKEN'] = 'testing'
-        os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
+        os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+        os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+        os.environ["AWS_SECURITY_TOKEN"] = "testing"
+        os.environ["AWS_SESSION_TOKEN"] = "testing"
+        os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
-    @pytest.fixture(scope='function')
+    @pytest.fixture(scope="function")
     def s3(aws_credentials):
         with mock_s3():
-            yield boto3.client('s3', region_name='us-east-1')
+            yield boto3.client("s3", region_name="us-east-1")
 
 
 In the code sample above, all of the AWS/mocked fixtures take in a parameter of `aws_credentials`,
@@ -260,8 +263,8 @@ Next, once you need to do anything with the mocked AWS environment, do something
         s3.create_bucket(Bucket="somebucket")
 
         result = s3.list_buckets()
-        assert len(result['Buckets']) == 1
-        assert result['Buckets'][0]['Name'] == 'somebucket'
+        assert len(result["Buckets"]) == 1
+        assert result["Buckets"][0]["Name"] == "somebucket"
 
 What about those pesky imports
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -288,7 +291,7 @@ If it is not possible to rearrange imports, we can patch the boto3-client or res
 .. sourcecode:: python
 
     # The client can come from an import, an __init__-file, wherever..
-    client = boto3.client("s3")
+    outside_client = boto3.client("s3")
     s3 = boto3.resource("s3")
 
     @mock_s3
@@ -297,7 +300,7 @@ If it is not possible to rearrange imports, we can patch the boto3-client or res
         patch_client(outside_client)
         patch_resource(s3)
 
-        assert client.list_buckets()["Buckets"] == []
+        assert outside_client.list_buckets()["Buckets"] == []
 
         assert list(s3.buckets.all()) == []
 

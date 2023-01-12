@@ -1102,7 +1102,7 @@ def test_website_redirect_location():
     resp = s3.get_object(Bucket="mybucket", Key="steve")
     resp.get("WebsiteRedirectLocation").should.equal(None)
 
-    url = "https://github.com/spulec/moto"
+    url = "https://github.com/getmoto/moto"
     s3.put_object(
         Bucket="mybucket", Key="steve", Body=b"is awesome", WebsiteRedirectLocation=url
     )
@@ -3445,7 +3445,7 @@ def test_head_object_should_return_default_content_type():
 
 @mock_s3
 def test_request_partial_content_should_contain_all_metadata():
-    # github.com/spulec/moto/issues/4203
+    # github.com/getmoto/moto/issues/4203
     bucket = "bucket"
     object_key = "key"
     body = "some text"

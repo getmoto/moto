@@ -14,12 +14,11 @@ from .exceptions import (
     ResourceNotFound,
 )
 from .utils import (
-    load_pipeline_definition_from_s3,
-    arn_formatter,
     get_pipeline_from_name,
     get_pipeline_execution_from_arn,
     get_pipeline_name_from_execution_arn,
 )
+from .utils import load_pipeline_definition_from_s3, arn_formatter
 
 
 PAGINATION_MODEL = {
@@ -1879,7 +1878,6 @@ class SageMakerModelBackend(BaseBackend):
         **kwargs,
     ):
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
-
         if all(
             [
                 kwargs.get("pipeline_definition"),
@@ -2023,6 +2021,35 @@ class SageMakerModelBackend(BaseBackend):
         pipeline_name,
     ):
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
+        response = {
+            "PipelineArn": pipeline.pipeline_arn,
+            "PipelineName": pipeline.pipeline_name,
+            "PipelineDisplayName": pipeline.pipeline_display_name,
+            "PipelineDescription": pipeline.pipeline_description,
+            "PipelineDefinition": pipeline.pipeline_definition,
+            "RoleArn": pipeline.role_arn,
+            "PipelineStatus": pipeline.pipeline_status,
+            "CreationTime": pipeline.creation_time,
+            "LastModifiedTime": pipeline.last_modified_time,
+            "LastRunTime": pipeline.last_execution_time,
+            "CreatedBy": pipeline.created_by,
+            "LastModifiedBy": pipeline.last_modified_by,
+            "ParallelismConfiguration": pipeline.parallelism_configuration,
+        }
+
+        return response
+
+    def describe_pipeline(
+        self,
+        pipeline_name,
+    ):
+        try:
+            pipeline = self.pipelines[pipeline_name]
+        except KeyError:
+            raise ValidationError(
+                message=f"Could not find pipeline with name {pipeline_name}."
+            )
+
         response = {
             "PipelineArn": pipeline.pipeline_arn,
             "PipelineName": pipeline.pipeline_name,

@@ -427,7 +427,7 @@ def passes_filter_dict(instance, filter_dict):
                 return False
         else:
             raise NotImplementedError(
-                "Filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/spulec/moto/issues"
+                "Filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/getmoto/moto/issues"
                 % filter_name
             )
     return True
@@ -473,7 +473,7 @@ def passes_igw_filter_dict(igw, filter_dict):
                 return False
         else:
             raise NotImplementedError(
-                "Internet Gateway filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/spulec/moto/issues",
+                "Internet Gateway filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/getmoto/moto/issues",
                 filter_name,
             )
     return True

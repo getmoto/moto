@@ -79,6 +79,7 @@ class BatchSimpleBackend(BaseBackend):
 
         # We don't want to actually run the job - just mark it as succeeded
         job.job_started_at = datetime.datetime.now()
+        job.log_stream_name = job._stream_name
         job._start_attempt()
         job._mark_stopped(success=True)
 

@@ -171,8 +171,13 @@ sagemaker
 - [ ] describe_notebook_instance
 - [X] describe_notebook_instance_lifecycle_config
 - [X] describe_pipeline
+<<<<<<< HEAD
 - [X] describe_pipeline_definition_for_execution
 - [X] describe_pipeline_execution
+=======
+- [ ] describe_pipeline_definition_for_execution
+- [ ] describe_pipeline_execution
+>>>>>>> master
 - [X] describe_processing_job
 - [ ] describe_project
 - [ ] describe_space
@@ -196,6 +201,7 @@ sagemaker
 - [ ] import_hub_content
 - [ ] list_actions
 - [ ] list_algorithms
+- [ ] list_aliases
 - [ ] list_app_image_configs
 - [ ] list_apps
 - [ ] list_artifacts
@@ -306,6 +312,7 @@ sagemaker
 - [ ] update_feature_metadata
 - [ ] update_hub
 - [ ] update_image
+- [ ] update_image_version
 - [ ] update_inference_experiment
 - [ ] update_model_card
 - [ ] update_model_package

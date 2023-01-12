@@ -8,6 +8,12 @@ class IoTDataPlaneResponse(BaseResponse):
     def __init__(self):
         super().__init__(service_name="iot-data")
 
+    def _get_action(self) -> str:
+        if self.path and self.path.startswith("/topics/"):
+            # Special usecase - there is no way identify this action, besides the URL
+            return "publish"
+        return super()._get_action()
+
     @property
     def iotdata_backend(self):
         return iotdata_backends[self.current_account][self.region]
@@ -30,18 +36,10 @@ class IoTDataPlaneResponse(BaseResponse):
         payload = self.iotdata_backend.delete_thing_shadow(thing_name=thing_name)
         return json.dumps(payload.to_dict())
 
-    def dispatch_publish(self, request, full_url, headers):
-        # This endpoint requires specialized handling because it has
-        # a uri parameter containing forward slashes that is not
-        # correctly url encoded when we're running in server mode.
-        # https://github.com/pallets/flask/issues/900
-        self.setup_class(request, full_url, headers)
-        self.querystring["Action"] = ["Publish"]
-        topic = self.path.partition("/topics/")[-1]
-        self.querystring["target"] = [unquote(topic)] if "%" in topic else [topic]
-        return self.call_action()
-
     def publish(self):
-        topic = self._get_param("target")
+        topic = self.path.split("/topics/")[-1]
+        # a uri parameter containing forward slashes is not correctly url encoded when we're running in server mode.
+        # https://github.com/pallets/flask/issues/900
+        topic = unquote(topic) if "%" in topic else topic
         self.iotdata_backend.publish(topic=topic, payload=self.body)
         return json.dumps(dict())

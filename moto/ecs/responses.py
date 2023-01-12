@@ -163,7 +163,8 @@ class EC2ContainerServiceResponse(BaseResponse):
     def describe_tasks(self):
         cluster = self._get_param("cluster", "default")
         tasks = self._get_param("tasks")
-        data = self.ecs_backend.describe_tasks(cluster, tasks)
+        include = self._get_param("include")
+        data = self.ecs_backend.describe_tasks(cluster, tasks, include)
         return json.dumps(
             {"tasks": [task.response_object for task in data], "failures": []}
         )
@@ -174,8 +175,14 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition_str = self._get_param("taskDefinition")
         container_instances = self._get_param("containerInstances")
         started_by = self._get_param("startedBy")
+        tags = self._get_param("tags")
         tasks = self.ecs_backend.start_task(
-            cluster_str, task_definition_str, container_instances, overrides, started_by
+            cluster_str,
+            task_definition_str,
+            container_instances,
+            overrides,
+            started_by,
+            tags,
         )
         return json.dumps(
             {"tasks": [task.response_object for task in tasks], "failures": []}

@@ -85,6 +85,22 @@ def test_describe_launch_template_versions():
     templ = resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]
     templ.should.equal(template_data)
 
+    # test using $Latest version
+    resp = cli.describe_launch_template_versions(
+        LaunchTemplateName=template_name, Versions=["$Latest"]
+    )
+
+    templ = resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]
+    templ.should.equal(template_data)
+
+    # test using $Default version
+    resp = cli.describe_launch_template_versions(
+        LaunchTemplateName=template_name, Versions=["$Default"]
+    )
+
+    templ = resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]
+    templ.should.equal(template_data)
+
 
 @mock_ec2
 def test_describe_launch_template_versions_by_name_when_absent():

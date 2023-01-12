@@ -60,8 +60,8 @@ Usage in ServerMode:
 Note that this feature records and replays the incoming HTTP request. Randomized data created by Moto, such as resource ID's, will not be stored as part of the log.
 
 
-Configuration
-##################
+Recorder Configuration
+########################
 
 The requests are stored in a file called `moto_recording`, in the directory that Python is run from. You can configure this location using the following environment variable:
 `MOTO_RECORDER_FILEPATH=/whatever/path/you/want`

@@ -1,6 +1,35 @@
 Moto Changelog
 ==============
 
+
+4.1.0
+-----
+Docker Digest for 4.1.0: _sha256:1c38613f7273054650d08f3cb3ce118753296d08ffbfee8c96400c89a529c9ca_
+
+    General:
+        * Dropped support for Py 3.6
+        * Moto now uses setup.cfg to hold our packaging configuration, instead of setup.py, making Moto compatible with more recent Pip-versions
+
+
+4.0.13
+-----
+Docker Digest for 4.0.13: _sha256:703a9d464c11e1f4cacff66acdc9b46f9fa8fb0b969ca9f1e79fa4eb41678565_
+
+    New Methods:
+        * EC2:
+            * get_password_data()
+        * Sagemaker:
+            * update_pipeline()
+        * SecretsManager:
+            * cancel_rotate_secret()
+
+    Miscellaneous:
+        * CloudWatch: put_metric_data() now supports the StatisticValues-parameter
+        * CognitoIDP: sign_out() now also invalidates the AccessToken
+        * IAM: get_account_authorization_details() now returns the Tags-attribute
+        * IOT: create_keys_and_certificate() now creates valid certificates, instead of random data
+
+
 4.0.12
 -----
 Docker Digest for 4.0.12: _sha256:06916d3f310c68fd445468f06d6d4ae6f855e7f2b80e007a90bd11eeb421b5ed_
@@ -1417,7 +1446,7 @@ Docker Digest for 3.0.4: _sha256:320e1d2ab89729d5580dbe08d8c2153a28db4c28023c577
 -----
     General:
         * The mock_dynamodb and mock_rds-decorators have been deprecated, and will be repurposed in a later release.
-          Please see https://github.com/spulec/moto/issues/4526 for more information.
+          Please see https://github.com/getmoto/moto/issues/4526 for more information.
 
     New Methods:
         * API Gateway:
@@ -2319,7 +2348,7 @@ Docker Digest for 3.0.4: _sha256:320e1d2ab89729d5580dbe08d8c2153a28db4c28023c577
 2.0.0
 ----
 Full list of PRs merged in this release:
-https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..2021-02-23
+https://github.com/getmoto/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..2021-02-23
 
     General Changes:
         * When installing, it is now required to specify the service you want to use:
@@ -2510,7 +2539,7 @@ https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..
 1.3.16
 -----
 Full list of PRs merged in this release:
-https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2019-11-14..2020-09-07
+https://github.com/getmoto/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2019-11-14..2020-09-07
 
 
     General Changes:

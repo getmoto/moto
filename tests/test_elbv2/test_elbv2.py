@@ -304,7 +304,7 @@ def test_create_listeners_without_port():
 @mock_ec2
 @mock_elbv2
 def test_create_rule_forward_config_as_second_arg():
-    # https://github.com/spulec/moto/issues/4123
+    # https://github.com/getmoto/moto/issues/4123
     # Necessary because there was some convoluted way of parsing arguments
     # Actions with type=forward had to be the first action specified
     response, vpc, _, _, _, elbv2 = create_load_balancer()

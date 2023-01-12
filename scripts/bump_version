@@ -21,7 +21,7 @@ main() {
   # Commit an updated IMPLEMENTATION_COVERAGE.md
   make implementation_coverage || true
   # Open a PR
-  open https://github.com/spulec/moto/compare/master...version-${version}
+  open https://github.com/getmoto/moto/compare/master...version-${version}
 }
 
 main $@

@@ -12,13 +12,13 @@ from moto.s3 import mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sagemaker.exceptions import ValidationError
 from moto.sagemaker.utils import (
-    arn_formatter,
-    load_pipeline_definition_from_s3,
     get_pipeline_from_name,
     get_pipeline_execution_from_arn,
     get_pipeline_name_from_execution_arn,
 )
 from moto.sagemaker.models import FakePipeline
+from moto.sagemaker.utils import arn_formatter, load_pipeline_definition_from_s3
+
 
 FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
 TEST_REGION_NAME = "us-west-1"

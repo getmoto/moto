@@ -30,8 +30,8 @@ Prettified output:
     </DeleteLaunchTemplatesResponse>
 
 
-Configuration
-#################
+Enabling Pretty responses
+#########################
 
 As changing responses can interfere with some external tools, it is disabled by default.
 If you want to enable it, use environment variable:

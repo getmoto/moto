@@ -1,5 +1,4 @@
 import json
-import sys
 
 import boto3
 import csv
@@ -16,7 +15,6 @@ import pytest
 from datetime import datetime
 from uuid import uuid4
 from urllib import parse
-from unittest import SkipTest
 
 from moto.s3.responses import DEFAULT_REGION_NAME
 
@@ -3782,10 +3780,6 @@ def test_role_config_dict():
 @mock_iam
 @mock_config
 def test_role_config_client():
-    if sys.version_info < (3, 7):
-        raise SkipTest(
-            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
-        )
     from moto.iam.utils import random_role_id
 
     CONFIG_REGIONS = boto3.Session().get_available_regions("config")
@@ -4230,10 +4224,6 @@ def test_policy_config_dict():
 @mock_iam
 @mock_config
 def test_policy_config_client():
-    if sys.version_info < (3, 7):
-        raise SkipTest(
-            "Cannot test this in Py3.6; outdated botocore dependencies do not have all regions"
-        )
     from moto.iam.utils import random_policy_id
 
     CONFIG_REGIONS = boto3.Session().get_available_regions("config")

@@ -1143,6 +1143,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instances,
         overrides,
         started_by,
+        tags=None,
     ):
         cluster = self._get_cluster(cluster_str)
 
@@ -1169,6 +1170,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 backend=self,
                 overrides=overrides or {},
                 started_by=started_by or "",
+                tags=tags,
             )
             tasks.append(task)
             self.update_container_instance_resources(
@@ -1177,7 +1179,10 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.tasks[cluster.name][task.task_arn] = task
         return tasks
 
-    def describe_tasks(self, cluster_str, tasks):
+    def describe_tasks(self, cluster_str, tasks, include=None):
+        """
+        Only include=TAGS is currently supported.
+        """
         self._get_cluster(cluster_str)
 
         if not tasks:
@@ -1192,6 +1197,11 @@ class EC2ContainerServiceBackend(BaseBackend):
                     or any(task_id in task for task in tasks)
                 ):
                     response.append(task)
+        if "TAGS" in (include or []):
+            return response
+
+        for task in response:
+            task.tags = []
         return response
 
     def list_tasks(

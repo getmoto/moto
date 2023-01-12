@@ -1,5 +1,4 @@
 import re
-import sys
 from ipaddress import IPv4Network
 
 import pytest
@@ -8,31 +7,6 @@ from botocore.exceptions import ClientError
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.test_efs.junk_drawer import has_status_code
 from . import fixture_ec2, fixture_efs  # noqa # pylint: disable=unused-import
-
-
-# Handle the fact that `subnet_of` is not a feature before 3.7.
-# Source for alternative version: https://github.com/python/cpython/blob/v3.7.0/Lib/ipaddress.py#L976
-# Discovered via: https://stackoverflow.com/questions/35115138/how-do-i-check-if-a-network-is-contained-in-another-network-in-python
-if sys.version_info.major >= 3 and sys.version_info.minor >= 7:
-
-    def is_subnet_of(a, b):
-        return a.subnet_of(b)
-
-else:
-
-    def is_subnet_of(a, b):
-        try:
-            # Always false if one is v4 and the other is v6.
-            if a._version != b._version:
-                raise TypeError(f"{a} and {b} are not of the same version")
-            return (
-                b.network_address <= a.network_address
-                and b.broadcast_address >= a.broadcast_address
-            )
-        except AttributeError:
-            raise TypeError(
-                f"Unable to test subnet containment " f"between {a} and {b}"
-            )
 
 
 @pytest.fixture(scope="function", name="file_system")
@@ -69,8 +43,8 @@ def test_create_mount_target_minimal_correct_use(efs, file_system, subnet):
     assert create_mt_resp["AvailabilityZoneName"] == subnet["AvailabilityZone"]
     assert create_mt_resp["VpcId"] == subnet["VpcId"]
     assert create_mt_resp["SubnetId"] == subnet_id
-    assert is_subnet_of(
-        IPv4Network(create_mt_resp["IpAddress"]), IPv4Network(subnet["CidrBlock"])
+    assert IPv4Network(create_mt_resp["IpAddress"]).subnet_of(
+        IPv4Network(subnet["CidrBlock"])
     )
     assert create_mt_resp["FileSystemId"] == file_system_id
     assert create_mt_resp["OwnerId"] == ACCOUNT_ID
