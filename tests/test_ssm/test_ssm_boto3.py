@@ -413,10 +413,11 @@ def test_put_parameter_invalid_data_type(bad_data_type):
         " (Data type names are all lowercase.)"
     )
 
+
 @mock_ssm
 def test_put_parameter_invalid_type():
     client = boto3.client("ssm", region_name="us-east-1")
-    bad_type = "str" # correct value is String
+    bad_type = "str"  # correct value is String
     with pytest.raises(ClientError) as e:
         client.put_parameter(
             Name="test_name", Value="some_value", Type=bad_type, DataType="text"

@@ -850,12 +850,14 @@ def _document_filter_match(account_id, filters, ssm_doc):
 
     return True
 
+
 def _valid_parameter_type(type_):
     """
     Parameter Type field only allows `SecureString`, `StringList` and `String` (not `str`) values
 
     """
     return type_ in ("SecureString", "StringList", "String")
+
 
 def _valid_parameter_data_type(data_type):
     """
