@@ -413,6 +413,22 @@ def test_put_parameter_invalid_data_type(bad_data_type):
         " (Data type names are all lowercase.)"
     )
 
+@mock_ssm
+def test_put_parameter_invalid_type():
+    client = boto3.client("ssm", region_name="us-east-1")
+    bad_type = "str" # correct value is String
+    with pytest.raises(ClientError) as e:
+        client.put_parameter(
+            Name="test_name", Value="some_value", Type=bad_type, DataType="text"
+        )
+    ex = e.value
+    ex.operation_name.should.equal("PutParameter")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        f"1 validation error detected: Value '{bad_type}' at 'type' failed to satisfy constraint: Member must satisfy enum value set: [SecureString, StringList, String]"
+    )
+
 
 @mock_ssm
 def test_get_parameter():
