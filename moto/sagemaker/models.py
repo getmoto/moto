@@ -2039,34 +2039,6 @@ class SageMakerModelBackend(BaseBackend):
 
         return response
 
-    def describe_pipeline(
-        self,
-        pipeline_name,
-    ):
-        try:
-            pipeline = self.pipelines[pipeline_name]
-        except KeyError:
-            raise ValidationError(
-                message=f"Could not find pipeline with name {pipeline_name}."
-            )
-
-        response = {
-            "PipelineArn": pipeline.pipeline_arn,
-            "PipelineName": pipeline.pipeline_name,
-            "PipelineDisplayName": pipeline.pipeline_display_name,
-            "PipelineDescription": pipeline.pipeline_description,
-            "PipelineDefinition": pipeline.pipeline_definition,
-            "RoleArn": pipeline.role_arn,
-            "PipelineStatus": pipeline.pipeline_status,
-            "CreationTime": pipeline.creation_time,
-            "LastModifiedTime": pipeline.last_modified_time,
-            "LastRunTime": pipeline.last_execution_time,
-            "CreatedBy": pipeline.created_by,
-            "LastModifiedBy": pipeline.last_modified_by,
-            "ParallelismConfiguration": pipeline.parallelism_configuration,
-        }
-
-        return response
 
     def list_pipelines(
         self,
