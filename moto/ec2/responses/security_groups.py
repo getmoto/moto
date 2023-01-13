@@ -196,7 +196,8 @@ class SecurityGroups(EC2BaseResponse):
 
     def describe_security_group_rules(self):
         group_id = self._get_param("GroupId")
-        group = self.ec2_backend.get_security_group_from_id(group_id)
+        filters = self._filters_from_querystring()
+        group = self.ec2_backend.get_security_group_from_id(group_id, filters=filters)
         template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
         return template.render(group=group)
 
