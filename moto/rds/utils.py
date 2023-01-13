@@ -184,7 +184,9 @@ def get_start_date_end_date_from_time(base_date, window):
     return start, end, spillover
 
 
-def get_overlap(start_time_1, end_time_1, start_time_2, end_time_2):
+def get_overlap_between_two_date_ranges(
+    start_time_1, end_time_1, start_time_2, end_time_2
+):
     """Determines overlap between 2 date ranges.
 
     :param start_time_1:
@@ -232,25 +234,17 @@ def valid_preferred_maintenance_window(maintenance_window, backup_window):
             (
                 backup_window_start,
                 backup_window_end,
-                _,
+                backup_spill,
             ) = get_start_date_end_date_from_time(base_date, backup_window)
             (
                 maintenance_window_start,
                 maintenance_window_end,
-                spill,
+                maintenance_spill,
             ) = get_start_date_end_date_from_time(
                 base_date, maintenance_window[4:10] + maintenance_window[14::]
             )
-            (
-                maintenance_spill_start,
-                maintenance_spill_end,
-                _,
-            ) = get_start_date_end_date_from_time(
-                base_date, "00:00-" + maintenance_window[14::]
-            )
-
             if (
-                get_overlap(
+                get_overlap_between_two_date_ranges(
                     backup_window_start,
                     backup_window_end,
                     maintenance_window_start,
@@ -259,17 +253,27 @@ def valid_preferred_maintenance_window(maintenance_window, backup_window):
                 >= 0
             ):
                 return "The backup window and maintenance window must not overlap."
-            elif (
-                spill
-                and get_overlap(
-                    backup_window_start,
-                    backup_window_end,
-                    maintenance_spill_start,
-                    maintenance_spill_end,
-                )
-                >= 0
-            ):
-                return "The backup window and maintenance window must not overlap."
+
+            # Due to spill overs, adjust the windows
+            elif maintenance_spill:
+                backup_window_start += datetime.timedelta(days=1)
+                backup_window_end += datetime.timedelta(days=1)
+            elif backup_spill:
+                maintenance_window_start += datetime.timedelta(days=1)
+                maintenance_window_end += datetime.timedelta(days=1)
+
+            # If spills, rerun overlap test with adjusted windows
+            if maintenance_spill or backup_spill:
+                if (
+                    get_overlap_between_two_date_ranges(
+                        backup_window_start,
+                        backup_window_end,
+                        maintenance_window_start,
+                        maintenance_window_end,
+                    )
+                    >= 0
+                ):
+                    return "The backup window and maintenance window must not overlap."
 
         maintenance_window_start, maintenance_window_end = get_start_date_end_date(
             base_date, maintenance_window
