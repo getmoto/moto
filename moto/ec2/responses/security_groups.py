@@ -194,6 +194,12 @@ class SecurityGroups(EC2BaseResponse):
         template = self.response_template(DESCRIBE_SECURITY_GROUPS_RESPONSE)
         return template.render(groups=groups)
 
+    def describe_security_group_rules(self):
+        group_id = self._get_param("GroupId")
+        group = self.ec2_backend.get_security_group_from_id(group_id)
+        template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
+        return template.render(group=group)
+
     def revoke_security_group_egress(self):
         if self.is_not_dryrun("RevokeSecurityGroupEgress"):
             for args in self._process_rules_from_querystring():
@@ -238,6 +244,161 @@ CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://e
     {% endfor %}
     </tagSet>
 </CreateSecurityGroupResponse>"""
+
+DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <securityGroupInfo>
+      {% for group in groups %}
+          <item>
+             <ownerId>{{ group.owner_id }}</ownerId>
+             <groupId>{{ group.id }}</groupId>
+             <groupName>{{ group.name }}</groupName>
+             <groupDescription>{{ group.description }}</groupDescription>
+             {% if group.vpc_id %}
+             <vpcId>{{ group.vpc_id }}</vpcId>
+             {% endif %}
+             <ipPermissions>
+               {% for rule in group.ingress_rules %}
+                    <item>
+                       <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+                       {% if rule.from_port is not none %}
+                       <fromPort>{{ rule.from_port }}</fromPort>
+                       {% endif %}
+                       {% if rule.to_port is not none %}
+                       <toPort>{{ rule.to_port }}</toPort>
+                       {% endif %}
+                       <groups>
+                          {% for source_group in rule.source_groups %}
+                              <item>
+                                 {% if source_group.OwnerId and source_group.OwnerId != "" %}
+                                 <userId>{{ source_group.OwnerId }}</userId>
+                                 {% endif %}
+                                 {% if source_group.GroupId and source_group.GroupId != "" %}
+                                 <groupId>{{ source_group.GroupId }}</groupId>
+                                 {% endif %}
+                                 {% if source_group.GroupName and source_group.GroupName != "" %}
+                                 <groupName>{{ source_group.GroupName }}</groupName>
+                                 {% endif %}
+                                 {% if source_group.Description and source_group.Description != "" %}
+                                 <description>{{ source_group.Description }}</description>
+                                 {% endif %}
+                              </item>
+                          {% endfor %}
+                       </groups>
+                       <ipRanges>
+                          {% for ip_range in rule.ip_ranges %}
+                             {% if ip_range['CidrIp'] %}
+                              <item>
+                                    <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
+                                    {% if ip_range['Description'] %}
+                                    <description>{{ ip_range['Description'] }}</description>
+                                    {% endif %}
+                              </item>
+                              {% endif %}
+                          {% endfor %}
+                       </ipRanges>
+                       <ipv6Ranges>
+                        {% for ip_range in rule.ip_ranges %}
+                            {% if ip_range['CidrIpv6'] %}
+                            <item>
+                                <cidrIpv6>{{ ip_range['CidrIpv6'] }}</cidrIpv6>
+                                {% if ip_range['Description'] %}
+                                <description>{{ ip_range['Description'] }}</description>
+                                {% endif %}
+                            </item>
+                            {% endif %}
+                        {% endfor %}
+                        </ipv6Ranges>
+                        <prefixListIds>
+                            {% for prefix_list in rule.prefix_list_ids %}
+                            <item>
+                                <prefixListId>{{ prefix_list.PrefixListId }}</prefixListId>
+                                {% if prefix_list.Description %}
+                                <description>{{ prefix_list.Description }}</description>
+                                {% endif %}
+                            </item>
+                            {% endfor %}
+                       </prefixListIds>
+                    </item>
+                {% endfor %}
+             </ipPermissions>
+             <ipPermissionsEgress>
+               {% for rule in group.egress_rules %}
+                    <item>
+                       <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+                       {% if rule.from_port is not none %}
+                       <fromPort>{{ rule.from_port }}</fromPort>
+                       {% endif %}
+                       {% if rule.to_port is not none %}
+                       <toPort>{{ rule.to_port }}</toPort>
+                       {% endif %}
+                       <groups>
+                          {% for source_group in rule.source_groups %}
+                              <item>
+                                 {% if source_group.OwnerId and source_group.OwnerId != "" %}
+                                 <userId>{{ source_group.OwnerId }}</userId>
+                                 {% endif %}
+                                 {% if source_group.GroupId and source_group.GroupId != "" %}
+                                 <groupId>{{ source_group.GroupId }}</groupId>
+                                 {% endif %}
+                                 {% if source_group.GroupName and source_group.GroupName != "" %}
+                                 <groupName>{{ source_group.GroupName }}</groupName>
+                                 {% endif %}
+                                 {% if source_group.Description and source_group.Description != "" %}
+                                 <description>{{ source_group.Description }}</description>
+                                 {% endif %}
+                              </item>
+                          {% endfor %}
+                       </groups>
+                       <ipRanges>
+                          {% for ip_range in rule.ip_ranges %}
+                             {% if ip_range['CidrIp'] %}
+                              <item>
+                                    <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
+                                    {% if ip_range['Description'] %}
+                                    <description>{{ ip_range['Description'] }}</description>
+                                    {% endif %}
+                              </item>
+                              {% endif %}
+                          {% endfor %}
+                       </ipRanges>
+                       <ipv6Ranges>
+                        {% for ip_range in rule.ip_ranges %}
+                            {% if ip_range['CidrIpv6'] %}
+                            <item>
+                                    <cidrIpv6>{{ ip_range['CidrIpv6'] }}</cidrIpv6>
+                                    {% if ip_range['Description'] %}
+                                    <description>{{ ip_range['Description'] }}</description>
+                                    {% endif %}
+                            </item>
+                            {% endif %}
+                        {% endfor %}
+                        </ipv6Ranges>
+                        <prefixListIds>
+                            {% for prefix_list in rule.prefix_list_ids %}
+                            <item>
+                                <prefixListId>{{ prefix_list.PrefixListId }}</prefixListId>
+                                {% if prefix_list.Description %}
+                                <description>{{ prefix_list.Description }}</description>
+                                {% endif %}
+                            </item>
+                            {% endfor %}
+                        </prefixListIds>
+                    </item>
+               {% endfor %}
+             </ipPermissionsEgress>
+             <tagSet>
+               {% for tag in group.get_tags() %}
+                 <item>
+                   <key>{{ tag.key }}</key>
+                   <value>{{ tag.value }}</value>
+                 </item>
+               {% endfor %}
+             </tagSet>
+          </item>
+      {% endfor %}
+   </securityGroupInfo>
+</DescribeSecurityGroupsResponse>"""
 
 DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>

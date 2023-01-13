@@ -520,6 +520,9 @@ class SecurityGroupBackend:
 
         return matches
 
+    def describe_security_group_rules(self):
+        pass
+
     def _delete_security_group(self, vpc_id, group_id):
         vpc_id = vpc_id or self.default_vpc.id
         if self.groups[vpc_id][group_id].enis:
