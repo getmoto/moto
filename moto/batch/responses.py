@@ -134,6 +134,7 @@ class BatchResponse(BaseResponse):
     # RegisterJobDefinition
     def registerjobdefinition(self) -> str:
         container_properties = self._get_param("containerProperties")
+        node_properties = self._get_param("nodeProperties")
         def_name = self._get_param("jobDefinitionName")
         parameters = self._get_param("parameters")
         tags = self._get_param("tags")
@@ -149,6 +150,7 @@ class BatchResponse(BaseResponse):
             tags=tags,
             retry_strategy=retry_strategy,
             container_properties=container_properties,
+            node_properties=node_properties,
             timeout=timeout,
             platform_capabilities=platform_capabilities,
             propagate_tags=propagate_tags,
@@ -215,8 +217,9 @@ class BatchResponse(BaseResponse):
     def listjobs(self) -> str:
         job_queue = self._get_param("jobQueue")
         job_status = self._get_param("jobStatus")
+        filters = self._get_param("filters")
 
-        jobs = self.batch_backend.list_jobs(job_queue, job_status)
+        jobs = self.batch_backend.list_jobs(job_queue, job_status, filters)
 
         result = {"jobSummaryList": [job.describe_short() for job in jobs]}
         return json.dumps(result)
