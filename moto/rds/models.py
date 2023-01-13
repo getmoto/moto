@@ -780,6 +780,12 @@ class Database(CloudFormationModel):
             "db_instance_class": properties.get("DBInstanceClass"),
             "db_instance_identifier": resource_name,
             "db_name": properties.get("DBName"),
+            "preferred_backup_window": properties.get(
+                "PreferredBackupWindow", "13:14-13:44"
+            ),
+            "preferred_maintenance_window": properties.get(
+                "PreferredMaintenanceWindow", "wed:06:38-wed:07:08"
+            ).lower(),
             "db_subnet_group_name": db_subnet_group_name,
             "engine": properties.get("Engine"),
             "engine_version": properties.get("EngineVersion"),
