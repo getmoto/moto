@@ -75,6 +75,179 @@ def test_create_database_no_allocated_storage():
     db_instance["Engine"].should.equal("postgres")
     db_instance["StorageType"].should.equal("gp2")
     db_instance["AllocatedStorage"].should.equal(20)
+    db_instance["PreferredMaintenanceWindow"].should.equal("wed:06:38-wed:07:08")
+
+
+@mock_rds
+def test_create_database_invalid_preferred_maintenance_window_more_24_hours():
+    conn = boto3.client("rds", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.create_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            Engine="postgres",
+            DBName="staging-postgres",
+            DBInstanceClass="db.m1.small",
+            PreferredMaintenanceWindow="mon:16:00-tue:17:00",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Maintenance window must be less than 24 hours.")
+
+
+@mock_rds
+def test_create_database_invalid_preferred_maintenance_window_less_30_mins():
+    conn = boto3.client("rds", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.create_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            Engine="postgres",
+            DBName="staging-postgres",
+            DBInstanceClass="db.m1.small",
+            PreferredMaintenanceWindow="mon:16:00-mon:16:05",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("The maintenance window must be at least 30 minutes.")
+
+
+@mock_rds
+def test_create_database_invalid_preferred_maintenance_window_value():
+    conn = boto3.client("rds", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.create_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            Engine="postgres",
+            DBName="staging-postgres",
+            DBInstanceClass="db.m1.small",
+            PreferredMaintenanceWindow="sim:16:00-mon:16:30",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.contain("Invalid day:hour:minute")
+
+
+@mock_rds
+def test_create_database_invalid_preferred_maintenance_window_format():
+    conn = boto3.client("rds", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.create_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            Engine="postgres",
+            DBName="staging-postgres",
+            DBInstanceClass="db.m1.small",
+            PreferredMaintenanceWindow="mon:16tue:17:00",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.contain(
+        "Should be specified as a range ddd:hh24:mi-ddd:hh24:mi (24H Clock UTC). Example: Sun:23:45-Mon:00:15"
+    )
+
+
+@mock_rds
+def test_create_database_preferred_backup_window_overlap_no_spill():
+    conn = boto3.client("rds", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.create_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            Engine="postgres",
+            DBName="staging-postgres",
+            DBInstanceClass="db.m1.small",
+            PreferredMaintenanceWindow="wed:18:00-wed:22:00",
+            PreferredBackupWindow="20:00-20:30",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.contain(
+        "The backup window and maintenance window must not overlap."
+    )
+
+
+@mock_rds
+def test_create_database_preferred_backup_window_overlap_maintenance_window_spill():
+    conn = boto3.client("rds", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.create_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            Engine="postgres",
+            DBName="staging-postgres",
+            DBInstanceClass="db.m1.small",
+            PreferredMaintenanceWindow="wed:18:00-thu:01:00",
+            PreferredBackupWindow="00:00-00:30",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.contain(
+        "The backup window and maintenance window must not overlap."
+    )
+
+
+@mock_rds
+def test_create_database_preferred_backup_window_overlap_backup_window_spill():
+    conn = boto3.client("rds", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.create_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            Engine="postgres",
+            DBName="staging-postgres",
+            DBInstanceClass="db.m1.small",
+            PreferredMaintenanceWindow="thu:00:00-thu:14:00",
+            PreferredBackupWindow="23:50-00:20",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.contain(
+        "The backup window and maintenance window must not overlap."
+    )
+
+
+@mock_rds
+def test_create_database_preferred_backup_window_overlap_both_spill():
+    conn = boto3.client("rds", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.create_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            Engine="postgres",
+            DBName="staging-postgres",
+            DBInstanceClass="db.m1.small",
+            PreferredMaintenanceWindow="wed:18:00-thu:01:00",
+            PreferredBackupWindow="23:50-00:20",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.contain(
+        "The backup window and maintenance window must not overlap."
+    )
+
+
+@mock_rds
+def test_create_database_valid_preferred_maintenance_window_format():
+    conn = boto3.client("rds", region_name="us-west-2")
+    database = conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        PreferredMaintenanceWindow="sun:16:00-sun:16:30",
+    )
+    db_instance = database["DBInstance"]
+    db_instance["DBInstanceClass"].should.equal("db.m1.small")
+    db_instance["PreferredMaintenanceWindow"].should.equal("sun:16:00-sun:16:30")
+
+
+@mock_rds
+def test_create_database_valid_preferred_maintenance_window_uppercase_format():
+    conn = boto3.client("rds", region_name="us-west-2")
+    database = conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        PreferredMaintenanceWindow="MON:16:00-TUE:01:30",
+    )
+    db_instance = database["DBInstance"]
+    db_instance["DBInstanceClass"].should.equal("db.m1.small")
+    db_instance["PreferredMaintenanceWindow"].should.equal("mon:16:00-tue:01:30")
 
 
 @mock_rds
@@ -397,6 +570,9 @@ def test_modify_db_instance():
     )
     instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
     instances["DBInstances"][0]["AllocatedStorage"].should.equal(20)
+    instances["DBInstances"][0]["PreferredMaintenanceWindow"].should.equal(
+        "wed:06:38-wed:07:08"
+    )
     instances["DBInstances"][0]["VpcSecurityGroups"][0][
         "VpcSecurityGroupId"
     ].should.equal("sg-123456")
@@ -421,6 +597,252 @@ def test_modify_db_instance_not_existent_db_parameter_group_name():
         DBInstanceIdentifier="db-master-1",
         DBParameterGroupName="test-sqlserver-se-2017",
     ).should.throw(ClientError)
+
+
+@mock_rds
+def test_modify_db_instance_valid_preferred_maintenance_window():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    conn.modify_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        PreferredMaintenanceWindow="sun:16:00-sun:16:30",
+    )
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    instances["DBInstances"][0]["PreferredMaintenanceWindow"].should.equal(
+        "sun:16:00-sun:16:30"
+    )
+
+
+@mock_rds
+def test_modify_db_instance_valid_preferred_maintenance_window_uppercase():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    conn.modify_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        PreferredMaintenanceWindow="SUN:16:00-SUN:16:30",
+    )
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    instances["DBInstances"][0]["PreferredMaintenanceWindow"].should.equal(
+        "sun:16:00-sun:16:30"
+    )
+
+
+@mock_rds
+def test_modify_db_instance_invalid_preferred_maintenance_window_more_than_24_hours():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.modify_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            PreferredMaintenanceWindow="sun:16:00-sat:16:30",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Maintenance window must be less than 24 hours.")
+
+
+@mock_rds
+def test_modify_db_instance_invalid_preferred_maintenance_window_less_than_30_mins():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.modify_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            PreferredMaintenanceWindow="sun:16:00-sun:16:10",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("The maintenance window must be at least 30 minutes.")
+
+
+@mock_rds
+def test_modify_db_instance_invalid_preferred_maintenance_window_value():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.modify_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            PreferredMaintenanceWindow="sin:16:00-sun:16:30",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.contain("Invalid day:hour:minute value")
+
+
+@mock_rds
+def test_modify_db_instance_invalid_preferred_maintenance_window_format():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.modify_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            PreferredMaintenanceWindow="sun:16:00sun:16:30",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.contain(
+        "Should be specified as a range ddd:hh24:mi-ddd:hh24:mi (24H Clock UTC). Example: Sun:23:45-Mon:00:15"
+    )
+
+
+@mock_rds
+def test_modify_db_instance_maintenance_backup_window_no_spill():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.modify_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            PreferredMaintenanceWindow="sun:16:00-sun:16:30",
+            PreferredBackupWindow="15:50-16:20",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "The backup window and maintenance window must not overlap."
+    )
+
+
+@mock_rds
+def test_modify_db_instance_maintenance_backup_window_maintenance_spill():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.modify_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            PreferredMaintenanceWindow="sun:16:00-mon:15:00",
+            PreferredBackupWindow="00:00-00:30",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "The backup window and maintenance window must not overlap."
+    )
+
+
+@mock_rds
+def test_modify_db_instance_maintenance_backup_window_backup_spill():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.modify_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            PreferredMaintenanceWindow="mon:00:00-mon:15:00",
+            PreferredBackupWindow="23:50-00:20",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "The backup window and maintenance window must not overlap."
+    )
+
+
+@mock_rds
+def test_modify_db_instance_maintenance_backup_window_both_spill():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.modify_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            PreferredMaintenanceWindow="sun:16:00-mon:15:00",
+            PreferredBackupWindow="23:20-00:20",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "The backup window and maintenance window must not overlap."
+    )
 
 
 @mock_rds

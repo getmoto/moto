@@ -35,7 +35,13 @@ from .exceptions import (
     SubscriptionNotFoundError,
     SubscriptionAlreadyExistError,
 )
-from .utils import FilterDef, apply_filter, merge_filters, validate_filters
+from .utils import (
+    FilterDef,
+    apply_filter,
+    merge_filters,
+    validate_filters,
+    valid_preferred_maintenance_window,
+)
 
 
 class Cluster:
@@ -446,9 +452,15 @@ class Database(CloudFormationModel):
             self.db_subnet_group = None
         self.security_groups = kwargs.get("security_groups", [])
         self.vpc_security_group_ids = kwargs.get("vpc_security_group_ids", [])
-        self.preferred_maintenance_window = kwargs.get(
-            "preferred_maintenance_window", "wed:06:38-wed:07:08"
+        self.preferred_maintenance_window = kwargs.get("preferred_maintenance_window")
+        self.preferred_backup_window = kwargs.get("preferred_backup_window")
+        msg = valid_preferred_maintenance_window(
+            self.preferred_maintenance_window,
+            self.preferred_backup_window,
         )
+        if msg:
+            raise RDSClientError("InvalidParameterValue", msg)
+
         self.db_parameter_group_name = kwargs.get("db_parameter_group_name")
         if (
             self.db_parameter_group_name
@@ -458,9 +470,6 @@ class Database(CloudFormationModel):
         ):
             raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
 
-        self.preferred_backup_window = kwargs.get(
-            "preferred_backup_window", "13:14-13:44"
-        )
         self.license_model = kwargs.get("license_model", "general-public-license")
         self.option_group_name = kwargs.get("option_group_name", None)
         self.option_group_supplied = self.option_group_name is not None
@@ -554,8 +563,8 @@ class Database(CloudFormationModel):
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
               <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
               <InstanceCreateTime>{{ database.instance_create_time }}</InstanceCreateTime>
-              <PreferredBackupWindow>03:50-04:20</PreferredBackupWindow>
-              <PreferredMaintenanceWindow>wed:06:38-wed:07:08</PreferredMaintenanceWindow>
+              <PreferredBackupWindow>{{ database.preferred_backup_window }}</PreferredBackupWindow>
+              <PreferredMaintenanceWindow>{{ database.preferred_maintenance_window }}</PreferredMaintenanceWindow>
               <ReadReplicaDBInstanceIdentifiers>
                 {% for replica_id in database.replicas %}
                     <ReadReplicaDBInstanceIdentifier>{{ replica_id }}</ReadReplicaDBInstanceIdentifier>
@@ -771,6 +780,12 @@ class Database(CloudFormationModel):
             "db_instance_class": properties.get("DBInstanceClass"),
             "db_instance_identifier": resource_name,
             "db_name": properties.get("DBName"),
+            "preferred_backup_window": properties.get(
+                "PreferredBackupWindow", "13:14-13:44"
+            ),
+            "preferred_maintenance_window": properties.get(
+                "PreferredMaintenanceWindow", "wed:06:38-wed:07:08"
+            ).lower(),
             "db_subnet_group_name": db_subnet_group_name,
             "engine": properties.get("Engine"),
             "engine_version": properties.get("EngineVersion"),
@@ -1448,6 +1463,13 @@ class RDSBackend(BaseBackend):
                 "db_instance_identifier"
             ] = db_kwargs.pop("new_db_instance_identifier")
             self.databases[db_instance_identifier] = database
+        preferred_backup_window = db_kwargs.get("preferred_backup_window")
+        preferred_maintenance_window = db_kwargs.get("preferred_maintenance_window")
+        msg = valid_preferred_maintenance_window(
+            preferred_maintenance_window, preferred_backup_window
+        )
+        if msg:
+            raise RDSClientError("InvalidParameterValue", msg)
         database.update(db_kwargs)
         return database
 
