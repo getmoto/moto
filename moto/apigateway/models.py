@@ -5,6 +5,7 @@ import re
 import responses
 import requests
 import time
+from datetime import datetime
 from collections import defaultdict
 from openapi_spec_validator import validate_spec
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -19,6 +20,7 @@ from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url
 from .exceptions import (
+    BadRequestException,
     ConflictException,
     DeploymentNotFoundException,
     ApiKeyNotFoundException,
@@ -1572,6 +1574,42 @@ class APIGatewayBackend(BaseBackend):
         self.put_rest_api(api.id, api_doc, fail_on_warnings=fail_on_warnings)
         return api
 
+    def export_api(self, rest_api_id: str, export_type: str) -> Dict[str, Any]:
+        """
+        Not all fields are implemented yet.
+        The export-type is currently ignored - we will only return the 'swagger'-format
+        """
+        try:
+            api = self.get_rest_api(rest_api_id)
+        except RestAPINotFound:
+            raise StageNotFoundException
+        if export_type not in ["swagger", "oas30"]:
+            raise BadRequestException(f"No API exporter for type '{export_type}'")
+        now = datetime.now().strftime("%Y-%m-%dT%H:%m:%S")
+        resp: Dict[str, Any] = {
+            "swagger": "2.0",
+            "info": {"version": now, "title": api.name},
+            "host": f"{api.id}.execute-api.{self.region_name}.amazonaws.com",
+            "basePath": "/",
+            "schemes": ["https"],
+            "paths": {},
+            "definitions": {"Empty": {"type": "object", "title": "Empty Schema"}},
+        }
+        for res in api.resources.values():
+            path = res.get_path()
+            resp["paths"][path] = {}
+            for method_type, method in res.resource_methods.items():
+                resp["paths"][path][method_type] = {
+                    "produces": ["application/json"],
+                    "responses": {},
+                }
+                for code, _ in method.method_responses.items():
+                    resp["paths"][path][method_type]["responses"][code] = {
+                        "description": f"{code} response",
+                        "schema": {"$ref": "#/definitions/Empty"},
+                    }
+        return resp
+
     def get_rest_api(self, function_id: str) -> RestAPI:
         rest_api = self.apis.get(function_id)
         if rest_api is None:
@@ -1610,6 +1648,27 @@ class APIGatewayBackend(BaseBackend):
         for (path, resource_doc) in sorted(
             api_doc["paths"].items(), key=lambda x: x[0]
         ):
+            # We may want to create a path like /store/inventory
+            # Ensure that /store exists first, so we can use it as a parent
+            ancestors = path.split("/")[
+                1:-1
+            ]  # skip first (empty), skip last (child) - only process ancestors
+            direct_parent = ""
+            parent_id = self.apis[function_id].get_resource_for_path("/").id
+            for a in ancestors:
+                res = self.apis[function_id].get_resource_for_path(
+                    direct_parent + "/" + a
+                )
+                if res is None:
+                    res = self.create_resource(
+                        function_id=function_id,
+                        parent_resource_id=parent_id,
+                        path_part=a,
+                    )
+                parent_id = res.id
+                direct_parent = direct_parent + "/" + a
+
+            # Now that we know all ancestors are created, create the resource itself
             parent_path_part = path[0 : path.rfind("/")] or "/"
             parent_resource_id = (
                 self.apis[function_id].get_resource_for_path(parent_path_part).id

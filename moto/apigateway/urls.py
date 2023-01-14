@@ -14,6 +14,7 @@ url_paths = {
     "{0}/restapis/(?P<function_id>[^/]+)/stages$": response.restapis_stages,
     "{0}/tags/arn:aws:apigateway:(?P<region_name>[^/]+)::/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)/?$": response.restapis_stages_tags,
     "{0}/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)/?$": response.stages,
+    "{0}/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)/exports/(?P<export_type>[^/]+)/?$": response.export,
     "{0}/restapis/(?P<function_id>[^/]+)/deployments$": response.deployments,
     "{0}/restapis/(?P<function_id>[^/]+)/deployments/(?P<deployment_id>[^/]+)/?$": response.individual_deployment,
     "{0}/restapis/(?P<function_id>[^/]+)/resources/(?P<resource_id>[^/]+)/?$": response.resource_individual,
