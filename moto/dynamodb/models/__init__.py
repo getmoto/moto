@@ -1422,7 +1422,7 @@ class DynamoDBBackend(BaseBackend):
         else:
             return table.schema
 
-    def get_table(self, table_name):
+    def get_table(self, table_name) -> Table:
         if table_name not in self.tables:
             raise ResourceNotFoundException()
         return self.tables.get(table_name)
