@@ -649,6 +649,15 @@ class LogsBackend(BaseBackend):
         log_group = self.groups[log_group_name]
         return log_group.create_log_stream(log_stream_name)
 
+    def ensure_log_stream(self, log_group_name: str, log_stream_name: str) -> None:
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+
+        if log_stream_name in self.groups[log_group_name].streams:
+            return
+
+        self.create_log_stream(log_group_name, log_stream_name)
+
     def delete_log_stream(self, log_group_name, log_stream_name):
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()

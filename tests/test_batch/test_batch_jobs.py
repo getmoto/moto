@@ -157,6 +157,72 @@ def test_submit_job():
 @mock_iam
 @mock_batch
 @pytest.mark.network
+def test_submit_job_multinode():
+    ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
+    start_time_milliseconds = time.time() * 1000
+
+    job_def_name = str(uuid4())[0:6]
+    commands = ["echo", "hello"]
+    job_def_arn, queue_arn = prepare_multinode_job(
+        batch_client, commands, iam_arn, job_def_name
+    )
+
+    resp = batch_client.submit_job(
+        jobName=str(uuid4())[0:6], jobQueue=queue_arn, jobDefinition=job_def_arn
+    )
+    job_id = resp["jobId"]
+
+    # Test that describe_jobs() returns 'createdAt'
+    # github.com/getmoto/moto/issues/4364
+    resp = batch_client.describe_jobs(jobs=[job_id])
+    created_at = resp["jobs"][0]["createdAt"]
+    created_at.should.be.greater_than(start_time_milliseconds)
+
+    _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
+
+    resp = logs_client.describe_log_streams(
+        logGroupName="/aws/batch/job", logStreamNamePrefix=job_def_name
+    )
+    resp["logStreams"].should.have.length_of(1)
+    ls_name = resp["logStreams"][0]["logStreamName"]
+
+    resp = logs_client.get_log_events(
+        logGroupName="/aws/batch/job", logStreamName=ls_name
+    )
+    [event["message"] for event in resp["events"]].should.equal(["hello", "hello"])
+
+    # Test that describe_jobs() returns timestamps in milliseconds
+    # github.com/getmoto/moto/issues/4364
+    job = batch_client.describe_jobs(jobs=[job_id])["jobs"][0]
+    created_at = job["createdAt"]
+    started_at = job["startedAt"]
+    stopped_at = job["stoppedAt"]
+
+    created_at.should.be.greater_than(start_time_milliseconds)
+    started_at.should.be.greater_than(start_time_milliseconds)
+    stopped_at.should.be.greater_than(start_time_milliseconds)
+
+    # Verify we track attempts
+    job.should.have.key("attempts").length_of(1)
+    attempt = job["attempts"][0]
+    attempt.should.have.key("container")
+    attempt["container"].should.have.key("containerInstanceArn")
+    attempt["container"].should.have.key("logStreamName").equals(
+        job["container"]["logStreamName"]
+    )
+    attempt["container"].should.have.key("networkInterfaces")
+    attempt["container"].should.have.key("taskArn")
+    attempt.should.have.key("startedAt").equals(started_at)
+    attempt.should.have.key("stoppedAt").equals(stopped_at)
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+@pytest.mark.network
 def test_list_jobs():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -204,6 +270,18 @@ def test_list_jobs():
         job.should.have.key("status").equals("SUCCEEDED")
         job.should.have.key("stoppedAt")
         job.should.have.key("container").should.have.key("exitCode").equals(0)
+
+    filtered_jobs = batch_client.list_jobs(
+        jobQueue=queue_arn,
+        filters=[
+            {
+                "name": "JOB_NAME",
+                "values": ["test2"],
+            }
+        ],
+    )["jobSummaryList"]
+    filtered_jobs.should.have.length_of(1)
+    filtered_jobs[0]["jobName"].should.equal("test2")
 
 
 @mock_logs
@@ -766,6 +844,51 @@ def prepare_job(batch_client, commands, iam_arn, job_def_name):
             "vcpus": 1,
             "memory": 128,
             "command": commands,
+        },
+    )
+    job_def_arn = resp["jobDefinitionArn"]
+    return job_def_arn, queue_arn
+
+
+def prepare_multinode_job(batch_client, commands, iam_arn, job_def_name):
+    compute_name = str(uuid4())[0:6]
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName=str(uuid4())[0:6],
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+    container = {
+        "image": "busybox:latest",
+        "vcpus": 1,
+        "memory": 128,
+        "command": commands,
+    }
+    resp = batch_client.register_job_definition(
+        jobDefinitionName=job_def_name,
+        type="multinode",
+        nodeProperties={
+            "mainNode": 0,
+            "numNodes": 2,
+            "nodeRangeProperties": [
+                {
+                    "container": container,
+                    "targetNodes": "0",
+                },
+                {
+                    "container": container,
+                    "targetNodes": "1",
+                },
+            ],
         },
     )
     job_def_arn = resp["jobDefinitionArn"]
