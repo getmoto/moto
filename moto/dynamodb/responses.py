@@ -13,7 +13,7 @@ from .exceptions import (
     ResourceNotFoundException,
     ConditionalCheckFailed,
 )
-from moto.dynamodb.models import dynamodb_backends, dynamo_json_dump
+from moto.dynamodb.models import dynamodb_backends, dynamo_json_dump, Table
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 
 
@@ -67,7 +67,7 @@ def include_consumed_capacity(val=1.0):
     return _inner
 
 
-def get_empty_keys_on_put(field_updates, table):
+def get_empty_keys_on_put(field_updates, table: Table):
     """
     Return the first key-name that has an empty value. None if all keys are filled
     """
@@ -103,6 +103,16 @@ def put_has_empty_attrs(field_updates, table):
         ]
         return any([_validate_attr(attr) for attr in attrs_to_check])
     return False
+
+
+def validate_put_has_gsi_keys_set_to_none(item, table: Table) -> None:
+    for gsi in table.global_indexes:
+        for attr in gsi.schema:
+            attr_name = attr["AttributeName"]
+            if attr_name in item and item[attr_name] == {"NULL": True}:
+                raise MockValidationException(
+                    f"One or more parameter values were invalid: Type mismatch for Index Key {attr_name} Expected: S Actual: NULL IndexName: {gsi.name}"
+                )
 
 
 def check_projection_expression(expression):
@@ -375,15 +385,17 @@ class DynamoHandler(BaseResponse):
         if return_values not in ("ALL_OLD", "NONE"):
             raise MockValidationException("Return values set to invalid value")
 
-        empty_key = get_empty_keys_on_put(item, self.dynamodb_backend.get_table(name))
+        table = self.dynamodb_backend.get_table(name)
+        empty_key = get_empty_keys_on_put(item, table)
         if empty_key:
             raise MockValidationException(
                 f"One or more parameter values were invalid: An AttributeValue may not contain an empty string. Key: {empty_key}"
             )
-        if put_has_empty_attrs(item, self.dynamodb_backend.get_table(name)):
+        if put_has_empty_attrs(item, table):
             raise MockValidationException(
                 "One or more parameter values were invalid: An number set  may not be empty"
             )
+        validate_put_has_gsi_keys_set_to_none(item, table)
 
         overwrite = "Expected" not in self.body
         if not overwrite:

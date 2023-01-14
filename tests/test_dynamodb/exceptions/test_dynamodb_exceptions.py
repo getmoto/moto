@@ -899,3 +899,43 @@ def test_put_item__string_as_integer_value():
     err = exc.value.response["Error"]
     err["Code"].should.equal("SerializationException")
     err["Message"].should.equal("Start of structure or map found where not expected")
+
+
+@mock_dynamodb
+def test_gsi_key_cannot_be_empty():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    hello_index = {
+        "IndexName": "hello-index",
+        "KeySchema": [{"AttributeName": "hello", "KeyType": "HASH"}],
+        "Projection": {"ProjectionType": "ALL"},
+    }
+    table_name = "lilja-test"
+
+    # Let's create a table with [id: str, hello: str], with an index to hello
+    dynamodb.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "hello", "AttributeType": "S"},
+        ],
+        GlobalSecondaryIndexes=[hello_index],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    table = dynamodb.Table(table_name)
+    with pytest.raises(ClientError) as exc:
+        table.put_item(
+            TableName=table_name,
+            Item={
+                "id": "woop",
+                "hello": None,
+            },
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Type mismatch for Index Key hello Expected: S Actual: NULL IndexName: hello-index"
+    )
