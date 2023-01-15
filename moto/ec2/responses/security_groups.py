@@ -195,13 +195,12 @@ class SecurityGroups(EC2BaseResponse):
         return template.render(groups=groups)
 
     def describe_security_group_rules(self):
-        group_id_or_name = self._get_param("GroupId") or self._get_param("GroupName")
+        group_id = self._get_param("GroupId")
         filters = self._get_param("Filter")
         if self.is_not_dryrun("DescribeSecurityGroups"):
-            rules = self.ec2_backend.describe_security_group_rules(group_id_or_name, filters)
+            rules = self.ec2_backend.describe_security_group_rules(group_id, filters)
             template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
             return template.render(rules=rules)
-
 
     def revoke_security_group_egress(self):
         if self.is_not_dryrun("RevokeSecurityGroupEgress"):
@@ -249,45 +248,37 @@ CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://e
 </CreateSecurityGroupResponse>"""
 
 DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
-<DescribeSecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <securityGroupInfo>
-      {% for rule in rules %}
-          <item>
-             <groupId>{{ rule.group_id }}</groupId>
-             <ipPermissions>
-                <item>
-                   <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-                   {% if rule.from_port is not none %}
-                   <fromPort>{{ rule.from_port }}</fromPort>
-                   {% endif %}
-                   {% if rule.to_port is not none %}
-                   <toPort>{{ rule.to_port }}</toPort>
-                   {% endif %}
-                   <ipRanges>
-                      {% for range in rule.ip_ranges %}
-                      <item>
-                        <cidrIp>{{ range }}</cidrIp>
-                      </item>
-                      {% endfor %}
-                   </ipRanges>
-                   <groups>
-                      {% for group in rule.source_groups %}
-                      <item>
-                        <groupId>{{ group.id }}</groupId>
-                        <groupName>{{ group.name }}</groupName>
-                      </item>
-                      {% endfor %}
-                   </groups>
-                </item>
-             </ipPermissions>
-          </item>
-      {% endfor %}
-   </securityGroupInfo>
+<DescribeSecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>2baaa089-3113-4af5-a1cc-c3af1abe7c6e</requestId>
+  <securityGroupRuleSet>
+    <item>
+      <cidrIpv4>0.0.0.0/0</cidrIpv4>
+      <fromPort>-1</fromPort>
+      <groupId>sg-09947149b55c2f314</groupId>
+      <groupOwnerId>120339841611</groupOwnerId>
+      <ipProtocol>-1</ipProtocol>
+      <isEgress>true</isEgress>
+      <securityGroupRuleId>sgr-0de5e77f580100cfc</securityGroupRuleId>
+      <tagSet/>
+      <toPort>-1</toPort>
+    </item>
+    <item>
+      <fromPort>-1</fromPort>
+      <groupId>sg-09947149b55c2f314</groupId>
+      <groupOwnerId>120339841611</groupOwnerId>
+      <ipProtocol>-1</ipProtocol>
+      <isEgress>false</isEgress>
+      <referencedGroupInfo>
+        <groupId>sg-09947149b55c2f314</groupId>
+        <userId>120339841611</userId>
+      </referencedGroupInfo>
+      <securityGroupRuleId>sgr-05f08a328b2f21dd1</securityGroupRuleId>
+      <tagSet/>
+      <toPort>-1</toPort>
+    </item>
+  </securityGroupRuleSet>
 </DescribeSecurityGroupRulesResponse>
 """
-
-
 
 DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
