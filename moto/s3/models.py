@@ -1456,6 +1456,37 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             key.dispose()
         super().reset()
 
+    def log_incoming_request(self, request, bucket_name):
+        """
+        Process incoming requests
+        If the request is made to a bucket with logging enabled, logs will be persisted in the appropriate bucket
+        """
+        try:
+            bucket = self.get_bucket(bucket_name)
+            target_bucket = bucket.logging["TargetBucket"]
+            prefix = bucket.logging.get("TargetPrefix", "")
+
+            now = datetime.datetime.now()
+            file_name = now.strftime(
+                f"%Y-%m-%d-%H-%M-%S-{random.get_random_hex(16).upper()}"
+            )
+            date = now.strftime("%d/%b/%Y:%H:%M:%S +0000")
+            source_ip = "0.0.0.0"
+            source_iam = "-"  # Can be the user ARN, or empty
+            unknown_hex = random.get_random_hex(16)
+            source = f"REST.{request.method}.BUCKET"  # REST/CLI/CONSOLE
+            key_name = "-"
+            path = urllib.parse.urlparse(request.url).path or "-"
+            http_line = f"{request.method} {path} HTTP/1.1"
+            response = '200 - - 1 2 "-"'
+            user_agent = f"{request.headers.get('User-Agent')} prompt/off command/s3api.put-object"
+            content = f"{random.get_random_hex(64)} originbucket [{date}] {source_ip} {source_iam} {unknown_hex} {source} {key_name} {http_line} {response} {user_agent} - c29tZSB1bmtub3duIGRhdGE= SigV4 ECDHE-RSA-AES128-GCM-SHA256 AuthHeader {request.url.split('amazonaws.com')[0]}amazonaws.com TLSv1.2 - -"
+            self.put_object(target_bucket, prefix + file_name, value=content)
+        except:  # noqa: E722 Do not use bare except
+            # log delivery is not guaranteed in AWS, so if anything goes wrong, it's 'safe' to just ignore it
+            # Realistically, we should only get here when the bucket does not exist, or logging is not enabled
+            pass
+
     @property
     def _url_module(self):
         # The urls-property can be different depending on env variables
@@ -1909,9 +1940,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket.set_cors(cors_rules)
 
     def put_bucket_logging(self, bucket_name, logging_config):
-        """
-        The logging functionality itself is not yet implemented - we only store the configuration for now.
-        """
         bucket = self.get_bucket(bucket_name)
         bucket.set_logging(logging_config, self)
 
