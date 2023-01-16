@@ -1,7 +1,7 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import glue_backends
+from .models import glue_backends, GlueBackend
 
 
 class GlueResponse(BaseResponse):
@@ -9,8 +9,8 @@ class GlueResponse(BaseResponse):
         super().__init__(service_name="glue")
 
     @property
-    def glue_backend(self):
-        return glue_backends[self.current_account]["global"]
+    def glue_backend(self) -> GlueBackend:
+        return glue_backends[self.current_account][self.region]
 
     @property
     def parameters(self):
@@ -413,6 +413,20 @@ class GlueResponse(BaseResponse):
         registry = self.glue_backend.create_registry(registry_name, description, tags)
         return json.dumps(registry)
 
+    def delete_registry(self):
+        registry_id = self._get_param("RegistryId")
+        registry = self.glue_backend.delete_registry(registry_id)
+        return json.dumps(registry)
+
+    def get_registry(self):
+        registry_id = self._get_param("RegistryId")
+        registry = self.glue_backend.get_registry(registry_id)
+        return json.dumps(registry)
+
+    def list_registries(self):
+        registries = self.glue_backend.list_registries()
+        return json.dumps({"Registries": registries})
+
     def create_schema(self):
         registry_id = self._get_param("RegistryId")
         schema_name = self._get_param("SchemaName")
@@ -468,7 +482,19 @@ class GlueResponse(BaseResponse):
         )
         return json.dumps(schema_version)
 
+    def get_schema(self):
+        schema_id = self._get_param("SchemaId")
+        schema = self.glue_backend.get_schema(schema_id)
+        return json.dumps(schema)
+
     def delete_schema(self):
         schema_id = self._get_param("SchemaId")
         schema = self.glue_backend.delete_schema(schema_id)
+        return json.dumps(schema)
+
+    def update_schema(self):
+        schema_id = self._get_param("SchemaId")
+        compatibility = self._get_param("Compatibility")
+        description = self._get_param("Description")
+        schema = self.glue_backend.update_schema(schema_id, compatibility, description)
         return json.dumps(schema)
