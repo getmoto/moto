@@ -247,6 +247,8 @@ class S3Response(BaseResponse):
     @amzn_request_id
     def bucket_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers, use_raw_body=True)
+        bucket_name = self.parse_bucket_name_from_url(request, full_url)
+        self.backend.log_incoming_request(request, bucket_name)
         try:
             response = self._bucket_response(request, full_url)
         except S3ClientError as s3error:
@@ -1112,6 +1114,8 @@ class S3Response(BaseResponse):
     def key_response(self, request, full_url, headers):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.setup_class(request, full_url, headers, use_raw_body=True)
+        bucket_name = self.parse_bucket_name_from_url(request, full_url)
+        self.backend.log_incoming_request(request, bucket_name)
         response_headers = {}
 
         try:
