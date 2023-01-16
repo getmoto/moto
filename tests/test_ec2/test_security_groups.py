@@ -576,12 +576,17 @@ def test_create_and_describe_security_grp_rule():
 
     # Ingress rule
     ip_permissions = [
-        {"IpProtocol": "tcp", "FromPort": 27017, "ToPort": 27017, "IpRanges": [{"CidrIp": "1.2.3.4/32"}], }]
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27017,
+            "ToPort": 27017,
+            "IpRanges": [{"CidrIp": "1.2.3.4/32"}],
+        }
+    ]
     sg.authorize_ingress(IpPermissions=ip_permissions)
 
     # Describing the ingress rule
     response = client.describe_security_group_rules(Filters=[{"Name": sg_id}])
-
     ingress_rule = response["SecurityGroupRules"][0]["IpPermissions"][0]
     assert ingress_rule["IpProtocol"] == "tcp"
     assert ingress_rule["FromPort"] == 27017
@@ -957,10 +962,10 @@ def test_authorize_and_revoke_in_bulk():
     for rule in ip_permissions.copy():
         for other_rule in ip_permissions.copy():
             if (
-                    rule is not other_rule
-                    and rule.get("IpProtocol") == other_rule.get("IpProtocol")
-                    and rule.get("FromPort") == other_rule.get("FromPort")
-                    and rule.get("ToPort") == other_rule.get("ToPort")
+                rule is not other_rule
+                and rule.get("IpProtocol") == other_rule.get("IpProtocol")
+                and rule.get("FromPort") == other_rule.get("FromPort")
+                and rule.get("ToPort") == other_rule.get("ToPort")
             ):
                 if rule in ip_permissions:
                     ip_permissions.remove(rule)

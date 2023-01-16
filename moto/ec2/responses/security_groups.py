@@ -249,36 +249,29 @@ CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://e
 
 DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
 <DescribeSecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-  <requestId>2baaa089-3113-4af5-a1cc-c3af1abe7c6e</requestId>
-  <securityGroupRuleSet>
-    <item>
-      <cidrIpv4>0.0.0.0/0</cidrIpv4>
-      <fromPort>-1</fromPort>
-      <groupId>sg-09947149b55c2f314</groupId>
-      <groupOwnerId>120339841611</groupOwnerId>
-      <ipProtocol>-1</ipProtocol>
-      <isEgress>true</isEgress>
-      <securityGroupRuleId>sgr-0de5e77f580100cfc</securityGroupRuleId>
-      <tagSet/>
-      <toPort>-1</toPort>
-    </item>
-    <item>
-      <fromPort>-1</fromPort>
-      <groupId>sg-09947149b55c2f314</groupId>
-      <groupOwnerId>120339841611</groupOwnerId>
-      <ipProtocol>-1</ipProtocol>
-      <isEgress>false</isEgress>
-      <referencedGroupInfo>
-        <groupId>sg-09947149b55c2f314</groupId>
-        <userId>120339841611</userId>
-      </referencedGroupInfo>
-      <securityGroupRuleId>sgr-05f08a328b2f21dd1</securityGroupRuleId>
-      <tagSet/>
-      <toPort>-1</toPort>
-    </item>
-  </securityGroupRuleSet>
-</DescribeSecurityGroupRulesResponse>
-"""
+    <requestId>{{ request_id }}</requestId>
+    <securityGroupRuleSet>
+        {% for rule in security_group_rules %}
+            <item>
+                {% if rule.cidr_ipv4 %}<cidrIpv4>{{ rule.cidr_ipv4 }}</cidrIpv4>{% endif %}
+                <fromPort>{{ rule.from_port }}</fromPort>
+                <groupId>{{ rule.group_id }}</groupId>
+                <groupOwnerId>{{ rule.group_owner_id }}</groupOwnerId>
+                <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+                <isEgress>{{ rule.is_egress }}</isEgress>
+                <securityGroupRuleId>{{ rule.security_group_rule_id }}</securityGroupRuleId>
+                <toPort>{{ rule.to_port }}</toPort>
+                {% if rule.referenced_group_id %}
+                <referencedGroupInfo>
+                    <groupId>{{ rule.referenced_group_id }}</groupId>
+                    <userId>{{ rule.referenced_user_id }}</userId>
+                </referencedGroupInfo>
+                {% endif %}
+            </item>
+        {% endfor %}
+    </securityGroupRuleSet>
+    {% if next_token %}<nextToken>{{ next_token }}</nextToken>{% endif %}
+</DescribeSecurityGroupRulesResponse>"""
 
 DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
