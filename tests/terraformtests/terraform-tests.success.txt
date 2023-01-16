@@ -200,6 +200,8 @@ events:
   - TestAccEventsConnection
   - TestAccEventsConnectionDataSource
   - TestAccEventsPermission
+glue:
+  - TestAccGlueSchema_
 guardduty:
   - TestAccGuardDuty_serial/Detector/basic
   - TestAccGuardDuty_serial/Filter/basic
