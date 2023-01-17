@@ -533,7 +533,6 @@ class SecurityGroupBackend:
                 raise InvalidSecurityGroupNotFoundError(
                     "No security groups found matching the filters provided."
                 )
-
         rules = []
         for group in matches:
             rules.extend(group.ingress_rules)

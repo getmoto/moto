@@ -249,28 +249,24 @@ CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://e
 
 DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
 <DescribeSecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-    <requestId>{{ request_id }}</requestId>
-    <securityGroupRuleSet>
-        {% for rule in security_group_rules %}
-            <item>
-                {% if rule.cidr_ipv4 %}<cidrIpv4>{{ rule.cidr_ipv4 }}</cidrIpv4>{% endif %}
-                <fromPort>{{ rule.from_port }}</fromPort>
-                <groupId>{{ rule.group_id }}</groupId>
-                <groupOwnerId>{{ rule.group_owner_id }}</groupOwnerId>
-                <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-                <isEgress>{{ rule.is_egress }}</isEgress>
-                <securityGroupRuleId>{{ rule.security_group_rule_id }}</securityGroupRuleId>
-                <toPort>{{ rule.to_port }}</toPort>
-                {% if rule.referenced_group_id %}
-                <referencedGroupInfo>
-                    <groupId>{{ rule.referenced_group_id }}</groupId>
-                    <userId>{{ rule.referenced_user_id }}</userId>
-                </referencedGroupInfo>
-                {% endif %}
-            </item>
-        {% endfor %}
-    </securityGroupRuleSet>
-    {% if next_token %}<nextToken>{{ next_token }}</nextToken>{% endif %}
+  <requestId>{{ request_id }}</requestId>
+  <securityGroupRuleSet>
+      {% for rule in rules %}
+    <item>
+        {% if rule.from_port is not none %}
+       <fromPort>{{ rule.from_port }}</fromPort>
+       {% endif %}
+       {% if rule.to_port is not none %}
+       <toPort>{{ rule.to_port }}</toPort>
+       {% endif %}
+        <cidrIpv4>{{ rule.ipv4 }}</cidrIpv4>
+      <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+      <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
+      <isEgress>true</isEgress>
+      <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
+        </item>
+    {% endfor %}
+  </securityGroupRuleSet>
 </DescribeSecurityGroupRulesResponse>"""
 
 DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
