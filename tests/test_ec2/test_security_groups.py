@@ -600,7 +600,7 @@ def test_create_and_describe_security_grp_rule():
             assert rule["IpProtocol"] == ip_protocol
             assert rule["FromPort"] == from_port
             assert rule["ToPort"] == to_port
-            assert rule['CidrIpv4'] == cidr_ip_range
+            assert rule["CidrIpv4"] == cidr_ip_range
             rule_found = True
             break
     assert rule_found, True
