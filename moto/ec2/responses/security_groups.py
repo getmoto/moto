@@ -259,7 +259,7 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
        {% if rule.to_port is not none %}
        <toPort>{{ rule.to_port }}</toPort>
        {% endif %}
-        <cidrIpv4>{{ rule.ipv4 }}</cidrIpv4>
+        <cidrIpv4>{{ rule.ip_ranges[0]['CidrIp'] }}</cidrIpv4>
       <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
       <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
       <isEgress>true</isEgress>
