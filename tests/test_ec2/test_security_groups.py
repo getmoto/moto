@@ -565,6 +565,11 @@ def test_authorize_all_protocols_with_no_port_specification():
 
 @mock_ec2
 def test_create_and_describe_security_grp_rule():
+    ip_protocol = "tcp"
+    from_port = 27017
+    to_port = 27017
+    cidr_ip_range = "1.2.3.4/32"
+
     ec2 = boto3.resource("ec2", "us-east-1")
     client = boto3.client("ec2", "us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -576,10 +581,10 @@ def test_create_and_describe_security_grp_rule():
     # Ingress rule
     ip_permissions = [
         {
-            "IpProtocol": "tcp",
-            "FromPort": 27017,
-            "ToPort": 27017,
-            "IpRanges": [{"CidrIp": "1.2.3.4/32"}],
+            "IpProtocol": ip_protocol,
+            "FromPort": from_port,
+            "ToPort": to_port,
+            "IpRanges": [{"CidrIp": cidr_ip_range}],
         }
     ]
     sgr = sg.authorize_ingress(IpPermissions=ip_permissions)
@@ -592,9 +597,9 @@ def test_create_and_describe_security_grp_rule():
     rule_found = False
     for rule in ingress_rule:
         if rule["SecurityGroupRuleId"] == sgr_id:
-            assert rule["IpProtocol"] == "tcp"
-            assert rule["FromPort"] == 27017
-            assert rule["ToPort"] == 27017
+            assert rule["IpProtocol"] == ip_protocol
+            assert rule["FromPort"] == from_port
+            assert rule["ToPort"] == to_port
             rule_found = True
             break
     assert rule_found, True
