@@ -194,6 +194,14 @@ class SecurityGroups(EC2BaseResponse):
         template = self.response_template(DESCRIBE_SECURITY_GROUPS_RESPONSE)
         return template.render(groups=groups)
 
+    def describe_security_group_rules(self):
+        group_id = self._get_param("GroupId")
+        filters = self._get_param("Filter")
+        if self.is_not_dryrun("DescribeSecurityGroups"):
+            rules = self.ec2_backend.describe_security_group_rules(group_id, filters)
+            template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
+            return template.render(rules=rules)
+
     def revoke_security_group_egress(self):
         if self.is_not_dryrun("RevokeSecurityGroupEgress"):
             for args in self._process_rules_from_querystring():
@@ -238,6 +246,28 @@ CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://e
     {% endfor %}
     </tagSet>
 </CreateSecurityGroupResponse>"""
+
+DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
+<DescribeSecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>{{ request_id }}</requestId>
+  <securityGroupRuleSet>
+      {% for rule in rules %}
+    <item>
+        {% if rule.from_port is not none %}
+       <fromPort>{{ rule.from_port }}</fromPort>
+       {% endif %}
+       {% if rule.to_port is not none %}
+       <toPort>{{ rule.to_port }}</toPort>
+       {% endif %}
+        <cidrIpv4>{{ rule.ip_ranges[0]['CidrIp'] }}</cidrIpv4>
+      <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+      <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
+      <isEgress>true</isEgress>
+      <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
+        </item>
+    {% endfor %}
+  </securityGroupRuleSet>
+</DescribeSecurityGroupRulesResponse>"""
 
 DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>

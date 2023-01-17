@@ -520,6 +520,26 @@ class SecurityGroupBackend:
 
         return matches
 
+    def describe_security_group_rules(self, group_ids=None, filters=None):
+        matches = itertools.chain(*[x.copy().values() for x in self.groups.values()])
+        if group_ids:
+            matches = [grp for grp in matches if grp.id in group_ids]
+            if len(group_ids) > len(matches):
+                unknown_ids = set(group_ids) - set(matches)
+                raise InvalidSecurityGroupNotFoundError(unknown_ids)
+        if filters:
+            matches = [grp for grp in matches if grp.matches_filters(filters)]
+            if not matches:
+                raise InvalidSecurityGroupNotFoundError(
+                    "No security groups found matching the filters provided."
+                )
+        rules = []
+        for group in matches:
+            rules.extend(group.ingress_rules)
+            rules.extend(group.egress_rules)
+
+        return rules
+
     def _delete_security_group(self, vpc_id, group_id):
         vpc_id = vpc_id or self.default_vpc.id
         if self.groups[vpc_id][group_id].enis:
