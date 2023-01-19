@@ -1269,6 +1269,35 @@ def test_render_template():
 
 
 @mock_ses
+def test_render_template__with_foreach():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        TemplateName="MTT",
+        TemplateData=json.dumps(
+            {
+                "items": [
+                    {"type": "dog", "name": "bobby"},
+                    {"type": "cat", "name": "pedro"},
+                ]
+            }
+        ),
+    )
+
+    conn.create_template(
+        Template={
+            "TemplateName": "MTT",
+            "SubjectPart": "..",
+            "TextPart": "..",
+            "HtmlPart": "{{#each items}} {{name}} is a {{type}}, {{/each}}",
+        }
+    )
+    result = conn.test_render_template(**kwargs)
+    result["RenderedTemplate"].should.contain("bobby is a dog")
+    result["RenderedTemplate"].should.contain("pedro is a cat")
+
+
+@mock_ses
 def test_update_ses_template():
     conn = boto3.client("ses", region_name="us-east-1")
     template = {
