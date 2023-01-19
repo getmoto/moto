@@ -1,7 +1,7 @@
+import datetime
 from collections import defaultdict
 
 from moto.ec2.models.spot_requests import SpotFleetLaunchSpec
-
 from .core import TaggedEC2Resource
 from ..utils import (
     random_fleet_id,
@@ -39,7 +39,7 @@ class Fleet(TaggedEC2Resource):
         self.replace_unhealthy_instances = replace_unhealthy_instances
         self.terminate_instances_with_expiration = terminate_instances_with_expiration
         self.fleet_type = fleet_type
-        self.valid_from = valid_from
+        self.valid_from = valid_from or datetime.datetime.now(tz=datetime.timezone.utc)
         self.valid_until = valid_until
         tag_map = convert_tag_spec(tag_specifications).get("fleet", {})
         self.add_tags(tag_map)
@@ -102,12 +102,12 @@ class Fleet(TaggedEC2Resource):
             target_capacity_specification.get("TotalTargetCapacity")
         )
         self.spot_target_capacity = int(
-            target_capacity_specification.get("SpotTargetCapacity")
+            target_capacity_specification.get("SpotTargetCapacity", 0)
         )
         if self.spot_target_capacity > 0:
             self.create_spot_requests(self.spot_target_capacity)
         self.on_demand_target_capacity = int(
-            target_capacity_specification.get("OnDemandTargetCapacity")
+            target_capacity_specification.get("OnDemandTargetCapacity", self.target_capacity)
         )
         if self.on_demand_target_capacity > 0:
             self.create_on_demand_requests(self.on_demand_target_capacity)
