@@ -2,13 +2,17 @@
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import unix_time
-from moto.ec2 import ec2_backends
+from moto.ec2.models import ec2_backends, EC2Backend
 from moto.ec2.models.elastic_block_store import Snapshot
 from moto.moto_api._internal import mock_random
 
+from typing import Any, Dict, List, Optional, Tuple
+
 
 class Block(BaseModel):
-    def __init__(self, block_data, checksum, checksum_algorithm, data_length):
+    def __init__(
+        self, block_data: str, checksum: str, checksum_algorithm: str, data_length: str
+    ):
         self.block_data = block_data
         self.checksum = checksum
         self.checksum_algorithm = checksum_algorithm
@@ -17,7 +21,7 @@ class Block(BaseModel):
 
 
 class EBSSnapshot(BaseModel):
-    def __init__(self, account_id, snapshot: Snapshot):
+    def __init__(self, account_id: str, snapshot: Snapshot):
         self.account_id = account_id
         self.snapshot_id = snapshot.id
         self.status = "pending"
@@ -29,15 +33,20 @@ class EBSSnapshot(BaseModel):
         ]
         self.description = snapshot.description
 
-        self.blocks = dict()
+        self.blocks: Dict[str, Block] = dict()
 
     def put_block(
-        self, block_idx, block_data, checksum, checksum_algorithm, data_length
-    ):
+        self,
+        block_idx: str,
+        block_data: str,
+        checksum: str,
+        checksum_algorithm: str,
+        data_length: str,
+    ) -> None:
         block = Block(block_data, checksum, checksum_algorithm, data_length)
         self.blocks[block_idx] = block
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         return {
             "SnapshotId": self.snapshot_id,
             "OwnerId": self.account_id,
@@ -53,60 +62,65 @@ class EBSSnapshot(BaseModel):
 class EBSBackend(BaseBackend):
     """Implementation of EBS APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.snapshots = dict()
+        self.snapshots: Dict[str, EBSSnapshot] = dict()
 
     @property
-    def ec2_backend(self):
+    def ec2_backend(self) -> EC2Backend:
         return ec2_backends[self.account_id][self.region_name]
 
-    def start_snapshot(self, volume_size, tags, description):
+    def start_snapshot(
+        self, volume_size: str, tags: Optional[List[Dict[str, str]]], description: str
+    ) -> EBSSnapshot:
         zone_name = f"{self.region_name}a"
         vol = self.ec2_backend.create_volume(size=volume_size, zone_name=zone_name)
         snapshot = self.ec2_backend.create_snapshot(
             volume_id=vol.id, description=description
         )
         if tags:
-            tags = {tag["Key"]: tag["Value"] for tag in tags}
-            snapshot.add_tags(tags)
+            snapshot.add_tags({tag["Key"]: tag["Value"] for tag in tags})
         ebs_snapshot = EBSSnapshot(account_id=self.account_id, snapshot=snapshot)
         self.snapshots[ebs_snapshot.snapshot_id] = ebs_snapshot
         return ebs_snapshot
 
-    def complete_snapshot(self, snapshot_id):
+    def complete_snapshot(self, snapshot_id: str) -> Dict[str, str]:
         self.snapshots[snapshot_id].status = "completed"
         return {"Status": "completed"}
 
     def put_snapshot_block(
         self,
-        snapshot_id,
-        block_index,
-        block_data,
-        checksum,
-        checksum_algorithm,
-        data_length,
-    ):
+        snapshot_id: str,
+        block_index: str,
+        block_data: str,
+        checksum: str,
+        checksum_algorithm: str,
+        data_length: str,
+    ) -> Tuple[str, str]:
         snapshot = self.snapshots[snapshot_id]
         snapshot.put_block(
             block_index, block_data, checksum, checksum_algorithm, data_length
         )
         return checksum, checksum_algorithm
 
-    def get_snapshot_block(self, snapshot_id, block_index):
+    def get_snapshot_block(self, snapshot_id: str, block_index: str) -> Block:
         """
         The BlockToken-parameter is not yet implemented
         """
         snapshot = self.snapshots[snapshot_id]
         return snapshot.blocks[block_index]
 
-    def list_changed_blocks(self, first_snapshot_id, second_snapshot_id):
+    def list_changed_blocks(
+        self, first_snapshot_id: str, second_snapshot_id: str
+    ) -> Tuple[Dict[str, Tuple[str, Optional[str]]], EBSSnapshot]:
         """
         The following parameters are not yet implemented: NextToken, MaxResults, StartingBlockIndex
         """
         snapshot1 = self.snapshots[first_snapshot_id]
         snapshot2 = self.snapshots[second_snapshot_id]
-        changed_blocks = dict()  # {idx: (token1, token2), ..}
+        changed_blocks: Dict[
+            str, Tuple[str, Optional[str]]
+        ] = dict()  # {idx: (token1, token2), ..}
         for idx in snapshot1.blocks:
             block1 = snapshot1.blocks[idx]
             if idx in snapshot2.blocks:
@@ -118,7 +132,7 @@ class EBSBackend(BaseBackend):
 
         return changed_blocks, snapshot1
 
-    def list_snapshot_blocks(self, snapshot_id):
+    def list_snapshot_blocks(self, snapshot_id: str) -> EBSSnapshot:
         return self.snapshots[snapshot_id]
 
 
