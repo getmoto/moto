@@ -528,7 +528,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return if_none
 
     def _get_multi_param_dict(self, param_prefix: str) -> Dict[str, Any]:
-        return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
+        return self._get_multi_param_helper(param_prefix)
 
     def _get_multi_param_helper(
         self,
@@ -557,9 +557,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             if match:
                 prefix = param_prefix + match.group(1)
-                value = self._get_multi_param(
-                    prefix, skip_result_conversion=skip_result_conversion
-                )
+                value = self._get_multi_param(prefix)
                 tracked_prefixes.add(prefix)
                 name = prefix
                 value_dict[name] = value
