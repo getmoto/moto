@@ -31,7 +31,8 @@ class Fleets(BaseResponse):
             "TargetCapacitySpecification"
         )
         launch_template_configs = self._get_multi_param(
-            param_prefix="LaunchTemplateConfigs", skip_result_conversion=True,
+            param_prefix="LaunchTemplateConfigs",
+            skip_result_conversion=True,
         )
 
         excess_capacity_termination_policy = self._get_param(
@@ -211,7 +212,7 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                                 {% endif %}
                                 {% if override.InstanceRequirements.MemoryGiBPerVCpu %}
                                 <memoryGiBPerVCpu>
-                                    {% if override.InstanceRequirements.MemoryGiBPerVCpu.Min %} 
+                                    {% if override.InstanceRequirements.MemoryGiBPerVCpu.Min %}
                                     <min>{{ override.InstanceRequirements.MemoryGiBPerVCpu.Min }}</min>
                                     {% endif %}
                                     {% if override.InstanceRequirements.MemoryGiBPerVCpu.Max %}
