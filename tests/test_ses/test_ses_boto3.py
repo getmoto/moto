@@ -20,6 +20,15 @@ def test_verify_email_identity():
 
 
 @mock_ses
+def test_identities_are_region_specific():
+    us_east = boto3.client("ses", region_name="us-east-1")
+    us_east.verify_email_identity(EmailAddress="test@example.com")
+
+    us_west = boto3.client("ses", region_name="us-west-1")
+    us_west.list_identities()["Identities"].should.have.length_of(0)
+
+
+@mock_ses
 def test_verify_email_identity_idempotency():
     conn = boto3.client("ses", region_name="us-east-1")
     address = "test@example.com"
