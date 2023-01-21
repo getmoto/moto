@@ -13,14 +13,19 @@ def str2bool(v):
         return False
 
 
-def load_resource(package: str, resource: str, as_json: bool = True) -> Dict[str, Any]:
+def load_resource(package: str, resource: str) -> Dict[str, Any]:
     """
     Open a file, and return the contents as JSON.
     Usage:
     load_resource(__name__, "resources/file.json")
     """
     resource = pkgutil.get_data(package, resource)
-    return json.loads(resource) if as_json else resource.decode("utf-8")
+    return json.loads(resource)
+
+
+def load_resource_as_str(package: str, resource: str) -> str:
+    resource = pkgutil.get_data(package, resource)
+    return resource.decode("utf-8")
 
 
 def merge_multiple_dicts(*args: Any) -> Dict[str, any]:

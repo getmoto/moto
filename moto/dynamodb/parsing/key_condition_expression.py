@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Any, List, Dict, Tuple, Optional
 from moto.dynamodb.exceptions import MockValidationException
 
 
@@ -8,18 +9,18 @@ class KeyConditionExpressionTokenizer:
     The final character to be returned will be an empty string, to notify the caller that we've reached the end.
     """
 
-    def __init__(self, expression):
+    def __init__(self, expression: str):
         self.expression = expression
         self.token_pos = 0
 
-    def __iter__(self):
+    def __iter__(self) -> "KeyConditionExpressionTokenizer":
         self.token_pos = 0
         return self
 
-    def is_eof(self):
+    def is_eof(self) -> bool:
         return self.peek() == ""
 
-    def peek(self):
+    def peek(self) -> str:
         """
         Peek the next character without changing the position
         """
@@ -28,7 +29,7 @@ class KeyConditionExpressionTokenizer:
         except IndexError:
             return ""
 
-    def __next__(self):
+    def __next__(self) -> str:
         """
         Returns the next character, or an empty string if we've reached the end of the string.
         Calling this method again will result in a StopIterator
@@ -43,7 +44,7 @@ class KeyConditionExpressionTokenizer:
                 return ""
             raise StopIteration
 
-    def skip_characters(self, phrase, case_sensitive=False) -> None:
+    def skip_characters(self, phrase: str, case_sensitive: bool = False) -> None:
         """
         Skip the characters in the supplied phrase.
         If any other character is encountered instead, this will fail.
@@ -56,7 +57,7 @@ class KeyConditionExpressionTokenizer:
                 assert self.expression[self.token_pos] in [ch.lower(), ch.upper()]
             self.token_pos += 1
 
-    def skip_white_space(self):
+    def skip_white_space(self) -> None:
         """
         Skip the any whitespace characters that are coming up
         """
@@ -75,17 +76,17 @@ class EXPRESSION_STAGES(Enum):
     EOF = "EOF"
 
 
-def get_key(schema, key_type):
+def get_key(schema: List[Dict[str, str]], key_type: str) -> Optional[str]:
     keys = [key for key in schema if key["KeyType"] == key_type]
     return keys[0]["AttributeName"] if keys else None
 
 
 def parse_expression(
-    key_condition_expression,
-    expression_attribute_values,
-    expression_attribute_names,
-    schema,
-):
+    key_condition_expression: str,
+    expression_attribute_values: Dict[str, str],
+    expression_attribute_names: Dict[str, str],
+    schema: List[Dict[str, str]],
+) -> Tuple[Dict[str, Any], Optional[str], List[Dict[str, Any]]]:
     """
     Parse a KeyConditionExpression using the provided expression attribute names/values
 
@@ -95,11 +96,11 @@ def parse_expression(
     schema:                      [{'AttributeName': 'hashkey', 'KeyType': 'HASH'}, {"AttributeName": "sortkey", "KeyType": "RANGE"}]
     """
 
-    current_stage: EXPRESSION_STAGES = None
+    current_stage: Optional[EXPRESSION_STAGES] = None
     current_phrase = ""
-    key_name = comparison = None
+    key_name = comparison = ""
     key_values = []
-    results = []
+    results: List[Tuple[str, str, Any]] = []
     tokenizer = KeyConditionExpressionTokenizer(key_condition_expression)
     for crnt_char in tokenizer:
         if crnt_char == " ":
@@ -252,7 +253,9 @@ def parse_expression(
 
 
 # Validate that the schema-keys are encountered in our query
-def validate_schema(results, schema):
+def validate_schema(
+    results: Any, schema: List[Dict[str, str]]
+) -> Tuple[Dict[str, Any], Optional[str], List[Dict[str, Any]]]:
     index_hash_key = get_key(schema, "HASH")
     comparison, hash_value = next(
         (
@@ -283,4 +286,4 @@ def validate_schema(results, schema):
             f"Query condition missed key schema element: {index_range_key}"
         )
 
-    return hash_value, range_comparison, range_values
+    return hash_value, range_comparison, range_values  # type: ignore[return-value]

@@ -1,3 +1,4 @@
+# type: ignore
 import logging
 from abc import abstractmethod
 import abc
@@ -35,7 +36,7 @@ from moto.dynamodb.parsing.tokens import Token, ExpressionTokenizer
 logger = logging.getLogger(__name__)
 
 
-class NestableExpressionParserMixin(object):
+class NestableExpressionParserMixin:
     """
     For nodes that can be nested in themselves (recursive). Take for example UpdateExpression's grammar:
 

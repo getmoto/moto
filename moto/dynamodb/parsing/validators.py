@@ -3,6 +3,7 @@ See docstring class Validator below for more details on validation
 """
 from abc import abstractmethod
 from copy import deepcopy
+from typing import Any, Callable, Dict, List, Type, Union
 
 from moto.dynamodb.exceptions import (
     AttributeIsReservedKeyword,
@@ -15,9 +16,12 @@ from moto.dynamodb.exceptions import (
     EmptyKeyAttributeException,
     UpdateHashRangeKeyException,
 )
-from moto.dynamodb.models import DynamoType
-from moto.dynamodb.parsing.ast_nodes import (
+from moto.dynamodb.models.dynamo_type import DynamoType, Item
+from moto.dynamodb.models.table import Table
+from moto.dynamodb.parsing.ast_nodes import (  # type: ignore
+    Node,
     ExpressionAttribute,
+    UpdateExpressionClause,
     UpdateExpressionPath,
     UpdateExpressionSetAction,
     UpdateExpressionAddAction,
@@ -37,16 +41,23 @@ from moto.dynamodb.parsing.ast_nodes import (
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 
 
-class ExpressionAttributeValueProcessor(DepthFirstTraverser):
-    def __init__(self, expression_attribute_values):
+class ExpressionAttributeValueProcessor(DepthFirstTraverser):  # type: ignore[misc]
+    def __init__(self, expression_attribute_values: Dict[str, Dict[str, Any]]):
         self.expression_attribute_values = expression_attribute_values
 
-    def _processing_map(self):
+    def _processing_map(
+        self,
+    ) -> Dict[
+        Type[ExpressionAttributeValue],
+        Callable[[ExpressionAttributeValue], DDBTypedValue],
+    ]:
         return {
             ExpressionAttributeValue: self.replace_expression_attribute_value_with_value
         }
 
-    def replace_expression_attribute_value_with_value(self, node):
+    def replace_expression_attribute_value_with_value(
+        self, node: ExpressionAttributeValue
+    ) -> DDBTypedValue:
         """A node representing an Expression Attribute Value. Resolve and replace value"""
         assert isinstance(node, ExpressionAttributeValue)
         attribute_value_name = node.get_value_name()
@@ -59,20 +70,24 @@ class ExpressionAttributeValueProcessor(DepthFirstTraverser):
         return DDBTypedValue(DynamoType(target))
 
 
-class ExpressionPathResolver(object):
-    def __init__(self, expression_attribute_names):
+class ExpressionPathResolver:
+    def __init__(self, expression_attribute_names: Dict[str, str]):
         self.expression_attribute_names = expression_attribute_names
 
     @classmethod
-    def raise_exception_if_keyword(cls, attribute):
+    def raise_exception_if_keyword(cls, attribute: Any) -> None:  # type: ignore[misc]
         if attribute.upper() in ReservedKeywords.get_reserved_keywords():
             raise AttributeIsReservedKeyword(attribute)
 
-    def resolve_expression_path(self, item, update_expression_path):
+    def resolve_expression_path(
+        self, item: Item, update_expression_path: UpdateExpressionPath
+    ) -> Union[NoneExistingPath, DDBTypedValue]:
         assert isinstance(update_expression_path, UpdateExpressionPath)
         return self.resolve_expression_path_nodes(item, update_expression_path.children)
 
-    def resolve_expression_path_nodes(self, item, update_expression_path_nodes):
+    def resolve_expression_path_nodes(
+        self, item: Item, update_expression_path_nodes: List[Node]
+    ) -> Union[NoneExistingPath, DDBTypedValue]:
         target = item.attrs
 
         for child in update_expression_path_nodes:
@@ -100,7 +115,7 @@ class ExpressionPathResolver(object):
                     continue
                 elif isinstance(child, ExpressionSelector):
                     index = child.get_index()
-                    if target.is_list():
+                    if target.is_list():  # type: ignore
                         try:
                             target = target[index]
                         except IndexError:
@@ -116,8 +131,8 @@ class ExpressionPathResolver(object):
         return DDBTypedValue(target)
 
     def resolve_expression_path_nodes_to_dynamo_type(
-        self, item, update_expression_path_nodes
-    ):
+        self, item: Item, update_expression_path_nodes: List[Node]
+    ) -> Any:
         node = self.resolve_expression_path_nodes(item, update_expression_path_nodes)
         if isinstance(node, NoneExistingPath):
             raise ProvidedKeyDoesNotExist()
@@ -125,19 +140,30 @@ class ExpressionPathResolver(object):
         return node.get_value()
 
 
-class ExpressionAttributeResolvingProcessor(DepthFirstTraverser):
-    def _processing_map(self):
+class ExpressionAttributeResolvingProcessor(DepthFirstTraverser):  # type: ignore[misc]
+    def _processing_map(
+        self,
+    ) -> Dict[Type[UpdateExpressionClause], Callable[[DDBTypedValue], DDBTypedValue]]:
         return {
             UpdateExpressionSetAction: self.disable_resolving,
             UpdateExpressionPath: self.process_expression_path_node,
         }
 
-    def __init__(self, expression_attribute_names, item):
+    def __init__(self, expression_attribute_names: Dict[str, str], item: Item):
         self.expression_attribute_names = expression_attribute_names
         self.item = item
         self.resolving = False
 
-    def pre_processing_of_child(self, parent_node, child_id):
+    def pre_processing_of_child(
+        self,
+        parent_node: Union[
+            UpdateExpressionSetAction,
+            UpdateExpressionRemoveAction,
+            UpdateExpressionDeleteAction,
+            UpdateExpressionAddAction,
+        ],
+        child_id: int,
+    ) -> None:
         """
         We have to enable resolving if we are processing a child of UpdateExpressionSetAction that is not first.
         Because first argument is path to be set, 2nd argument would be the value.
@@ -156,11 +182,11 @@ class ExpressionAttributeResolvingProcessor(DepthFirstTraverser):
             else:
                 self.resolving = True
 
-    def disable_resolving(self, node=None):
+    def disable_resolving(self, node: DDBTypedValue) -> DDBTypedValue:
         self.resolving = False
         return node
 
-    def process_expression_path_node(self, node):
+    def process_expression_path_node(self, node: DDBTypedValue) -> DDBTypedValue:
         """Resolve ExpressionAttribute if not part of a path and resolving is enabled."""
         if self.resolving:
             return self.resolve_expression_path(node)
@@ -175,13 +201,15 @@ class ExpressionAttributeResolvingProcessor(DepthFirstTraverser):
 
             return node
 
-    def resolve_expression_path(self, node):
+    def resolve_expression_path(
+        self, node: DDBTypedValue
+    ) -> Union[NoneExistingPath, DDBTypedValue]:
         return ExpressionPathResolver(
             self.expression_attribute_names
         ).resolve_expression_path(self.item, node)
 
 
-class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):
+class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):  # type: ignore[misc]
     """
     At time of writing there are only 2 functions for DDB UpdateExpressions. They both are specific to the SET
     expression as per the official AWS docs:
@@ -189,10 +217,15 @@ class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):
         Expressions.UpdateExpressions.html#Expressions.UpdateExpressions.SET
     """
 
-    def _processing_map(self):
+    def _processing_map(
+        self,
+    ) -> Dict[
+        Type[UpdateExpressionFunction],
+        Callable[[UpdateExpressionFunction], DDBTypedValue],
+    ]:
         return {UpdateExpressionFunction: self.process_function}
 
-    def process_function(self, node):
+    def process_function(self, node: UpdateExpressionFunction) -> DDBTypedValue:
         assert isinstance(node, UpdateExpressionFunction)
         function_name = node.get_function_name()
         first_arg = node.get_nth_argument(1)
@@ -217,7 +250,7 @@ class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):
             raise NotImplementedError(f"Unsupported function for moto {function_name}")
 
     @classmethod
-    def get_list_from_ddb_typed_value(cls, node, function_name):
+    def get_list_from_ddb_typed_value(cls, node: DDBTypedValue, function_name: str) -> DynamoType:  # type: ignore[misc]
         assert isinstance(node, DDBTypedValue)
         dynamo_value = node.get_value()
         assert isinstance(dynamo_value, DynamoType)
@@ -226,23 +259,25 @@ class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):
         return dynamo_value
 
 
-class NoneExistingPathChecker(DepthFirstTraverser):
+class NoneExistingPathChecker(DepthFirstTraverser):  # type: ignore[misc]
     """
     Pass through the AST and make sure there are no none-existing paths.
     """
 
-    def _processing_map(self):
+    def _processing_map(self) -> Dict[Type[NoneExistingPath], Callable[[Node], None]]:
         return {NoneExistingPath: self.raise_none_existing_path}
 
-    def raise_none_existing_path(self, node):
+    def raise_none_existing_path(self, node: Node) -> None:
         raise AttributeDoesNotExist
 
 
-class ExecuteOperations(DepthFirstTraverser):
-    def _processing_map(self):
+class ExecuteOperations(DepthFirstTraverser):  # type: ignore[misc]
+    def _processing_map(
+        self,
+    ) -> Dict[Type[UpdateExpressionValue], Callable[[Node], DDBTypedValue]]:
         return {UpdateExpressionValue: self.process_update_expression_value}
 
-    def process_update_expression_value(self, node):
+    def process_update_expression_value(self, node: Node) -> DDBTypedValue:
         """
         If an UpdateExpressionValue only has a single child the node will be replaced with the childe.
         Otherwise it has 3 children and the middle one is an ExpressionValueOperator which details how to combine them
@@ -273,14 +308,14 @@ class ExecuteOperations(DepthFirstTraverser):
             )
 
     @classmethod
-    def get_dynamo_value_from_ddb_typed_value(cls, node):
+    def get_dynamo_value_from_ddb_typed_value(cls, node: DDBTypedValue) -> DynamoType:  # type: ignore[misc]
         assert isinstance(node, DDBTypedValue)
         dynamo_value = node.get_value()
         assert isinstance(dynamo_value, DynamoType)
         return dynamo_value
 
     @classmethod
-    def get_sum(cls, left_operand, right_operand):
+    def get_sum(cls, left_operand: DynamoType, right_operand: DynamoType) -> DDBTypedValue:  # type: ignore[misc]
         """
         Args:
             left_operand(DynamoType):
@@ -295,7 +330,7 @@ class ExecuteOperations(DepthFirstTraverser):
             raise IncorrectOperandType("+", left_operand.type)
 
     @classmethod
-    def get_subtraction(cls, left_operand, right_operand):
+    def get_subtraction(cls, left_operand: DynamoType, right_operand: DynamoType) -> DDBTypedValue:  # type: ignore[misc]
         """
         Args:
             left_operand(DynamoType):
@@ -310,14 +345,21 @@ class ExecuteOperations(DepthFirstTraverser):
             raise IncorrectOperandType("-", left_operand.type)
 
 
-class EmptyStringKeyValueValidator(DepthFirstTraverser):
-    def __init__(self, key_attributes):
+class EmptyStringKeyValueValidator(DepthFirstTraverser):  # type: ignore[misc]
+    def __init__(self, key_attributes: List[str]):
         self.key_attributes = key_attributes
 
-    def _processing_map(self):
+    def _processing_map(
+        self,
+    ) -> Dict[
+        Type[UpdateExpressionSetAction],
+        Callable[[UpdateExpressionSetAction], UpdateExpressionSetAction],
+    ]:
         return {UpdateExpressionSetAction: self.check_for_empty_string_key_value}
 
-    def check_for_empty_string_key_value(self, node):
+    def check_for_empty_string_key_value(
+        self, node: UpdateExpressionSetAction
+    ) -> UpdateExpressionSetAction:
         """A node representing a SET action. Check that keys are not being assigned empty strings"""
         assert isinstance(node, UpdateExpressionSetAction)
         assert len(node.children) == 2
@@ -332,15 +374,26 @@ class EmptyStringKeyValueValidator(DepthFirstTraverser):
         return node
 
 
-class UpdateHashRangeKeyValidator(DepthFirstTraverser):
-    def __init__(self, table_key_attributes, expression_attribute_names):
+class UpdateHashRangeKeyValidator(DepthFirstTraverser):  # type: ignore[misc]
+    def __init__(
+        self,
+        table_key_attributes: List[str],
+        expression_attribute_names: Dict[str, str],
+    ):
         self.table_key_attributes = table_key_attributes
         self.expression_attribute_names = expression_attribute_names
 
-    def _processing_map(self):
+    def _processing_map(
+        self,
+    ) -> Dict[
+        Type[UpdateExpressionPath],
+        Callable[[UpdateExpressionPath], UpdateExpressionPath],
+    ]:
         return {UpdateExpressionPath: self.check_for_hash_or_range_key}
 
-    def check_for_hash_or_range_key(self, node):
+    def check_for_hash_or_range_key(
+        self, node: UpdateExpressionPath
+    ) -> UpdateExpressionPath:
         """Check that hash and range keys are not updated"""
         key_to_update = node.children[0].children[0]
         key_to_update = self.expression_attribute_names.get(
@@ -351,18 +404,18 @@ class UpdateHashRangeKeyValidator(DepthFirstTraverser):
         return node
 
 
-class Validator(object):
+class Validator:
     """
     A validator is used to validate expressions which are passed in as an AST.
     """
 
     def __init__(
         self,
-        expression,
-        expression_attribute_names,
-        expression_attribute_values,
-        item,
-        table,
+        expression: Node,
+        expression_attribute_names: Dict[str, str],
+        expression_attribute_values: Dict[str, Dict[str, Any]],
+        item: Item,
+        table: Table,
     ):
         """
         Besides validation the Validator should also replace referenced parts of an item which is cheapest upon
@@ -382,10 +435,10 @@ class Validator(object):
         self.node_to_validate = deepcopy(expression)
 
     @abstractmethod
-    def get_ast_processors(self):
+    def get_ast_processors(self) -> List[DepthFirstTraverser]:  # type: ignore[misc]
         """Get the different processors that go through the AST tree and processes the nodes."""
 
-    def validate(self):
+    def validate(self) -> Node:
         n = self.node_to_validate
         for processor in self.processors:
             n = processor.traverse(n)
@@ -393,7 +446,7 @@ class Validator(object):
 
 
 class UpdateExpressionValidator(Validator):
-    def get_ast_processors(self):
+    def get_ast_processors(self) -> List[DepthFirstTraverser]:
         """Get the different processors that go through the AST tree and processes the nodes."""
         processors = [
             UpdateHashRangeKeyValidator(
