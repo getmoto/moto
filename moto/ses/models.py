@@ -115,7 +115,7 @@ class SESBackend(BaseBackend):
 
         from moto.core import DEFAULT_ACCOUNT_ID
         from moto.ses import ses_backends
-        ses_backend = ses_backends[DEFAULT_ACCOUNT_ID]["global"]
+        ses_backend = ses_backends[DEFAULT_ACCOUNT_ID][region]
         messages = ses_backend.sent_messages # sent_messages is a List of Message objects
 
     Note that, as this is an internal API, the exact format may differ per versions.
@@ -585,6 +585,4 @@ class SESBackend(BaseBackend):
         return attributes_by_identity
 
 
-ses_backends: Mapping[str, SESBackend] = BackendDict(
-    SESBackend, "ses", use_boto3_regions=False, additional_regions=["global"]
-)
+ses_backends: Mapping[str, SESBackend] = BackendDict(SESBackend, "ses")
