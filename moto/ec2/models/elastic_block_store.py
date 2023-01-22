@@ -1,3 +1,5 @@
+from typing import Optional
+
 from moto.core import CloudFormationModel
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
 from ..exceptions import (
@@ -240,14 +242,14 @@ class EBSBackend:
 
     def create_volume(
         self,
-        size,
-        zone_name,
-        snapshot_id=None,
-        encrypted=False,
-        kms_key_id=None,
-        volume_type=None,
-        iops=None,
-    ):
+        size: str,
+        zone_name: str,
+        snapshot_id: Optional[str] = None,
+        encrypted: bool = False,
+        kms_key_id: Optional[str] = None,
+        volume_type: Optional[str] = None,
+        iops: Optional[str] = None,
+    ) -> Volume:
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
         if encrypted and not kms_key_id:
@@ -360,7 +362,13 @@ class EBSBackend:
         volume.attachment = None
         return old_attachment
 
-    def create_snapshot(self, volume_id, description, owner_id=None, from_ami=None):
+    def create_snapshot(
+        self,
+        volume_id: str,
+        description: str,
+        owner_id: Optional[str] = None,
+        from_ami: Optional[str] = None,
+    ) -> Snapshot:
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
         params = [self, snapshot_id, volume, description, volume.encrypted]

@@ -1,71 +1,7 @@
 from enum import Enum
 from typing import Any, List, Dict, Tuple, Optional
 from moto.dynamodb.exceptions import MockValidationException
-
-
-class KeyConditionExpressionTokenizer:
-    """
-    Tokenizer for a KeyConditionExpression. Should be used as an iterator.
-    The final character to be returned will be an empty string, to notify the caller that we've reached the end.
-    """
-
-    def __init__(self, expression: str):
-        self.expression = expression
-        self.token_pos = 0
-
-    def __iter__(self) -> "KeyConditionExpressionTokenizer":
-        self.token_pos = 0
-        return self
-
-    def is_eof(self) -> bool:
-        return self.peek() == ""
-
-    def peek(self) -> str:
-        """
-        Peek the next character without changing the position
-        """
-        try:
-            return self.expression[self.token_pos]
-        except IndexError:
-            return ""
-
-    def __next__(self) -> str:
-        """
-        Returns the next character, or an empty string if we've reached the end of the string.
-        Calling this method again will result in a StopIterator
-        """
-        try:
-            result = self.expression[self.token_pos]
-            self.token_pos += 1
-            return result
-        except IndexError:
-            if self.token_pos == len(self.expression):
-                self.token_pos += 1
-                return ""
-            raise StopIteration
-
-    def skip_characters(self, phrase: str, case_sensitive: bool = False) -> None:
-        """
-        Skip the characters in the supplied phrase.
-        If any other character is encountered instead, this will fail.
-        If we've already reached the end of the iterator, this will fail.
-        """
-        for ch in phrase:
-            if case_sensitive:
-                assert self.expression[self.token_pos] == ch
-            else:
-                assert self.expression[self.token_pos] in [ch.lower(), ch.upper()]
-            self.token_pos += 1
-
-    def skip_white_space(self) -> None:
-        """
-        Skip the any whitespace characters that are coming up
-        """
-        try:
-            while self.peek() == " ":
-                self.token_pos += 1
-        except IndexError:
-            pass
+from moto.utilities.tokenizer import GenericTokenizer
 
 
 class EXPRESSION_STAGES(Enum):
@@ -101,7 +37,7 @@ def parse_expression(
     key_name = comparison = ""
     key_values = []
     results: List[Tuple[str, str, Any]] = []
-    tokenizer = KeyConditionExpressionTokenizer(key_condition_expression)
+    tokenizer = GenericTokenizer(key_condition_expression)
     for crnt_char in tokenizer:
         if crnt_char == " ":
             if current_stage == EXPRESSION_STAGES.INITIAL_STAGE:

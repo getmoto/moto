@@ -11,7 +11,7 @@ class EmailResponse(BaseResponse):
 
     @property
     def backend(self):
-        return ses_backends[self.current_account]["global"]
+        return ses_backends[self.current_account][self.region]
 
     def verify_email_identity(self):
         address = self.querystring.get("EmailAddress")[0]

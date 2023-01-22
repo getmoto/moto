@@ -217,7 +217,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           push: true
           tags: motoserver/moto:latest
@@ -269,7 +269,7 @@ jobs:
             echo "pr_found=true" >> $GITHUB_ENV
           fi
       - name: Leave PR comment with Moto version
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         if: env.pr_found == 'true' && env.pr_repo == 'getmoto/moto'
         with:
           issue-number: ${{ env.pr_nr }}

@@ -20,6 +20,15 @@ def test_verify_email_identity():
 
 
 @mock_ses
+def test_identities_are_region_specific():
+    us_east = boto3.client("ses", region_name="us-east-1")
+    us_east.verify_email_identity(EmailAddress="test@example.com")
+
+    us_west = boto3.client("ses", region_name="us-west-1")
+    us_west.list_identities()["Identities"].should.have.length_of(0)
+
+
+@mock_ses
 def test_verify_email_identity_idempotency():
     conn = boto3.client("ses", region_name="us-east-1")
     address = "test@example.com"
@@ -1266,6 +1275,35 @@ def test_render_template():
         ex.value.response["Error"]["Message"]
         == "Attribute 'favoriteanimal' is not present in the rendering data."
     )
+
+
+@mock_ses
+def test_render_template__with_foreach():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        TemplateName="MTT",
+        TemplateData=json.dumps(
+            {
+                "items": [
+                    {"type": "dog", "name": "bobby"},
+                    {"type": "cat", "name": "pedro"},
+                ]
+            }
+        ),
+    )
+
+    conn.create_template(
+        Template={
+            "TemplateName": "MTT",
+            "SubjectPart": "..",
+            "TextPart": "..",
+            "HtmlPart": "{{#each items}} {{name}} is a {{type}}, {{/each}}",
+        }
+    )
+    result = conn.test_render_template(**kwargs)
+    result["RenderedTemplate"].should.contain("bobby is a dog")
+    result["RenderedTemplate"].should.contain("pedro is a cat")
 
 
 @mock_ses

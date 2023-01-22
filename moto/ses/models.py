@@ -1,4 +1,3 @@
-import re
 import json
 import email
 import datetime
@@ -23,9 +22,9 @@ from .exceptions import (
     RuleSetNameAlreadyExists,
     RuleSetDoesNotExist,
     RuleAlreadyExists,
-    MissingRenderingAttributeException,
     ConfigurationSetAlreadyExists,
 )
+from .template import parse_template
 from .utils import get_random_message_id, is_valid_address
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
 
@@ -106,17 +105,6 @@ class SESQuota(BaseModel):
         return self.sent
 
 
-def are_all_variables_present(template, template_data):
-    subject_part = template["subject_part"]
-    text_part = template["text_part"]
-    html_part = template["html_part"]
-
-    for var in re.findall("{{(.+?)}}", subject_part + text_part + html_part):
-        if not template_data.get(var):
-            return var, False
-    return None, True
-
-
 class SESBackend(BaseBackend):
     """
     Responsible for mocking calls to SES.
@@ -127,7 +115,7 @@ class SESBackend(BaseBackend):
 
         from moto.core import DEFAULT_ACCOUNT_ID
         from moto.ses import ses_backends
-        ses_backend = ses_backends[DEFAULT_ACCOUNT_ID]["global"]
+        ses_backend = ses_backends[DEFAULT_ACCOUNT_ID][region]
         messages = ses_backend.sent_messages # sent_messages is a List of Message objects
 
     Note that, as this is an internal API, the exact format may differ per versions.
@@ -469,18 +457,13 @@ class SESBackend(BaseBackend):
                 "Template rendering data is invalid"
             )
 
-        var, are_variables_present = are_all_variables_present(template, template_data)
-        if not are_variables_present:
-            raise MissingRenderingAttributeException(var)
-
         subject_part = template["subject_part"]
         text_part = template["text_part"]
         html_part = template["html_part"]
 
-        for key, value in template_data.items():
-            subject_part = str.replace(str(subject_part), "{{" + key + "}}", value)
-            text_part = str.replace(str(text_part), "{{" + key + "}}", value)
-            html_part = str.replace(str(html_part), "{{" + key + "}}", value)
+        subject_part = parse_template(str(subject_part), template_data)
+        text_part = parse_template(str(text_part), template_data)
+        html_part = parse_template(str(html_part), template_data)
 
         email_obj = MIMEMultipart("alternative")
 
@@ -602,6 +585,4 @@ class SESBackend(BaseBackend):
         return attributes_by_identity
 
 
-ses_backends: Mapping[str, SESBackend] = BackendDict(
-    SESBackend, "ses", use_boto3_regions=False, additional_regions=["global"]
-)
+ses_backends: Mapping[str, SESBackend] = BackendDict(SESBackend, "ses")
