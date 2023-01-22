@@ -702,6 +702,17 @@ def test_list_services():
 
 
 @mock_ecs
+@pytest.mark.parametrize("args", [{}, {"cluster": "foo"}], ids=["no args", "unknown"])
+def test_list_unknown_service(args):
+    client = boto3.client("ecs", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.list_services(**args)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ClusterNotFoundException")
+    err["Message"].should.equal("Cluster not found.")
+
+
+@mock_ecs
 def test_describe_services():
     client = boto3.client("ecs", region_name="us-east-1")
     cluster_arn = client.create_cluster(clusterName="test_ecs_cluster")["cluster"][
