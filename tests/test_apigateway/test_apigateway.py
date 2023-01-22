@@ -573,6 +573,7 @@ def test_integrations():
             "contentHandling": "CONVERT_TO_TEXT",
             "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
             "tlsConfig": {"insecureSkipVerification": True},
+            "connectionType": "INTERNET",
         }
     )
 
@@ -593,6 +594,7 @@ def test_integrations():
             "contentHandling": "CONVERT_TO_TEXT",
             "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
             "tlsConfig": {"insecureSkipVerification": True},
+            "connectionType": "INTERNET",
         }
     )
 
