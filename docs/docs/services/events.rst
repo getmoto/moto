@@ -140,6 +140,15 @@ events
 - [X] list_tags_for_resource
 - [X] list_targets_by_rule
 - [X] put_events
+  
+        The following targets are supported at the moment:
+
+         - CloudWatch Log Group
+         - EventBridge Archive
+         - SQS Queue + FIFO Queue
+         - Cross-region/account EventBus
+        
+
 - [ ] put_partner_events
 - [X] put_permission
 - [X] put_rule
