@@ -1,13 +1,19 @@
 from abc import abstractmethod
+from typing import Any, Dict, List, Optional, Union, Type
 
 from moto.dynamodb.exceptions import (
     IncorrectOperandType,
     IncorrectDataType,
     ProvidedKeyDoesNotExist,
 )
-from moto.dynamodb.models import DynamoType
-from moto.dynamodb.models.dynamo_type import DDBTypeConversion, DDBType
-from moto.dynamodb.parsing.ast_nodes import (
+from moto.dynamodb.models.dynamo_type import (
+    DDBTypeConversion,
+    DDBType,
+    DynamoType,
+    Item,
+)
+from moto.dynamodb.parsing.ast_nodes import (  # type: ignore
+    Node,
     UpdateExpressionSetAction,
     UpdateExpressionDeleteAction,
     UpdateExpressionRemoveAction,
@@ -21,16 +27,18 @@ from moto.dynamodb.parsing.ast_nodes import (
 from moto.dynamodb.parsing.validators import ExpressionPathResolver
 
 
-class NodeExecutor(object):
-    def __init__(self, ast_node, expression_attribute_names):
+class NodeExecutor:
+    def __init__(self, ast_node: Node, expression_attribute_names: Dict[str, str]):
         self.node = ast_node
         self.expression_attribute_names = expression_attribute_names
 
     @abstractmethod
-    def execute(self, item):
+    def execute(self, item: Item) -> None:
         pass
 
-    def get_item_part_for_path_nodes(self, item, path_nodes):
+    def get_item_part_for_path_nodes(
+        self, item: Item, path_nodes: List[Node]
+    ) -> Union[DynamoType, Dict[str, Any]]:
         """
         For a list of path nodes travers the item by following the path_nodes
         Args:
@@ -43,11 +51,13 @@ class NodeExecutor(object):
         if len(path_nodes) == 0:
             return item.attrs
         else:
-            return ExpressionPathResolver(
+            return ExpressionPathResolver(  # type: ignore
                 self.expression_attribute_names
             ).resolve_expression_path_nodes_to_dynamo_type(item, path_nodes)
 
-    def get_item_before_end_of_path(self, item):
+    def get_item_before_end_of_path(
+        self, item: Item
+    ) -> Union[DynamoType, Dict[str, Any]]:
         """
         Get the part ot the item where the item will perform the action. For most actions this should be the parent. As
         that element will need to be modified by the action.
@@ -61,7 +71,7 @@ class NodeExecutor(object):
             item, self.get_path_expression_nodes()[:-1]
         )
 
-    def get_item_at_end_of_path(self, item):
+    def get_item_at_end_of_path(self, item: Item) -> Union[DynamoType, Dict[str, Any]]:
         """
         For a DELETE the path points at the stringset so we need to evaluate the full path.
         Args:
@@ -76,15 +86,15 @@ class NodeExecutor(object):
     # that element will need to be modified by the action.
     get_item_part_in_which_to_perform_action = get_item_before_end_of_path
 
-    def get_path_expression_nodes(self):
+    def get_path_expression_nodes(self) -> List[Node]:
         update_expression_path = self.node.children[0]
         assert isinstance(update_expression_path, UpdateExpressionPath)
         return update_expression_path.children
 
-    def get_element_to_action(self):
+    def get_element_to_action(self) -> Node:
         return self.get_path_expression_nodes()[-1]
 
-    def get_action_value(self):
+    def get_action_value(self) -> DynamoType:
         """
 
         Returns:
@@ -98,7 +108,7 @@ class NodeExecutor(object):
 
 
 class SetExecutor(NodeExecutor):
-    def execute(self, item):
+    def execute(self, item: Item) -> None:
         self.set(
             item_part_to_modify_with_set=self.get_item_part_in_which_to_perform_action(
                 item
@@ -109,13 +119,13 @@ class SetExecutor(NodeExecutor):
         )
 
     @classmethod
-    def set(
+    def set(  # type: ignore[misc]
         cls,
-        item_part_to_modify_with_set,
-        element_to_set,
-        value_to_set,
-        expression_attribute_names,
-    ):
+        item_part_to_modify_with_set: Union[DynamoType, Dict[str, Any]],
+        element_to_set: Any,
+        value_to_set: Any,
+        expression_attribute_names: Dict[str, str],
+    ) -> None:
         if isinstance(element_to_set, ExpressionAttribute):
             attribute_name = element_to_set.get_attribute_name()
             item_part_to_modify_with_set[attribute_name] = value_to_set
@@ -136,7 +146,7 @@ class SetExecutor(NodeExecutor):
 class DeleteExecutor(NodeExecutor):
     operator = "operator: DELETE"
 
-    def execute(self, item):
+    def execute(self, item: Item) -> None:
         string_set_to_remove = self.get_action_value()
         assert isinstance(string_set_to_remove, DynamoType)
         if not string_set_to_remove.is_set():
@@ -176,11 +186,11 @@ class DeleteExecutor(NodeExecutor):
                     f"Moto does not support deleting {type(element)} yet"
                 )
             container = self.get_item_before_end_of_path(item)
-            del container[attribute_name]
+            del container[attribute_name]  # type: ignore[union-attr]
 
 
 class RemoveExecutor(NodeExecutor):
-    def execute(self, item):
+    def execute(self, item: Item) -> None:
         element_to_remove = self.get_element_to_action()
         if isinstance(element_to_remove, ExpressionAttribute):
             attribute_name = element_to_remove.get_attribute_name()
@@ -208,7 +218,7 @@ class RemoveExecutor(NodeExecutor):
 
 
 class AddExecutor(NodeExecutor):
-    def execute(self, item):
+    def execute(self, item: Item) -> None:
         value_to_add = self.get_action_value()
         if isinstance(value_to_add, DynamoType):
             if value_to_add.is_set():
@@ -253,7 +263,7 @@ class AddExecutor(NodeExecutor):
                 raise IncorrectDataType()
 
 
-class UpdateExpressionExecutor(object):
+class UpdateExpressionExecutor:
     execution_map = {
         UpdateExpressionSetAction: SetExecutor,
         UpdateExpressionAddAction: AddExecutor,
@@ -261,12 +271,14 @@ class UpdateExpressionExecutor(object):
         UpdateExpressionDeleteAction: DeleteExecutor,
     }
 
-    def __init__(self, update_ast, item, expression_attribute_names):
+    def __init__(
+        self, update_ast: Node, item: Item, expression_attribute_names: Dict[str, str]
+    ):
         self.update_ast = update_ast
         self.item = item
         self.expression_attribute_names = expression_attribute_names
 
-    def execute(self, node=None):
+    def execute(self, node: Optional[Node] = None) -> None:
         """
         As explained in moto.dynamodb.parsing.expressions.NestableExpressionParserMixin._create_node the order of nodes
         in the AST can be translated of the order of statements in the expression. As such we can start at the root node
@@ -286,12 +298,12 @@ class UpdateExpressionExecutor(object):
 
         node_executor = self.get_specific_execution(node)
         if node_executor is None:
-            for node in node.children:
-                self.execute(node)
+            for n in node.children:
+                self.execute(n)
         else:
             node_executor(node, self.expression_attribute_names).execute(self.item)
 
-    def get_specific_execution(self, node):
+    def get_specific_execution(self, node: Node) -> Optional[Type[NodeExecutor]]:
         for node_class in self.execution_map:
             if isinstance(node, node_class):
                 return self.execution_map[node_class]

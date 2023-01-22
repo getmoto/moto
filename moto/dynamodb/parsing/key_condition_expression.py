@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Any, List, Dict, Tuple, Optional
 from moto.dynamodb.exceptions import MockValidationException
 from moto.utilities.tokenizer import GenericTokenizer
 
@@ -11,17 +12,17 @@ class EXPRESSION_STAGES(Enum):
     EOF = "EOF"
 
 
-def get_key(schema, key_type):
+def get_key(schema: List[Dict[str, str]], key_type: str) -> Optional[str]:
     keys = [key for key in schema if key["KeyType"] == key_type]
     return keys[0]["AttributeName"] if keys else None
 
 
 def parse_expression(
-    key_condition_expression,
-    expression_attribute_values,
-    expression_attribute_names,
-    schema,
-):
+    key_condition_expression: str,
+    expression_attribute_values: Dict[str, str],
+    expression_attribute_names: Dict[str, str],
+    schema: List[Dict[str, str]],
+) -> Tuple[Dict[str, Any], Optional[str], List[Dict[str, Any]]]:
     """
     Parse a KeyConditionExpression using the provided expression attribute names/values
 
@@ -31,11 +32,11 @@ def parse_expression(
     schema:                      [{'AttributeName': 'hashkey', 'KeyType': 'HASH'}, {"AttributeName": "sortkey", "KeyType": "RANGE"}]
     """
 
-    current_stage: EXPRESSION_STAGES = None
+    current_stage: Optional[EXPRESSION_STAGES] = None
     current_phrase = ""
-    key_name = comparison = None
+    key_name = comparison = ""
     key_values = []
-    results = []
+    results: List[Tuple[str, str, Any]] = []
     tokenizer = GenericTokenizer(key_condition_expression)
     for crnt_char in tokenizer:
         if crnt_char == " ":
@@ -188,7 +189,9 @@ def parse_expression(
 
 
 # Validate that the schema-keys are encountered in our query
-def validate_schema(results, schema):
+def validate_schema(
+    results: Any, schema: List[Dict[str, str]]
+) -> Tuple[Dict[str, Any], Optional[str], List[Dict[str, Any]]]:
     index_hash_key = get_key(schema, "HASH")
     comparison, hash_value = next(
         (
@@ -219,4 +222,4 @@ def validate_schema(results, schema):
             f"Query condition missed key schema element: {index_range_key}"
         )
 
-    return hash_value, range_comparison, range_values
+    return hash_value, range_comparison, range_values  # type: ignore[return-value]

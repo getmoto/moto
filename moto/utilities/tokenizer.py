@@ -4,17 +4,17 @@ class GenericTokenizer:
     The final character to be returned will be an empty string, to notify the caller that we've reached the end.
     """
 
-    def __init__(self, expression):
+    def __init__(self, expression: str):
         self.expression = expression
         self.token_pos = 0
 
-    def __iter__(self):
+    def __iter__(self) -> "GenericTokenizer":
         return self
 
-    def is_eof(self):
+    def is_eof(self) -> bool:
         return self.peek() == ""
 
-    def peek(self, length=1):
+    def peek(self, length: int = 1) -> str:
         """
         Peek the next character without changing the position
         """
@@ -23,7 +23,7 @@ class GenericTokenizer:
         except IndexError:
             return ""
 
-    def __next__(self):
+    def __next__(self) -> str:
         """
         Returns the next character, or an empty string if we've reached the end of the string.
         Calling this method again will result in a StopIterator
@@ -38,7 +38,7 @@ class GenericTokenizer:
                 return ""
             raise StopIteration
 
-    def skip_characters(self, phrase, case_sensitive=False) -> None:
+    def skip_characters(self, phrase: str, case_sensitive: bool = False) -> None:
         """
         Skip the characters in the supplied phrase.
         If any other character is encountered instead, this will fail.
@@ -51,7 +51,7 @@ class GenericTokenizer:
                 assert self.expression[self.token_pos] in [ch.lower(), ch.upper()]
             self.token_pos += 1
 
-    def skip_white_space(self):
+    def skip_white_space(self) -> None:
         """
         Skip any whitespace characters that are coming up
         """

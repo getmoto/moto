@@ -4,8 +4,9 @@ import base64
 from typing import Any, Dict, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.dynamodb.models import dynamodb_backends, DynamoJsonEncoder, DynamoDBBackend
-from moto.dynamodb.models import Table, StreamShard
+from moto.dynamodb.models import dynamodb_backends, DynamoDBBackend
+from moto.dynamodb.models.table import Table, StreamShard
+from moto.dynamodb.models.utilities import DynamoJsonEncoder
 
 
 class ShardIterator(BaseModel):
@@ -86,7 +87,7 @@ class DynamoDBStreamsBackend(BaseBackend):
                 "StreamStatus": (
                     "ENABLED" if table.latest_stream_label else "DISABLED"
                 ),
-                "StreamViewType": table.stream_specification["StreamViewType"],
+                "StreamViewType": table.stream_specification["StreamViewType"],  # type: ignore[index]
                 "CreationRequestDateTime": table.stream_shard.created_on.isoformat(),  # type: ignore[union-attr]
                 "TableName": table.name,
                 "KeySchema": table.schema,

@@ -1,3 +1,4 @@
+# type: ignore
 import abc
 from abc import abstractmethod
 from collections import deque
@@ -21,7 +22,7 @@ class Node(metaclass=abc.ABCMeta):
     def set_parent(self, parent_node):
         self.parent = parent_node
 
-    def validate(self):
+    def validate(self) -> None:
         if self.type == "UpdateExpression":
             nr_of_clauses = len(self.find_clauses([UpdateExpressionAddClause]))
             if nr_of_clauses > 1:
