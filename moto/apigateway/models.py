@@ -161,6 +161,7 @@ class Integration(BaseModel):
         request_parameters: Optional[Dict[str, Any]] = None,
         content_handling: Optional[str] = None,
         credentials: Optional[str] = None,
+        connection_type: Optional[str] = None,
     ):
         self.integration_type = integration_type
         self.uri = uri
@@ -174,6 +175,7 @@ class Integration(BaseModel):
         self.request_parameters = request_parameters
         self.content_handling = content_handling
         self.credentials = credentials
+        self.connection_type = connection_type
         self.integration_responses: Optional[Dict[str, IntegrationResponse]] = None
 
     def to_json(self) -> Dict[str, Any]:
@@ -196,6 +198,7 @@ class Integration(BaseModel):
             "requestParameters": self.request_parameters,
             "contentHandling": self.content_handling,
             "credentials": self.credentials,
+            "connectionType": self.connection_type,
         }
 
     def create_integration_response(
@@ -502,6 +505,7 @@ class Resource(CloudFormationModel):
         request_parameters: Optional[Dict[str, Any]] = None,
         content_handling: Optional[str] = None,
         credentials: Optional[str] = None,
+        connection_type: Optional[str] = None,
     ) -> Integration:
         integration_method = integration_method or method_type
         integration = Integration(
@@ -516,6 +520,7 @@ class Resource(CloudFormationModel):
             request_parameters=request_parameters,
             content_handling=content_handling,
             credentials=credentials,
+            connection_type=connection_type,
         )
         self.resource_methods[method_type].method_integration = integration
         return integration
@@ -1911,6 +1916,7 @@ class APIGatewayBackend(BaseBackend):
         timeout_in_millis: Optional[str] = None,
         request_parameters: Optional[Dict[str, Any]] = None,
         content_handling: Optional[str] = None,
+        connection_type: Optional[str] = None,
     ) -> Integration:
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
@@ -1955,6 +1961,7 @@ class APIGatewayBackend(BaseBackend):
             request_parameters=request_parameters,
             content_handling=content_handling,
             credentials=credentials,
+            connection_type=connection_type,
         )
         return integration
 
