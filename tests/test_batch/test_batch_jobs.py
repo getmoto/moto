@@ -72,11 +72,12 @@ def test_submit_job_by_name():
     resp = batch_client.submit_job(
         jobName="test1", jobQueue=queue_arn, jobDefinition=job_definition_name
     )
+    resp["ResponseMetadata"].should.have.key("RequestId")
+
     job_id = resp["jobId"]
 
     resp_jobs = batch_client.describe_jobs(jobs=[job_id])
-
-    # batch_client.terminate_job(jobId=job_id)
+    resp_jobs["ResponseMetadata"].should.have.key("RequestId")
 
     len(resp_jobs["jobs"]).should.equal(1)
     resp_jobs["jobs"][0]["jobId"].should.equal(job_id)
