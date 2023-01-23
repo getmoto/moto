@@ -528,7 +528,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return if_none
 
     def _get_multi_param_dict(self, param_prefix: str) -> Dict[str, Any]:
-        return self._get_multi_param_helper(param_prefix)
+        return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
 
     def _get_multi_param_helper(
         self,
