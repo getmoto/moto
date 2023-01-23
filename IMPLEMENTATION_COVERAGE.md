@@ -1734,7 +1734,7 @@
 
 ## ec2
 <details>
-<summary>33% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] accept_address_transfer
 - [ ] accept_reserved_instances_exchange_quote
@@ -2037,7 +2037,7 @@
 - [ ] describe_scheduled_instance_availability
 - [ ] describe_scheduled_instances
 - [ ] describe_security_group_references
-- [ ] describe_security_group_rules
+- [X] describe_security_group_rules
 - [X] describe_security_groups
 - [ ] describe_snapshot_attribute
 - [ ] describe_snapshot_tier_status
@@ -3080,7 +3080,7 @@
 
 ## glue
 <details>
-<summary>18% implemented</summary>
+<summary>20% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3138,7 +3138,7 @@
 - [ ] delete_ml_transform
 - [ ] delete_partition
 - [ ] delete_partition_index
-- [ ] delete_registry
+- [X] delete_registry
 - [ ] delete_resource_policy
 - [X] delete_schema
 - [ ] delete_schema_versions
@@ -3187,10 +3187,10 @@
 - [ ] get_partition_indexes
 - [X] get_partitions
 - [ ] get_plan
-- [ ] get_registry
+- [X] get_registry
 - [ ] get_resource_policies
 - [ ] get_resource_policy
-- [ ] get_schema
+- [X] get_schema
 - [X] get_schema_by_definition
 - [X] get_schema_version
 - [ ] get_schema_versions_diff
@@ -3226,7 +3226,7 @@
 - [ ] list_dev_endpoints
 - [X] list_jobs
 - [ ] list_ml_transforms
-- [ ] list_registries
+- [X] list_registries
 - [ ] list_schema_versions
 - [ ] list_schemas
 - [ ] list_sessions
@@ -3278,7 +3278,7 @@
 - [ ] update_ml_transform
 - [ ] update_partition
 - [ ] update_registry
-- [ ] update_schema
+- [X] update_schema
 - [ ] update_source_control_from_job
 - [ ] update_table
 - [ ] update_trigger
@@ -5246,10 +5246,11 @@
 
 ## resource-groups
 <details>
-<summary>68% implemented</summary>
+<summary>61% implemented</summary>
 
 - [X] create_group
 - [X] delete_group
+- [ ] get_account_settings
 - [X] get_group
 - [X] get_group_configuration
 - [ ] get_group_query
@@ -5262,6 +5263,7 @@
 - [X] tag
 - [ ] ungroup_resources
 - [X] untag
+- [ ] update_account_settings
 - [X] update_group
 - [X] update_group_query
 </details>
@@ -5597,7 +5599,7 @@
 
 ## sagemaker
 <details>
-<summary>15% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -5744,9 +5746,9 @@
 - [ ] describe_monitoring_schedule
 - [ ] describe_notebook_instance
 - [X] describe_notebook_instance_lifecycle_config
-- [ ] describe_pipeline
-- [ ] describe_pipeline_definition_for_execution
-- [ ] describe_pipeline_execution
+- [X] describe_pipeline
+- [X] describe_pipeline_definition_for_execution
+- [X] describe_pipeline_execution
 - [X] describe_processing_job
 - [ ] describe_project
 - [ ] describe_space
@@ -5821,8 +5823,8 @@
 - [ ] list_notebook_instance_lifecycle_configs
 - [ ] list_notebook_instances
 - [ ] list_pipeline_execution_steps
-- [ ] list_pipeline_executions
-- [ ] list_pipeline_parameters_for_execution
+- [X] list_pipeline_executions
+- [X] list_pipeline_parameters_for_execution
 - [X] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
@@ -5851,7 +5853,7 @@
 - [ ] start_inference_experiment
 - [ ] start_monitoring_schedule
 - [X] start_notebook_instance
-- [ ] start_pipeline_execution
+- [X] start_pipeline_execution
 - [ ] stop_auto_ml_job
 - [ ] stop_compilation_job
 - [ ] stop_edge_deployment_stage
@@ -6644,6 +6646,7 @@
 - chime-sdk-meetings
 - chime-sdk-messaging
 - chime-sdk-voice
+- cleanrooms
 - cloud9
 - cloudcontrol
 - clouddirectory
@@ -6724,6 +6727,7 @@
 - kafka
 - kafkaconnect
 - kendra
+- kendra-ranking
 - keyspaces
 - kinesis-video-media
 - kinesis-video-signaling

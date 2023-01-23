@@ -336,7 +336,7 @@ ec2
 - [ ] describe_scheduled_instance_availability
 - [ ] describe_scheduled_instances
 - [ ] describe_security_group_references
-- [ ] describe_security_group_rules
+- [X] describe_security_group_rules
 - [X] describe_security_groups
 - [ ] describe_snapshot_attribute
 - [ ] describe_snapshot_tier_status

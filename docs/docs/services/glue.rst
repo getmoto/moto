@@ -85,7 +85,7 @@ glue
 - [ ] delete_ml_transform
 - [ ] delete_partition
 - [ ] delete_partition_index
-- [ ] delete_registry
+- [X] delete_registry
 - [ ] delete_resource_policy
 - [X] delete_schema
 - [ ] delete_schema_versions
@@ -147,10 +147,10 @@ glue
         
 
 - [ ] get_plan
-- [ ] get_registry
+- [X] get_registry
 - [ ] get_resource_policies
 - [ ] get_resource_policy
-- [ ] get_schema
+- [X] get_schema
 - [X] get_schema_by_definition
 - [X] get_schema_version
 - [ ] get_schema_versions_diff
@@ -186,7 +186,7 @@ glue
 - [ ] list_dev_endpoints
 - [X] list_jobs
 - [ ] list_ml_transforms
-- [ ] list_registries
+- [X] list_registries
 - [ ] list_schema_versions
 - [ ] list_schemas
 - [ ] list_sessions
@@ -238,7 +238,11 @@ glue
 - [ ] update_ml_transform
 - [ ] update_partition
 - [ ] update_registry
-- [ ] update_schema
+- [X] update_schema
+  
+        The SchemaVersionNumber-argument is not yet implemented
+        
+
 - [ ] update_source_control_from_job
 - [ ] update_table
 - [ ] update_trigger
