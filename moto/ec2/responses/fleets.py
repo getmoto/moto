@@ -30,7 +30,9 @@ class Fleets(BaseResponse):
         target_capacity_specification = self._get_multi_param_dict(
             "TargetCapacitySpecification"
         )
-        launch_template_configs = self._get_multi_param("LaunchTemplateConfigs")
+        launch_template_configs = self._get_multi_param(
+            param_prefix="LaunchTemplateConfigs"
+        )
 
         excess_capacity_termination_policy = self._get_param(
             "ExcessCapacityTerminationPolicy"
@@ -209,8 +211,12 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                                 {% endif %}
                                 {% if override.InstanceRequirements.MemoryGiBPerVCpu %}
                                 <memoryGiBPerVCpu>
+                                    {% if override.InstanceRequirements.MemoryGiBPerVCpu.Min %}
                                     <min>{{ override.InstanceRequirements.MemoryGiBPerVCpu.Min }}</min>
+                                    {% endif %}
+                                    {% if override.InstanceRequirements.MemoryGiBPerVCpu.Max %}
                                     <max>{{ override.InstanceRequirements.MemoryGiBPerVCpu.Max }}</max>
+                                    {% endif %}
                                 </memoryGiBPerVCpu>
                                 {% endif %}
                                 {% if override.InstanceRequirements.MemoryMiB %}
@@ -368,8 +374,12 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
             {% endif %}
             <terminateInstancesWithExpiration>{{ request.terminate_instances_with_expiration }}</terminateInstancesWithExpiration>
             <type>{{ request.fleet_type }}</type>
+            {% if request.valid_from %}
             <validFrom>{{ request.valid_from }}</validFrom>
+            {% endif %}
+            {% if request.valid_until %}
             <validUntil>{{ request.valid_until }}</validUntil>
+            {% endif %}
             <replaceUnhealthyInstances>{{ request.replace_unhealthy_instances }}</replaceUnhealthyInstances>
             <tagSet>
                 {% for tag in request.tags %}
