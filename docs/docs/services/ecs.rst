@@ -58,6 +58,10 @@ ecs
 - [X] describe_task_definition
 - [X] describe_task_sets
 - [X] describe_tasks
+  
+        Only include=TAGS is currently supported.
+        
+
 - [ ] discover_poll_endpoint
 - [ ] execute_command
 - [ ] get_task_protection

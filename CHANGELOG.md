@@ -2,6 +2,47 @@ Moto Changelog
 ==============
 
 
+4.1.1
+-----
+Docker Digest for 4.1.1: <autopopulateddigest>
+
+    New Methods:
+        * APIGateway:
+            * get_export()
+
+        * EC2:
+            * describe_security_group_rules()
+
+        * Glue:
+            * delete_registry()
+            * get_registry()
+            * get_schema()
+            * list_registries()
+            * update_schema()
+
+        * Sagemaker:
+            * describe_pipeline()
+            * describe_pipeline_definition_for_execution()
+            * describe_pipeline_execution()
+            * list_pipeline_executions()
+            * list_pipeline_parameters_for_execution()
+            * start_pipeline()
+
+    Miscellaneous:
+        * APIGateway: put_integration() now supports the connectionType-parameter
+        * Batch: register_job_definition() now supports type="multinode"
+        * EC2: describe_launch_template_versions() now supports $Latest and $Default versions
+        * ECS: list_services() now throws correct error when providing unknown cluster
+        * ECS: start_task() now supports the tags-parameter
+        * Events: put_events() now supports sending events to an eventbus in another region/account
+        * KMS: list_aliases() now returns the TargetKeyId-attribute
+        * S3: put_bucket_logging() now actually logs incoming requests, when enabled
+        * SES: Fixed a bug where the service was not region-aware, i.e. all resources were shared across regions
+        * SES: improved parser support for email templates
+        * SSM: put_parameter() now validates the value of the Type-parameter
+        * RDS: create_db_instance() now supports the PreferredMaintenanceWindow and PreferredBackupWindow-parameters
+
+
 4.1.0
 -----
 Docker Digest for 4.1.0: _sha256:1c38613f7273054650d08f3cb3ce118753296d08ffbfee8c96400c89a529c9ca_
