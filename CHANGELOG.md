@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.1
 -----
-Docker Digest for 4.1.1: <autopopulateddigest>
+Docker Digest for 4.1.1: _sha256:abb85db28568fc355636dac710a8108ba3cdb01bf1c129118cf1ce49eb8c5f07_
 
     New Methods:
         * APIGateway:
