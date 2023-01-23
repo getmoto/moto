@@ -1,10 +1,13 @@
 import json
 from datetime import datetime
+from unittest import SkipTest, mock
 
 import boto3
+import os
+
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import mock_events, mock_sqs, mock_logs
+from moto import mock_events, mock_sqs, mock_logs, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
@@ -316,3 +319,96 @@ def test_moto_matches_none_value_with_exists_filter():
             {"foo": None, "bar": "123"},
         ],
     )
+
+
+@mock_events
+@mock_sqs
+def test_put_events_event_bus_forwarding_rules():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cross-account test - easiest to just test in DecoratorMode")
+
+    # EventBus1 --> EventBus2 --> SQS
+    account1 = ACCOUNT_ID
+    account2 = "222222222222"
+    event_bus_name1 = "asdf"
+    event_bus_name2 = "erty"
+    events_client = boto3.client("events", "eu-central-1")
+    sqs_client = boto3.client("sqs", region_name="eu-central-1")
+
+    pattern = {
+        "source": ["source1"],
+        "detail-type": ["test-detail-type"],
+        "detail": {
+            "test": [{"exists": True}],
+        },
+    }
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account2}):
+        # Setup SQS rule in account 2
+        queue_url = sqs_client.create_queue(QueueName="test-queue")["QueueUrl"]
+        queue_arn = sqs_client.get_queue_attributes(
+            QueueUrl=queue_url, AttributeNames=["QueueArn"]
+        )["Attributes"]["QueueArn"]
+
+        event_bus_arn2 = events_client.create_event_bus(Name=event_bus_name2)[
+            "EventBusArn"
+        ]
+
+        events_client.put_rule(
+            Name="event_bus_2_rule",
+            EventPattern=json.dumps(pattern),
+            State="ENABLED",
+            EventBusName=event_bus_name2,
+        )
+
+        events_client.put_targets(
+            Rule="event_bus_2_rule",
+            EventBusName=event_bus_name2,
+            Targets=[{"Id": "sqs-dedup-fifo", "Arn": queue_arn}],
+        )
+
+    # Setup EventBus1
+    events_client.create_event_bus(Name=event_bus_name1)["EventBusArn"]
+
+    events_client.put_rule(
+        Name="event_bus_1_rule",
+        RoleArn=f"arn:aws:iam::{account1}:role/Administrator",
+        EventPattern=json.dumps(pattern),
+        State="ENABLED",
+        EventBusName=event_bus_name1,
+    )
+
+    events_client.put_targets(
+        Rule="event_bus_1_rule",
+        EventBusName=event_bus_name1,
+        Targets=[
+            {
+                "Id": "event_bus_2",
+                "Arn": event_bus_arn2,
+                "RoleArn": "arn:aws:iam::123456789012:role/Administrator",
+            },
+        ],
+    )
+
+    test_events = [
+        {
+            "Source": "source1",
+            "DetailType": "test-detail-type",
+            "Detail": json.dumps({"test": "true"}),
+            "EventBusName": event_bus_name1,
+        }
+    ]
+
+    events_client.put_events(Entries=test_events)
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account2}):
+        # Verify SQS messages were received in account 2
+
+        response = sqs_client.receive_message(QueueUrl=queue_url)
+
+        response["Messages"].should.have.length_of(1)
+
+        message = json.loads(response["Messages"][0]["Body"])
+        message["source"].should.equal("source1")
+        message["detail-type"].should.equal("test-detail-type")
+        message["detail"].should.equal({"test": "true"})

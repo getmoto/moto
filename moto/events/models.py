@@ -36,7 +36,9 @@ UNDEFINED = object()
 
 
 class Rule(CloudFormationModel):
-    Arn = namedtuple("Arn", ["service", "resource_type", "resource_id"])
+    Arn = namedtuple(
+        "Arn", ["account", "region", "service", "resource_type", "resource_id"]
+    )
 
     def __init__(
         self,
@@ -122,6 +124,7 @@ class Rule(CloudFormationModel):
         # - CloudWatch Log Group
         # - EventBridge Archive
         # - SQS Queue + FIFO Queue
+        # - Cross-region/account EventBus
         for target in self.targets:
             arn = self._parse_arn(target["Arn"])
 
@@ -135,17 +138,25 @@ class Rule(CloudFormationModel):
             elif arn.service == "sqs":
                 group_id = target.get("SqsParameters", {}).get("MessageGroupId")
                 self._send_to_sqs_queue(arn.resource_id, event, group_id)
+            elif arn.service == "events" and arn.resource_type == "event-bus":
+                cross_account_backend: EventsBackend = events_backends[arn.account][
+                    arn.region
+                ]
+                new_event = {
+                    "Source": event["source"],
+                    "DetailType": event["detail-type"],
+                    "Detail": json.dumps(event["detail"]),
+                    "EventBusName": arn.resource_id,
+                }
+                cross_account_backend.put_events([new_event])
             else:
                 raise NotImplementedError(f"Expr not defined for {type(self)}")
 
-    def _parse_arn(self, arn):
+    def _parse_arn(self, arn: str) -> Arn:
         # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
         # this method needs probably some more fine tuning,
         # when also other targets are supported
-        elements = arn.split(":", 5)
-
-        service = elements[2]
-        resource = elements[5]
+        _, _, service, region, account, resource = arn.split(":", 5)
 
         if ":" in resource and "/" in resource:
             if resource.index(":") < resource.index("/"):
@@ -161,7 +172,11 @@ class Rule(CloudFormationModel):
             resource_id = resource
 
         return self.Arn(
-            service=service, resource_type=resource_type, resource_id=resource_id
+            account=account,
+            region=region,
+            service=service,
+            resource_type=resource_type,
+            resource_id=resource_id,
         )
 
     def _send_to_cw_log_group(self, name, event):
@@ -925,11 +940,18 @@ class EventPatternParser:
 
 class EventsBackend(BaseBackend):
     """
-    When a event occurs, the appropriate targets are triggered for a subset of usecases.
+    Some Moto services are configured to generate events and send them to EventBridge. See the AWS documentation here:
+    https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-service-event.html
 
-    Supported events: S3:CreateBucket
+    Events that currently supported
 
-    Supported targets: AWSLambda functions
+     - S3:CreateBucket
+
+    Targets that are currently supported
+
+     - AWSLambda functions
+
+    Please let us know if you want support for an event/target that is not yet listed here.
     """
 
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
@@ -1069,7 +1091,7 @@ class EventsBackend(BaseBackend):
             self.tagger.delete_all_tags_for_resource(arn)
         self.rules.pop(name)
 
-    def describe_rule(self, name):
+    def describe_rule(self, name: str) -> Rule:
         rule = self.rules.get(name)
         if not rule:
             raise ResourceNotFoundException(f"Rule {name} does not exist.")
@@ -1174,6 +1196,14 @@ class EventsBackend(BaseBackend):
         rule.put_targets(targets)
 
     def put_events(self, events):
+        """
+        The following targets are supported at the moment:
+
+         - CloudWatch Log Group
+         - EventBridge Archive
+         - SQS Queue + FIFO Queue
+         - Cross-region/account EventBus
+        """
         num_events = len(events)
 
         if num_events > 10:
