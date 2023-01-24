@@ -34,6 +34,7 @@ class SecondaryIndex(BaseModel):
         self.schema = schema
         self.table_key_attrs = table_key_attrs
         self.projection = projection
+        self.schema_key_attrs = [k["AttributeName"] for k in schema]
 
     def project(self, item: Item) -> Item:
         """

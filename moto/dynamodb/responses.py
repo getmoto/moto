@@ -79,12 +79,17 @@ def include_consumed_capacity(
     return _inner
 
 
-def get_empty_keys_on_put(field_updates: Dict[str, Any], table: Table) -> Optional[str]:
+def validate_put_has_empty_keys(
+    field_updates: Dict[str, Any], table: Table, custom_error_msg: Optional[str] = None
+) -> None:
     """
-    Return the first key-name that has an empty value. None if all keys are filled
+    Error if any keys have an empty value. Checks Global index attributes as well
     """
     if table:
         key_names = table.attribute_keys
+        gsi_key_names = list(
+            itertools.chain(*[gsi.schema_key_attrs for gsi in table.global_indexes])
+        )
 
         # string/binary fields with empty string as value
         empty_str_fields = [
@@ -92,10 +97,27 @@ def get_empty_keys_on_put(field_updates: Dict[str, Any], table: Table) -> Option
             for (key, val) in field_updates.items()
             if next(iter(val.keys())) in ["S", "B"] and next(iter(val.values())) == ""
         ]
-        return next(
+
+        # First validate that all of the GSI-keys are set
+        empty_gsi_key = next(
+            (kn for kn in gsi_key_names if kn in empty_str_fields), None
+        )
+        if empty_gsi_key:
+            gsi_name = table.global_indexes[0].name
+            raise MockValidationException(
+                f"One or more parameter values are not valid. A value specified for a secondary index key is not supported. The AttributeValue for a key attribute cannot contain an empty string value. IndexName: {gsi_name}, IndexKey: {empty_gsi_key}"
+            )
+
+        # Then validate that all of the regular keys are set
+        empty_key = next(
             (keyname for keyname in key_names if keyname in empty_str_fields), None
         )
-    return None
+        if empty_key:
+            msg = (
+                custom_error_msg
+                or "One or more parameter values were invalid: An AttributeValue may not contain an empty string. Key: {}"
+            )
+            raise MockValidationException(msg.format(empty_key))
 
 
 def put_has_empty_attrs(field_updates: Dict[str, Any], table: Table) -> bool:
@@ -401,11 +423,7 @@ class DynamoHandler(BaseResponse):
             raise MockValidationException("Return values set to invalid value")
 
         table = self.dynamodb_backend.get_table(name)
-        empty_key = get_empty_keys_on_put(item, table)
-        if empty_key:
-            raise MockValidationException(
-                f"One or more parameter values were invalid: An AttributeValue may not contain an empty string. Key: {empty_key}"
-            )
+        validate_put_has_empty_keys(item, table)
         if put_has_empty_attrs(item, table):
             raise MockValidationException(
                 "One or more parameter values were invalid: An number set  may not be empty"
@@ -462,11 +480,11 @@ class DynamoHandler(BaseResponse):
                 request = list(table_request.values())[0]
                 if request_type == "PutRequest":
                     item = request["Item"]
-                    empty_key = get_empty_keys_on_put(item, table)
-                    if empty_key:
-                        raise MockValidationException(
-                            f"One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {empty_key}"
-                        )
+                    validate_put_has_empty_keys(
+                        item,
+                        table,
+                        custom_error_msg="One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {}",
+                    )
                     put_requests.append((table_name, item))
                 elif request_type == "DeleteRequest":
                     keys = request["Key"]
@@ -1004,6 +1022,12 @@ class DynamoHandler(BaseResponse):
 
     def transact_write_items(self) -> str:
         transact_items = self.body["TransactItems"]
+        # Validate first - we should error before we start the transaction
+        for item in transact_items:
+            if "Put" in item:
+                item_attrs = item["Put"]["Item"]
+                table = self.dynamodb_backend.get_table(item["Put"]["TableName"])
+                validate_put_has_empty_keys(item_attrs, table)
         self.dynamodb_backend.transact_write_items(transact_items)
         response: Dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)
