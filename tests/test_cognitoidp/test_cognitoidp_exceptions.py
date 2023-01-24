@@ -1,6 +1,8 @@
 from unittest import TestCase
 
 import boto3
+import pytest
+
 from moto import mock_cognitoidp
 from botocore.exceptions import ClientError
 
@@ -49,3 +51,47 @@ class TestCognitoUserDeleter(TestCase):
                 },
             )
         exc.exception.response["Error"]["Code"].should.equal("NotAuthorizedException")
+
+
+@mock_cognitoidp
+class TestCognitoUserPoolDuplidateEmails(TestCase):
+    def setUp(self) -> None:
+        self.client = boto3.client("cognito-idp", "us-east-1")
+
+        self.pool_id1 = self.client.create_user_pool(PoolName="test")["UserPool"]["Id"]
+        self.pool_id2 = self.client.create_user_pool(
+            PoolName="test", UsernameAttributes=["email"]
+        )["UserPool"]["Id"]
+
+        # create two users
+        for user in ["user1", "user2"]:
+            self.client.admin_create_user(
+                UserPoolId=self.pool_id1,
+                Username=user,
+                UserAttributes=[{"Name": "email", "Value": f"{user}@test.com"}],
+            )
+            self.client.admin_create_user(
+                UserPoolId=self.pool_id2,
+                Username=f"{user}@test.com",
+                UserAttributes=[{"Name": "email", "Value": f"{user}@test.com"}],
+            )
+
+    def test_use_existing_email__when_email_is_login(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.admin_update_user_attributes(
+                UserPoolId=self.pool_id2,
+                Username="user1@test.com",
+                UserAttributes=[{"Name": "email", "Value": "user2@test.com"}],
+            )
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("AliasExistsException")
+        err["Message"].should.equal("An account with the given email already exists.")
+
+    def test_use_existing_email__when_username_is_login(self):
+        # Because we cannot use the email as username,
+        # multiple users can have the same email address
+        self.client.admin_update_user_attributes(
+            UserPoolId=self.pool_id1,
+            Username="user1",
+            UserAttributes=[{"Name": "email", "Value": "user2@test.com"}],
+        )
