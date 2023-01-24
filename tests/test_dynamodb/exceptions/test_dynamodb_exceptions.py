@@ -804,6 +804,45 @@ def test_transact_write_items_multiple_operations_fail():
 
 
 @mock_dynamodb
+def test_transact_write_items_with_empty_gsi_key():
+    client = boto3.client("dynamodb", "us-east-2")
+
+    client.create_table(
+        TableName="test_table",
+        KeySchema=[{"AttributeName": "unique_code", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "unique_code", "AttributeType": "S"},
+            {"AttributeName": "unique_id", "AttributeType": "S"},
+        ],
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "gsi_index",
+                "KeySchema": [{"AttributeName": "unique_id", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+            }
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    transact_items = [
+        {
+            "Put": {
+                "Item": {"unique_code": {"S": "some code"}, "unique_id": {"S": ""}},
+                "TableName": "test_table",
+            }
+        }
+    ]
+
+    with pytest.raises(ClientError) as exc:
+        client.transact_write_items(TransactItems=transact_items)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values are not valid. A value specified for a secondary index key is not supported. The AttributeValue for a key attribute cannot contain an empty string value. IndexName: gsi_index, IndexKey: unique_id"
+    )
+
+
+@mock_dynamodb
 def test_update_primary_key_with_sortkey():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     schema = {
