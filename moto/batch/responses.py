@@ -1,4 +1,5 @@
 from moto.core.responses import BaseResponse
+from moto.utilities.aws_headers import amzn_request_id
 from .models import batch_backends, BatchBackend
 from urllib.parse import urlsplit, unquote
 
@@ -22,6 +23,7 @@ class BatchResponse(BaseResponse):
         return urlsplit(self.uri).path.lstrip("/").split("/")[1]
 
     # CreateComputeEnvironment
+    @amzn_request_id
     def createcomputeenvironment(self) -> str:
         compute_env_name = self._get_param("computeEnvironmentName")
         compute_resource = self._get_param("computeResources")
@@ -42,6 +44,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DescribeComputeEnvironments
+    @amzn_request_id
     def describecomputeenvironments(self) -> str:
         compute_environments = self._get_param("computeEnvironments")
 
@@ -51,6 +54,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DeleteComputeEnvironment
+    @amzn_request_id
     def deletecomputeenvironment(self) -> str:
         compute_environment = self._get_param("computeEnvironment")
 
@@ -59,6 +63,7 @@ class BatchResponse(BaseResponse):
         return ""
 
     # UpdateComputeEnvironment
+    @amzn_request_id
     def updatecomputeenvironment(self) -> str:
         compute_env_name = self._get_param("computeEnvironment")
         compute_resource = self._get_param("computeResources")
@@ -77,6 +82,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # CreateJobQueue
+    @amzn_request_id
     def createjobqueue(self) -> str:
         compute_env_order = self._get_param("computeEnvironmentOrder")
         queue_name = self._get_param("jobQueueName")
@@ -97,6 +103,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DescribeJobQueues
+    @amzn_request_id
     def describejobqueues(self) -> str:
         job_queues = self._get_param("jobQueues")
 
@@ -106,6 +113,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # UpdateJobQueue
+    @amzn_request_id
     def updatejobqueue(self) -> str:
         compute_env_order = self._get_param("computeEnvironmentOrder")
         queue_name = self._get_param("jobQueue")
@@ -124,6 +132,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DeleteJobQueue
+    @amzn_request_id
     def deletejobqueue(self) -> str:
         queue_name = self._get_param("jobQueue")
 
@@ -132,6 +141,7 @@ class BatchResponse(BaseResponse):
         return ""
 
     # RegisterJobDefinition
+    @amzn_request_id
     def registerjobdefinition(self) -> str:
         container_properties = self._get_param("containerProperties")
         node_properties = self._get_param("nodeProperties")
@@ -165,6 +175,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DeregisterJobDefinition
+    @amzn_request_id
     def deregisterjobdefinition(self) -> str:
         queue_name = self._get_param("jobDefinition")
 
@@ -173,6 +184,7 @@ class BatchResponse(BaseResponse):
         return ""
 
     # DescribeJobDefinitions
+    @amzn_request_id
     def describejobdefinitions(self) -> str:
         job_def_name = self._get_param("jobDefinitionName")
         job_def_list = self._get_param("jobDefinitions")
@@ -186,6 +198,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # SubmitJob
+    @amzn_request_id
     def submitjob(self) -> str:
         container_overrides = self._get_param("containerOverrides")
         depends_on = self._get_param("dependsOn")
@@ -208,12 +221,14 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # DescribeJobs
+    @amzn_request_id
     def describejobs(self) -> str:
         jobs = self._get_param("jobs")
 
         return json.dumps({"jobs": self.batch_backend.describe_jobs(jobs)})
 
     # ListJobs
+    @amzn_request_id
     def listjobs(self) -> str:
         job_queue = self._get_param("jobQueue")
         job_status = self._get_param("jobStatus")
@@ -225,6 +240,7 @@ class BatchResponse(BaseResponse):
         return json.dumps(result)
 
     # TerminateJob
+    @amzn_request_id
     def terminatejob(self) -> str:
         job_id = self._get_param("jobId")
         reason = self._get_param("reason")
@@ -234,6 +250,7 @@ class BatchResponse(BaseResponse):
         return ""
 
     # CancelJob
+    @amzn_request_id
     def canceljob(self) -> str:
         job_id = self._get_param("jobId")
         reason = self._get_param("reason")
@@ -241,6 +258,7 @@ class BatchResponse(BaseResponse):
 
         return ""
 
+    @amzn_request_id
     def tags(self) -> str:
         resource_arn = unquote(self.path).split("/v1/tags/")[-1]
         tags = self._get_param("tags")
