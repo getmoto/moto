@@ -86,6 +86,7 @@ class BatchResponse(BaseResponse):
     def createjobqueue(self) -> str:
         compute_env_order = self._get_param("computeEnvironmentOrder")
         queue_name = self._get_param("jobQueueName")
+        schedule_policy = self._get_param("schedulingPolicyArn")
         priority = self._get_param("priority")
         state = self._get_param("state")
         tags = self._get_param("tags")
@@ -93,6 +94,7 @@ class BatchResponse(BaseResponse):
         name, arn = self.batch_backend.create_job_queue(
             queue_name=queue_name,
             priority=priority,
+            schedule_policy=schedule_policy,
             state=state,
             compute_env_order=compute_env_order,
             tags=tags,
@@ -117,6 +119,7 @@ class BatchResponse(BaseResponse):
     def updatejobqueue(self) -> str:
         compute_env_order = self._get_param("computeEnvironmentOrder")
         queue_name = self._get_param("jobQueue")
+        schedule_policy = self._get_param("schedulingPolicyArn")
         priority = self._get_param("priority")
         state = self._get_param("state")
 
@@ -125,6 +128,7 @@ class BatchResponse(BaseResponse):
             priority=priority,
             state=state,
             compute_env_order=compute_env_order,
+            schedule_policy=schedule_policy,
         )
 
         result = {"jobQueueArn": arn, "jobQueueName": name}
@@ -270,4 +274,42 @@ class BatchResponse(BaseResponse):
         if self.method == "DELETE":
             tag_keys = self.querystring.get("tagKeys")
             self.batch_backend.untag_resource(resource_arn, tag_keys)  # type: ignore[arg-type]
+        return ""
+
+    @amzn_request_id
+    def createschedulingpolicy(self) -> str:
+        body = json.loads(self.body)
+        name = body.get("name")
+        fairshare_policy = body.get("fairsharePolicy") or {}
+        tags = body.get("tags")
+        policy = self.batch_backend.create_scheduling_policy(
+            name, fairshare_policy, tags
+        )
+        return json.dumps(policy.to_dict(create=True))
+
+    @amzn_request_id
+    def describeschedulingpolicies(self) -> str:
+        body = json.loads(self.body)
+        arns = body.get("arns") or []
+        policies = self.batch_backend.describe_scheduling_policies(arns)
+        return json.dumps({"schedulingPolicies": [pol.to_dict() for pol in policies]})
+
+    @amzn_request_id
+    def listschedulingpolicies(self) -> str:
+        arns = self.batch_backend.list_scheduling_policies()
+        return json.dumps({"schedulingPolicies": [{"arn": arn} for arn in arns]})
+
+    @amzn_request_id
+    def deleteschedulingpolicy(self) -> str:
+        body = json.loads(self.body)
+        arn = body["arn"]
+        self.batch_backend.delete_scheduling_policy(arn)
+        return ""
+
+    @amzn_request_id
+    def updateschedulingpolicy(self) -> str:
+        body = json.loads(self.body)
+        arn = body.get("arn")
+        fairshare_policy = body.get("fairsharePolicy") or {}
+        self.batch_backend.update_scheduling_policy(arn, fairshare_policy)
         return ""

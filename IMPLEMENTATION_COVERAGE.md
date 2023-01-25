@@ -491,23 +491,23 @@
 
 ## batch
 <details>
-<summary>79% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] cancel_job
 - [X] create_compute_environment
 - [X] create_job_queue
-- [ ] create_scheduling_policy
+- [X] create_scheduling_policy
 - [X] delete_compute_environment
 - [X] delete_job_queue
-- [ ] delete_scheduling_policy
+- [X] delete_scheduling_policy
 - [X] deregister_job_definition
 - [X] describe_compute_environments
 - [X] describe_job_definitions
 - [X] describe_job_queues
 - [X] describe_jobs
-- [ ] describe_scheduling_policies
+- [X] describe_scheduling_policies
 - [X] list_jobs
-- [ ] list_scheduling_policies
+- [X] list_scheduling_policies
 - [X] list_tags_for_resource
 - [X] register_job_definition
 - [X] submit_job
@@ -516,7 +516,7 @@
 - [X] untag_resource
 - [X] update_compute_environment
 - [X] update_job_queue
-- [ ] update_scheduling_policy
+- [X] update_scheduling_policy
 </details>
 
 ## budgets

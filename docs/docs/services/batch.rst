@@ -30,10 +30,10 @@ batch
 - [X] cancel_job
 - [X] create_compute_environment
 - [X] create_job_queue
-- [ ] create_scheduling_policy
+- [X] create_scheduling_policy
 - [X] delete_compute_environment
 - [X] delete_job_queue
-- [ ] delete_scheduling_policy
+- [X] delete_scheduling_policy
 - [X] deregister_job_definition
 - [X] describe_compute_environments
   
@@ -51,13 +51,17 @@ batch
         
 
 - [X] describe_jobs
-- [ ] describe_scheduling_policies
+- [X] describe_scheduling_policies
 - [X] list_jobs
   
         Pagination is not yet implemented
         
 
-- [ ] list_scheduling_policies
+- [X] list_scheduling_policies
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_tags_for_resource
 - [X] register_job_definition
 - [X] submit_job
@@ -70,5 +74,5 @@ batch
 - [X] untag_resource
 - [X] update_compute_environment
 - [X] update_job_queue
-- [ ] update_scheduling_policy
+- [X] update_scheduling_policy
 
