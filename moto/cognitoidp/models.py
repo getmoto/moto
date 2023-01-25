@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Tuple, Optional, Set
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api._internal import mock_random as random
 from .exceptions import (
+    AliasExistsException,
     GroupExistsException,
     NotAuthorizedError,
     ResourceNotFoundError,
@@ -1636,6 +1637,9 @@ class CognitoIdpBackend(BaseBackend):
     ) -> None:
         user = self.admin_get_user(user_pool_id, username)
 
+        email = self._find_attr("email", attributes)
+        self._verify_email_is_not_used(user_pool_id, email)
+
         user.update_attributes(attributes)
 
     def admin_delete_user_attributes(
@@ -2031,10 +2035,31 @@ class CognitoIdpBackend(BaseBackend):
                 _, username = user_pool.access_tokens[access_token]
                 user = self.admin_get_user(user_pool.id, username)
 
+                email = self._find_attr("email", attributes)
+                self._verify_email_is_not_used(user_pool.id, email)
+
                 user.update_attributes(attributes)
                 return
 
         raise NotAuthorizedError(access_token)
+
+    def _find_attr(self, name: str, attrs: List[Dict[str, str]]) -> Optional[str]:
+        return next((a["Value"] for a in attrs if a["Name"] == name), None)
+
+    def _verify_email_is_not_used(
+        self, user_pool_id: str, email: Optional[str]
+    ) -> None:
+        if not email:
+            # We're not updating emails
+            return
+        user_pool = self.describe_user_pool(user_pool_id)
+        if "email" not in user_pool.extended_config.get("UsernameAttributes", []):
+            # email is not used as a username - duplicate emails are allowed
+            return
+
+        for user in user_pool.users.values():
+            if user.attribute_lookup.get("email", "") == email:
+                raise AliasExistsException
 
 
 class RegionAgnosticBackend:

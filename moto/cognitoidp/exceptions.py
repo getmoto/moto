@@ -2,6 +2,13 @@ from moto.core.exceptions import JsonRESTError
 from typing import Optional
 
 
+class AliasExistsException(JsonRESTError):
+    def __init__(self) -> None:
+        super().__init__(
+            "AliasExistsException", "An account with the given email already exists."
+        )
+
+
 class ResourceNotFoundError(JsonRESTError):
     def __init__(self, message: Optional[str]):
         super().__init__(error_type="ResourceNotFoundException", message=message or "")
