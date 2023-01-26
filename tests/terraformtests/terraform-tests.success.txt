@@ -53,12 +53,9 @@ autoscaling:
   - TestAccAutoScalingLaunchConfiguration_encryptedRootBlockDevice
 batch:
   - TestAccBatchJobDefinition
-  - TestAccBatchJobQueue_basic
-  - TestAccBatchJobQueue_tags
-  - TestAccBatchJobQueue_disappears
-  - TestAccBatchJobQueue_priority
-  - TestAccBatchJobQueue_state
-  - TestAccBatchJobQueue_ComputeEnvironments_externalOrderUpdate
+  - TestAccBatchJobQueue_
+  - TestAccBatchJobQueueDataSource_
+  - TestAccBatchSchedulingPolicy
 ce:
   - TestAccCECostCategory
 cloudformation:

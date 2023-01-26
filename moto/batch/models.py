@@ -132,6 +132,7 @@ class JobQueue(CloudFormationModel):
         state: str,
         environments: List[ComputeEnvironment],
         env_order_json: List[Dict[str, Any]],
+        schedule_policy: Optional[str],
         backend: "BatchBackend",
         tags: Optional[Dict[str, str]] = None,
     ):
@@ -152,6 +153,7 @@ class JobQueue(CloudFormationModel):
         self.state = state
         self.environments = environments
         self.env_order_json = env_order_json
+        self.schedule_policy = schedule_policy
         self.arn = make_arn_for_job_queue(backend.account_id, name, backend.region_name)
         self.status = "VALID"
         self.backend = backend
@@ -167,6 +169,7 @@ class JobQueue(CloudFormationModel):
             "jobQueueArn": self.arn,
             "jobQueueName": self.name,
             "priority": self.priority,
+            "schedulingPolicyArn": self.schedule_policy,
             "state": self.state,
             "status": self.status,
             "tags": self.backend.list_tags_for_resource(self.arn),
@@ -209,6 +212,7 @@ class JobQueue(CloudFormationModel):
             priority=properties["Priority"],
             state=properties.get("State", "ENABLED"),
             compute_env_order=compute_envs,
+            schedule_policy={},
         )
         arn = queue[1]
 
@@ -914,6 +918,35 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         return True
 
 
+class SchedulingPolicy(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        name: str,
+        fairshare_policy: Dict[str, Any],
+        backend: "BatchBackend",
+        tags: Dict[str, str],
+    ):
+        self.name = name
+        self.arn = f"arn:aws:batch:{region}:{account_id}:scheduling-policy/{name}"
+        self.fairshare_policy = {
+            "computeReservation": fairshare_policy.get("computeReservation") or 0,
+            "shareDecaySeconds": fairshare_policy.get("shareDecaySeconds") or 0,
+            "shareDistribution": fairshare_policy.get("shareDistribution") or [],
+        }
+        self.backend = backend
+        if tags:
+            backend.tag_resource(self.arn, tags)
+
+    def to_dict(self, create: bool = False) -> Dict[str, Any]:
+        resp: Dict[str, Any] = {"name": self.name, "arn": self.arn}
+        if not create:
+            resp["fairsharePolicy"] = self.fairshare_policy
+            resp["tags"] = self.backend.list_tags_for_resource(self.arn)
+        return resp
+
+
 class BatchBackend(BaseBackend):
     """
     Batch-jobs are executed inside a Docker-container. Everytime the `submit_job`-method is called, a new Docker container is started.
@@ -931,6 +964,7 @@ class BatchBackend(BaseBackend):
         self._job_queues: Dict[str, JobQueue] = {}
         self._job_definitions: Dict[str, JobDefinition] = {}
         self._jobs: Dict[str, Job] = {}
+        self._scheduling_policies: Dict[str, SchedulingPolicy] = {}
 
         state_manager.register_default_transition(
             "batch::job", transition={"progression": "manual", "times": 1}
@@ -1401,6 +1435,7 @@ class BatchBackend(BaseBackend):
         self,
         queue_name: str,
         priority: str,
+        schedule_policy: Optional[str],
         state: str,
         compute_env_order: List[Dict[str, str]],
         tags: Optional[Dict[str, str]] = None,
@@ -1444,6 +1479,7 @@ class BatchBackend(BaseBackend):
             state,
             env_objects,
             compute_env_order,
+            schedule_policy=schedule_policy,
             backend=self,
             tags=tags,
         )
@@ -1477,6 +1513,7 @@ class BatchBackend(BaseBackend):
         priority: Optional[str],
         state: Optional[str],
         compute_env_order: Optional[List[Dict[str, Any]]],
+        schedule_policy: Optional[str],
     ) -> Tuple[str, str]:
         if queue_name is None:
             raise ClientException("jobQueueName must be provided")
@@ -1519,6 +1556,8 @@ class BatchBackend(BaseBackend):
 
         if priority is not None:
             job_queue.priority = priority
+        if schedule_policy is not None:
+            job_queue.schedule_policy = schedule_policy
 
         return queue_name, job_queue.arn
 
@@ -1767,6 +1806,32 @@ class BatchBackend(BaseBackend):
 
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def create_scheduling_policy(
+        self, name: str, fairshare_policy: Dict[str, Any], tags: Dict[str, str]
+    ) -> SchedulingPolicy:
+        policy = SchedulingPolicy(
+            self.account_id, self.region_name, name, fairshare_policy, self, tags
+        )
+        self._scheduling_policies[policy.arn] = policy
+        return self._scheduling_policies[policy.arn]
+
+    def describe_scheduling_policies(self, arns: List[str]) -> List[SchedulingPolicy]:
+        return [pol for arn, pol in self._scheduling_policies.items() if arn in arns]
+
+    def list_scheduling_policies(self) -> List[str]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self._scheduling_policies.keys())
+
+    def delete_scheduling_policy(self, arn: str) -> None:
+        self._scheduling_policies.pop(arn, None)
+
+    def update_scheduling_policy(
+        self, arn: str, fairshare_policy: Dict[str, Any]
+    ) -> None:
+        self._scheduling_policies[arn].fairshare_policy = fairshare_policy
 
 
 batch_backends = BackendDict(BatchBackend, "batch")

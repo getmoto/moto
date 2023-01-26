@@ -30,6 +30,7 @@ def test_create_job_queue():
         state="ENABLED",
         priority=123,
         computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+        schedulingPolicyArn="policy_arn",
     )
     resp.should.contain("jobQueueArn")
     resp.should.contain("jobQueueName")
@@ -39,6 +40,7 @@ def test_create_job_queue():
     our_queues = [q for q in all_queues if q["jobQueueName"] == jq_name]
     our_queues.should.have.length_of(1)
     our_queues[0]["jobQueueArn"].should.equal(queue_arn)
+    our_queues[0]["schedulingPolicyArn"].should.equal("policy_arn")
 
 
 @mock_ec2
