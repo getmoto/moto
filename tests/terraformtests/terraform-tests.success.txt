@@ -118,6 +118,11 @@ dynamodb:
 ec2:
   - TestAccEC2AvailabilityZonesDataSource_
   - TestAccEC2CarrierGateway_
+  - TestAccEC2HostDataSource_
+  - TestAccEC2Host_basic
+  - TestAccEC2Host_disappears
+  - TestAccEC2Host_instanceFamily
+  - TestAccEC2Host_tags
   - TestAccEC2InstanceTypeOfferingDataSource_
   - TestAccEC2InstanceTypeOfferingsDataSource_
   - TestAccEC2RouteTableAssociation_

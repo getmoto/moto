@@ -17,6 +17,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "transit-gateway": "tgw",
     "transit-gateway-route-table": "tgw-rtb",
     "transit-gateway-attachment": "tgw-attach",
+    "dedicated_host": "h",
     "dhcp-options": "dopt",
     "fleet": "fleet",
     "flow-logs": "fl",
@@ -236,6 +237,10 @@ def random_carrier_gateway_id():
 
 def random_public_ip():
     return f"54.214.{random.choice(range(255))}.{random.choice(range(255))}"
+
+
+def random_dedicated_host_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dedicated_host"], size=17)
 
 
 def random_private_ip(cidr=None, ipv6=False):

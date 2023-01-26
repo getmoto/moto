@@ -12,6 +12,7 @@ from .dhcp_options import DHCPOptionsSetBackend
 from .elastic_block_store import EBSBackend
 from .elastic_ip_addresses import ElasticAddressBackend
 from .elastic_network_interfaces import NetworkInterfaceBackend
+from .hosts import HostsBackend
 from .fleets import FleetsBackend
 from .flow_logs import FlowLogsBackend
 from .key_pairs import KeyPairBackend
@@ -124,6 +125,7 @@ class EC2Backend(
     CarrierGatewayBackend,
     FleetsBackend,
     WindowsBackend,
+    HostsBackend,
 ):
     """
     moto includes a limited set of AMIs in `moto/ec2/resources/amis.json`.
