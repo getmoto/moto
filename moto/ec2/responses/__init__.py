@@ -9,6 +9,7 @@ from .elastic_ip_addresses import ElasticIPAddresses
 from .elastic_network_interfaces import ElasticNetworkInterfaces
 from .fleets import Fleets
 from .general import General
+from .hosts import HostsResponse
 from .instances import InstanceResponse
 from .internet_gateways import InternetGateways
 from .egress_only_internet_gateways import EgressOnlyInternetGateway
@@ -55,6 +56,7 @@ class EC2Response(
     ElasticNetworkInterfaces,
     Fleets,
     General,
+    HostsResponse,
     InstanceResponse,
     InternetGateways,
     EgressOnlyInternetGateway,

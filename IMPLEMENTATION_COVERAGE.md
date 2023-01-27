@@ -1745,7 +1745,7 @@
 - [X] accept_vpc_peering_connection
 - [ ] advertise_byoip_cidr
 - [X] allocate_address
-- [ ] allocate_hosts
+- [X] allocate_hosts
 - [ ] allocate_ipam_pool_cidr
 - [ ] apply_security_groups_to_client_vpn_target_network
 - [X] assign_ipv6_addresses
@@ -1982,7 +1982,7 @@
 - [ ] describe_fpga_images
 - [ ] describe_host_reservation_offerings
 - [ ] describe_host_reservations
-- [ ] describe_hosts
+- [X] describe_hosts
 - [X] describe_iam_instance_profile_associations
 - [ ] describe_id_format
 - [ ] describe_identity_id_format
@@ -2193,7 +2193,7 @@
 - [ ] modify_ebs_default_kms_key_id
 - [ ] modify_fleet
 - [ ] modify_fpga_image_attribute
-- [ ] modify_hosts
+- [X] modify_hosts
 - [ ] modify_id_format
 - [ ] modify_identity_id_format
 - [ ] modify_image_attribute
@@ -2267,7 +2267,7 @@
 - [ ] reject_vpc_endpoint_connections
 - [X] reject_vpc_peering_connection
 - [X] release_address
-- [ ] release_hosts
+- [X] release_hosts
 - [ ] release_ipam_pool_allocation
 - [X] replace_iam_instance_profile_association
 - [X] replace_network_acl_association
