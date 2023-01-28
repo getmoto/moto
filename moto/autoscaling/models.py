@@ -521,9 +521,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
             if launch_template:
                 launch_template_id = launch_template.get("launch_template_id")
                 launch_template_name = launch_template.get("launch_template_name")
+                # If no version is specified, AWS will use '$Default'
+                # However, AWS will never show the version if it is not specified
+                # (If the user explicitly specifies '$Default', it will be returned)
                 self.launch_template_version = (
                     launch_template.get("version") or "$Default"
                 )
+                self.provided_launch_template_version = launch_template.get("version")
             elif mixed_instance_policy:
                 spec = mixed_instance_policy["LaunchTemplate"][
                     "LaunchTemplateSpecification"

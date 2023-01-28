@@ -1,7 +1,7 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import ecs_backends
+from .models import ecs_backends, EC2ContainerServiceBackend
 
 
 class EC2ContainerServiceResponse(BaseResponse):
@@ -9,13 +9,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         super().__init__(service_name="ecs")
 
     @property
-    def ecs_backend(self):
-        """
-        ECS Backend
-
-        :return: ECS Backend object
-        :rtype: moto.ecs.models.EC2ContainerServiceBackend
-        """
+    def ecs_backend(self) -> EC2ContainerServiceBackend:
         return ecs_backends[self.current_account][self.region]
 
     @property
@@ -39,9 +33,21 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_name = self._get_param("clusterName")
         tags = self._get_param("tags")
         settings = self._get_param("settings")
+        configuration = self._get_param("configuration")
+        capacity_providers = self._get_param("capacityProviders")
+        default_capacity_provider_strategy = self._get_param(
+            "defaultCapacityProviderStrategy"
+        )
         if cluster_name is None:
             cluster_name = "default"
-        cluster = self.ecs_backend.create_cluster(cluster_name, tags, settings)
+        cluster = self.ecs_backend.create_cluster(
+            cluster_name,
+            tags,
+            settings,
+            configuration,
+            capacity_providers,
+            default_capacity_provider_strategy,
+        )
         return json.dumps({"cluster": cluster.response_object})
 
     def list_clusters(self):
@@ -53,9 +59,33 @@ class EC2ContainerServiceResponse(BaseResponse):
             }
         )
 
+    def update_cluster(self):
+        cluster_name = self._get_param("cluster")
+        settings = self._get_param("settings")
+        configuration = self._get_param("configuration")
+        cluster = self.ecs_backend.update_cluster(cluster_name, settings, configuration)
+        return json.dumps({"cluster": cluster.response_object})
+
+    def put_cluster_capacity_providers(self):
+        cluster_name = self._get_param("cluster")
+        capacity_providers = self._get_param("capacityProviders")
+        default_capacity_provider_strategy = self._get_param(
+            "defaultCapacityProviderStrategy"
+        )
+        cluster = self.ecs_backend.put_cluster_capacity_providers(
+            cluster_name, capacity_providers, default_capacity_provider_strategy
+        )
+        return json.dumps({"cluster": cluster.response_object})
+
     def delete_capacity_provider(self):
         name = self._get_param("capacityProvider")
         provider = self.ecs_backend.delete_capacity_provider(name)
+        return json.dumps({"capacityProvider": provider.response_object})
+
+    def update_capacity_provider(self):
+        name = self._get_param("name")
+        asg_provider = self._get_param("autoScalingGroupProvider")
+        provider = self.ecs_backend.update_capacity_provider(name, asg_provider)
         return json.dumps({"capacityProvider": provider.response_object})
 
     def describe_capacity_providers(self):
@@ -96,6 +126,12 @@ class EC2ContainerServiceResponse(BaseResponse):
         memory = self._get_param("memory")
         task_role_arn = self._get_param("taskRoleArn")
         execution_role_arn = self._get_param("executionRoleArn")
+        proxy_configuration = self._get_param("proxyConfiguration")
+        inference_accelerators = self._get_param("inferenceAccelerators")
+        runtime_platform = self._get_param("runtimePlatform")
+        ipc_mode = self._get_param("ipcMode")
+        pid_mode = self._get_param("pidMode")
+        ephemeral_storage = self._get_param("ephemeralStorage")
 
         task_definition = self.ecs_backend.register_task_definition(
             family,
@@ -109,6 +145,12 @@ class EC2ContainerServiceResponse(BaseResponse):
             memory=memory,
             task_role_arn=task_role_arn,
             execution_role_arn=execution_role_arn,
+            proxy_configuration=proxy_configuration,
+            inference_accelerators=inference_accelerators,
+            runtime_platform=runtime_platform,
+            ipc_mode=ipc_mode,
+            pid_mode=pid_mode,
+            ephemeral_storage=ephemeral_storage,
         )
         return json.dumps({"taskDefinition": task_definition.response_object})
 
@@ -223,6 +265,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         tags = self._get_param("tags")
         deployment_controller = self._get_param("deploymentController")
         launch_type = self._get_param("launchType")
+        platform_version = self._get_param("platformVersion")
         service = self.ecs_backend.create_service(
             cluster_str,
             service_name,
@@ -234,6 +277,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             deployment_controller,
             launch_type,
             service_registries=service_registries,
+            platform_version=platform_version,
         )
         return json.dumps({"service": service.response_object})
 
@@ -403,14 +447,14 @@ class EC2ContainerServiceResponse(BaseResponse):
     def tag_resource(self):
         resource_arn = self._get_param("resourceArn")
         tags = self._get_param("tags")
-        results = self.ecs_backend.tag_resource(resource_arn, tags)
-        return json.dumps(results)
+        self.ecs_backend.tag_resource(resource_arn, tags)
+        return json.dumps({})
 
     def untag_resource(self):
         resource_arn = self._get_param("resourceArn")
         tag_keys = self._get_param("tagKeys")
-        results = self.ecs_backend.untag_resource(resource_arn, tag_keys)
-        return json.dumps(results)
+        self.ecs_backend.untag_resource(resource_arn, tag_keys)
+        return json.dumps({})
 
     def create_task_set(self):
         service_str = self._get_param("service")
