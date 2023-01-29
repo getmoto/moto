@@ -29,10 +29,6 @@ ecs
 
 - [X] create_capacity_provider
 - [X] create_cluster
-  
-        The following parameters are not yet implemented: configuration, capacityProviders, defaultCapacityProviderStrategy
-        
-
 - [X] create_service
 - [X] create_task_set
 - [X] delete_account_setting
@@ -92,7 +88,7 @@ ecs
 - [X] put_account_setting
 - [ ] put_account_setting_default
 - [X] put_attributes
-- [ ] put_cluster_capacity_providers
+- [X] put_cluster_capacity_providers
 - [X] register_container_instance
 - [X] register_task_definition
 - [X] run_task
@@ -102,13 +98,13 @@ ecs
 - [ ] submit_container_state_change
 - [ ] submit_task_state_change
 - [X] tag_resource
-  Currently implemented only for services
-
 - [X] untag_resource
-  Currently implemented only for services
+- [X] update_capacity_provider
+- [X] update_cluster
+  
+        The serviceConnectDefaults-parameter is not yet implemented
+        
 
-- [ ] update_capacity_provider
-- [ ] update_cluster
 - [ ] update_cluster_settings
 - [ ] update_container_agent
 - [X] update_container_instances_state

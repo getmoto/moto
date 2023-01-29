@@ -778,7 +778,9 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         {% elif group.launch_template %}
         <LaunchTemplate>
           <LaunchTemplateId>{{ group.launch_template.id }}</LaunchTemplateId>
-          <Version>{{ group.launch_template_version }}</Version>
+          {% if group.provided_launch_template_version %}}
+          <Version>{{ group.provided_launch_template_version }}</Version>
+          {% endif %}
           <LaunchTemplateName>{{ group.launch_template.name }}</LaunchTemplateName>
         </LaunchTemplate>
         {% endif %}

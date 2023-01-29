@@ -1,7 +1,7 @@
 import re
 from copy import copy
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from moto import settings
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
@@ -11,7 +11,6 @@ from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
 from ..ec2.utils import random_private_ip
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random
-from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
     EcsClientException,
     ServiceNotFoundException,
@@ -56,7 +55,17 @@ class AccountSetting(BaseObject):
 
 
 class Cluster(BaseObject, CloudFormationModel):
-    def __init__(self, cluster_name, account_id, region_name, cluster_settings=None):
+    def __init__(
+        self,
+        cluster_name,
+        account_id,
+        region_name,
+        cluster_settings=None,
+        configuration=None,
+        capacity_providers=None,
+        default_capacity_provider_strategy=None,
+        tags=None,
+    ):
         self.active_services_count = 0
         self.arn = f"arn:aws:ecs:{region_name}:{account_id}:cluster/{cluster_name}"
         self.name = cluster_name
@@ -66,6 +75,10 @@ class Cluster(BaseObject, CloudFormationModel):
         self.status = "ACTIVE"
         self.region_name = region_name
         self.settings = cluster_settings
+        self.configuration = configuration
+        self.capacity_providers = capacity_providers
+        self.default_capacity_provider_strategy = default_capacity_provider_strategy
+        self.tags = tags
 
     @property
     def physical_resource_id(self):
@@ -76,6 +89,10 @@ class Cluster(BaseObject, CloudFormationModel):
         response_object = self.gen_response_object()
         response_object["clusterArn"] = self.arn
         response_object["clusterName"] = self.name
+        response_object["capacityProviders"] = self.capacity_providers
+        response_object[
+            "defaultCapacityProviderStrategy"
+        ] = self.default_capacity_provider_strategy
         del response_object["arn"], response_object["name"]
         return response_object
 
@@ -149,6 +166,12 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         memory=None,
         task_role_arn=None,
         execution_role_arn=None,
+        proxy_configuration=None,
+        inference_accelerators=None,
+        runtime_platform=None,
+        ipc_mode=None,
+        pid_mode=None,
+        ephemeral_storage=None,
     ):
         self.family = family
         self.revision = revision
@@ -174,6 +197,12 @@ class TaskDefinition(BaseObject, CloudFormationModel):
             self.volumes = []
         else:
             self.volumes = volumes
+            for volume in volumes:
+                if "efsVolumeConfiguration" in volume:
+                    # We should reach into EFS to verify this volume exists
+                    efs_config = volume["efsVolumeConfiguration"]
+                    if "rootDirectory" not in efs_config:
+                        efs_config["rootDirectory"] = "/"
 
         if not requires_compatibilities or requires_compatibilities == ["EC2"]:
             self.compatibilities = ["EC2"]
@@ -197,6 +226,12 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         )
 
         self.requires_compatibilities = requires_compatibilities
+        self.proxy_configuration = proxy_configuration
+        self.inference_accelerators = inference_accelerators
+        self.runtime_platform = runtime_platform
+        self.ipc_mode = ipc_mode
+        self.pid_mode = pid_mode
+        self.ephemeral_storage = ephemeral_storage
 
         self.cpu = cpu
         self.memory = memory
@@ -368,11 +403,55 @@ class Task(BaseObject):
 class CapacityProvider(BaseObject):
     def __init__(self, account_id, region_name, name, asg_details, tags):
         self._id = str(mock_random.uuid4())
-        self.capacity_provider_arn = f"arn:aws:ecs:{region_name}:{account_id}:capacity_provider/{name}/{self._id}"
+        self.capacity_provider_arn = (
+            f"arn:aws:ecs:{region_name}:{account_id}:capacity-provider/{name}"
+        )
         self.name = name
         self.status = "ACTIVE"
-        self.auto_scaling_group_provider = asg_details
+        self.auto_scaling_group_provider = self._prepare_asg_provider(asg_details)
         self.tags = tags
+
+        self.update_status = None
+
+    def _prepare_asg_provider(self, asg_details):
+        if "managedScaling" not in asg_details:
+            asg_details["managedScaling"] = {}
+        if not asg_details["managedScaling"].get("instanceWarmupPeriod"):
+            asg_details["managedScaling"]["instanceWarmupPeriod"] = 300
+        if not asg_details["managedScaling"].get("minimumScalingStepSize"):
+            asg_details["managedScaling"]["minimumScalingStepSize"] = 1
+        if not asg_details["managedScaling"].get("maximumScalingStepSize"):
+            asg_details["managedScaling"]["maximumScalingStepSize"] = 10000
+        if not asg_details["managedScaling"].get("targetCapacity"):
+            asg_details["managedScaling"]["targetCapacity"] = 100
+        if not asg_details["managedScaling"].get("status"):
+            asg_details["managedScaling"]["status"] = "DISABLED"
+        if "managedTerminationProtection" not in asg_details:
+            asg_details["managedTerminationProtection"] = "DISABLED"
+        return asg_details
+
+    def update(self, asg_details):
+        if "managedTerminationProtection" in asg_details:
+            self.auto_scaling_group_provider[
+                "managedTerminationProtection"
+            ] = asg_details["managedTerminationProtection"]
+        if "managedScaling" in asg_details:
+            scaling_props = [
+                "status",
+                "targetCapacity",
+                "minimumScalingStepSize",
+                "maximumScalingStepSize",
+                "instanceWarmupPeriod",
+            ]
+            for prop in scaling_props:
+                if prop in asg_details["managedScaling"]:
+                    self.auto_scaling_group_provider["managedScaling"][
+                        prop
+                    ] = asg_details["managedScaling"][prop]
+        self.auto_scaling_group_provider = self._prepare_asg_provider(
+            self.auto_scaling_group_provider
+        )
+        self.update_status = "UPDATE_COMPLETE"
 
 
 class CapacityProviderFailure(BaseObject):
@@ -402,6 +481,7 @@ class Service(BaseObject, CloudFormationModel):
         launch_type=None,
         backend=None,
         service_registries=None,
+        platform_version=None,
     ):
         self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
@@ -438,6 +518,7 @@ class Service(BaseObject, CloudFormationModel):
         self.scheduling_strategy = (
             scheduling_strategy if scheduling_strategy is not None else "REPLICA"
         )
+        self.platform_version = platform_version
         self.tags = tags if tags is not None else []
         self.pending_count = 0
         self.region_name = cluster.region_name
@@ -461,6 +542,7 @@ class Service(BaseObject, CloudFormationModel):
         response_object["serviceName"] = self.name
         response_object["serviceArn"] = self.arn
         response_object["schedulingStrategy"] = self.scheduling_strategy
+        response_object["platformVersion"] = self.platform_version
         if response_object["deploymentController"]["type"] == "ECS":
             del response_object["deploymentController"]
             del response_object["taskSets"]
@@ -737,12 +819,12 @@ class TaskSet(BaseObject):
         self.task_definition = task_definition or ""
         self.region_name = region_name
         self.external_id = external_id or ""
-        self.network_configuration = network_configuration or {}
+        self.network_configuration = network_configuration or None
         self.load_balancers = load_balancers or []
         self.service_registries = service_registries or []
         self.launch_type = launch_type
         self.capacity_provider_strategy = capacity_provider_strategy or []
-        self.platform_version = platform_version or ""
+        self.platform_version = platform_version or "LATEST"
         self.scale = scale or {"value": 100.0, "unit": "PERCENT"}
         self.client_token = client_token or ""
         self.tags = tags or []
@@ -787,19 +869,15 @@ class EC2ContainerServiceBackend(BaseBackend):
     AWS reference: https://aws.amazon.com/blogs/compute/migrating-your-amazon-ecs-deployment-to-the-new-arn-and-resource-id-format-2/
     """
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.account_settings = dict()
         self.capacity_providers = dict()
-        self.clusters = {}
+        self.clusters: Dict[str, Cluster] = {}
         self.task_definitions = {}
         self.tasks = {}
-        self.services = {}
-        self.container_instances = {}
-        self.task_sets = {}
-        self.tagger = TaggingService(
-            tag_name="tags", key_name="key", value_name="value"
-        )
+        self.services: Dict[str, Service] = {}
+        self.container_instances: Dict[str, ContainerInstance] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -823,8 +901,6 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.account_id, self.region_name, name, asg_details, tags
         )
         self.capacity_providers[name] = capacity_provider
-        if tags:
-            self.tagger.tag_resource(capacity_provider.capacity_provider_arn, tags)
         return capacity_provider
 
     def describe_task_definition(self, task_definition_str):
@@ -842,23 +918,54 @@ class EC2ContainerServiceBackend(BaseBackend):
         ):
             return self.task_definitions[family][revision]
         else:
-            raise Exception(f"{task_definition_name} is not a task_definition")
+            raise TaskDefinitionNotFoundException()
 
     def create_cluster(
-        self, cluster_name: str, tags: Any = None, cluster_settings: Any = None
+        self,
+        cluster_name: str,
+        tags: Any = None,
+        cluster_settings: Any = None,
+        configuration: Optional[Dict[str, Any]] = None,
+        capacity_providers: Optional[List[str]] = None,
+        default_capacity_provider_strategy: Optional[List[Dict[str, Any]]] = None,
     ) -> Cluster:
-        """
-        The following parameters are not yet implemented: configuration, capacityProviders, defaultCapacityProviderStrategy
-        """
         cluster = Cluster(
-            cluster_name, self.account_id, self.region_name, cluster_settings
+            cluster_name,
+            self.account_id,
+            self.region_name,
+            cluster_settings,
+            configuration,
+            capacity_providers,
+            default_capacity_provider_strategy,
+            tags,
         )
         self.clusters[cluster_name] = cluster
-        if tags:
-            self.tagger.tag_resource(cluster.arn, tags)
         return cluster
 
-    def _get_provider(self, name_or_arn):
+    def update_cluster(self, cluster_name, cluster_settings, configuration) -> Cluster:
+        """
+        The serviceConnectDefaults-parameter is not yet implemented
+        """
+        cluster = self._get_cluster(cluster_name)
+        if cluster_settings:
+            cluster.settings = cluster_settings
+        if configuration:
+            cluster.configuration = configuration
+        return cluster
+
+    def put_cluster_capacity_providers(
+        self, cluster_name, capacity_providers, default_capacity_provider_strategy
+    ):
+        cluster = self._get_cluster(cluster_name)
+        if capacity_providers is not None:
+            cluster.capacity_providers = capacity_providers
+        if default_capacity_provider_strategy is not None:
+            cluster.default_capacity_provider_strategy = (
+                default_capacity_provider_strategy
+            )
+        return cluster
+
+    def _get_provider(self, name_or_arn) -> CapacityProvider:
         for provider in self.capacity_providers.values():
             if (
                 provider.name == name_or_arn
@@ -884,6 +991,11 @@ class EC2ContainerServiceBackend(BaseBackend):
     def delete_capacity_provider(self, name_or_arn):
         provider = self._get_provider(name_or_arn)
         self.capacity_providers.pop(provider.name)
+        return provider
+
+    def update_capacity_provider(self, name_or_arn, asg_provider) -> CapacityProvider:
+        provider = self._get_provider(name_or_arn)
+        provider.update(asg_provider)
         return provider
 
     def list_clusters(self):
@@ -913,19 +1025,21 @@ class EC2ContainerServiceBackend(BaseBackend):
                         )
                     )
 
-        if "TAGS" in (include or []):
+        if not include or "TAGS" not in (include):
             for cluster in list_clusters:
-                cluster_arn = cluster["clusterArn"]
-                if self.tagger.has_tags(cluster_arn):
-                    cluster_tags = self.tagger.list_tags_for_resource(cluster_arn)
-                    cluster.update(cluster_tags)
+                cluster["tags"] = None
 
         return list_clusters, failures
 
     def delete_cluster(self, cluster_str: str) -> Cluster:
         cluster = self._get_cluster(cluster_str)
 
-        return self.clusters.pop(cluster.name)
+        # A cluster is not immediately removed - just marked as inactive
+        # It is only deleted later on
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ecs.html#ECS.Client.delete_cluster
+        cluster.status = "INACTIVE"
+
+        return cluster
 
     def register_task_definition(
         self,
@@ -940,6 +1054,12 @@ class EC2ContainerServiceBackend(BaseBackend):
         memory=None,
         task_role_arn=None,
         execution_role_arn=None,
+        proxy_configuration=None,
+        inference_accelerators=None,
+        runtime_platform=None,
+        ipc_mode=None,
+        pid_mode=None,
+        ephemeral_storage=None,
     ):
         if family in self.task_definitions:
             last_id = self._get_last_task_definition_revision_id(family)
@@ -962,6 +1082,12 @@ class EC2ContainerServiceBackend(BaseBackend):
             memory=memory,
             task_role_arn=task_role_arn,
             execution_role_arn=execution_role_arn,
+            proxy_configuration=proxy_configuration,
+            inference_accelerators=inference_accelerators,
+            runtime_platform=runtime_platform,
+            ipc_mode=ipc_mode,
+            pid_mode=pid_mode,
+            ephemeral_storage=ephemeral_storage,
         )
         self.task_definitions[family][revision] = task_definition
 
@@ -995,7 +1121,9 @@ class EC2ContainerServiceBackend(BaseBackend):
             family in self.task_definitions
             and revision in self.task_definitions[family]
         ):
-            task_definition = self.task_definitions[family].pop(revision)
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ecs.html#ECS.Client.deregister_task_definition
+            # At this time, INACTIVE task definitions remain discoverable in your account indefinitely.
+            task_definition = self.task_definitions[family][revision]
             task_definition.status = "INACTIVE"
             return task_definition
         else:
@@ -1015,9 +1143,30 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster = self._get_cluster(cluster_str)
 
         task_definition = self.describe_task_definition(task_definition_str)
+        resource_requirements = self._calculate_task_resource_requirements(
+            task_definition
+        )
         if cluster.name not in self.tasks:
             self.tasks[cluster.name] = {}
         tasks = []
+        if launch_type == "FARGATE":
+            for _ in range(count):
+                task = Task(
+                    cluster,
+                    task_definition,
+                    None,
+                    resource_requirements,
+                    backend=self,
+                    overrides=overrides or {},
+                    started_by=started_by or "",
+                    tags=tags or [],
+                    launch_type=launch_type or "",
+                    networking_configuration=networking_configuration,
+                )
+                tasks.append(task)
+                self.tasks[cluster.name][task.task_arn] = task
+            return tasks
+
         container_instances = list(
             self.container_instances.get(cluster.name, {}).keys()
         )
@@ -1028,9 +1177,6 @@ class EC2ContainerServiceBackend(BaseBackend):
             for x in container_instances
             if self.container_instances[cluster.name][x].status == "ACTIVE"
         ]
-        resource_requirements = self._calculate_task_resource_requirements(
-            task_definition
-        )
         # TODO: return event about unable to place task if not able to place enough tasks to meet count
         placed_count = 0
         for container_instance in active_container_instances:
@@ -1301,10 +1447,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         deployment_controller=None,
         launch_type=None,
         service_registries=None,
+        platform_version=None,
     ):
         cluster = self._get_cluster(cluster_str)
 
-        if task_definition_str is not None:
+        if task_definition_str:
             task_definition = self.describe_task_definition(task_definition_str)
         else:
             task_definition = None
@@ -1326,6 +1473,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             launch_type,
             backend=self,
             service_registries=service_registries,
+            platform_version=platform_version,
         )
         cluster_service_pair = f"{cluster.name}:{service_name}"
         self.services[cluster_service_pair] = service
@@ -1354,18 +1502,19 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def describe_services(self, cluster_str, service_names_or_arns):
         cluster = self._get_cluster(cluster_str)
-        service_names = [name.split("/")[-1] for name in service_names_or_arns]
 
         result = []
         failures = []
-        for name in service_names:
+        for name_or_arn in service_names_or_arns:
+            name = name_or_arn.split("/")[-1]
             cluster_service_pair = f"{cluster.name}:{name}"
             if cluster_service_pair in self.services:
                 result.append(self.services[cluster_service_pair])
             else:
-                missing_arn = (
-                    f"arn:aws:ecs:{self.region_name}:{self.account_id}:service/{name}"
-                )
+                if name_or_arn.startswith("arn:aws:ecs"):
+                    missing_arn = name_or_arn
+                else:
+                    missing_arn = f"arn:aws:ecs:{self.region_name}:{self.account_id}:service/{name}"
                 failures.append({"arn": missing_arn, "reason": "MISSING"})
 
         return result, failures
@@ -1401,7 +1550,11 @@ class EC2ContainerServiceBackend(BaseBackend):
                 "The service cannot be stopped while it is scaled above 0."
             )
         else:
-            return self.services.pop(cluster_service_pair)
+            # A service is not immediately removed - just marked as inactive
+            # It is only deleted later on
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ecs.html#ECS.Client.delete_service
+            service.status = "INACTIVE"
+            return service
 
     def register_container_instance(self, cluster_str, ec2_instance_id):
         cluster_name = cluster_str.split("/")[-1]
@@ -1693,53 +1846,60 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     @staticmethod
     def _parse_resource_arn(resource_arn):
-        match = re.match(
+        regexes = [
+            "^arn:aws:ecs:(?P<region>[^:]+):(?P<account_id>[^:]+):(?P<service>[^:]+)/(?P<cluster_id>[^:]+)/(?P<service_id>[^:]+)/ecs-svc/(?P<id>.*)$",
             "^arn:aws:ecs:(?P<region>[^:]+):(?P<account_id>[^:]+):(?P<service>[^:]+)/(?P<cluster_id>[^:]+)/(?P<id>.*)$",
-            resource_arn,
-        )
-        if not match:
-            # maybe a short-format ARN
-            match = re.match(
-                "^arn:aws:ecs:(?P<region>[^:]+):(?P<account_id>[^:]+):(?P<service>[^:]+)/(?P<id>.*)$",
-                resource_arn,
+            "^arn:aws:ecs:(?P<region>[^:]+):(?P<account_id>[^:]+):(?P<service>[^:]+)/(?P<id>.*)$",
+        ]
+        for regex in regexes:
+            match = re.match(regex, resource_arn)
+            if match:
+                return match.groupdict()
+        raise JsonRESTError("InvalidParameterException", "The ARN provided is invalid.")
+
+    def _get_resource(self, resource_arn, parsed_arn):
+        if parsed_arn["service"] == "cluster":
+            return self._get_cluster(parsed_arn["id"])
+        if parsed_arn["service"] == "service":
+            for service in self.services.values():
+                if service.arn == resource_arn:
+                    return service
+            raise ServiceNotFoundException
+        elif parsed_arn["service"] == "task-set":
+            c_id = parsed_arn["cluster_id"]
+            s_id = parsed_arn["service_id"]
+            services, _ = self.describe_services(
+                cluster_str=c_id, service_names_or_arns=[s_id]
             )
-        if not match:
-            raise JsonRESTError(
-                "InvalidParameterException", "The ARN provided is invalid."
+            for service in services:
+                for task_set in service.task_sets:
+                    if task_set.task_set_arn == resource_arn:
+                        return task_set
+            raise ServiceNotFoundException
+        elif parsed_arn["service"] == "task-definition":
+            task_def = self.describe_task_definition(
+                task_definition_str=parsed_arn["id"]
             )
-        return match.groupdict()
+            return task_def
+        elif parsed_arn["service"] == "capacity-provider":
+            return self._get_provider(parsed_arn["id"])
+        raise NotImplementedError()
 
     def list_tags_for_resource(self, resource_arn):
         """Currently implemented only for task definitions and services"""
         parsed_arn = self._parse_resource_arn(resource_arn)
-        if parsed_arn["service"] == "task-definition":
-            for task_definition in self.task_definitions.values():
-                for revision in task_definition.values():
-                    if revision.arn == resource_arn:
-                        return revision.tags
-            raise TaskDefinitionNotFoundException()
-        elif parsed_arn["service"] == "service":
-            for service in self.services.values():
-                if service.arn == resource_arn:
-                    return service.tags
-            raise ServiceNotFoundException
-        raise NotImplementedError()
+        resource = self._get_resource(resource_arn, parsed_arn)
+        return resource.tags
 
     def _get_last_task_definition_revision_id(self, family):
         definitions = self.task_definitions.get(family, {})
         if definitions:
             return max(definitions.keys())
 
-    def tag_resource(self, resource_arn, tags):
-        """Currently implemented only for services"""
+    def tag_resource(self, resource_arn, tags) -> None:
         parsed_arn = self._parse_resource_arn(resource_arn)
-        if parsed_arn["service"] == "service":
-            for service in self.services.values():
-                if service.arn == resource_arn:
-                    service.tags = self._merge_tags(service.tags, tags)
-                    return {}
-            raise ServiceNotFoundException
-        raise NotImplementedError()
+        resource = self._get_resource(resource_arn, parsed_arn)
+        resource.tags = self._merge_tags(resource.tags, tags)
 
     def _merge_tags(self, existing_tags, new_tags):
         merged_tags = new_tags
@@ -1753,18 +1913,10 @@ class EC2ContainerServiceBackend(BaseBackend):
     def _get_keys(tags):
         return [tag["key"] for tag in tags]
 
-    def untag_resource(self, resource_arn, tag_keys):
-        """Currently implemented only for services"""
+    def untag_resource(self, resource_arn, tag_keys) -> None:
         parsed_arn = self._parse_resource_arn(resource_arn)
-        if parsed_arn["service"] == "service":
-            for service in self.services.values():
-                if service.arn == resource_arn:
-                    service.tags = [
-                        tag for tag in service.tags if tag["key"] not in tag_keys
-                    ]
-                    return {}
-            raise ServiceNotFoundException
-        raise NotImplementedError()
+        resource = self._get_resource(resource_arn, parsed_arn)
+        resource.tags = [tag for tag in resource.tags if tag["key"] not in tag_keys]
 
     def create_task_set(
         self,
@@ -1836,7 +1988,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         task_set_results = []
         if task_sets:
             for task_set in service_obj.task_sets:
+                # Match full ARN
                 if task_set.task_set_arn in task_sets:
+                    task_set_results.append(task_set)
+                # Match partial ARN if only the taskset ID is provided
+                elif "/".join(task_set.task_set_arn.split("/")[-2:]) in task_sets:
                     task_set_results.append(task_set)
         else:
             task_set_results = service_obj.task_sets
@@ -1853,7 +2009,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         service_key = f"{cluster_name}:{service_name}"
         task_set_element = None
         for i, ts in enumerate(self.services[service_key].task_sets):
-            if task_set == ts.task_set_arn:
+            if task_set == ts.task_set_arn or task_set == "/".join(
+                ts.task_set_arn.split("/")[-2:]
+            ):
                 task_set_element = i
 
         if task_set_element is not None:

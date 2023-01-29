@@ -176,6 +176,47 @@ ecr:
   - TestAccECRRepository
   - TestAccECRRepositoryDataSource
   - TestAccECRRepositoryPolicy
+ecs:
+ - TestAccECSCapacityProvider_
+ - TestAccECSCluster_
+ - TestAccECSClusterCapacityProviders_basic
+ - TestAccECSClusterCapacityProviders_defaults
+ - TestAccECSClusterCapacityProviders_disappears
+ - TestAccECSClusterCapacityProviders_Update
+ - TestAccECSService_clusterName
+ - TestAccECSService_deploymentCircuitBreaker
+ - TestAccECSService_alb
+ - TestAccECSService_multipleTargetGroups
+ - TestAccECSService_DeploymentValues
+ - TestAccECSService_iamRole
+ - TestAccECSService_ServiceRegistries_container
+ - TestAccECSService_renamedCluster
+ - TestAccECSService_familyAndRevision
+ - TestAccECSService_replicaSchedulingStrategy
+ - TestAccECSService_DaemonSchedulingStrategy
+ - TestAccECSService_PlacementStrategy_missing
+ - TestAccECSService_disappears
+ - TestAccECSTaskSet_
+ - TestAccECSTaskDefinition_Docker
+ - TestAccECSTaskDefinition_EFSVolume
+ - TestAccECSTaskDefinition_Fargate
+ - TestAccECSTaskDefinition_ipcMode
+ - TestAccECSTaskDefinition_constraint
+ - TestAccECSTaskDefinition_tags
+ - TestAccECSTaskDefinition_pidMode
+ - TestAccECSTaskDefinition_executionRole
+ - TestAccECSTaskDefinition_service
+ - TestAccECSTaskDefinition_disappears
+ - TestAccECSTaskDefinition_taskRoleARN
+ - TestAccECSTaskDefinition_inferenceAccelerator
+ - TestAccECSTaskDefinition_proxy
+ - TestAccECSTaskDefinition_changeVolumesForcesNewResource
+ - TestAccECSTaskDefinition_invalidContainerDefinition
+ - TestAccECSTaskDefinition_arrays
+ - TestAccECSTaskDefinition_scratchVolume
+ - TestAccECSTaskDefinition_runtimePlatform
+ - TestAccECSTaskDefinition_basic
+ - TestAccECSTaskDefinition_networkMode
 efs:
   - TestAccEFSAccessPoint_
   - TestAccEFSAccessPointDataSource

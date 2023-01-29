@@ -2371,7 +2371,7 @@
 
 ## ecs
 <details>
-<summary>74% implemented</summary>
+<summary>80% implemented</summary>
 
 - [X] create_capacity_provider
 - [X] create_cluster
@@ -2408,7 +2408,7 @@
 - [X] put_account_setting
 - [ ] put_account_setting_default
 - [X] put_attributes
-- [ ] put_cluster_capacity_providers
+- [X] put_cluster_capacity_providers
 - [X] register_container_instance
 - [X] register_task_definition
 - [X] run_task
@@ -2419,8 +2419,8 @@
 - [ ] submit_task_state_change
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_capacity_provider
-- [ ] update_cluster
+- [X] update_capacity_provider
+- [X] update_cluster
 - [ ] update_cluster_settings
 - [ ] update_container_agent
 - [X] update_container_instances_state
