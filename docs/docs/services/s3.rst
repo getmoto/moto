@@ -119,6 +119,14 @@ s3
 
 - [X] put_bucket_ownership_controls
 - [X] put_bucket_policy
+  
+        Basic policy enforcement is in place.
+
+        Restrictions:
+         - Only statements with principal=* are taken into account
+         - Conditions are not taken into account
+        
+
 - [X] put_bucket_replication
 - [ ] put_bucket_request_payment
 - [X] put_bucket_tagging

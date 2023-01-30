@@ -376,6 +376,8 @@ class IAMPolicyStatement(object):
                 is_action_concerned = True
 
         if is_action_concerned:
+            if self.is_unknown_principal(self._statement.get("Principal")):
+                return PermissionResult.NEUTRAL
             same_resource = self._match(self._statement["Resource"], resource)
             if self._statement["Effect"] == "Allow" and same_resource:
                 return PermissionResult.PERMITTED
@@ -383,6 +385,21 @@ class IAMPolicyStatement(object):
                 return PermissionResult.DENIED
         else:
             return PermissionResult.NEUTRAL
+
+    def is_unknown_principal(self, principal) -> bool:
+        # https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-bucket-user-policy-specifying-principal-intro.html
+        # For now, Moto only verifies principal == *
+        # 'Unknown' principals are not verified
+        #
+        # This should be extended to check:
+        # - Can the principal be empty? How behaves AWS?
+        # - allow one/multiple account ARN's
+        # - allow one/multiple rules
+        if principal is None:
+            return False
+        if isinstance(principal, str) and principal != "*":
+            return True
+        return False
 
     def _check_element_matches(self, statement_element, value):
         if isinstance(self._statement[statement_element], list):
