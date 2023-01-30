@@ -69,7 +69,8 @@ SERVICE_NAME_CONVERSION = {
 
 
 def get_account_id_from(access_key: str) -> str:
-    for account_id, account in iam_backends.items():
+    # wrapped in a list() to avoid thread pooling problems (issue #5881)
+    for account_id, account in list(iam_backends.items()):
         if access_key in account["global"].access_keys:
             return account_id
     return DEFAULT_ACCOUNT_ID
