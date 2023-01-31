@@ -3,7 +3,7 @@ import hashlib
 import pkgutil
 
 from collections.abc import MutableMapping
-from typing import Any, Dict
+from typing import Any, Dict, List, TypeVar
 
 
 def str2bool(v):
@@ -35,7 +35,12 @@ def merge_multiple_dicts(*args: Any) -> Dict[str, any]:
     return result
 
 
-def filter_resources(resources, filters, attr_pairs):
+RESOURCE_TYPE = TypeVar("RESOURCE_TYPE")
+
+
+def filter_resources(
+    resources: List[RESOURCE_TYPE], filters: Any, attr_pairs: Any
+) -> List[RESOURCE_TYPE]:
     """
     Used to filter resources. Usually in get and describe apis.
     """

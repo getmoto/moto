@@ -32,9 +32,9 @@ class AmisResponse(EC2BaseResponse):
     def deregister_image(self):
         ami_id = self._get_param("ImageId")
         if self.is_not_dryrun("DeregisterImage"):
-            success = self.ec2_backend.deregister_image(ami_id)
+            self.ec2_backend.deregister_image(ami_id)
             template = self.response_template(DEREGISTER_IMAGE_RESPONSE)
-            return template.render(success=str(success).lower())
+            return template.render(success="true")
 
     def describe_images(self):
         self.error_on_dryrun()
