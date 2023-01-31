@@ -12,6 +12,7 @@ import sys
 import urllib.parse
 
 from bisect import insort
+from typing import Optional
 from importlib import reload
 from moto.core import BaseBackend, BaseModel, BackendDict, CloudFormationModel
 from moto.core import CloudWatchMetricProvider
@@ -933,14 +934,14 @@ class FakeBucket(CloudFormationModel):
     def is_versioned(self):
         return self.versioning_status == "Enabled"
 
-    def allow_action(self, action, resource):
-        if self.policy is None:
-            return False
+    def get_permission(self, action, resource):
         from moto.iam.access_control import IAMPolicy, PermissionResult
 
+        if self.policy is None:
+            return PermissionResult.NEUTRAL
+
         iam_policy = IAMPolicy(self.policy.decode())
-        result = iam_policy.is_action_permitted(action, resource)
-        return result == PermissionResult.PERMITTED
+        return iam_policy.is_action_permitted(action, resource)
 
     def set_lifecycle(self, rules):
         self.rules = []
@@ -1679,6 +1680,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return self.get_bucket(bucket_name).policy
 
     def put_bucket_policy(self, bucket_name, policy):
+        """
+        Basic policy enforcement is in place.
+
+        Restrictions:
+         - Only statements with principal=* are taken into account
+         - Conditions are not taken into account
+        """
         self.get_bucket(bucket_name).policy = policy
 
     def delete_bucket_policy(self, bucket_name):
@@ -1845,7 +1853,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         version_id=None,
         part_number=None,
         key_is_clean=False,
-    ):
+    ) -> Optional[FakeKey]:
         if not key_is_clean:
             key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)

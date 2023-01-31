@@ -1150,29 +1150,48 @@ class S3Response(BaseResponse):
         key_name = self.parse_key_name(request, parsed_url.path)
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
 
-        # Because we patch the requests library the boto/boto3 API
-        # requests go through this method but so do
-        # `requests.get("https://bucket-name.s3.amazonaws.com/file-name")`
-        # Here we deny public access to private files by checking the
-        # ACL and checking for the mere presence of an Authorization
-        # header.
-        if "Authorization" not in request.headers:
-            if hasattr(request, "url"):
-                signed_url = "Signature=" in request.url
-            elif hasattr(request, "requestline"):
-                signed_url = "Signature=" in request.path
+        # SDK requests tend to have Authorization set automatically
+        # If users make an HTTP-request, such as `requests.get("https://bucket-name.s3.amazonaws.com/file-name")`,
+        # The authorization-header may not be set
+        authorized_request = "Authorization" in request.headers
+        if hasattr(request, "url"):
+            signed_url = "Signature=" in request.url
+        elif hasattr(request, "requestline"):
+            signed_url = "Signature=" in request.path
+        try:
             key = self.backend.get_object(bucket_name, key_name)
+            bucket = self.backend.get_bucket(bucket_name)
+        except S3ClientError:
+            key = bucket = None
+        if key:
+            resource = f"arn:aws:s3:::{bucket_name}/{key_name}"
 
-            if key and not signed_url:
-                bucket = self.backend.get_bucket(bucket_name)
-                resource = f"arn:aws:s3:::{bucket_name}/{key_name}"
-                bucket_policy_allows = bucket.allow_action("s3:GetObject", resource)
-                if not bucket_policy_allows and (key.acl and not key.acl.public_read):
+            # Authorization Workflow
+            # https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-auth-workflow-object-operation.html
+
+            # A bucket can deny all actions, regardless of who makes the request
+            from moto.iam.access_control import PermissionResult
+
+            action = f"s3:{method.upper()[0]}{method.lower()[1:]}Object"
+            bucket_permissions = bucket.get_permission(action, resource)
+            if bucket_permissions == PermissionResult.DENIED:
+                return 403, {}, ""
+
+            # If the request is not authorized, and not signed,
+            # that means that the action should be allowed for anonymous users
+            if not authorized_request and not signed_url:
+                # We already know that the bucket permissions do not explicitly deny this
+                # So bucket permissions are either not set, or do not explicitly allow
+                # Next check is to see if the ACL of the individual key allows this action
+                if bucket_permissions != PermissionResult.PERMITTED and (
+                    key.acl and not key.acl.public_read
+                ):
                     return 403, {}, ""
-            elif signed_url and not key:
-                # coming in from requests.get(s3.generate_presigned_url())
-                if self._invalid_headers(request.url, dict(request.headers)):
-                    return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
+
+        elif signed_url and not authorized_request:
+            # coming in from requests.get(s3.generate_presigned_url())
+            if self._invalid_headers(request.url, dict(request.headers)):
+                return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
 
         if hasattr(request, "body"):
             # Boto
