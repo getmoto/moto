@@ -74,7 +74,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.owner_id = ec2_backend.account_id
         self.lifecycle = kwargs.get("lifecycle")
 
-        nics = kwargs.get("nics", {})
+        nics = copy.deepcopy(kwargs.get("nics", []))
 
         launch_template_arg = kwargs.get("launch_template", {})
         if launch_template_arg and not image_id:
