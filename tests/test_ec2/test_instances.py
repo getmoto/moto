@@ -2563,3 +2563,61 @@ def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102
 def retrieve_all_instances(client, filters=[]):  # pylint: disable=W0102
     reservations = retrieve_all_reservations(client, filters)
     return [i for r in reservations for i in r["Instances"]]
+
+
+@mock_ec2
+def test_run_multiple_instances_with_single_nic_template():
+    ec2 = boto3.resource("ec2", "us-west-1")
+    client = boto3.client("ec2", "us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    security_group1 = ec2.create_security_group(
+        GroupName=str(uuid4()), Description="n/a"
+    )
+
+    instances = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=2,
+        MaxCount=2,
+        NetworkInterfaces=[
+            {
+                "AssociatePublicIpAddress": False,
+                "DeleteOnTermination": True,
+                "DeviceIndex": 0,
+                "Groups": [security_group1.group_id],
+                "SubnetId": subnet.id,
+                "InterfaceType": "interface",
+            }
+        ],
+    )
+
+    enis = []
+
+    for instance in instances:
+        instance_eni = instance.network_interfaces_attribute
+        instance_eni.should.have.length_of(1)
+
+        nii = instance_eni[0]["NetworkInterfaceId"]
+
+        my_enis = client.describe_network_interfaces(NetworkInterfaceIds=[nii])[
+            "NetworkInterfaces"
+        ]
+        my_enis.should.have.length_of(1)
+        eni = my_enis[0]
+
+        instance.subnet_id.should.equal(subnet.id)
+
+        eni["SubnetId"].should.equal(subnet.id)
+        eni["Groups"].should.have.length_of(1)
+        set([group["GroupId"] for group in eni["Groups"]]).should.equal(
+            set([security_group1.id])
+        )
+        eni["PrivateIpAddresses"].should.have.length_of(1)
+        eni["PrivateIpAddresses"][0]["PrivateIpAddress"].should_not.equal(None)
+
+        enis.append(eni)
+
+    instance_0_ip = enis[0]["PrivateIpAddresses"][0]["PrivateIpAddress"]
+    instance_1_ip = enis[1]["PrivateIpAddresses"][0]["PrivateIpAddress"]
+
+    instance_0_ip.should_not.equal(instance_1_ip)
