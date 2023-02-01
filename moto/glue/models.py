@@ -738,6 +738,13 @@ class GlueBackend(BaseBackend):
                 )
         return errors_output
 
+    def batch_get_crawlers(self, crawler_names):
+        crawlers = []
+        for crawler in self.get_crawlers():
+            if crawler.as_dict()["Name"] in crawler_names:
+                crawlers.append(crawler.as_dict())
+        return crawlers
+
 
 class FakeDatabase(BaseModel):
     def __init__(self, database_name, database_input):

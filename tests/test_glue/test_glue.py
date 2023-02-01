@@ -401,3 +401,16 @@ def test_untag_glue_crawler():
     resp = client.get_tags(ResourceArn=resource_arn)
 
     resp.should.have.key("Tags").equals({"key1": "value1", "key3": "value3"})
+
+
+@mock_glue
+def test_batch_get_crawlers():
+    client = create_glue_client()
+    crawler_name = create_test_crawler(client)
+
+    response = client.batch_get_crawlers(
+        CrawlerNames=[crawler_name, "crawler-not-found"]
+    )
+
+    response["Crawlers"].should.have.length_of(1)
+    response["CrawlersNotFound"].should.have.length_of(1)
