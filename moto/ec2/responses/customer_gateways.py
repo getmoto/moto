@@ -18,15 +18,15 @@ class CustomerGateways(EC2BaseResponse):
 
     def delete_customer_gateway(self):
         customer_gateway_id = self._get_param("CustomerGatewayId")
-        delete_status = self.ec2_backend.delete_customer_gateway(customer_gateway_id)
+        self.ec2_backend.delete_customer_gateway(customer_gateway_id)
         template = self.response_template(DELETE_CUSTOMER_GATEWAY_RESPONSE)
-        return template.render(delete_status=delete_status)
+        return template.render(delete_status="true")
 
     def describe_customer_gateways(self):
         self.error_on_dryrun()
         filters = self._filters_from_querystring()
         customer_gateway_ids = self._get_multi_param("CustomerGatewayId")
-        customer_gateways = self.ec2_backend.get_all_customer_gateways(
+        customer_gateways = self.ec2_backend.describe_customer_gateways(
             filters, customer_gateway_ids
         )
         template = self.response_template(DESCRIBE_CUSTOMER_GATEWAYS_RESPONSE)

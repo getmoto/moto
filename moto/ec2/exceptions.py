@@ -1,5 +1,5 @@
 from moto.core.exceptions import RESTError
-from typing import List, Union
+from typing import List, Optional, Union
 
 
 # EC2 has a custom root-tag - <Response> vs <ErrorResponse>
@@ -98,8 +98,7 @@ class InvalidKeyPairFormatError(EC2ClientError):
 
 
 class InvalidVPCIdError(EC2ClientError):
-    def __init__(self, vpc_id):
-
+    def __init__(self, vpc_id: str):
         super().__init__("InvalidVpcID.NotFound", f"VpcID {vpc_id} does not exist.")
 
 
@@ -159,7 +158,7 @@ class InvalidVpnConnectionIdError(EC2ClientError):
 
 
 class InvalidCustomerGatewayIdError(EC2ClientError):
-    def __init__(self, customer_gateway_id):
+    def __init__(self, customer_gateway_id: str):
         super().__init__(
             "InvalidCustomerGatewayID.NotFound",
             f"The customer gateway ID '{customer_gateway_id}' does not exist",
@@ -526,7 +525,7 @@ class MotoNotImplementedError(NotImplementedError):
 
 
 class FilterNotImplementedError(MotoNotImplementedError):
-    def __init__(self, filter_name, method_name):
+    def __init__(self, filter_name: str, method_name: Optional[str]):
         super().__init__(f"The filter '{filter_name}' for {method_name}")
 
 
@@ -719,7 +718,7 @@ class InvalidSubnetCidrBlockAssociationID(EC2ClientError):
 
 
 class InvalidCarrierGatewayID(EC2ClientError):
-    def __init__(self, carrier_gateway_id):
+    def __init__(self, carrier_gateway_id: str):
         super().__init__(
             "InvalidCarrierGatewayID.NotFound",
             f"The CarrierGateway ID '{carrier_gateway_id}' does not exist",
