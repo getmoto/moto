@@ -765,9 +765,27 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                             "host.docker.internal": "host-gateway"
                         }
 
-                    image_repo = settings.moto_lambda_image()
-                    image_ref = f"{image_repo}:{self.run_time}"
-                    self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
+                    # The requested image can be found in one of a few repos:
+                    # - User-provided repo
+                    # - mlupin/docker-lambda (the repo with up-to-date AWSLambda images
+                    # - lambci/lambda (the repo with older/outdated AWSLambda images
+                    #
+                    # We'll cycle through all of them - when we find the repo that contains our image, we use it
+                    image_repos = set(
+                        [
+                            settings.moto_lambda_image(),
+                            "mlupin/docker-lambda",
+                            "lambci/lambda",
+                        ]
+                    )
+                    for image_repo in image_repos:
+                        image_ref = f"{image_repo}:{self.run_time}"
+                        full_ref = ":".join(parse_image_ref(image_ref))
+                        try:
+                            self.docker_client.images.pull(full_ref)
+                            break
+                        except docker.errors.NotFound:
+                            pass
                     container = self.docker_client.containers.run(
                         image_ref,
                         [self.handler, json.dumps(event)],
@@ -1483,13 +1501,18 @@ class LambdaBackend(BaseBackend):
         # Note that this option will be ignored if MOTO_DOCKER_NETWORK_NAME is also set
         MOTO_DOCKER_NETWORK_MODE=host moto_server
 
-    The Docker images used by Moto are taken from the `lambci/lambda`-repo by default. Use the following environment variable to configure a different repo:
+    The Docker images used by Moto are taken from the following repositories:
+
+    - `mlupin/docker-lambda` (for recent versions)
+    - `lambci/lambda` (for older/outdated versions)
+
+    Use the following environment variable to configure Moto to look for images in an additional repository:
 
     .. sourcecode:: bash
 
-        MOTO_DOCKER_LAMBDA_IMAGE=mLupin/docker-lambda
+        MOTO_DOCKER_LAMBDA_IMAGE=mlupin/docker-lambda
 
-    .. note:: When using the decorators, a Docker container cannot reach Moto, as it does not run as a server. Any boto3-invocations used within your Lambda will try to connect to AWS.
+    .. note:: When using the decorators, a Docker container cannot reach Moto, as the Docker-container loses all mock-context. Any boto3-invocations used within your Lambda will try to connect to AWS.
     """
 
     def __init__(self, region_name: str, account_id: str):
