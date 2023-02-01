@@ -7,6 +7,7 @@ from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
+from typing import Any, Dict, List
 
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
@@ -71,7 +72,7 @@ def random_id(prefix="", size=8):
     return f"{prefix}-{random_resource_id(size)}"
 
 
-def random_ami_id():
+def random_ami_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["image"])
 
 
@@ -302,7 +303,7 @@ def create_dns_entries(service_name, vpc_endpoint_id):
     return dns_entries
 
 
-def utc_date_and_time():
+def utc_date_and_time() -> str:
     x = datetime.utcnow()
     # Better performing alternative to x.strftime("%Y-%m-%dT%H:%M:%S.000Z")
     return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
@@ -518,7 +519,7 @@ def is_filter_matching(obj, _filter, filter_value):
         return value in filter_value
 
 
-def generic_filter(filters, objects):
+def generic_filter(filters: Dict[str, Any], objects: List[Any]) -> List[Any]:
     if filters:
         for (_filter, _filter_value) in filters.items():
             objects = [

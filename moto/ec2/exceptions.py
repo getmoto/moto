@@ -1,4 +1,5 @@
 from moto.core.exceptions import RESTError
+from typing import List, Union
 
 
 # EC2 has a custom root-tag - <Response> vs <ErrorResponse>
@@ -258,7 +259,7 @@ class InvalidInstanceTypeError(EC2ClientError):
 
 
 class InvalidAMIIdError(EC2ClientError):
-    def __init__(self, ami_id):
+    def __init__(self, ami_id: Union[List[str], str]):
         super().__init__(
             "InvalidAMIID.NotFound",
             f"The image id '[{ami_id}]' does not exist",
@@ -266,7 +267,7 @@ class InvalidAMIIdError(EC2ClientError):
 
 
 class UnvailableAMIIdError(EC2ClientError):
-    def __init__(self, ami_id):
+    def __init__(self, ami_id: str):
         super().__init__(
             "InvalidAMIID.Unavailable",
             f"The image id '[{ami_id}]' is no longer available",
@@ -274,7 +275,7 @@ class UnvailableAMIIdError(EC2ClientError):
 
 
 class InvalidAMIAttributeItemValueError(EC2ClientError):
-    def __init__(self, attribute, value):
+    def __init__(self, attribute: str, value: str):
         super().__init__(
             "InvalidAMIAttributeItemValue",
             f'Invalid attribute item value "{value}" for {attribute} item type.',
@@ -282,7 +283,7 @@ class InvalidAMIAttributeItemValueError(EC2ClientError):
 
 
 class MalformedAMIIdError(EC2ClientError):
-    def __init__(self, ami_id):
+    def __init__(self, ami_id: List[str]):
         super().__init__(
             "InvalidAMIID.Malformed", f'Invalid id: "{ami_id}" (expecting "ami-...")'
         )
@@ -694,7 +695,7 @@ class InvalidVpcEndPointIdError(EC2ClientError):
 
 
 class InvalidTaggableResourceType(EC2ClientError):
-    def __init__(self, resource_type):
+    def __init__(self, resource_type: str):
         super().__init__(
             "InvalidParameterValue",
             f"'{resource_type}' is not a valid taggable resource type for this operation.",
