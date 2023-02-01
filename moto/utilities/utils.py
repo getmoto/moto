@@ -3,7 +3,7 @@ import hashlib
 import pkgutil
 
 from collections.abc import MutableMapping
-from typing import Any, Dict, List, TypeVar
+from typing import Any, Dict, List, TypeVar, Tuple
 
 
 def str2bool(v):
@@ -39,7 +39,9 @@ RESOURCE_TYPE = TypeVar("RESOURCE_TYPE")
 
 
 def filter_resources(
-    resources: List[RESOURCE_TYPE], filters: Any, attr_pairs: Any
+    resources: List[RESOURCE_TYPE],
+    filters: Any,
+    attr_pairs: Tuple[Tuple[str, str], ...],
 ) -> List[RESOURCE_TYPE]:
     """
     Used to filter resources. Usually in get and describe apis.

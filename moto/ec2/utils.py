@@ -142,7 +142,7 @@ def random_vpn_connection_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpn-connection"])
 
 
-def random_customer_gateway_id():
+def random_customer_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["customer-gateway"])
 
 
@@ -232,7 +232,7 @@ def random_iam_instance_profile_association_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["iam-instance-profile-association"])
 
 
-def random_carrier_gateway_id():
+def random_carrier_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["carrier-gateway"], size=17)
 
 
