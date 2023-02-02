@@ -133,9 +133,9 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
     def unassign_ipv6_addresses(self):
         eni_id = self._get_param("NetworkInterfaceId")
         ips = self._get_multi_param("Ipv6Addresses")
-        eni, unassigned_ips = self.ec2_backend.unassign_ipv6_addresses(eni_id, ips)
+        eni = self.ec2_backend.unassign_ipv6_addresses(eni_id, ips)
         template = self.response_template(UNASSIGN_IPV6_ADDRESSES)
-        return template.render(eni=eni, unassigned_ips=unassigned_ips)
+        return template.render(eni=eni, unassigned_ips=ips)
 
 
 ASSIGN_PRIVATE_IP_ADDRESSES = """<AssignPrivateIpAddressesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">

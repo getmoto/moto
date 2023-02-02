@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional, Set, Iterable
 
 from moto.core import CloudFormationModel
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
@@ -26,8 +26,13 @@ IOPS_SUPPORTED_VOLUME_TYPES = ["gp3", "io1", "io2"]
 GP3_DEFAULT_IOPS = 3000
 
 
-class VolumeModification(object):
-    def __init__(self, volume, target_size=None, target_volume_type=None):
+class VolumeModification:
+    def __init__(
+        self,
+        volume: "Volume",
+        target_size: Optional[int] = None,
+        target_volume_type: Optional[str] = None,
+    ):
         if not any([target_size, target_volume_type]):
             raise InvalidParameterValueError(
                 "Invalid input: Must specify at least one of size or type"
@@ -42,7 +47,7 @@ class VolumeModification(object):
         self.start_time = utc_date_and_time()
         self.end_time = utc_date_and_time()
 
-    def get_filter_value(self, filter_name):
+    def get_filter_value(self, filter_name: str) -> Any:
         if filter_name == "original-size":
             return self.original_size
         elif filter_name == "original-volume-type":
@@ -56,7 +61,7 @@ class VolumeModification(object):
 
 
 class VolumeAttachment(CloudFormationModel):
-    def __init__(self, volume, instance, device, status):
+    def __init__(self, volume: "Volume", instance: Any, device: str, status: str):
         self.volume = volume
         self.attach_time = utc_date_and_time()
         self.instance = instance
@@ -64,18 +69,23 @@ class VolumeAttachment(CloudFormationModel):
         self.status = status
 
     @staticmethod
-    def cloudformation_name_type():
-        return None
+    def cloudformation_name_type() -> str:
+        return ""
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-volumeattachment.html
         return "AWS::EC2::VolumeAttachment"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any
+    ) -> "VolumeAttachment":
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
@@ -95,30 +105,34 @@ class VolumeAttachment(CloudFormationModel):
 class Volume(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
-        ec2_backend,
-        volume_id,
-        size,
-        zone,
-        snapshot_id=None,
-        encrypted=False,
-        kms_key_id=None,
-        volume_type=None,
-        iops=None,
+        ec2_backend: Any,
+        volume_id: str,
+        size: int,
+        zone: Any,
+        snapshot_id: Optional[str] = None,
+        encrypted: bool = False,
+        kms_key_id: Optional[str] = None,
+        volume_type: Optional[str] = None,
+        iops: Optional[int] = None,
     ):
         self.id = volume_id
         self.volume_type = volume_type or "gp2"
         self.size = size
         self.zone = zone
         self.create_time = utc_date_and_time()
-        self.attachment = None
+        self.attachment: Optional[VolumeAttachment] = None
         self.snapshot_id = snapshot_id
         self.ec2_backend = ec2_backend
         self.encrypted = encrypted
         self.kms_key_id = kms_key_id
-        self.modifications = []
+        self.modifications: List[VolumeModification] = []
         self.iops = iops
 
-    def modify(self, target_size=None, target_volume_type=None):
+    def modify(
+        self,
+        target_size: Optional[int] = None,
+        target_volume_type: Optional[str] = None,
+    ) -> None:
         modification = VolumeModification(
             volume=self, target_size=target_size, target_volume_type=target_volume_type
         )
@@ -128,18 +142,23 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         self.volume_type = modification.target_volume_type
 
     @staticmethod
-    def cloudformation_name_type():
-        return None
+    def cloudformation_name_type() -> str:
+        return ""
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-volume.html
         return "AWS::EC2::Volume"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any
+    ) -> "Volume":
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
@@ -151,27 +170,29 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         return volume
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.id
 
     @property
-    def status(self):
+    def status(self) -> str:
         if self.attachment:
             return "in-use"
         else:
             return "available"
 
-    def get_filter_value(self, filter_name):
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         if filter_name.startswith("attachment") and not self.attachment:
             return None
         elif filter_name == "attachment.attach-time":
-            return self.attachment.attach_time
+            return self.attachment.attach_time  # type: ignore[union-attr]
         elif filter_name == "attachment.device":
-            return self.attachment.device
+            return self.attachment.device  # type: ignore[union-attr]
         elif filter_name == "attachment.instance-id":
-            return self.attachment.instance.id
+            return self.attachment.instance.id  # type: ignore[union-attr]
         elif filter_name == "attachment.status":
-            return self.attachment.status
+            return self.attachment.status  # type: ignore[union-attr]
         elif filter_name == "create-time":
             return self.create_time
         elif filter_name == "size":
@@ -193,27 +214,29 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
 class Snapshot(TaggedEC2Resource):
     def __init__(
         self,
-        ec2_backend,
-        snapshot_id,
-        volume,
-        description,
-        encrypted=False,
-        owner_id=None,
-        from_ami=None,
+        ec2_backend: Any,
+        snapshot_id: str,
+        volume: Any,
+        description: str,
+        encrypted: bool = False,
+        owner_id: Optional[str] = None,
+        from_ami: Optional[str] = None,
     ):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
         self.start_time = utc_date_and_time()
-        self.create_volume_permission_groups = set()
-        self.create_volume_permission_userids = set()
+        self.create_volume_permission_groups: Set[str] = set()
+        self.create_volume_permission_userids: Set[str] = set()
         self.ec2_backend = ec2_backend
         self.status = "completed"
         self.encrypted = encrypted
         self.owner_id = owner_id or ec2_backend.account_id
         self.from_ami = from_ami
 
-    def get_filter_value(self, filter_name):
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         if filter_name == "description":
             return self.description
         elif filter_name == "snapshot-id":
@@ -235,20 +258,20 @@ class Snapshot(TaggedEC2Resource):
 
 
 class EBSBackend:
-    def __init__(self):
-        self.volumes = {}
-        self.attachments = {}
-        self.snapshots = {}
+    def __init__(self) -> None:
+        self.volumes: Dict[str, Volume] = {}
+        self.attachments: Dict[str, VolumeAttachment] = {}
+        self.snapshots: Dict[str, Snapshot] = {}
 
     def create_volume(
         self,
-        size: str,
+        size: int,
         zone_name: str,
         snapshot_id: Optional[str] = None,
         encrypted: bool = False,
         kms_key_id: Optional[str] = None,
         volume_type: Optional[str] = None,
-        iops: Optional[str] = None,
+        iops: Optional[int] = None,
     ) -> Volume:
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
@@ -262,7 +285,7 @@ class EBSBackend:
             raise InvalidParameterDependency("VolumeType", "Iops")
 
         volume_id = random_volume_id()
-        zone = self.get_zone_by_name(zone_name)
+        zone = self.get_zone_by_name(zone_name)  # type: ignore[attr-defined]
         if snapshot_id:
             snapshot = self.get_snapshot(snapshot_id)
             if size is None:
@@ -283,23 +306,32 @@ class EBSBackend:
         self.volumes[volume_id] = volume
         return volume
 
-    def describe_volumes(self, volume_ids=None, filters=None):
-        matches = self.volumes.copy().values()
+    def describe_volumes(
+        self, volume_ids: Optional[List[str]] = None, filters: Any = None
+    ) -> List[Volume]:
+        matches = list(self.volumes.values())
         if volume_ids:
             matches = [vol for vol in matches if vol.id in volume_ids]
             if len(volume_ids) > len(matches):
-                unknown_ids = set(volume_ids) - set(matches)
+                unknown_ids = set(volume_ids) - set(matches)  # type: ignore[arg-type]
                 raise InvalidVolumeIdError(unknown_ids)
         if filters:
             matches = generic_filter(filters, matches)
         return matches
 
-    def modify_volume(self, volume_id, target_size=None, target_volume_type=None):
+    def modify_volume(
+        self,
+        volume_id: str,
+        target_size: Optional[int] = None,
+        target_volume_type: Optional[str] = None,
+    ) -> Volume:
         volume = self.get_volume(volume_id)
         volume.modify(target_size=target_size, target_volume_type=target_volume_type)
         return volume
 
-    def describe_volumes_modifications(self, volume_ids=None, filters=None):
+    def describe_volumes_modifications(
+        self, volume_ids: Optional[List[str]] = None, filters: Any = None
+    ) -> List[VolumeModification]:
         volumes = self.describe_volumes(volume_ids)
         modifications = []
         for volume in volumes:
@@ -308,13 +340,13 @@ class EBSBackend:
             modifications = generic_filter(filters, modifications)
         return modifications
 
-    def get_volume(self, volume_id):
+    def get_volume(self, volume_id: str) -> Volume:
         volume = self.volumes.get(volume_id, None)
         if not volume:
             raise InvalidVolumeIdError(volume_id)
         return volume
 
-    def delete_volume(self, volume_id):
+    def delete_volume(self, volume_id: str) -> Volume:
         if volume_id in self.volumes:
             volume = self.volumes[volume_id]
             if volume.attachment:
@@ -323,13 +355,17 @@ class EBSBackend:
         raise InvalidVolumeIdError(volume_id)
 
     def attach_volume(
-        self, volume_id, instance_id, device_path, delete_on_termination=False
-    ):
+        self,
+        volume_id: str,
+        instance_id: str,
+        device_path: str,
+        delete_on_termination: bool = False,
+    ) -> Optional[VolumeAttachment]:
         volume = self.get_volume(volume_id)
-        instance = self.get_instance(instance_id)
+        instance = self.get_instance(instance_id)  # type: ignore[attr-defined]
 
         if not volume or not instance:
-            return False
+            return None
 
         volume.attachment = VolumeAttachment(volume, instance, device_path, "attached")
         # Modify instance to capture mount of block device.
@@ -343,9 +379,11 @@ class EBSBackend:
         instance.block_device_mapping[device_path] = bdt
         return volume.attachment
 
-    def detach_volume(self, volume_id, instance_id, device_path):
+    def detach_volume(
+        self, volume_id: str, instance_id: str, device_path: str
+    ) -> VolumeAttachment:
         volume = self.get_volume(volume_id)
-        instance = self.get_instance(instance_id)
+        instance = self.get_instance(instance_id)  # type: ignore[attr-defined]
 
         old_attachment = volume.attachment
         if not old_attachment:
@@ -376,15 +414,17 @@ class EBSBackend:
             params.append(owner_id)
         if from_ami:
             params.append(from_ami)
-        snapshot = Snapshot(*params)
+        snapshot = Snapshot(*params)  # type: ignore[arg-type]
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
-    def create_snapshots(self, instance_spec, description, tags):
+    def create_snapshots(
+        self, instance_spec: Dict[str, Any], description: str, tags: Dict[str, str]
+    ) -> List[Snapshot]:
         """
         The CopyTagsFromSource-parameter is not yet implemented.
         """
-        instance = self.get_instance(instance_spec["InstanceId"])
+        instance = self.get_instance(instance_spec["InstanceId"])  # type: ignore[attr-defined]
         block_device_mappings = instance.block_device_mapping
 
         if str(instance_spec.get("ExcludeBootVolume", False)).lower() == "true":
@@ -403,8 +443,10 @@ class EBSBackend:
             snapshot.add_tags(tags)
         return snapshots
 
-    def describe_snapshots(self, snapshot_ids=None, filters=None):
-        matches = self.snapshots.copy().values()
+    def describe_snapshots(
+        self, snapshot_ids: Optional[List[str]] = None, filters: Any = None
+    ) -> List[Snapshot]:
+        matches = list(self.snapshots.values())
         if snapshot_ids:
             matches = [snap for snap in matches if snap.id in snapshot_ids]
             if len(snapshot_ids) > len(matches):
@@ -413,12 +455,15 @@ class EBSBackend:
             matches = generic_filter(filters, matches)
         return matches
 
-    def copy_snapshot(self, source_snapshot_id, source_region, description=None):
+    def copy_snapshot(
+        self, source_snapshot_id: str, source_region: str, description: str
+    ) -> Snapshot:
         from ..models import ec2_backends
 
-        source_snapshot = ec2_backends[self.account_id][
-            source_region
-        ].describe_snapshots(snapshot_ids=[source_snapshot_id])[0]
+        backend = ec2_backends[self.account_id][source_region]  # type: ignore[attr-defined]
+        source_snapshot = backend.describe_snapshots(snapshot_ids=[source_snapshot_id])[
+            0
+        ]
         snapshot_id = random_snapshot_id()
         snapshot = Snapshot(
             self,
@@ -430,30 +475,32 @@ class EBSBackend:
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
-    def get_snapshot(self, snapshot_id):
+    def get_snapshot(self, snapshot_id: str) -> Snapshot:
         snapshot = self.snapshots.get(snapshot_id, None)
         if not snapshot:
             raise InvalidSnapshotIdError()
         return snapshot
 
-    def delete_snapshot(self, snapshot_id):
-        if snapshot_id in self.snapshots:
+    def delete_snapshot(self, snapshot_id: str) -> Snapshot:
+        if snapshot_id in self.snapshots:  # type: ignore[attr-defined]
             snapshot = self.snapshots[snapshot_id]
-            if snapshot.from_ami and snapshot.from_ami in self.amis:
+            if snapshot.from_ami and snapshot.from_ami in self.amis:  # type: ignore[attr-defined]
                 raise InvalidSnapshotInUse(snapshot_id, snapshot.from_ami)
             return self.snapshots.pop(snapshot_id)
         raise InvalidSnapshotIdError()
 
-    def get_create_volume_permission_groups(self, snapshot_id):
-        snapshot = self.get_snapshot(snapshot_id)
+    def get_create_volume_permission_groups(self, snapshot_id: str) -> Set[str]:
+        snapshot = self.get_snapshot(snapshot_id)  # type: ignore[attr-defined]
         return snapshot.create_volume_permission_groups
 
-    def get_create_volume_permission_userids(self, snapshot_id):
-        snapshot = self.get_snapshot(snapshot_id)
+    def get_create_volume_permission_userids(self, snapshot_id: str) -> Set[str]:
+        snapshot = self.get_snapshot(snapshot_id)  # type: ignore[attr-defined]
         return snapshot.create_volume_permission_userids
 
-    def add_create_volume_permission(self, snapshot_id, user_ids=None, groups=None):
-        snapshot = self.get_snapshot(snapshot_id)
+    def add_create_volume_permission(
+        self, snapshot_id: str, user_ids: List[str], groups: List[str]
+    ) -> None:
+        snapshot = self.get_snapshot(snapshot_id)  # type: ignore[attr-defined]
         if user_ids:
             snapshot.create_volume_permission_userids.update(user_ids)
 
@@ -462,27 +509,28 @@ class EBSBackend:
         else:
             snapshot.create_volume_permission_groups.update(groups)
 
-        return True
-
-    def remove_create_volume_permission(self, snapshot_id, user_ids=None, groups=None):
-        snapshot = self.get_snapshot(snapshot_id)
+    def remove_create_volume_permission(
+        self,
+        snapshot_id: str,
+        user_ids: Optional[List[str]] = None,
+        groups: Optional[Iterable[str]] = None,
+    ) -> None:
+        snapshot = self.get_snapshot(snapshot_id)  # type: ignore[attr-defined]
         if user_ids:
             snapshot.create_volume_permission_userids.difference_update(user_ids)
 
         if groups and groups != ["all"]:
             raise InvalidAMIAttributeItemValueError("UserGroup", groups)
         else:
-            snapshot.create_volume_permission_groups.difference_update(groups)
+            snapshot.create_volume_permission_groups.difference_update(groups)  # type: ignore[arg-type]
 
-        return True
-
-    def _get_default_encryption_key(self):
+    def _get_default_encryption_key(self) -> str:
         # https://aws.amazon.com/kms/features/#AWS_Service_Integration
         # An AWS managed CMK is created automatically when you first create
         # an encrypted resource using an AWS service integrated with KMS.
         from moto.kms import kms_backends
 
-        kms = kms_backends[self.account_id][self.region_name]
+        kms = kms_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
         ebs_alias = "alias/aws/ebs"
         if not kms.alias_exists(ebs_alias):
             key = kms.create_key(

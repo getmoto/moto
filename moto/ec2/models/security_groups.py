@@ -2,7 +2,7 @@ import copy
 import itertools
 import json
 from collections import defaultdict
-from typing import Optional
+from typing import Any, Dict, Optional
 from moto.core import CloudFormationModel
 from moto.core.utils import aws_api_matches
 from ..exceptions import (
@@ -110,13 +110,13 @@ class SecurityRule(object):
 class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
-        ec2_backend,
-        group_id,
-        name,
-        description,
-        vpc_id=None,
-        tags=None,
-        is_default=None,
+        ec2_backend: Any,
+        group_id: str,
+        name: str,
+        description: str,
+        vpc_id: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+        is_default: Optional[bool] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = group_id
