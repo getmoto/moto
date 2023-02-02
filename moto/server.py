@@ -2,6 +2,8 @@ import argparse
 import os
 import signal
 import sys
+import warnings
+
 from werkzeug.serving import run_simple
 
 from moto.moto_server.werkzeug_app import (
@@ -69,6 +71,11 @@ def main(argv=None):
         signal.signal(signal.SIGTERM, signal_handler)
     except Exception:
         pass  # ignore "ValueError: signal only works in main thread"
+
+    if args.service:
+        warnings.warn(
+            f"The service-argument ({args.service}) is considered deprecated, and will be deprecated in a future release. Please let us know if you have any questions: https://github.com/getmoto/moto/issues"
+        )
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(create_backend_app, service=args.service)
