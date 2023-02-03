@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 from moto.core import CloudFormationModel
 from .core import TaggedEC2Resource
 from ..exceptions import (
@@ -16,7 +17,13 @@ from ..utils import (
 
 
 class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, ec2_backend, domain, address=None, tags=None):
+    def __init__(
+        self,
+        ec2_backend: Any,
+        domain: str,
+        address: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+    ):
         self.ec2_backend = ec2_backend
         if address:
             self.public_ip = address
@@ -27,22 +34,27 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         self.domain = domain
         self.instance = None
         self.eni = None
-        self.association_id = None
+        self.association_id: Optional[str] = None
         self.add_tags(tags or {})
 
     @staticmethod
-    def cloudformation_name_type():
-        return None
+    def cloudformation_name_type() -> str:
+        return ""
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-eip.html
         return "AWS::EC2::EIP"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any
+    ) -> "ElasticAddress":
         from ..models import ec2_backends
 
         ec2_backend = ec2_backends[account_id][region_name]
@@ -64,21 +76,23 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         return eip
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.public_ip
 
     @classmethod
-    def has_cfn_attr(cls, attr):
+    def has_cfn_attr(cls, attr: str) -> bool:
         return attr in ["AllocationId"]
 
-    def get_cfn_attribute(self, attribute_name):
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "AllocationId":
             return self.allocation_id
         raise UnformattedGetAttTemplateException()
 
-    def get_filter_value(self, filter_name):
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         if filter_name == "allocation-id":
             return self.allocation_id
         elif filter_name == "association-id":
@@ -107,20 +121,27 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
 
 
 class ElasticAddressBackend:
-    def __init__(self):
-        self.addresses = []
+    def __init__(self) -> None:
+        self.addresses: List[ElasticAddress] = []
 
-    def allocate_address(self, domain, address=None, tags=None):
+    def allocate_address(
+        self,
+        domain: str,
+        address: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+    ) -> ElasticAddress:
         if domain not in ["standard", "vpc"]:
             domain = "vpc"
         if address:
-            address = ElasticAddress(self, domain=domain, address=address, tags=tags)
+            ea = ElasticAddress(self, domain=domain, address=address, tags=tags)
         else:
-            address = ElasticAddress(self, domain=domain, tags=tags)
-        self.addresses.append(address)
-        return address
+            ea = ElasticAddress(self, domain=domain, tags=tags)
+        self.addresses.append(ea)
+        return ea
 
-    def address_by_ip(self, ips, fail_if_not_found=True):
+    def address_by_ip(
+        self, ips: List[str], fail_if_not_found: bool = True
+    ) -> List[ElasticAddress]:
         eips = [
             address for address in self.addresses.copy() if address.public_ip in ips
         ]
@@ -131,7 +152,7 @@ class ElasticAddressBackend:
 
         return eips
 
-    def address_by_allocation(self, allocation_ids):
+    def address_by_allocation(self, allocation_ids: List[str]) -> List[ElasticAddress]:
         eips = [
             address
             for address in self.addresses
@@ -144,7 +165,9 @@ class ElasticAddressBackend:
 
         return eips
 
-    def address_by_association(self, association_ids):
+    def address_by_association(
+        self, association_ids: List[str]
+    ) -> List[ElasticAddress]:
         eips = [
             address
             for address in self.addresses
@@ -159,12 +182,12 @@ class ElasticAddressBackend:
 
     def associate_address(
         self,
-        instance=None,
-        eni=None,
-        address=None,
-        allocation_id=None,
-        reassociate=False,
-    ):
+        instance: Any = None,
+        eni: Any = None,
+        address: Optional[str] = None,
+        allocation_id: Optional[str] = None,
+        reassociate: bool = False,
+    ) -> ElasticAddress:
         eips = []
         if address:
             eips = self.address_by_ip([address])
@@ -192,24 +215,31 @@ class ElasticAddressBackend:
 
         raise ResourceAlreadyAssociatedError(eip.public_ip)
 
-    def describe_addresses(self, allocation_ids=None, public_ips=None, filters=None):
+    def describe_addresses(
+        self,
+        allocation_ids: Optional[List[str]] = None,
+        public_ips: Optional[List[str]] = None,
+        filters: Any = None,
+    ) -> List[ElasticAddress]:
         matches = self.addresses.copy()
         if allocation_ids:
             matches = [addr for addr in matches if addr.allocation_id in allocation_ids]
             if len(allocation_ids) > len(matches):
-                unknown_ids = set(allocation_ids) - set(matches)
+                unknown_ids = set(allocation_ids) - set(matches)  # type: ignore[arg-type]
                 raise InvalidAllocationIdError(unknown_ids)
         if public_ips:
             matches = [addr for addr in matches if addr.public_ip in public_ips]
             if len(public_ips) > len(matches):
-                unknown_ips = set(public_ips) - set(matches)
+                unknown_ips = set(public_ips) - set(matches)  # type: ignore[arg-type]
                 raise InvalidAddressError(unknown_ips)
         if filters:
             matches = generic_filter(filters, matches)
 
         return matches
 
-    def disassociate_address(self, address=None, association_id=None):
+    def disassociate_address(
+        self, address: Optional[str] = None, association_id: Optional[str] = None
+    ) -> None:
         eips = []
         if address:
             eips = self.address_by_ip([address])
@@ -225,9 +255,10 @@ class ElasticAddressBackend:
 
         eip.instance = None
         eip.association_id = None
-        return True
 
-    def release_address(self, address=None, allocation_id=None):
+    def release_address(
+        self, address: Optional[str] = None, allocation_id: Optional[str] = None
+    ) -> None:
         eips = []
         if address:
             eips = self.address_by_ip([address])
@@ -238,4 +269,3 @@ class ElasticAddressBackend:
         self.disassociate_address(address=eip.public_ip)
         eip.allocation_id = None
         self.addresses.remove(eip)
-        return True

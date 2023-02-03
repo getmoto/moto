@@ -39,9 +39,9 @@ class DHCPOptions(EC2BaseResponse):
 
     def delete_dhcp_options(self):
         dhcp_opt_id = self._get_param("DhcpOptionsId")
-        delete_status = self.ec2_backend.delete_dhcp_options_set(dhcp_opt_id)
+        self.ec2_backend.delete_dhcp_options_set(dhcp_opt_id)
         template = self.response_template(DELETE_DHCP_OPTIONS_RESPONSE)
-        return template.render(delete_status=delete_status)
+        return template.render(delete_status="true")
 
     def describe_dhcp_options(self):
         dhcp_opt_ids = self._get_multi_param("DhcpOptionsId")

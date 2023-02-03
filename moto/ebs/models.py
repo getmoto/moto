@@ -71,7 +71,7 @@ class EBSBackend(BaseBackend):
         return ec2_backends[self.account_id][self.region_name]
 
     def start_snapshot(
-        self, volume_size: str, tags: Optional[List[Dict[str, str]]], description: str
+        self, volume_size: int, tags: Optional[List[Dict[str, str]]], description: str
     ) -> EBSSnapshot:
         zone_name = f"{self.region_name}a"
         vol = self.ec2_backend.create_volume(size=volume_size, zone_name=zone_name)
