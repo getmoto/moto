@@ -777,13 +777,16 @@
 
 ## cloudtrail
 <details>
-<summary>42% implemented</summary>
+<summary>36% implemented</summary>
 
 - [X] add_tags
 - [ ] cancel_query
+- [ ] create_channel
 - [ ] create_event_data_store
 - [X] create_trail
+- [ ] delete_channel
 - [ ] delete_event_data_store
+- [ ] delete_resource_policy
 - [X] delete_trail
 - [ ] deregister_organization_delegated_admin
 - [ ] describe_query
@@ -794,6 +797,7 @@
 - [ ] get_import
 - [X] get_insight_selectors
 - [ ] get_query_results
+- [ ] get_resource_policy
 - [X] get_trail
 - [X] get_trail_status
 - [ ] list_channels
@@ -807,6 +811,7 @@
 - [ ] lookup_events
 - [X] put_event_selectors
 - [X] put_insight_selectors
+- [ ] put_resource_policy
 - [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
@@ -815,6 +820,7 @@
 - [ ] start_query
 - [ ] stop_import
 - [X] stop_logging
+- [ ] update_channel
 - [ ] update_event_data_store
 - [X] update_trail
 </details>
@@ -1750,12 +1756,15 @@
 - [ ] apply_security_groups_to_client_vpn_target_network
 - [X] assign_ipv6_addresses
 - [X] assign_private_ip_addresses
+- [ ] assign_private_nat_gateway_address
 - [X] associate_address
 - [ ] associate_client_vpn_target_network
 - [X] associate_dhcp_options
 - [ ] associate_enclave_certificate_iam_role
 - [X] associate_iam_instance_profile
 - [ ] associate_instance_event_window
+- [ ] associate_ipam_resource_discovery
+- [ ] associate_nat_gateway_address
 - [X] associate_route_table
 - [X] associate_subnet_cidr_block
 - [ ] associate_transit_gateway_multicast_domain
@@ -1808,6 +1817,7 @@
 - [X] create_internet_gateway
 - [ ] create_ipam
 - [ ] create_ipam_pool
+- [ ] create_ipam_resource_discovery
 - [ ] create_ipam_scope
 - [X] create_key_pair
 - [X] create_launch_template
@@ -1882,6 +1892,7 @@
 - [X] delete_internet_gateway
 - [ ] delete_ipam
 - [ ] delete_ipam_pool
+- [ ] delete_ipam_resource_discovery
 - [ ] delete_ipam_scope
 - [X] delete_key_pair
 - [X] delete_launch_template
@@ -1966,7 +1977,7 @@
 - [ ] describe_client_vpn_target_networks
 - [ ] describe_coip_pools
 - [ ] describe_conversion_tasks
-- [ ] describe_customer_gateways
+- [X] describe_customer_gateways
 - [X] describe_dhcp_options
 - [X] describe_egress_only_internet_gateways
 - [ ] describe_elastic_gpus
@@ -2000,6 +2011,8 @@
 - [X] describe_instances
 - [X] describe_internet_gateways
 - [ ] describe_ipam_pools
+- [ ] describe_ipam_resource_discoveries
+- [ ] describe_ipam_resource_discovery_associations
 - [ ] describe_ipam_scopes
 - [ ] describe_ipams
 - [ ] describe_ipv6_pools
@@ -2111,6 +2124,8 @@
 - [ ] disassociate_enclave_certificate_iam_role
 - [X] disassociate_iam_instance_profile
 - [ ] disassociate_instance_event_window
+- [ ] disassociate_ipam_resource_discovery
+- [ ] disassociate_nat_gateway_address
 - [X] disassociate_route_table
 - [X] disassociate_subnet_cidr_block
 - [ ] disassociate_transit_gateway_multicast_domain
@@ -2152,6 +2167,8 @@
 - [ ] get_instance_types_from_instance_requirements
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
+- [ ] get_ipam_discovered_accounts
+- [ ] get_ipam_discovered_resource_cidrs
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
 - [ ] get_ipam_resource_cidrs
@@ -2208,6 +2225,7 @@
 - [ ] modify_ipam
 - [ ] modify_ipam_pool
 - [ ] modify_ipam_resource_cidr
+- [ ] modify_ipam_resource_discovery
 - [ ] modify_ipam_scope
 - [ ] modify_launch_template
 - [ ] modify_local_gateway_route
@@ -2308,6 +2326,7 @@
 - [X] terminate_instances
 - [X] unassign_ipv6_addresses
 - [X] unassign_private_ip_addresses
+- [ ] unassign_private_nat_gateway_address
 - [ ] unmonitor_instances
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
@@ -3080,7 +3099,7 @@
 
 ## glue
 <details>
-<summary>20% implemented</summary>
+<summary>21% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3088,7 +3107,7 @@
 - [X] batch_delete_table
 - [ ] batch_delete_table_version
 - [ ] batch_get_blueprints
-- [ ] batch_get_crawlers
+- [X] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
 - [ ] batch_get_data_quality_result
 - [ ] batch_get_dev_endpoints
@@ -4015,7 +4034,7 @@
 
 ## lambda
 <details>
-<summary>55% implemented</summary>
+<summary>53% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
@@ -4049,6 +4068,7 @@
 - [ ] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
+- [ ] get_runtime_management_config
 - [X] invoke
 - [ ] invoke_async
 - [ ] list_aliases
@@ -4069,6 +4089,7 @@
 - [X] put_function_concurrency
 - [ ] put_function_event_invoke_config
 - [ ] put_provisioned_concurrency_config
+- [ ] put_runtime_management_config
 - [ ] remove_layer_version_permission
 - [X] remove_permission
 - [X] tag_resource
@@ -6654,6 +6675,7 @@
 - cloudhsmv2
 - cloudsearch
 - cloudsearchdomain
+- cloudtrail-data
 - codeartifact
 - codecatalyst
 - codedeploy

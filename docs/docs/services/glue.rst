@@ -31,7 +31,7 @@ glue
 - [X] batch_delete_table
 - [ ] batch_delete_table_version
 - [ ] batch_get_blueprints
-- [ ] batch_get_crawlers
+- [X] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
 - [ ] batch_get_data_quality_result
 - [ ] batch_get_dev_endpoints
