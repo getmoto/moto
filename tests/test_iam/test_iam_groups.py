@@ -23,7 +23,7 @@ MOCK_POLICY = """
 
 
 @mock_iam
-def test_create_group_boto3():
+def test_create_group():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
     with pytest.raises(ClientError) as ex:
@@ -34,7 +34,7 @@ def test_create_group_boto3():
 
 
 @mock_iam
-def test_get_group_boto3():
+def test_get_group():
     conn = boto3.client("iam", region_name="us-east-1")
     created = conn.create_group(GroupName="my-group")["Group"]
     created["Path"].should.equal("/")
@@ -76,7 +76,7 @@ def test_get_group_current():
 
 
 @mock_iam
-def test_get_all_groups_boto3():
+def test_get_all_groups():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group1")
     conn.create_group(GroupName="my-group2")
@@ -106,7 +106,7 @@ def test_add_user_to_unknown_group():
 
 
 @mock_iam
-def test_add_user_to_group_boto3():
+def test_add_user_to_group():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
     conn.create_user(UserName="my-user")
@@ -136,7 +136,7 @@ def test_remove_nonattached_user_from_group():
 
 
 @mock_iam
-def test_remove_user_from_group_boto3():
+def test_remove_user_from_group():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
     conn.create_user(UserName="my-user")
@@ -145,7 +145,24 @@ def test_remove_user_from_group_boto3():
 
 
 @mock_iam
-def test_get_groups_for_user_boto3():
+def test_add_user_should_be_idempotent():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    conn.create_user(UserName="my-user")
+    # We'll add the same user twice, but it should only be persisted once
+    conn.add_user_to_group(GroupName="my-group", UserName="my-user")
+    conn.add_user_to_group(GroupName="my-group", UserName="my-user")
+
+    conn.list_groups_for_user(UserName="my-user")["Groups"].should.have.length_of(1)
+
+    # Which means that if we remove one, none should be left
+    conn.remove_user_from_group(GroupName="my-group", UserName="my-user")
+
+    conn.list_groups_for_user(UserName="my-user")["Groups"].should.have.length_of(0)
+
+
+@mock_iam
+def test_get_groups_for_user():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group1")
     conn.create_group(GroupName="my-group2")
@@ -159,7 +176,7 @@ def test_get_groups_for_user_boto3():
 
 
 @mock_iam
-def test_put_group_policy_boto3():
+def test_put_group_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
     conn.put_group_policy(
@@ -192,7 +209,7 @@ def test_attach_group_policies():
 
 
 @mock_iam
-def test_get_group_policy_boto3():
+def test_get_group_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
     with pytest.raises(ClientError) as ex:

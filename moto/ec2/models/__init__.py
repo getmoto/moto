@@ -186,7 +186,7 @@ class EC2Backend(
     def raise_error(self, code, message):
         raise EC2ClientError(code, message)
 
-    def raise_not_implemented_error(self, blurb):
+    def raise_not_implemented_error(self, blurb: str):
         raise MotoNotImplementedError(blurb)
 
     def do_resources_exist(self, resource_ids):

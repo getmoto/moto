@@ -7,7 +7,7 @@ from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-from typing import Any, Dict, List
+from typing import Any, Dict, List, TypeVar
 
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
@@ -92,15 +92,15 @@ def random_security_group_rule_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group-rule"], size=17)
 
 
-def random_fleet_id():
+def random_fleet_id() -> str:
     return f"fleet-{random_resource_id(size=8)}-{random_resource_id(size=4)}-{random_resource_id(size=4)}-{random_resource_id(size=4)}-{random_resource_id(size=12)}"
 
 
-def random_flow_log_id():
+def random_flow_log_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["flow-logs"])
 
 
-def random_snapshot_id():
+def random_snapshot_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["snapshot"])
 
 
@@ -146,7 +146,7 @@ def random_customer_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["customer-gateway"])
 
 
-def random_volume_id():
+def random_volume_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["volume"])
 
 
@@ -170,7 +170,7 @@ def random_vpc_peering_connection_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-peering-connection"])
 
 
-def random_eip_association_id():
+def random_eip_association_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-elastic-ip-association"])
 
 
@@ -188,23 +188,23 @@ def random_route_table_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["route-table"])
 
 
-def random_eip_allocation_id():
+def random_eip_allocation_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-elastic-ip"])
 
 
-def random_dhcp_option_id():
+def random_dhcp_option_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dhcp-options"])
 
 
-def random_eni_id():
+def random_eni_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["network-interface"])
 
 
-def random_eni_attach_id():
+def random_eni_attach_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["network-interface-attachment"])
 
 
-def random_nat_gateway_id():
+def random_nat_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["nat-gateway"], size=17)
 
 
@@ -236,15 +236,15 @@ def random_carrier_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["carrier-gateway"], size=17)
 
 
-def random_public_ip():
+def random_public_ip() -> str:
     return f"54.214.{random.choice(range(255))}.{random.choice(range(255))}"
 
 
-def random_dedicated_host_id():
+def random_dedicated_host_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dedicated_host"], size=17)
 
 
-def random_private_ip(cidr=None, ipv6=False):
+def random_private_ip(cidr: str = None, ipv6: bool = False) -> str:
     # prefix - ula.prefixlen : get number of remaing length for the IP.
     #                          prefix will be 32 for IPv4 and 128 for IPv6.
     #  random.getrandbits() will generate remaining bits for IPv6 or Ipv4 in decimal format
@@ -259,16 +259,16 @@ def random_private_ip(cidr=None, ipv6=False):
     return f"10.{random.choice(range(255))}.{random.choice(range(255))}.{random.choice(range(255))}"
 
 
-def random_ip():
+def random_ip() -> str:
     return f"127.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
 
 
-def generate_dns_from_ip(ip, dns_type="internal"):
+def generate_dns_from_ip(ip: Any, dns_type: str = "internal") -> str:
     splits = ip.split("/")[0].split(".") if "/" in ip else ip.split(".")
     return f"ip-{splits[0]}-{splits[1]}-{splits[2]}-{splits[3]}.ec2.{dns_type}"
 
 
-def random_mac_address():
+def random_mac_address() -> str:
     return f"02:00:00:{random.randint(0, 255)}02x:{random.randint(0, 255)}02x:{random.randint(0, 255)}02x"
 
 
@@ -519,7 +519,12 @@ def is_filter_matching(obj, _filter, filter_value):
         return value in filter_value
 
 
-def generic_filter(filters: Dict[str, Any], objects: List[Any]) -> List[Any]:
+GENERIC_FILTER_TYPE = TypeVar("GENERIC_FILTER_TYPE")
+
+
+def generic_filter(
+    filters: Dict[str, Any], objects: List[GENERIC_FILTER_TYPE]
+) -> List[GENERIC_FILTER_TYPE]:
     if filters:
         for (_filter, _filter_value) in filters.items():
             objects = [
@@ -781,7 +786,9 @@ def gen_moto_amis(described_images, drop_images_missing_keys=True):
     return result
 
 
-def convert_tag_spec(tag_spec_set, tag_key="Tag"):
+def convert_tag_spec(
+    tag_spec_set: List[Dict[str, Any]], tag_key: str = "Tag"
+) -> Dict[str, Dict[str, str]]:
     # IN:   [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
     #  (or) [{"ResourceType": _type, "Tags": [{"Key": k, "Value": v}, ..]}] <-- special cfn case
     # OUT:  {_type: {k: v, ..}}

@@ -498,3 +498,16 @@ class GlueResponse(BaseResponse):
         description = self._get_param("Description")
         schema = self.glue_backend.update_schema(schema_id, compatibility, description)
         return json.dumps(schema)
+
+    def batch_get_crawlers(self):
+        crawler_names = self._get_param("CrawlerNames")
+        crawlers = self.glue_backend.batch_get_crawlers(crawler_names)
+        crawlers_not_found = list(
+            set(crawler_names) - set(map(lambda crawler: crawler["Name"], crawlers))
+        )
+        return json.dumps(
+            {
+                "Crawlers": crawlers,
+                "CrawlersNotFound": crawlers_not_found,
+            }
+        )

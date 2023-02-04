@@ -89,7 +89,7 @@ def moto_server_host() -> str:
 
 
 def moto_lambda_image() -> str:
-    return os.environ.get("MOTO_DOCKER_LAMBDA_IMAGE", "lambci/lambda")
+    return os.environ.get("MOTO_DOCKER_LAMBDA_IMAGE", "mlupin/docker-lambda")
 
 
 def moto_network_name() -> str:

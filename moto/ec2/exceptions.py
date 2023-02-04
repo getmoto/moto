@@ -1,5 +1,5 @@
 from moto.core.exceptions import RESTError
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union, Iterable
 
 
 # EC2 has a custom root-tag - <Response> vs <ErrorResponse>
@@ -51,7 +51,7 @@ class MissingParameterError(EC2ClientError):
 
 
 class InvalidDHCPOptionsIdError(EC2ClientError):
-    def __init__(self, dhcp_options_id):
+    def __init__(self, dhcp_options_id: str):
         super().__init__(
             "InvalidDhcpOptionID.NotFound",
             f"DhcpOptionID {dhcp_options_id} does not exist.",
@@ -69,7 +69,7 @@ class InvalidParameterCombination(EC2ClientError):
 
 
 class MalformedDHCPOptionsIdError(EC2ClientError):
-    def __init__(self, dhcp_options_id):
+    def __init__(self, dhcp_options_id: Optional[str]):
         super().__init__(
             "InvalidDhcpOptionsId.Malformed",
             f'Invalid id: "{dhcp_options_id}" (expecting "dopt-...")',
@@ -110,7 +110,7 @@ class InvalidSubnetIdError(EC2ClientError):
 
 
 class InvalidFlowLogIdError(EC2ClientError):
-    def __init__(self, count, flow_log_ids):
+    def __init__(self, count: int, flow_log_ids: str):
         super().__init__(
             "InvalidFlowLogId.NotFound",
             f"These flow log ids in the input list are not found: [TotalCount: {count}] {flow_log_ids}",
@@ -118,7 +118,7 @@ class InvalidFlowLogIdError(EC2ClientError):
 
 
 class FlowLogAlreadyExists(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "FlowLogAlreadyExists",
             "Error. There is an existing Flow Log with the same configuration and log destination.",
@@ -166,7 +166,7 @@ class InvalidCustomerGatewayIdError(EC2ClientError):
 
 
 class InvalidNetworkInterfaceIdError(EC2ClientError):
-    def __init__(self, eni_id):
+    def __init__(self, eni_id: str):
         super().__init__(
             "InvalidNetworkInterfaceID.NotFound",
             f"The network interface ID '{eni_id}' does not exist",
@@ -174,7 +174,7 @@ class InvalidNetworkInterfaceIdError(EC2ClientError):
 
 
 class InvalidNetworkAttachmentIdError(EC2ClientError):
-    def __init__(self, attachment_id):
+    def __init__(self, attachment_id: str):
         super().__init__(
             "InvalidAttachmentID.NotFound",
             f"The network interface attachment ID '{attachment_id}' does not exist",
@@ -274,7 +274,7 @@ class UnvailableAMIIdError(EC2ClientError):
 
 
 class InvalidAMIAttributeItemValueError(EC2ClientError):
-    def __init__(self, attribute: str, value: str):
+    def __init__(self, attribute: str, value: Union[str, Iterable[str], None]):
         super().__init__(
             "InvalidAMIAttributeItemValue",
             f'Invalid attribute item value "{value}" for {attribute} item type.',
@@ -289,13 +289,13 @@ class MalformedAMIIdError(EC2ClientError):
 
 
 class InvalidSnapshotIdError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         # Note: AWS returns empty message for this, as of 2014.08.22.
         super().__init__("InvalidSnapshot.NotFound", "")
 
 
 class InvalidSnapshotInUse(EC2ClientError):
-    def __init__(self, snapshot_id, ami_id):
+    def __init__(self, snapshot_id: str, ami_id: str):
         super().__init__(
             "InvalidSnapshot.InUse",
             f"The snapshot {snapshot_id} is currently in use by {ami_id}",
@@ -303,14 +303,14 @@ class InvalidSnapshotInUse(EC2ClientError):
 
 
 class InvalidVolumeIdError(EC2ClientError):
-    def __init__(self, volume_id):
+    def __init__(self, volume_id: Any):
         super().__init__(
             "InvalidVolume.NotFound", f"The volume '{volume_id}' does not exist."
         )
 
 
 class InvalidVolumeAttachmentError(EC2ClientError):
-    def __init__(self, volume_id, instance_id):
+    def __init__(self, volume_id: str, instance_id: str):
         super().__init__(
             "InvalidAttachment.NotFound",
             f"Volume {volume_id} can not be detached from {instance_id} because it is not attached",
@@ -318,7 +318,7 @@ class InvalidVolumeAttachmentError(EC2ClientError):
 
 
 class InvalidVolumeDetachmentError(EC2ClientError):
-    def __init__(self, volume_id, instance_id, device):
+    def __init__(self, volume_id: str, instance_id: str, device: str):
         super().__init__(
             "InvalidAttachment.NotFound",
             f"The volume {volume_id} is not attached to instance {instance_id} as device {device}",
@@ -326,7 +326,7 @@ class InvalidVolumeDetachmentError(EC2ClientError):
 
 
 class VolumeInUseError(EC2ClientError):
-    def __init__(self, volume_id, instance_id):
+    def __init__(self, volume_id: str, instance_id: str):
         super().__init__(
             "VolumeInUse",
             f"Volume {volume_id} is currently attached to {instance_id}",
@@ -334,7 +334,7 @@ class VolumeInUseError(EC2ClientError):
 
 
 class InvalidAddressError(EC2ClientError):
-    def __init__(self, ip):
+    def __init__(self, ip: Any):
         super().__init__("InvalidAddress.NotFound", f"Address '{ip}' not found.")
 
 
@@ -347,7 +347,7 @@ class LogDestinationNotFoundError(EC2ClientError):
 
 
 class InvalidAllocationIdError(EC2ClientError):
-    def __init__(self, allocation_id):
+    def __init__(self, allocation_id: Any):
         super().__init__(
             "InvalidAllocationID.NotFound",
             f"Allocation ID '{allocation_id}' not found.",
@@ -355,7 +355,7 @@ class InvalidAllocationIdError(EC2ClientError):
 
 
 class InvalidAssociationIdError(EC2ClientError):
-    def __init__(self, association_id):
+    def __init__(self, association_id: Any):
         super().__init__(
             "InvalidAssociationID.NotFound",
             f"Association ID '{association_id}' not found.",
@@ -405,7 +405,7 @@ class InvalidNextToken(EC2ClientError):
 
 
 class InvalidDependantParameterError(EC2ClientError):
-    def __init__(self, dependant_parameter, parameter, parameter_value):
+    def __init__(self, dependant_parameter: str, parameter: str, parameter_value: str):
         super().__init__(
             "InvalidParameter",
             f"{dependant_parameter} can't be empty if {parameter} is {parameter_value}.",
@@ -413,7 +413,7 @@ class InvalidDependantParameterError(EC2ClientError):
 
 
 class InvalidDependantParameterTypeError(EC2ClientError):
-    def __init__(self, dependant_parameter, parameter_value, parameter):
+    def __init__(self, dependant_parameter: str, parameter_value: str, parameter: str):
         super().__init__(
             "InvalidParameter",
             f"{dependant_parameter} type must be {parameter_value} if {parameter} is provided.",
@@ -421,12 +421,12 @@ class InvalidDependantParameterTypeError(EC2ClientError):
 
 
 class InvalidAggregationIntervalParameterError(EC2ClientError):
-    def __init__(self, parameter):
+    def __init__(self, parameter: str):
         super().__init__("InvalidParameter", f"Invalid {parameter}")
 
 
 class InvalidParameterValueError(EC2ClientError):
-    def __init__(self, parameter_value):
+    def __init__(self, parameter_value: str):
         super().__init__(
             "InvalidParameterValue",
             f"Value {parameter_value} is invalid for parameter.",
@@ -480,7 +480,7 @@ class GatewayNotAttachedError(EC2ClientError):
 
 
 class ResourceAlreadyAssociatedError(EC2ClientError):
-    def __init__(self, resource_id):
+    def __init__(self, resource_id: str):
         super().__init__(
             "Resource.AlreadyAssociated",
             f"Resource {resource_id} is already associated.",
@@ -662,7 +662,7 @@ class InvalidLaunchTemplateNameNotFoundWithNameError(EC2ClientError):
 
 
 class InvalidParameterDependency(EC2ClientError):
-    def __init__(self, param, param_needed):
+    def __init__(self, param: str, param_needed: str):
         super().__init__(
             "InvalidParameterDependency",
             f"The parameter [{param}] requires the parameter {param_needed} to be set.",

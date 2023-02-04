@@ -2,6 +2,46 @@ Moto Changelog
 ==============
 
 
+4.1.2
+-----
+Docker Digest for 4.1.2: _sha256:742bd95faadb80133aa7082ca6f4d1d71af2f4802833e92348b082b11ec8d4ed_
+
+    New Methods:
+        * Batch:
+            * create_scheduling_policy()
+            * delete_scheduling_policy()
+            * describe_scheduling_policies()
+            * list_scheduling_policies()
+            * update_scheduling_policy()
+
+        * EC2:
+            * allocate_hosts()
+            * describe_hosts()
+            * modify_hosts()
+            * release_hosts()
+
+        * ECS:
+            * put_cluster_capacity_providers()
+            * update_capacity_provider()
+            * update_cluster()
+
+        * Glue:
+            * batch_get_crawlers()
+
+    Miscellaneous:
+        * AWSLambda: Base Images are now pulled from multiple repositories, increasing the number of supported language/versions out of the box
+        * CognitoIDP: admin_update_user_attributes() now checks for duplicate emails
+        * ECS: create_cluster() now supports the parameters configuration, capacityProviders, defaultCapacityProviderStrategy
+        * ECS: delete_cluster() now marks the cluster as INACTIVE, rather than removing it outright, in-line with how AWS behaves
+        * ECS: register_task_definition() now supports the parameters proxyConfiguration, inferenceAccelerators, runtimePlatform, ipcMode, pidMode, ephemeralStorage
+        * ECS: run_task() no longer crashes when providing launchType=FARGATE
+        * ECS now has improved tagging-support
+        * EKS: create_nodegroup() now returns the correct launchTemplate-attributes
+        * Kinesis now supports the streamARN-parameter for all arguments
+        * S3: Improved bucket policy enforcement
+
+
+
 4.1.1
 -----
 Docker Digest for 4.1.1: _sha256:abb85db28568fc355636dac710a8108ba3cdb01bf1c129118cf1ce49eb8c5f07_

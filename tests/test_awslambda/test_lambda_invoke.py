@@ -123,7 +123,7 @@ def test_invoke_event_function():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.9",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},

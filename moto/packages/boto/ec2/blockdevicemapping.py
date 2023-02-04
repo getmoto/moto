@@ -38,7 +38,7 @@ class BlockDeviceType(object):
         status: Optional[str] = None,
         attach_time: Optional[str] = None,
         delete_on_termination: bool = False,
-        size: Optional[str] = None,
+        size: Optional[int] = None,
         volume_type: Optional[str] = None,
         iops: Optional[str] = None,
         encrypted: Optional[str] = None,
