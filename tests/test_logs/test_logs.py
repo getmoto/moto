@@ -1,12 +1,14 @@
 import json
 import time
+import uuid
+
 import sure  # noqa # pylint: disable=unused-import
 from datetime import timedelta, datetime
 from uuid import UUID
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 from freezegun import freeze_time
 
 from moto import mock_logs, mock_s3, settings
@@ -1135,6 +1137,20 @@ def test_start_query():
 
     assert "queryId" in response
 
+    log_group_response = client.describe_log_groups(
+        logGroupNamePrefix=log_group_name,
+    )
+    log_group_arn = log_group_response['logGroups'][0]['arn']
+
+    response = client.start_query(
+        logGroupIdentifiers=[log_group_arn],
+        startTime=int(time.time()),
+        endTime=int(time.time()) + 300,
+        queryString="test",
+    )
+
+    assert "queryId" in response
+
     with pytest.raises(ClientError) as exc:
         client.start_query(
             logGroupName="/aws/codebuild/lowercase-dev-invalid",
@@ -1148,6 +1164,54 @@ def test_start_query():
     exc_value.response["Error"]["Code"].should.contain("ResourceNotFoundException")
     exc_value.response["Error"]["Message"].should.equal(
         "The specified log group does not exist"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.start_query(
+            logGroupNames=["/aws/codebuild/lowercase-dev-invalid"],
+            logGroupIdentifiers=["/aws/codebuild/lowercase-dev-invalid"],
+            startTime=int(time.time()),
+            endTime=int(time.time()) + 300,
+            queryString="test",
+        )
+
+    # then
+    exc_value = exc.value
+    exc_value.response["Error"]["Code"].should.contain("InvalidParameterException")
+    exc_value.response["Error"]["Message"].should.equal(
+        "Only one of the parameters 'logGroupName', 'logGroupNames' or 'logGroupIdentifiers' may be specified in a request"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.start_query(
+            logGroupName="/aws/codebuild/lowercase-dev-invalid",
+            logGroupIdentifiers=["/aws/codebuild/lowercase-dev-invalid"],
+            startTime=int(time.time()),
+            endTime=int(time.time()) + 300,
+            queryString="test",
+        )
+
+    # then
+    exc_value = exc.value
+    exc_value.response["Error"]["Code"].should.contain("InvalidParameterException")
+    exc_value.response["Error"]["Message"].should.equal(
+        "Only one of the parameters 'logGroupName', 'logGroupNames' or 'logGroupIdentifiers' may be specified in a request"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.start_query(
+            logGroupName="/aws/codebuild/lowercase-dev-invalid",
+            logGroupNames=["/aws/codebuild/lowercase-dev-invalid"],
+            startTime=int(time.time()),
+            endTime=int(time.time()) + 300,
+            queryString="test",
+        )
+
+    # then
+    exc_value = exc.value
+    exc_value.response["Error"]["Code"].should.contain("InvalidParameterException")
+    exc_value.response["Error"]["Message"].should.equal(
+        "Only one of the parameters 'logGroupName', 'logGroupNames' or 'logGroupIdentifiers' may be specified in a request"
     )
 
 
@@ -1342,3 +1406,49 @@ def test_create_export_raises_ResourceNotFoundException_log_group_not_found():
             to=to,
             destination=destination,
         )
+
+@mock_logs
+def test_describe_queries():
+    client = boto3.client("logs", "us-east-1")
+
+    for _ in range(3):
+        client.create_log_group(logGroupName=f"/aws/codebuild/{uuid.uuid4()}")
+
+    log_group_response = client.describe_log_groups(
+        logGroupNamePrefix="/aws/codebuild/",
+    )
+
+    log_group_name = log_group_response['logGroups'][0]['logGroupName']
+
+    # Create query for single log group
+    client.start_query(
+        logGroupName=log_group_name,
+        startTime=int(time.time()),
+        endTime=int(time.time()) + 300,
+        queryString="test",
+    )
+
+    # Create query with multiple log groups
+    client.start_query(
+        logGroupNames=[log_group_response['logGroups'][0]['logGroupName'], log_group_response['logGroups'][1]['logGroupName']],
+        startTime=int(time.time()),
+        endTime=int(time.time()) + 300,
+        queryString="test",
+    )
+
+    # Test via logGroupName
+    response = client.describe_queries(
+        logGroupName=log_group_name,
+    )
+    assert len(response['queries']) == 2
+
+    # Test via status
+    response = client.describe_queries(
+        status='Complete',
+    )
+    assert len(response['queries']) == 2
+
+    response = client.describe_queries(
+        status='Running',
+    )
+    assert len(response['queries']) == 0

@@ -12,6 +12,12 @@ PAGINATION_MODEL = {
         "limit_default": 50,
         "unique_attribute": "arn",
     },
+    "describe_queries": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 50,
+        "unique_attribute": "arn",
+    },
 }
 
 

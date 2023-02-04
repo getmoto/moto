@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
@@ -19,11 +20,14 @@ MAX_RESOURCE_POLICIES_PER_REGION = 10
 
 
 class LogQuery(BaseModel):
-    def __init__(self, query_id, start_time, end_time, query):
+    def __init__(self, log_group_names, query_id, start_time, end_time, query):
+        self.log_group_names = log_group_names
         self.query_id = query_id
         self.start_time = start_time
         self.end_time = end_time
         self.query = query
+        self.status = "Complete"
+        self.created_time = datetime.now()
 
 
 class LogEvent(BaseModel):
@@ -940,14 +944,22 @@ class LogsBackend(BaseBackend):
 
         log_group.delete_subscription_filter(filter_name)
 
-    def start_query(self, log_group_names, start_time, end_time, query_string):
-
-        for log_group_name in log_group_names:
-            if log_group_name not in self.groups:
-                raise ResourceNotFoundException()
+    def start_query(self, log_group_names, log_group_identifiers, start_time, end_time, query_string):
+        if log_group_names:
+            for log_group_name in log_group_names:
+                if log_group_name not in self.groups:
+                    raise ResourceNotFoundException()
+        else:
+            log_group_names = []
+            for log_group_id in log_group_identifiers:
+                for v in self.groups.values():
+                    if log_group_id != v.arn:
+                        raise ResourceNotFoundException()
+                    else:
+                        log_group_names.append(v.name)
 
         query_id = mock_random.uuid1()
-        self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
+        self.queries[query_id] = LogQuery(log_group_names, query_id, start_time, end_time, query_string)
         return query_id
 
     def create_export_task(self, log_group_name, destination):
@@ -956,6 +968,35 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         task_id = mock_random.uuid4()
         return task_id
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_queries(self, log_group_name, status):
+        res_queries = []
+
+        def create_response_dict(res_query):
+            return {
+                'queryId': str(res_query.query_id),
+                'queryString': res_query.query,
+                'status': res_query.status,
+                'createTime': time.mktime(res_query.created_time.timetuple()),
+                'logGroupName': res_query.log_group_names
+            }
+
+        for query_id, query in self.queries.items():
+            if log_group_name and status:
+                # Filter by name and status
+                if query.name == log_group_name and query.status == status:
+                    res_queries.append(create_response_dict(query))
+            elif log_group_name:
+                # Filter by name
+                if log_group_name in query.log_group_names:
+                    res_queries.append(create_response_dict(query))
+            elif status:
+                # Filter by status
+                if query.status == status:
+                    res_queries.append(create_response_dict(query))
+
+        return res_queries
 
 
 logs_backends = BackendDict(LogsBackend, "logs")
