@@ -944,7 +944,9 @@ class LogsBackend(BaseBackend):
 
         log_group.delete_subscription_filter(filter_name)
 
-    def start_query(self, log_group_names, log_group_identifiers, start_time, end_time, query_string):
+    def start_query(
+        self, log_group_names, log_group_identifiers, start_time, end_time, query_string
+    ):
         if log_group_names:
             for log_group_name in log_group_names:
                 if log_group_name not in self.groups:
@@ -959,7 +961,9 @@ class LogsBackend(BaseBackend):
                         log_group_names.append(v.name)
 
         query_id = mock_random.uuid1()
-        self.queries[query_id] = LogQuery(log_group_names, query_id, start_time, end_time, query_string)
+        self.queries[query_id] = LogQuery(
+            log_group_names, query_id, start_time, end_time, query_string
+        )
         return query_id
 
     def create_export_task(self, log_group_name, destination):
@@ -975,11 +979,11 @@ class LogsBackend(BaseBackend):
 
         def create_response_dict(res_query):
             return {
-                'queryId': str(res_query.query_id),
-                'queryString': res_query.query,
-                'status': res_query.status,
-                'createTime': time.mktime(res_query.created_time.timetuple()),
-                'logGroupName': res_query.log_group_names
+                "queryId": str(res_query.query_id),
+                "queryString": res_query.query,
+                "status": res_query.status,
+                "createTime": time.mktime(res_query.created_time.timetuple()),
+                "logGroupName": res_query.log_group_names,
             }
 
         for query_id, query in self.queries.items():

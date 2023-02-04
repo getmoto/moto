@@ -8,7 +8,7 @@ from uuid import UUID
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_logs, mock_s3, settings
@@ -1140,7 +1140,7 @@ def test_start_query():
     log_group_response = client.describe_log_groups(
         logGroupNamePrefix=log_group_name,
     )
-    log_group_arn = log_group_response['logGroups'][0]['arn']
+    log_group_arn = log_group_response["logGroups"][0]["arn"]
 
     response = client.start_query(
         logGroupIdentifiers=[log_group_arn],
@@ -1407,6 +1407,7 @@ def test_create_export_raises_ResourceNotFoundException_log_group_not_found():
             destination=destination,
         )
 
+
 @mock_logs
 def test_describe_queries():
     client = boto3.client("logs", "us-east-1")
@@ -1418,7 +1419,7 @@ def test_describe_queries():
         logGroupNamePrefix="/aws/codebuild/",
     )
 
-    log_group_name = log_group_response['logGroups'][0]['logGroupName']
+    log_group_name = log_group_response["logGroups"][0]["logGroupName"]
 
     # Create query for single log group
     client.start_query(
@@ -1430,7 +1431,10 @@ def test_describe_queries():
 
     # Create query with multiple log groups
     client.start_query(
-        logGroupNames=[log_group_response['logGroups'][0]['logGroupName'], log_group_response['logGroups'][1]['logGroupName']],
+        logGroupNames=[
+            log_group_response["logGroups"][0]["logGroupName"],
+            log_group_response["logGroups"][1]["logGroupName"],
+        ],
         startTime=int(time.time()),
         endTime=int(time.time()) + 300,
         queryString="test",
@@ -1440,15 +1444,15 @@ def test_describe_queries():
     response = client.describe_queries(
         logGroupName=log_group_name,
     )
-    assert len(response['queries']) == 2
+    assert len(response["queries"]) == 2
 
     # Test via status
     response = client.describe_queries(
-        status='Complete',
+        status="Complete",
     )
-    assert len(response['queries']) == 2
+    assert len(response["queries"]) == 2
 
     response = client.describe_queries(
-        status='Running',
+        status="Running",
     )
-    assert len(response['queries']) == 0
+    assert len(response["queries"]) == 0
