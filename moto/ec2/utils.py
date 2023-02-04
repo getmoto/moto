@@ -7,7 +7,7 @@ from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-from typing import Any, Dict, List
+from typing import Any, Dict, List, TypeVar
 
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
@@ -92,11 +92,11 @@ def random_security_group_rule_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group-rule"], size=17)
 
 
-def random_fleet_id():
+def random_fleet_id() -> str:
     return f"fleet-{random_resource_id(size=8)}-{random_resource_id(size=4)}-{random_resource_id(size=4)}-{random_resource_id(size=4)}-{random_resource_id(size=12)}"
 
 
-def random_flow_log_id():
+def random_flow_log_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["flow-logs"])
 
 
@@ -240,7 +240,7 @@ def random_public_ip() -> str:
     return f"54.214.{random.choice(range(255))}.{random.choice(range(255))}"
 
 
-def random_dedicated_host_id():
+def random_dedicated_host_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dedicated_host"], size=17)
 
 
@@ -519,7 +519,12 @@ def is_filter_matching(obj, _filter, filter_value):
         return value in filter_value
 
 
-def generic_filter(filters: Dict[str, Any], objects: List[Any]) -> List[Any]:
+GENERIC_FILTER_TYPE = TypeVar("GENERIC_FILTER_TYPE")
+
+
+def generic_filter(
+    filters: Dict[str, Any], objects: List[GENERIC_FILTER_TYPE]
+) -> List[GENERIC_FILTER_TYPE]:
     if filters:
         for (_filter, _filter_value) in filters.items():
             objects = [
@@ -781,7 +786,9 @@ def gen_moto_amis(described_images, drop_images_missing_keys=True):
     return result
 
 
-def convert_tag_spec(tag_spec_set, tag_key="Tag"):
+def convert_tag_spec(
+    tag_spec_set: List[Dict[str, Any]], tag_key: str = "Tag"
+) -> Dict[str, Dict[str, str]]:
     # IN:   [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
     #  (or) [{"ResourceType": _type, "Tags": [{"Key": k, "Value": v}, ..]}] <-- special cfn case
     # OUT:  {_type: {k: v, ..}}

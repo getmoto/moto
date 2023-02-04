@@ -1,6 +1,6 @@
 from .core import TaggedEC2Resource
 from ..utils import generic_filter, random_dedicated_host_id
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class Host(TaggedEC2Resource):
@@ -17,29 +17,31 @@ class Host(TaggedEC2Resource):
         self.state = "available"
         self.host_recovery = host_recovery or "off"
         self.zone = zone
-        self.instance_type = instance_type
-        self.instance_family = instance_family
+        self.instance_type: Optional[str] = instance_type
+        self.instance_family: Optional[str] = instance_family
         self.auto_placement = auto_placement or "on"
         self.ec2_backend = backend
 
     def release(self) -> None:
         self.state = "released"
 
-    def get_filter_value(self, key):
-        if key == "availability-zone":
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
+        if filter_name == "availability-zone":
             return self.zone
-        if key == "state":
+        if filter_name == "state":
             return self.state
-        if key == "tag-key":
+        if filter_name == "tag-key":
             return [t["key"] for t in self.get_tags()]
-        if key == "instance-type":
+        if filter_name == "instance-type":
             return self.instance_type
         return None
 
 
 class HostsBackend:
-    def __init__(self):
-        self.hosts = {}
+    def __init__(self) -> None:
+        self.hosts: Dict[str, Host] = {}
 
     def allocate_hosts(
         self,
@@ -74,7 +76,7 @@ class HostsBackend:
         """
         Pagination is not yet implemented
         """
-        results = self.hosts.values()
+        results = list(self.hosts.values())
         if host_ids:
             results = [r for r in results if r.id in host_ids]
         if filters:
@@ -82,8 +84,13 @@ class HostsBackend:
         return results
 
     def modify_hosts(
-        self, host_ids, auto_placement, host_recovery, instance_type, instance_family
-    ):
+        self,
+        host_ids: List[str],
+        auto_placement: str,
+        host_recovery: str,
+        instance_type: str,
+        instance_family: str,
+    ) -> None:
         for _id in host_ids:
             host = self.hosts[_id]
             if auto_placement is not None:

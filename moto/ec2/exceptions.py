@@ -110,7 +110,7 @@ class InvalidSubnetIdError(EC2ClientError):
 
 
 class InvalidFlowLogIdError(EC2ClientError):
-    def __init__(self, count, flow_log_ids):
+    def __init__(self, count: int, flow_log_ids: str):
         super().__init__(
             "InvalidFlowLogId.NotFound",
             f"These flow log ids in the input list are not found: [TotalCount: {count}] {flow_log_ids}",
@@ -118,7 +118,7 @@ class InvalidFlowLogIdError(EC2ClientError):
 
 
 class FlowLogAlreadyExists(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "FlowLogAlreadyExists",
             "Error. There is an existing Flow Log with the same configuration and log destination.",
@@ -405,7 +405,7 @@ class InvalidNextToken(EC2ClientError):
 
 
 class InvalidDependantParameterError(EC2ClientError):
-    def __init__(self, dependant_parameter, parameter, parameter_value):
+    def __init__(self, dependant_parameter: str, parameter: str, parameter_value: str):
         super().__init__(
             "InvalidParameter",
             f"{dependant_parameter} can't be empty if {parameter} is {parameter_value}.",
@@ -413,7 +413,7 @@ class InvalidDependantParameterError(EC2ClientError):
 
 
 class InvalidDependantParameterTypeError(EC2ClientError):
-    def __init__(self, dependant_parameter, parameter_value, parameter):
+    def __init__(self, dependant_parameter: str, parameter_value: str, parameter: str):
         super().__init__(
             "InvalidParameter",
             f"{dependant_parameter} type must be {parameter_value} if {parameter} is provided.",
@@ -421,7 +421,7 @@ class InvalidDependantParameterTypeError(EC2ClientError):
 
 
 class InvalidAggregationIntervalParameterError(EC2ClientError):
-    def __init__(self, parameter):
+    def __init__(self, parameter: str):
         super().__init__("InvalidParameter", f"Invalid {parameter}")
 
 
