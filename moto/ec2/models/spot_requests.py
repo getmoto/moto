@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Any, Dict, List
 
 from moto.core.common_models import CloudFormationModel
 from moto.packages.boto.ec2.launchspecification import LaunchSpecification
@@ -193,18 +194,18 @@ class SpotRequestBackend:
 class SpotFleetLaunchSpec(object):
     def __init__(
         self,
-        ebs_optimized,
-        group_set,
-        iam_instance_profile,
-        image_id,
-        instance_type,
-        key_name,
-        monitoring,
-        spot_price,
-        subnet_id,
-        tag_specifications,
-        user_data,
-        weighted_capacity,
+        ebs_optimized: Any,
+        group_set: List[str],
+        iam_instance_profile: Any,
+        image_id: str,
+        instance_type: str,
+        key_name: Any,
+        monitoring: Any,
+        spot_price: Any,
+        subnet_id: Any,
+        tag_specifications: Dict[str, Dict[str, str]],
+        user_data: Any,
+        weighted_capacity: float,
     ):
         self.ebs_optimized = ebs_optimized
         self.group_set = group_set
