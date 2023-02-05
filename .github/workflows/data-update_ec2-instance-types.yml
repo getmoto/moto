@@ -29,7 +29,6 @@ jobs:
       with:
         aws-region: us-east-1
         role-to-assume: arn:aws:iam::486285699788:role/GithubActionsRole
-        role-duration-seconds: 60
 
     - name: Pull EC2 instance types from AWS
       uses: technote-space/create-pr-action@v2
