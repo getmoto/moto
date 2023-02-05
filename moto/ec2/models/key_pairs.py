@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 from moto.core import BaseModel
 from ..exceptions import (
     FilterNotImplementedError,
@@ -15,13 +17,13 @@ from ..utils import (
 
 
 class KeyPair(BaseModel):
-    def __init__(self, name, fingerprint, material):
+    def __init__(self, name: str, fingerprint: str, material: str):
         self.id = random_key_pair_id()
         self.name = name
         self.fingerprint = fingerprint
         self.material = material
 
-    def get_filter_value(self, filter_name):
+    def get_filter_value(self, filter_name: str) -> str:
         if filter_name == "key-name":
             return self.name
         elif filter_name == "fingerprint":
@@ -31,23 +33,22 @@ class KeyPair(BaseModel):
 
 
 class KeyPairBackend:
-    def __init__(self):
-        self.keypairs = {}
+    def __init__(self) -> None:
+        self.keypairs: Dict[str, KeyPair] = {}
 
-    def create_key_pair(self, name):
+    def create_key_pair(self, name: str) -> KeyPair:
         if name in self.keypairs:
             raise InvalidKeyPairDuplicateError(name)
         keypair = KeyPair(name, **random_key_pair())
         self.keypairs[name] = keypair
         return keypair
 
-    def delete_key_pair(self, name):
-        if name in self.keypairs:
-            self.keypairs.pop(name)
-        return True
+    def delete_key_pair(self, name: str) -> None:
+        self.keypairs.pop(name, None)
 
-    def describe_key_pairs(self, key_names=None, filters=None):
-        results = []
+    def describe_key_pairs(
+        self, key_names: List[str], filters: Any = None
+    ) -> List[KeyPair]:
         if any(key_names):
             results = [
                 keypair
@@ -55,17 +56,17 @@ class KeyPairBackend:
                 if keypair.name in key_names
             ]
             if len(key_names) > len(results):
-                unknown_keys = set(key_names) - set(results)
+                unknown_keys = set(key_names) - set(results)  # type: ignore
                 raise InvalidKeyPairNameError(unknown_keys)
         else:
-            results = self.keypairs.values()
+            results = list(self.keypairs.values())
 
         if filters:
             return generic_filter(filters, results)
         else:
             return results
 
-    def import_key_pair(self, key_name, public_key_material):
+    def import_key_pair(self, key_name: str, public_key_material: str) -> KeyPair:
         if key_name in self.keypairs:
             raise InvalidKeyPairDuplicateError(key_name)
 
