@@ -986,17 +986,14 @@ class LogsBackend(BaseBackend):
                 "logGroupName": res_query.log_group_names,
             }
 
-        for query_id, query in self.queries.items():
+        for query in self.queries.values():
             if log_group_name and status:
-                # Filter by name and status
                 if query.name == log_group_name and query.status == status:
                     res_queries.append(create_response_dict(query))
             elif log_group_name:
-                # Filter by name
                 if log_group_name in query.log_group_names:
                     res_queries.append(create_response_dict(query))
             elif status:
-                # Filter by status
                 if query.status == status:
                     res_queries.append(create_response_dict(query))
 
