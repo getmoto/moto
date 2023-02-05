@@ -1456,3 +1456,16 @@ def test_describe_queries():
         status="Running",
     )
     assert len(response["queries"]) == 0
+
+    # Test via status and logGroupName
+    response = client.describe_queries(
+        logGroupName=log_group_name,
+        status="Complete",
+    )
+    assert len(response["queries"]) == 2
+
+    response = client.describe_queries(
+        logGroupName=log_group_name,
+        status="Running",
+    )
+    assert len(response["queries"]) == 0
