@@ -1,3 +1,4 @@
+from typing import Optional
 from moto.core import CloudFormationModel
 from .core import TaggedEC2Resource
 from ..exceptions import InvalidVpnGatewayIdError, InvalidVpnGatewayAttachmentError
@@ -6,7 +7,9 @@ from ..utils import generic_filter, random_vpn_gateway_id
 
 class VPCGatewayAttachment(CloudFormationModel):
     # Represents both VPNGatewayAttachment and VPCGatewayAttachment
-    def __init__(self, vpc_id, gateway_id=None, state=None):
+    def __init__(
+        self, vpc_id: str, gateway_id: Optional[str] = None, state: Optional[str] = None
+    ):
         self.vpc_id = vpc_id
         self.gateway_id = gateway_id
         self.state = state

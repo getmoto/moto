@@ -174,13 +174,14 @@ class FakeLaunchConfiguration(CloudFormationModel):
     def create_from_instance(
         cls, name: str, instance: Instance, backend: "AutoScalingBackend"
     ) -> "FakeLaunchConfiguration":
+        security_group_names = [sg.name for sg in instance.security_groups]
         config = backend.create_launch_configuration(
             name=name,
             image_id=instance.image_id,
             kernel_id="",
             ramdisk_id="",
             key_name=instance.key_name,
-            security_groups=instance.security_groups,
+            security_groups=security_group_names,
             user_data=instance.user_data,
             instance_type=instance.instance_type,
             instance_monitoring=False,

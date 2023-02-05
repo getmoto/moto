@@ -198,7 +198,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self._subnet_ips[ip] = instance
         return ip
 
-    def del_subnet_ip(self, ip):
+    def del_subnet_ip(self, ip: str) -> None:
         try:
             del self._subnet_ips[ip]
             self._unused_ips.add(ip)

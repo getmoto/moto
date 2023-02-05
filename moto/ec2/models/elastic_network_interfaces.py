@@ -1,8 +1,11 @@
-from typing import Any, Dict, Optional, List, Union
+from typing import Any, Dict, Optional, List, Union, TYPE_CHECKING
 from moto.core import CloudFormationModel
 from ..exceptions import InvalidNetworkAttachmentIdError, InvalidNetworkInterfaceIdError
 from .core import TaggedEC2Resource
 from .security_groups import SecurityGroup
+
+if TYPE_CHECKING:
+    from .instances import Instance
 from ..utils import (
     random_eni_id,
     generate_dns_from_ip,
@@ -29,19 +32,19 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
     ):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
-        self.device_index = device_index
+        self.device_index: Optional[int] = device_index
         if isinstance(private_ip_address, list) and private_ip_address:
             private_ip_address = private_ip_address[0]
-        self.private_ip_address = private_ip_address or None
+        self.private_ip_address: Optional[str] = private_ip_address or None  # type: ignore
         self.private_ip_addresses: List[Dict[str, Any]] = private_ip_addresses or []
         self.ipv6_addresses = kwargs.get("ipv6_addresses") or []
 
         self.subnet = subnet
         if isinstance(subnet, str):
             self.subnet = self.ec2_backend.get_subnet(subnet)
-        self.instance = None
-        self.attachment_id = None
-        self.attach_time = None
+        self.instance: Optional[Instance] = None
+        self.attachment_id: Optional[str] = None
+        self.attach_time: Optional[str] = None
         self.delete_on_termination = False
         self.description = description
         self.source_dest_check = True
@@ -326,7 +329,7 @@ class NetworkInterfaceBackend:
     def detach_network_interface(self, attachment_id: str) -> None:
         for eni in self.enis.values():
             if eni.attachment_id == attachment_id:
-                eni.instance.detach_eni(eni)  # type: ignore[attr-defined]
+                eni.instance.detach_eni(eni)  # type: ignore
                 return
         raise InvalidNetworkAttachmentIdError(attachment_id)
 

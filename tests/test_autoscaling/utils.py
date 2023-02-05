@@ -26,5 +26,5 @@ def setup_instance_with_networking(image_id, instance_type):
         MinCount=1,
         SubnetId=mock_data["subnet1"],
     )
-    mock_data["instance"] = instances[0].id
+    mock_data["instances"] = instances
     return mock_data

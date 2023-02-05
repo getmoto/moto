@@ -7,7 +7,7 @@ from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-from typing import Any, Dict, List, TypeVar
+from typing import Any, Dict, List, TypeVar, Optional
 
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
@@ -80,7 +80,7 @@ def random_instance_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["instance"], size=17)
 
 
-def random_reservation_id():
+def random_reservation_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["reservation"])
 
 
@@ -174,11 +174,11 @@ def random_eip_association_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-elastic-ip-association"])
 
 
-def random_internet_gateway_id():
+def random_internet_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["internet-gateway"])
 
 
-def random_egress_only_internet_gateway_id():
+def random_egress_only_internet_gateway_id() -> str:
     return random_id(
         prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"], size=17
     )
@@ -228,7 +228,7 @@ def random_launch_template_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"], size=17)
 
 
-def random_iam_instance_profile_association_id():
+def random_iam_instance_profile_association_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["iam-instance-profile-association"])
 
 
@@ -448,7 +448,12 @@ def instance_value_in_filter_values(instance_value, filter_values):
     return True
 
 
-def filter_reservations(reservations, filter_dict):
+FILTER_TYPE = TypeVar("FILTER_TYPE")
+
+
+def filter_reservations(
+    reservations: List[FILTER_TYPE], filter_dict: Any
+) -> List[FILTER_TYPE]:
     result = []
     for reservation in reservations:
         new_instances = []
@@ -485,7 +490,9 @@ def passes_igw_filter_dict(igw, filter_dict):
     return True
 
 
-def filter_internet_gateways(igws, filter_dict):
+def filter_internet_gateways(
+    igws: List[FILTER_TYPE], filter_dict: Any
+) -> List[FILTER_TYPE]:
     result = []
     for igw in igws:
         if passes_igw_filter_dict(igw, filter_dict):
@@ -519,12 +526,9 @@ def is_filter_matching(obj, _filter, filter_value):
         return value in filter_value
 
 
-GENERIC_FILTER_TYPE = TypeVar("GENERIC_FILTER_TYPE")
-
-
 def generic_filter(
-    filters: Dict[str, Any], objects: List[GENERIC_FILTER_TYPE]
-) -> List[GENERIC_FILTER_TYPE]:
+    filters: Dict[str, Any], objects: List[FILTER_TYPE]
+) -> List[FILTER_TYPE]:
     if filters:
         for (_filter, _filter_value) in filters.items():
             objects = [
@@ -665,7 +669,9 @@ def rsa_public_key_fingerprint(rsa_public_key):
     return fingerprint
 
 
-def filter_iam_instance_profile_associations(iam_instance_associations, filter_dict):
+def filter_iam_instance_profile_associations(
+    iam_instance_associations: List[FILTER_TYPE], filter_dict: Any
+) -> List[FILTER_TYPE]:
     if not filter_dict:
         return iam_instance_associations
     result = []
@@ -686,8 +692,10 @@ def filter_iam_instance_profile_associations(iam_instance_associations, filter_d
 
 
 def filter_iam_instance_profiles(
-    account_id, iam_instance_profile_arn, iam_instance_profile_name
-):
+    account_id: str,
+    iam_instance_profile_arn: Optional[str],
+    iam_instance_profile_name: Optional[str],
+) -> Any:
     instance_profile = None
     instance_profile_by_name = None
     instance_profile_by_arn = None
