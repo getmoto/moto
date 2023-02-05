@@ -24,6 +24,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
     - name: Configure AWS
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -34,6 +39,7 @@ jobs:
       uses: technote-space/create-pr-action@v2
       with:
         EXECUTE_COMMANDS: |
+          pip install boto3
           scripts/get_instance_info.py
         COMMIT_MESSAGE: 'chore: update EC2 Instance Types'
         COMMIT_NAME: 'Moto Admin'
