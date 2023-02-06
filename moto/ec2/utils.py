@@ -150,7 +150,7 @@ def random_volume_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["volume"])
 
 
-def random_key_pair_id():
+def random_key_pair_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["key-pair"])
 
 
@@ -224,7 +224,7 @@ def random_transit_gateway_attachment_id():
     )
 
 
-def random_launch_template_id():
+def random_launch_template_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"], size=17)
 
 
@@ -290,7 +290,7 @@ def generate_route_id(
     return f"{route_table_id}~{cidr_block}"
 
 
-def random_managed_prefix_list_id():
+def random_managed_prefix_list_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["managed-prefix-list"], size=8)
 
 
@@ -547,7 +547,7 @@ def simple_aws_filter_to_re(filter_string):
     return tmp_filter
 
 
-def random_key_pair():
+def random_key_pair() -> Dict[str, str]:
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
@@ -639,7 +639,7 @@ def generate_instance_identity_document(instance):
     return document
 
 
-def rsa_public_key_parse(key_material):
+def rsa_public_key_parse(key_material: Any) -> Any:
     # These imports take ~.5s; let's keep them local
     import sshpubkeys.exceptions
     from sshpubkeys.keys import SSHKey
@@ -659,7 +659,7 @@ def rsa_public_key_parse(key_material):
     return public_key.rsa
 
 
-def rsa_public_key_fingerprint(rsa_public_key):
+def rsa_public_key_fingerprint(rsa_public_key: Any) -> str:
     key_data = rsa_public_key.public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
@@ -719,7 +719,9 @@ def filter_iam_instance_profiles(
     return instance_profile
 
 
-def describe_tag_filter(filters, instances):
+def describe_tag_filter(
+    filters: Any, instances: List[FILTER_TYPE]
+) -> List[FILTER_TYPE]:
     result = instances.copy()
     for instance in instances:
         for key in filters:

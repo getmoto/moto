@@ -43,7 +43,7 @@ class DependencyViolationError(EC2ClientError):
 
 
 class MissingParameterError(EC2ClientError):
-    def __init__(self, parameter):
+    def __init__(self, parameter: str):
         super().__init__(
             "MissingParameter",
             f"The request must contain the parameter {parameter}",
@@ -77,21 +77,21 @@ class MalformedDHCPOptionsIdError(EC2ClientError):
 
 
 class InvalidKeyPairNameError(EC2ClientError):
-    def __init__(self, key):
+    def __init__(self, key: Iterable[str]):
         super().__init__(
             "InvalidKeyPair.NotFound", f"The keypair '{key}' does not exist."
         )
 
 
 class InvalidKeyPairDuplicateError(EC2ClientError):
-    def __init__(self, key):
+    def __init__(self, key: str):
         super().__init__(
             "InvalidKeyPair.Duplicate", f"The keypair '{key}' already exists."
         )
 
 
 class InvalidKeyPairFormatError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidKeyPair.Format", "Key is not in valid OpenSSH public key format"
         )
@@ -640,7 +640,7 @@ class OperationNotPermitted4(EC2ClientError):
 
 
 class InvalidLaunchTemplateNameAlreadyExistsError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidLaunchTemplateName.AlreadyExistsException",
             "Launch template name already in use.",
@@ -648,7 +648,7 @@ class InvalidLaunchTemplateNameAlreadyExistsError(EC2ClientError):
 
 
 class InvalidLaunchTemplateNameNotFoundError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidLaunchTemplateName.NotFoundException",
             "At least one of the launch templates specified in the request does not exist.",
@@ -656,7 +656,7 @@ class InvalidLaunchTemplateNameNotFoundError(EC2ClientError):
 
 
 class InvalidLaunchTemplateNameNotFoundWithNameError(EC2ClientError):
-    def __init__(self, name):
+    def __init__(self, name: str):
         super().__init__(
             "InvalidLaunchTemplateName.NotFoundException",
             f"The specified launch template, with template name {name}, does not exist",

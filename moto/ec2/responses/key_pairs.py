@@ -12,10 +12,8 @@ class KeyPairs(EC2BaseResponse):
     def delete_key_pair(self):
         name = self._get_param("KeyName")
         if self.is_not_dryrun("DeleteKeyPair"):
-            success = str(self.ec2_backend.delete_key_pair(name)).lower()
-            return self.response_template(DELETE_KEY_PAIR_RESPONSE).render(
-                success=success
-            )
+            self.ec2_backend.delete_key_pair(name)
+            return self.response_template(DELETE_KEY_PAIR_RESPONSE).render()
 
     def describe_key_pairs(self):
         names = self._get_multi_param("KeyName")
@@ -57,7 +55,7 @@ CREATE_KEY_PAIR_RESPONSE = """<CreateKeyPairResponse xmlns="http://ec2.amazonaws
 
 DELETE_KEY_PAIR_RESPONSE = """<DeleteKeyPairResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <return>{{ success }}</return>
+  <return>true</return>
 </DeleteKeyPairResponse>"""
 
 IMPORT_KEYPAIR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
