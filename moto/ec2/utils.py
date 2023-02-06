@@ -126,11 +126,11 @@ def random_subnet_association_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["route-table-association"])
 
 
-def random_network_acl_id():
+def random_network_acl_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["network-acl"])
 
 
-def random_network_acl_subnet_association_id():
+def random_network_acl_subnet_association_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["network-acl-subnet-assoc"])
 
 

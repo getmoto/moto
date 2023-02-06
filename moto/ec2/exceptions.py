@@ -126,7 +126,7 @@ class FlowLogAlreadyExists(EC2ClientError):
 
 
 class InvalidNetworkAclIdError(EC2ClientError):
-    def __init__(self, network_acl_id):
+    def __init__(self, network_acl_id: str):
         super().__init__(
             "InvalidNetworkAclID.NotFound",
             f"The network acl ID '{network_acl_id}' does not exist",
@@ -212,7 +212,7 @@ class InvalidPermissionDuplicateError(EC2ClientError):
 
 
 class InvalidRouteTableIdError(EC2ClientError):
-    def __init__(self, route_table_id):
+    def __init__(self, route_table_id: str):
         super().__init__(
             "InvalidRouteTableID.NotFound",
             f"The routeTable ID '{route_table_id}' does not exist",
@@ -572,7 +572,7 @@ class AvailabilityZoneNotFromRegionError(EC2ClientError):
 
 
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
-    def __init__(self, rule_number):
+    def __init__(self, rule_number: str):
         super().__init__(
             "NetworkAclEntryAlreadyExists",
             f"The network acl entry identified by {rule_number} already exists.",
