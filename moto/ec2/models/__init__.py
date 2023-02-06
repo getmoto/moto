@@ -205,7 +205,7 @@ class EC2Backend(
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["launch-template"]:
                 self.get_launch_template(resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["network-acl"]:
-                self.get_all_network_acls()
+                self.describe_network_acls()
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["network-interface"]:
                 self.describe_network_interfaces(
                     filters={"network-interface-id": resource_id}
