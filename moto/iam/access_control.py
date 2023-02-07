@@ -378,7 +378,7 @@ class IAMPolicyStatement(object):
         if is_action_concerned:
             if self.is_unknown_principal(self._statement.get("Principal")):
                 return PermissionResult.NEUTRAL
-            same_resource = self._match(self._statement["Resource"], resource)
+            same_resource = self._check_element_matches("Resource", resource)
             if self._statement["Effect"] == "Allow" and same_resource:
                 return PermissionResult.PERMITTED
             else:  # Deny
