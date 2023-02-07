@@ -220,7 +220,7 @@ class InvalidRouteTableIdError(EC2ClientError):
 
 
 class InvalidRouteError(EC2ClientError):
-    def __init__(self, route_table_id, cidr):
+    def __init__(self, route_table_id: str, cidr: str):
         super().__init__(
             "InvalidRoute.NotFound",
             f"no route with destination-cidr-block {cidr} in route table {route_table_id}",
@@ -228,7 +228,7 @@ class InvalidRouteError(EC2ClientError):
 
 
 class RouteAlreadyExistsError(EC2ClientError):
-    def __init__(self, cidr):
+    def __init__(self, cidr: str):
         super().__init__(
             "RouteAlreadyExists", f"The route identified by {cidr} already exists"
         )
@@ -593,7 +593,7 @@ class InvalidCIDRBlockParameterError(EC2ClientError):
 
 
 class InvalidDestinationCIDRBlockParameterError(EC2ClientError):
-    def __init__(self, cidr_block):
+    def __init__(self, cidr_block: str):
         super().__init__(
             "InvalidParameterValue",
             f"Value ({cidr_block}) for parameter destinationCidrBlock is invalid. This is not a valid CIDR block.",

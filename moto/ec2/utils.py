@@ -7,7 +7,7 @@ from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-from typing import Any, Dict, List, TypeVar, Optional
+from typing import Any, Dict, List, TypeVar, Tuple, Optional
 
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
@@ -122,7 +122,7 @@ def random_subnet_ipv6_cidr_block_association_id():
     )
 
 
-def random_subnet_association_id():
+def random_subnet_association_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["route-table-association"])
 
 
@@ -184,7 +184,7 @@ def random_egress_only_internet_gateway_id() -> str:
     )
 
 
-def random_route_table_id():
+def random_route_table_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["route-table"])
 
 
@@ -281,7 +281,10 @@ def random_ipv6_cidr():
 
 
 def generate_route_id(
-    route_table_id, cidr_block, ipv6_cidr_block=None, prefix_list=None
+    route_table_id: str,
+    cidr_block: Optional[str],
+    ipv6_cidr_block: Optional[str] = None,
+    prefix_list: Optional[str] = None,
 ):
     if ipv6_cidr_block and not cidr_block:
         cidr_block = ipv6_cidr_block
@@ -309,7 +312,7 @@ def utc_date_and_time() -> str:
     return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
 
 
-def split_route_id(route_id):
+def split_route_id(route_id: str) -> Tuple[str, str]:
     values = route_id.split("~")
     return values[0], values[1]
 
