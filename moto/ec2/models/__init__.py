@@ -28,7 +28,7 @@ from .instance_types import InstanceTypeBackend, InstanceTypeOfferingBackend
 from .nat_gateways import NatGatewayBackend
 from .network_acls import NetworkAclBackend
 from .availability_zones_and_regions import RegionsAndZonesBackend
-from .route_tables import RouteBackend, RouteTableBackend
+from .route_tables import RouteBackend
 from .security_groups import SecurityGroupBackend
 from .spot_requests import (
     SpotRequestBackend,
@@ -101,7 +101,6 @@ class EC2Backend(
     VPNConnectionBackend,
     VPCServiceConfigurationBackend,
     VPCPeeringConnectionBackend,
-    RouteTableBackend,
     RouteBackend,
     InternetGatewayBackend,
     EgressOnlyInternetGatewayBackend,
