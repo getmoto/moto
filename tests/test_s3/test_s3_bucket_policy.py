@@ -37,6 +37,20 @@ class TestBucketPolicy:
             ({"resource": "arn:aws:s3:::mybucket/test_txt"}, 200),
             ({"resource": "arn:aws:s3:::notmybucket/*"}, 403),
             ({"resource": "arn:aws:s3:::mybucket/other*"}, 403),
+            ({"resource": ["arn:aws:s3:::mybucket", "arn:aws:s3:::mybucket/*"]}, 200),
+            (
+                {
+                    "resource": [
+                        "arn:aws:s3:::notmybucket",
+                        "arn:aws:s3:::notmybucket/*",
+                    ]
+                },
+                403,
+            ),
+            (
+                {"resource": ["arn:aws:s3:::mybucket", "arn:aws:s3:::notmybucket/*"]},
+                403,
+            ),
             ({"effect": "Deny"}, 403),
         ],
     )
