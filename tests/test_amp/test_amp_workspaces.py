@@ -4,6 +4,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_amp
+from uuid import uuid4
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -40,18 +41,19 @@ def test_describe_workspace():
 
 @mock_amp
 def test_list_workspaces():
+    my_alias = str(uuid4())[0:6]
     client = boto3.client("amp", region_name="ap-southeast-1")
     client.create_workspace(alias="test")
-    client.create_workspace(alias="another")
-    client.create_workspace()
+    client.create_workspace(alias=my_alias)
 
-    resp = client.list_workspaces()
-    resp.should.have.key("workspaces").length_of(3)
-    resp.shouldnt.have.key("nextToken")
+    spaces = client.list_workspaces(maxResults=1000)["workspaces"]
+    assert len(spaces) >= 2
+    [sp.get("alias") for sp in spaces].should.contain("test")
+    [sp.get("alias") for sp in spaces].should.contain(my_alias)
 
-    resp = client.list_workspaces(alias="another")
+    resp = client.list_workspaces(alias=my_alias)
     resp.should.have.key("workspaces").length_of(1)
-    resp["workspaces"][0].should.have.key("alias").equals("another")
+    resp["workspaces"][0].should.have.key("alias").equals(my_alias)
 
 
 @mock_amp
@@ -70,14 +72,11 @@ def test_list_workspaces__paginated():
     page2.should.have.key("workspaces").length_of(15)
     page2.should.have.key("nextToken")
 
-    page3 = client.list_workspaces(maxResults=15, nextToken=page2["nextToken"])
-    page3.should.have.key("workspaces").length_of(10)
-    page3.shouldnt.have.key("nextToken")
-
     # We could request all of them in one go
-    full_page = client.list_workspaces(maxResults=150)
-    full_page.should.have.key("workspaces").length_of(125)
-    full_page.shouldnt.have.key("nextToken")
+    all_workspaces = client.list_workspaces(maxResults=1000)["workspaces"]
+    length = len(all_workspaces)
+    # We don't know exactly how much workspaces there are, because we are running multiple tests at the same time
+    assert length >= 125
 
 
 @mock_amp

@@ -91,39 +91,36 @@ def test_import_bad_certificate():
 @mock_acm
 def test_list_certificates():
     client = boto3.client("acm", region_name="eu-central-1")
-    arn = _import_cert(client)
-
-    resp = client.list_certificates()
-    len(resp["CertificateSummaryList"]).should.equal(1)
-
-    resp["CertificateSummaryList"][0]["CertificateArn"].should.equal(arn)
-    resp["CertificateSummaryList"][0]["DomainName"].should.equal(SERVER_COMMON_NAME)
-
-
-@mock_acm
-def test_list_certificates_by_status():
-    client = boto3.client("acm", region_name="eu-central-1")
     issued_arn = _import_cert(client)
     pending_arn = client.request_certificate(DomainName="google.com")["CertificateArn"]
 
-    resp = client.list_certificates()
-    len(resp["CertificateSummaryList"]).should.equal(2)
+    moto_arn = {"CertificateArn": issued_arn, "DomainName": SERVER_COMMON_NAME}
+    google_arn = {"CertificateArn": pending_arn, "DomainName": "google.com"}
+
+    certs = client.list_certificates()["CertificateSummaryList"]
+    certs.should.contain(moto_arn)
+    certs.should.contain(google_arn)
+
     resp = client.list_certificates(CertificateStatuses=["EXPIRED", "INACTIVE"])
     len(resp["CertificateSummaryList"]).should.equal(0)
-    resp = client.list_certificates(CertificateStatuses=["PENDING_VALIDATION"])
-    len(resp["CertificateSummaryList"]).should.equal(1)
-    resp["CertificateSummaryList"][0]["CertificateArn"].should.equal(pending_arn)
 
-    resp = client.list_certificates(CertificateStatuses=["ISSUED"])
-    len(resp["CertificateSummaryList"]).should.equal(1)
-    resp["CertificateSummaryList"][0]["CertificateArn"].should.equal(issued_arn)
-    resp = client.list_certificates(
+    certs = client.list_certificates(CertificateStatuses=["PENDING_VALIDATION"])[
+        "CertificateSummaryList"
+    ]
+    certs.should.contain(google_arn)
+    certs.shouldnt.contain(moto_arn)
+
+    certs = client.list_certificates(CertificateStatuses=["ISSUED"])[
+        "CertificateSummaryList"
+    ]
+    certs.shouldnt.contain(google_arn)
+    certs.should.contain(moto_arn)
+
+    certs = client.list_certificates(
         CertificateStatuses=["ISSUED", "PENDING_VALIDATION"]
-    )
-    len(resp["CertificateSummaryList"]).should.equal(2)
-    arns = {cert["CertificateArn"] for cert in resp["CertificateSummaryList"]}
-    arns.should.contain(issued_arn)
-    arns.should.contain(pending_arn)
+    )["CertificateSummaryList"]
+    certs.should.contain(google_arn)
+    certs.should.contain(moto_arn)
 
 
 @mock_acm
@@ -690,7 +687,7 @@ def test_elb_acm_in_use_by():
     certificate_arn = acm_request_response["CertificateArn"]
 
     create_load_balancer_request = elb_client.create_load_balancer(
-        LoadBalancerName="test",
+        LoadBalancerName=str(uuid.uuid4()),
         Listeners=[
             {
                 "Protocol": "https",
