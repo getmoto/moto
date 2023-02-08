@@ -1414,12 +1414,15 @@ class EC2ContainerServiceBackend(BaseBackend):
         for task in tasks.keys():
             if task.endswith(task_id):
                 container_instance_arn = tasks[task].container_instance_arn
-                container_instance = self.container_instances[cluster.name][
-                    container_instance_arn.split("/")[-1]
-                ]
-                self.update_container_instance_resources(
-                    container_instance, tasks[task].resource_requirements, removing=True
-                )
+                if container_instance_arn:
+                    container_instance = self.container_instances[cluster.name][
+                        container_instance_arn.split("/")[-1]
+                    ]
+                    self.update_container_instance_resources(
+                        container_instance,
+                        tasks[task].resource_requirements,
+                        removing=True,
+                    )
                 tasks[task].last_status = "STOPPED"
                 tasks[task].desired_status = "STOPPED"
                 tasks[task].stopped_reason = reason

@@ -16,7 +16,7 @@ class TaskDefinitionNotFoundException(JsonRESTError):
     def __init__(self):
         super().__init__(
             error_type="ClientException",
-            message="The specified task definition does not exist.",
+            message="Unable to describe task definition.",
         )
 
 
