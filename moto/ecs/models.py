@@ -1413,7 +1413,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception(f"Cluster {cluster.name} has no registered tasks")
         for task in tasks.keys():
             if task.endswith(task_id):
-                if container_instance_arn := tasks[task].container_instance_arn:
+                container_instance_arn = tasks[task].container_instance_arn
+                if container_instance_arn:
                     container_instance = self.container_instances[cluster.name][
                         container_instance_arn.split("/")[-1]
                     ]
