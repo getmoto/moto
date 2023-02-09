@@ -14,7 +14,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from . import helpers
 
 
-FROZEN_CREATE_TIME = datetime(2015, 1, 1, 0, 0, 0)
+FROZEN_CREATE_TIME = datetime(2015, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
 
 @mock_glue
@@ -34,7 +34,9 @@ def test_create_database():
     database.get("LocationUri").should.equal(database_input.get("LocationUri"))
     database.get("Parameters").should.equal(database_input.get("Parameters"))
     if not settings.TEST_SERVER_MODE:
-        database.get("CreateTime").should.equal(FROZEN_CREATE_TIME)
+        database.get("CreateTime").timestamp().should.equal(
+            FROZEN_CREATE_TIME.timestamp()
+        )
     database.get("CreateTableDefaultPermissions").should.equal(
         database_input.get("CreateTableDefaultPermissions")
     )
@@ -175,7 +177,7 @@ def test_create_table():
     table = response["Table"]
 
     if not settings.TEST_SERVER_MODE:
-        table["CreateTime"].should.equal(FROZEN_CREATE_TIME)
+        table["CreateTime"].timestamp().should.equal(FROZEN_CREATE_TIME.timestamp())
 
     table["Name"].should.equal(table_input["Name"])
     table["StorageDescriptor"].should.equal(table_input["StorageDescriptor"])
@@ -1136,8 +1138,12 @@ def test_create_crawler_scheduled():
     crawler.get("CrawlElapsedTime").should.equal(0)
     crawler.get("Version").should.equal(1)
     if not settings.TEST_SERVER_MODE:
-        crawler.get("CreationTime").should.equal(FROZEN_CREATE_TIME)
-        crawler.get("LastUpdated").should.equal(FROZEN_CREATE_TIME)
+        crawler.get("CreationTime").timestamp().should.equal(
+            FROZEN_CREATE_TIME.timestamp()
+        )
+        crawler.get("LastUpdated").timestamp().should.equal(
+            FROZEN_CREATE_TIME.timestamp()
+        )
 
     crawler.should.not_have.key("LastCrawl")
 
@@ -1216,8 +1222,12 @@ def test_create_crawler_unscheduled():
     crawler.get("CrawlElapsedTime").should.equal(0)
     crawler.get("Version").should.equal(1)
     if not settings.TEST_SERVER_MODE:
-        crawler.get("CreationTime").should.equal(FROZEN_CREATE_TIME)
-        crawler.get("LastUpdated").should.equal(FROZEN_CREATE_TIME)
+        crawler.get("CreationTime").timestamp().should.equal(
+            FROZEN_CREATE_TIME.timestamp()
+        )
+        crawler.get("LastUpdated").timestamp().should.equal(
+            FROZEN_CREATE_TIME.timestamp()
+        )
 
     crawler.should.not_have.key("LastCrawl")
 

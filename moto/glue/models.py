@@ -7,6 +7,7 @@ from typing import Dict, List
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
+from moto.core.utils import unix_time
 from moto.moto_api._internal.managed_state_model import ManagedState
 from .exceptions import (
     JsonRESTError,
@@ -759,7 +760,7 @@ class FakeDatabase(BaseModel):
             "Description": self.input.get("Description"),
             "LocationUri": self.input.get("LocationUri"),
             "Parameters": self.input.get("Parameters"),
-            "CreateTime": self.created_time.isoformat(),
+            "CreateTime": unix_time(self.created_time),
             "CreateTableDefaultPermissions": self.input.get(
                 "CreateTableDefaultPermissions"
             ),
@@ -797,7 +798,7 @@ class FakeTable(BaseModel):
         obj = {
             "DatabaseName": self.database_name,
             "Name": self.name,
-            "CreateTime": self.created_time.isoformat(),
+            "CreateTime": unix_time(self.created_time),
         }
         obj.update(self.get_version(version))
         return obj
