@@ -154,7 +154,7 @@ class Fleet(TaggedEC2Resource):
         self.fulfilled_capacity += added_weight
         return self.spot_requests
 
-    def create_on_demand_requests(self, weight_to_add: float) -> List[Dict[str, Any]]:
+    def create_on_demand_requests(self, weight_to_add: float) -> None:
         weight_map, added_weight = self.get_launch_spec_counts(weight_to_add)
         for launch_spec, count in weight_map.items():
             reservation = self.ec2_backend.add_instances(  # type: ignore[attr-defined]
@@ -183,7 +183,6 @@ class Fleet(TaggedEC2Resource):
                 }
             )
         self.fulfilled_capacity += added_weight
-        return self.on_demand_instances
 
     def get_launch_spec_counts(
         self, weight_to_add: float

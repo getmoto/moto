@@ -84,11 +84,11 @@ def random_reservation_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["reservation"])
 
 
-def random_security_group_id():
+def random_security_group_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"], size=17)
 
 
-def random_security_group_rule_id():
+def random_security_group_rule_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group-rule"], size=17)
 
 
@@ -104,19 +104,19 @@ def random_snapshot_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["snapshot"])
 
 
-def random_spot_request_id():
+def random_spot_request_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["spot-instance-request"])
 
 
-def random_spot_fleet_request_id():
+def random_spot_fleet_request_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["spot-fleet-request"])
 
 
-def random_subnet_id():
+def random_subnet_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["subnet"])
 
 
-def random_subnet_ipv6_cidr_block_association_id():
+def random_subnet_ipv6_cidr_block_association_id() -> str:
     return random_id(
         prefix=EC2_RESOURCE_TO_PREFIX["subnet-ipv6-cidr-block-association"]
     )
@@ -347,7 +347,7 @@ def get_object_value(obj, attr):
     return val
 
 
-def is_tag_filter(filter_name):
+def is_tag_filter(filter_name: str) -> bool:
     return (
         filter_name.startswith("tag:")
         or filter_name.startswith("tag-value")
@@ -380,7 +380,7 @@ def add_tag_specification(tags):
     return tags
 
 
-def tag_filter_matches(obj, filter_name, filter_values):
+def tag_filter_matches(obj: Any, filter_name: str, filter_values: List[str]) -> bool:
     regex_filters = [re.compile(simple_aws_filter_to_re(f)) for f in filter_values]
     if filter_name == "tag-key":
         tag_values = get_obj_tag_names(obj)
@@ -598,13 +598,13 @@ def is_valid_resource_id(resource_id):
     return resource_pattern_re.match(resource_id) is not None
 
 
-def is_valid_cidr(cird):
+def is_valid_cidr(cird: str) -> bool:
     cidr_pattern = r"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$"
     cidr_pattern_re = re.compile(cidr_pattern)
     return cidr_pattern_re.match(cird) is not None
 
 
-def is_valid_ipv6_cidr(cird):
+def is_valid_ipv6_cidr(cird: str) -> bool:
     cidr_pattern = r"^s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:)))(%.+)?s*(\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8]))?$"
     cidr_pattern_re = re.compile(cidr_pattern)
     return cidr_pattern_re.match(cird) is not None

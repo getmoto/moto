@@ -30,12 +30,8 @@ from .network_acls import NetworkAclBackend
 from .availability_zones_and_regions import RegionsAndZonesBackend
 from .route_tables import RouteBackend
 from .security_groups import SecurityGroupBackend
-from .spot_requests import (
-    SpotRequestBackend,
-    SpotPriceBackend,
-    SpotFleetBackend,
-)
-from .subnets import SubnetBackend, SubnetRouteTableAssociationBackend
+from .spot_requests import SpotRequestBackend
+from .subnets import SubnetBackend
 from .tags import TagBackend
 from .transit_gateway import TransitGatewayBackend
 from .transit_gateway_route_tables import (
@@ -95,7 +91,6 @@ class EC2Backend(
     VPCBackend,
     ManagedPrefixListBackend,
     SubnetBackend,
-    SubnetRouteTableAssociationBackend,
     FlowLogsBackend,
     NetworkInterfaceBackend,
     VPNConnectionBackend,
@@ -104,9 +99,7 @@ class EC2Backend(
     RouteBackend,
     InternetGatewayBackend,
     EgressOnlyInternetGatewayBackend,
-    SpotFleetBackend,
     SpotRequestBackend,
-    SpotPriceBackend,
     ElasticAddressBackend,
     KeyPairBackend,
     SettingsBackend,

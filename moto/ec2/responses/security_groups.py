@@ -205,9 +205,7 @@ class SecurityGroups(EC2BaseResponse):
     def revoke_security_group_egress(self):
         if self.is_not_dryrun("RevokeSecurityGroupEgress"):
             for args in self._process_rules_from_querystring():
-                success = self.ec2_backend.revoke_security_group_egress(*args)
-                if not success:
-                    return "Could not find a matching egress rule", dict(status=404)
+                self.ec2_backend.revoke_security_group_egress(*args)
             return REVOKE_SECURITY_GROUP_EGRESS_RESPONSE
 
     def revoke_security_group_ingress(self):
