@@ -45,6 +45,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
         job_execution_settings,
         content_redaction,
         identify_language,
+        identify_multiple_languages,
         language_options,
     ):
         ManagedState.__init__(
@@ -60,6 +61,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
         self._region_name = region_name
         self.transcription_job_name = transcription_job_name
         self.language_code = language_code
+        self.language_codes = None
         self.media_sample_rate_hertz = media_sample_rate_hertz
         self.media_format = media_format
         self.media = media
@@ -82,6 +84,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
             "RedactionOutput": None,
         }
         self.identify_language = identify_language
+        self.identify_multiple_languages = identify_multiple_languages
         self.language_options = language_options
         self.identified_language_score = (None,)
         self._output_bucket_name = output_bucket_name
@@ -97,12 +100,14 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 "TranscriptionJobName",
                 "TranscriptionJobStatus",
                 "LanguageCode",
+                "LanguageCodes",
                 "MediaFormat",
                 "Media",
                 "Settings",
                 "StartTime",
                 "CreationTime",
                 "IdentifyLanguage",
+                "IdentifyMultipleLanguages",
                 "LanguageOptions",
                 "JobExecutionSettings",
             ],
@@ -110,6 +115,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 "TranscriptionJobName",
                 "TranscriptionJobStatus",
                 "LanguageCode",
+                "LanguageCodes",
                 "MediaSampleRateHertz",
                 "MediaFormat",
                 "Media",
@@ -119,6 +125,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 "CreationTime",
                 "CompletionTime",
                 "IdentifyLanguage",
+                "IdentifyMultipleLanguages",
                 "LanguageOptions",
                 "IdentifiedLanguageScore",
             ],
@@ -128,9 +135,11 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 "StartTime",
                 "CompletionTime",
                 "LanguageCode",
+                "LanguageCodes",
                 "TranscriptionJobStatus",
                 "FailureReason",
                 "IdentifyLanguage",
+                "IdentifyMultipleLanguages",
                 "IdentifiedLanguageScore",
                 "OutputLocationType",
             ],
@@ -172,12 +181,35 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 )
             if self.identify_language:
                 self.identified_language_score = 0.999645948
-                # Simply identify first language passed in lanugage_options
-                # If non is set default to "en-US"
+                # Simply identify first language passed in language_options
+                # If none is set, default to "en-US"
                 if self.language_options is not None and len(self.language_options) > 0:
                     self.language_code = self.language_options[0]
                 else:
                     self.language_code = "en-US"
+            if self.identify_multiple_languages:
+                self.identified_language_score = 0.999645948
+                # Identify first two languages passed in language_options
+                # If none is set, default to "en-US"
+                self.language_codes = []
+                if self.language_options is None or len(self.language_options) == 0:
+                    self.language_codes.append(
+                        {"LanguageCode": "en-US", "DurationInSeconds": 123.0}
+                    )
+                else:
+                    self.language_codes.append(
+                        {
+                            "LanguageCode": self.language_options[0],
+                            "DurationInSeconds": 123.0,
+                        }
+                    )
+                    if len(self.language_options) > 1:
+                        self.language_codes.append(
+                            {
+                                "LanguageCode": self.language_options[1],
+                                "DurationInSeconds": 321.0,
+                            }
+                        )
         elif new_status == "COMPLETED":
             self.completion_time = (datetime.now() + timedelta(seconds=10)).strftime(
                 "%Y-%m-%d %H:%M:%S"
@@ -482,6 +514,7 @@ class TranscribeBackend(BaseBackend):
             job_execution_settings=kwargs.get("job_execution_settings"),
             content_redaction=kwargs.get("content_redaction"),
             identify_language=kwargs.get("identify_language"),
+            identify_multiple_languages=kwargs.get("identify_multiple_languages"),
             language_options=kwargs.get("language_options"),
         )
         self.transcriptions[name] = transcription_job_object

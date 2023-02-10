@@ -37,6 +37,7 @@ class TranscribeResponse(BaseResponse):
             job_execution_settings=self._get_param("JobExecutionSettings"),
             content_redaction=self._get_param("ContentRedaction"),
             identify_language=self._get_param("IdentifyLanguage"),
+            identify_multiple_languages=self._get_param("IdentifyMultipleLanguages"),
             language_options=self._get_param("LanguageOptions"),
         )
         return json.dumps(response)
