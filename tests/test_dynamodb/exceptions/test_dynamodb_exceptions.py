@@ -707,7 +707,7 @@ def test_batch_put_item_with_empty_value():
         TableName="test-table",
         KeySchema=[
             {"AttributeName": "pk", "KeyType": "HASH"},
-            {"AttributeName": "sk", "KeyType": "SORT"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
