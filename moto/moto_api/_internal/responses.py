@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 class MotoAPIResponse(BaseResponse):
     def reset_response(
         self,
-        request: Any,  # pylint: disable=unused-argument
+        request: Any,
         full_url: str,  # pylint: disable=unused-argument
         headers: Any,  # pylint: disable=unused-argument
     ) -> TYPE_RESPONSE:
@@ -22,7 +22,7 @@ class MotoAPIResponse(BaseResponse):
 
     def reset_auth_response(
         self,
-        request: Any,  # pylint: disable=unused-argument
+        request: Any,
         full_url: str,  # pylint: disable=unused-argument
         headers: Any,  # pylint: disable=unused-argument
     ) -> TYPE_RESPONSE:
@@ -52,7 +52,7 @@ class MotoAPIResponse(BaseResponse):
         full_url: str,  # pylint: disable=unused-argument
         headers: Any,  # pylint: disable=unused-argument
     ) -> TYPE_RESPONSE:
-        from moto.core.base_backend import model_data
+        from moto.core.model_instances import model_data
 
         results: Dict[str, Dict[str, List[Any]]] = {}
         for service in sorted(model_data):
@@ -86,7 +86,7 @@ class MotoAPIResponse(BaseResponse):
 
     def get_transition(
         self,
-        request: Any,  # pylint: disable=unused-argument
+        request: Any,
         full_url: str,  # pylint: disable=unused-argument
         headers: Any,  # pylint: disable=unused-argument
     ) -> TYPE_RESPONSE:
@@ -103,9 +103,9 @@ class MotoAPIResponse(BaseResponse):
 
     def set_transition(
         self,
-        request: Any,  # pylint: disable=unused-argument
+        request: Any,
         full_url: str,  # pylint: disable=unused-argument
-        headers: Any,  # pylint: disable=unused-argument
+        headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
 
@@ -120,9 +120,9 @@ class MotoAPIResponse(BaseResponse):
 
     def unset_transition(
         self,
-        request: Any,  # pylint: disable=unused-argument
+        request: Any,
         full_url: str,  # pylint: disable=unused-argument
-        headers: Any,  # pylint: disable=unused-argument
+        headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
 

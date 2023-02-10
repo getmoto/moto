@@ -1,4 +1,5 @@
 from moto.core import BaseBackend, DEFAULT_ACCOUNT_ID
+from moto.core.model_instances import reset_model_data
 from typing import Any, Dict
 
 
@@ -14,6 +15,7 @@ class MotoAPIBackend(BaseBackend):
                 continue
             for backend in backends_.values():
                 backend.reset()
+        reset_model_data()
         self.__init__(region_name, account_id)  # type: ignore[misc]
 
     def get_transition(self, model_name: str) -> Dict[str, Any]:

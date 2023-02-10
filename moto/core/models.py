@@ -23,6 +23,7 @@ from .custom_responses_mock import (
     not_implemented_callback,
     reset_responses_mock,
 )
+from .model_instances import reset_model_data
 
 DEFAULT_ACCOUNT_ID = "123456789012"
 CALLABLE_RETURN = TypeVar("CALLABLE_RETURN")
@@ -104,6 +105,7 @@ class BaseMockAWS:
                     pass
                 self.unmock_env_variables()
                 self.__class__.mocks_active = False
+                reset_model_data()
             self.disable_patching()  # type: ignore[attr-defined]
 
     def decorate_callable(
