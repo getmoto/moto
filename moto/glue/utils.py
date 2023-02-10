@@ -2,7 +2,7 @@ import abc
 import operator
 import re
 import warnings
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from itertools import repeat
 from typing import Any, Dict, List, Optional, Union
 
