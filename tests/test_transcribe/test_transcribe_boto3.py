@@ -397,11 +397,12 @@ def test_run_transcription_job_s3output_params():
 
 
 @mock_transcribe
-def test_run_transcription_job_identify_language_params():
+def test_run_transcription_job_identify_languages_params():
 
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
+    # IdentifyLanguage
     job_name = "MyJob"
     args = {
         "TranscriptionJobName": job_name,
@@ -409,18 +410,64 @@ def test_run_transcription_job_identify_language_params():
         "IdentifyLanguage": True,
         "LanguageOptions": ["en-US", "en-GB", "es-ES", "de-DE"],
     }
-    resp = client.start_transcription_job(**args)
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    transcription_job = resp["TranscriptionJob"]
-    transcription_job.should.contain("IdentifyLanguage")
-    transcription_job.should.contain("LanguageOptions")
-    client.get_transcription_job(TranscriptionJobName=job_name)
-    resp = client.get_transcription_job(TranscriptionJobName=job_name)
-    transcription_job = resp["TranscriptionJob"]
-    transcription_job.should.contain("LanguageCode")
-    transcription_job.should.contain("IdentifiedLanguageScore")
-    transcription_job["LanguageCode"].should.equal("en-US")
-    transcription_job["IdentifiedLanguageScore"].should.equal(0.999645948)
+    resp_data = [
+        client.start_transcription_job(**args),  # CREATED
+        client.get_transcription_job(TranscriptionJobName=job_name),  # QUEUED
+        client.get_transcription_job(TranscriptionJobName=job_name),  # IN_PROGRESS
+        client.list_transcription_jobs(),  # IN_PROGRESS
+    ]
+    for resp in resp_data:
+        resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        if "TranscriptionJob" in resp:
+            transcription_job = resp["TranscriptionJob"]
+        elif "TranscriptionJobSummaries" in resp:
+            transcription_job = resp["TranscriptionJobSummaries"][0]
+        transcription_job.should.contain("IdentifyLanguage")
+        transcription_job.should_not.contain("LanguageCodes")
+        transcription_job.should_not.contain("IdentifyMultipleLanguages")
+        if "TranscriptionJobStatus" in transcription_job and (
+            transcription_job["TranscriptionJobStatus"] == "IN_PROGRESS"
+            or transcription_job["TranscriptionJobStatus"] == "COMPLETED"
+        ):
+            transcription_job["LanguageCode"].should.equal("en-US")
+            transcription_job["IdentifiedLanguageScore"].should.equal(0.999645948)
+
+    # IdentifyMultipleLanguages
+    job_name = "MyJob2"
+    args = {
+        "TranscriptionJobName": job_name,
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
+        "IdentifyMultipleLanguages": True,
+        "LanguageOptions": ["en-US", "en-GB", "es-ES", "de-DE"],
+    }
+    resp_data = [
+        client.start_transcription_job(**args),  # CREATED
+        client.get_transcription_job(TranscriptionJobName=job_name),  # QUEUED
+        client.get_transcription_job(TranscriptionJobName=job_name),  # IN_PROGRESS
+        client.list_transcription_jobs(),  # IN_PROGRESS
+    ]
+    for resp in resp_data:
+        resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        if "TranscriptionJob" in resp:
+            transcription_job = resp["TranscriptionJob"]
+        elif "TranscriptionJobSummaries" in resp:
+            transcription_job = resp["TranscriptionJobSummaries"][1]
+        transcription_job.should.contain("IdentifyMultipleLanguages")
+        transcription_job.should_not.contain("LanguageCode")
+        transcription_job.should_not.contain("IdentifyLanguage")
+        if "TranscriptionJobStatus" in transcription_job and (
+            transcription_job["TranscriptionJobStatus"] == "IN_PROGRESS"
+            or transcription_job["TranscriptionJobStatus"] == "COMPLETED"
+        ):
+            transcription_job["LanguageCodes"][0]["LanguageCode"].should.equal("en-US")
+            transcription_job["LanguageCodes"][0]["DurationInSeconds"].should.equal(
+                123.0
+            )
+            transcription_job["LanguageCodes"][1]["LanguageCode"].should.equal("en-GB")
+            transcription_job["LanguageCodes"][1]["DurationInSeconds"].should.equal(
+                321.0
+            )
+            transcription_job["IdentifiedLanguageScore"].should.equal(0.999645948)
 
 
 @mock_transcribe
