@@ -4,8 +4,9 @@ import sure  # noqa # pylint: disable=unused-import
 from datetime import datetime
 import pytest
 
-from moto import mock_dynamodb
+from moto import mock_dynamodb, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.dynamodb.models import dynamodb_backends
 
 
 @mock_dynamodb
@@ -404,3 +405,42 @@ def test_create_table_with_ssespecification__custom_kms_key():
     actual["SSEDescription"].should.have.key("Status").equals("ENABLED")
     actual["SSEDescription"].should.have.key("SSEType").equals("KMS")
     actual["SSEDescription"].should.have.key("KMSMasterKeyArn").equals("custom-kms-key")
+
+
+@mock_dynamodb
+def test_create_table__specify_non_key_column():
+    client = boto3.client("dynamodb", "us-east-2")
+    client.create_table(
+        TableName="tab",
+        KeySchema=[
+            {"AttributeName": "PK", "KeyType": "HASH"},
+            {"AttributeName": "SomeColumn", "KeyType": "N"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        AttributeDefinitions=[
+            {"AttributeName": "PK", "AttributeType": "S"},
+            {"AttributeName": "SomeColumn", "AttributeType": "N"},
+        ],
+    )
+
+    actual = client.describe_table(TableName="tab")["Table"]
+    actual["KeySchema"].should.equal(
+        [
+            {"AttributeName": "PK", "KeyType": "HASH"},
+            {"AttributeName": "SomeColumn", "KeyType": "N"},
+        ]
+    )
+
+    if not settings.TEST_SERVER_MODE:
+        ddb = dynamodb_backends[ACCOUNT_ID]["us-east-2"]
+        ddb.tables["tab"].attr.should.contain(
+            {"AttributeName": "PK", "AttributeType": "S"}
+        )
+        ddb.tables["tab"].attr.should.contain(
+            {"AttributeName": "SomeColumn", "AttributeType": "N"}
+        )
+        # It should recognize PK is the Hash Key
+        ddb.tables["tab"].hash_key_attr.should.equal("PK")
+        # It should recognize that SomeColumn is not a Range Key
+        ddb.tables["tab"].has_range_key.should.equal(False)
+        ddb.tables["tab"].range_key_names.should.equal([])
