@@ -103,7 +103,7 @@ class InvalidVPCIdError(EC2ClientError):
 
 
 class InvalidSubnetIdError(EC2ClientError):
-    def __init__(self, subnet_id):
+    def __init__(self, subnet_id: str):
         super().__init__(
             "InvalidSubnetID.NotFound", f"The subnet ID '{subnet_id}' does not exist"
         )
@@ -182,14 +182,14 @@ class InvalidNetworkAttachmentIdError(EC2ClientError):
 
 
 class InvalidSecurityGroupDuplicateError(EC2ClientError):
-    def __init__(self, name):
+    def __init__(self, name: str):
         super().__init__(
             "InvalidGroup.Duplicate", f"The security group '{name}' already exists"
         )
 
 
 class InvalidSecurityGroupNotFoundError(EC2ClientError):
-    def __init__(self, name: str):
+    def __init__(self, name: Any):
         super().__init__(
             "InvalidGroup.NotFound",
             f"The security group '{name}' does not exist",
@@ -197,7 +197,7 @@ class InvalidSecurityGroupNotFoundError(EC2ClientError):
 
 
 class InvalidPermissionNotFoundError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidPermission.NotFound",
             "The specified rule does not exist in this security group",
@@ -205,7 +205,7 @@ class InvalidPermissionNotFoundError(EC2ClientError):
 
 
 class InvalidPermissionDuplicateError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidPermission.Duplicate", "The specified rule already exists"
         )
@@ -503,14 +503,14 @@ class InvalidID(EC2ClientError):
 
 
 class InvalidCIDRSubnetError(EC2ClientError):
-    def __init__(self, cidr):
+    def __init__(self, cidr: Any):
         super().__init__(
             "InvalidParameterValue", f"invalid CIDR subnet specification: {cidr}"
         )
 
 
 class RulesPerSecurityGroupLimitExceededError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "RulesPerSecurityGroupLimitExceeded",
             "The maximum number of rules per security group " "has been reached.",
@@ -518,7 +518,7 @@ class RulesPerSecurityGroupLimitExceededError(EC2ClientError):
 
 
 class MotoNotImplementedError(NotImplementedError):
-    def __init__(self, blurb):
+    def __init__(self, blurb: str):
         super().__init__(
             f"{blurb} has not been implemented in Moto yet."
             " Feel free to open an issue at"
@@ -555,7 +555,9 @@ class OperationNotPermitted(EC2ClientError):
 
 
 class InvalidAvailabilityZoneError(EC2ClientError):
-    def __init__(self, availability_zone_value, valid_availability_zones):
+    def __init__(
+        self, availability_zone_value: Optional[str], valid_availability_zones: str
+    ):
         super().__init__(
             "InvalidParameterValue",
             f"Value ({availability_zone_value}) for parameter availabilityZone is invalid. "
@@ -580,12 +582,12 @@ class NetworkAclEntryAlreadyExistsError(EC2ClientError):
 
 
 class InvalidSubnetRangeError(EC2ClientError):
-    def __init__(self, cidr_block):
+    def __init__(self, cidr_block: str):
         super().__init__("InvalidSubnet.Range", f"The CIDR '{cidr_block}' is invalid.")
 
 
 class InvalidCIDRBlockParameterError(EC2ClientError):
-    def __init__(self, cidr_block):
+    def __init__(self, cidr_block: str):
         super().__init__(
             "InvalidParameterValue",
             f"Value ({cidr_block}) for parameter cidrBlock is invalid. This is not a valid CIDR block.",
@@ -601,7 +603,7 @@ class InvalidDestinationCIDRBlockParameterError(EC2ClientError):
 
 
 class InvalidSubnetConflictError(EC2ClientError):
-    def __init__(self, cidr_block):
+    def __init__(self, cidr_block: str):
         super().__init__(
             "InvalidSubnet.Conflict",
             f"The CIDR '{cidr_block}' conflicts with another subnet",
@@ -704,7 +706,7 @@ class InvalidTaggableResourceType(EC2ClientError):
 
 
 class GenericInvalidParameterValueError(EC2ClientError):
-    def __init__(self, attribute, value):
+    def __init__(self, attribute: str, value: str):
         super().__init__(
             "InvalidParameterValue",
             f"invalid value for parameter {attribute}: {value}",
@@ -712,7 +714,7 @@ class GenericInvalidParameterValueError(EC2ClientError):
 
 
 class InvalidSubnetCidrBlockAssociationID(EC2ClientError):
-    def __init__(self, association_id):
+    def __init__(self, association_id: str):
         super().__init__(
             "InvalidSubnetCidrBlockAssociationID.NotFound",
             f"The subnet CIDR block with association ID '{association_id}' does not exist",

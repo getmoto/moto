@@ -35,11 +35,10 @@ class SpotFleets(BaseResponse):
         terminate_instances = self._get_param(
             "ExcessCapacityTerminationPolicy", if_none="Default"
         )
-        successful = self.ec2_backend.modify_spot_fleet_request(
+        self.ec2_backend.modify_spot_fleet_request(
             spot_fleet_request_id, target_capacity, terminate_instances
         )
-        template = self.response_template(MODIFY_SPOT_FLEET_REQUEST_TEMPLATE)
-        return template.render(successful=successful)
+        return self.response_template(MODIFY_SPOT_FLEET_REQUEST_TEMPLATE).render()
 
     def request_spot_fleet(self):
         spot_config = self._get_multi_param_dict("SpotFleetRequestConfig")
@@ -80,7 +79,7 @@ REQUEST_SPOT_FLEET_TEMPLATE = """<RequestSpotFleetResponse xmlns="http://ec2.ama
 
 MODIFY_SPOT_FLEET_REQUEST_TEMPLATE = """<ModifySpotFleetRequestResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">
     <requestId>21681fea-9987-aef3-2121-example</requestId>
-    <return>{{ 'true' if successful else 'false' }}</return>
+    <return>true</return>
 </ModifySpotFleetRequestResponse>"""
 
 DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">

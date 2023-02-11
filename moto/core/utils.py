@@ -277,7 +277,7 @@ def merge_dicts(
                 dict1.pop(key)
 
 
-def aws_api_matches(pattern: str, string: str) -> bool:
+def aws_api_matches(pattern: str, string: Any) -> bool:
     """
     AWS API can match a value based on a glob, or an exact match
     """
