@@ -1693,7 +1693,6 @@ class IAMBackend(BaseBackend):
         account_id = self.account_id
         # Do not reset these policies, as they take a long time to load
         aws_policies = self.aws_managed_policies
-        self._reset_model_refs()
         self.__dict__ = {}
         self.__init__(region_name, account_id, aws_policies)
 

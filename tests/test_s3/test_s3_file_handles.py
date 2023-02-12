@@ -3,6 +3,7 @@ import gc
 import warnings
 from functools import wraps
 from moto import settings
+from moto.dynamodb.models import DynamoDBBackend
 from moto.s3 import models as s3model
 from moto.s3.responses import S3ResponseInstance
 from unittest import SkipTest, TestCase
@@ -187,6 +188,13 @@ class TestS3FileHandleClosures(TestCase):
         self.s3.delete_object(
             bucket_name="my-bucket", key_name="my-key", version_id=key._version_id
         )
+
+    @verify_zero_warnings
+    def test_reset_other_backend(self):
+        db = DynamoDBBackend("us-west-1", "1234")
+        # This used to empty the entire list of `model_instances`, which can contain FakeKey-references
+        # Verify that we can reset an unrelated backend, without throwing away FakeKey-references that still need to be disposed
+        db.reset()
 
 
 def test_verify_key_can_be_copied_after_disposing():

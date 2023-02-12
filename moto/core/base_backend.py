@@ -1,16 +1,13 @@
 from boto3 import Session
 import re
 import string
-from collections import defaultdict
 from functools import lru_cache
 from threading import RLock
 from typing import Any, List, Dict, Optional, ClassVar, TypeVar, Iterator
 from uuid import uuid4
 from moto.settings import allow_unknown_region
+from .model_instances import model_data
 from .utils import convert_regex_to_flask_path
-
-
-model_data: Dict[str, Dict[str, object]] = defaultdict(dict)
 
 
 class InstanceTrackerMeta(type):
@@ -31,16 +28,9 @@ class BaseBackend:
         self.region_name = region_name
         self.account_id = account_id
 
-    def _reset_model_refs(self) -> None:
-        # Remove all references to the models stored
-        for models in model_data.values():
-            for model in models.values():
-                model.instances = []  # type: ignore[attr-defined]
-
     def reset(self) -> None:
         region_name = self.region_name
         account_id = self.account_id
-        self._reset_model_refs()
         self.__dict__ = {}
         self.__init__(region_name, account_id)  # type: ignore[misc]
 
