@@ -290,7 +290,7 @@ class SubnetBackend:
     def get_default_subnet(self, availability_zone: str) -> Subnet:
         return [
             subnet
-            for subnet in self.get_all_subnets(
+            for subnet in self.describe_subnets(
                 filters={"availabilityZone": availability_zone}
             )
             if subnet.default_for_az
@@ -336,7 +336,7 @@ class SubnetBackend:
         if ipv6_cidr_block and "::/64" not in ipv6_cidr_block:
             raise GenericInvalidParameterValueError("ipv6-cidr-block", ipv6_cidr_block)
 
-        for subnet in self.get_all_subnets(filters={"vpc-id": vpc_id}):
+        for subnet in self.describe_subnets(filters={"vpc-id": vpc_id}):
             if subnet.cidr.overlaps(subnet_cidr_block):
                 raise InvalidSubnetConflictError(cidr_block)
 
@@ -394,7 +394,7 @@ class SubnetBackend:
         self.subnets[availability_zone][subnet_id] = subnet  # type: ignore[index]
         return subnet
 
-    def get_all_subnets(
+    def describe_subnets(
         self, subnet_ids: Optional[List[str]] = None, filters: Optional[Any] = None
     ) -> Iterable[Subnet]:
         # Extract a list of all subnets
@@ -428,7 +428,7 @@ class SubnetBackend:
 
     def get_subnet_from_ipv6_association(self, association_id: str) -> Optional[Subnet]:
         subnet = None
-        for s in self.get_all_subnets():
+        for s in self.describe_subnets():
             if association_id in s.ipv6_cidr_block_associations:
                 subnet = s
         return subnet

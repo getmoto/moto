@@ -208,17 +208,17 @@ def random_nat_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["nat-gateway"], size=17)
 
 
-def random_transit_gateway_id():
+def random_transit_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway"], size=17)
 
 
-def random_transit_gateway_route_table_id():
+def random_transit_gateway_route_table_id() -> str:
     return random_id(
         prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"], size=17
     )
 
 
-def random_transit_gateway_attachment_id():
+def random_transit_gateway_attachment_id() -> str:
     return random_id(
         prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"], size=17
     )
@@ -543,7 +543,7 @@ def generic_filter(
     return objects
 
 
-def simple_aws_filter_to_re(filter_string):
+def simple_aws_filter_to_re(filter_string: str) -> str:
     tmp_filter = filter_string.replace(r"\?", "[?]")
     tmp_filter = tmp_filter.replace(r"\*", "[*]")
     tmp_filter = fnmatch.translate(tmp_filter)
@@ -567,7 +567,7 @@ def random_key_pair() -> Dict[str, str]:
     }
 
 
-def get_prefix(resource_id):
+def get_prefix(resource_id: str) -> str:
     resource_id_prefix, _, after = resource_id.partition("-")
     if resource_id_prefix == EC2_RESOURCE_TO_PREFIX["transit-gateway"]:
         if after.startswith("rtb"):
@@ -584,6 +584,7 @@ def get_prefix(resource_id):
         if uuid4hex.match(resource_id) is not None:
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX["reserved-instance"]
         else:
+            # We should probably raise an error here, to make it more obvious this is not yet supported
             return None
     return resource_id_prefix
 

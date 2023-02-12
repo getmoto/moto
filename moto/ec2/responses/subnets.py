@@ -40,7 +40,7 @@ class Subnets(EC2BaseResponse):
         self.error_on_dryrun()
         subnet_ids = self._get_multi_param("SubnetId")
         filters = self._filters_from_querystring()
-        subnets = self.ec2_backend.get_all_subnets(subnet_ids, filters)
+        subnets = self.ec2_backend.describe_subnets(subnet_ids, filters)
         template = self.response_template(DESCRIBE_SUBNETS_RESPONSE)
         return template.render(subnets=subnets)
 

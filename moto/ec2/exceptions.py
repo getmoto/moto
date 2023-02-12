@@ -443,7 +443,7 @@ class EmptyTagSpecError(EC2ClientError):
 
 
 class InvalidParameterValueErrorTagNull(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidParameterValue",
             "Tag value cannot be null. Use empty string instead.",
@@ -490,7 +490,7 @@ class ResourceAlreadyAssociatedError(EC2ClientError):
 
 
 class TagLimitExceeded(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "TagLimitExceeded",
             "The maximum number of Tags for a resource has been reached.",

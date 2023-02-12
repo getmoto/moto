@@ -219,7 +219,7 @@ class DirectoryServiceBackend(BaseBackend):
         # Subnet IDs are checked before the VPC ID.  The Subnet IDs must
         # be valid and in different availability zones.
         try:
-            subnets = ec2_backends[self.account_id][region].get_all_subnets(
+            subnets = ec2_backends[self.account_id][region].describe_subnets(
                 subnet_ids=vpc_settings["SubnetIds"]
             )
         except InvalidSubnetIdError as exc:

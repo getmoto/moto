@@ -360,7 +360,7 @@ ec2
 - [X] describe_spot_price_history
 - [ ] describe_stale_security_groups
 - [ ] describe_store_image_tasks
-- [ ] describe_subnets
+- [X] describe_subnets
 - [X] describe_tags
 - [ ] describe_traffic_mirror_filters
 - [ ] describe_traffic_mirror_sessions
@@ -503,8 +503,8 @@ ec2
 - [ ] get_transit_gateway_policy_table_associations
 - [ ] get_transit_gateway_policy_table_entries
 - [ ] get_transit_gateway_prefix_list_references
-- [ ] get_transit_gateway_route_table_associations
-- [ ] get_transit_gateway_route_table_propagations
+- [X] get_transit_gateway_route_table_associations
+- [X] get_transit_gateway_route_table_propagations
 - [ ] get_verified_access_endpoint_policy
 - [ ] get_verified_access_group_policy
 - [ ] get_vpn_connection_device_sample_configuration
