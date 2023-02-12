@@ -25,7 +25,7 @@ import requests.exceptions
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.ecr.exceptions import ImageNotFoundException
@@ -456,7 +456,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         # auto-generated
         self.version = version
-        self.last_modified = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        self.last_modified = iso_8601_datetime_with_nanoseconds(
+            datetime.datetime.utcnow()
+        )
 
         if "ZipFile" in self.code:
             (
@@ -534,8 +536,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, self.account_id, self.function_name, version
         )
         self.version = version
-        self.last_modified = datetime.datetime.utcnow().strftime(
-            "%Y-%m-%dT%H:%M:%S.000+0000"
+        self.last_modified = iso_8601_datetime_with_nanoseconds(
+            datetime.datetime.utcnow()
         )
 
     @property
