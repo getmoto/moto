@@ -91,7 +91,7 @@ class TransitGatewayRouteTable(EC2BaseResponse):
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
         filters = self._filters_from_querystring()
         transit_gateway_route_table_associations = (
-            self.ec2_backend.get_all_transit_gateway_route_table_associations(
+            self.ec2_backend.get_transit_gateway_route_table_associations(
                 transit_gateway_route_table_id, filters
             )
         )
@@ -106,7 +106,7 @@ class TransitGatewayRouteTable(EC2BaseResponse):
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
         filters = self._filters_from_querystring()
         transit_gateway_route_table_propagations = (
-            self.ec2_backend.get_all_transit_gateway_route_table_propagations(
+            self.ec2_backend.get_transit_gateway_route_table_propagations(
                 transit_gateway_route_table_id, filters
             )
         )

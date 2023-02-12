@@ -484,7 +484,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         if vpc_zone_identifier:
             # extract azs for vpcs
             subnet_ids = vpc_zone_identifier.split(",")
-            subnets = self.autoscaling_backend.ec2_backend.get_all_subnets(
+            subnets = self.autoscaling_backend.ec2_backend.describe_subnets(
                 subnet_ids=subnet_ids
             )
             vpc_zones = [subnet.availability_zone for subnet in subnets]

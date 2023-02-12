@@ -218,7 +218,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         of the subnets has already been checked.
         """
         first_subnet_id = self.ip_addresses[0]["SubnetId"]
-        subnet_info = self.ec2_backend.get_all_subnets(subnet_ids=[first_subnet_id])[0]
+        subnet_info = self.ec2_backend.describe_subnets(subnet_ids=[first_subnet_id])[0]
         return subnet_info.vpc_id
 
     def _build_subnet_info(self):
@@ -415,7 +415,7 @@ class Route53ResolverBackend(BaseBackend):
         subnets = defaultdict(set)
         for subnet_id, ip_addr in [(x["SubnetId"], x["Ip"]) for x in ip_addresses]:
             try:
-                subnet_info = self.ec2_backend.get_all_subnets(subnet_ids=[subnet_id])[
+                subnet_info = self.ec2_backend.describe_subnets(subnet_ids=[subnet_id])[
                     0
                 ]
             except InvalidSubnetIdError as exc:
@@ -496,7 +496,7 @@ class Route53ResolverBackend(BaseBackend):
 
         for x in ip_addresses:
             if not x.get("Ip"):
-                subnet_info = self.ec2_backend.get_all_subnets(
+                subnet_info = self.ec2_backend.describe_subnets(
                     subnet_ids=[x["SubnetId"]]
                 )[0]
                 x["Ip"] = subnet_info.get_available_subnet_ip(self)
@@ -877,7 +877,7 @@ class Route53ResolverBackend(BaseBackend):
         resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
 
         if not value.get("Ip"):
-            subnet_info = self.ec2_backend.get_all_subnets(
+            subnet_info = self.ec2_backend.describe_subnets(
                 subnet_ids=[value.get("SubnetId")]
             )[0]
             value["Ip"] = subnet_info.get_available_subnet_ip(self)

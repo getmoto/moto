@@ -34,10 +34,7 @@ from .spot_requests import SpotRequestBackend
 from .subnets import SubnetBackend
 from .tags import TagBackend
 from .transit_gateway import TransitGatewayBackend
-from .transit_gateway_route_tables import (
-    TransitGatewayRelationsBackend,
-    TransitGatewayRouteTableBackend,
-)
+from .transit_gateway_route_tables import TransitGatewayRouteTableBackend
 from .transit_gateway_attachments import TransitGatewayAttachmentBackend
 from .vpn_gateway import VpnGatewayBackend
 from .vpn_connections import VPNConnectionBackend
@@ -111,7 +108,6 @@ class EC2Backend(
     TransitGatewayBackend,
     TransitGatewayRouteTableBackend,
     TransitGatewayAttachmentBackend,
-    TransitGatewayRelationsBackend,
     LaunchTemplateBackend,
     IamInstanceProfileAssociationBackend,
     CarrierGatewayBackend,

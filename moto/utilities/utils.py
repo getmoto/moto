@@ -41,7 +41,7 @@ RESOURCE_TYPE = TypeVar("RESOURCE_TYPE")
 def filter_resources(
     resources: List[RESOURCE_TYPE],
     filters: Any,
-    attr_pairs: Tuple[Tuple[str, str], ...],
+    attr_pairs: Tuple[Tuple[str, ...], ...],
 ) -> List[RESOURCE_TYPE]:
     """
     Used to filter resources. Usually in get and describe apis.

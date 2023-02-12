@@ -11,28 +11,28 @@ from .core import TaggedEC2Resource
 from ..utils import random_vpc_peering_connection_id
 
 
-class PeeringConnectionStatus(object):
-    def __init__(self, code="initiating-request", message=""):
+class PeeringConnectionStatus:
+    def __init__(self, code: str = "initiating-request", message: str = ""):
         self.code = code
         self.message = message
 
-    def deleted(self):
+    def deleted(self) -> None:
         self.code = "deleted"
         self.message = "Deleted by {deleter ID}"
 
-    def initiating(self):
+    def initiating(self) -> None:
         self.code = "initiating-request"
         self.message = "Initiating Request to {accepter ID}"
 
-    def pending(self):
+    def pending(self) -> None:
         self.code = "pending-acceptance"
         self.message = "Pending Acceptance by {accepter ID}"
 
-    def accept(self):
+    def accept(self) -> None:
         self.code = "active"
         self.message = "Active"
 
-    def reject(self):
+    def reject(self) -> None:
         self.code = "rejected"
         self.message = "Inactive"
 
