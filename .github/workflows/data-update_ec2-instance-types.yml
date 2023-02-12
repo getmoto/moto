@@ -16,6 +16,7 @@ jobs:
   update:
     name: Update EC2 Instance Types
     runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
     permissions:
       id-token: write # This is required for requesting the JWT
       contents: read  # This is required for actions/checkout
@@ -38,6 +39,7 @@ jobs:
     - name: Pull EC2 instance types from AWS
       uses: technote-space/create-pr-action@v2
       with:
+        GITHUB_TOKEN: ${{ secrets.PR_ACCESS_TOKEN }}
         EXECUTE_COMMANDS: |
           pip install boto3
           scripts/get_instance_info.py
