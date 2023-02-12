@@ -1,19 +1,20 @@
 # Data Update:
-#   EC2 Instance Types
+#   SSM default parameters
 #
 # This Github Action:
-#   - executes the script that updates the EC2 instance types that come bundled with Moto
+#   - executes the script that updates the SSM default parameters that come bundled with Moto
 #   - creates a PR
 #
-name: "DataUpdate_EC2InstanceTypes"
+name: "DataUpdate_SSMdefaultParameters"
 
 on:
   schedule:
     - cron: '00 12 * * 0'
+  workflow_dispatch:
 
 jobs:
   update:
-    name: Update EC2 Instance Types
+    name: Update SSM default parameters
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
     permissions:
@@ -36,15 +37,15 @@ jobs:
         aws-region: us-east-1
         role-to-assume: arn:aws:iam::486285699788:role/GithubActionsRole
 
-    - name: Pull EC2 instance types from AWS
+    - name: Pull SSM default Parameters from AWS
       uses: technote-space/create-pr-action@v2
       with:
-        # GITHUB_TOKEN: ${{ secrets.PR_ACCESS_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PR_ACCESS_TOKEN }}
         EXECUTE_COMMANDS: |
           pip install boto3
-          scripts/get_instance_info.py
-        COMMIT_MESSAGE: 'chore: update EC2 Instance Types'
+          python scripts/ssm_get_default_params.py
+        COMMIT_MESSAGE: "chore: update SSM default parameters"
         COMMIT_NAME: 'Moto Admin'
         COMMIT_EMAIL: 'admin@getmoto.org'
         PR_BRANCH_NAME: 'chore-update-${PR_ID}'
-        PR_TITLE: 'chore: update EC2 Instance Types'
+        PR_TITLE: "chore: update SSM Instance parameters"
