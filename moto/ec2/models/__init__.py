@@ -1,3 +1,4 @@
+from typing import Any, Dict, List
 from moto.core import BaseBackend, BackendDict
 from ..exceptions import (
     EC2ClientError,
@@ -49,7 +50,7 @@ from ..utils import (
 )
 
 
-def validate_resource_ids(resource_ids):
+def validate_resource_ids(resource_ids: List[str]) -> bool:
     if not resource_ids:
         raise MissingParameterError(parameter="resourceIdSet")
     for resource_id in resource_ids:
@@ -59,19 +60,19 @@ def validate_resource_ids(resource_ids):
 
 
 class SettingsBackend:
-    def __init__(self):
+    def __init__(self) -> None:
         self.ebs_encryption_by_default = False
 
-    def disable_ebs_encryption_by_default(self):
-        ec2_backend = ec2_backends[self.account_id][self.region_name]
+    def disable_ebs_encryption_by_default(self) -> None:
+        ec2_backend = ec2_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
         ec2_backend.ebs_encryption_by_default = False
 
-    def enable_ebs_encryption_by_default(self):
-        ec2_backend = ec2_backends[self.account_id][self.region_name]
+    def enable_ebs_encryption_by_default(self) -> None:
+        ec2_backend = ec2_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
         ec2_backend.ebs_encryption_by_default = True
 
-    def get_ebs_encryption_by_default(self):
-        ec2_backend = ec2_backends[self.account_id][self.region_name]
+    def get_ebs_encryption_by_default(self) -> None:
+        ec2_backend = ec2_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
         return ec2_backend.ebs_encryption_by_default
 
 
@@ -129,11 +130,11 @@ class EC2Backend(
 
     """
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         BaseBackend.__init__(self, region_name, account_id)
         for backend in EC2Backend.__mro__:
             if backend not in [EC2Backend, BaseBackend, object]:
-                backend.__init__(self)
+                backend.__init__(self)  # type: ignore
 
         # Default VPC exists by default, which is the current behavior
         # of EC2-VPC. See for detail:
@@ -145,23 +146,23 @@ class EC2Backend(
         else:
             # For now this is included for potential
             # backward-compatibility issues
-            vpc = self.vpcs.values()[0]
+            vpc = list(self.vpcs.values())[0]
 
         self.default_vpc = vpc
 
         # Create default subnet for each availability zone
         ip, _ = vpc.cidr_block.split("/")
-        ip = ip.split(".")
-        ip[2] = 0
+        ip = ip.split(".")  # type: ignore
+        ip[2] = 0  # type: ignore
 
         for zone in self.describe_availability_zones():
             az_name = zone.name
             cidr_block = ".".join(str(i) for i in ip) + "/20"
             self.create_subnet(vpc.id, cidr_block, availability_zone=az_name)
-            ip[2] += 16
+            ip[2] += 16  # type: ignore
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region, zones):
+    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "ec2"
@@ -171,13 +172,13 @@ class EC2Backend(
 
     # Use this to generate a proper error template response when in a response
     # handler.
-    def raise_error(self, code, message):
+    def raise_error(self, code: str, message: str) -> None:
         raise EC2ClientError(code, message)
 
-    def raise_not_implemented_error(self, blurb: str):
+    def raise_not_implemented_error(self, blurb: str) -> None:
         raise MotoNotImplementedError(blurb)
 
-    def do_resources_exist(self, resource_ids):
+    def do_resources_exist(self, resource_ids: List[str]) -> bool:
         for resource_id in resource_ids:
             resource_prefix = get_prefix(resource_id)
             if resource_prefix == EC2_RESOURCE_TO_PREFIX["customer-gateway"]:
