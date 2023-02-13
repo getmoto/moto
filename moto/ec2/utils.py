@@ -134,11 +134,11 @@ def random_network_acl_subnet_association_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["network-acl-subnet-assoc"])
 
 
-def random_vpn_gateway_id():
+def random_vpn_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpn-gateway"])
 
 
-def random_vpn_connection_id():
+def random_vpn_connection_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpn-connection"])
 
 
@@ -154,19 +154,19 @@ def random_key_pair_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["key-pair"])
 
 
-def random_vpc_id():
+def random_vpc_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc"])
 
 
-def random_vpc_ep_id():
+def random_vpc_ep_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-endpoint"], size=8)
 
 
-def random_vpc_cidr_association_id():
+def random_vpc_cidr_association_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-cidr-association-id"])
 
 
-def random_vpc_peering_connection_id():
+def random_vpc_peering_connection_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-peering-connection"])
 
 
@@ -272,11 +272,11 @@ def random_mac_address() -> str:
     return f"02:00:00:{random.randint(0, 255)}02x:{random.randint(0, 255)}02x:{random.randint(0, 255)}02x"
 
 
-def randor_ipv4_cidr():
+def randor_ipv4_cidr() -> str:
     return f"10.0.{random.randint(0, 255)}.{random.randint(0, 255)}/16"
 
 
-def random_ipv6_cidr():
+def random_ipv6_cidr() -> str:
     return f"2400:6500:{random_resource_id(4)}:{random_resource_id(2)}00::/56"
 
 
@@ -297,13 +297,11 @@ def random_managed_prefix_list_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["managed-prefix-list"], size=8)
 
 
-def create_dns_entries(service_name, vpc_endpoint_id):
-    dns_entries = {}
-    dns_entries[
-        "dns_name"
-    ] = f"{vpc_endpoint_id}-{random_resource_id(8)}.{service_name}"
-    dns_entries["hosted_zone_id"] = random_resource_id(13).upper()
-    return dns_entries
+def create_dns_entries(service_name: str, vpc_endpoint_id: str) -> Dict[str, str]:
+    return {
+        "dns_name": f"{vpc_endpoint_id}-{random_resource_id(8)}.{service_name}",
+        "hosted_zone_id": random_resource_id(13).upper(),
+    }
 
 
 def utc_date_and_time() -> str:
@@ -589,7 +587,7 @@ def get_prefix(resource_id: str) -> str:
     return resource_id_prefix
 
 
-def is_valid_resource_id(resource_id):
+def is_valid_resource_id(resource_id: str) -> bool:
     valid_prefixes = EC2_RESOURCE_TO_PREFIX.values()
     resource_id_prefix = get_prefix(resource_id)
     if resource_id_prefix not in valid_prefixes:

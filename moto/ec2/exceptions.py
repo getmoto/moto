@@ -30,7 +30,7 @@ class EC2ClientError(RESTError):
 
 
 class DefaultVpcAlreadyExists(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "DefaultVpcAlreadyExists",
             "A Default VPC already exists for this account in this region.",
@@ -59,7 +59,7 @@ class InvalidDHCPOptionsIdError(EC2ClientError):
 
 
 class InvalidRequest(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("InvalidRequest", "The request received was invalid")
 
 
@@ -98,7 +98,7 @@ class InvalidKeyPairFormatError(EC2ClientError):
 
 
 class InvalidVPCIdError(EC2ClientError):
-    def __init__(self, vpc_id: str):
+    def __init__(self, vpc_id: Any):
         super().__init__("InvalidVpcID.NotFound", f"VpcID {vpc_id} does not exist.")
 
 
@@ -134,7 +134,7 @@ class InvalidNetworkAclIdError(EC2ClientError):
 
 
 class InvalidVpnGatewayIdError(EC2ClientError):
-    def __init__(self, vpn_gw):
+    def __init__(self, vpn_gw: str):
         super().__init__(
             "InvalidVpnGatewayID.NotFound",
             f"The virtual private gateway ID '{vpn_gw}' does not exist",
@@ -142,7 +142,7 @@ class InvalidVpnGatewayIdError(EC2ClientError):
 
 
 class InvalidVpnGatewayAttachmentError(EC2ClientError):
-    def __init__(self, vpn_gw, vpc_id):
+    def __init__(self, vpn_gw: str, vpc_id: str):
         super().__init__(
             "InvalidVpnGatewayAttachment.NotFound",
             f"The attachment with vpn gateway ID '{vpn_gw}' and vpc ID '{vpc_id}' does not exist",
@@ -150,7 +150,7 @@ class InvalidVpnGatewayAttachmentError(EC2ClientError):
 
 
 class InvalidVpnConnectionIdError(EC2ClientError):
-    def __init__(self, network_acl_id):
+    def __init__(self, network_acl_id: str):
         super().__init__(
             "InvalidVpnConnectionID.NotFound",
             f"The vpnConnection ID '{network_acl_id}' does not exist",
@@ -365,7 +365,7 @@ class InvalidAssociationIdError(EC2ClientError):
 
 
 class InvalidVpcCidrBlockAssociationIdError(EC2ClientError):
-    def __init__(self, association_id):
+    def __init__(self, association_id: str):
         super().__init__(
             "InvalidVpcCidrBlockAssociationIdError.NotFound",
             f"The vpc CIDR block association ID '{association_id}' does not exist",
@@ -373,7 +373,7 @@ class InvalidVpcCidrBlockAssociationIdError(EC2ClientError):
 
 
 class InvalidVPCPeeringConnectionIdError(EC2ClientError):
-    def __init__(self, vpc_peering_connection_id):
+    def __init__(self, vpc_peering_connection_id: str):
         super().__init__(
             "InvalidVpcPeeringConnectionId.NotFound",
             f"VpcPeeringConnectionID {vpc_peering_connection_id} does not exist.",
@@ -381,7 +381,7 @@ class InvalidVPCPeeringConnectionIdError(EC2ClientError):
 
 
 class InvalidVPCPeeringConnectionStateTransitionError(EC2ClientError):
-    def __init__(self, vpc_peering_connection_id):
+    def __init__(self, vpc_peering_connection_id: str):
         super().__init__(
             "InvalidStateTransition",
             f"VpcPeeringConnectionID {vpc_peering_connection_id} is not in the correct state for the request.",
@@ -389,7 +389,7 @@ class InvalidVPCPeeringConnectionStateTransitionError(EC2ClientError):
 
 
 class InvalidServiceName(EC2ClientError):
-    def __init__(self, service_name):
+    def __init__(self, service_name: str):
         super().__init__(
             "InvalidServiceName",
             f"The Vpc Endpoint Service '{service_name}' does not exist",
@@ -402,7 +402,7 @@ class InvalidFilter(EC2ClientError):
 
 
 class InvalidNextToken(EC2ClientError):
-    def __init__(self, next_token):
+    def __init__(self, next_token: str):
         super().__init__("InvalidNextToken", f"The token '{next_token}' is invalid")
 
 
@@ -436,7 +436,7 @@ class InvalidParameterValueError(EC2ClientError):
 
 
 class EmptyTagSpecError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidParameterValue", "Tag specification must have at least one tag"
         )
@@ -498,7 +498,7 @@ class TagLimitExceeded(EC2ClientError):
 
 
 class InvalidID(EC2ClientError):
-    def __init__(self, resource_id):
+    def __init__(self, resource_id: str):
         super().__init__("InvalidID", f"The ID '{resource_id}' is not valid")
 
 
@@ -532,7 +532,7 @@ class FilterNotImplementedError(MotoNotImplementedError):
 
 
 class CidrLimitExceeded(EC2ClientError):
-    def __init__(self, vpc_id, max_cidr_limit):
+    def __init__(self, vpc_id: str, max_cidr_limit: int):
         super().__init__(
             "CidrLimitExceeded",
             f"This network '{vpc_id}' has met its maximum number of allowed CIDRs: {max_cidr_limit}",
@@ -540,14 +540,14 @@ class CidrLimitExceeded(EC2ClientError):
 
 
 class UnsupportedTenancy(EC2ClientError):
-    def __init__(self, tenancy):
+    def __init__(self, tenancy: str):
         super().__init__(
             "UnsupportedTenancy", f"The tenancy value {tenancy} is not supported."
         )
 
 
 class OperationNotPermitted(EC2ClientError):
-    def __init__(self, association_id):
+    def __init__(self, association_id: str):
         super().__init__(
             "OperationNotPermitted",
             f"The vpc CIDR block with association ID {association_id} may not be disassociated. It is the primary IPv4 CIDR block of the VPC",
@@ -611,13 +611,13 @@ class InvalidSubnetConflictError(EC2ClientError):
 
 
 class InvalidVPCRangeError(EC2ClientError):
-    def __init__(self, cidr_block):
+    def __init__(self, cidr_block: str):
         super().__init__("InvalidVpc.Range", f"The CIDR '{cidr_block}' is invalid.")
 
 
 # accept exception
 class OperationNotPermitted2(EC2ClientError):
-    def __init__(self, client_region, pcx_id, acceptor_region):
+    def __init__(self, client_region: str, pcx_id: str, acceptor_region: str):
         super().__init__(
             "OperationNotPermitted",
             f"Incorrect region ({client_region}) specified for this request.VPC peering connection {pcx_id} must be accepted in region {acceptor_region}",
@@ -626,7 +626,7 @@ class OperationNotPermitted2(EC2ClientError):
 
 # reject exception
 class OperationNotPermitted3(EC2ClientError):
-    def __init__(self, client_region, pcx_id, acceptor_region):
+    def __init__(self, client_region: str, pcx_id: str, acceptor_region: str):
         super().__init__(
             "OperationNotPermitted",
             f"Incorrect region ({client_region}) specified for this request.VPC peering connection {pcx_id} must be accepted or rejected in region {acceptor_region}",
@@ -690,7 +690,7 @@ class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
 
 
 class InvalidVpcEndPointIdError(EC2ClientError):
-    def __init__(self, vpc_end_point_id):
+    def __init__(self, vpc_end_point_id: str):
         super().__init__(
             "InvalidVpcEndpointId.NotFound",
             f"The VpcEndPoint ID '{vpc_end_point_id}' does not exist",
@@ -730,7 +730,7 @@ class InvalidCarrierGatewayID(EC2ClientError):
 
 
 class NoLoadBalancersProvided(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidParameter",
             "exactly one of network_load_balancer_arn or gateway_load_balancer_arn is a required member",
@@ -738,7 +738,7 @@ class NoLoadBalancersProvided(EC2ClientError):
 
 
 class UnknownVpcEndpointService(EC2ClientError):
-    def __init__(self, service_id):
+    def __init__(self, service_id: str):
         super().__init__(
             "InvalidVpcEndpointServiceId.NotFound",
             f"The VpcEndpointService Id '{service_id}' does not exist",

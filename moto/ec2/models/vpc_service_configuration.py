@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 from moto.core import CloudFormationModel
 from moto.moto_api._internal import mock_random
 from .core import TaggedEC2Resource
@@ -6,7 +7,12 @@ from ..exceptions import UnknownVpcEndpointService
 
 class VPCServiceConfiguration(TaggedEC2Resource, CloudFormationModel):
     def __init__(
-        self, load_balancers, region, acceptance_required, private_dns_name, ec2_backend
+        self,
+        load_balancers: List[Any],
+        region: str,
+        acceptance_required: bool,
+        private_dns_name: str,
+        ec2_backend: Any,
     ):
         self.id = f"vpce-svc-{mock_random.get_random_hex(length=8)}"
         self.service_name = f"com.amazonaws.vpce.{region}.{self.id}"
@@ -32,43 +38,49 @@ class VPCServiceConfiguration(TaggedEC2Resource, CloudFormationModel):
         self.private_dns_name = private_dns_name
         self.endpoint_dns_name = f"{self.id}.{region}.vpce.amazonaws.com"
 
-        self.principals = []
+        self.principals: List[str] = []
         self.ec2_backend = ec2_backend
 
 
 class VPCServiceConfigurationBackend:
-    def __init__(self):
-        self.configurations = {}
+    def __init__(self) -> None:
+        self.configurations: Dict[str, VPCServiceConfiguration] = {}
 
     @property
-    def elbv2_backend(self):
+    def elbv2_backend(self) -> Any:  # type: ignore[misc]
         from moto.elbv2.models import elbv2_backends
 
-        return elbv2_backends[self.account_id][self.region_name]
+        return elbv2_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
 
-    def get_vpc_endpoint_service(self, resource_id):
+    def get_vpc_endpoint_service(
+        self, resource_id: str
+    ) -> Optional[VPCServiceConfiguration]:
         return self.configurations.get(resource_id)
 
     def create_vpc_endpoint_service_configuration(
-        self, lb_arns, acceptance_required, private_dns_name, tags
-    ):
+        self,
+        lb_arns: List[Any],
+        acceptance_required: bool,
+        private_dns_name: str,
+        tags: List[Dict[str, str]],
+    ) -> VPCServiceConfiguration:
         lbs = self.elbv2_backend.describe_load_balancers(arns=lb_arns, names=None)
         config = VPCServiceConfiguration(
             load_balancers=lbs,
-            region=self.region_name,
+            region=self.region_name,  # type: ignore[attr-defined]
             acceptance_required=acceptance_required,
             private_dns_name=private_dns_name,
             ec2_backend=self,
         )
         for tag in tags or []:
-            tag_key = tag.get("Key")
-            tag_value = tag.get("Value")
-            config.add_tag(tag_key, tag_value)
+            config.add_tag(tag["Key"], tag["Value"])
 
         self.configurations[config.id] = config
         return config
 
-    def describe_vpc_endpoint_service_configurations(self, service_ids):
+    def describe_vpc_endpoint_service_configurations(
+        self, service_ids: Optional[List[str]]
+    ) -> List[VPCServiceConfiguration]:
         """
         The Filters, MaxResults, NextToken parameters are not yet implemented
         """
@@ -80,15 +92,17 @@ class VPCServiceConfigurationBackend:
                 else:
                     raise UnknownVpcEndpointService(service_id)
             return found_configs
-        return self.configurations.copy().values()
+        return list(self.configurations.values())
 
-    def delete_vpc_endpoint_service_configurations(self, service_ids):
+    def delete_vpc_endpoint_service_configurations(
+        self, service_ids: List[str]
+    ) -> List[str]:
         missing = [s for s in service_ids if s not in self.configurations]
         for s in service_ids:
             self.configurations.pop(s, None)
         return missing
 
-    def describe_vpc_endpoint_service_permissions(self, service_id):
+    def describe_vpc_endpoint_service_permissions(self, service_id: str) -> List[str]:
         """
         The Filters, MaxResults, NextToken parameters are not yet implemented
         """
@@ -96,8 +110,8 @@ class VPCServiceConfigurationBackend:
         return config.principals
 
     def modify_vpc_endpoint_service_permissions(
-        self, service_id, add_principals, remove_principals
-    ):
+        self, service_id: str, add_principals: List[str], remove_principals: List[str]
+    ) -> None:
         config = self.describe_vpc_endpoint_service_configurations([service_id])[0]
         config.principals += add_principals
         config.principals = [p for p in config.principals if p not in remove_principals]
@@ -105,14 +119,14 @@ class VPCServiceConfigurationBackend:
 
     def modify_vpc_endpoint_service_configuration(
         self,
-        service_id,
-        acceptance_required,
-        private_dns_name,
-        add_network_lbs,
-        remove_network_lbs,
-        add_gateway_lbs,
-        remove_gateway_lbs,
-    ):
+        service_id: str,
+        acceptance_required: Optional[str],
+        private_dns_name: Optional[str],
+        add_network_lbs: List[str],
+        remove_network_lbs: List[str],
+        add_gateway_lbs: List[str],
+        remove_gateway_lbs: List[str],
+    ) -> None:
         """
         The following parameters are not yet implemented: RemovePrivateDnsName
         """

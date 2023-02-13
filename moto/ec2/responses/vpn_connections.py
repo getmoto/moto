@@ -42,7 +42,7 @@ class VPNConnections(EC2BaseResponse):
     def describe_vpn_connections(self):
         vpn_connection_ids = self._get_multi_param("VpnConnectionId")
         filters = self._filters_from_querystring()
-        vpn_connections = self.ec2_backend.get_all_vpn_connections(
+        vpn_connections = self.ec2_backend.describe_vpn_connections(
             vpn_connection_ids=vpn_connection_ids, filters=filters
         )
         template = self.response_template(DESCRIBE_VPN_CONNECTION_RESPONSE)

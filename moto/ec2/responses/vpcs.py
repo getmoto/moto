@@ -65,9 +65,8 @@ class VPCs(EC2BaseResponse):
     def modify_vpc_tenancy(self):
         vpc_id = self._get_param("VpcId")
         tenancy = self._get_param("InstanceTenancy")
-        value = self.ec2_backend.modify_vpc_tenancy(vpc_id, tenancy)
-        template = self.response_template(MODIFY_VPC_TENANCY_RESPONSE)
-        return template.render(value=value)
+        self.ec2_backend.modify_vpc_tenancy(vpc_id, tenancy)
+        return self.response_template(MODIFY_VPC_TENANCY_RESPONSE).render()
 
     def describe_vpc_attribute(self):
         vpc_id = self._get_param("VpcId")
@@ -237,7 +236,6 @@ class VPCs(EC2BaseResponse):
 
     def describe_vpc_endpoint_services(self):
         vpc_end_point_services = self.ec2_backend.describe_vpc_endpoint_services(
-            dry_run=self._get_bool_param("DryRun"),
             service_names=self._get_multi_param("ServiceName"),
             filters=self._get_multi_param("Filter"),
             max_results=self._get_int_param("MaxResults"),
@@ -260,9 +258,8 @@ class VPCs(EC2BaseResponse):
 
     def delete_vpc_endpoints(self):
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
-        response = self.ec2_backend.delete_vpc_endpoints(vpce_ids=vpc_end_points_ids)
-        template = self.response_template(DELETE_VPC_ENDPOINT_RESPONSE)
-        return template.render(response=response)
+        self.ec2_backend.delete_vpc_endpoints(vpce_ids=vpc_end_points_ids)
+        return self.response_template(DELETE_VPC_ENDPOINT_RESPONSE).render()
 
     def create_managed_prefix_list(self):
         address_family = self._get_param("AddressFamily")
@@ -767,7 +764,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
 
 DELETE_VPC_ENDPOINT_RESPONSE = """<DeleteVpcEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
-    <unsuccessful>{{ 'Error' if not response else '' }}</unsuccessful>
+    <unsuccessful></unsuccessful>
 </DeleteVpcEndpointsResponse>"""
 
 
