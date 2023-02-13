@@ -51,6 +51,28 @@ def test_launch_template_create():
 
 
 @mock_ec2
+def test_create_launch_template__dryrun():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+
+    with pytest.raises(ClientError) as exc:
+        cli.create_launch_template(
+            DryRun=True,
+            LaunchTemplateName=template_name,
+            LaunchTemplateData={"ImageId": "ami-abc123"},
+            TagSpecifications=[
+                {"ResourceType": "instance", "Tags": [{"Key": "key", "Value": "value"}]}
+            ],
+        )
+    err = exc.value.response["Error"]
+    err.should.have.key("Code").equals("DryRunOperation")
+    err["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CreateLaunchTemplate operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+
+@mock_ec2
 def test_describe_launch_template_versions():
     template_data = {
         "ImageId": "ami-abc123",
@@ -140,6 +162,29 @@ def test_create_launch_template_version():
     )
     version["VersionDescription"].should.equal("new ami")
     version["VersionNumber"].should.equal(2)
+
+
+@mock_ec2
+def test_create_launch_template_version__dryrun():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+    cli.create_launch_template(
+        LaunchTemplateName=template_name, LaunchTemplateData={"ImageId": "ami-abc123"}
+    )
+
+    with pytest.raises(ClientError) as exc:
+        cli.create_launch_template_version(
+            DryRun=True,
+            LaunchTemplateName=template_name,
+            LaunchTemplateData={"ImageId": "ami-def456"},
+            VersionDescription="new ami",
+        )
+    err = exc.value.response["Error"]
+    err.should.have.key("Code").equals("DryRunOperation")
+    err["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CreateLaunchTemplateVersion operation: Request would have succeeded, but DryRun flag is set"
+    )
 
 
 @mock_ec2
@@ -476,6 +521,9 @@ def test_delete_launch_template__dryrun():
         cli.delete_launch_template(DryRun=True, LaunchTemplateName=template_name)
     err = exc.value.response["Error"]
     err.should.have.key("Code").equals("DryRunOperation")
+    err["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DeleteLaunchTemplate operation: Request would have succeeded, but DryRun flag is set"
+    )
 
     # Template still exists
     cli.describe_launch_templates(LaunchTemplateNames=[template_name])[

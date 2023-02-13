@@ -128,20 +128,22 @@ class SecurityGroups(EC2BaseResponse):
             )
 
     def authorize_security_group_egress(self):
-        if self.is_not_dryrun("GrantSecurityGroupEgress"):
-            for args in self._process_rules_from_querystring():
-                rule, group = self.ec2_backend.authorize_security_group_egress(*args)
-            self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
-            template = self.response_template(AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE)
-            return template.render(rule=rule, group=group)
+        self.error_on_dryrun()
+
+        for args in self._process_rules_from_querystring():
+            rule, group = self.ec2_backend.authorize_security_group_egress(*args)
+        self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
+        template = self.response_template(AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE)
+        return template.render(rule=rule, group=group)
 
     def authorize_security_group_ingress(self):
-        if self.is_not_dryrun("GrantSecurityGroupIngress"):
-            for args in self._process_rules_from_querystring():
-                rule, group = self.ec2_backend.authorize_security_group_ingress(*args)
-            self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
-            template = self.response_template(AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE)
-            return template.render(rule=rule, group=group)
+        self.error_on_dryrun()
+
+        for args in self._process_rules_from_querystring():
+            rule, group = self.ec2_backend.authorize_security_group_ingress(*args)
+        self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
+        template = self.response_template(AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE)
+        return template.render(rule=rule, group=group)
 
     def create_security_group(self):
         name = self._get_param("GroupName")
@@ -152,19 +154,16 @@ class SecurityGroups(EC2BaseResponse):
         tags = (tags or {}).get("Tag", [])
         tags = {t["Key"]: t["Value"] for t in tags}
 
-        if self.is_not_dryrun("CreateSecurityGroup"):
-            group = self.ec2_backend.create_security_group(
-                name, description, vpc_id=vpc_id, tags=tags
-            )
-            if group:
-                self.ec2_backend.sg_old_ingress_ruls[
-                    group.id
-                ] = group.ingress_rules.copy()
-                self.ec2_backend.sg_old_egress_ruls[
-                    group.id
-                ] = group.egress_rules.copy()
-            template = self.response_template(CREATE_SECURITY_GROUP_RESPONSE)
-            return template.render(group=group)
+        self.error_on_dryrun()
+
+        group = self.ec2_backend.create_security_group(
+            name, description, vpc_id=vpc_id, tags=tags
+        )
+        if group:
+            self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
+            self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
+        template = self.response_template(CREATE_SECURITY_GROUP_RESPONSE)
+        return template.render(group=group)
 
     def delete_security_group(self):
         # TODO this should raise an error if there are instances in the group.
@@ -174,13 +173,14 @@ class SecurityGroups(EC2BaseResponse):
         name = self._get_param("GroupName")
         sg_id = self._get_param("GroupId")
 
-        if self.is_not_dryrun("DeleteSecurityGroup"):
-            if name:
-                self.ec2_backend.delete_security_group(name)
-            elif sg_id:
-                self.ec2_backend.delete_security_group(group_id=sg_id)
+        self.error_on_dryrun()
 
-            return DELETE_GROUP_RESPONSE
+        if name:
+            self.ec2_backend.delete_security_group(name)
+        elif sg_id:
+            self.ec2_backend.delete_security_group(group_id=sg_id)
+
+        return DELETE_GROUP_RESPONSE
 
     def describe_security_groups(self):
         groupnames = self._get_multi_param("GroupName")
@@ -197,22 +197,26 @@ class SecurityGroups(EC2BaseResponse):
     def describe_security_group_rules(self):
         group_id = self._get_param("GroupId")
         filters = self._get_param("Filter")
-        if self.is_not_dryrun("DescribeSecurityGroups"):
-            rules = self.ec2_backend.describe_security_group_rules(group_id, filters)
-            template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
-            return template.render(rules=rules)
+
+        self.error_on_dryrun()
+
+        rules = self.ec2_backend.describe_security_group_rules(group_id, filters)
+        template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
+        return template.render(rules=rules)
 
     def revoke_security_group_egress(self):
-        if self.is_not_dryrun("RevokeSecurityGroupEgress"):
-            for args in self._process_rules_from_querystring():
-                self.ec2_backend.revoke_security_group_egress(*args)
-            return REVOKE_SECURITY_GROUP_EGRESS_RESPONSE
+        self.error_on_dryrun()
+
+        for args in self._process_rules_from_querystring():
+            self.ec2_backend.revoke_security_group_egress(*args)
+        return REVOKE_SECURITY_GROUP_EGRESS_RESPONSE
 
     def revoke_security_group_ingress(self):
-        if self.is_not_dryrun("RevokeSecurityGroupIngress"):
-            for args in self._process_rules_from_querystring():
-                self.ec2_backend.revoke_security_group_ingress(*args)
-            return REVOKE_SECURITY_GROUP_INGRESS_RESPONSE
+        self.error_on_dryrun()
+
+        for args in self._process_rules_from_querystring():
+            self.ec2_backend.revoke_security_group_ingress(*args)
+        return REVOKE_SECURITY_GROUP_INGRESS_RESPONSE
 
     def update_security_group_rule_descriptions_ingress(self):
         for args in self._process_rules_from_querystring():

@@ -3,16 +3,18 @@ from moto.core.responses import BaseResponse
 
 class ReservedInstances(BaseResponse):
     def cancel_reserved_instances_listing(self):
-        if self.is_not_dryrun("CancelReservedInstances"):
-            raise NotImplementedError(
-                "ReservedInstances.cancel_reserved_instances_listing is not yet implemented"
-            )
+        self.error_on_dryrun()
+
+        raise NotImplementedError(
+            "ReservedInstances.cancel_reserved_instances_listing is not yet implemented"
+        )
 
     def create_reserved_instances_listing(self):
-        if self.is_not_dryrun("CreateReservedInstances"):
-            raise NotImplementedError(
-                "ReservedInstances.create_reserved_instances_listing is not yet implemented"
-            )
+        self.error_on_dryrun()
+
+        raise NotImplementedError(
+            "ReservedInstances.create_reserved_instances_listing is not yet implemented"
+        )
 
     def describe_reserved_instances(self):
         raise NotImplementedError(
@@ -30,7 +32,8 @@ class ReservedInstances(BaseResponse):
         )
 
     def purchase_reserved_instances_offering(self):
-        if self.is_not_dryrun("PurchaseReservedInstances"):
-            raise NotImplementedError(
-                "ReservedInstances.purchase_reserved_instances_offering is not yet implemented"
-            )
+        self.error_on_dryrun()
+
+        raise NotImplementedError(
+            "ReservedInstances.purchase_reserved_instances_offering is not yet implemented"
+        )

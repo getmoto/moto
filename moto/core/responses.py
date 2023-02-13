@@ -838,14 +838,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return "JSON" in self.querystring.get("ContentType", [])
 
     def error_on_dryrun(self) -> None:
-        self.is_not_dryrun()
-
-    def is_not_dryrun(self, action: Optional[str] = None) -> bool:
         if "true" in self.querystring.get("DryRun", ["false"]):
-            a = action or self._get_param("Action")
+            a = self._get_param("Action")
             message = f"An error occurred (DryRunOperation) when calling the {a} operation: Request would have succeeded, but DryRun flag is set"
             raise DryRunClientError(error_type="DryRunOperation", message=message)
-        return True
 
 
 class _RecursiveDictRef(object):

@@ -224,7 +224,7 @@ def test_authorize_ip_range_and_revoke():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the GrantSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the AuthorizeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     ingress_permissions = [
@@ -287,7 +287,7 @@ def test_authorize_ip_range_and_revoke():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the GrantSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the AuthorizeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     egress_security_group.authorize_egress(IpPermissions=egress_permissions)

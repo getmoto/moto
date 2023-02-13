@@ -5,28 +5,29 @@ class InternetGateways(EC2BaseResponse):
     def attach_internet_gateway(self):
         igw_id = self._get_param("InternetGatewayId")
         vpc_id = self._get_param("VpcId")
-        if self.is_not_dryrun("AttachInternetGateway"):
-            self.ec2_backend.attach_internet_gateway(igw_id, vpc_id)
-            template = self.response_template(ATTACH_INTERNET_GATEWAY_RESPONSE)
-            return template.render()
+
+        self.error_on_dryrun()
+
+        self.ec2_backend.attach_internet_gateway(igw_id, vpc_id)
+        return self.response_template(ATTACH_INTERNET_GATEWAY_RESPONSE).render()
 
     def create_internet_gateway(self):
-        if self.is_not_dryrun("CreateInternetGateway"):
-            tags = self._get_multi_param(
-                "TagSpecification", skip_result_conversion=True
-            )
-            if tags:
-                tags = tags[0].get("Tag") or []
-            igw = self.ec2_backend.create_internet_gateway(tags=tags)
-            template = self.response_template(CREATE_INTERNET_GATEWAY_RESPONSE)
-            return template.render(internet_gateway=igw)
+        self.error_on_dryrun()
+
+        tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
+        if tags:
+            tags = tags[0].get("Tag") or []
+        igw = self.ec2_backend.create_internet_gateway(tags=tags)
+        return self.response_template(CREATE_INTERNET_GATEWAY_RESPONSE).render(
+            internet_gateway=igw
+        )
 
     def delete_internet_gateway(self):
         igw_id = self._get_param("InternetGatewayId")
-        if self.is_not_dryrun("DeleteInternetGateway"):
-            self.ec2_backend.delete_internet_gateway(igw_id)
-            template = self.response_template(DELETE_INTERNET_GATEWAY_RESPONSE)
-            return template.render()
+        self.error_on_dryrun()
+
+        self.ec2_backend.delete_internet_gateway(igw_id)
+        return self.response_template(DELETE_INTERNET_GATEWAY_RESPONSE).render()
 
     def describe_internet_gateways(self):
         filter_dict = self._filters_from_querystring()
@@ -46,10 +47,10 @@ class InternetGateways(EC2BaseResponse):
         # raise else DependencyViolationError()
         igw_id = self._get_param("InternetGatewayId")
         vpc_id = self._get_param("VpcId")
-        if self.is_not_dryrun("DetachInternetGateway"):
-            self.ec2_backend.detach_internet_gateway(igw_id, vpc_id)
-            template = self.response_template(DETACH_INTERNET_GATEWAY_RESPONSE)
-            return template.render()
+        self.error_on_dryrun()
+
+        self.ec2_backend.detach_internet_gateway(igw_id, vpc_id)
+        return self.response_template(DETACH_INTERNET_GATEWAY_RESPONSE).render()
 
 
 ATTACH_INTERNET_GATEWAY_RESPONSE = """<AttachInternetGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

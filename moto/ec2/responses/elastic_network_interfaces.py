@@ -17,96 +17,110 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         tags = self._get_multi_param("TagSpecification")
         tags = add_tag_specification(tags)
 
-        if self.is_not_dryrun("CreateNetworkInterface"):
-            eni = self.ec2_backend.create_network_interface(
-                subnet,
-                private_ip_address,
-                private_ip_addresses,
-                groups,
-                description,
-                tags,
-                secondary_ips_count=secondary_ips_count,
-                ipv6_addresses=ipv6_addresses,
-                ipv6_address_count=ipv6_address_count,
-            )
-            template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
-            return template.render(eni=eni)
+        self.error_on_dryrun()
+
+        eni = self.ec2_backend.create_network_interface(
+            subnet,
+            private_ip_address,
+            private_ip_addresses,
+            groups,
+            description,
+            tags,
+            secondary_ips_count=secondary_ips_count,
+            ipv6_addresses=ipv6_addresses,
+            ipv6_address_count=ipv6_address_count,
+        )
+        template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
+        return template.render(eni=eni)
 
     def delete_network_interface(self):
         eni_id = self._get_param("NetworkInterfaceId")
-        if self.is_not_dryrun("DeleteNetworkInterface"):
-            self.ec2_backend.delete_network_interface(eni_id)
-            template = self.response_template(DELETE_NETWORK_INTERFACE_RESPONSE)
-            return template.render()
+
+        self.error_on_dryrun()
+
+        self.ec2_backend.delete_network_interface(eni_id)
+        template = self.response_template(DELETE_NETWORK_INTERFACE_RESPONSE)
+        return template.render()
 
     def describe_network_interface_attribute(self):
         eni_id = self._get_param("NetworkInterfaceId")
         attribute = self._get_param("Attribute")
-        if self.is_not_dryrun("DescribeNetworkInterfaceAttribute"):
-            eni = self.ec2_backend.get_all_network_interfaces([eni_id])[0]
 
-            if attribute == "description":
-                template = self.response_template(
-                    DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_DESCRIPTION
-                )
-            elif attribute == "groupSet":
-                template = self.response_template(
-                    DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_GROUPSET
-                )
-            elif attribute == "sourceDestCheck":
-                template = self.response_template(
-                    DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_SOURCEDESTCHECK
-                )
-            elif attribute == "attachment":
-                template = self.response_template(
-                    DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_ATTACHMENT
-                )
-            else:
-                raise InvalidParameterValueErrorUnknownAttribute(attribute)
+        self.error_on_dryrun()
+
+        eni = self.ec2_backend.get_all_network_interfaces([eni_id])[0]
+
+        if attribute == "description":
+            template = self.response_template(
+                DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_DESCRIPTION
+            )
+        elif attribute == "groupSet":
+            template = self.response_template(
+                DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_GROUPSET
+            )
+        elif attribute == "sourceDestCheck":
+            template = self.response_template(
+                DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_SOURCEDESTCHECK
+            )
+        elif attribute == "attachment":
+            template = self.response_template(
+                DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_ATTACHMENT
+            )
+        else:
+            raise InvalidParameterValueErrorUnknownAttribute(attribute)
         return template.render(eni=eni)
 
     def describe_network_interfaces(self):
         eni_ids = self._get_multi_param("NetworkInterfaceId")
         filters = self._filters_from_querystring()
-        if self.is_not_dryrun("DescribeNetworkInterfaces"):
-            enis = self.ec2_backend.get_all_network_interfaces(eni_ids, filters)
-            template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
-            return template.render(enis=enis)
+
+        self.error_on_dryrun()
+
+        enis = self.ec2_backend.get_all_network_interfaces(eni_ids, filters)
+        template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
+        return template.render(enis=enis)
 
     def attach_network_interface(self):
         eni_id = self._get_param("NetworkInterfaceId")
         instance_id = self._get_param("InstanceId")
         device_index = self._get_param("DeviceIndex")
-        if self.is_not_dryrun("AttachNetworkInterface"):
-            attachment_id = self.ec2_backend.attach_network_interface(
-                eni_id, instance_id, device_index
-            )
-            template = self.response_template(ATTACH_NETWORK_INTERFACE_RESPONSE)
-            return template.render(attachment_id=attachment_id)
+
+        self.error_on_dryrun()
+
+        attachment_id = self.ec2_backend.attach_network_interface(
+            eni_id, instance_id, device_index
+        )
+        template = self.response_template(ATTACH_NETWORK_INTERFACE_RESPONSE)
+        return template.render(attachment_id=attachment_id)
 
     def detach_network_interface(self):
         attachment_id = self._get_param("AttachmentId")
-        if self.is_not_dryrun("DetachNetworkInterface"):
-            self.ec2_backend.detach_network_interface(attachment_id)
-            template = self.response_template(DETACH_NETWORK_INTERFACE_RESPONSE)
-            return template.render()
+
+        self.error_on_dryrun()
+
+        self.ec2_backend.detach_network_interface(attachment_id)
+        template = self.response_template(DETACH_NETWORK_INTERFACE_RESPONSE)
+        return template.render()
 
     def modify_network_interface_attribute(self):
         eni_id = self._get_param("NetworkInterfaceId")
         group_ids = self._get_multi_param("SecurityGroupId")
         source_dest_check = get_attribute_value("SourceDestCheck", self.querystring)
         description = get_attribute_value("Description", self.querystring)
-        if self.is_not_dryrun("ModifyNetworkInterface"):
-            self.ec2_backend.modify_network_interface_attribute(
-                eni_id, group_ids, source_dest_check, description
-            )
-            return MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE
+
+        self.error_on_dryrun()
+
+        self.ec2_backend.modify_network_interface_attribute(
+            eni_id, group_ids, source_dest_check, description
+        )
+        return MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE
 
     def reset_network_interface_attribute(self):
-        if self.is_not_dryrun("ResetNetworkInterface"):
-            raise NotImplementedError(
-                "ElasticNetworkInterfaces(AmazonVPC).reset_network_interface_attribute is not yet implemented"
-            )
+        self.error_on_dryrun()
+
+        raise NotImplementedError(
+            "ElasticNetworkInterfaces(AmazonVPC).reset_network_interface_attribute is not yet implemented"
+        )
 
     def assign_private_ip_addresses(self):
         eni_id = self._get_param("NetworkInterfaceId")
