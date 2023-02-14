@@ -33,5 +33,16 @@ class MotoAPIBackend(BaseBackend):
 
         state_manager.unset_transition(model_name)
 
+    def set_athena_result(
+        self, query_execution_id: str, rows, column_info=None, region="us-east-1"
+    ) -> None:
+        from moto.athena.models import athena_backends, QueryResults
+
+        if column_info is None:
+            column_info = []
+        backend = athena_backends[DEFAULT_ACCOUNT_ID][region]
+        results = QueryResults(rows=rows, column_info=column_info)
+        backend.query_results[query_execution_id] = results
+
 
 moto_api_backend = MotoAPIBackend(region_name="global", account_id=DEFAULT_ACCOUNT_ID)

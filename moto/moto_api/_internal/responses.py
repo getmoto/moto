@@ -141,3 +141,24 @@ class MotoAPIResponse(BaseResponse):
         a = self._get_param("a")
         mock_random.seed(int(a))
         return 200, {}, ""
+
+    def set_athena_result(
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        request_body_size = int(headers["Content-Length"])
+        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
+        body = json.loads(body)
+        query_execution_id = body["query_execution_id"]
+        rows = body["rows"]
+        column_info = body["column_info"] if "column_info" in body else None
+        region = body["region"] if "region" in body else None
+
+        moto_api_backend.set_athena_result(
+            query_execution_id, rows, column_info, region
+        )
+        return 201, {}, ""
