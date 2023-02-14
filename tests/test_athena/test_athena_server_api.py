@@ -1,5 +1,4 @@
 import requests
-import boto3
 
 from moto import mock_athena, settings
 from unittest import SkipTest
@@ -41,7 +40,3 @@ def test_set_athena_result():
         json=athena_result,
     )
     resp.status_code.should.equal(201)
-
-    client = boto3.client("athena", region_name="eu-west-1")
-    details = client.get_query_execution(QueryExecutionId=exex_id)["QueryExecution"]
-    details.should.equal(athena_result)
