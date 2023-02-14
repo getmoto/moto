@@ -43,7 +43,7 @@ def test_instance_launch_and_terminate():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the RunInstance operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the RunInstances operation: Request would have succeeded, but DryRun flag is set"
     )
 
     reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -85,7 +85,7 @@ def test_instance_launch_and_terminate():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the TerminateInstance operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the TerminateInstances operation: Request would have succeeded, but DryRun flag is set"
     )
 
     response = client.terminate_instances(InstanceIds=[instance_id])
@@ -920,7 +920,7 @@ def test_instance_start_and_stop():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the StopInstance operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the StopInstances operation: Request would have succeeded, but DryRun flag is set"
     )
 
     stopped_instances = client.stop_instances(InstanceIds=instance_ids)[
@@ -939,7 +939,7 @@ def test_instance_start_and_stop():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the StartInstance operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the StartInstances operation: Request would have succeeded, but DryRun flag is set"
     )
 
     instance1.reload()
@@ -967,7 +967,7 @@ def test_instance_reboot():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the RebootInstance operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the RebootInstances operation: Request would have succeeded, but DryRun flag is set"
     )
 
     instance.state.should.equal({"Code": 16, "Name": "running"})
@@ -988,7 +988,7 @@ def test_instance_attribute_instance_type():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyInstanceType operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
     instance.modify_attribute(InstanceType={"Value": "m1.medium"})
@@ -1019,7 +1019,7 @@ def test_modify_instance_attribute_security_groups():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
     instance.modify_attribute(Groups=[sg_id, sg_id2])
@@ -1043,7 +1043,7 @@ def test_instance_attribute_user_data():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyUserData operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
     instance.modify_attribute(UserData={"Value": "this is my user data"})
@@ -1068,7 +1068,7 @@ def test_instance_attribute_source_dest_check():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifySourceDestCheck operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
     instance.modify_attribute(SourceDestCheck={"Value": False})
@@ -1971,7 +1971,7 @@ def test_get_instance_by_security_group():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.modify_instance_attribute(InstanceId=instance.id, Groups=[security_group.id])

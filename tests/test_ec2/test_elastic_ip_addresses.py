@@ -155,7 +155,7 @@ def test_eip_associate_classic():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DisAssociateAddress operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the DisassociateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.disassociate_address(PublicIp=eip.public_ip)

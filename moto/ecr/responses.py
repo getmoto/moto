@@ -90,10 +90,10 @@ class ECRResponse(BaseResponse):
         )
 
     def batch_check_layer_availability(self):
-        if self.is_not_dryrun("BatchCheckLayerAvailability"):
-            raise NotImplementedError(
-                "ECR.batch_check_layer_availability is not yet implemented"
-            )
+        self.error_on_dryrun()
+        raise NotImplementedError(
+            "ECR.batch_check_layer_availability is not yet implemented"
+        )
 
     def batch_delete_image(self):
         repository_str = self._get_param("repositoryName")
@@ -116,10 +116,8 @@ class ECRResponse(BaseResponse):
         return json.dumps(response)
 
     def complete_layer_upload(self):
-        if self.is_not_dryrun("CompleteLayerUpload"):
-            raise NotImplementedError(
-                "ECR.complete_layer_upload is not yet implemented"
-            )
+        self.error_on_dryrun()
+        raise NotImplementedError("ECR.complete_layer_upload is not yet implemented")
 
     def delete_repository_policy(self):
         registry_id = self._get_param("registryId")
@@ -149,10 +147,10 @@ class ECRResponse(BaseResponse):
         return json.dumps({"authorizationData": auth_data})
 
     def get_download_url_for_layer(self):
-        if self.is_not_dryrun("GetDownloadUrlForLayer"):
-            raise NotImplementedError(
-                "ECR.get_download_url_for_layer is not yet implemented"
-            )
+        self.error_on_dryrun()
+        raise NotImplementedError(
+            "ECR.get_download_url_for_layer is not yet implemented"
+        )
 
     def get_repository_policy(self):
         registry_id = self._get_param("registryId")
@@ -165,10 +163,8 @@ class ECRResponse(BaseResponse):
         )
 
     def initiate_layer_upload(self):
-        if self.is_not_dryrun("InitiateLayerUpload"):
-            raise NotImplementedError(
-                "ECR.initiate_layer_upload is not yet implemented"
-            )
+        self.error_on_dryrun()
+        raise NotImplementedError("ECR.initiate_layer_upload is not yet implemented")
 
     def set_repository_policy(self):
         registry_id = self._get_param("registryId")
@@ -187,8 +183,8 @@ class ECRResponse(BaseResponse):
         )
 
     def upload_layer_part(self):
-        if self.is_not_dryrun("UploadLayerPart"):
-            raise NotImplementedError("ECR.upload_layer_part is not yet implemented")
+        self.error_on_dryrun()
+        raise NotImplementedError("ECR.upload_layer_part is not yet implemented")
 
     def list_tags_for_resource(self):
         arn = self._get_param("resourceArn")

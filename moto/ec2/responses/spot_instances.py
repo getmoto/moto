@@ -4,22 +4,26 @@ from ._base_response import EC2BaseResponse
 class SpotInstances(EC2BaseResponse):
     def cancel_spot_instance_requests(self):
         request_ids = self._get_multi_param("SpotInstanceRequestId")
-        if self.is_not_dryrun("CancelSpotInstance"):
-            requests = self.ec2_backend.cancel_spot_instance_requests(request_ids)
-            template = self.response_template(CANCEL_SPOT_INSTANCES_TEMPLATE)
-            return template.render(requests=requests)
+
+        self.error_on_dryrun()
+
+        requests = self.ec2_backend.cancel_spot_instance_requests(request_ids)
+        template = self.response_template(CANCEL_SPOT_INSTANCES_TEMPLATE)
+        return template.render(requests=requests)
 
     def create_spot_datafeed_subscription(self):
-        if self.is_not_dryrun("CreateSpotDatafeedSubscription"):
-            raise NotImplementedError(
-                "SpotInstances.create_spot_datafeed_subscription is not yet implemented"
-            )
+        self.error_on_dryrun()
+
+        raise NotImplementedError(
+            "SpotInstances.create_spot_datafeed_subscription is not yet implemented"
+        )
 
     def delete_spot_datafeed_subscription(self):
-        if self.is_not_dryrun("DeleteSpotDatafeedSubscription"):
-            raise NotImplementedError(
-                "SpotInstances.delete_spot_datafeed_subscription is not yet implemented"
-            )
+        self.error_on_dryrun()
+
+        raise NotImplementedError(
+            "SpotInstances.delete_spot_datafeed_subscription is not yet implemented"
+        )
 
     def describe_spot_datafeed_subscription(self):
         raise NotImplementedError(
@@ -67,31 +71,32 @@ class SpotInstances(EC2BaseResponse):
         )
         tags = self._parse_tag_specification()
 
-        if self.is_not_dryrun("RequestSpotInstance"):
-            requests = self.ec2_backend.request_spot_instances(
-                price=price,
-                image_id=image_id,
-                count=count,
-                spot_instance_type=spot_instance_type,
-                valid_from=valid_from,
-                valid_until=valid_until,
-                launch_group=launch_group,
-                availability_zone_group=availability_zone_group,
-                key_name=key_name,
-                security_groups=security_groups,
-                user_data=user_data,
-                instance_type=instance_type,
-                placement=placement,
-                kernel_id=kernel_id,
-                ramdisk_id=ramdisk_id,
-                monitoring_enabled=monitoring_enabled,
-                subnet_id=subnet_id,
-                instance_interruption_behaviour=instance_interruption_behaviour,
-                tags=tags,
-            )
+        self.error_on_dryrun()
 
-            template = self.response_template(REQUEST_SPOT_INSTANCES_TEMPLATE)
-            return template.render(requests=requests)
+        requests = self.ec2_backend.request_spot_instances(
+            price=price,
+            image_id=image_id,
+            count=count,
+            spot_instance_type=spot_instance_type,
+            valid_from=valid_from,
+            valid_until=valid_until,
+            launch_group=launch_group,
+            availability_zone_group=availability_zone_group,
+            key_name=key_name,
+            security_groups=security_groups,
+            user_data=user_data,
+            instance_type=instance_type,
+            placement=placement,
+            kernel_id=kernel_id,
+            ramdisk_id=ramdisk_id,
+            monitoring_enabled=monitoring_enabled,
+            subnet_id=subnet_id,
+            instance_interruption_behaviour=instance_interruption_behaviour,
+            tags=tags,
+        )
+
+        template = self.response_template(REQUEST_SPOT_INSTANCES_TEMPLATE)
+        return template.render(requests=requests)
 
 
 REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

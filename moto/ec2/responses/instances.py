@@ -87,62 +87,70 @@ class InstanceResponse(EC2BaseResponse):
         if mappings:
             kwargs["block_device_mappings"] = mappings
 
-        if self.is_not_dryrun("RunInstance"):
-            new_reservation = self.ec2_backend.add_instances(
-                image_id, min_count, user_data, security_group_names, **kwargs
-            )
-            if kwargs.get("iam_instance_profile_name"):
-                self.ec2_backend.associate_iam_instance_profile(
-                    instance_id=new_reservation.instances[0].id,
-                    iam_instance_profile_name=kwargs.get("iam_instance_profile_name"),
-                )
-            if kwargs.get("iam_instance_profile_arn"):
-                self.ec2_backend.associate_iam_instance_profile(
-                    instance_id=new_reservation.instances[0].id,
-                    iam_instance_profile_arn=kwargs.get("iam_instance_profile_arn"),
-                )
+        self.error_on_dryrun()
 
-            template = self.response_template(EC2_RUN_INSTANCES)
-            return template.render(
-                account_id=self.current_account, reservation=new_reservation
+        new_reservation = self.ec2_backend.add_instances(
+            image_id, min_count, user_data, security_group_names, **kwargs
+        )
+        if kwargs.get("iam_instance_profile_name"):
+            self.ec2_backend.associate_iam_instance_profile(
+                instance_id=new_reservation.instances[0].id,
+                iam_instance_profile_name=kwargs.get("iam_instance_profile_name"),
             )
+        if kwargs.get("iam_instance_profile_arn"):
+            self.ec2_backend.associate_iam_instance_profile(
+                instance_id=new_reservation.instances[0].id,
+                iam_instance_profile_arn=kwargs.get("iam_instance_profile_arn"),
+            )
+
+        template = self.response_template(EC2_RUN_INSTANCES)
+        return template.render(
+            account_id=self.current_account, reservation=new_reservation
+        )
 
     def terminate_instances(self):
         instance_ids = self._get_multi_param("InstanceId")
-        if self.is_not_dryrun("TerminateInstance"):
-            instances = self.ec2_backend.terminate_instances(instance_ids)
-            from moto.autoscaling import autoscaling_backends
-            from moto.elbv2 import elbv2_backends
 
-            autoscaling_backends[self.current_account][
-                self.region
-            ].notify_terminate_instances(instance_ids)
-            elbv2_backends[self.current_account][
-                self.region
-            ].notify_terminate_instances(instance_ids)
-            template = self.response_template(EC2_TERMINATE_INSTANCES)
-            return template.render(instances=instances)
+        self.error_on_dryrun()
+
+        instances = self.ec2_backend.terminate_instances(instance_ids)
+        from moto.autoscaling import autoscaling_backends
+        from moto.elbv2 import elbv2_backends
+
+        autoscaling_backends[self.current_account][
+            self.region
+        ].notify_terminate_instances(instance_ids)
+        elbv2_backends[self.current_account][self.region].notify_terminate_instances(
+            instance_ids
+        )
+        template = self.response_template(EC2_TERMINATE_INSTANCES)
+        return template.render(instances=instances)
 
     def reboot_instances(self):
         instance_ids = self._get_multi_param("InstanceId")
-        if self.is_not_dryrun("RebootInstance"):
-            instances = self.ec2_backend.reboot_instances(instance_ids)
-            template = self.response_template(EC2_REBOOT_INSTANCES)
-            return template.render(instances=instances)
+
+        self.error_on_dryrun()
+
+        instances = self.ec2_backend.reboot_instances(instance_ids)
+        template = self.response_template(EC2_REBOOT_INSTANCES)
+        return template.render(instances=instances)
 
     def stop_instances(self):
         instance_ids = self._get_multi_param("InstanceId")
-        if self.is_not_dryrun("StopInstance"):
-            instances = self.ec2_backend.stop_instances(instance_ids)
-            template = self.response_template(EC2_STOP_INSTANCES)
-            return template.render(instances=instances)
+
+        self.error_on_dryrun()
+
+        instances = self.ec2_backend.stop_instances(instance_ids)
+        template = self.response_template(EC2_STOP_INSTANCES)
+        return template.render(instances=instances)
 
     def start_instances(self):
         instance_ids = self._get_multi_param("InstanceId")
-        if self.is_not_dryrun("StartInstance"):
-            instances = self.ec2_backend.start_instances(instance_ids)
-            template = self.response_template(EC2_START_INSTANCES)
-            return template.render(instances=instances)
+        self.error_on_dryrun()
+
+        instances = self.ec2_backend.start_instances(instance_ids)
+        template = self.response_template(EC2_START_INSTANCES)
+        return template.render(instances=instances)
 
     def _get_list_of_dict_params(self, param_prefix, _dct):
         """
@@ -268,9 +276,10 @@ class InstanceResponse(EC2BaseResponse):
             instance_id = self._get_param("InstanceId")
             instance = self.ec2_backend.get_instance(instance_id)
 
-            if self.is_not_dryrun("ModifyInstanceAttribute"):
-                block_device_type = instance.block_device_mapping[device_name_value]
-                block_device_type.delete_on_termination = del_on_term_value
+            self.error_on_dryrun()
+
+            block_device_type = instance.block_device_mapping[device_name_value]
+            block_device_type.delete_on_termination = del_on_term_value
 
             # +1 for the next device
             mapping_counter += 1
@@ -288,14 +297,15 @@ class InstanceResponse(EC2BaseResponse):
         if not attribute_key:
             return
 
-        if self.is_not_dryrun("Modify" + attribute_key.split(".")[0]):
-            value = self.querystring.get(attribute_key)[0]
-            normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
-            instance_id = self._get_param("InstanceId")
-            self.ec2_backend.modify_instance_attribute(
-                instance_id, normalized_attribute, value
-            )
-            return EC2_MODIFY_INSTANCE_ATTRIBUTE
+        self.error_on_dryrun()
+
+        value = self.querystring.get(attribute_key)[0]
+        normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
+        instance_id = self._get_param("InstanceId")
+        self.ec2_backend.modify_instance_attribute(
+            instance_id, normalized_attribute, value
+        )
+        return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
     def _attribute_value_handler(self):
         attribute_key = self._get_param("Attribute")
@@ -303,14 +313,15 @@ class InstanceResponse(EC2BaseResponse):
         if attribute_key is None:
             return
 
-        if self.is_not_dryrun("ModifyInstanceAttribute"):
-            value = self._get_param("Value")
-            normalized_attribute = camelcase_to_underscores(attribute_key)
-            instance_id = self._get_param("InstanceId")
-            self.ec2_backend.modify_instance_attribute(
-                instance_id, normalized_attribute, value
-            )
-            return EC2_MODIFY_INSTANCE_ATTRIBUTE
+        self.error_on_dryrun()
+
+        value = self._get_param("Value")
+        normalized_attribute = camelcase_to_underscores(attribute_key)
+        instance_id = self._get_param("InstanceId")
+        self.ec2_backend.modify_instance_attribute(
+            instance_id, normalized_attribute, value
+        )
+        return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
     def _security_grp_instance_attribute_handler(self):
         new_security_grp_list = []
@@ -319,11 +330,12 @@ class InstanceResponse(EC2BaseResponse):
                 new_security_grp_list.append(self.querystring.get(key)[0])
 
         instance_id = self._get_param("InstanceId")
-        if self.is_not_dryrun("ModifyInstanceSecurityGroups"):
-            self.ec2_backend.modify_instance_security_groups(
-                instance_id, new_security_grp_list
-            )
-            return EC2_MODIFY_INSTANCE_ATTRIBUTE
+        self.error_on_dryrun()
+
+        self.ec2_backend.modify_instance_security_groups(
+            instance_id, new_security_grp_list
+        )
+        return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
     def _parse_block_device_mapping(self):
         device_mappings = self._get_list_prefix("BlockDeviceMapping")
