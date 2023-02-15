@@ -1451,6 +1451,17 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def reset(self):
         # For every key and multipart, Moto opens a TemporaryFile to write the value of those keys
         # Ensure that these TemporaryFile-objects are closed, and leave no filehandles open
+        #
+        # First, check all known buckets/keys
+        for bucket in self.buckets.values():
+            for key in bucket.keys.values():
+                if isinstance(key, FakeKey):
+                    key.dispose()
+            for part in bucket.multiparts.values():
+                part.dispose()
+        #
+        # Second, go through the list of instances
+        # It may contain FakeKeys created earlier, which are no longer tracked
         for mp in FakeMultipart.instances:
             mp.dispose()
         for key in FakeKey.instances:
