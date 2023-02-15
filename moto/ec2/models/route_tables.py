@@ -95,6 +95,12 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
             return self.all_associations_ids
         elif filter_name == "association.subnet-id":
             return self.associations.values()
+        elif filter_name == "route.destination-cidr-block":
+            return [
+                route.destination_cidr_block
+                for route in self.routes.values()
+                if route.destination_cidr_block is not None
+            ]
         elif filter_name == "route.gateway-id":
             return [
                 route.gateway.id

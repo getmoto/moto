@@ -147,6 +147,18 @@ def test_route_tables_filters_standard():
         [route["GatewayId"] == igw.id for table in resp for route in table["Routes"]]
     )
 
+    # Filter by route destination CIDR block
+    resp = client.describe_route_tables(
+        Filters=[
+            {"Name": "route.destination-cidr-block", "Values": ["10.0.0.4/24"]},
+        ]
+    )["RouteTables"]
+    resp.should.have.length_of(1)
+    resp[0]['RouteTableId'].should.equal(route_table2.id)
+    assert any(
+        [route["DestinationCidrBlock"] == "10.0.0.4/24" for table in resp for route in table["Routes"]]
+    )
+
     # Unsupported filter
     if not settings.TEST_SERVER_MODE:
         # ServerMode will just throw a generic 500
