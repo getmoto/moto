@@ -154,9 +154,13 @@ def test_route_tables_filters_standard():
         ]
     )["RouteTables"]
     resp.should.have.length_of(1)
-    resp[0]['RouteTableId'].should.equal(route_table2.id)
+    resp[0]["RouteTableId"].should.equal(route_table2.id)
     assert any(
-        [route["DestinationCidrBlock"] == "10.0.0.4/24" for table in resp for route in table["Routes"]]
+        [
+            route["DestinationCidrBlock"] == "10.0.0.4/24"
+            for table in resp
+            for route in table["Routes"]
+        ]
     )
 
     # Unsupported filter
