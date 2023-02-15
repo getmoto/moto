@@ -87,7 +87,7 @@ athena
             # Make query execution ID generation deterministic
             # by calling first /moto-api/seed:
             requests.get(
-                "http://localhost:5000/moto-api/seed?a=42",
+                "http://motoapi.amazonaws.com:5000/moto-api/seed?a=42",
             )
 
             exex_id = "bdd640fb-0667-4ad1-9c80-317fa3b1799d"
@@ -114,7 +114,7 @@ athena
                 ],
             }
             resp = requests.post(
-                "http://localhost:5000/moto-api/set-athena-result",
+                "http://motoapi.amazonaws.com:5000/moto-api/static/athena/region/query_executions",
                 json=athena_result,
             )
             resp.status_code.should.equal(201)
