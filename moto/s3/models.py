@@ -1827,8 +1827,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if bucket.is_versioned:
             keys = existing_keys + [new_key]
         else:
-            for key in existing_keys:
-                key.dispose()
             keys = [new_key]
         bucket.keys.setlist(key_name, keys)
 
