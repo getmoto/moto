@@ -130,7 +130,7 @@ class GlueBackend(BaseBackend):
         database.tables[table_name] = table
         return table
 
-    def get_table(self, database_name, table_name):
+    def get_table(self, database_name: str, table_name: str) -> "FakeTable":
         database = self.get_database(database_name)
         try:
             return database.tables[table_name]
@@ -164,6 +164,10 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise TableNotFoundException(table_name)
         return {}
+
+    def update_table(self, database_name, table_name: str, table_input) -> None:
+        table = self.get_table(database_name, table_name)
+        table.update(table_input)
 
     def get_partitions(self, database_name, table_name, expression):
         """
@@ -769,16 +773,17 @@ class FakeDatabase(BaseModel):
 
 
 class FakeTable(BaseModel):
-    def __init__(self, database_name, table_name, table_input):
+    def __init__(self, database_name: str, table_name: str, table_input):
         self.database_name = database_name
         self.name = table_name
         self.partitions = OrderedDict()
         self.created_time = datetime.utcnow()
-        self.versions = []
-        self.update(table_input)
+        self.updated_time = None
+        self.versions = [table_input]
 
     def update(self, table_input):
         self.versions.append(table_input)
+        self.updated_time = datetime.utcnow()
 
     def get_version(self, ver):
         try:
@@ -798,8 +803,12 @@ class FakeTable(BaseModel):
             "DatabaseName": self.database_name,
             "Name": self.name,
             "CreateTime": unix_time(self.created_time),
+            **self.get_version(version),
+            # Add VersionId after we get the version-details, just to make sure that it's a valid version (int)
+            "VersionId": str(int(version) + 1),
         }
-        obj.update(self.get_version(version))
+        if self.updated_time is not None:
+            obj["UpdateTime"] = unix_time(self.updated_time)
         return obj
 
     def create_partition(self, partiton_input):
