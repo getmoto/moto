@@ -2,7 +2,7 @@ from ._base_response import EC2BaseResponse
 
 
 class NetworkACLs(EC2BaseResponse):
-    def create_network_acl(self):
+    def create_network_acl(self) -> str:
         vpc_id = self._get_param("VpcId")
         tags = self._get_multi_param("TagSpecification")
         if tags:
@@ -11,7 +11,7 @@ class NetworkACLs(EC2BaseResponse):
         template = self.response_template(CREATE_NETWORK_ACL_RESPONSE)
         return template.render(network_acl=network_acl)
 
-    def create_network_acl_entry(self):
+    def create_network_acl_entry(self) -> str:
         network_acl_id = self._get_param("NetworkAclId")
         rule_number = self._get_param("RuleNumber")
         protocol = self._get_param("Protocol")
@@ -39,13 +39,13 @@ class NetworkACLs(EC2BaseResponse):
         template = self.response_template(CREATE_NETWORK_ACL_ENTRY_RESPONSE)
         return template.render(network_acl_entry=network_acl_entry)
 
-    def delete_network_acl(self):
+    def delete_network_acl(self) -> str:
         network_acl_id = self._get_param("NetworkAclId")
         self.ec2_backend.delete_network_acl(network_acl_id)
         template = self.response_template(DELETE_NETWORK_ACL_ASSOCIATION)
         return template.render()
 
-    def delete_network_acl_entry(self):
+    def delete_network_acl_entry(self) -> str:
         network_acl_id = self._get_param("NetworkAclId")
         rule_number = self._get_param("RuleNumber")
         egress = self._get_param("Egress")
@@ -53,7 +53,7 @@ class NetworkACLs(EC2BaseResponse):
         template = self.response_template(DELETE_NETWORK_ACL_ENTRY_RESPONSE)
         return template.render()
 
-    def replace_network_acl_entry(self):
+    def replace_network_acl_entry(self) -> str:
         network_acl_id = self._get_param("NetworkAclId")
         rule_number = self._get_param("RuleNumber")
         protocol = self._get_param("Protocol")
@@ -81,14 +81,14 @@ class NetworkACLs(EC2BaseResponse):
         template = self.response_template(REPLACE_NETWORK_ACL_ENTRY_RESPONSE)
         return template.render()
 
-    def describe_network_acls(self):
+    def describe_network_acls(self) -> str:
         network_acl_ids = self._get_multi_param("NetworkAclId")
         filters = self._filters_from_querystring()
         network_acls = self.ec2_backend.describe_network_acls(network_acl_ids, filters)
         template = self.response_template(DESCRIBE_NETWORK_ACL_RESPONSE)
         return template.render(network_acls=network_acls)
 
-    def replace_network_acl_association(self):
+    def replace_network_acl_association(self) -> str:
         association_id = self._get_param("AssociationId")
         network_acl_id = self._get_param("NetworkAclId")
 

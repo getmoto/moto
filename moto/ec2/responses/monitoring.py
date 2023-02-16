@@ -2,12 +2,12 @@ from moto.core.responses import BaseResponse
 
 
 class Monitoring(BaseResponse):
-    def monitor_instances(self):
+    def monitor_instances(self) -> str:
         self.error_on_dryrun()
 
         raise NotImplementedError("Monitoring.monitor_instances is not yet implemented")
 
-    def unmonitor_instances(self):
+    def unmonitor_instances(self) -> str:
         self.error_on_dryrun()
 
         raise NotImplementedError(

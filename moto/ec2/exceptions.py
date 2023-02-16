@@ -64,7 +64,7 @@ class InvalidRequest(EC2ClientError):
 
 
 class InvalidParameterCombination(EC2ClientError):
-    def __init__(self, msg):
+    def __init__(self, msg: str):
         super().__init__("InvalidParameterCombination", msg)
 
 
@@ -338,14 +338,6 @@ class VolumeInUseError(EC2ClientError):
 class InvalidAddressError(EC2ClientError):
     def __init__(self, ip: Any):
         super().__init__("InvalidAddress.NotFound", f"Address '{ip}' not found.")
-
-
-class LogDestinationNotFoundError(EC2ClientError):
-    def __init__(self, bucket_name):
-        super().__init__(
-            "LogDestinationNotFoundException",
-            f"LogDestination: '{bucket_name}' does not exist.",
-        )
 
 
 class InvalidAllocationIdError(EC2ClientError):

@@ -2,15 +2,15 @@ from ._base_response import EC2BaseResponse
 
 
 class AmisResponse(EC2BaseResponse):
-    def create_image(self):
-        name = self.querystring.get("Name")[0]
+    def create_image(self) -> str:
+        name = self.querystring.get("Name")[0]  # type: ignore[index]
         description = self._get_param("Description", if_none="")
         instance_id = self._get_param("InstanceId")
         tag_specifications = self._get_multi_param("TagSpecification")
 
         self.error_on_dryrun()
 
-        image = self.ec2_backend.create_image(
+        image = self.ec2_backend.create_image(  # type: ignore[attr-defined]
             instance_id,
             name,
             description,
@@ -19,7 +19,7 @@ class AmisResponse(EC2BaseResponse):
         template = self.response_template(CREATE_IMAGE_RESPONSE)
         return template.render(image=image)
 
-    def copy_image(self):
+    def copy_image(self) -> str:
         source_image_id = self._get_param("SourceImageId")
         source_region = self._get_param("SourceRegion")
         name = self._get_param("Name")
@@ -33,7 +33,7 @@ class AmisResponse(EC2BaseResponse):
         template = self.response_template(COPY_IMAGE_RESPONSE)
         return template.render(image=image)
 
-    def deregister_image(self):
+    def deregister_image(self) -> str:
         ami_id = self._get_param("ImageId")
 
         self.error_on_dryrun()
@@ -42,7 +42,7 @@ class AmisResponse(EC2BaseResponse):
         template = self.response_template(DEREGISTER_IMAGE_RESPONSE)
         return template.render(success="true")
 
-    def describe_images(self):
+    def describe_images(self) -> str:
         self.error_on_dryrun()
         ami_ids = self._get_multi_param("ImageId")
         filters = self._filters_from_querystring()
@@ -54,14 +54,14 @@ class AmisResponse(EC2BaseResponse):
         template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)
 
-    def describe_image_attribute(self):
+    def describe_image_attribute(self) -> str:
         ami_id = self._get_param("ImageId")
         groups = self.ec2_backend.get_launch_permission_groups(ami_id)
         users = self.ec2_backend.get_launch_permission_users(ami_id)
         template = self.response_template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
         return template.render(ami_id=ami_id, groups=groups, users=users)
 
-    def modify_image_attribute(self):
+    def modify_image_attribute(self) -> str:
         ami_id = self._get_param("ImageId")
         operation_type = self._get_param("OperationType")
         group = self._get_param("UserGroup.1")
@@ -79,8 +79,8 @@ class AmisResponse(EC2BaseResponse):
             )
         return MODIFY_IMAGE_ATTRIBUTE_RESPONSE
 
-    def register_image(self):
-        name = self.querystring.get("Name")[0]
+    def register_image(self) -> str:
+        name = self.querystring.get("Name")[0]  # type: ignore[index]
         description = self._get_param("Description", if_none="")
 
         self.error_on_dryrun()
@@ -89,7 +89,7 @@ class AmisResponse(EC2BaseResponse):
         template = self.response_template(REGISTER_IMAGE_RESPONSE)
         return template.render(image=image)
 
-    def reset_image_attribute(self):
+    def reset_image_attribute(self) -> str:
         self.error_on_dryrun()
 
         raise NotImplementedError("AMIs.reset_image_attribute is not yet implemented")

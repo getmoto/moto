@@ -1,3 +1,4 @@
+from typing import Any
 from moto.ec2.exceptions import FilterNotImplementedError
 from moto.moto_api._internal import mock_random
 from ._base_response import EC2BaseResponse
@@ -6,7 +7,7 @@ from xml.etree import ElementTree
 from xml.dom import minidom
 
 
-def xml_root(name):
+def xml_root(name: str) -> ElementTree.Element:
     root = ElementTree.Element(
         name, {"xmlns": "http://ec2.amazonaws.com/doc/2016-11-15/"}
     )
@@ -16,7 +17,7 @@ def xml_root(name):
     return root
 
 
-def xml_serialize(tree, key, value):
+def xml_serialize(tree: ElementTree.Element, key: str, value: Any) -> None:
     name = key[0].lower() + key[1:]
     if isinstance(value, list):
         if name[-1] == "s":
@@ -42,14 +43,14 @@ def xml_serialize(tree, key, value):
         )
 
 
-def pretty_xml(tree):
+def pretty_xml(tree: ElementTree.Element) -> str:
     rough = ElementTree.tostring(tree, "utf-8")
     parsed = minidom.parseString(rough)
     return parsed.toprettyxml(indent="    ")
 
 
 class LaunchTemplates(EC2BaseResponse):
-    def create_launch_template(self):
+    def create_launch_template(self) -> str:
         name = self._get_param("LaunchTemplateName")
         version_description = self._get_param("VersionDescription")
         tag_spec = self._parse_tag_specification()
@@ -96,7 +97,7 @@ class LaunchTemplates(EC2BaseResponse):
 
         return pretty_xml(tree)
 
-    def create_launch_template_version(self):
+    def create_launch_template_version(self) -> str:
         name = self._get_param("LaunchTemplateName")
         tmpl_id = self._get_param("LaunchTemplateId")
         if name:
@@ -129,7 +130,7 @@ class LaunchTemplates(EC2BaseResponse):
         )
         return pretty_xml(tree)
 
-    def delete_launch_template(self):
+    def delete_launch_template(self) -> str:
         name = self._get_param("LaunchTemplateName")
         tid = self._get_param("LaunchTemplateId")
 
@@ -150,7 +151,7 @@ class LaunchTemplates(EC2BaseResponse):
 
         return pretty_xml(tree)
 
-    def describe_launch_template_versions(self):
+    def describe_launch_template_versions(self) -> str:
         name = self._get_param("LaunchTemplateName")
         template_id = self._get_param("LaunchTemplateId")
         if name:
@@ -222,7 +223,7 @@ class LaunchTemplates(EC2BaseResponse):
 
         return pretty_xml(tree)
 
-    def describe_launch_templates(self):
+    def describe_launch_templates(self) -> str:
         max_results = self._get_int_param("MaxResults", 15)
         template_names = self._get_multi_param("LaunchTemplateName")
         template_ids = self._get_multi_param("LaunchTemplateId")

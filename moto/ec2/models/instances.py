@@ -22,9 +22,9 @@ from moto.packages.boto.ec2.instance import Reservation
 
 from ..exceptions import (
     AvailabilityZoneNotFromRegionError,
-    EC2ClientError,
     InvalidInstanceIdError,
     InvalidInstanceTypeError,
+    InvalidParameterCombination,
     InvalidParameterValueErrorUnknownAttribute,
     InvalidSecurityGroupNotFoundError,
     OperationNotPermitted4,
@@ -779,9 +779,7 @@ class InstanceBackend:
     ) -> List[Tuple[Instance, InstanceState]]:
         terminated_instances = []
         if not instance_ids:
-            raise EC2ClientError(
-                "InvalidParameterCombination", "No instances specified"
-            )
+            raise InvalidParameterCombination("No instances specified")
         for instance in self.get_multi_instances_by_id(instance_ids):
             if instance.disable_api_termination == "true":
                 raise OperationNotPermitted4(instance.id)
