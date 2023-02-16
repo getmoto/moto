@@ -153,7 +153,9 @@ class MotoAPIResponse(BaseResponse):
         request_body_size = int(headers["Content-Length"])
         body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
         body = json.loads(body)
-        query_execution_id = body["query_execution_id"] if "query_execution_id" in body else None
+        query_execution_id = (
+            body["query_execution_id"] if "query_execution_id" in body else None
+        )
         rows = body["rows"]
         column_info = body["column_info"] if "column_info" in body else None
         region = body["region"] if "region" in body else None

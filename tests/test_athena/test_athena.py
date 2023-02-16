@@ -340,7 +340,9 @@ def test_get_query_results_queue():
         results = QueryResults(rows=rows, column_info=column_info)
         backend.query_results_queue.append(results)
 
-        result = client.get_query_results(QueryExecutionId="some-id-not-used-when-results-were-added-to-queue")
+        result = client.get_query_results(
+            QueryExecutionId="some-id-not-used-when-results-were-added-to-queue"
+        )
         result["ResultSet"]["Rows"].should.equal(rows)
         result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"].should.equal(column_info)
 
@@ -348,7 +350,9 @@ def test_get_query_results_queue():
         result["ResultSet"]["Rows"].should.equal([])
         result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"].should.equal([])
 
-        result = client.get_query_results(QueryExecutionId="some-id-not-used-when-results-were-added-to-queue")
+        result = client.get_query_results(
+            QueryExecutionId="some-id-not-used-when-results-were-added-to-queue"
+        )
         result["ResultSet"]["Rows"].should.equal(rows)
         result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"].should.equal(column_info)
 
