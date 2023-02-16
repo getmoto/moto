@@ -35,7 +35,7 @@ class MotoAPIBackend(BaseBackend):
 
     def set_athena_result(
         self,
-        query_execution_id: str,
+        query_execution_id: Optional[str],
         rows: List[Dict[str, Any]],
         column_info: Optional[List[Dict[str, str]]] = None,
         region: str = "us-east-1",
@@ -46,7 +46,10 @@ class MotoAPIBackend(BaseBackend):
             column_info = []
         backend = athena_backends[DEFAULT_ACCOUNT_ID][region]
         results = QueryResults(rows=rows, column_info=column_info)
-        backend.query_results[query_execution_id] = results
+        if query_execution_id:
+            backend.query_results[query_execution_id] = results
+        else:
+            backend.query_result_queue.append(results)
 
 
 moto_api_backend = MotoAPIBackend(region_name="global", account_id=DEFAULT_ACCOUNT_ID)

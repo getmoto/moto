@@ -312,6 +312,48 @@ def test_get_query_results():
 
 
 @mock_athena
+def test_get_query_results_queue():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    result = client.get_query_results(QueryExecutionId="test")
+
+    result["ResultSet"]["Rows"].should.equal([])
+    result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"].should.equal([])
+
+    if not settings.TEST_SERVER_MODE:
+        backend = athena_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+        rows = [{"Data": [{"VarCharValue": ".."}]}]
+        column_info = [
+            {
+                "CatalogName": "string",
+                "SchemaName": "string",
+                "TableName": "string",
+                "Name": "string",
+                "Label": "string",
+                "Type": "string",
+                "Precision": 123,
+                "Scale": 123,
+                "Nullable": "NOT_NULL",
+                "CaseSensitive": True,
+            }
+        ]
+        results = QueryResults(rows=rows, column_info=column_info)
+        backend.query_results_queue.append(results)
+
+        result = client.get_query_results(QueryExecutionId="some-id-not-used-when-results-were-added-to-queue")
+        result["ResultSet"]["Rows"].should.equal(rows)
+        result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"].should.equal(column_info)
+
+        result = client.get_query_results(QueryExecutionId="other-id")
+        result["ResultSet"]["Rows"].should.equal([])
+        result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"].should.equal([])
+
+        result = client.get_query_results(QueryExecutionId="some-id-not-used-when-results-were-added-to-queue")
+        result["ResultSet"]["Rows"].should.equal(rows)
+        result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"].should.equal(column_info)
+
+
+@mock_athena
 def test_list_query_executions():
     client = boto3.client("athena", region_name="us-east-1")
 

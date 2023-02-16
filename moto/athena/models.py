@@ -132,6 +132,7 @@ class AthenaBackend(BaseBackend):
         self.named_queries: Dict[str, NamedQuery] = {}
         self.data_catalogs: Dict[str, DataCatalog] = {}
         self.query_results: Dict[str, QueryResults] = {}
+        self.query_results_queue: List[QueryResults] = []
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -223,6 +224,8 @@ class AthenaBackend(BaseBackend):
 
             result = client.get_query_results(QueryExecutionId="test")
         """
+        if exec_id not in self.query_results and self.query_results_queue:
+            self.query_results[exec_id] = self.query_results_queue.pop(0)
         results = (
             self.query_results[exec_id]
             if exec_id in self.query_results

@@ -84,16 +84,8 @@ athena
 
         .. sourcecode:: python
 
-            # Make query execution ID generation deterministic
-            # by calling first /moto-api/seed:
-            requests.get(
-                "http://motoapi.amazonaws.com:5000/moto-api/seed?a=42",
-            )
-
-            exex_id = "bdd640fb-0667-4ad1-9c80-317fa3b1799d"
             athena_result = {
                 "region": "eu-west-1",
-                "query_execution_id": exex_id,
                 "rows": [
                     {"Headers": ["first_column"]},
                     {"Data": [{"VarCharValue": "1"}]},
@@ -120,7 +112,7 @@ athena
             resp.status_code.should.equal(201)
 
             client = boto3.client("athena", region_name="eu-west-1")
-            details = client.get_query_execution(QueryExecutionId=exex_id)["QueryExecution"]
+            details = client.get_query_execution(QueryExecutionId="test2")["QueryExecution"]
             details.should.equal(athena_result)
 
 - [ ] get_query_runtime_statistics
