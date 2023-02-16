@@ -15,10 +15,12 @@ class IdentityStoreBackend(BaseBackend):
 
     def create_group(self, identity_store_id, display_name, description):
         group_id = str(uuid.uuid4())
-        group_dict = {'GroupId': group_id,
-                      'IdentityStoreId': identity_store_id,
-                      'DisplayName': display_name,
-                      'Description': description}
+        group_dict = {
+            "GroupId": group_id,
+            "IdentityStoreId": identity_store_id,
+            "DisplayName": display_name,
+            "Description": description,
+        }
         self.groups[group_id] = group_dict
         return group_id, identity_store_id
 

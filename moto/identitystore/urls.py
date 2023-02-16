@@ -5,8 +5,6 @@ url_bases = [
     r"https?://identitystore\.(.+)\.amazonaws\.com",
 ]
 
-
-
 url_paths = {
     "{0}/$": IdentityStoreResponse.dispatch,
 }
