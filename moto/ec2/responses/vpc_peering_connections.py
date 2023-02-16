@@ -1,13 +1,10 @@
-from moto.core.responses import BaseResponse
+from ._base_response import EC2BaseResponse
 
 
-class VPCPeeringConnections(BaseResponse):
-    def create_vpc_peering_connection(self):
+class VPCPeeringConnections(EC2BaseResponse):
+    def create_vpc_peering_connection(self) -> str:
         peer_region = self._get_param("PeerRegion")
-        tags = self._get_multi_param("TagSpecification")
-        tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
-        tags = (tags or {}).get("Tag", [])
-        tags = {t["Key"]: t["Value"] for t in tags}
+        tags = self._parse_tag_specification().get("vpc-peering-connection", {})
 
         if peer_region == self.region or peer_region is None:
             peer_vpc = self.ec2_backend.get_vpc(self._get_param("PeerVpcId"))
@@ -22,13 +19,13 @@ class VPCPeeringConnections(BaseResponse):
         template = self.response_template(CREATE_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render(account_id=self.current_account, vpc_pcx=vpc_pcx)
 
-    def delete_vpc_peering_connection(self):
+    def delete_vpc_peering_connection(self) -> str:
         vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
         vpc_pcx = self.ec2_backend.delete_vpc_peering_connection(vpc_pcx_id)
         template = self.response_template(DELETE_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render(vpc_pcx=vpc_pcx)
 
-    def describe_vpc_peering_connections(self):
+    def describe_vpc_peering_connections(self) -> str:
         ids = self._get_multi_param("VpcPeeringConnectionId")
         vpc_pcxs = self.ec2_backend.describe_vpc_peering_connections(
             vpc_peering_ids=ids
@@ -36,19 +33,19 @@ class VPCPeeringConnections(BaseResponse):
         template = self.response_template(DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE)
         return template.render(account_id=self.current_account, vpc_pcxs=vpc_pcxs)
 
-    def accept_vpc_peering_connection(self):
+    def accept_vpc_peering_connection(self) -> str:
         vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
         vpc_pcx = self.ec2_backend.accept_vpc_peering_connection(vpc_pcx_id)
         template = self.response_template(ACCEPT_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render(account_id=self.current_account, vpc_pcx=vpc_pcx)
 
-    def reject_vpc_peering_connection(self):
+    def reject_vpc_peering_connection(self) -> str:
         vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
         self.ec2_backend.reject_vpc_peering_connection(vpc_pcx_id)
         template = self.response_template(REJECT_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render()
 
-    def modify_vpc_peering_connection_options(self):
+    def modify_vpc_peering_connection_options(self) -> str:
         vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
         accepter_options = self._get_multi_param_dict(
             "AccepterPeeringConnectionOptions"

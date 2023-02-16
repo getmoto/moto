@@ -2,7 +2,7 @@ from ._base_response import EC2BaseResponse
 
 
 class ElasticBlockStore(EC2BaseResponse):
-    def attach_volume(self):
+    def attach_volume(self) -> str:
         volume_id = self._get_param("VolumeId")
         instance_id = self._get_param("InstanceId")
         device_path = self._get_param("Device")
@@ -13,7 +13,7 @@ class ElasticBlockStore(EC2BaseResponse):
         template = self.response_template(ATTACHED_VOLUME_RESPONSE)
         return template.render(attachment=attachment)
 
-    def copy_snapshot(self):
+    def copy_snapshot(self) -> str:
         source_snapshot_id = self._get_param("SourceSnapshotId")
         source_region = self._get_param("SourceRegion")
         description = self._get_param("Description")
@@ -29,7 +29,7 @@ class ElasticBlockStore(EC2BaseResponse):
         template = self.response_template(COPY_SNAPSHOT_RESPONSE)
         return template.render(snapshot=snapshot)
 
-    def create_snapshot(self):
+    def create_snapshot(self) -> str:
         volume_id = self._get_param("VolumeId")
         description = self._get_param("Description")
         tags = self._parse_tag_specification()
@@ -42,7 +42,7 @@ class ElasticBlockStore(EC2BaseResponse):
         template = self.response_template(CREATE_SNAPSHOT_RESPONSE)
         return template.render(snapshot=snapshot)
 
-    def create_snapshots(self):
+    def create_snapshots(self) -> str:
         params = self._get_params()
         instance_spec = params.get("InstanceSpecification")
         description = params.get("Description", "")
@@ -57,7 +57,7 @@ class ElasticBlockStore(EC2BaseResponse):
         template = self.response_template(CREATE_SNAPSHOTS_RESPONSE)
         return template.render(snapshots=snapshots)
 
-    def create_volume(self):
+    def create_volume(self) -> str:
         size = self._get_param("Size")
         zone = self._get_param("AvailabilityZone")
         snapshot_id = self._get_param("SnapshotId")
@@ -83,7 +83,7 @@ class ElasticBlockStore(EC2BaseResponse):
         template = self.response_template(CREATE_VOLUME_RESPONSE)
         return template.render(volume=volume)
 
-    def modify_volume(self):
+    def modify_volume(self) -> str:
         volume_id = self._get_param("VolumeId")
         target_size = self._get_param("Size")
         target_volume_type = self._get_param("VolumeType")
@@ -96,7 +96,7 @@ class ElasticBlockStore(EC2BaseResponse):
         template = self.response_template(MODIFY_VOLUME_RESPONSE)
         return template.render(volume=volume)
 
-    def describe_volumes_modifications(self):
+    def describe_volumes_modifications(self) -> str:
         filters = self._filters_from_querystring()
         volume_ids = self._get_multi_param("VolumeId")
         modifications = self.ec2_backend.describe_volumes_modifications(
@@ -105,7 +105,7 @@ class ElasticBlockStore(EC2BaseResponse):
         template = self.response_template(DESCRIBE_VOLUMES_MODIFICATIONS_RESPONSE)
         return template.render(modifications=modifications)
 
-    def delete_snapshot(self):
+    def delete_snapshot(self) -> str:
         snapshot_id = self._get_param("SnapshotId")
 
         self.error_on_dryrun()
@@ -113,7 +113,7 @@ class ElasticBlockStore(EC2BaseResponse):
         self.ec2_backend.delete_snapshot(snapshot_id)
         return DELETE_SNAPSHOT_RESPONSE
 
-    def delete_volume(self):
+    def delete_volume(self) -> str:
         volume_id = self._get_param("VolumeId")
 
         self.error_on_dryrun()
@@ -121,7 +121,7 @@ class ElasticBlockStore(EC2BaseResponse):
         self.ec2_backend.delete_volume(volume_id)
         return DELETE_VOLUME_RESPONSE
 
-    def describe_snapshots(self):
+    def describe_snapshots(self) -> str:
         filters = self._filters_from_querystring()
         snapshot_ids = self._get_multi_param("SnapshotId")
         snapshots = self.ec2_backend.describe_snapshots(
@@ -130,7 +130,7 @@ class ElasticBlockStore(EC2BaseResponse):
         template = self.response_template(DESCRIBE_SNAPSHOTS_RESPONSE)
         return template.render(snapshots=snapshots)
 
-    def describe_volumes(self):
+    def describe_volumes(self) -> str:
         filters = self._filters_from_querystring()
         volume_ids = self._get_multi_param("VolumeId")
         volumes = self.ec2_backend.describe_volumes(
@@ -139,17 +139,17 @@ class ElasticBlockStore(EC2BaseResponse):
         template = self.response_template(DESCRIBE_VOLUMES_RESPONSE)
         return template.render(volumes=volumes)
 
-    def describe_volume_attribute(self):
+    def describe_volume_attribute(self) -> str:
         raise NotImplementedError(
             "ElasticBlockStore.describe_volume_attribute is not yet implemented"
         )
 
-    def describe_volume_status(self):
+    def describe_volume_status(self) -> str:
         raise NotImplementedError(
             "ElasticBlockStore.describe_volume_status is not yet implemented"
         )
 
-    def detach_volume(self):
+    def detach_volume(self) -> str:
         volume_id = self._get_param("VolumeId")
         instance_id = self._get_param("InstanceId")
         device_path = self._get_param("Device")
@@ -160,28 +160,28 @@ class ElasticBlockStore(EC2BaseResponse):
         template = self.response_template(DETATCH_VOLUME_RESPONSE)
         return template.render(attachment=attachment)
 
-    def enable_volume_io(self):
+    def enable_volume_io(self) -> str:
         self.error_on_dryrun()
 
         raise NotImplementedError(
             "ElasticBlockStore.enable_volume_io is not yet implemented"
         )
 
-    def import_volume(self):
+    def import_volume(self) -> str:
         self.error_on_dryrun()
 
         raise NotImplementedError(
             "ElasticBlockStore.import_volume is not yet implemented"
         )
 
-    def describe_snapshot_attribute(self):
+    def describe_snapshot_attribute(self) -> str:
         snapshot_id = self._get_param("SnapshotId")
         groups = self.ec2_backend.get_create_volume_permission_groups(snapshot_id)
         user_ids = self.ec2_backend.get_create_volume_permission_userids(snapshot_id)
         template = self.response_template(DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE)
         return template.render(snapshot_id=snapshot_id, groups=groups, userIds=user_ids)
 
-    def modify_snapshot_attribute(self):
+    def modify_snapshot_attribute(self) -> str:
         snapshot_id = self._get_param("SnapshotId")
         operation_type = self._get_param("OperationType")
         groups = self._get_multi_param("UserGroup")
@@ -199,14 +199,14 @@ class ElasticBlockStore(EC2BaseResponse):
             )
         return MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE
 
-    def modify_volume_attribute(self):
+    def modify_volume_attribute(self) -> str:
         self.error_on_dryrun()
 
         raise NotImplementedError(
             "ElasticBlockStore.modify_volume_attribute is not yet implemented"
         )
 
-    def reset_snapshot_attribute(self):
+    def reset_snapshot_attribute(self) -> str:
         self.error_on_dryrun()
 
         raise NotImplementedError(

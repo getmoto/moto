@@ -2,7 +2,7 @@ from moto.core.responses import BaseResponse
 
 
 class AccountAttributes(BaseResponse):
-    def describe_account_attributes(self):
+    def describe_account_attributes(self) -> str:
         template = self.response_template(DESCRIBE_ACCOUNT_ATTRIBUTES_RESULT)
         return template.render()
 
