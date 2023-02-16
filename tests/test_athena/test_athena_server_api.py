@@ -4,6 +4,8 @@ from moto import mock_athena, settings
 from unittest import SkipTest
 
 
+#boto3.set_stream_logger(name='botocore')
+
 @mock_athena
 def test_set_athena_result():
     if not settings.TEST_SERVER_MODE:
@@ -36,7 +38,11 @@ def test_set_athena_result():
         ],
     }
     resp = requests.post(
-        "http://localhost:5000/moto-api/set-athena-result",
+        "http://localhost:5000/moto-api/static/athena/account/region/query_executions",
         json=athena_result,
     )
     resp.status_code.should.equal(201)
+
+    #client = boto3.client("athena", region_name="eu-west-1")
+    #details = client.get_query_execution(QueryExecutionId=exex_id)["QueryExecution"]
+    #details.should.equal(athena_result)
