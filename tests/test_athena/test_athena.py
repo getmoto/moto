@@ -303,6 +303,8 @@ def test_get_query_results():
                 "CaseSensitive": True,
             }
         ]
+        # This was the documented way to configure query results, before `moto-api/static/athena/query_results` was implemented
+        # We should try to keep this for backward compatibility
         results = QueryResults(rows=rows, column_info=column_info)
         backend.query_results["test"] = results
 

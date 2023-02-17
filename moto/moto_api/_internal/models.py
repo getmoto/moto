@@ -1,6 +1,6 @@
 from moto.core import BaseBackend, DEFAULT_ACCOUNT_ID
 from moto.core.model_instances import reset_model_data
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 class MotoAPIBackend(BaseBackend):
@@ -35,21 +35,16 @@ class MotoAPIBackend(BaseBackend):
 
     def set_athena_result(
         self,
-        query_execution_id: Optional[str],
         rows: List[Dict[str, Any]],
-        column_info: Optional[List[Dict[str, str]]] = None,
-        region: str = "us-east-1",
+        column_info: List[Dict[str, str]],
+        account_id: str,
+        region: str,
     ) -> None:
         from moto.athena.models import athena_backends, QueryResults
 
-        if column_info is None:
-            column_info = []
-        backend = athena_backends[DEFAULT_ACCOUNT_ID][region]
+        backend = athena_backends[account_id][region]
         results = QueryResults(rows=rows, column_info=column_info)
-        if query_execution_id:
-            backend.query_results[query_execution_id] = results
-        else:
-            backend.query_result_queue.append(results)
+        backend.query_results_queue.append(results)
 
 
 moto_api_backend = MotoAPIBackend(region_name="global", account_id=DEFAULT_ACCOUNT_ID)
