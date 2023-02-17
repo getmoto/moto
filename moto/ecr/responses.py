@@ -4,28 +4,18 @@ from datetime import datetime
 import time
 
 from moto.core.responses import BaseResponse
-from .models import ecr_backends
+from .models import ecr_backends, ECRBackend
 
 
 class ECRResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="ecr")
 
     @property
-    def ecr_backend(self):
+    def ecr_backend(self) -> ECRBackend:
         return ecr_backends[self.current_account][self.region]
 
-    @property
-    def request_params(self):
-        try:
-            return json.loads(self.body)
-        except ValueError:
-            return {}
-
-    def _get_param(self, param_name, if_none=None):
-        return self.request_params.get(param_name, if_none)
-
-    def create_repository(self):
+    def create_repository(self) -> str:
         repository_name = self._get_param("repositoryName")
         registry_id = self._get_param("registryId")
         encryption_config = self._get_param("encryptionConfiguration")
@@ -43,7 +33,7 @@ class ECRResponse(BaseResponse):
         )
         return json.dumps({"repository": repository.response_object})
 
-    def describe_repositories(self):
+    def describe_repositories(self) -> str:
         describe_repositories_name = self._get_param("repositoryNames")
         registry_id = self._get_param("registryId")
 
@@ -52,7 +42,7 @@ class ECRResponse(BaseResponse):
         )
         return json.dumps({"repositories": repositories, "failures": []})
 
-    def delete_repository(self):
+    def delete_repository(self) -> str:
         repository_str = self._get_param("repositoryName")
         registry_id = self._get_param("registryId")
         force = self._get_param("force")
@@ -62,7 +52,7 @@ class ECRResponse(BaseResponse):
         )
         return json.dumps({"repository": repository.response_object})
 
-    def put_image(self):
+    def put_image(self) -> str:
         repository_str = self._get_param("repositoryName")
         image_manifest = self._get_param("imageManifest")
         image_tag = self._get_param("imageTag")
@@ -70,7 +60,7 @@ class ECRResponse(BaseResponse):
 
         return json.dumps({"image": image.response_object})
 
-    def list_images(self):
+    def list_images(self) -> str:
         repository_str = self._get_param("repositoryName")
         registry_id = self._get_param("registryId")
         images = self.ecr_backend.list_images(repository_str, registry_id)
@@ -78,7 +68,7 @@ class ECRResponse(BaseResponse):
             {"imageIds": [image.response_list_object for image in images]}
         )
 
-    def describe_images(self):
+    def describe_images(self) -> str:
         repository_str = self._get_param("repositoryName")
         registry_id = self._get_param("registryId")
         image_ids = self._get_param("imageIds")
@@ -89,13 +79,13 @@ class ECRResponse(BaseResponse):
             {"imageDetails": [image.response_describe_object for image in images]}
         )
 
-    def batch_check_layer_availability(self):
+    def batch_check_layer_availability(self) -> None:
         self.error_on_dryrun()
         raise NotImplementedError(
             "ECR.batch_check_layer_availability is not yet implemented"
         )
 
-    def batch_delete_image(self):
+    def batch_delete_image(self) -> str:
         repository_str = self._get_param("repositoryName")
         registry_id = self._get_param("registryId")
         image_ids = self._get_param("imageIds")
@@ -105,7 +95,7 @@ class ECRResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    def batch_get_image(self):
+    def batch_get_image(self) -> str:
         repository_str = self._get_param("repositoryName")
         registry_id = self._get_param("registryId")
         image_ids = self._get_param("imageIds")
@@ -115,11 +105,11 @@ class ECRResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    def complete_layer_upload(self):
+    def complete_layer_upload(self) -> None:
         self.error_on_dryrun()
         raise NotImplementedError("ECR.complete_layer_upload is not yet implemented")
 
-    def delete_repository_policy(self):
+    def delete_repository_policy(self) -> str:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
 
@@ -129,7 +119,7 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def get_authorization_token(self):
+    def get_authorization_token(self) -> str:
         registry_ids = self._get_param("registryIds")
         if not registry_ids:
             registry_ids = [self.current_account]
@@ -146,13 +136,13 @@ class ECRResponse(BaseResponse):
             )
         return json.dumps({"authorizationData": auth_data})
 
-    def get_download_url_for_layer(self):
+    def get_download_url_for_layer(self) -> None:
         self.error_on_dryrun()
         raise NotImplementedError(
             "ECR.get_download_url_for_layer is not yet implemented"
         )
 
-    def get_repository_policy(self):
+    def get_repository_policy(self) -> str:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
 
@@ -162,11 +152,11 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def initiate_layer_upload(self):
+    def initiate_layer_upload(self) -> None:
         self.error_on_dryrun()
         raise NotImplementedError("ECR.initiate_layer_upload is not yet implemented")
 
-    def set_repository_policy(self):
+    def set_repository_policy(self) -> str:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
         policy_text = self._get_param("policyText")
@@ -182,28 +172,30 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def upload_layer_part(self):
+    def upload_layer_part(self) -> None:
         self.error_on_dryrun()
         raise NotImplementedError("ECR.upload_layer_part is not yet implemented")
 
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> str:
         arn = self._get_param("resourceArn")
 
         return json.dumps(self.ecr_backend.list_tags_for_resource(arn))
 
-    def tag_resource(self):
+    def tag_resource(self) -> str:
         arn = self._get_param("resourceArn")
         tags = self._get_param("tags", [])
 
-        return json.dumps(self.ecr_backend.tag_resource(arn, tags))
+        self.ecr_backend.tag_resource(arn, tags)
+        return "{}"
 
-    def untag_resource(self):
+    def untag_resource(self) -> str:
         arn = self._get_param("resourceArn")
         tag_keys = self._get_param("tagKeys", [])
 
-        return json.dumps(self.ecr_backend.untag_resource(arn, tag_keys))
+        self.ecr_backend.untag_resource(arn, tag_keys)
+        return "{}"
 
-    def put_image_tag_mutability(self):
+    def put_image_tag_mutability(self) -> str:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
         image_tag_mutability = self._get_param("imageTagMutability")
@@ -216,7 +208,7 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def put_image_scanning_configuration(self):
+    def put_image_scanning_configuration(self) -> str:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
         image_scan_config = self._get_param("imageScanningConfiguration")
@@ -229,7 +221,7 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def put_lifecycle_policy(self):
+    def put_lifecycle_policy(self) -> str:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
         lifecycle_policy_text = self._get_param("lifecyclePolicyText")
@@ -242,7 +234,7 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def get_lifecycle_policy(self):
+    def get_lifecycle_policy(self) -> str:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
 
@@ -252,7 +244,7 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def delete_lifecycle_policy(self):
+    def delete_lifecycle_policy(self) -> str:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
 
@@ -262,18 +254,18 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def put_registry_policy(self):
+    def put_registry_policy(self) -> str:
         policy_text = self._get_param("policyText")
 
         return json.dumps(self.ecr_backend.put_registry_policy(policy_text=policy_text))
 
-    def get_registry_policy(self):
+    def get_registry_policy(self) -> str:
         return json.dumps(self.ecr_backend.get_registry_policy())
 
-    def delete_registry_policy(self):
+    def delete_registry_policy(self) -> str:
         return json.dumps(self.ecr_backend.delete_registry_policy())
 
-    def start_image_scan(self):
+    def start_image_scan(self) -> str:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
         image_id = self._get_param("imageId")
@@ -286,7 +278,7 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def describe_image_scan_findings(self):
+    def describe_image_scan_findings(self) -> str:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
         image_id = self._get_param("imageId")
@@ -299,7 +291,7 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def put_replication_configuration(self):
+    def put_replication_configuration(self) -> str:
         replication_config = self._get_param("replicationConfiguration")
 
         return json.dumps(
@@ -308,5 +300,5 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def describe_registry(self):
+    def describe_registry(self) -> str:
         return json.dumps(self.ecr_backend.describe_registry())
