@@ -1805,6 +1805,9 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
          <UserId>{{ user.id }}</UserId>
          <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
          <Arn>{{ user.arn }}</Arn>
+         {% if user.password_last_used_iso_8601 %}
+         <PasswordLastUsed>{{ user.password_last_used_iso_8601 }}</PasswordLastUsed>
+         {% endif %}
          {% if tags %}
          <Tags>
             {% for tag in tags %}
