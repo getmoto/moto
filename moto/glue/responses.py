@@ -66,8 +66,7 @@ class GlueResponse(BaseResponse):
         database_name = self.parameters.get("DatabaseName")
         table_input = self.parameters.get("TableInput")
         table_name = table_input.get("Name")
-        table = self.glue_backend.get_table(database_name, table_name)
-        table.update(table_input)
+        self.glue_backend.update_table(database_name, table_name, table_input)
         return ""
 
     def get_table_versions(self):
