@@ -167,6 +167,7 @@ mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_textract = lazy_load(".textract", "mock_textract")
+mock_identitystore = lazy_load(".identitystore", "mock_identitystore")
 
 
 class MockAll(ContextDecorator):
