@@ -251,6 +251,17 @@ class TestS3FileHandleClosuresUsingMocks(TestCase):
         with mock_s3():
             pass
 
+    @verify_zero_warnings
+    def test_delete_object_with_version(self):
+        with mock_s3():
+            self.s3.create_bucket(Bucket="foo")
+            self.s3.put_bucket_versioning(
+                Bucket="foo",
+                VersioningConfiguration={"Status": "Enabled", "MFADelete": "Disabled"},
+            )
+            version = self.s3.put_object(Bucket="foo", Key="b", Body="s")["VersionId"]
+            self.s3.delete_object(Bucket="foo", Key="b", VersionId=version)
+
 
 def test_verify_key_can_be_copied_after_disposing():
     # https://github.com/getmoto/moto/issues/5588
