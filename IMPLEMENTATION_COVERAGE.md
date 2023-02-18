@@ -421,7 +421,7 @@
 
 ## autoscaling
 <details>
-<summary>53% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
@@ -480,6 +480,7 @@
 - [ ] put_warm_pool
 - [ ] record_lifecycle_action_heartbeat
 - [X] resume_processes
+- [ ] rollback_instance_refresh
 - [X] set_desired_capacity
 - [X] set_instance_health
 - [X] set_instance_protection
@@ -3299,7 +3300,7 @@
 - [ ] update_registry
 - [X] update_schema
 - [ ] update_source_control_from_job
-- [ ] update_table
+- [X] update_table
 - [ ] update_trigger
 - [ ] update_user_defined_function
 - [ ] update_workflow
@@ -3636,6 +3637,31 @@
 - [X] upload_server_certificate
 - [X] upload_signing_certificate
 - [X] upload_ssh_public_key
+</details>
+
+## identitystore
+<details>
+<summary>5% implemented</summary>
+
+- [X] create_group
+- [ ] create_group_membership
+- [ ] create_user
+- [ ] delete_group
+- [ ] delete_group_membership
+- [ ] delete_user
+- [ ] describe_group
+- [ ] describe_group_membership
+- [ ] describe_user
+- [ ] get_group_id
+- [ ] get_group_membership_id
+- [ ] get_user_id
+- [ ] is_member_in_groups
+- [ ] list_group_memberships
+- [ ] list_group_memberships_for_member
+- [ ] list_groups
+- [ ] list_users
+- [ ] update_group
+- [ ] update_user
 </details>
 
 ## iot
@@ -6724,7 +6750,6 @@
 - health
 - healthlake
 - honeycode
-- identitystore
 - imagebuilder
 - importexport
 - inspector

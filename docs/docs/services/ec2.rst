@@ -403,7 +403,7 @@ ec2
 - [X] describe_vpc_endpoint_services
   Return info on services to which you can create a VPC endpoint.
 
-        Currently only the default endpoing services are returned.  When
+        Currently only the default endpoint services are returned.  When
         create_vpc_endpoint_service_configuration() is implemented, a
         list of those private endpoints would be kept and when this API
         is invoked, those private endpoints would be added to the list of
