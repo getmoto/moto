@@ -1,5 +1,5 @@
 """IdentityStoreBackend class with methods for supported APIs."""
-import uuid
+from  moto.moto_api._internal import mock_random
 
 from moto.core import BaseBackend, BackendDict
 
@@ -14,7 +14,7 @@ class IdentityStoreBackend(BaseBackend):
     # add methods from here
 
     def create_group(self, identity_store_id, display_name, description):
-        group_id = str(uuid.uuid4())
+        group_id = str(mock_random.uuid4())
         group_dict = {
             "GroupId": group_id,
             "IdentityStoreId": identity_store_id,
