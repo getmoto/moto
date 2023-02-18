@@ -1181,6 +1181,13 @@ class User(CloudFormationModel):
     def created_iso_8601(self):
         return iso_8601_datetime_with_milliseconds(self.create_date)
 
+    @property
+    def password_last_used_iso_8601(self):
+        if self.password_last_used is not None:
+            return iso_8601_datetime_with_milliseconds(self.password_last_used)
+        else:
+            return None
+
     def get_policy(self, policy_name):
         policy_json = None
         try:
