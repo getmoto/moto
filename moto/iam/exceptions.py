@@ -43,7 +43,7 @@ class MalformedCertificate(RESTError):
 class MalformedPolicyDocument(RESTError):
     code = 400
 
-    def __init__(self, message=""):
+    def __init__(self, message: str = ""):
         super().__init__(
             "MalformedPolicyDocument",
             message,

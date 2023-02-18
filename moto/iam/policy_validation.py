@@ -513,10 +513,10 @@ class BaseIAMPolicyValidator:
 
 
 class IAMPolicyDocumentValidator(BaseIAMPolicyValidator):
-    def __init__(self, policy_document):
+    def __init__(self, policy_document: str):
         super().__init__(policy_document)
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         try:
             self._validate_resource_exist()
