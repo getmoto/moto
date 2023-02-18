@@ -1,5 +1,5 @@
 """IdentityStoreBackend class with methods for supported APIs."""
-from  moto.moto_api._internal import mock_random
+from moto.moto_api._internal import mock_random
 
 from moto.core import BaseBackend, BackendDict
 
