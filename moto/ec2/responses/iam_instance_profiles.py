@@ -1,8 +1,8 @@
-from moto.core.responses import BaseResponse
+from ._base_response import EC2BaseResponse
 
 
-class IamInstanceProfiles(BaseResponse):
-    def associate_iam_instance_profile(self):
+class IamInstanceProfiles(EC2BaseResponse):
+    def associate_iam_instance_profile(self) -> str:
         instance_id = self._get_param("InstanceId")
         iam_instance_profile_name = self._get_param("IamInstanceProfile.Name")
         iam_instance_profile_arn = self._get_param("IamInstanceProfile.Arn")
@@ -12,7 +12,7 @@ class IamInstanceProfiles(BaseResponse):
         template = self.response_template(IAM_INSTANCE_PROFILE_RESPONSE)
         return template.render(iam_association=iam_association, state="associating")
 
-    def describe_iam_instance_profile_associations(self):
+    def describe_iam_instance_profile_associations(self) -> str:
         association_ids = self._get_multi_param("AssociationId")
         filters = self._get_object_map("Filter")
         max_items = self._get_param("MaxItems")
@@ -26,7 +26,7 @@ class IamInstanceProfiles(BaseResponse):
         template = self.response_template(DESCRIBE_IAM_INSTANCE_PROFILE_RESPONSE)
         return template.render(iam_associations=iam_associations, next_token=next_token)
 
-    def disassociate_iam_instance_profile(self):
+    def disassociate_iam_instance_profile(self) -> str:
         association_id = self._get_param("AssociationId")
         iam_association = self.ec2_backend.disassociate_iam_instance_profile(
             association_id
@@ -34,7 +34,7 @@ class IamInstanceProfiles(BaseResponse):
         template = self.response_template(IAM_INSTANCE_PROFILE_RESPONSE)
         return template.render(iam_association=iam_association, state="disassociating")
 
-    def replace_iam_instance_profile_association(self):
+    def replace_iam_instance_profile_association(self) -> str:
         association_id = self._get_param("AssociationId")
         iam_instance_profile_name = self._get_param("IamInstanceProfile.Name")
         iam_instance_profile_arn = self._get_param("IamInstanceProfile.Arn")

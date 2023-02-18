@@ -32,7 +32,7 @@ def test_create_with_tags():
         MaxEntries=2,
         AddressFamily="?",
         TagSpecifications=[
-            {"ResourceType": "", "Tags": [{"Key": "key1", "Value": "val1"}]}
+            {"ResourceType": "prefix-list", "Tags": [{"Key": "key1", "Value": "val1"}]}
         ],
     )["PrefixList"]
     prefix_list.should.have.key("PrefixListId").match("pl-[a-z0-9]+")

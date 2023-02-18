@@ -1,8 +1,8 @@
-from moto.core.responses import BaseResponse
+from ._base_response import EC2BaseResponse
 
 
-class General(BaseResponse):
-    def get_console_output(self):
+class General(EC2BaseResponse):
+    def get_console_output(self) -> str:
         instance_id = self._get_param("InstanceId")
         if not instance_id:
             # For compatibility with boto.

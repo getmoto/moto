@@ -148,6 +148,12 @@ class _VersionedKeyStore(dict):
         elif not isinstance(list_, list):
             list_ = [list_]
 
+        for existing_version in self.getlist(key, []):
+            # Dispose of any FakeKeys that we will not keep
+            # We should only have FakeKeys here - but we're checking hasattr to be sure
+            if existing_version not in list_ and hasattr(existing_version, "dispose"):
+                existing_version.dispose()
+
         super().__setitem__(key, list_)
 
     def _iteritems(self):

@@ -4,7 +4,7 @@ from ._base_response import EC2BaseResponse
 
 
 class TagResponse(EC2BaseResponse):
-    def create_tags(self):
+    def create_tags(self) -> str:
         resource_ids = self._get_multi_param("ResourceId")
         validate_resource_ids(resource_ids)
         self.ec2_backend.do_resources_exist(resource_ids)
@@ -15,7 +15,7 @@ class TagResponse(EC2BaseResponse):
         self.ec2_backend.create_tags(resource_ids, tags)
         return CREATE_RESPONSE
 
-    def delete_tags(self):
+    def delete_tags(self) -> str:
         resource_ids = self._get_multi_param("ResourceId")
         validate_resource_ids(resource_ids)
         tags = tags_from_query_string(self.querystring)
@@ -25,7 +25,7 @@ class TagResponse(EC2BaseResponse):
         self.ec2_backend.delete_tags(resource_ids, tags)
         return DELETE_RESPONSE
 
-    def describe_tags(self):
+    def describe_tags(self) -> str:
         filters = self._filters_from_querystring()
 
         self.error_on_dryrun()

@@ -339,11 +339,13 @@ def test_get_table_versions():
     for n, ver in enumerate(vers):
         n = str(n + 1)
         ver["VersionId"].should.equal(n)
+        ver["Table"]["VersionId"].should.equal(n)
         ver["Table"]["Name"].should.equal(table_name)
         ver["Table"]["StorageDescriptor"].should.equal(
             version_inputs[n]["StorageDescriptor"]
         )
         ver["Table"]["PartitionKeys"].should.equal(version_inputs[n]["PartitionKeys"])
+        ver["Table"].should.have.key("UpdateTime")
 
     response = helpers.get_table_version(client, database_name, table_name, "3")
     ver = response["TableVersion"]

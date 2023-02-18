@@ -3,11 +3,11 @@ from ._base_response import EC2BaseResponse
 
 
 class ElasticIPAddresses(EC2BaseResponse):
-    def allocate_address(self):
+    def allocate_address(self) -> str:
         domain = self._get_param("Domain", if_none=None)
         reallocate_address = self._get_param("Address", if_none=None)
-        tags = self._get_multi_param("TagSpecification")
-        tags = add_tag_specification(tags)
+        tag_param = self._get_multi_param("TagSpecification")
+        tags = add_tag_specification(tag_param)
 
         self.error_on_dryrun()
 
@@ -20,7 +20,7 @@ class ElasticIPAddresses(EC2BaseResponse):
         template = self.response_template(ALLOCATE_ADDRESS_RESPONSE)
         return template.render(address=address)
 
-    def associate_address(self):
+    def associate_address(self) -> str:
         instance = eni = None
 
         if "InstanceId" in self.querystring:
@@ -70,7 +70,7 @@ class ElasticIPAddresses(EC2BaseResponse):
         template = self.response_template(ASSOCIATE_ADDRESS_RESPONSE)
         return template.render(address=eip)
 
-    def describe_addresses(self):
+    def describe_addresses(self) -> str:
         self.error_on_dryrun()
         allocation_ids = self._get_multi_param("AllocationId")
         public_ips = self._get_multi_param("PublicIp")
@@ -81,7 +81,7 @@ class ElasticIPAddresses(EC2BaseResponse):
         template = self.response_template(DESCRIBE_ADDRESS_RESPONSE)
         return template.render(addresses=addresses)
 
-    def disassociate_address(self):
+    def disassociate_address(self) -> str:
         if (
             "PublicIp" not in self.querystring
             and "AssociationId" not in self.querystring
@@ -102,7 +102,7 @@ class ElasticIPAddresses(EC2BaseResponse):
 
         return self.response_template(DISASSOCIATE_ADDRESS_RESPONSE).render()
 
-    def release_address(self):
+    def release_address(self) -> str:
         if (
             "PublicIp" not in self.querystring
             and "AllocationId" not in self.querystring

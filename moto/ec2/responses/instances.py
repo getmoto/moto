@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.exceptions import (
     MissingParameterError,
@@ -11,7 +12,7 @@ from ._base_response import EC2BaseResponse
 
 
 class InstanceResponse(EC2BaseResponse):
-    def describe_instances(self):
+    def describe_instances(self) -> str:
         self.error_on_dryrun()
         filter_dict = self._filters_from_querystring()
         instance_ids = self._get_multi_param("InstanceId")
@@ -44,7 +45,7 @@ class InstanceResponse(EC2BaseResponse):
             .replace("False", "false")
         )
 
-    def run_instances(self):
+    def run_instances(self) -> str:
         min_count = int(self._get_param("MinCount", if_none="1"))
         image_id = self._get_param("ImageId")
         owner_id = self._get_param("OwnerId")
@@ -108,7 +109,7 @@ class InstanceResponse(EC2BaseResponse):
             account_id=self.current_account, reservation=new_reservation
         )
 
-    def terminate_instances(self):
+    def terminate_instances(self) -> str:
         instance_ids = self._get_multi_param("InstanceId")
 
         self.error_on_dryrun()
@@ -126,7 +127,7 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_TERMINATE_INSTANCES)
         return template.render(instances=instances)
 
-    def reboot_instances(self):
+    def reboot_instances(self) -> str:
         instance_ids = self._get_multi_param("InstanceId")
 
         self.error_on_dryrun()
@@ -135,7 +136,7 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_REBOOT_INSTANCES)
         return template.render(instances=instances)
 
-    def stop_instances(self):
+    def stop_instances(self) -> str:
         instance_ids = self._get_multi_param("InstanceId")
 
         self.error_on_dryrun()
@@ -144,7 +145,7 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_STOP_INSTANCES)
         return template.render(instances=instances)
 
-    def start_instances(self):
+    def start_instances(self) -> str:
         instance_ids = self._get_multi_param("InstanceId")
         self.error_on_dryrun()
 
@@ -152,7 +153,9 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_START_INSTANCES)
         return template.render(instances=instances)
 
-    def _get_list_of_dict_params(self, param_prefix, _dct):
+    def _get_list_of_dict_params(
+        self, param_prefix: str, _dct: Dict[str, Any]
+    ) -> List[Any]:
         """
         Simplified version of _get_dict_param
         Allows you to pass in a custom dict instead of using self.querystring by default
@@ -163,7 +166,7 @@ class InstanceResponse(EC2BaseResponse):
                 params.append(value)
         return params
 
-    def describe_instance_status(self):
+    def describe_instance_status(self) -> str:
         instance_ids = self._get_multi_param("InstanceId")
         include_all_instances = self._get_param("IncludeAllInstances") == "true"
         filters = self._get_list_prefix("Filter")
@@ -179,7 +182,7 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)
 
-    def describe_instance_types(self):
+    def describe_instance_types(self) -> str:
         instance_type_filters = self._get_multi_param("InstanceType")
         filter_dict = self._filters_from_querystring()
         instance_types = self.ec2_backend.describe_instance_types(
@@ -188,7 +191,7 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPES)
         return template.render(instance_types=instance_types)
 
-    def describe_instance_type_offerings(self):
+    def describe_instance_type_offerings(self) -> str:
         location_type_filters = self._get_param("LocationType")
         filter_dict = self._filters_from_querystring()
         offerings = self.ec2_backend.describe_instance_type_offerings(
@@ -197,7 +200,7 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS)
         return template.render(instance_type_offerings=offerings)
 
-    def describe_instance_attribute(self):
+    def describe_instance_attribute(self) -> str:
         # TODO this and modify below should raise IncorrectInstanceState if
         # instance not in stopped state
         attribute = self._get_param("Attribute")
@@ -213,7 +216,7 @@ class InstanceResponse(EC2BaseResponse):
 
         return template.render(instance=instance, attribute=attribute, value=value)
 
-    def describe_instance_credit_specifications(self):
+    def describe_instance_credit_specifications(self) -> str:
         instance_ids = self._get_multi_param("InstanceId")
         instance = self.ec2_backend.describe_instance_credit_specifications(
             instance_ids
@@ -221,7 +224,7 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_DESCRIBE_INSTANCE_CREDIT_SPECIFICATIONS)
         return template.render(instances=instance)
 
-    def modify_instance_attribute(self):
+    def modify_instance_attribute(self) -> str:
         handlers = [
             self._attribute_value_handler,
             self._dot_value_instance_attribute_handler,
@@ -241,7 +244,7 @@ class InstanceResponse(EC2BaseResponse):
         )
         raise NotImplementedError(msg)
 
-    def _block_device_mapping_handler(self):
+    def _block_device_mapping_handler(self) -> Optional[str]:
         """
         Handles requests which are generated by code similar to:
 
@@ -286,8 +289,9 @@ class InstanceResponse(EC2BaseResponse):
 
         if mapping_counter > 1:
             return EC2_MODIFY_INSTANCE_ATTRIBUTE
+        return None
 
-    def _dot_value_instance_attribute_handler(self):
+    def _dot_value_instance_attribute_handler(self) -> Optional[str]:
         attribute_key = None
         for key, value in self.querystring.items():
             if ".Value" in key:
@@ -295,11 +299,11 @@ class InstanceResponse(EC2BaseResponse):
                 break
 
         if not attribute_key:
-            return
+            return None
 
         self.error_on_dryrun()
 
-        value = self.querystring.get(attribute_key)[0]
+        value = self.querystring.get(attribute_key)[0]  # type: ignore
         normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
         instance_id = self._get_param("InstanceId")
         self.ec2_backend.modify_instance_attribute(
@@ -307,11 +311,11 @@ class InstanceResponse(EC2BaseResponse):
         )
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
-    def _attribute_value_handler(self):
+    def _attribute_value_handler(self) -> Optional[str]:
         attribute_key = self._get_param("Attribute")
 
         if attribute_key is None:
-            return
+            return None
 
         self.error_on_dryrun()
 
@@ -323,11 +327,11 @@ class InstanceResponse(EC2BaseResponse):
         )
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
-    def _security_grp_instance_attribute_handler(self):
+    def _security_grp_instance_attribute_handler(self) -> str:
         new_security_grp_list = []
         for key in self.querystring:
             if "GroupId." in key:
-                new_security_grp_list.append(self.querystring.get(key)[0])
+                new_security_grp_list.append(self.querystring.get(key)[0])  # type: ignore
 
         instance_id = self._get_param("InstanceId")
         self.error_on_dryrun()
@@ -337,12 +341,12 @@ class InstanceResponse(EC2BaseResponse):
         )
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
-    def _parse_block_device_mapping(self):
+    def _parse_block_device_mapping(self) -> List[Dict[str, Any]]:
         device_mappings = self._get_list_prefix("BlockDeviceMapping")
         mappings = []
         for device_mapping in device_mappings:
             self._validate_block_device_mapping(device_mapping)
-            device_template = deepcopy(BLOCK_DEVICE_MAPPING_TEMPLATE)
+            device_template: Dict[str, Any] = deepcopy(BLOCK_DEVICE_MAPPING_TEMPLATE)
             device_template["VirtualName"] = device_mapping.get("virtual_name")
             device_template["DeviceName"] = device_mapping.get("device_name")
             device_template["Ebs"]["SnapshotId"] = device_mapping.get(
@@ -368,7 +372,7 @@ class InstanceResponse(EC2BaseResponse):
         return mappings
 
     @staticmethod
-    def _validate_block_device_mapping(device_mapping):
+    def _validate_block_device_mapping(device_mapping: Dict[str, Any]) -> None:  # type: ignore[misc]
 
         from botocore import __version__ as botocore_version
 
@@ -393,7 +397,7 @@ class InstanceResponse(EC2BaseResponse):
             raise MissingParameterError("size or snapshotId")
 
     @staticmethod
-    def _convert_to_bool(bool_str):
+    def _convert_to_bool(bool_str: Any) -> bool:  # type: ignore[misc]
         if isinstance(bool_str, bool):
             return bool_str
 

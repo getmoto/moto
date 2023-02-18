@@ -4,7 +4,7 @@ from ._base_response import EC2BaseResponse
 
 
 class ElasticNetworkInterfaces(EC2BaseResponse):
-    def create_network_interface(self):
+    def create_network_interface(self) -> str:
         subnet_id = self._get_param("SubnetId")
         private_ip_address = self._get_param("PrivateIpAddress")
         private_ip_addresses = self._get_multi_param("PrivateIpAddresses")
@@ -14,8 +14,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         groups = self._get_multi_param("SecurityGroupId")
         subnet = self.ec2_backend.get_subnet(subnet_id)
         description = self._get_param("Description")
-        tags = self._get_multi_param("TagSpecification")
-        tags = add_tag_specification(tags)
+        tags = add_tag_specification(self._get_multi_param("TagSpecification"))
 
         self.error_on_dryrun()
 
@@ -33,7 +32,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
         return template.render(eni=eni)
 
-    def delete_network_interface(self):
+    def delete_network_interface(self) -> str:
         eni_id = self._get_param("NetworkInterfaceId")
 
         self.error_on_dryrun()
@@ -42,7 +41,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         template = self.response_template(DELETE_NETWORK_INTERFACE_RESPONSE)
         return template.render()
 
-    def describe_network_interface_attribute(self):
+    def describe_network_interface_attribute(self) -> str:
         eni_id = self._get_param("NetworkInterfaceId")
         attribute = self._get_param("Attribute")
 
@@ -70,7 +69,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
             raise InvalidParameterValueErrorUnknownAttribute(attribute)
         return template.render(eni=eni)
 
-    def describe_network_interfaces(self):
+    def describe_network_interfaces(self) -> str:
         eni_ids = self._get_multi_param("NetworkInterfaceId")
         filters = self._filters_from_querystring()
 
@@ -80,7 +79,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
         return template.render(enis=enis)
 
-    def attach_network_interface(self):
+    def attach_network_interface(self) -> str:
         eni_id = self._get_param("NetworkInterfaceId")
         instance_id = self._get_param("InstanceId")
         device_index = self._get_param("DeviceIndex")
@@ -93,7 +92,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         template = self.response_template(ATTACH_NETWORK_INTERFACE_RESPONSE)
         return template.render(attachment_id=attachment_id)
 
-    def detach_network_interface(self):
+    def detach_network_interface(self) -> str:
         attachment_id = self._get_param("AttachmentId")
 
         self.error_on_dryrun()
@@ -102,7 +101,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         template = self.response_template(DETACH_NETWORK_INTERFACE_RESPONSE)
         return template.render()
 
-    def modify_network_interface_attribute(self):
+    def modify_network_interface_attribute(self) -> str:
         eni_id = self._get_param("NetworkInterfaceId")
         group_ids = self._get_multi_param("SecurityGroupId")
         source_dest_check = get_attribute_value("SourceDestCheck", self.querystring)
@@ -115,28 +114,28 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         )
         return MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE
 
-    def reset_network_interface_attribute(self):
+    def reset_network_interface_attribute(self) -> str:
         self.error_on_dryrun()
 
         raise NotImplementedError(
             "ElasticNetworkInterfaces(AmazonVPC).reset_network_interface_attribute is not yet implemented"
         )
 
-    def assign_private_ip_addresses(self):
+    def assign_private_ip_addresses(self) -> str:
         eni_id = self._get_param("NetworkInterfaceId")
         secondary_ips_count = self._get_int_param("SecondaryPrivateIpAddressCount", 0)
         eni = self.ec2_backend.assign_private_ip_addresses(eni_id, secondary_ips_count)
         template = self.response_template(ASSIGN_PRIVATE_IP_ADDRESSES)
         return template.render(eni=eni)
 
-    def unassign_private_ip_addresses(self):
+    def unassign_private_ip_addresses(self) -> str:
         eni_id = self._get_param("NetworkInterfaceId")
         private_ip_address = self._get_multi_param("PrivateIpAddress")
         eni = self.ec2_backend.unassign_private_ip_addresses(eni_id, private_ip_address)
         template = self.response_template(UNASSIGN_PRIVATE_IP_ADDRESSES)
         return template.render(eni=eni)
 
-    def assign_ipv6_addresses(self):
+    def assign_ipv6_addresses(self) -> str:
         eni_id = self._get_param("NetworkInterfaceId")
         ipv6_count = self._get_int_param("Ipv6AddressCount", 0)
         ipv6_addresses = self._get_multi_param("Ipv6Addresses")
@@ -144,7 +143,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         template = self.response_template(ASSIGN_IPV6_ADDRESSES)
         return template.render(eni=eni)
 
-    def unassign_ipv6_addresses(self):
+    def unassign_ipv6_addresses(self) -> str:
         eni_id = self._get_param("NetworkInterfaceId")
         ips = self._get_multi_param("Ipv6Addresses")
         eni = self.ec2_backend.unassign_ipv6_addresses(eni_id, ips)

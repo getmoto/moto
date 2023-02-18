@@ -3,7 +3,7 @@ from ._base_response import EC2BaseResponse
 
 
 class FlowLogs(EC2BaseResponse):
-    def create_flow_logs(self):
+    def create_flow_logs(self) -> str:
         resource_type = self._get_param("ResourceType")
         resource_ids = self._get_multi_param("ResourceId")
         traffic_type = self._get_param("TrafficType")
@@ -15,8 +15,7 @@ class FlowLogs(EC2BaseResponse):
         max_aggregation_interval = self._get_param("MaxAggregationInterval")
         validate_resource_ids(resource_ids)
 
-        tags = self._parse_tag_specification()
-        tags = tags.get("vpc-flow-log", {})
+        tags = self._parse_tag_specification().get("vpc-flow-log", {})
 
         self.error_on_dryrun()
 
@@ -36,7 +35,7 @@ class FlowLogs(EC2BaseResponse):
         template = self.response_template(CREATE_FLOW_LOGS_RESPONSE)
         return template.render(flow_logs=flow_logs, errors=errors)
 
-    def describe_flow_logs(self):
+    def describe_flow_logs(self) -> str:
         flow_log_ids = self._get_multi_param("FlowLogId")
         filters = self._filters_from_querystring()
         flow_logs = self.ec2_backend.describe_flow_logs(flow_log_ids, filters)
@@ -46,7 +45,7 @@ class FlowLogs(EC2BaseResponse):
         template = self.response_template(DESCRIBE_FLOW_LOGS_RESPONSE)
         return template.render(flow_logs=flow_logs)
 
-    def delete_flow_logs(self):
+    def delete_flow_logs(self) -> str:
         flow_log_ids = self._get_multi_param("FlowLogId")
 
         self.error_on_dryrun()
