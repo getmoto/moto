@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.3
 -----
-Docker Digest for 4.1.3: <autopopulateddigest>
+Docker Digest for 4.1.3: _sha256:3139cdae44d5da35d92d9e385cb878581eef8df3514cbda5cbc3e103488095a7_
 
     New Services:
         * IdentityStore:
