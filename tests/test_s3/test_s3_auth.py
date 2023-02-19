@@ -52,6 +52,11 @@ def test_head_bucket_with_correct_credentials():
         aws_secret_access_key=iam_keys["SecretAccessKey"],
     )
 
+    # Verify we can make calls that contain a querystring
+    # Specifically, verify that we are able to build/match the AWS signature for a URL with a querystring
+    s3.get_bucket_location(Bucket="mock_bucket")
+    s3.list_objects_v2(Bucket="mock_bucket")
+
 
 @set_initial_no_auth_action_count(4)
 @mock_s3
