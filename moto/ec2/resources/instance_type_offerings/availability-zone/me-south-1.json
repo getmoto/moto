@@ -552,6 +552,46 @@
   "Location": "me-south-1a"
  },
  {
+  "InstanceType": "r6i.12xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "r6i.16xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "r6i.24xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "r6i.2xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "r6i.32xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "r6i.4xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "r6i.8xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "r6i.large",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "r6i.metal",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "r6i.xlarge",
+  "Location": "me-south-1a"
+ },
+ {
   "InstanceType": "t3.2xlarge",
   "Location": "me-south-1a"
  },
@@ -1176,6 +1216,46 @@
   "Location": "me-south-1b"
  },
  {
+  "InstanceType": "r6i.12xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "r6i.16xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "r6i.24xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "r6i.2xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "r6i.32xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "r6i.4xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "r6i.8xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "r6i.large",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "r6i.metal",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "r6i.xlarge",
+  "Location": "me-south-1b"
+ },
+ {
   "InstanceType": "t3.2xlarge",
   "Location": "me-south-1b"
  },
@@ -1797,6 +1877,46 @@
  },
  {
   "InstanceType": "r5d.xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "r6i.12xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "r6i.16xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "r6i.24xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "r6i.2xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "r6i.32xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "r6i.4xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "r6i.8xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "r6i.large",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "r6i.metal",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "r6i.xlarge",
   "Location": "me-south-1c"
  },
  {
