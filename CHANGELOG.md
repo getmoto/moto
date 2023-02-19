@@ -2,6 +2,21 @@ Moto Changelog
 ==============
 
 
+4.1.3
+-----
+Docker Digest for 4.1.3: <autopopulateddigest>
+
+    New Services:
+        * IdentityStore:
+            * create_group()
+
+    Miscellaneous:
+        * DynamoDB: create_table() now deals correctly with non-key attributes supplied as part of the KeySchema
+        * Glue: get_partitions() now supports nano-second precision when filtering timestamps
+        * Glue: get_table_version() now returns the Table.VersionId and Table.UpdateTime-attributes
+        * Transcribe: start_transcription_job() now supports the IdentifyMultipleLanguages-parameter
+
+
 4.1.2
 -----
 Docker Digest for 4.1.2: _sha256:742bd95faadb80133aa7082ca6f4d1d71af2f4802833e92348b082b11ec8d4ed_

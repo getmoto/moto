@@ -140,7 +140,6 @@ glue
         Expression caveats:
 
         - Column names must consist of UPPERCASE, lowercase, dots and underscores only.
-        - Nanosecond expressions on timestamp columns are rounded to microseconds.
         - Literal dates and timestamps must be valid, i.e. no support for February 31st.
         - LIKE expressions are converted to Python regexes, escaping special characters.
           Only % and _ wildcards are supported, and SQL escaping using [] does not work.
@@ -244,7 +243,7 @@ glue
         
 
 - [ ] update_source_control_from_job
-- [ ] update_table
+- [X] update_table
 - [ ] update_trigger
 - [ ] update_user_defined_function
 - [ ] update_workflow
