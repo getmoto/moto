@@ -55,7 +55,8 @@ def test_describe_instance_type_offering_filter_by_zone():
 
     offerings.should.have.key("InstanceTypeOfferings")
     offerings = offerings["InstanceTypeOfferings"]
-    offerings.should.have.length_of(595)
+    # Exact number of offerings changes quite often, but it's a lot
+    len(offerings).should.be.greater_than(500)
     assert all([o["LocationType"] == "availability-zone" for o in offerings])
     assert all([o["Location"] == "us-east-1c" for o in offerings])
     assert any([o["InstanceType"] == "a1.2xlarge" for o in offerings])

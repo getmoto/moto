@@ -444,6 +444,38 @@
   "Location": "sa-east-1a"
  },
  {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
   "InstanceType": "inf1.24xlarge",
   "Location": "sa-east-1a"
  },
@@ -1248,6 +1280,10 @@
   "Location": "sa-east-1a"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sa-east-1a"
  },
@@ -1737,6 +1773,38 @@
  },
  {
   "InstanceType": "i3en.xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
   "Location": "sa-east-1b"
  },
  {
@@ -2304,6 +2372,10 @@
   "Location": "sa-east-1b"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sa-east-1b"
  },
@@ -2765,6 +2837,38 @@
  },
  {
   "InstanceType": "i3en.xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
   "Location": "sa-east-1c"
  },
  {

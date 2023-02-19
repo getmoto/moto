@@ -444,6 +444,38 @@
   "Location": "sae1-az1"
  },
  {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
+  "Location": "sae1-az1"
+ },
+ {
   "InstanceType": "inf1.24xlarge",
   "Location": "sae1-az1"
  },
@@ -1248,6 +1280,10 @@
   "Location": "sae1-az1"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "sae1-az1"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sae1-az1"
  },
@@ -1737,6 +1773,38 @@
  },
  {
   "InstanceType": "i3en.xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
   "Location": "sae1-az2"
  },
  {
@@ -2304,6 +2372,10 @@
   "Location": "sae1-az2"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "sae1-az2"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sae1-az2"
  },
@@ -2765,6 +2837,38 @@
  },
  {
   "InstanceType": "i3en.xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
   "Location": "sae1-az3"
  },
  {
