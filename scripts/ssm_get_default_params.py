@@ -2,7 +2,6 @@ import boto3
 import json
 import os
 import subprocess
-import sure  # noqa # pylint: disable=unused-import
 import time
 
 from moto.ssm.utils import convert_to_tree

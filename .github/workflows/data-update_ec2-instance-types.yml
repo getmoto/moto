@@ -46,5 +46,5 @@ jobs:
         COMMIT_MESSAGE: 'chore: update EC2 Instance Types'
         COMMIT_NAME: 'Moto Admin'
         COMMIT_EMAIL: 'admin@getmoto.org'
-        PR_BRANCH_NAME: 'chore-update-${PR_ID}'
+        PR_BRANCH_NAME: 'chore-update-ec2-types-${PR_ID}'
         PR_TITLE: 'chore: update EC2 Instance Types'
