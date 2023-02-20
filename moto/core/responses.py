@@ -130,10 +130,14 @@ class ActionAuthenticatorMixin(object):
             ActionAuthenticatorMixin.request_count
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
         ):
+            parsed_url = urlparse(self.uri)  # type: ignore[attr-defined]
+            path = parsed_url.path
+            if parsed_url.query:
+                path += "?" + parsed_url.query
             iam_request = iam_request_cls(
                 account_id=self.current_account,  # type: ignore[attr-defined]
                 method=self.method,  # type: ignore[attr-defined]
-                path=self.path,  # type: ignore[attr-defined]
+                path=path,
                 data=self.data,  # type: ignore[attr-defined]
                 headers=self.headers,  # type: ignore[attr-defined]
             )
