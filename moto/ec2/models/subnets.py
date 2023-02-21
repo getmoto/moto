@@ -197,6 +197,8 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
         return new_ip
 
+    # EFS calls this method as request_ip(str, MountTarget)
+    # So technically it's not just Instances that are stored
     def request_ip(self, ip: str, instance: "Instance") -> None:
         if ipaddress.ip_address(ip) not in self.cidr:
             raise Exception(f"IP does not fall in the subnet CIDR of {self.cidr}")
