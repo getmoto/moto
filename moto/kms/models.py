@@ -363,7 +363,7 @@ class KmsBackend(BaseBackend):
         key_id = self.get_alias_name(key_id)
         key_id = self.get_key_id(key_id)
         if key_id.startswith("alias/"):
-            key_id = self.get_key_id_from_alias(key_id)
+            key_id = self.get_key_id(self.get_key_id_from_alias(key_id))
         return key_id
 
     def alias_exists(self, alias_name):
