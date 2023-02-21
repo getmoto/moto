@@ -1677,6 +1677,10 @@ class RDSBackend(BaseBackend):
         #     "OptionGroupArn": "arn:aws:rds:us-east-1:{account}:og:default:postgres-10"
         # }
         # The CLI does not allow deletion of default groups
+
+        # add region and account-id to construct the arn
+        option_group_kwargs["region"] = self.region_name
+        option_group_kwargs["account_id"] = self.account_id
         option_group = OptionGroup(**option_group_kwargs)
         self.option_groups[option_group_id] = option_group
         return option_group
@@ -2209,7 +2213,15 @@ class RDSBackend(BaseBackend):
 
 
 class OptionGroup(object):
-    def __init__(self, name, engine_name, major_engine_version, description=None):
+    def __init__(
+        self,
+        name,
+        engine_name,
+        major_engine_version,
+        region,
+        account_id,
+        description=None,
+    ):
         self.engine_name = engine_name
         self.major_engine_version = major_engine_version
         self.description = description
@@ -2218,6 +2230,7 @@ class OptionGroup(object):
         self.options = {}
         self.vpcId = "null"
         self.tags = []
+        self.arn = f"arn:aws:rds:{region}:{account_id}:og:{name}"
 
     def to_json(self):
         template = Template(
@@ -2228,7 +2241,8 @@ class OptionGroup(object):
     "AllowsVpcAndNonVpcInstanceMemberships": "{{ option_group.vpc_and_non_vpc_instance_memberships }}",
     "EngineName": "{{ option_group.engine_name }}",
     "Options": [],
-    "OptionGroupName": "{{ option_group.name }}"
+    "OptionGroupName": "{{ option_group.name }},
+    "OptionGroupArn": "{{ option_group.arn }}
 }"""
         )
         return template.render(option_group=self)
@@ -2241,6 +2255,7 @@ class OptionGroup(object):
           <MajorEngineVersion>{{ option_group.major_engine_version }}</MajorEngineVersion>
           <EngineName>{{ option_group.engine_name }}</EngineName>
           <OptionGroupDescription>{{ option_group.description }}</OptionGroupDescription>
+          <OptionGroupArn>{{ option_group.arn }}</OptionGroupArn>
           <Options/>
         </OptionGroup>"""
         )
