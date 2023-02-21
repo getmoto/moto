@@ -168,6 +168,7 @@ class TestS3FileHandleClosures(TestCase):
     @verify_zero_warnings
     def test_overwrite_versioned_upload(self):
         self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
+        self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
 
     @verify_zero_warnings
     def test_multiple_versions_upload(self):
@@ -261,6 +262,21 @@ class TestS3FileHandleClosuresUsingMocks(TestCase):
             )
             version = self.s3.put_object(Bucket="foo", Key="b", Body="s")["VersionId"]
             self.s3.delete_object(Bucket="foo", Key="b", VersionId=version)
+
+    @verify_zero_warnings
+    def test_update_versioned_object__while_looping(self):
+        for _ in (1, 2):
+            with mock_s3():
+                self.s3.create_bucket(Bucket="foo")
+                self.s3.put_bucket_versioning(
+                    Bucket="foo",
+                    VersioningConfiguration={
+                        "Status": "Enabled",
+                        "MFADelete": "Disabled",
+                    },
+                )
+                self.s3.put_object(Bucket="foo", Key="bar", Body="stuff")
+                self.s3.put_object(Bucket="foo", Key="bar", Body="stuff2")
 
 
 def test_verify_key_can_be_copied_after_disposing():
