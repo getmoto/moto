@@ -1,22 +1,24 @@
 import json
+from typing import Any
 from urllib.parse import unquote
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
-from .models import eks_backends
+from .models import eks_backends, EKSBackend
 
 DEFAULT_MAX_RESULTS = 100
 DEFAULT_NEXT_TOKEN = ""
 
 
 class EKSResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="eks")
 
     @property
-    def eks_backend(self):
+    def eks_backend(self) -> EKSBackend:
         return eks_backends[self.current_account][self.region]
 
-    def create_cluster(self):
+    def create_cluster(self) -> TYPE_RESPONSE:
         name = self._get_param("name")
         version = self._get_param("version")
         role_arn = self._get_param("roleArn")
@@ -41,7 +43,7 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps({"cluster": dict(cluster)})
 
-    def create_fargate_profile(self):
+    def create_fargate_profile(self) -> TYPE_RESPONSE:
         fargate_profile_name = self._get_param("fargateProfileName")
         cluster_name = self._get_param("name")
         pod_execution_role_arn = self._get_param("podExecutionRoleArn")
@@ -62,7 +64,7 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
 
-    def create_nodegroup(self):
+    def create_nodegroup(self) -> TYPE_RESPONSE:
         cluster_name = self._get_param("name")
         nodegroup_name = self._get_param("nodegroupName")
         scaling_config = self._get_param("scalingConfig")
@@ -101,14 +103,14 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps({"nodegroup": dict(nodegroup)})
 
-    def describe_cluster(self):
+    def describe_cluster(self) -> TYPE_RESPONSE:
         name = self._get_param("name")
 
         cluster = self.eks_backend.describe_cluster(name=name)
 
         return 200, {}, json.dumps({"cluster": dict(cluster)})
 
-    def describe_fargate_profile(self):
+    def describe_fargate_profile(self) -> TYPE_RESPONSE:
         cluster_name = self._get_param("name")
         fargate_profile_name = self._get_param("fargateProfileName")
 
@@ -117,7 +119,7 @@ class EKSResponse(BaseResponse):
         )
         return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
 
-    def describe_nodegroup(self):
+    def describe_nodegroup(self) -> TYPE_RESPONSE:
         cluster_name = self._get_param("name")
         nodegroup_name = self._get_param("nodegroupName")
 
@@ -127,7 +129,7 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps({"nodegroup": dict(nodegroup)})
 
-    def list_clusters(self):
+    def list_clusters(self) -> TYPE_RESPONSE:
         max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
 
@@ -137,7 +139,7 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps(dict(clusters=clusters, nextToken=next_token))
 
-    def list_fargate_profiles(self):
+    def list_fargate_profiles(self) -> TYPE_RESPONSE:
         cluster_name = self._get_param("name")
         max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
@@ -154,7 +156,7 @@ class EKSResponse(BaseResponse):
             ),
         )
 
-    def list_nodegroups(self):
+    def list_nodegroups(self) -> TYPE_RESPONSE:
         cluster_name = self._get_param("name")
         max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
@@ -165,14 +167,14 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps(dict(nodegroups=nodegroups, nextToken=next_token))
 
-    def delete_cluster(self):
+    def delete_cluster(self) -> TYPE_RESPONSE:
         name = self._get_param("name")
 
         cluster = self.eks_backend.delete_cluster(name=name)
 
         return 200, {}, json.dumps({"cluster": dict(cluster)})
 
-    def delete_fargate_profile(self):
+    def delete_fargate_profile(self) -> TYPE_RESPONSE:
         cluster_name = self._get_param("name")
         fargate_profile_name = self._get_param("fargateProfileName")
 
@@ -182,7 +184,7 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
 
-    def delete_nodegroup(self):
+    def delete_nodegroup(self) -> TYPE_RESPONSE:
         cluster_name = self._get_param("name")
         nodegroup_name = self._get_param("nodegroupName")
 
@@ -192,7 +194,7 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps({"nodegroup": dict(nodegroup)})
 
-    def tags(self, request, full_url, headers):
+    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self.list_tags_for_resource()
@@ -201,25 +203,25 @@ class EKSResponse(BaseResponse):
         if request.method == "DELETE":
             return self.untag_resource()
 
-    def tag_resource(self):
+    def tag_resource(self) -> TYPE_RESPONSE:
         self.eks_backend.tag_resource(
             self._extract_arn_from_path(), self._get_param("tags")
         )
 
         return 200, {}, ""
 
-    def untag_resource(self):
+    def untag_resource(self) -> TYPE_RESPONSE:
         self.eks_backend.untag_resource(
             self._extract_arn_from_path(), self._get_param("tagKeys")
         )
 
         return 200, {}, ""
 
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> TYPE_RESPONSE:
         tags = self.eks_backend.list_tags_for_resource(self._extract_arn_from_path())
         return 200, {}, json.dumps({"tags": tags})
 
-    def _extract_arn_from_path(self):
+    def _extract_arn_from_path(self) -> str:
         # /tags/arn_that_may_contain_a_slash
         path = unquote(self.path)
         return "/".join(path.split("/")[2:])
