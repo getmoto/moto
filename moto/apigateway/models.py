@@ -1015,10 +1015,7 @@ class RestAPI(CloudFormationModel):
         self.binaryMediaTypes = kwargs.get(RestAPI.PROP_BINARY_MEDIA_TYPES) or []
         self.create_date = int(time.time())
         self.api_key_source = kwargs.get("api_key_source") or "HEADER"
-        self.policy = (
-            kwargs.get(RestAPI.PROP_POLICY)
-            or '{"Version": "2012-10-17", "Statement": []}'
-        )
+        self.policy = kwargs.get(RestAPI.PROP_POLICY) or None
         self.endpoint_configuration = kwargs.get("endpoint_configuration") or {
             "types": ["EDGE"]
         }

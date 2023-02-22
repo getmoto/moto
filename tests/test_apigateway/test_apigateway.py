@@ -34,7 +34,6 @@ def test_create_and_get_rest_api():
             "version": "V1",
             "binaryMediaTypes": [],
             "apiKeySource": "HEADER",
-            "policy": '{"Version": "2012-10-17", "Statement": []}',
             "endpointConfiguration": {"types": ["EDGE"]},
             "tags": {},
             "disableExecuteApiEndpoint": True,
