@@ -6,7 +6,7 @@ from boto3 import Session
 from moto.eks.exceptions import InvalidParameterException
 
 
-def get_partition(region):
+def get_partition(region: str) -> str:
     valid_matches = [
         # (region prefix, aws partition)
         ("cn-", "aws-cn"),
@@ -21,7 +21,7 @@ def get_partition(region):
     return "aws"
 
 
-def method_name(use_parent=False):
+def method_name(use_parent: bool = False) -> str:
     """
     Returns the name of the method which called it from the stack in PascalCase.
     If `use_parent` is True, returns the parent of the method which called it instead.
@@ -37,12 +37,12 @@ def method_name(use_parent=False):
     )
 
 
-def validate_role_arn(arn):
+def validate_role_arn(arn: str) -> None:
     valid_role_arn_format = re.compile(
         "arn:(?P<partition>.+):iam::(?P<account_id>[0-9]{12}):role/.+"
     )
     match = valid_role_arn_format.match(arn)
-    valid_partition = match.group("partition") in Session().get_available_partitions()
+    valid_partition = match.group("partition") in Session().get_available_partitions()  # type: ignore
 
     if not all({arn, match, valid_partition}):
-        raise InvalidParameterException("Invalid Role Arn: '" + arn + "'")
+        raise InvalidParameterException("Invalid Role Arn: '" + arn + "'")  # type: ignore
