@@ -1070,6 +1070,8 @@ class RestAPI(CloudFormationModel):
                     self.binaryMediaTypes = [value]
                 if to_path(self.PROP_DISABLE_EXECUTE_API_ENDPOINT) in path:
                     self.disableExecuteApiEndpoint = bool(value)
+                if to_path(self.PROP_POLICY) in path:
+                    self.policy = value
             elif operaton == self.OPERATION_ADD:
                 if to_path(self.PROP_BINARY_MEDIA_TYPES) in path:
                     self.binaryMediaTypes.append(value)

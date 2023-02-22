@@ -52,6 +52,12 @@ def test_update_rest_api():
         {"op": "replace", "path": "/apiKeySource", "value": "AUTHORIZER"},
         {"op": "replace", "path": "/binaryMediaTypes", "value": "image/jpeg"},
         {"op": "replace", "path": "/disableExecuteApiEndpoint", "value": "True"},
+        {
+            "op": "replace",
+            "path": "/policy",
+            "value": '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": '
+            '"execute-api:Invoke", "Resource": ["execute-api:/*"]}]}',
+        },
     ]
 
     response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
@@ -65,6 +71,8 @@ def test_update_rest_api():
             "version": "V1",
             "description": "new-description",
             "apiKeySource": "AUTHORIZER",
+            "policy": '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": '
+            '"execute-api:Invoke", "Resource": ["execute-api:/*"]}]}',
             "endpointConfiguration": {"types": ["EDGE"]},
             "tags": {},
             "disableExecuteApiEndpoint": True,
