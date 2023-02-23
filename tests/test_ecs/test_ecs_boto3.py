@@ -45,12 +45,14 @@ def test_create_cluster_with_setting():
     cluster = client.create_cluster(
         clusterName="test_ecs_cluster",
         settings=[{"name": "containerInsights", "value": "disabled"}],
+        serviceConnectDefaults={"namespace": "ns"},
     )["cluster"]
     cluster["clusterName"].should.equal("test_ecs_cluster")
     cluster["status"].should.equal("ACTIVE")
     cluster.should.have.key("settings").equals(
         [{"name": "containerInsights", "value": "disabled"}]
     )
+    cluster.should.have.key("serviceConnectDefaults").equals({"namespace": "ns"})
 
 
 @mock_ecs

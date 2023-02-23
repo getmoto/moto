@@ -65,6 +65,7 @@ class Cluster(BaseObject, CloudFormationModel):
         capacity_providers: Optional[List[str]] = None,
         default_capacity_provider_strategy: Optional[List[Dict[str, Any]]] = None,
         tags: Optional[List[Dict[str, str]]] = None,
+        service_connect_defaults: Optional[Dict[str, str]] = None,
     ):
         self.active_services_count = 0
         self.arn = f"arn:aws:ecs:{region_name}:{account_id}:cluster/{cluster_name}"
@@ -74,11 +75,14 @@ class Cluster(BaseObject, CloudFormationModel):
         self.running_tasks_count = 0
         self.status = "ACTIVE"
         self.region_name = region_name
-        self.settings = cluster_settings
+        self.settings = cluster_settings or [
+            {"name": "containerInsights", "value": "disabled"}
+        ]
         self.configuration = configuration
         self.capacity_providers = capacity_providers
         self.default_capacity_provider_strategy = default_capacity_provider_strategy
         self.tags = tags
+        self.service_connect_defaults = service_connect_defaults
 
     @property
     def physical_resource_id(self) -> str:
@@ -962,6 +966,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         configuration: Optional[Dict[str, Any]] = None,
         capacity_providers: Optional[List[str]] = None,
         default_capacity_provider_strategy: Optional[List[Dict[str, Any]]] = None,
+        service_connect_defaults: Optional[Dict[str, str]] = None,
     ) -> Cluster:
         cluster = Cluster(
             cluster_name,
@@ -972,6 +977,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             capacity_providers,
             default_capacity_provider_strategy,
             tags,
+            service_connect_defaults=service_connect_defaults,
         )
         self.clusters[cluster_name] = cluster
         return cluster
@@ -981,15 +987,18 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_name: str,
         cluster_settings: Optional[List[Dict[str, str]]],
         configuration: Optional[Dict[str, Any]],
+        service_connect_defaults: Optional[Dict[str, str]],
     ) -> Cluster:
         """
         The serviceConnectDefaults-parameter is not yet implemented
         """
         cluster = self._get_cluster(cluster_name)
-        if cluster_settings:
+        if cluster_settings is not None:
             cluster.settings = cluster_settings
-        if configuration:
+        if configuration is not None:
             cluster.configuration = configuration
+        if service_connect_defaults is not None:
+            cluster.service_connect_defaults = service_connect_defaults
         return cluster
 
     def put_cluster_capacity_providers(
