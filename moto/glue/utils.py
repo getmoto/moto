@@ -353,7 +353,8 @@ class PartitionFilter:
             return True
 
         warnings.warn("Expression filtering is experimental")
+        versions = list(self.fake_table.versions.values())
         return expression.eval(
-            part_keys=self.fake_table.versions[-1].get("PartitionKeys", []),
+            part_keys=versions[-1].get("PartitionKeys", []),
             part_input=fake_partition.partition_input,
         )
