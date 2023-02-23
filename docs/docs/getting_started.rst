@@ -308,9 +308,11 @@ This will ensure that the boto3 requests are still mocked.
 
 Other caveats
 ~~~~~~~~~~~~~
-For Tox, Travis CI, and other build systems, you might need to also perform a `touch ~/.aws/credentials`
-command before running the tests. As long as that file is present (empty preferably) and the environment
-variables above are set, you should be good to go.
+For Tox, Travis CI, Github Actions, and other build systems, you might need to also create fake AWS credentials. The following command will create the required file with some bogus-credentials:
+
+.. sourcecode:: bash
+
+    mkdir ~/.aws && touch ~/.aws/credentials && echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
 
 .. _unittest: https://docs.python.org/3/library/unittest.html
 .. _pytest: https://pytest.org/en/latest/
