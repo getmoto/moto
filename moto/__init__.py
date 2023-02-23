@@ -91,6 +91,7 @@ mock_glacier = lazy_load(".glacier", "mock_glacier")
 mock_glue = lazy_load(".glue", "mock_glue", boto3_name="glue")
 mock_guardduty = lazy_load(".guardduty", "mock_guardduty")
 mock_iam = lazy_load(".iam", "mock_iam")
+mock_identitystore = lazy_load(".identitystore", "mock_identitystore")
 mock_iot = lazy_load(".iot", "mock_iot")
 mock_iotdata = lazy_load(".iotdata", "mock_iotdata", boto3_name="iot-data")
 mock_kinesis = lazy_load(".kinesis", "mock_kinesis")
@@ -111,7 +112,8 @@ mock_mediastoredata = lazy_load(
     ".mediastoredata", "mock_mediastoredata", boto3_name="mediastore-data"
 )
 mock_meteringmarketplace = lazy_load(".meteringmarketplace", "mock_meteringmarketplace")
-mock_mq = lazy_load(".mq", "mock_mq", boto3_name="mq")
+mock_mq = lazy_load(".mq", "mock_mq")
+mock_neptune = lazy_load(".rds", "mock_rds", boto3_name="neptune")
 mock_opsworks = lazy_load(".opsworks", "mock_opsworks")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
 mock_personalize = lazy_load(".personalize", "mock_personalize")
@@ -124,9 +126,7 @@ mock_redshift = lazy_load(".redshift", "mock_redshift")
 mock_redshiftdata = lazy_load(
     ".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data"
 )
-mock_rekognition = lazy_load(
-    ".rekognition", "mock_rekognition", boto3_name="rekognition"
-)
+mock_rekognition = lazy_load(".rekognition", "mock_rekognition")
 mock_resourcegroups = lazy_load(
     ".resourcegroups", "mock_resourcegroups", boto3_name="resource-groups"
 )
@@ -147,7 +147,7 @@ mock_servicequotas = lazy_load(
 )
 mock_ses = lazy_load(".ses", "mock_ses")
 mock_servicediscovery = lazy_load(".servicediscovery", "mock_servicediscovery")
-mock_signer = lazy_load(".signer", "mock_signer", boto3_name="signer")
+mock_signer = lazy_load(".signer", "mock_signer")
 mock_sns = lazy_load(".sns", "mock_sns")
 mock_sqs = lazy_load(".sqs", "mock_sqs")
 mock_ssm = lazy_load(".ssm", "mock_ssm")
@@ -167,7 +167,6 @@ mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_textract = lazy_load(".textract", "mock_textract")
-mock_identitystore = lazy_load(".identitystore", "mock_identitystore")
 
 
 class MockAll(ContextDecorator):

@@ -5,6 +5,9 @@ from moto.rds.utils import (
     apply_filter,
     merge_filters,
     validate_filters,
+    encode_orderable_db_instance,
+    decode_orderable_db_instance,
+    ORDERABLE_DB_INSTANCE_ENCODING,
 )
 
 
@@ -134,3 +137,65 @@ class TestMergingFilters(object):
         assert len(merged.keys()) == 4
         for key in merged.keys():
             assert merged[key] == ["value1", "value2"]
+
+
+def test_encode_orderable_db_instance():
+    # Data from AWS comes in a specific format. Verify we can encode/decode it to something more compact
+    original = {
+        "Engine": "neptune",
+        "EngineVersion": "1.0.3.0",
+        "DBInstanceClass": "db.r4.2xlarge",
+        "LicenseModel": "amazon-license",
+        "AvailabilityZones": [
+            {"Name": "us-east-1a"},
+            {"Name": "us-east-1b"},
+            {"Name": "us-east-1c"},
+            {"Name": "us-east-1d"},
+            {"Name": "us-east-1e"},
+            {"Name": "us-east-1f"},
+        ],
+        "MultiAZCapable": False,
+        "ReadReplicaCapable": False,
+        "Vpc": True,
+        "SupportsStorageEncryption": True,
+        "StorageType": "aurora",
+        "SupportsIops": False,
+        "SupportsEnhancedMonitoring": False,
+        "SupportsIAMDatabaseAuthentication": True,
+        "SupportsPerformanceInsights": False,
+        "AvailableProcessorFeatures": [],
+        "SupportedEngineModes": ["provisioned"],
+        "SupportsKerberosAuthentication": False,
+        "OutpostCapable": False,
+        "SupportedActivityStreamModes": [],
+        "SupportsGlobalDatabases": False,
+        "SupportsClusters": True,
+        "Support    edNetworkTypes": ["IPV4"],
+    }
+    short = encode_orderable_db_instance(original)
+    decode_orderable_db_instance(short).should.equal(original)
+
+
+def test_encode_orderable_db_instance__short_format():
+    # Verify this works in a random format. We don't know for sure what AWS returns, so it should always work regardless of the input
+    short = {
+        "Engine": "neptune",
+        "EngineVersion": "1.0.3.0",
+        "DBInstanceClass": "db.r4.2xlarge",
+        "LicenseModel": "amazon-license",
+        "SupportsKerberosAuthentication": False,
+        "OutpostCapable": False,
+        "SupportedActivityStreamModes": [],
+        "SupportsGlobalDatabases": False,
+        "SupportsClusters": True,
+        "SupportedNetworkTypes": ["IPV4"],
+    }
+    decode_orderable_db_instance(encode_orderable_db_instance(short)).should.equal(
+        short
+    )
+
+
+def test_verify_encoding_is_unique():
+    len(set(ORDERABLE_DB_INSTANCE_ENCODING.values())).should.equal(
+        len(ORDERABLE_DB_INSTANCE_ENCODING.keys())
+    )

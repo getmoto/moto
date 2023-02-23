@@ -142,8 +142,11 @@ class convert_flask_to_responses_response(object):
         return status, headers, response
 
 
-def iso_8601_datetime_with_milliseconds(value: datetime.datetime) -> str:
-    return value.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+def iso_8601_datetime_with_milliseconds(
+    value: Optional[datetime.datetime] = None,
+) -> str:
+    date_to_use = value or datetime.datetime.now()
+    return date_to_use.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 # Even Python does not support nanoseconds, other languages like Go do (needed for Terraform)
