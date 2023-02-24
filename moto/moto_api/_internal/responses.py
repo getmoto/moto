@@ -1,6 +1,7 @@
 import json
 
 from moto import settings
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionAuthenticatorMixin, BaseResponse
 from typing import Any, Dict, List
@@ -153,14 +154,16 @@ class MotoAPIResponse(BaseResponse):
         request_body_size = int(headers["Content-Length"])
         body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
         body = json.loads(body)
-        query_execution_id = (
-            body["query_execution_id"] if "query_execution_id" in body else None
-        )
-        rows = body["rows"]
-        column_info = body["column_info"] if "column_info" in body else None
-        region = body["region"] if "region" in body else None
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+        region = body.get("region", "us-east-1")
 
-        moto_api_backend.set_athena_result(
-            query_execution_id, rows, column_info, region
-        )
+        for result in body.get("results", []):
+            rows = result["rows"]
+            column_info = result.get("column_info", [])
+            moto_api_backend.set_athena_result(
+                rows=rows,
+                column_info=column_info,
+                account_id=account_id,
+                region=region,
+            )
         return 201, {}, ""
