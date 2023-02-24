@@ -567,6 +567,9 @@ class CognitoIdpUserPool(BaseModel):
 
     def create_id_token(self, client_id: str, username: str) -> Tuple[str, int]:
         extra_data = self.get_user_extra_data_by_client_id(client_id, username)
+        user = self._get_user(username)
+        if len(user.groups) > 0:
+            extra_data["cognito:groups"] = [group.group_name for group in user.groups]
         id_token, expires_in = self.create_jwt(
             client_id, username, "id", extra_data=extra_data
         )
