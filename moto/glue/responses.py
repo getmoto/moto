@@ -349,7 +349,7 @@ class GlueResponse(BaseResponse):
     def get_jobs(self):
         next_token = self._get_param("NextToken")
         max_results = self._get_int_param("MaxResults")
-        jobs, next_token = self.glue_backend.list_jobs(
+        jobs, next_token = self.glue_backend.get_jobs(
             next_token=next_token, max_results=max_results
         )
         return json.dumps(

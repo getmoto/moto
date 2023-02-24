@@ -69,10 +69,10 @@ class GlueBackend(BaseBackend):
             "unique_attribute": "name",
         },
         "get_jobs": {
-            "input_token": "NextToken",
-            "limit_key": "MaxResults",
+            "input_token": "next_token",
+            "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "Name",
+            "unique_attribute": "name",
         },
     }
 
