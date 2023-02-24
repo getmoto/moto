@@ -451,7 +451,7 @@ class KmsResponse(BaseResponse):
             "DestinationEncryptionContext", {}
         )
 
-        self._validate_cmk_id(destination_key_id)
+        self._validate_key_id(destination_key_id)
 
         (
             new_ciphertext_blob,

@@ -3101,7 +3101,7 @@
 
 ## glue
 <details>
-<summary>22% implemented</summary>
+<summary>23% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3166,7 +3166,7 @@
 - [ ] delete_security_configuration
 - [ ] delete_session
 - [X] delete_table
-- [ ] delete_table_version
+- [X] delete_table_version
 - [ ] delete_trigger
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
@@ -3220,8 +3220,8 @@
 - [ ] get_session
 - [ ] get_statement
 - [X] get_table
-- [ ] get_table_version
-- [ ] get_table_versions
+- [X] get_table_version
+- [X] get_table_versions
 - [X] get_tables
 - [X] get_tags
 - [ ] get_trigger

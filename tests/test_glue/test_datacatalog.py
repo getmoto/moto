@@ -385,6 +385,42 @@ def test_get_table_version_invalid_input():
 
 
 @mock_glue
+def test_delete_table_version():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    helpers.create_database(client, database_name)
+
+    table_name = "myfirsttable"
+    version_inputs = {}
+
+    table_input = helpers.create_table_input(database_name, table_name)
+    helpers.create_table(client, database_name, table_name, table_input)
+    version_inputs["1"] = table_input
+
+    columns = [{"Name": "country", "Type": "string"}]
+    table_input = helpers.create_table_input(database_name, table_name, columns=columns)
+    helpers.update_table(client, database_name, table_name, table_input)
+    version_inputs["2"] = table_input
+
+    # Updateing with an identical input should still create a new version
+    helpers.update_table(client, database_name, table_name, table_input)
+    version_inputs["3"] = table_input
+
+    response = helpers.get_table_versions(client, database_name, table_name)
+    vers = response["TableVersions"]
+    vers.should.have.length_of(3)
+
+    client.delete_table_version(
+        DatabaseName=database_name, TableName=table_name, VersionId="2"
+    )
+
+    response = helpers.get_table_versions(client, database_name, table_name)
+    vers = response["TableVersions"]
+    vers.should.have.length_of(2)
+    [v["VersionId"] for v in vers].should.equal(["1", "3"])
+
+
+@mock_glue
 def test_get_table_not_exits():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"

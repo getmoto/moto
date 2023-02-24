@@ -72,13 +72,12 @@ class GlueResponse(BaseResponse):
     def get_table_versions(self):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
-        table = self.glue_backend.get_table(database_name, table_name)
-
+        versions = self.glue_backend.get_table_versions(database_name, table_name)
         return json.dumps(
             {
                 "TableVersions": [
-                    {"Table": table.as_dict(version=n), "VersionId": str(n + 1)}
-                    for n in range(len(table.versions))
+                    {"Table": data, "VersionId": version}
+                    for version, data in versions.items()
                 ]
             }
         )
@@ -86,17 +85,15 @@ class GlueResponse(BaseResponse):
     def get_table_version(self):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
-        table = self.glue_backend.get_table(database_name, table_name)
         ver_id = self.parameters.get("VersionId")
+        return self.glue_backend.get_table_version(database_name, table_name, ver_id)
 
-        return json.dumps(
-            {
-                "TableVersion": {
-                    "Table": table.as_dict(version=ver_id),
-                    "VersionId": ver_id,
-                }
-            }
-        )
+    def delete_table_version(self) -> str:
+        database_name = self.parameters.get("DatabaseName")
+        table_name = self.parameters.get("TableName")
+        version_id = self.parameters.get("VersionId")
+        self.glue_backend.delete_table_version(database_name, table_name, version_id)
+        return "{}"
 
     def get_tables(self):
         database_name = self.parameters.get("DatabaseName")

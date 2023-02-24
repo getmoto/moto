@@ -1,8 +1,9 @@
+import json
 import time
 from collections import OrderedDict
 from datetime import datetime
 import re
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api import state_manager
@@ -174,6 +175,32 @@ class GlueBackend(BaseBackend):
     def update_table(self, database_name, table_name: str, table_input) -> None:
         table = self.get_table(database_name, table_name)
         table.update(table_input)
+
+    def get_table_version(
+        self, database_name: str, table_name: str, ver_id: str
+    ) -> str:
+        table = self.get_table(database_name, table_name)
+
+        return json.dumps(
+            {
+                "TableVersion": {
+                    "Table": table.as_dict(version=ver_id),
+                    "VersionId": ver_id,
+                }
+            }
+        )
+
+    def get_table_versions(
+        self, database_name: str, table_name: str
+    ) -> Dict[str, Dict[str, Any]]:
+        table = self.get_table(database_name, table_name)
+        return {version: table.as_dict(version) for version in table.versions.keys()}
+
+    def delete_table_version(
+        self, database_name: str, table_name: str, version_id: str
+    ) -> None:
+        table = self.get_table(database_name, table_name)
+        table.delete_version(version_id)
 
     def get_partitions(self, database_name, table_name, expression):
         """
@@ -789,33 +816,38 @@ class FakeTable(BaseModel):
         self.partitions = OrderedDict()
         self.created_time = datetime.utcnow()
         self.updated_time = None
-        self.versions = [table_input]
+        self._current_version = 1
+        self.versions: Dict[str, Dict[str, Any]] = {
+            str(self._current_version): table_input
+        }
 
     def update(self, table_input):
-        self.versions.append(table_input)
+        self.versions[str(self._current_version + 1)] = table_input
+        self._current_version += 1
         self.updated_time = datetime.utcnow()
 
     def get_version(self, ver):
         try:
-            if not isinstance(ver, int):
-                # "1" goes to [0]
-                ver = int(ver) - 1
+            int(ver)
         except ValueError as e:
             raise JsonRESTError("InvalidInputException", str(e))
 
         try:
             return self.versions[ver]
-        except IndexError:
+        except KeyError:
             raise VersionNotFoundException()
 
-    def as_dict(self, version=-1):
+    def delete_version(self, version_id):
+        self.versions.pop(version_id)
+
+    def as_dict(self, version=1):
         obj = {
             "DatabaseName": self.database_name,
             "Name": self.name,
             "CreateTime": unix_time(self.created_time),
-            **self.get_version(version),
+            **self.get_version(str(version)),
             # Add VersionId after we get the version-details, just to make sure that it's a valid version (int)
-            "VersionId": str(int(version) + 1),
+            "VersionId": str(version),
         }
         if self.updated_time is not None:
             obj["UpdateTime"] = unix_time(self.updated_time)

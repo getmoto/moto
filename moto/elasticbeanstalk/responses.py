@@ -1,21 +1,21 @@
 from moto.core.responses import BaseResponse
 from moto.core.utils import tags_from_query_string
-from .models import eb_backends
+from .models import eb_backends, EBBackend
 from .exceptions import InvalidParameterValueError
 
 
 class EBResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="elasticbeanstalk")
 
     @property
-    def backend(self):
+    def backend(self) -> EBBackend:
         """
         :rtype: EBBackend
         """
         return eb_backends[self.current_account][self.region]
 
-    def create_application(self):
+    def create_application(self) -> str:
         app = self.backend.create_application(
             application_name=self._get_param("ApplicationName")
         )
@@ -23,11 +23,11 @@ class EBResponse(BaseResponse):
         template = self.response_template(EB_CREATE_APPLICATION)
         return template.render(region_name=self.backend.region_name, application=app)
 
-    def describe_applications(self):
+    def describe_applications(self) -> str:
         template = self.response_template(EB_DESCRIBE_APPLICATIONS)
         return template.render(applications=self.backend.applications.values())
 
-    def create_environment(self):
+    def create_environment(self) -> str:
         application_name = self._get_param("ApplicationName")
         try:
             app = self.backend.applications[application_name]
@@ -47,16 +47,16 @@ class EBResponse(BaseResponse):
         template = self.response_template(EB_CREATE_ENVIRONMENT)
         return template.render(environment=env, region=self.backend.region_name)
 
-    def describe_environments(self):
+    def describe_environments(self) -> str:
         envs = self.backend.describe_environments()
 
         template = self.response_template(EB_DESCRIBE_ENVIRONMENTS)
         return template.render(environments=envs)
 
-    def list_available_solution_stacks(self):
+    def list_available_solution_stacks(self) -> str:
         return EB_LIST_AVAILABLE_SOLUTION_STACKS
 
-    def update_tags_for_resource(self):
+    def update_tags_for_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
         tags_to_add = tags_from_query_string(
             self.querystring, prefix="TagsToAdd.member"
@@ -66,7 +66,7 @@ class EBResponse(BaseResponse):
 
         return EB_UPDATE_TAGS_FOR_RESOURCE
 
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
         tags = self.backend.list_tags_for_resource(resource_arn)
 

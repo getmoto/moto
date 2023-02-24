@@ -1,20 +1,20 @@
 from moto.core.responses import BaseResponse
 from .exceptions import PasswordTooShort, PasswordRequired
-from .models import elasticache_backends
+from .models import elasticache_backends, ElastiCacheBackend
 
 
 class ElastiCacheResponse(BaseResponse):
     """Handler for ElastiCache requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="elasticache")
 
     @property
-    def elasticache_backend(self):
+    def elasticache_backend(self) -> ElastiCacheBackend:
         """Return backend instance specific for this region."""
         return elasticache_backends[self.current_account][self.region]
 
-    def create_user(self):
+    def create_user(self) -> str:
         params = self._get_params()
         user_id = params.get("UserId")
         user_name = params.get("UserName")
@@ -28,24 +28,24 @@ class ElastiCacheResponse(BaseResponse):
             raise PasswordTooShort
         access_string = params.get("AccessString")
         user = self.elasticache_backend.create_user(
-            user_id=user_id,
-            user_name=user_name,
-            engine=engine,
+            user_id=user_id,  # type: ignore[arg-type]
+            user_name=user_name,  # type: ignore[arg-type]
+            engine=engine,  # type: ignore[arg-type]
             passwords=passwords,
-            access_string=access_string,
+            access_string=access_string,  # type: ignore[arg-type]
             no_password_required=no_password_required,
         )
         template = self.response_template(CREATE_USER_TEMPLATE)
         return template.render(user=user)
 
-    def delete_user(self):
+    def delete_user(self) -> str:
         params = self._get_params()
         user_id = params.get("UserId")
-        user = self.elasticache_backend.delete_user(user_id=user_id)
+        user = self.elasticache_backend.delete_user(user_id=user_id)  # type: ignore[arg-type]
         template = self.response_template(DELETE_USER_TEMPLATE)
         return template.render(user=user)
 
-    def describe_users(self):
+    def describe_users(self) -> str:
         params = self._get_params()
         user_id = params.get("UserId")
         users = self.elasticache_backend.describe_users(user_id=user_id)
