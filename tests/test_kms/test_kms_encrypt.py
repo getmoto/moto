@@ -76,6 +76,24 @@ def test_encrypt_using_key_arn():
     kms.encrypt(KeyId=key_details["KeyMetadata"]["Arn"], Plaintext="hello")
 
 
+@mock_kms
+def test_re_encrypt_using_aliases():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key_1_id = client.create_key(Description="key 1")["KeyMetadata"]["KeyId"]
+    key_2_arn = client.create_key(Description="key 2")["KeyMetadata"]["Arn"]
+
+    key_alias = "alias/examplekey"
+    client.create_alias(AliasName=key_alias, TargetKeyId=key_2_arn)
+
+    encrypt_response = client.encrypt(KeyId=key_1_id, Plaintext="data")
+
+    client.re_encrypt(
+        CiphertextBlob=encrypt_response["CiphertextBlob"],
+        DestinationKeyId=key_alias,
+    )
+
+
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
 @mock_kms
 def test_decrypt(plaintext):
