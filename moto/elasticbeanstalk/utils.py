@@ -1,4 +1,6 @@
-def make_arn(region, account_id, resource_type, resource_path):
+def make_arn(
+    region: str, account_id: str, resource_type: str, resource_path: str
+) -> str:
     arn_template = (
         "arn:aws:elasticbeanstalk:{region}:{account_id}:{resource_type}/{resource_path}"
     )
