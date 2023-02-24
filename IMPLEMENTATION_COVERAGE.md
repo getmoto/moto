@@ -2391,7 +2391,7 @@
 
 ## ecs
 <details>
-<summary>80% implemented</summary>
+<summary>78% implemented</summary>
 
 - [X] create_capacity_provider
 - [X] create_cluster
@@ -2402,6 +2402,7 @@
 - [X] delete_capacity_provider
 - [X] delete_cluster
 - [X] delete_service
+- [ ] delete_task_definitions
 - [X] delete_task_set
 - [X] deregister_container_instance
 - [X] deregister_task_definition
@@ -3100,7 +3101,7 @@
 
 ## glue
 <details>
-<summary>21% implemented</summary>
+<summary>22% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3197,7 +3198,7 @@
 - [ ] get_job_bookmark
 - [X] get_job_run
 - [ ] get_job_runs
-- [ ] get_jobs
+- [X] get_jobs
 - [ ] get_mapping
 - [ ] get_ml_task_run
 - [ ] get_ml_task_runs
@@ -6880,6 +6881,7 @@
 - support-app
 - synthetics
 - timestream-query
+- tnb
 - transfer
 - translate
 - voice-id
