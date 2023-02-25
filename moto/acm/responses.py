@@ -144,10 +144,10 @@ class AWSCertificateManagerResponse(BaseResponse):
                 ],
             }
 
-            if self.type == "IMPORTED":
-                cert["ImportedAt"] = datetime_to_epoch(cert_bundle._cert.created_at)
-            elif self.type == "AMAZON_ISSUED":
-                cert["IssuedAt"] = datetime_to_epoch(cert_bundle._cert.created_at)
+            if cert_bundle.type == "IMPORTED":
+                cert["ImportedAt"] = datetime_to_epoch(cert_bundle.created_at)
+            elif cert_bundle.type == "AMAZON_ISSUED":
+                cert["IssuedAt"] = datetime_to_epoch(cert_bundle.created_at)
 
             certs.append(cert)
 

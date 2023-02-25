@@ -13,7 +13,7 @@ from freezegun import freeze_time
 from moto import mock_acm, mock_elb, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest import SkipTest, mock
-
+from datetime import datetime, timedelta
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 
@@ -89,13 +89,37 @@ def test_import_bad_certificate():
 
 
 @mock_acm
+@freeze_time(datetime.utcnow())
 def test_list_certificates():
     client = boto3.client("acm", region_name="eu-central-1")
     issued_arn = _import_cert(client)
     pending_arn = client.request_certificate(DomainName="google.com")["CertificateArn"]
 
-    moto_arn = {"CertificateArn": issued_arn, "DomainName": SERVER_COMMON_NAME}
-    google_arn = {"CertificateArn": pending_arn, "DomainName": "google.com"}
+    moto_arn = {
+        "CertificateArn": issued_arn,
+        "DomainName": SERVER_COMMON_NAME,
+        "Status": "ISSUED",
+        "Type": "IMPORTED",
+        "NotBefore": datetime(2019, 10, 21, 13, 27, 31),
+        "NotAfter": datetime(2049, 12, 31, 13, 27, 34),
+        "CreatedAt": datetime.utcnow(),
+        "KeyAlgorithm": "RSA_2048",
+        "RenewalEligibility": "INELIGIBLE",
+        "ImportedAt": datetime.utcnow(),
+    }
+
+    google_arn = {
+        "CertificateArn": pending_arn,
+        "DomainName": "google.com",
+        "Status": "ISSUED",
+        "Type": "IMPORTED",
+        "NotBefore": datetime.utcnow(),
+        "NotAfter": datetime.utcnow() + timedelta(days=365),
+        "CreatedAt": datetime.utcnow(),
+        "KeyAlgorithm": "RSA_2048",
+        "RenewalEligibility": "INELIGIBLE",
+        "ImportedAt": datetime.utcnow(),
+    }
 
     certs = client.list_certificates()["CertificateSummaryList"]
     certs.should.contain(moto_arn)
