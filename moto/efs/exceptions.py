@@ -30,7 +30,7 @@ class FileSystemNotFound(EFSError):
     def __init__(self, file_system_id: str):
         super().__init__(
             "FileSystemNotFound",
-            f"File system {file_system_id} does not exist.",
+            f"File system '{file_system_id}' does not exist.",
         )
 
 

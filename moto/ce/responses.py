@@ -20,12 +20,14 @@ class CostExplorerResponse(BaseResponse):
         rules = params.get("Rules")
         default_value = params.get("DefaultValue")
         split_charge_rules = params.get("SplitChargeRules")
+        effective_start = params.get("EffectiveStart")
         tags = params.get("ResourceTags")
         (
             cost_category_arn,
             effective_start,
         ) = self.ce_backend.create_cost_category_definition(
             name=name,
+            effective_start=effective_start,
             rule_version=rule_version,
             rules=rules,
             default_value=default_value,
@@ -60,6 +62,7 @@ class CostExplorerResponse(BaseResponse):
     def update_cost_category_definition(self) -> str:
         params = json.loads(self.body)
         cost_category_arn = params.get("CostCategoryArn")
+        effective_start = params.get("EffectiveStart")
         rule_version = params.get("RuleVersion")
         rules = params.get("Rules")
         default_value = params.get("DefaultValue")
@@ -69,6 +72,7 @@ class CostExplorerResponse(BaseResponse):
             effective_start,
         ) = self.ce_backend.update_cost_category_definition(
             cost_category_arn=cost_category_arn,
+            effective_start=effective_start,
             rule_version=rule_version,
             rules=rules,
             default_value=default_value,

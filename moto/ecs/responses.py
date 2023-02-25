@@ -29,6 +29,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         default_capacity_provider_strategy = self._get_param(
             "defaultCapacityProviderStrategy"
         )
+        service_connect_defaults = self._get_param("serviceConnectDefaults")
         if cluster_name is None:
             cluster_name = "default"
         cluster = self.ecs_backend.create_cluster(
@@ -38,6 +39,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             configuration,
             capacity_providers,
             default_capacity_provider_strategy,
+            service_connect_defaults=service_connect_defaults,
         )
         return json.dumps({"cluster": cluster.response_object})
 
@@ -49,7 +51,13 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_name = self._get_param("cluster")
         settings = self._get_param("settings")
         configuration = self._get_param("configuration")
-        cluster = self.ecs_backend.update_cluster(cluster_name, settings, configuration)
+        service_connect_defaults = self._get_param("serviceConnectDefaults")
+        cluster = self.ecs_backend.update_cluster(
+            cluster_name=cluster_name,
+            cluster_settings=settings,
+            configuration=configuration,
+            service_connect_defaults=service_connect_defaults,
+        )
         return json.dumps({"cluster": cluster.response_object})
 
     def put_cluster_capacity_providers(self) -> str:
