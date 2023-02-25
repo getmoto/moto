@@ -69,6 +69,12 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
+        "get_jobs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name, account_id):
@@ -328,6 +334,10 @@ class GlueBackend(BaseBackend):
             return self.jobs[name]
         except KeyError:
             raise JobNotFoundException(name)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_jobs(self):
+        return [job for _, job in self.jobs.items()]
 
     def start_job_run(self, name):
         job = self.get_job(name)
