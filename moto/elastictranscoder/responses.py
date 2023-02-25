@@ -1,18 +1,20 @@
+from typing import Any, Optional
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import elastictranscoder_backends
+from .models import elastictranscoder_backends, ElasticTranscoderBackend
 import json
 import re
 
 
 class ElasticTranscoderResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="elastictranscoder")
 
     @property
-    def elastictranscoder_backend(self):
+    def elastictranscoder_backend(self) -> ElasticTranscoderBackend:
         return elastictranscoder_backends[self.current_account][self.region]
 
-    def pipelines(self, request, full_url, headers):
+    def pipelines(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self.create_pipeline()
@@ -21,7 +23,9 @@ class ElasticTranscoderResponse(BaseResponse):
         else:
             return self.update_pipeline()
 
-    def individual_pipeline(self, request, full_url, headers):
+    def individual_pipeline(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self.read_pipeline()
@@ -30,7 +34,7 @@ class ElasticTranscoderResponse(BaseResponse):
         else:
             return self.update_pipeline()
 
-    def create_pipeline(self):
+    def create_pipeline(self) -> TYPE_RESPONSE:
         name = self._get_param("Name")
         input_bucket = self._get_param("InputBucket")
         output_bucket = self._get_param("OutputBucket")
@@ -65,14 +69,14 @@ class ElasticTranscoderResponse(BaseResponse):
             json.dumps({"Pipeline": pipeline.to_dict(), "Warnings": warnings}),
         )
 
-    def list_pipelines(self):
+    def list_pipelines(self) -> TYPE_RESPONSE:
         return (
             200,
             {},
             json.dumps({"Pipelines": self.elastictranscoder_backend.list_pipelines()}),
         )
 
-    def validate_pipeline_id(self, pipeline_id):
+    def validate_pipeline_id(self, pipeline_id: str) -> Optional[TYPE_RESPONSE]:
         r = "^\\d{13}-\\w{6}$"
         if not re.match(r, pipeline_id):
             msg = f"1 validation error detected: Value '{pipeline_id}' at 'id' failed to satisfy constraint: Member must satisfy regular expression pattern: {r}"
@@ -88,7 +92,7 @@ class ElasticTranscoderResponse(BaseResponse):
                 json.dumps({"message": msg}),
             )
 
-    def read_pipeline(self):
+    def read_pipeline(self) -> TYPE_RESPONSE:
         _id = self.path.rsplit("/", 1)[-1]
         err = self.validate_pipeline_id(_id)
         if err:
@@ -96,7 +100,7 @@ class ElasticTranscoderResponse(BaseResponse):
         pipeline = self.elastictranscoder_backend.read_pipeline(_id)
         return 200, {}, json.dumps({"Pipeline": pipeline.to_dict()})
 
-    def update_pipeline(self):
+    def update_pipeline(self) -> TYPE_RESPONSE:
         _id = self.path.rsplit("/", 1)[-1]
         name = self._get_param("Name")
         input_bucket = self._get_param("InputBucket")
@@ -114,12 +118,12 @@ class ElasticTranscoderResponse(BaseResponse):
             json.dumps({"Pipeline": pipeline.to_dict(), "Warnings": warnings}),
         )
 
-    def delete_pipeline(self):
+    def delete_pipeline(self) -> TYPE_RESPONSE:
         _id = self.path.rsplit("/", 1)[-1]
         self.elastictranscoder_backend.delete_pipeline(pipeline_id=_id)
         return 200, {}, "{}"
 
-    def err(self, msg):
+    def err(self, msg: str) -> TYPE_RESPONSE:
         return (
             400,
             {"status": 400, "x-amzn-ErrorType": "ValidationException"},
