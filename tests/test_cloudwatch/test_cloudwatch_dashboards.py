@@ -55,7 +55,7 @@ def test_delete_dashboard_fail():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFound")
     else:
-        raise RuntimeError("Should of raised error")
+        raise RuntimeError("Should have raised error")
 
     resp = client.list_dashboards()
     len(resp["DashboardEntries"]).should.equal(3)

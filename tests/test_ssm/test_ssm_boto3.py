@@ -546,7 +546,7 @@ def test_get_nonexistant_parameter():
 
     try:
         client.get_parameter(Name="test_noexist", WithDecryption=False)
-        raise RuntimeError("Should of failed")
+        raise RuntimeError("Should have failed")
     except botocore.exceptions.ClientError as err:
         err.operation_name.should.equal("GetParameter")
         err.response["Error"]["Message"].should.equal(

@@ -36,7 +36,7 @@ def test_describe_voices():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("400")
     else:
-        raise RuntimeError("Should of raised an exception")
+        raise RuntimeError("Should have raised an exception")
 
 
 @mock_polly
@@ -71,7 +71,7 @@ def test_put_lexicon_bad_name():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameterValue")
     else:
-        raise RuntimeError("Should of raised an exception")
+        raise RuntimeError("Should have raised an exception")
 
 
 @mock_polly
@@ -111,7 +111,7 @@ def test_synthesize_speech_bad_lexicon():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("LexiconNotFoundException")
     else:
-        raise RuntimeError("Should of raised LexiconNotFoundException")
+        raise RuntimeError("Should have raised LexiconNotFoundException")
 
 
 @mock_polly
@@ -131,7 +131,7 @@ def test_synthesize_speech_bad_output_format():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameterValue")
     else:
-        raise RuntimeError("Should of raised ")
+        raise RuntimeError("Should have raised ")
 
 
 @mock_polly
@@ -151,7 +151,7 @@ def test_synthesize_speech_bad_sample_rate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidSampleRateException")
     else:
-        raise RuntimeError("Should of raised ")
+        raise RuntimeError("Should have raised ")
 
 
 @mock_polly
@@ -171,7 +171,7 @@ def test_synthesize_speech_bad_text_type():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameterValue")
     else:
-        raise RuntimeError("Should of raised ")
+        raise RuntimeError("Should have raised ")
 
 
 @mock_polly
@@ -191,7 +191,7 @@ def test_synthesize_speech_bad_voice_id():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameterValue")
     else:
-        raise RuntimeError("Should of raised ")
+        raise RuntimeError("Should have raised ")
 
 
 @mock_polly
@@ -211,7 +211,7 @@ def test_synthesize_speech_text_too_long():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("TextLengthExceededException")
     else:
-        raise RuntimeError("Should of raised ")
+        raise RuntimeError("Should have raised ")
 
 
 @mock_polly
@@ -234,7 +234,7 @@ def test_synthesize_speech_bad_speech_marks1():
             "MarksNotSupportedForFormatException"
         )
     else:
-        raise RuntimeError("Should of raised ")
+        raise RuntimeError("Should have raised ")
 
 
 @mock_polly
@@ -257,4 +257,4 @@ def test_synthesize_speech_bad_speech_marks2():
             "MarksNotSupportedForFormatException"
         )
     else:
-        raise RuntimeError("Should of raised ")
+        raise RuntimeError("Should have raised ")
