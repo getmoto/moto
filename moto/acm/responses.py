@@ -3,7 +3,7 @@ import base64
 
 from moto.core.responses import BaseResponse
 from typing import Dict, List, Tuple, Union
-from .models import acm_backends, AWSCertificateManagerBackend, datetime_to_epoch
+from .models import acm_backends, AWSCertificateManagerBackend
 from .exceptions import AWSValidationException
 
 
@@ -130,26 +130,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         certs = []
         statuses = self._get_param("CertificateStatuses")
         for cert_bundle in self.acm_backend.get_certificates_list(statuses):
-            cert = {
-                "CertificateArn": cert_bundle.arn,
-                "DomainName": cert_bundle.common_name,
-                "Status": cert_bundle.status,
-                "Type": cert_bundle.type,
-                "NotBefore": datetime_to_epoch(cert_bundle._cert.not_valid_before),
-                "NotAfter": datetime_to_epoch(cert_bundle._cert.not_valid_after),
-                "CreatedAt": datetime_to_epoch(cert_bundle.created_at),
-                "KeyAlgorithm": cert_bundle.describe()["Certificate"]["KeyAlgorithm"],
-                "RenewalEligibility": cert_bundle.describe()["Certificate"][
-                    "RenewalEligibility"
-                ],
-            }
-
-            if cert_bundle.type == "IMPORTED":
-                cert["ImportedAt"] = datetime_to_epoch(cert_bundle.created_at)
-            elif cert_bundle.type == "AMAZON_ISSUED":
-                cert["IssuedAt"] = datetime_to_epoch(cert_bundle.created_at)
-
-            certs.append(cert)
+            certs.append(cert_bundle.describe()["Certificate"])
 
         result = {"CertificateSummaryList": certs}
         return json.dumps(result)
