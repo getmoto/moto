@@ -356,6 +356,10 @@
   "Location": "eu-north-1"
  },
  {
+  "InstanceType": "hpc6id.32xlarge",
+  "Location": "eu-north-1"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "eu-north-1"
  },

@@ -3892,6 +3892,42 @@
   "Location": "eu-west-1b"
  },
  {
+  "InstanceType": "m7g.12xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "m7g.16xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "m7g.2xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "m7g.4xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "m7g.8xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "m7g.large",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "m7g.medium",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "m7g.metal",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "m7g.xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "eu-west-1b"
  },
