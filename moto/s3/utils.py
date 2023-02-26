@@ -24,6 +24,18 @@ user_settable_fields = {
     "content-disposition",
     "x-robots-tag",
 }
+ARCHIVE_STORAGE_CLASSES = [
+    "GLACIER",
+    "DEEP_ARCHIVE",
+    "GLACIER_IR",
+]
+STORAGE_CLASS = [
+    "STANDARD",
+    "REDUCED_REDUNDANCY",
+    "STANDARD_IA",
+    "ONEZONE_IA",
+    "INTELLIGENT_TIERING",
+] + ARCHIVE_STORAGE_CLASSES
 
 
 def bucket_name_from_url(url):

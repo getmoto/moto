@@ -58,6 +58,7 @@ from .utils import (
     metadata_from_headers,
     parse_region_from_url,
     compute_checksum,
+    ARCHIVE_STORAGE_CLASSES,
 )
 from xml.dom import minidom
 
@@ -1311,8 +1312,8 @@ class S3Response(BaseResponse):
         if key.version_id:
             response_headers["x-amz-version-id"] = key.version_id
 
-        if key.storage_class == "GLACIER":
-            raise InvalidObjectState(storage_class="GLACIER")
+        if key.storage_class in ARCHIVE_STORAGE_CLASSES:
+            raise InvalidObjectState(storage_class=key.storage_class)
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
             if key.last_modified.replace(microsecond=0) > if_unmodified_since:
@@ -1515,7 +1516,7 @@ class S3Response(BaseResponse):
             )
 
             if key is not None:
-                if key.storage_class in ["GLACIER", "DEEP_ARCHIVE"]:
+                if key.storage_class in ARCHIVE_STORAGE_CLASSES:
                     if key.response_dict.get(
                         "x-amz-restore"
                     ) is None or 'ongoing-request="true"' in key.response_dict.get(
@@ -2090,7 +2091,7 @@ class S3Response(BaseResponse):
             es = minidom.parseString(body).getElementsByTagName("Days")
             days = es[0].childNodes[0].wholeText
             key = self.backend.get_object(bucket_name, key_name)
-            if key.storage_class not in ["GLACIER", "DEEP_ARCHIVE"]:
+            if key.storage_class not in ARCHIVE_STORAGE_CLASSES:
                 raise InvalidObjectState(storage_class=key.storage_class)
             r = 202
             if key.expiry_date is not None:
