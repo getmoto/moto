@@ -9,6 +9,7 @@ include moto/ec2/resources/amis.json
 include moto/cognitoidp/resources/*.json
 include moto/dynamodb/parsing/reserved_keywords.txt
 include moto/moto_api/_internal/*
+include moto/rds/resources/cluster_options/*.json
 include moto/servicequotas/resources/*/*.json
 include moto/ssm/resources/*.json
 include moto/ssm/resources/ami-amazon-linux-latest/*.json

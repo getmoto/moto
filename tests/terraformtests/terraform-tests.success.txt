@@ -330,6 +330,16 @@ meta:
 mq:
   - TestAccMQBrokerDataSource
   - TestAccMQBroker_
+neptune:
+  - TestAccNeptuneCluster_basic
+  - TestAccNeptuneCluster_namePrefix
+  - TestAccNeptuneCluster_serverlessConfiguration
+  - TestAccNeptuneCluster_encrypted
+  - TestAccNeptuneCluster_backupsUpdate
+  - TestAccNeptuneCluster_kmsKey
+  - TestAccNeptuneCluster_tags
+  - TestAccNeptuneCluster_disappears
+  - TestAccNeptuneGlobalCluster_basic
 quicksight:
   - TestAccQuickSightUser
   - TestAccQuickSightGroup_
