@@ -242,7 +242,9 @@ class VPCs(EC2BaseResponse):
             region=self.region,
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE)
-        return template.render(vpc_end_points=vpc_end_point_services)
+        return template.render(
+            vpc_end_points=vpc_end_point_services, account_id=self.current_account
+        )
 
     def describe_vpc_endpoints(self) -> str:
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
@@ -647,7 +649,7 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
                     {% endfor %}
                 </baseEndpointDnsNameSet>
                 <managesVpcEndpoints>{{ 'true' if service.ManagesVpcEndpoints else 'false' }}</managesVpcEndpoints>
-                <owner>{{ service.Owner }}</owner>
+                <owner>{{ account_id }}</owner>
                 {% if service.PrivateDnsName is defined %}
                     <privateDnsName>{{ service.PrivateDnsName }}</privateDnsName>
                     <privateDnsNameSet>
