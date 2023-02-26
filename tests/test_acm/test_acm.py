@@ -85,7 +85,7 @@ def test_import_bad_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ValidationException")
     else:
-        raise RuntimeError("Should of raised ValidationException")
+        raise RuntimeError("Should have raised ValidationException")
 
 
 @mock_acm
@@ -132,7 +132,7 @@ def test_get_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 # Also tests deleting invalid certificate
@@ -149,7 +149,7 @@ def test_delete_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -252,7 +252,7 @@ def test_add_tags_to_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -264,7 +264,7 @@ def test_list_tags_for_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -313,7 +313,7 @@ def test_remove_tags_from_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -343,7 +343,7 @@ def test_resend_validation_email_invalid():
             "InvalidDomainValidationOptionsException"
         )
     else:
-        raise RuntimeError("Should of raised InvalidDomainValidationOptionsException")
+        raise RuntimeError("Should have raised InvalidDomainValidationOptionsException")
 
     try:
         client.resend_validation_email(
@@ -354,7 +354,7 @@ def test_resend_validation_email_invalid():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
