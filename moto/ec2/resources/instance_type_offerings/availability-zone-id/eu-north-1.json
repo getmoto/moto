@@ -1272,6 +1272,10 @@
   "Location": "eun1-az2"
  },
  {
+  "InstanceType": "hpc6id.32xlarge",
+  "Location": "eun1-az2"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "eun1-az2"
  },

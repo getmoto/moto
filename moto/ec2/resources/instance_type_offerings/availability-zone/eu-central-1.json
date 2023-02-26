@@ -456,6 +456,42 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "eu-central-1a"
  },
@@ -2389,6 +2425,42 @@
  },
  {
   "InstanceType": "c6id.xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
   "Location": "eu-central-1b"
  },
  {
@@ -4365,6 +4437,42 @@
  },
  {
   "InstanceType": "c6id.xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
   "Location": "eu-central-1c"
  },
  {
