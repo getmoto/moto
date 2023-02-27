@@ -239,7 +239,6 @@ class KmsResponse(BaseResponse):
             )
 
         self._validate_cmk_id(target_key_id)
-
         self.kms_backend.add_alias(target_key_id, alias_name)
 
         return json.dumps(None)
@@ -260,6 +259,11 @@ class KmsResponse(BaseResponse):
     def list_aliases(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListAliases.html"""
         region = self.region
+        key_id = self.parameters.get("KeyId")
+        if key_id is not None:
+            self._validate_key_id(key_id)
+            key_id = self.kms_backend.get_key_id(key_id)
+
         response_aliases = []
 
         backend_aliases = self.kms_backend.get_all_aliases()
@@ -286,6 +290,11 @@ class KmsResponse(BaseResponse):
                         "AliasName": reserved_alias,
                     }
                 )
+
+        if key_id is not None:
+            response_aliases = list(
+                filter(lambda alias: alias["TargetKeyId"] == key_id, response_aliases)
+            )
 
         return json.dumps({"Truncated": False, "Aliases": response_aliases})
 
