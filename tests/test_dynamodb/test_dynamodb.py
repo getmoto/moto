@@ -66,7 +66,9 @@ def test_describe_missing_table_boto3():
         conn.describe_table(TableName="messages")
     ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Requested resource not found: Table: messages not found"
+    )
 
 
 @mock_dynamodb

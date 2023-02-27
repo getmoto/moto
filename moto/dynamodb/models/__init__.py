@@ -123,8 +123,10 @@ class DynamoDBBackend(BaseBackend):
         return tables, None
 
     def describe_table(self, name: str) -> Dict[str, Any]:
-        table = self.get_table(name)
-        return table.describe(base_key="Table")
+        # We can't use get_table() here, because the error message is slightly different for this operation
+        if name not in self.tables:
+            raise ResourceNotFoundException(table_name=name)
+        return self.tables[name].describe(base_key="Table")
 
     def update_table(
         self,
