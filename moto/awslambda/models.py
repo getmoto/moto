@@ -1643,19 +1643,15 @@ class LambdaBackend(BaseBackend):
                     raise RESTError(
                         "ResourceConflictException", "The resource already exists."
                     )
-                if queue.fifo_queue:
-                    raise RESTError(
-                        "InvalidParameterValueException", f"{queue.queue_arn} is FIFO"
-                    )
-                else:
-                    spec.update({"FunctionArn": func.function_arn})
-                    esm = EventSourceMapping(spec)
-                    self._event_source_mappings[esm.uuid] = esm
+                spec.update({"FunctionArn": func.function_arn})
+                esm = EventSourceMapping(spec)
+                self._event_source_mappings[esm.uuid] = esm
 
-                    # Set backend function on queue
-                    queue.lambda_event_source_mappings[esm.function_arn] = esm
+                # Set backend function on queue
+                queue.lambda_event_source_mappings[esm.function_arn] = esm
 
-                    return esm
+                return esm
+
         ddbstream_backend = dynamodbstreams_backends[self.account_id][self.region_name]
         ddb_backend = dynamodb_backends[self.account_id][self.region_name]
         for stream in json.loads(ddbstream_backend.list_streams())["Streams"]:
@@ -1792,6 +1788,14 @@ class LambdaBackend(BaseBackend):
                 }
             ]
         }
+        if queue_arn.endswith(".fifo"):
+            # Messages from FIFO queue have additional attributes
+            event["Records"][0]["attributes"].update(
+                {
+                    "MessageGroupId": message.group_id,
+                    "MessageDeduplicationId": message.deduplication_id,
+                }
+            )
 
         request_headers: Dict[str, Any] = {}
         response_headers: Dict[str, Any] = {}
