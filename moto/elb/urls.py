@@ -1,3 +1,4 @@
+from typing import Any
 from urllib.parse import parse_qs
 from botocore.awsrequest import AWSPreparedRequest
 
@@ -5,7 +6,7 @@ from moto.elb.responses import ELBResponse
 from moto.elbv2.responses import ELBV2Response
 
 
-def api_version_elb_backend(*args, **kwargs):
+def api_version_elb_backend(*args: Any, **kwargs: Any) -> Any:
     """
     ELB and ELBV2 (Classic and Application load balancers) use the same
     hostname and url space. To differentiate them we must read the
@@ -20,7 +21,7 @@ def api_version_elb_backend(*args, **kwargs):
         version = request.values.get("Version")
     elif isinstance(request, AWSPreparedRequest):
         # boto in-memory
-        version = parse_qs(request.body).get("Version")[0]
+        version = parse_qs(request.body).get("Version")[0]  # type: ignore
     else:
         # boto in server mode
         request.parse_request()
