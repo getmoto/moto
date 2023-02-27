@@ -298,6 +298,28 @@ def test_list_aliases_for_key_id():
     )
 
 
+@mock_kms
+def test_list_aliases_for_key_arn():
+    region = "us-west-1"
+    client = boto3.client("kms", region_name=region)
+    key = client.create_key()
+    key_id = key["KeyMetadata"]["KeyId"]
+    key_arn = key["KeyMetadata"]["Arn"]
+
+    id_alias = "alias/my-alias-1"
+    client.create_alias(AliasName=id_alias, TargetKeyId=key_id)
+    arn_alias = "alias/my-alias-2"
+    client.create_alias(AliasName=arn_alias, TargetKeyId=key_arn)
+
+    aliases = client.list_aliases(KeyId=key_arn)["Aliases"]
+    aliases.should.have.length_of(2)
+    for alias in [id_alias, arn_alias]:
+        alias_arn = f"arn:aws:kms:{region}:{ACCOUNT_ID}:{alias}"
+        aliases.should.contain(
+            {"AliasName": alias, "AliasArn": alias_arn, "TargetKeyId": key_id}
+        )
+
+
 @pytest.mark.parametrize(
     "key_id",
     [
