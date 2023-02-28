@@ -16,7 +16,7 @@ from moto.sagemaker.utils import (
     get_pipeline_execution_from_arn,
     get_pipeline_name_from_execution_arn,
 )
-from moto.sagemaker.models import FakePipeline
+from moto.sagemaker.models import FakePipeline, sagemaker_backends
 from moto.sagemaker.utils import arn_formatter, load_pipeline_definition_from_s3
 
 
@@ -201,6 +201,30 @@ def test_start_pipeline_execution(sagemaker_client):
         PipelineName=fake_pipeline_names[0]
     )
     assert fake_pipeline_names[0] in pipeline_execution_arn["PipelineExecutionArn"]
+
+
+def test_start_pipeline_execution_contains_client_request_token(sagemaker_client):
+    fake_pipeline_names = ["APipelineName"]
+    pipelines = [
+        {
+            "PipelineName": fake_pipeline_names[0],
+            "RoleArn": FAKE_ROLE_ARN,
+            "PipelineDefinition": " ",
+        },
+    ]
+    _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
+    pipeline_execution_arn = sagemaker_client.start_pipeline_execution(
+        PipelineName=fake_pipeline_names[0]
+    )["PipelineExecutionArn"]
+
+    # Verify that client_request_token is stored in FakePipelineExecution object
+    assert (
+        sagemaker_backends[ACCOUNT_ID][TEST_REGION_NAME]
+        .pipelines[fake_pipeline_names[0]]
+        .pipeline_executions[pipeline_execution_arn]
+        .client_request_token
+        != ""
+    )
 
 
 def test_describe_pipeline_execution_not_exists(sagemaker_client):
