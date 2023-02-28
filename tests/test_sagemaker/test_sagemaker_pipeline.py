@@ -204,6 +204,11 @@ def test_start_pipeline_execution(sagemaker_client):
 
 
 def test_start_pipeline_execution_contains_client_request_token(sagemaker_client):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Skipping test in server mode due to lack of access to sagemaker_backends."
+        )
+
     fake_pipeline_names = ["APipelineName"]
     pipelines = [
         {
