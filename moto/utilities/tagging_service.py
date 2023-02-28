@@ -1,6 +1,6 @@
 """Tag functionality contained in class TaggingService."""
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class TaggingService:
@@ -43,7 +43,7 @@ class TaggingService:
         """Return True if the ARN has any associated tags, False otherwise."""
         return arn in self.tags
 
-    def tag_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, arn: str, tags: Optional[List[Dict[str, str]]]) -> None:
         """Store associated list of dicts with ARN.
 
         Note: the storage is internal to this class instance.
