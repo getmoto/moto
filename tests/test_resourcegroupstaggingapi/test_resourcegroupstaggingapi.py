@@ -422,6 +422,50 @@ def test_get_resources_rds():
     assert_response(resp, 2)
 
 
+@mock_rds
+@mock_resourcegroupstaggingapi
+def test_get_resources_rds_clusters():
+    client = boto3.client("rds", region_name="us-west-2")
+    resources_tagged = []
+    resources_untagged = []
+    for i in range(3):
+        cluster = client.create_db_cluster(
+            DBClusterIdentifier=f"db-cluster-{i}",
+            Engine="postgres",
+            MasterUsername="admin",
+            MasterUserPassword="P@ssw0rd!",
+            CopyTagsToSnapshot=True if i else False,
+            Tags=[{"Key": "test", "Value": f"value-{i}"}] if i else [],
+        ).get("DBCluster")
+        snapshot = client.create_db_cluster_snapshot(
+            DBClusterIdentifier=cluster["DBClusterIdentifier"],
+            DBClusterSnapshotIdentifier=f"snapshot-{i}",
+        ).get("DBClusterSnapshot")
+        group = resources_tagged if i else resources_untagged
+        group.append(cluster["DBClusterArn"])
+        group.append(snapshot["DBClusterSnapshotArn"])
+
+    def assert_response(response, expected_count, resource_type=None):
+        results = response.get("ResourceTagMappingList", [])
+        results.should.have.length_of(expected_count)
+        for item in results:
+            arn = item["ResourceARN"]
+            arn.should.be.within(resources_tagged)
+            arn.should_not.be.within(resources_untagged)
+            if resource_type:
+                sure.this(f":{resource_type}:").should.be.within(arn)
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
+    resp = rtapi.get_resources(ResourceTypeFilters=["rds"])
+    assert_response(resp, 4)
+    resp = rtapi.get_resources(ResourceTypeFilters=["rds:cluster"])
+    assert_response(resp, 2, resource_type="cluster")
+    resp = rtapi.get_resources(ResourceTypeFilters=["rds:cluster-snapshot"])
+    assert_response(resp, 2, resource_type="cluster-snapshot")
+    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["value-1"]}])
+    assert_response(resp, 2)
+
+
 @mock_lambda
 @mock_resourcegroupstaggingapi
 @mock_iam
