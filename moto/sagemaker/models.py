@@ -88,6 +88,7 @@ class FakePipelineExecution(BaseObject):
         pipeline_execution_description,
         parallelism_configuration,
         pipeline_definition,
+        client_request_token,
     ):
         self.pipeline_execution_arn = pipeline_execution_arn
         self.pipeline_execution_display_name = pipeline_execution_display_name
@@ -97,6 +98,7 @@ class FakePipelineExecution(BaseObject):
         self.pipeline_execution_failure_reason = None
         self.parallelism_configuration = parallelism_configuration
         self.pipeline_definition_for_execution = pipeline_definition
+        self.client_request_token = client_request_token
 
         now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.creation_time = now_string
@@ -1909,6 +1911,7 @@ class SageMakerModelBackend(BaseBackend):
         pipeline_parameters,
         pipeline_execution_description,
         parallelism_configuration,
+        client_request_token,
     ):
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
         execution_id = "".join(
@@ -1929,6 +1932,7 @@ class SageMakerModelBackend(BaseBackend):
             pipeline_definition=pipeline.pipeline_definition,
             parallelism_configuration=parallelism_configuration
             or pipeline.parallelism_configuration,
+            client_request_token=client_request_token,
         )
 
         self.pipelines[pipeline_name].pipeline_executions[
