@@ -24,9 +24,7 @@ def test_table_list():
     res = test_client.post(
         "/", headers=headers, data=json.dumps({"TableName": "test-table2"})
     )
-    res.headers.should.have.key("X-Amzn-ErrorType").equals(
-        "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
-    )
+    res.headers.should.have.key("X-Amzn-ErrorType").equals("ResourceNotFoundException")
     body = json.loads(res.data.decode("utf-8"))
     body.should.equal(
         {

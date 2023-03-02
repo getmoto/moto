@@ -60,7 +60,7 @@ class DynamoDBBackend(BaseBackend):
 
     def create_table(self, name: str, **params: Any) -> Table:
         if name in self.tables:
-            raise ResourceInUseException
+            raise ResourceInUseException(f"Table already exists: {name}")
         table = Table(
             name, account_id=self.account_id, region=self.region_name, **params
         )

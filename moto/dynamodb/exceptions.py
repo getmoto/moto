@@ -315,9 +315,9 @@ class TableAlreadyExistsException(JsonRESTError):
 
 
 class ResourceInUseException(JsonRESTError):
-    def __init__(self) -> None:
+    def __init__(self, msg: Optional[str] = None) -> None:
         er = ERROR_TYPE_PREFIX + "ResourceInUseException"
-        super().__init__(er, "Resource in use")
+        super().__init__(er, msg or "Resource in use")
 
 
 class StreamAlreadyEnabledException(JsonRESTError):
