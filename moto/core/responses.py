@@ -218,7 +218,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
-    aws_service_spec = None
+    aws_service_spec: Optional["AWSServiceSpec"] = None
 
     def __init__(self, service_name: Optional[str] = None):
         super().__init__()
