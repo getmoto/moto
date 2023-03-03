@@ -840,7 +840,8 @@ class FakeTable(BaseModel):
     def delete_version(self, version_id):
         self.versions.pop(version_id)
 
-    def as_dict(self, version=1):
+    def as_dict(self, version=None):
+        version = version or self._current_version
         obj = {
             "DatabaseName": self.database_name,
             "Name": self.name,
