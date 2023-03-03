@@ -319,6 +319,11 @@ def test_get_table_versions():
     helpers.create_table(client, database_name, table_name, table_input)
     version_inputs["1"] = table_input
 
+    # Get table should retrieve the first version
+    table = client.get_table(DatabaseName=database_name, Name=table_name)["Table"]
+    table["StorageDescriptor"]["Columns"].should.equal([])
+    table["VersionId"].should.equal("1")
+
     columns = [{"Name": "country", "Type": "string"}]
     table_input = helpers.create_table_input(database_name, table_name, columns=columns)
     helpers.update_table(client, database_name, table_name, table_input)
@@ -353,6 +358,15 @@ def test_get_table_versions():
     ver["VersionId"].should.equal("3")
     ver["Table"]["Name"].should.equal(table_name)
     ver["Table"]["StorageDescriptor"]["Columns"].should.equal(columns)
+
+    # get_table should retrieve the latest version
+    table = client.get_table(DatabaseName=database_name, Name=table_name)["Table"]
+    table["StorageDescriptor"]["Columns"].should.equal(columns)
+    table["VersionId"].should.equal("3")
+
+    table = client.get_tables(DatabaseName=database_name)["TableList"][0]
+    table["StorageDescriptor"]["Columns"].should.equal(columns)
+    table["VersionId"].should.equal("3")
 
 
 @mock_glue
