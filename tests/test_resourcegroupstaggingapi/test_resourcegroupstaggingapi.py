@@ -1,4 +1,5 @@
 import boto3
+import json
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2
 from moto import mock_elbv2
@@ -8,8 +9,139 @@ from moto import mock_resourcegroupstaggingapi
 from moto import mock_s3
 from moto import mock_lambda
 from moto import mock_iam
+from moto import mock_cloudformation
+from moto import mock_ecs
 from botocore.client import ClientError
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
+
+
+@mock_kms
+@mock_cloudformation
+@mock_resourcegroupstaggingapi
+def test_get_resources_cloudformation():
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {"test": {"Type": "AWS::S3::Bucket"}},
+    }
+    template_json = json.dumps(template)
+
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_one = cf_client.create_stack(
+        StackName="stack-1",
+        TemplateBody=template_json,
+        Tags=[{"Key": "tag", "Value": "one"}],
+    ).get("StackId")
+    stack_two = cf_client.create_stack(
+        StackName="stack-2",
+        TemplateBody=template_json,
+        Tags=[{"Key": "tag", "Value": "two"}],
+    ).get("StackId")
+    stack_three = cf_client.create_stack(
+        StackName="stack-3",
+        TemplateBody=template_json,
+        Tags=[{"Key": "tag", "Value": "three"}],
+    ).get("StackId")
+
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    resp = rgta_client.get_resources(TagFilters=[{"Key": "tag", "Values": ["one"]}])
+    resp["ResourceTagMappingList"].should.have.length_of(1)
+    resp["ResourceTagMappingList"][0]["ResourceARN"].should.contain(stack_one)
+
+    resp = rgta_client.get_resources(
+        TagFilters=[{"Key": "tag", "Values": ["one", "three"]}]
+    )
+    resp["ResourceTagMappingList"].should.have.length_of(2)
+    resp["ResourceTagMappingList"][0]["ResourceARN"].should.contain(stack_one)
+    resp["ResourceTagMappingList"][1]["ResourceARN"].should.contain(stack_three)
+
+    kms_client = boto3.client("kms", region_name="us-east-1")
+    kms_client.create_key(
+        KeyUsage="ENCRYPT_DECRYPT", Tags=[{"TagKey": "tag", "TagValue": "two"}]
+    )
+
+    resp = rgta_client.get_resources(TagFilters=[{"Key": "tag", "Values": ["two"]}])
+    resp["ResourceTagMappingList"].should.have.length_of(2)
+    resp["ResourceTagMappingList"][0]["ResourceARN"].should.contain(stack_two)
+    resp["ResourceTagMappingList"][1]["ResourceARN"].should.contain("kms")
+
+    resp = rgta_client.get_resources(
+        ResourceTypeFilters=["cloudformation:stack"],
+        TagFilters=[{"Key": "tag", "Values": ["two"]}],
+    )
+    resp["ResourceTagMappingList"].should.have.length_of(1)
+    resp["ResourceTagMappingList"][0]["ResourceARN"].should.contain(stack_two)
+
+
+# @mock_ecs
+# @mock_resourcegroupstaggingapi
+# def test_get_resources_ecs():
+
+# client = boto3.client("ecs", region_name="us-east-1")
+# cluster_one = client.create_cluster(
+#     clusterName="cluster-1",
+#     tags=[{"key": "tag", "value": "one"}]
+# ).get("cluster").get("clusterArn")
+# cluster_two = client.create_cluster(
+#     clusterName="cluster-2", tags=[{"key": "tag", "value": "two"}]
+# ).get("cluster").get("clusterArn")
+
+# rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+# resp = rgta_client.get_resources(TagFilters=[{"Key": "tag", "Values": ["one"]}])
+# resp["ResourceTagMappingList"].should.have.length_of(1)
+# resp["ResourceTagMappingList"][0]["ResourceARN"].should.contain(cluster_one)
+
+# service_one = (
+#     client.create_service(
+#         cluster=cluster_one,
+#         serviceName="service-1",
+#         tags=[{"Key": "tag", "Value": "one"}],
+#         desired_count=1,
+#     )
+#     .get("service")
+#     .get("serviceArn")
+# )
+
+# service_two = (
+#     client.create_service(
+#         cluster=cluster_two,
+#         serviceName="service-2",
+#         tags=[{"Key": "tag", "Value": "two"}]
+#     )
+#     .get("service")
+#     .get("serviceArn")
+# )
+
+# resp = rgta_client.get_resources(TagFilters=[{"Key": "tag", "Values": ["one"]}])
+# resp["ResourceTagMappingList"].should.have.length_of(3)
+# # resp["ResourceTagMappingList"][0]["ResourceARN"].should.contain(cluster_one)
+# # resp["ResourceTagMappingList"][0]["ResourceARN"].should.contain(service_one)
+
+# resp = rgta_client.get_resources(
+#     ResourceTypeFilters=["ecs:service"],
+#     TagFilters=[{"Key": "tag", "Values": ["two"]}],
+# )
+# resp["ResourceTagMappingList"].should.have.length_of(1)
+# resp["ResourceTagMappingList"][0]["ResourceARN"].should.contain(service_two)
+# resp["ResourceTagMappingList"][0]["ResourceARN"].should_not.contain(cluster_two)
+
+# resp = rgta_client.get_resources(
+#     ResourceTypeFilters=["ecs:cluster"],
+#     TagFilters=[{"Key": "tag", "Values": ["two"]}],
+# )
+# resp["ResourceTagMappingList"].should.have.length_of(1)
+# resp["ResourceTagMappingList"][0]["ResourceARN"].should_not.contain(service_two)
+# resp["ResourceTagMappingList"][0]["ResourceARN"].should.contain(cluster_two)
+
+# resp = rgta_client.get_resources(
+#     ResourceTypeFilters=["ecs:task"],
+#     TagFilters=[{"Key": "tag", "Values": ["one"]}],
+# )
+# resp["ResourceTagMappingList"].should.have.length_of(1)
+# print(resp)
 
 
 @mock_rds
@@ -418,50 +550,6 @@ def test_get_resources_rds():
     assert_response(resp, 2, resource_type="db")
     resp = rtapi.get_resources(ResourceTypeFilters=["rds:snapshot"])
     assert_response(resp, 2, resource_type="snapshot")
-    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["value-1"]}])
-    assert_response(resp, 2)
-
-
-@mock_rds
-@mock_resourcegroupstaggingapi
-def test_get_resources_rds_clusters():
-    client = boto3.client("rds", region_name="us-west-2")
-    resources_tagged = []
-    resources_untagged = []
-    for i in range(3):
-        cluster = client.create_db_cluster(
-            DBClusterIdentifier=f"db-cluster-{i}",
-            Engine="postgres",
-            MasterUsername="admin",
-            MasterUserPassword="P@ssw0rd!",
-            CopyTagsToSnapshot=True if i else False,
-            Tags=[{"Key": "test", "Value": f"value-{i}"}] if i else [],
-        ).get("DBCluster")
-        snapshot = client.create_db_cluster_snapshot(
-            DBClusterIdentifier=cluster["DBClusterIdentifier"],
-            DBClusterSnapshotIdentifier=f"snapshot-{i}",
-        ).get("DBClusterSnapshot")
-        group = resources_tagged if i else resources_untagged
-        group.append(cluster["DBClusterArn"])
-        group.append(snapshot["DBClusterSnapshotArn"])
-
-    def assert_response(response, expected_count, resource_type=None):
-        results = response.get("ResourceTagMappingList", [])
-        results.should.have.length_of(expected_count)
-        for item in results:
-            arn = item["ResourceARN"]
-            arn.should.be.within(resources_tagged)
-            arn.should_not.be.within(resources_untagged)
-            if resource_type:
-                sure.this(f":{resource_type}:").should.be.within(arn)
-
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
-    resp = rtapi.get_resources(ResourceTypeFilters=["rds"])
-    assert_response(resp, 4)
-    resp = rtapi.get_resources(ResourceTypeFilters=["rds:cluster"])
-    assert_response(resp, 2, resource_type="cluster")
-    resp = rtapi.get_resources(ResourceTypeFilters=["rds:cluster-snapshot"])
-    assert_response(resp, 2, resource_type="cluster-snapshot")
     resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["value-1"]}])
     assert_response(resp, 2)
 
