@@ -5,7 +5,7 @@ import re
 import hashlib
 from urllib.parse import urlparse, unquote, quote
 from requests.structures import CaseInsensitiveDict
-from typing import Union, Tuple
+from typing import List, Union, Tuple
 import sys
 from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
@@ -212,3 +212,14 @@ def _hash(fn, args) -> bytes:
     except TypeError:
         # The usedforsecurity-parameter is only available as of Python 3.9
         return fn(*args).hexdigest().encode("utf-8")
+
+
+def cors_matches_origin(origin_header: str, allowed_origins: List[str]) -> bool:
+    if "*" in allowed_origins:
+        return True
+    if origin_header in allowed_origins:
+        return True
+    for allowed in allowed_origins:
+        if re.match(allowed.replace(".", "\\.").replace("*", ".*"), origin_header):
+            return True
+    return False
