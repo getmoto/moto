@@ -50,6 +50,7 @@ from .exceptions import (
     PreconditionFailed,
     InvalidRange,
     LockNotEnabled,
+    AccessForbidden,
 )
 from .models import s3_backends
 from .models import get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
@@ -59,6 +60,7 @@ from .utils import (
     parse_region_from_url,
     compute_checksum,
     ARCHIVE_STORAGE_CLASSES,
+    cors_matches_origin,
 )
 from xml.dom import minidom
 
@@ -298,7 +300,7 @@ class S3Response(BaseResponse):
         elif method == "POST":
             return self._bucket_response_post(request, bucket_name)
         elif method == "OPTIONS":
-            return self._response_options(bucket_name)
+            return self._response_options(request.headers, bucket_name)
         else:
             raise NotImplementedError(
                 f"Method {method} has not been implemented in the S3 backend yet"
@@ -343,7 +345,7 @@ class S3Response(BaseResponse):
             return 404, {}, ""
         return 200, {}, ""
 
-    def _set_cors_headers(self, bucket):
+    def _set_cors_headers(self, headers, bucket):
         """
         TODO: smarter way of matching the right CORS rule:
         See https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
@@ -367,9 +369,13 @@ class S3Response(BaseResponse):
                     cors_rule.allowed_methods
                 )
             if cors_rule.allowed_origins is not None:
-                self.response_headers["Access-Control-Allow-Origin"] = _to_string(
-                    cors_rule.allowed_origins
-                )
+                origin = headers.get("Origin")
+                if cors_matches_origin(origin, cors_rule.allowed_origins):
+                    self.response_headers["Access-Control-Allow-Origin"] = origin
+                else:
+                    raise AccessForbidden(
+                        "CORSResponse: This CORS request is not allowed. This is usually because the evalution of Origin, request method / Access-Control-Request-Method or Access-Control-Request-Headers are not whitelisted by the resource's CORS spec."
+                    )
             if cors_rule.allowed_headers is not None:
                 self.response_headers["Access-Control-Allow-Headers"] = _to_string(
                     cors_rule.allowed_headers
@@ -383,7 +389,7 @@ class S3Response(BaseResponse):
                     cors_rule.max_age_seconds
                 )
 
-    def _response_options(self, bucket_name):
+    def _response_options(self, headers, bucket_name):
         # Return 200 with the headers from the bucket CORS configuration
         self._authenticate_and_authorize_s3_action()
         try:
@@ -395,7 +401,7 @@ class S3Response(BaseResponse):
                 "",
             )  # AWS S3 seems to return 403 on OPTIONS and 404 on GET/HEAD
 
-        self._set_cors_headers(bucket)
+        self._set_cors_headers(headers, bucket)
 
         return 200, self.response_headers, ""
 
@@ -1241,7 +1247,7 @@ class S3Response(BaseResponse):
             return self._key_response_post(request, body, bucket_name, query, key_name)
         elif method == "OPTIONS":
             # OPTIONS response doesn't depend on the key_name: always return 200 with CORS headers
-            return self._response_options(bucket_name)
+            return self._response_options(request.headers, bucket_name)
         else:
             raise NotImplementedError(
                 f"Method {method} has not been implemented in the S3 backend yet"

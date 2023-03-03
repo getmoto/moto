@@ -52,6 +52,13 @@ class InvalidArgumentError(S3ClientError):
         super().__init__("InvalidArgument", message, *args, **kwargs)
 
 
+class AccessForbidden(S3ClientError):
+    code = 403
+
+    def __init__(self, msg):
+        super().__init__("AccessForbidden", msg)
+
+
 class BucketError(S3ClientError):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("template", "bucket_error")
