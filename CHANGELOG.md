@@ -2,6 +2,40 @@ Moto Changelog
 ==============
 
 
+4.1.4
+-----
+Docker Digest for 4.1.4: <autopopulateddigest>
+
+    New Services:
+        * Neptune:
+            * create_db_cluster()
+            * create_global_cluster()
+            * delete_db_cluster()
+            * delete_global_cluster()
+            * describe_db_clusters()
+            * describe_global_clusters()
+            * describe_orderable_db_instance_options()
+            * modify_db_cluster()
+            * start_db_cluster()
+
+    New Methods:
+        * Glue:
+            * get_jobs()
+            * get_table_version()
+
+    Miscellaneous:
+        * APIGateway: update_rest_api() now updates the policy-attribute
+        * Athena now exposes an endpoint to store mock query results. See http://docs.getmoto.org/en/latest/docs/services/athena.html
+        * CognitoIDP: The idToken now contains the cognito:groups attribute
+        * DynamoDB: scan() now respects the Projection-attribute of a GSI/LSI
+        * KMS: encrypt(), decrypt(), re_encrypt() now accept aliases as arguments
+        * KMS: list_aliases() now supports the KeyId-parameter
+        * Lambda: FIFO Queues are now supported event sources
+        * RDS: create_option_group() now returns the OptionGroupArn-attribute
+        * ResourceGroupsTaggingAPI: get_resources() now supports RDS Clusters and ClusterSnapshots
+        * SSM now includes the parameters at /aws/service/ecs/optimized-ami 
+
+
 4.1.3
 -----
 Docker Digest for 4.1.3: _sha256:3139cdae44d5da35d92d9e385cb878581eef8df3514cbda5cbc3e103488095a7_

@@ -134,9 +134,7 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         values = self.parameters.get("PartitionValues")
 
-        table = self.glue_backend.get_table(database_name, table_name)
-
-        p = table.get_partition(values)
+        p = self.glue_backend.get_partition(database_name, table_name, values)
 
         return json.dumps({"Partition": p.as_dict()})
 
@@ -156,9 +154,7 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         part_input = self.parameters.get("PartitionInput")
 
-        table = self.glue_backend.get_table(database_name, table_name)
-        table.create_partition(part_input)
-
+        self.glue_backend.create_partition(database_name, table_name, part_input)
         return ""
 
     def batch_create_partition(self):
@@ -181,9 +177,9 @@ class GlueResponse(BaseResponse):
         part_input = self.parameters.get("PartitionInput")
         part_to_update = self.parameters.get("PartitionValueList")
 
-        table = self.glue_backend.get_table(database_name, table_name)
-        table.update_partition(part_to_update, part_input)
-
+        self.glue_backend.update_partition(
+            database_name, table_name, part_input, part_to_update
+        )
         return ""
 
     def batch_update_partition(self):
@@ -206,9 +202,7 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         part_to_delete = self.parameters.get("PartitionValues")
 
-        table = self.glue_backend.get_table(database_name, table_name)
-        table.delete_partition(part_to_delete)
-
+        self.glue_backend.delete_partition(database_name, table_name, part_to_delete)
         return ""
 
     def batch_delete_partition(self):
