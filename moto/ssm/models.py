@@ -47,15 +47,35 @@ class ParameterDict(defaultdict):
         # each value is a list of all of the versions for a parameter
         # to get the current value, grab the last item of the list
         super().__init__(list)
-        self.parameters_loaded = False
+        self.latest_amis_loaded = False
+        self.latest_region_defaults_loaded = False
+        self.latest_service_defaults_loaded = False
+        self.latest_ecs_amis_loaded = False
         self.account_id = account_id
         self.region_name = region_name
 
     def _check_loading_status(self, key):
-        if not self.parameters_loaded and key and str(key).startswith("/aws"):
-            self._load_global_parameters()
+        key = str(key or "")
+        if key.startswith("/aws/service/ami-amazon-linux-latest"):
+            if not self.latest_amis_loaded:
+                self._load_latest_amis()
+                self.latest_amis_loaded = True
+        if key.startswith("/aws/service/global-infrastructure/regions"):
+            if not self.latest_region_defaults_loaded:
+                self._load_tree_parameters(path="resources/regions.json")
+                self.latest_region_defaults_loaded = True
+        if key.startswith("/aws/service/global-infrastructure/services"):
+            if not self.latest_service_defaults_loaded:
+                self._load_tree_parameters(path="resources/services.json")
+                self.latest_service_defaults_loaded = True
+        if key.startswith("/aws/service/ecs/optimized-ami"):
+            if not self.latest_ecs_amis_loaded:
+                self._load_tree_parameters(
+                    f"resources/ecs/optimized_amis/{self.region_name}.json"
+                )
+                self.latest_ecs_amis_loaded = True
 
-    def _load_global_parameters(self):
+    def _load_latest_amis(self):
         try:
             latest_amis_linux = load_resource(
                 __name__, f"resources/ami-amazon-linux-latest/{self.region_name}.json"
@@ -78,11 +98,12 @@ class ParameterDict(defaultdict):
                     data_type=param["DataType"],
                 )
             )
-        regions = load_resource(__name__, "resources/regions.json")
-        services = load_resource(__name__, "resources/services.json")
-        params = []
-        params.extend(convert_to_params(regions))
-        params.extend(convert_to_params(services))
+
+    def _load_tree_parameters(self, path: str):
+        try:
+            params = convert_to_params(load_resource(__name__, path))
+        except FileNotFoundError:
+            params = []
 
         for param in params:
             last_modified_date = time.time()
@@ -105,7 +126,6 @@ class ParameterDict(defaultdict):
                     data_type="text",
                 )
             )
-        self.parameters_loaded = True
 
     def _get_secretsmanager_parameter(self, secret_name):
         secrets_backend = secretsmanager_backends[self.account_id][self.region_name]
