@@ -1,17 +1,16 @@
 """EMRServerlessBackend class with methods for supported APIs."""
 import re
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Iterator
 import inspect
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.emrcontainers.utils import get_partition, paginated_list
 from .utils import (
     default_auto_start_configuration,
     default_auto_stop_configuration,
-    get_partition,
-    paginated_list,
     random_appplication_id,
-    # random_job_id,
 )
 
 from .exceptions import ResourceNotFoundException, ValidationException
@@ -26,18 +25,18 @@ JOB_STATUS = "RUNNING"
 class FakeApplication(BaseModel):
     def __init__(
         self,
-        name,
-        release_label,
-        application_type,
-        client_token,
-        account_id,
-        region_name,
-        initial_capacity,
-        maximum_capacity,
-        tags,
-        auto_start_configuration,
-        auto_stop_configuration,
-        network_configuration,
+        name: str,
+        release_label: str,
+        application_type: str,
+        client_token: str,
+        account_id: str,
+        region_name: str,
+        initial_capacity: str,
+        maximum_capacity: str,
+        tags: Dict[str, str],
+        auto_start_configuration: str,
+        auto_stop_configuration: str,
+        network_configuration: str,
     ):
         # Provided parameters
         self.name = name
@@ -53,7 +52,7 @@ class FakeApplication(BaseModel):
             auto_stop_configuration or default_auto_stop_configuration()
         )
         self.network_configuration = network_configuration
-        self.tags = tags or {}
+        self.tags: Dict[str, str] = tags or {}
 
         # Service-generated-parameters
         self.id = random_appplication_id()
@@ -70,14 +69,14 @@ class FakeApplication(BaseModel):
         )
         self.updated_at = self.created_at
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
         yield "applicationId", self.id
         yield "name", self.name
         yield "arn", self.arn
         yield "autoStartConfig", self.auto_start_configuration,
         yield "autoStopConfig", self.auto_stop_configuration,
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Dictionary representation of an EMR Serverless Application.
         When used in `list-applications`, capacity, auto-start/stop configs, and tags are not returned. https://docs.aws.amazon.com/emr-serverless/latest/APIReference/API_ListApplications.html
@@ -127,26 +126,25 @@ class FakeApplication(BaseModel):
 class EMRServerlessBackend(BaseBackend):
     """Implementation of EMRServerless APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.region_name = region_name
-        self.applications = dict()
-        self.jobs = dict()
+        self.applications: Dict[str, FakeApplication] = dict()
         self.partition = get_partition(region_name)
 
     def create_application(
         self,
-        name,
-        release_label,
-        application_type,
-        client_token,
-        initial_capacity,
-        maximum_capacity,
-        tags,
-        auto_start_configuration,
-        auto_stop_configuration,
-        network_configuration,
-    ):
+        name: str,
+        release_label: str,
+        application_type: str,
+        client_token: str,
+        initial_capacity: str,
+        maximum_capacity: str,
+        tags: Dict[str, str],
+        auto_start_configuration: str,
+        auto_stop_configuration: str,
+        network_configuration: str,
+    ) -> FakeApplication:
 
         if application_type not in ["HIVE", "SPARK"]:
             raise ValidationException(f"Unsupported engine {application_type}")
@@ -173,7 +171,7 @@ class EMRServerlessBackend(BaseBackend):
         self.applications[application.id] = application
         return application
 
-    def delete_application(self, application_id):
+    def delete_application(self, application_id: str) -> None:
         if application_id not in self.applications.keys():
             raise ResourceNotFoundException(application_id)
 
@@ -184,13 +182,15 @@ class EMRServerlessBackend(BaseBackend):
             )
         self.applications[application_id].state = "TERMINATED"
 
-    def get_application(self, application_id):
+    def get_application(self, application_id: str) -> Dict[str, Any]:
         if application_id not in self.applications.keys():
             raise ResourceNotFoundException(application_id)
 
         return self.applications[application_id].to_dict()
 
-    def list_applications(self, next_token, max_results, states):
+    def list_applications(
+        self, next_token: Optional[str], max_results: int, states: Optional[List[str]]
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         applications = [
             application.to_dict() for application in self.applications.values()
         ]
@@ -203,25 +203,25 @@ class EMRServerlessBackend(BaseBackend):
         sort_key = "name"
         return paginated_list(applications, sort_key, max_results, next_token)
 
-    def start_application(self, application_id):
+    def start_application(self, application_id: str) -> None:
         if application_id not in self.applications.keys():
             raise ResourceNotFoundException(application_id)
         self.applications[application_id].state = "STARTED"
 
-    def stop_application(self, application_id):
+    def stop_application(self, application_id: str) -> None:
         if application_id not in self.applications.keys():
             raise ResourceNotFoundException(application_id)
         self.applications[application_id].state = "STOPPED"
 
     def update_application(
         self,
-        application_id,
-        initial_capacity,
-        maximum_capacity,
-        auto_start_configuration,
-        auto_stop_configuration,
-        network_configuration,
-    ):
+        application_id: str,
+        initial_capacity: Optional[str],
+        maximum_capacity: Optional[str],
+        auto_start_configuration: Optional[str],
+        auto_stop_configuration: Optional[str],
+        network_configuration: Optional[str],
+    ) -> Dict[str, Any]:
         if application_id not in self.applications.keys():
             raise ResourceNotFoundException(application_id)
 

@@ -1,8 +1,8 @@
 """Handles incoming emrcontainers requests, invokes methods, returns responses."""
 import json
-
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import emrcontainers_backends
+from .models import emrcontainers_backends, EMRContainersBackend
 
 DEFAULT_MAX_RESULTS = 100
 DEFAULT_NEXT_TOKEN = ""
@@ -12,15 +12,15 @@ DEFAULT_CONTAINER_PROVIDER_TYPE = "EKS"
 class EMRContainersResponse(BaseResponse):
     """Handler for EMRContainers requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="emr-containers")
 
     @property
-    def emrcontainers_backend(self):
+    def emrcontainers_backend(self) -> EMRContainersBackend:
         """Return backend instance specific for this region."""
         return emrcontainers_backends[self.current_account][self.region]
 
-    def create_virtual_cluster(self):
+    def create_virtual_cluster(self) -> TYPE_RESPONSE:
         name = self._get_param("name")
         container_provider = self._get_param("containerProvider")
         client_token = self._get_param("clientToken")
@@ -34,7 +34,7 @@ class EMRContainersResponse(BaseResponse):
         )
         return 200, {}, json.dumps(dict(virtual_cluster))
 
-    def delete_virtual_cluster(self):
+    def delete_virtual_cluster(self) -> TYPE_RESPONSE:
         cluster_id = self._get_param("virtualClusterId")
 
         virtual_cluster = self.emrcontainers_backend.delete_virtual_cluster(
@@ -42,7 +42,7 @@ class EMRContainersResponse(BaseResponse):
         )
         return 200, {}, json.dumps(dict(virtual_cluster))
 
-    def describe_virtual_cluster(self):
+    def describe_virtual_cluster(self) -> TYPE_RESPONSE:
         cluster_id = self._get_param("virtualClusterId")
 
         virtual_cluster = self.emrcontainers_backend.describe_virtual_cluster(
@@ -51,7 +51,7 @@ class EMRContainersResponse(BaseResponse):
         response = {"virtualCluster": virtual_cluster}
         return 200, {}, json.dumps(response)
 
-    def list_virtual_clusters(self):
+    def list_virtual_clusters(self) -> TYPE_RESPONSE:
         container_provider_id = self._get_param("containerProviderId")
         container_provider_type = self._get_param(
             "containerProviderType", DEFAULT_CONTAINER_PROVIDER_TYPE
@@ -75,7 +75,7 @@ class EMRContainersResponse(BaseResponse):
         response = {"virtualClusters": virtual_clusters, "nextToken": next_token}
         return 200, {}, json.dumps(response)
 
-    def start_job_run(self):
+    def start_job_run(self) -> TYPE_RESPONSE:
         name = self._get_param("name")
         virtual_cluster_id = self._get_param("virtualClusterId")
         client_token = self._get_param("clientToken")
@@ -97,7 +97,7 @@ class EMRContainersResponse(BaseResponse):
         )
         return 200, {}, json.dumps(dict(job))
 
-    def cancel_job_run(self):
+    def cancel_job_run(self) -> TYPE_RESPONSE:
         job_id = self._get_param("jobRunId")
         virtual_cluster_id = self._get_param("virtualClusterId")
 
@@ -106,7 +106,7 @@ class EMRContainersResponse(BaseResponse):
         )
         return 200, {}, json.dumps(dict(job))
 
-    def list_job_runs(self):
+    def list_job_runs(self) -> TYPE_RESPONSE:
         virtual_cluster_id = self._get_param("virtualClusterId")
         created_before = self._get_param("createdBefore")
         created_after = self._get_param("createdAfter")
@@ -128,7 +128,7 @@ class EMRContainersResponse(BaseResponse):
         response = {"jobRuns": job_runs, "nextToken": next_token}
         return 200, {}, json.dumps(response)
 
-    def describe_job_run(self):
+    def describe_job_run(self) -> TYPE_RESPONSE:
         job_id = self._get_param("jobRunId")
         virtual_cluster_id = self._get_param("virtualClusterId")
 
