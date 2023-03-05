@@ -2688,10 +2688,6 @@
   "Location": "us-east-1b"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "us-east-1b"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "us-east-1b"
  },
@@ -5160,10 +5156,6 @@
   "Location": "us-east-1c"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "us-east-1c"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "us-east-1c"
  },
@@ -7613,10 +7605,6 @@
  },
  {
   "InstanceType": "c7g.xlarge",
-  "Location": "us-east-1d"
- },
- {
-  "InstanceType": "cc2.8xlarge",
   "Location": "us-east-1d"
  },
  {

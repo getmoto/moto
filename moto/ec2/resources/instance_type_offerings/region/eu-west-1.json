@@ -536,10 +536,6 @@
   "Location": "eu-west-1"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "eu-west-1"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "eu-west-1"
  },

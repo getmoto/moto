@@ -536,10 +536,6 @@
   "Location": "us-west-2"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "us-west-2"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "us-west-2"
  },

@@ -536,10 +536,6 @@
   "Location": "us-east-1"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "us-east-1"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "us-east-1"
  },
