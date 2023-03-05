@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.4
 -----
-Docker Digest for 4.1.4: <autopopulateddigest>
+Docker Digest for 4.1.4: _sha256:32ed22e2c69826a90482d0e473c460d60c3c7dc60819d95c0c165e0e978208db_
 
     New Services:
         * Neptune:
