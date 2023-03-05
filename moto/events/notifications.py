@@ -1,7 +1,8 @@
 import json
+from typing import Any, Dict
 
 
-_EVENT_S3_OBJECT_CREATED = {
+_EVENT_S3_OBJECT_CREATED: Dict[str, Any] = {
     "version": "0",
     "id": "17793124-05d4-b198-2fde-7ededc63b103",
     "detail-type": "Object Created",
@@ -14,7 +15,9 @@ _EVENT_S3_OBJECT_CREATED = {
 }
 
 
-def send_notification(source, event_name, region, resources, detail):
+def send_notification(
+    source: str, event_name: str, region: str, resources: Any, detail: Any
+) -> None:
     try:
         _send_safe_notification(source, event_name, region, resources, detail)
     except:  # noqa
@@ -22,7 +25,9 @@ def send_notification(source, event_name, region, resources, detail):
         pass
 
 
-def _send_safe_notification(source, event_name, region, resources, detail):
+def _send_safe_notification(
+    source: str, event_name: str, region: str, resources: Any, detail: Any
+) -> None:
     from .models import events_backends
 
     event = None
@@ -51,7 +56,7 @@ def _send_safe_notification(source, event_name, region, resources, detail):
                     _invoke_lambda(account_id, target.get("Arn"), event=event)
 
 
-def _invoke_lambda(account_id, fn_arn, event):
+def _invoke_lambda(account_id: str, fn_arn: str, event: Any) -> None:
     from moto.awslambda import lambda_backends
 
     lmbda_region = fn_arn.split(":")[3]
