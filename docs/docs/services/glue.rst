@@ -56,7 +56,7 @@ glue
 - [ ] create_dev_endpoint
 - [X] create_job
 - [ ] create_ml_transform
-- [ ] create_partition
+- [X] create_partition
 - [ ] create_partition_index
 - [X] create_registry
 - [X] create_schema
@@ -83,7 +83,7 @@ glue
 - [ ] delete_dev_endpoint
 - [ ] delete_job
 - [ ] delete_ml_transform
-- [ ] delete_partition
+- [X] delete_partition
 - [ ] delete_partition_index
 - [X] delete_registry
 - [ ] delete_resource_policy
@@ -130,7 +130,7 @@ glue
 - [ ] get_ml_task_runs
 - [ ] get_ml_transform
 - [ ] get_ml_transforms
-- [ ] get_partition
+- [X] get_partition
 - [ ] get_partition_indexes
 - [X] get_partitions
   
@@ -235,7 +235,7 @@ glue
 - [ ] update_job
 - [ ] update_job_from_source_control
 - [ ] update_ml_transform
-- [ ] update_partition
+- [X] update_partition
 - [ ] update_registry
 - [X] update_schema
   

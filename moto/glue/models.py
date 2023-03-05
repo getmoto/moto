@@ -202,6 +202,14 @@ class GlueBackend(BaseBackend):
         table = self.get_table(database_name, table_name)
         table.delete_version(version_id)
 
+    def create_partition(self, database_name: str, table_name: str, part_input) -> None:
+        table = self.get_table(database_name, table_name)
+        table.create_partition(part_input)
+
+    def get_partition(self, database_name: str, table_name: str, values):
+        table = self.get_table(database_name, table_name)
+        return table.get_partition(values)
+
     def get_partitions(self, database_name, table_name, expression):
         """
         See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
@@ -216,6 +224,18 @@ class GlueBackend(BaseBackend):
         """
         table = self.get_table(database_name, table_name)
         return table.get_partitions(expression)
+
+    def update_partition(
+        self, database_name, table_name, part_input, part_to_update
+    ) -> None:
+        table = self.get_table(database_name, table_name)
+        table.update_partition(part_to_update, part_input)
+
+    def delete_partition(
+        self, database_name: str, table_name: str, part_to_delete
+    ) -> None:
+        table = self.get_table(database_name, table_name)
+        table.delete_partition(part_to_delete)
 
     def create_crawler(
         self,

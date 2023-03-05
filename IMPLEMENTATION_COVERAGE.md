@@ -1187,7 +1187,7 @@
 
 ## comprehend
 <details>
-<summary>10% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] batch_detect_dominant_language
 - [ ] batch_detect_entities
@@ -1197,13 +1197,17 @@
 - [ ] batch_detect_targeted_sentiment
 - [ ] classify_document
 - [ ] contains_pii_entities
+- [ ] create_dataset
 - [ ] create_document_classifier
 - [ ] create_endpoint
 - [X] create_entity_recognizer
+- [ ] create_flywheel
 - [ ] delete_document_classifier
 - [ ] delete_endpoint
 - [X] delete_entity_recognizer
+- [ ] delete_flywheel
 - [ ] delete_resource_policy
+- [ ] describe_dataset
 - [ ] describe_document_classification_job
 - [ ] describe_document_classifier
 - [ ] describe_dominant_language_detection_job
@@ -1211,6 +1215,8 @@
 - [ ] describe_entities_detection_job
 - [X] describe_entity_recognizer
 - [ ] describe_events_detection_job
+- [ ] describe_flywheel
+- [ ] describe_flywheel_iteration
 - [ ] describe_key_phrases_detection_job
 - [ ] describe_pii_entities_detection_job
 - [ ] describe_resource_policy
@@ -1225,6 +1231,7 @@
 - [ ] detect_syntax
 - [ ] detect_targeted_sentiment
 - [ ] import_model
+- [ ] list_datasets
 - [ ] list_document_classification_jobs
 - [ ] list_document_classifier_summaries
 - [ ] list_document_classifiers
@@ -1234,6 +1241,8 @@
 - [ ] list_entity_recognizer_summaries
 - [X] list_entity_recognizers
 - [ ] list_events_detection_jobs
+- [ ] list_flywheel_iteration_history
+- [ ] list_flywheels
 - [ ] list_key_phrases_detection_jobs
 - [ ] list_pii_entities_detection_jobs
 - [ ] list_sentiment_detection_jobs
@@ -1245,6 +1254,7 @@
 - [ ] start_dominant_language_detection_job
 - [ ] start_entities_detection_job
 - [ ] start_events_detection_job
+- [ ] start_flywheel_iteration
 - [ ] start_key_phrases_detection_job
 - [ ] start_pii_entities_detection_job
 - [ ] start_sentiment_detection_job
@@ -1262,6 +1272,7 @@
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_endpoint
+- [ ] update_flywheel
 </details>
 
 ## config
@@ -3101,7 +3112,7 @@
 
 ## glue
 <details>
-<summary>23% implemented</summary>
+<summary>25% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3134,7 +3145,7 @@
 - [ ] create_dev_endpoint
 - [X] create_job
 - [ ] create_ml_transform
-- [ ] create_partition
+- [X] create_partition
 - [ ] create_partition_index
 - [X] create_registry
 - [X] create_schema
@@ -3157,7 +3168,7 @@
 - [ ] delete_dev_endpoint
 - [ ] delete_job
 - [ ] delete_ml_transform
-- [ ] delete_partition
+- [X] delete_partition
 - [ ] delete_partition_index
 - [X] delete_registry
 - [ ] delete_resource_policy
@@ -3204,7 +3215,7 @@
 - [ ] get_ml_task_runs
 - [ ] get_ml_transform
 - [ ] get_ml_transforms
-- [ ] get_partition
+- [X] get_partition
 - [ ] get_partition_indexes
 - [X] get_partitions
 - [ ] get_plan
@@ -3297,7 +3308,7 @@
 - [ ] update_job
 - [ ] update_job_from_source_control
 - [ ] update_ml_transform
-- [ ] update_partition
+- [X] update_partition
 - [ ] update_registry
 - [X] update_schema
 - [ ] update_source_control_from_job
@@ -6618,18 +6629,22 @@
 
 ## timestream-write
 <details>
-<summary>100% implemented</summary>
+<summary>78% implemented</summary>
 
+- [ ] create_batch_load_task
 - [X] create_database
 - [X] create_table
 - [X] delete_database
 - [X] delete_table
+- [ ] describe_batch_load_task
 - [X] describe_database
 - [X] describe_endpoints
 - [X] describe_table
+- [ ] list_batch_load_tasks
 - [X] list_databases
 - [X] list_tables
 - [X] list_tags_for_resource
+- [ ] resume_batch_load_task
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_database
@@ -6830,6 +6845,7 @@
 - importexport
 - inspector
 - inspector2
+- internetmonitor
 - iot-jobs-data
 - iot-roborunner
 - iot1click-devices
@@ -6955,6 +6971,7 @@
 - support-app
 - synthetics
 - timestream-query
+- tnb
 - transfer
 - translate
 - voice-id

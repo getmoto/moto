@@ -53,11 +53,11 @@ athena
   
         Queries are not executed by Moto, so this call will always return 0 rows by default.
 
-        You can use a dedicated API to configure this. Moto has a queue that can be filled with the expected results.
+        You can use a dedicated API to override this, by configuring a queue of expected results.
 
         A request to `get_query_results` will take the first result from that queue, and assign it to the provided QueryExecutionId. Subsequent requests using the same QueryExecutionId will return the same result. Other requests using a different QueryExecutionId will take the next result from the queue, or return an empty result if the queue is empty.
 
-        Configuring this queue by making a HTTP request to `/moto-api/static/athena/query-results`. An example invocation looks like this:
+        Configuring this queue by making an HTTP request to `/moto-api/static/athena/query-results`. An example invocation looks like this:
 
         .. sourcecode:: python
 
