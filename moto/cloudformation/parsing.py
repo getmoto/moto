@@ -137,13 +137,16 @@ def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
             return result
 
         if "Fn::GetAtt" in resource_json:
-            resource = resources_map.get(resource_json["Fn::GetAtt"][0])
+            resource_name = resource_json["Fn::GetAtt"][0]
+            resource = resources_map.get(resource_name)
             if resource is None:
-                return resource_json
+                raise ValidationError(
+                    message=f"Template error: instance of Fn::GetAtt references undefined resource {resource_name}"
+                )
             try:
                 return resource.get_cfn_attribute(resource_json["Fn::GetAtt"][1])
             except NotImplementedError as n:
-                logger.warning(str(n).format(resource_json["Fn::GetAtt"][0]))
+                logger.warning(str(n).format(resource_name))
             except UnformattedGetAttTemplateException:
                 raise ValidationError(
                     "Bad Request",
