@@ -1,20 +1,21 @@
 import json
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
-from .models import forecast_backends
+from .models import forecast_backends, ForecastBackend
 
 
 class ForecastResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="forecast")
 
     @property
-    def forecast_backend(self):
+    def forecast_backend(self) -> ForecastBackend:
         return forecast_backends[self.current_account][self.region]
 
     @amzn_request_id
-    def create_dataset_group(self):
+    def create_dataset_group(self) -> TYPE_RESPONSE:
         dataset_group_name = self._get_param("DatasetGroupName")
         domain = self._get_param("Domain")
         dataset_arns = self._get_param("DatasetArns")
@@ -30,7 +31,7 @@ class ForecastResponse(BaseResponse):
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
-    def describe_dataset_group(self):
+    def describe_dataset_group(self) -> TYPE_RESPONSE:
         dataset_group_arn = self._get_param("DatasetGroupArn")
 
         dataset_group = self.forecast_backend.describe_dataset_group(
@@ -48,21 +49,20 @@ class ForecastResponse(BaseResponse):
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
-    def delete_dataset_group(self):
+    def delete_dataset_group(self) -> TYPE_RESPONSE:
         dataset_group_arn = self._get_param("DatasetGroupArn")
         self.forecast_backend.delete_dataset_group(dataset_group_arn)
-        return 200, {}, None
+        return 200, {}, ""
 
     @amzn_request_id
-    def update_dataset_group(self):
+    def update_dataset_group(self) -> TYPE_RESPONSE:
         dataset_group_arn = self._get_param("DatasetGroupArn")
         dataset_arns = self._get_param("DatasetArns")
         self.forecast_backend.update_dataset_group(dataset_group_arn, dataset_arns)
-        return 200, {}, None
+        return 200, {}, ""
 
     @amzn_request_id
-    def list_dataset_groups(self):
-        list_all = self.forecast_backend.list_dataset_groups()
+    def list_dataset_groups(self) -> TYPE_RESPONSE:
         list_all = sorted(
             [
                 {
@@ -71,9 +71,9 @@ class ForecastResponse(BaseResponse):
                     "CreationTime": dsg.creation_date,
                     "LastModificationTime": dsg.creation_date,
                 }
-                for dsg in list_all
+                for dsg in self.forecast_backend.list_dataset_groups()
             ],
-            key=lambda x: x["LastModificationTime"],
+            key=lambda x: x["LastModificationTime"],  # type: ignore
             reverse=True,
         )
         response = {"DatasetGroups": list_all}

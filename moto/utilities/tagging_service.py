@@ -86,7 +86,7 @@ class TaggingService:
                     # If both key and value are provided, match both before deletion
                     del current_tags[tag[self.key_name]]
 
-    def extract_tag_names(self, tags: Dict[str, str]) -> None:
+    def extract_tag_names(self, tags: List[Dict[str, str]]) -> List[str]:
         """Return list of key names in list of 'tags' key/value dicts."""
         results = []
         if len(tags) == 0:
