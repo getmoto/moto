@@ -165,6 +165,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 result.append({"Key": key, "Value": value})
             return result
 
+        def format_tag_keys(tags, keys):
+            result = []
+            for tag in tags:
+                result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
+            return result
+
         # S3
         if not resource_type_filters or "s3" in resource_type_filters:
             for bucket in self.s3_backend.buckets.values():
@@ -186,24 +192,25 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
             for service in self.ecs_backend.services.values():
-                tags = service.tags
+                tags = format_tag_keys(service.tags, ["key", "value"])
                 if not tag_filter(tags):
                     continue
-                yield {"ResourceARN": f"{service.physical_resource_id()}", "Tags": tags}
+                yield {"ResourceARN": f"{service.physical_resource_id}", "Tags": tags}
 
         if not resource_type_filters or "ecs:cluster" in resource_type_filters:
             for cluster in self.ecs_backend.clusters.values():
-                tags = cluster.tags
+                tags = format_tag_keys(cluster.tags, ["key", "value"])
                 if not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{cluster.arn}", "Tags": tags}
 
         if not resource_type_filters or "ecs:task" in resource_type_filters:
-            for task in self.ecs_backend.tasks.values():
-                tags = task.tags
-                if not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{task.task_arn()}", "Tags": tags}
+            for task_dict in self.ecs_backend.tasks.values():
+                for task in task_dict.values():
+                    tags = format_tag_keys(task.tags, ["key", "value"])
+                    if not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{task.task_arn}", "Tags": tags}
 
         # EC2 AMI, resource type ec2:image
         if (
@@ -357,15 +364,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Kinesis
 
         # KMS
-        def get_kms_tags(kms_key_id):
-            result = []
-            for tag in self.kms_backend.list_resource_tags(kms_key_id).get("Tags", []):
-                result.append({"Key": tag["TagKey"], "Value": tag["TagValue"]})
-            return result
-
         if not resource_type_filters or "kms" in resource_type_filters:
             for kms_key in self.kms_backend.list_keys():
-                tags = get_kms_tags(kms_key.id)
+                tags = format_tag_keys(
+                    self.kms_backend.list_resource_tags(kms_key.id).get("Tags", []),
+                    ["TagKey", "TagValue"],
+                )
                 if not tag_filter(tags):  # Skip if no tags, or invalid filter
                     continue
 
