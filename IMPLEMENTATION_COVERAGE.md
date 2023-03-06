@@ -421,7 +421,7 @@
 
 ## autoscaling
 <details>
-<summary>53% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
@@ -480,6 +480,7 @@
 - [ ] put_warm_pool
 - [ ] record_lifecycle_action_heartbeat
 - [X] resume_processes
+- [ ] rollback_instance_refresh
 - [X] set_desired_capacity
 - [X] set_instance_health
 - [X] set_instance_protection
@@ -1186,7 +1187,7 @@
 
 ## comprehend
 <details>
-<summary>10% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] batch_detect_dominant_language
 - [ ] batch_detect_entities
@@ -1196,13 +1197,17 @@
 - [ ] batch_detect_targeted_sentiment
 - [ ] classify_document
 - [ ] contains_pii_entities
+- [ ] create_dataset
 - [ ] create_document_classifier
 - [ ] create_endpoint
 - [X] create_entity_recognizer
+- [ ] create_flywheel
 - [ ] delete_document_classifier
 - [ ] delete_endpoint
 - [X] delete_entity_recognizer
+- [ ] delete_flywheel
 - [ ] delete_resource_policy
+- [ ] describe_dataset
 - [ ] describe_document_classification_job
 - [ ] describe_document_classifier
 - [ ] describe_dominant_language_detection_job
@@ -1210,6 +1215,8 @@
 - [ ] describe_entities_detection_job
 - [X] describe_entity_recognizer
 - [ ] describe_events_detection_job
+- [ ] describe_flywheel
+- [ ] describe_flywheel_iteration
 - [ ] describe_key_phrases_detection_job
 - [ ] describe_pii_entities_detection_job
 - [ ] describe_resource_policy
@@ -1224,6 +1231,7 @@
 - [ ] detect_syntax
 - [ ] detect_targeted_sentiment
 - [ ] import_model
+- [ ] list_datasets
 - [ ] list_document_classification_jobs
 - [ ] list_document_classifier_summaries
 - [ ] list_document_classifiers
@@ -1233,6 +1241,8 @@
 - [ ] list_entity_recognizer_summaries
 - [X] list_entity_recognizers
 - [ ] list_events_detection_jobs
+- [ ] list_flywheel_iteration_history
+- [ ] list_flywheels
 - [ ] list_key_phrases_detection_jobs
 - [ ] list_pii_entities_detection_jobs
 - [ ] list_sentiment_detection_jobs
@@ -1244,6 +1254,7 @@
 - [ ] start_dominant_language_detection_job
 - [ ] start_entities_detection_job
 - [ ] start_events_detection_job
+- [ ] start_flywheel_iteration
 - [ ] start_key_phrases_detection_job
 - [ ] start_pii_entities_detection_job
 - [ ] start_sentiment_detection_job
@@ -1261,6 +1272,7 @@
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_endpoint
+- [ ] update_flywheel
 </details>
 
 ## config
@@ -2390,7 +2402,7 @@
 
 ## ecs
 <details>
-<summary>80% implemented</summary>
+<summary>78% implemented</summary>
 
 - [X] create_capacity_provider
 - [X] create_cluster
@@ -2401,6 +2413,7 @@
 - [X] delete_capacity_provider
 - [X] delete_cluster
 - [X] delete_service
+- [ ] delete_task_definitions
 - [X] delete_task_set
 - [X] deregister_container_instance
 - [X] deregister_task_definition
@@ -3099,7 +3112,7 @@
 
 ## glue
 <details>
-<summary>21% implemented</summary>
+<summary>25% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3132,7 +3145,7 @@
 - [ ] create_dev_endpoint
 - [X] create_job
 - [ ] create_ml_transform
-- [ ] create_partition
+- [X] create_partition
 - [ ] create_partition_index
 - [X] create_registry
 - [X] create_schema
@@ -3155,7 +3168,7 @@
 - [ ] delete_dev_endpoint
 - [ ] delete_job
 - [ ] delete_ml_transform
-- [ ] delete_partition
+- [X] delete_partition
 - [ ] delete_partition_index
 - [X] delete_registry
 - [ ] delete_resource_policy
@@ -3164,7 +3177,7 @@
 - [ ] delete_security_configuration
 - [ ] delete_session
 - [X] delete_table
-- [ ] delete_table_version
+- [X] delete_table_version
 - [ ] delete_trigger
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
@@ -3196,13 +3209,13 @@
 - [ ] get_job_bookmark
 - [X] get_job_run
 - [ ] get_job_runs
-- [ ] get_jobs
+- [X] get_jobs
 - [ ] get_mapping
 - [ ] get_ml_task_run
 - [ ] get_ml_task_runs
 - [ ] get_ml_transform
 - [ ] get_ml_transforms
-- [ ] get_partition
+- [X] get_partition
 - [ ] get_partition_indexes
 - [X] get_partitions
 - [ ] get_plan
@@ -3218,8 +3231,8 @@
 - [ ] get_session
 - [ ] get_statement
 - [X] get_table
-- [ ] get_table_version
-- [ ] get_table_versions
+- [X] get_table_version
+- [X] get_table_versions
 - [X] get_tables
 - [X] get_tags
 - [ ] get_trigger
@@ -3295,11 +3308,11 @@
 - [ ] update_job
 - [ ] update_job_from_source_control
 - [ ] update_ml_transform
-- [ ] update_partition
+- [X] update_partition
 - [ ] update_registry
 - [X] update_schema
 - [ ] update_source_control_from_job
-- [ ] update_table
+- [X] update_table
 - [ ] update_trigger
 - [ ] update_user_defined_function
 - [ ] update_workflow
@@ -3636,6 +3649,31 @@
 - [X] upload_server_certificate
 - [X] upload_signing_certificate
 - [X] upload_ssh_public_key
+</details>
+
+## identitystore
+<details>
+<summary>5% implemented</summary>
+
+- [X] create_group
+- [ ] create_group_membership
+- [ ] create_user
+- [ ] delete_group
+- [ ] delete_group_membership
+- [ ] delete_user
+- [ ] describe_group
+- [ ] describe_group_membership
+- [ ] describe_user
+- [ ] get_group_id
+- [ ] get_group_membership_id
+- [ ] get_user_id
+- [ ] is_member_in_groups
+- [ ] list_group_memberships
+- [ ] list_group_memberships_for_member
+- [ ] list_groups
+- [ ] list_users
+- [ ] update_group
+- [ ] update_user
 </details>
 
 ## iot
@@ -4392,6 +4430,81 @@
 - [X] update_user
 </details>
 
+## neptune
+<details>
+<summary>13% implemented</summary>
+
+- [ ] add_role_to_db_cluster
+- [ ] add_source_identifier_to_subscription
+- [ ] add_tags_to_resource
+- [ ] apply_pending_maintenance_action
+- [ ] copy_db_cluster_parameter_group
+- [ ] copy_db_cluster_snapshot
+- [ ] copy_db_parameter_group
+- [X] create_db_cluster
+- [ ] create_db_cluster_endpoint
+- [ ] create_db_cluster_parameter_group
+- [ ] create_db_cluster_snapshot
+- [ ] create_db_instance
+- [ ] create_db_parameter_group
+- [ ] create_db_subnet_group
+- [ ] create_event_subscription
+- [X] create_global_cluster
+- [X] delete_db_cluster
+- [ ] delete_db_cluster_endpoint
+- [ ] delete_db_cluster_parameter_group
+- [ ] delete_db_cluster_snapshot
+- [ ] delete_db_instance
+- [ ] delete_db_parameter_group
+- [ ] delete_db_subnet_group
+- [ ] delete_event_subscription
+- [X] delete_global_cluster
+- [ ] describe_db_cluster_endpoints
+- [ ] describe_db_cluster_parameter_groups
+- [ ] describe_db_cluster_parameters
+- [ ] describe_db_cluster_snapshot_attributes
+- [ ] describe_db_cluster_snapshots
+- [X] describe_db_clusters
+- [ ] describe_db_engine_versions
+- [ ] describe_db_instances
+- [ ] describe_db_parameter_groups
+- [ ] describe_db_parameters
+- [ ] describe_db_subnet_groups
+- [ ] describe_engine_default_cluster_parameters
+- [ ] describe_engine_default_parameters
+- [ ] describe_event_categories
+- [ ] describe_event_subscriptions
+- [ ] describe_events
+- [X] describe_global_clusters
+- [X] describe_orderable_db_instance_options
+- [ ] describe_pending_maintenance_actions
+- [ ] describe_valid_db_instance_modifications
+- [ ] failover_db_cluster
+- [ ] failover_global_cluster
+- [ ] list_tags_for_resource
+- [X] modify_db_cluster
+- [ ] modify_db_cluster_endpoint
+- [ ] modify_db_cluster_parameter_group
+- [ ] modify_db_cluster_snapshot_attribute
+- [ ] modify_db_instance
+- [ ] modify_db_parameter_group
+- [ ] modify_db_subnet_group
+- [ ] modify_event_subscription
+- [ ] modify_global_cluster
+- [ ] promote_read_replica_db_cluster
+- [ ] reboot_db_instance
+- [ ] remove_from_global_cluster
+- [ ] remove_role_from_db_cluster
+- [ ] remove_source_identifier_from_subscription
+- [ ] remove_tags_from_resource
+- [ ] reset_db_cluster_parameter_group
+- [ ] reset_db_parameter_group
+- [ ] restore_db_cluster_from_snapshot
+- [ ] restore_db_cluster_to_point_in_time
+- [X] start_db_cluster
+- [ ] stop_db_cluster
+</details>
+
 ## opsworks
 <details>
 <summary>12% implemented</summary>
@@ -4910,7 +5023,7 @@
 
 ## rds
 <details>
-<summary>29% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -4993,7 +5106,7 @@
 - [ ] describe_global_clusters
 - [X] describe_option_group_options
 - [X] describe_option_groups
-- [ ] describe_orderable_db_instance_options
+- [X] describe_orderable_db_instance_options
 - [ ] describe_pending_maintenance_actions
 - [ ] describe_reserved_db_instances
 - [ ] describe_reserved_db_instances_offerings
@@ -6516,18 +6629,22 @@
 
 ## timestream-write
 <details>
-<summary>100% implemented</summary>
+<summary>78% implemented</summary>
 
+- [ ] create_batch_load_task
 - [X] create_database
 - [X] create_table
 - [X] delete_database
 - [X] delete_table
+- [ ] describe_batch_load_task
 - [X] describe_database
 - [X] describe_endpoints
 - [X] describe_table
+- [ ] list_batch_load_tasks
 - [X] list_databases
 - [X] list_tables
 - [X] list_tags_for_resource
+- [ ] resume_batch_load_task
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_database
@@ -6724,11 +6841,11 @@
 - health
 - healthlake
 - honeycode
-- identitystore
 - imagebuilder
 - importexport
 - inspector
 - inspector2
+- internetmonitor
 - iot-jobs-data
 - iot-roborunner
 - iot1click-devices
@@ -6789,7 +6906,6 @@
 - mobile
 - mturk
 - mwaa
-- neptune
 - network-firewall
 - networkmanager
 - nimble
@@ -6855,6 +6971,7 @@
 - support-app
 - synthetics
 - timestream-query
+- tnb
 - transfer
 - translate
 - voice-id

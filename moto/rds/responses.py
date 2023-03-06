@@ -1,18 +1,35 @@
 from collections import defaultdict
+from typing import Any
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
-from .models import rds_backends
+from moto.neptune.responses import NeptuneResponse
+from .models import rds_backends, RDSBackend
 from .exceptions import DBParameterGroupNotFoundError
 
 
 class RDSResponse(BaseResponse):
     def __init__(self):
         super().__init__(service_name="rds")
+        # Neptune and RDS share a HTTP endpoint RDS is the lucky guy that catches all requests
+        # So we have to determine whether we can handle an incoming request here, or whether it needs redirecting to Neptune
+        self.neptune = NeptuneResponse()
 
     @property
-    def backend(self):
+    def backend(self) -> RDSBackend:
         return rds_backends[self.current_account][self.region]
+
+    def _dispatch(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
+        # Because some requests are send through to Neptune, we have to prepare the NeptuneResponse-class
+        self.neptune.setup_class(request, full_url, headers)
+        return super()._dispatch(request, full_url, headers)
+
+    def __getattribute__(self, name: str):
+        if name in ["create_db_cluster"]:
+            if self._get_param("Engine") == "neptune":
+                return object.__getattribute__(self.neptune, name)
+        return object.__getattribute__(self, name)
 
     def _get_db_kwargs(self):
         args = {
@@ -80,6 +97,9 @@ class RDSResponse(BaseResponse):
             "db_instance_identifier": self._get_param("DBInstanceIdentifier"),
             "db_name": self._get_param("DBName"),
             "db_parameter_group_name": self._get_param("DBParameterGroupName"),
+            "db_cluster_parameter_group_name": self._get_param(
+                "DBClusterParameterGroupName"
+            ),
             "db_snapshot_identifier": self._get_param("DBSnapshotIdentifier"),
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
             "engine": self._get_param("Engine"),
@@ -98,8 +118,10 @@ class RDSResponse(BaseResponse):
             "multi_az": self._get_bool_param("MultiAZ"),
             "option_group_name": self._get_param("OptionGroupName"),
             "port": self._get_param("Port"),
-            # PreferredBackupWindow
-            # PreferredMaintenanceWindow
+            "preferred_backup_window": self._get_param("PreferredBackupWindow"),
+            "preferred_maintenance_window": self._get_param(
+                "PreferredMaintenanceWindow"
+            ),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "account_id": self.current_account,
             "region": self.region,
@@ -672,6 +694,24 @@ class RDSResponse(BaseResponse):
         template = self.response_template(DESCRIBE_EVENT_SUBSCRIPTIONS_TEMPLATE)
         return template.render(subscriptions=subscriptions)
 
+    def describe_orderable_db_instance_options(self):
+        engine = self._get_param("Engine")
+        engine_version = self._get_param("EngineVersion")
+        options = self.backend.describe_orderable_db_instance_options(
+            engine, engine_version
+        )
+        template = self.response_template(DESCRIBE_ORDERABLE_CLUSTER_OPTIONS)
+        return template.render(options=options, marker=None)
+
+    def describe_global_clusters(self):
+        return self.neptune.describe_global_clusters()
+
+    def create_global_cluster(self):
+        return self.neptune.create_global_cluster()
+
+    def delete_global_cluster(self):
+        return self.neptune.delete_global_cluster()
+
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBInstanceResult>
@@ -1210,3 +1250,55 @@ DESCRIBE_EVENT_SUBSCRIPTIONS_TEMPLATE = """<DescribeEventSubscriptionsResponse x
   </ResponseMetadata>
 </DescribeEventSubscriptionsResponse>
 """
+
+
+DESCRIBE_ORDERABLE_CLUSTER_OPTIONS = """<DescribeOrderableDBInstanceOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <DescribeOrderableDBInstanceOptionsResult>
+    <OrderableDBInstanceOptions>
+    {% for option in options %}
+      <OrderableDBInstanceOption>
+        <OutpostCapable>option["OutpostCapable"]</OutpostCapable>
+        <AvailabilityZones>
+          {% for zone in option["AvailabilityZones"] %}
+          <AvailabilityZone>
+            <Name>{{ zone["Name"] }}</Name>
+          </AvailabilityZone>
+          {% endfor %}
+        </AvailabilityZones>
+        <SupportsStorageThroughput>{{ option["SupportsStorageThroughput"] }}</SupportsStorageThroughput>
+        <SupportedEngineModes>
+          <member>provisioned</member>
+        </SupportedEngineModes>
+        <SupportsGlobalDatabases>{{ option["SupportsGlobalDatabases"] }}</SupportsGlobalDatabases>
+        <SupportsClusters>{{ option["SupportsClusters"] }}</SupportsClusters>
+        <Engine>{{ option["Engine"] }}</Engine>
+        <SupportedActivityStreamModes/>
+        <SupportsEnhancedMonitoring>false</SupportsEnhancedMonitoring>
+        <EngineVersion>{{ option["EngineVersion"] }}</EngineVersion>
+        <ReadReplicaCapable>false</ReadReplicaCapable>
+        <Vpc>true</Vpc>
+        <DBInstanceClass>{{ option["DBInstanceClass"] }}</DBInstanceClass>
+        <SupportsStorageEncryption>{{ option["SupportsStorageEncryption"] }}</SupportsStorageEncryption>
+        <SupportsKerberosAuthentication>{{ option["SupportsKerberosAuthentication"] }}</SupportsKerberosAuthentication>
+        <SupportedNetworkTypes>
+          <member>IPV4</member>
+        </SupportedNetworkTypes>
+        <AvailableProcessorFeatures/>
+        <SupportsPerformanceInsights>{{ option["SupportsPerformanceInsights"] }}</SupportsPerformanceInsights>
+        <LicenseModel>{{ option["LicenseModel"] }}</LicenseModel>
+        <MultiAZCapable>{{ option["MultiAZCapable"] }}</MultiAZCapable>
+        <RequiresCustomProcessorFeatures>{{ option["RequiresCustomProcessorFeatures"] }}</RequiresCustomProcessorFeatures>
+        <StorageType>{{ option["StorageType"] }}</StorageType>
+        <SupportsIops>{{ option["SupportsIops"] }}</SupportsIops>
+        <SupportsIAMDatabaseAuthentication>{{ option["SupportsIAMDatabaseAuthentication"] }}</SupportsIAMDatabaseAuthentication>
+      </OrderableDBInstanceOption>
+      {% endfor %}
+    </OrderableDBInstanceOptions>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+  </DescribeOrderableDBInstanceOptionsResult>
+  <ResponseMetadata>
+    <RequestId>54212dc5-16c4-4eb8-a88e-448691e877ab</RequestId>
+  </ResponseMetadata>
+</DescribeOrderableDBInstanceOptionsResponse>"""

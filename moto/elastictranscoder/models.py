@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Tuple
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api._internal import mock_random as random
 import string
@@ -6,14 +7,14 @@ import string
 class Pipeline(BaseModel):
     def __init__(
         self,
-        account_id,
-        region,
-        name,
-        input_bucket,
-        output_bucket,
-        role,
-        content_config,
-        thumbnail_config,
+        account_id: str,
+        region: str,
+        name: str,
+        input_bucket: str,
+        output_bucket: str,
+        role: str,
+        content_config: Dict[str, Any],
+        thumbnail_config: Dict[str, Any],
     ):
         a = "".join(random.choice(string.digits) for _ in range(13))
         b = "".join(random.choice(string.ascii_lowercase) for _ in range(6))
@@ -31,7 +32,7 @@ class Pipeline(BaseModel):
         if "Permissions" not in self.thumbnail_config:
             self.thumbnail_config["Permissions"] = []
 
-    def update(self, name, input_bucket, role):
+    def update(self, name: str, input_bucket: str, role: str) -> None:
         if name:
             self.name = name
         if input_bucket:
@@ -39,7 +40,7 @@ class Pipeline(BaseModel):
         if role:
             self.role = role
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "Id": self.id,
             "Name": self.name,
@@ -60,19 +61,19 @@ class Pipeline(BaseModel):
 
 
 class ElasticTranscoderBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.pipelines = {}
+        self.pipelines: Dict[str, Pipeline] = {}
 
     def create_pipeline(
         self,
-        name,
-        input_bucket,
-        output_bucket,
-        role,
-        content_config,
-        thumbnail_config,
-    ):
+        name: str,
+        input_bucket: str,
+        output_bucket: str,
+        role: str,
+        content_config: Dict[str, Any],
+        thumbnail_config: Dict[str, Any],
+    ) -> Tuple[Pipeline, List[str]]:
         """
         The following parameters are not yet implemented:
         AWSKMSKeyArn, Notifications
@@ -88,26 +89,28 @@ class ElasticTranscoderBackend(BaseBackend):
             thumbnail_config,
         )
         self.pipelines[pipeline.id] = pipeline
-        warnings = []
+        warnings: List[str] = []
         return pipeline, warnings
 
-    def list_pipelines(self):
+    def list_pipelines(self) -> List[Dict[str, Any]]:
         return [p.to_dict() for _, p in self.pipelines.items()]
 
-    def read_pipeline(self, pipeline_id):
+    def read_pipeline(self, pipeline_id: str) -> Pipeline:
         return self.pipelines[pipeline_id]
 
-    def update_pipeline(self, pipeline_id, name, input_bucket, role):
+    def update_pipeline(
+        self, pipeline_id: str, name: str, input_bucket: str, role: str
+    ) -> Tuple[Pipeline, List[str]]:
         """
         The following parameters are not yet implemented:
         AWSKMSKeyArn, Notifications, ContentConfig, ThumbnailConfig
         """
         pipeline = self.read_pipeline(pipeline_id)
         pipeline.update(name, input_bucket, role)
-        warnings = []
+        warnings: List[str] = []
         return pipeline, warnings
 
-    def delete_pipeline(self, pipeline_id):
+    def delete_pipeline(self, pipeline_id: str) -> None:
         self.pipelines.pop(pipeline_id)
 
 

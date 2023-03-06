@@ -9,7 +9,7 @@ name: "DataUpdate_EC2InstanceOfferings"
 
 on:
   schedule:
-    - cron: '00 12 * * 0'
+    - cron: '00 6 * * 0'
   workflow_dispatch:
 
 jobs:
@@ -40,12 +40,11 @@ jobs:
     - name: Pull EC2 instance types from AWS
       uses: technote-space/create-pr-action@v2
       with:
-        GITHUB_TOKEN: ${{ secrets.PR_ACCESS_TOKEN }}
         EXECUTE_COMMANDS: |
           pip install boto3
           scripts/ec2_get_instance_type_offerings.py
         COMMIT_MESSAGE: 'chore: update EC2 Instance Offerings'
         COMMIT_NAME: 'Moto Admin'
         COMMIT_EMAIL: 'admin@getmoto.org'
-        PR_BRANCH_NAME: 'chore-update-${PR_ID}'
+        PR_BRANCH_NAME: 'chore-update-ec2-offerings-${{ github.run_number }}'
         PR_TITLE: 'chore: update EC2 Instance Offerings'

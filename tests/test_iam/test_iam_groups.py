@@ -67,8 +67,8 @@ def test_get_group_current():
     assert not result["Users"]
 
     # Make a group with a different path:
-    other_group = conn.create_group(GroupName="my-other-group", Path="some/location")
-    assert other_group["Group"]["Path"] == "some/location"
+    other_group = conn.create_group(GroupName="my-other-group", Path="/some/location/")
+    assert other_group["Group"]["Path"] == "/some/location/"
     assert (
         other_group["Group"]["Arn"]
         == f"arn:aws:iam::{ACCOUNT_ID}:group/some/location/my-other-group"

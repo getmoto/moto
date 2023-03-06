@@ -49,3 +49,13 @@ TestAccSsmParameterDataSource
 TestAccDataSourceLambdaLayerVersion
 TestAccDataSourceLambdaInvocation
 TestAccDataSourceNetworkInterface_
+
+TestAccELBListenerPolicy_update
+TestAccServiceDiscoveryService_private
+TestAccIAMGroup_path
+TestAccLambdaFunctionURL_Cors
+TestAccVPCNATGateway_privateIP
+TestAccVPCSecurityGroupRule_multiDescription
+
+# TF expects a wrong error message, which is not in-line with what AWS returns
+TestAccEFSFileSystemDataSource_nonExistent_fileSystemID

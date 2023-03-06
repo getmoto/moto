@@ -14,7 +14,6 @@ from moto import mock_acm, mock_elb, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest import SkipTest, mock
 
-
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 
 
@@ -85,7 +84,7 @@ def test_import_bad_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ValidationException")
     else:
-        raise RuntimeError("Should of raised ValidationException")
+        raise RuntimeError("Should have raised ValidationException")
 
 
 @mock_acm
@@ -94,12 +93,18 @@ def test_list_certificates():
     issued_arn = _import_cert(client)
     pending_arn = client.request_certificate(DomainName="google.com")["CertificateArn"]
 
-    moto_arn = {"CertificateArn": issued_arn, "DomainName": SERVER_COMMON_NAME}
-    google_arn = {"CertificateArn": pending_arn, "DomainName": "google.com"}
-
     certs = client.list_certificates()["CertificateSummaryList"]
-    certs.should.contain(moto_arn)
-    certs.should.contain(google_arn)
+    [c["CertificateArn"] for c in certs].should.contain(issued_arn)
+    [c["CertificateArn"] for c in certs].should.contain(pending_arn)
+    for cert in certs:
+        cert.should.have.key("CertificateArn")
+        cert.should.have.key("DomainName")
+        cert.should.have.key("Status")
+        cert.should.have.key("Type")
+        cert.should.have.key("KeyAlgorithm")
+        cert.should.have.key("RenewalEligibility")
+        cert.should.have.key("NotBefore")
+        cert.should.have.key("NotAfter")
 
     resp = client.list_certificates(CertificateStatuses=["EXPIRED", "INACTIVE"])
     len(resp["CertificateSummaryList"]).should.equal(0)
@@ -107,20 +112,20 @@ def test_list_certificates():
     certs = client.list_certificates(CertificateStatuses=["PENDING_VALIDATION"])[
         "CertificateSummaryList"
     ]
-    certs.should.contain(google_arn)
-    certs.shouldnt.contain(moto_arn)
+    [c["CertificateArn"] for c in certs].shouldnt.contain(issued_arn)
+    [c["CertificateArn"] for c in certs].should.contain(pending_arn)
 
     certs = client.list_certificates(CertificateStatuses=["ISSUED"])[
         "CertificateSummaryList"
     ]
-    certs.shouldnt.contain(google_arn)
-    certs.should.contain(moto_arn)
+    [c["CertificateArn"] for c in certs].should.contain(issued_arn)
+    [c["CertificateArn"] for c in certs].shouldnt.contain(pending_arn)
 
     certs = client.list_certificates(
         CertificateStatuses=["ISSUED", "PENDING_VALIDATION"]
     )["CertificateSummaryList"]
-    certs.should.contain(google_arn)
-    certs.should.contain(moto_arn)
+    [c["CertificateArn"] for c in certs].should.contain(issued_arn)
+    [c["CertificateArn"] for c in certs].should.contain(pending_arn)
 
 
 @mock_acm
@@ -132,7 +137,7 @@ def test_get_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 # Also tests deleting invalid certificate
@@ -149,7 +154,7 @@ def test_delete_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -252,7 +257,7 @@ def test_add_tags_to_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -264,7 +269,7 @@ def test_list_tags_for_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -313,7 +318,7 @@ def test_remove_tags_from_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -343,7 +348,7 @@ def test_resend_validation_email_invalid():
             "InvalidDomainValidationOptionsException"
         )
     else:
-        raise RuntimeError("Should of raised InvalidDomainValidationOptionsException")
+        raise RuntimeError("Should have raised InvalidDomainValidationOptionsException")
 
     try:
         client.resend_validation_email(
@@ -354,7 +359,7 @@ def test_resend_validation_email_invalid():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm

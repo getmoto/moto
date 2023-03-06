@@ -56,7 +56,7 @@ glue
 - [ ] create_dev_endpoint
 - [X] create_job
 - [ ] create_ml_transform
-- [ ] create_partition
+- [X] create_partition
 - [ ] create_partition_index
 - [X] create_registry
 - [X] create_schema
@@ -83,7 +83,7 @@ glue
 - [ ] delete_dev_endpoint
 - [ ] delete_job
 - [ ] delete_ml_transform
-- [ ] delete_partition
+- [X] delete_partition
 - [ ] delete_partition_index
 - [X] delete_registry
 - [ ] delete_resource_policy
@@ -92,7 +92,7 @@ glue
 - [ ] delete_security_configuration
 - [ ] delete_session
 - [X] delete_table
-- [ ] delete_table_version
+- [X] delete_table_version
 - [ ] delete_trigger
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
@@ -124,13 +124,13 @@ glue
 - [ ] get_job_bookmark
 - [X] get_job_run
 - [ ] get_job_runs
-- [ ] get_jobs
+- [X] get_jobs
 - [ ] get_mapping
 - [ ] get_ml_task_run
 - [ ] get_ml_task_runs
 - [ ] get_ml_transform
 - [ ] get_ml_transforms
-- [ ] get_partition
+- [X] get_partition
 - [ ] get_partition_indexes
 - [X] get_partitions
   
@@ -140,7 +140,6 @@ glue
         Expression caveats:
 
         - Column names must consist of UPPERCASE, lowercase, dots and underscores only.
-        - Nanosecond expressions on timestamp columns are rounded to microseconds.
         - Literal dates and timestamps must be valid, i.e. no support for February 31st.
         - LIKE expressions are converted to Python regexes, escaping special characters.
           Only % and _ wildcards are supported, and SQL escaping using [] does not work.
@@ -159,8 +158,8 @@ glue
 - [ ] get_session
 - [ ] get_statement
 - [X] get_table
-- [ ] get_table_version
-- [ ] get_table_versions
+- [X] get_table_version
+- [X] get_table_versions
 - [X] get_tables
 - [X] get_tags
 - [ ] get_trigger
@@ -236,7 +235,7 @@ glue
 - [ ] update_job
 - [ ] update_job_from_source_control
 - [ ] update_ml_transform
-- [ ] update_partition
+- [X] update_partition
 - [ ] update_registry
 - [X] update_schema
   
@@ -244,7 +243,7 @@ glue
         
 
 - [ ] update_source_control_from_job
-- [ ] update_table
+- [X] update_table
 - [ ] update_trigger
 - [ ] update_user_defined_function
 - [ ] update_workflow

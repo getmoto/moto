@@ -1127,9 +1127,9 @@ class Group(BaseModel):
     def arn(self):
         if self.path == "/":
             return f"arn:aws:iam::{self.account_id}:group/{self.name}"
-
         else:
-            return f"arn:aws:iam::{self.account_id}:group/{self.path}/{self.name}"
+            # The path must by definition end and start with a forward slash. So we don't have to add more slashes to the ARN
+            return f"arn:aws:iam::{self.account_id}:group{self.path}{self.name}"
 
     def get_policy(self, policy_name):
         try:
@@ -1180,6 +1180,13 @@ class User(CloudFormationModel):
     @property
     def created_iso_8601(self):
         return iso_8601_datetime_with_milliseconds(self.create_date)
+
+    @property
+    def password_last_used_iso_8601(self):
+        if self.password_last_used is not None:
+            return iso_8601_datetime_with_milliseconds(self.password_last_used)
+        else:
+            return None
 
     def get_policy(self, policy_name):
         policy_json = None

@@ -2,9 +2,9 @@ from ._base_response import EC2BaseResponse
 
 
 class HostsResponse(EC2BaseResponse):
-    def allocate_hosts(self):
+    def allocate_hosts(self) -> str:
         params = self._get_params()
-        quantity = int(params.get("Quantity"))
+        quantity = int(params.get("Quantity"))  # type: ignore
         host_recovery = params.get("HostRecovery")
         zone = params.get("AvailabilityZone")
         instance_type = params.get("InstanceType")
@@ -24,14 +24,14 @@ class HostsResponse(EC2BaseResponse):
         template = self.response_template(EC2_ALLOCATE_HOSTS)
         return template.render(host_ids=host_ids)
 
-    def describe_hosts(self):
+    def describe_hosts(self) -> str:
         host_ids = list(self._get_params().get("HostId", {}).values())
         filters = self._filters_from_querystring()
         hosts = self.ec2_backend.describe_hosts(host_ids, filters)
         template = self.response_template(EC2_DESCRIBE_HOSTS)
         return template.render(account_id=self.current_account, hosts=hosts)
 
-    def modify_hosts(self):
+    def modify_hosts(self) -> str:
         params = self._get_params()
         host_ids = list(self._get_params().get("HostId", {}).values())
         auto_placement = params.get("AutoPlacement")
@@ -44,7 +44,7 @@ class HostsResponse(EC2BaseResponse):
         template = self.response_template(EC2_MODIFY_HOSTS)
         return template.render(host_ids=host_ids)
 
-    def release_hosts(self):
+    def release_hosts(self) -> str:
         host_ids = list(self._get_params().get("HostId", {}).values())
         self.ec2_backend.release_hosts(host_ids)
         template = self.response_template(EC2_RELEASE_HOSTS)

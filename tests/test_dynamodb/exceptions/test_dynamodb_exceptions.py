@@ -978,3 +978,75 @@ def test_gsi_key_cannot_be_empty():
     err["Message"].should.equal(
         "One or more parameter values were invalid: Type mismatch for Index Key hello Expected: S Actual: NULL IndexName: hello-index"
     )
+
+
+@mock_dynamodb
+def test_list_append_errors_for_unknown_attribute_value():
+    # Verify whether the list_append operation works as expected
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    client.create_table(
+        AttributeDefinitions=[{"AttributeName": "key", "AttributeType": "S"}],
+        TableName="table2",
+        KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.put_item(
+        TableName="table2",
+        Item={"key": {"S": "sha-of-file"}, "crontab": {"L": [{"S": "bar1"}]}},
+    )
+
+    # append to unknown list directly
+    with pytest.raises(ClientError) as exc:
+        client.update_item(
+            TableName="table2",
+            Key={"key": {"S": "sha-of-file"}},
+            UpdateExpression="SET uk = list_append(uk, :i)",
+            ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+            ReturnValues="UPDATED_NEW",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "The provided expression refers to an attribute that does not exist in the item"
+    )
+
+    # append to unknown list via ExpressionAttributeNames
+    with pytest.raises(ClientError) as exc:
+        client.update_item(
+            TableName="table2",
+            Key={"key": {"S": "sha-of-file"}},
+            UpdateExpression="SET #0 = list_append(#0, :i)",
+            ExpressionAttributeNames={"#0": "uk"},
+            ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+            ReturnValues="UPDATED_NEW",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "The provided expression refers to an attribute that does not exist in the item"
+    )
+
+    # append to unknown list, even though end result is known
+    with pytest.raises(ClientError) as exc:
+        client.update_item(
+            TableName="table2",
+            Key={"key": {"S": "sha-of-file"}},
+            UpdateExpression="SET crontab = list_append(uk, :i)",
+            ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+            ReturnValues="UPDATED_NEW",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "The provided expression refers to an attribute that does not exist in the item"
+    )
+
+    # We can append to a known list, into an unknown/new list
+    client.update_item(
+        TableName="table2",
+        Key={"key": {"S": "sha-of-file"}},
+        UpdateExpression="SET uk = list_append(crontab, :i)",
+        ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+        ReturnValues="UPDATED_NEW",
+    )

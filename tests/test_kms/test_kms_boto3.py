@@ -44,19 +44,6 @@ def test_create_key_without_description():
 
 
 @mock_kms
-def test_create_key_with_empty_content():
-    client_kms = boto3.client("kms", region_name="ap-northeast-1")
-    metadata = client_kms.create_key(Policy="my policy")["KeyMetadata"]
-    with pytest.raises(ClientError) as exc:
-        client_kms.encrypt(KeyId=metadata["KeyId"], Plaintext="")
-    err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
-    )
-
-
-@mock_kms
 def test_create_key():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(
@@ -294,6 +281,45 @@ def test_list_aliases():
         )
 
 
+@mock_kms
+def test_list_aliases_for_key_id():
+    region = "us-west-1"
+    client = boto3.client("kms", region_name=region)
+
+    my_alias = "alias/my-alias"
+    alias_arn = f"arn:aws:kms:{region}:{ACCOUNT_ID}:{my_alias}"
+    key_id = create_simple_key(client, description="my key")
+    client.create_alias(AliasName=my_alias, TargetKeyId=key_id)
+
+    aliases = client.list_aliases(KeyId=key_id)["Aliases"]
+    aliases.should.have.length_of(1)
+    aliases.should.contain(
+        {"AliasName": my_alias, "AliasArn": alias_arn, "TargetKeyId": key_id}
+    )
+
+
+@mock_kms
+def test_list_aliases_for_key_arn():
+    region = "us-west-1"
+    client = boto3.client("kms", region_name=region)
+    key = client.create_key()
+    key_id = key["KeyMetadata"]["KeyId"]
+    key_arn = key["KeyMetadata"]["Arn"]
+
+    id_alias = "alias/my-alias-1"
+    client.create_alias(AliasName=id_alias, TargetKeyId=key_id)
+    arn_alias = "alias/my-alias-2"
+    client.create_alias(AliasName=arn_alias, TargetKeyId=key_arn)
+
+    aliases = client.list_aliases(KeyId=key_arn)["Aliases"]
+    aliases.should.have.length_of(2)
+    for alias in [id_alias, arn_alias]:
+        alias_arn = f"arn:aws:kms:{region}:{ACCOUNT_ID}:{alias}"
+        aliases.should.contain(
+            {"AliasName": alias, "AliasArn": alias_arn, "TargetKeyId": key_id}
+        )
+
+
 @pytest.mark.parametrize(
     "key_id",
     [
@@ -377,51 +403,6 @@ def test_generate_data_key():
     response["KeyId"].should.equal(key_arn)
 
 
-@pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
-@mock_kms
-def test_encrypt(plaintext):
-    client = boto3.client("kms", region_name="us-west-2")
-
-    key = client.create_key(Description="key")
-    key_id = key["KeyMetadata"]["KeyId"]
-    key_arn = key["KeyMetadata"]["Arn"]
-
-    response = client.encrypt(KeyId=key_id, Plaintext=plaintext)
-    response["CiphertextBlob"].should_not.equal(plaintext)
-
-    # CiphertextBlob must NOT be base64-encoded
-    with pytest.raises(Exception):
-        base64.b64decode(response["CiphertextBlob"], validate=True)
-
-    response["KeyId"].should.equal(key_arn)
-
-
-@pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
-@mock_kms
-def test_decrypt(plaintext):
-    client = boto3.client("kms", region_name="us-west-2")
-
-    key = client.create_key(Description="key")
-    key_id = key["KeyMetadata"]["KeyId"]
-    key_arn = key["KeyMetadata"]["Arn"]
-
-    encrypt_response = client.encrypt(KeyId=key_id, Plaintext=plaintext)
-
-    client.create_key(Description="key")
-    # CiphertextBlob must NOT be base64-encoded
-    with pytest.raises(Exception):
-        base64.b64decode(encrypt_response["CiphertextBlob"], validate=True)
-
-    decrypt_response = client.decrypt(CiphertextBlob=encrypt_response["CiphertextBlob"])
-
-    # Plaintext must NOT be base64-encoded
-    with pytest.raises(Exception):
-        base64.b64decode(decrypt_response["Plaintext"], validate=True)
-
-    decrypt_response["Plaintext"].should.equal(_get_encoded_value(plaintext))
-    decrypt_response["KeyId"].should.equal(key_arn)
-
-
 @pytest.mark.parametrize(
     "key_id",
     [
@@ -438,17 +419,6 @@ def test_invalid_key_ids(key_id):
 
     with pytest.raises(client.exceptions.NotFoundException):
         client.generate_data_key(KeyId=key_id, NumberOfBytes=5)
-
-
-@pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
-@mock_kms
-def test_kms_encrypt(plaintext):
-    client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key")
-    response = client.encrypt(KeyId=key["KeyMetadata"]["KeyId"], Plaintext=plaintext)
-
-    response = client.decrypt(CiphertextBlob=response["CiphertextBlob"])
-    response["Plaintext"].should.equal(_get_encoded_value(plaintext))
 
 
 @mock_kms
@@ -736,69 +706,6 @@ def test_generate_data_key_without_plaintext_decrypt():
     )
 
     assert "Plaintext" not in resp1
-
-
-@pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
-@mock_kms
-def test_re_encrypt_decrypt(plaintext):
-    client = boto3.client("kms", region_name="us-west-2")
-
-    key_1 = client.create_key(Description="key 1")
-    key_1_id = key_1["KeyMetadata"]["KeyId"]
-    key_1_arn = key_1["KeyMetadata"]["Arn"]
-    key_2 = client.create_key(Description="key 2")
-    key_2_id = key_2["KeyMetadata"]["KeyId"]
-    key_2_arn = key_2["KeyMetadata"]["Arn"]
-
-    encrypt_response = client.encrypt(
-        KeyId=key_1_id, Plaintext=plaintext, EncryptionContext={"encryption": "context"}
-    )
-
-    re_encrypt_response = client.re_encrypt(
-        CiphertextBlob=encrypt_response["CiphertextBlob"],
-        SourceEncryptionContext={"encryption": "context"},
-        DestinationKeyId=key_2_id,
-        DestinationEncryptionContext={"another": "context"},
-    )
-
-    # CiphertextBlob must NOT be base64-encoded
-    with pytest.raises(Exception):
-        base64.b64decode(re_encrypt_response["CiphertextBlob"], validate=True)
-
-    re_encrypt_response["SourceKeyId"].should.equal(key_1_arn)
-    re_encrypt_response["KeyId"].should.equal(key_2_arn)
-
-    decrypt_response_1 = client.decrypt(
-        CiphertextBlob=encrypt_response["CiphertextBlob"],
-        EncryptionContext={"encryption": "context"},
-    )
-    decrypt_response_1["Plaintext"].should.equal(_get_encoded_value(plaintext))
-    decrypt_response_1["KeyId"].should.equal(key_1_arn)
-
-    decrypt_response_2 = client.decrypt(
-        CiphertextBlob=re_encrypt_response["CiphertextBlob"],
-        EncryptionContext={"another": "context"},
-    )
-    decrypt_response_2["Plaintext"].should.equal(_get_encoded_value(plaintext))
-    decrypt_response_2["KeyId"].should.equal(key_2_arn)
-
-    decrypt_response_1["Plaintext"].should.equal(decrypt_response_2["Plaintext"])
-
-
-@mock_kms
-def test_re_encrypt_to_invalid_destination():
-    client = boto3.client("kms", region_name="us-west-2")
-
-    key = client.create_key(Description="key 1")
-    key_id = key["KeyMetadata"]["KeyId"]
-
-    encrypt_response = client.encrypt(KeyId=key_id, Plaintext=b"some plaintext")
-
-    with pytest.raises(client.exceptions.NotFoundException):
-        client.re_encrypt(
-            CiphertextBlob=encrypt_response["CiphertextBlob"],
-            DestinationKeyId="alias/DoesNotExist",
-        )
 
 
 @pytest.mark.parametrize("number_of_bytes", [12, 44, 91, 1, 1024])

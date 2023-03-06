@@ -53,21 +53,13 @@ from moto.s3.exceptions import (
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from . import notifications
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
+from .utils import ARCHIVE_STORAGE_CLASSES, STORAGE_CLASS
 from ..events.notifications import send_notification as events_send_notification
 from ..settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 
 MAX_BUCKET_NAME_LENGTH = 63
 MIN_BUCKET_NAME_LENGTH = 3
 UPLOAD_ID_BYTES = 43
-STORAGE_CLASS = [
-    "STANDARD",
-    "REDUCED_REDUNDANCY",
-    "STANDARD_IA",
-    "ONEZONE_IA",
-    "INTELLIGENT_TIERING",
-    "GLACIER",
-    "DEEP_ARCHIVE",
-]
 DEFAULT_TEXT_ENCODING = sys.getdefaultencoding()
 OWNER = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
 
@@ -1451,6 +1443,17 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def reset(self):
         # For every key and multipart, Moto opens a TemporaryFile to write the value of those keys
         # Ensure that these TemporaryFile-objects are closed, and leave no filehandles open
+        #
+        # First, check all known buckets/keys
+        for bucket in self.buckets.values():
+            for key in bucket.keys.values():
+                if isinstance(key, FakeKey):
+                    key.dispose()
+            for part in bucket.multiparts.values():
+                part.dispose()
+        #
+        # Second, go through the list of instances
+        # It may contain FakeKeys created earlier, which are no longer tracked
         for mp in FakeMultipart.instances:
             mp.dispose()
         for key in FakeKey.instances:
@@ -1816,8 +1819,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if bucket.is_versioned:
             keys = existing_keys + [new_key]
         else:
-            for key in existing_keys:
-                key.dispose()
             keys = [new_key]
         bucket.keys.setlist(key_name, keys)
 
@@ -2240,7 +2241,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         if acl is not None:
             new_key.set_acl(acl)
-        if src_key.storage_class in "GLACIER":
+        if src_key.storage_class in ARCHIVE_STORAGE_CLASSES:
             # Object copied from Glacier object should not have expiry
             new_key.set_expiry(None)
 

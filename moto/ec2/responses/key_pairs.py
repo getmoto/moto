@@ -2,28 +2,28 @@ from ._base_response import EC2BaseResponse
 
 
 class KeyPairs(EC2BaseResponse):
-    def create_key_pair(self):
+    def create_key_pair(self) -> str:
         name = self._get_param("KeyName")
         self.error_on_dryrun()
 
         keypair = self.ec2_backend.create_key_pair(name)
         return self.response_template(CREATE_KEY_PAIR_RESPONSE).render(keypair=keypair)
 
-    def delete_key_pair(self):
+    def delete_key_pair(self) -> str:
         name = self._get_param("KeyName")
         self.error_on_dryrun()
 
         self.ec2_backend.delete_key_pair(name)
         return self.response_template(DELETE_KEY_PAIR_RESPONSE).render()
 
-    def describe_key_pairs(self):
+    def describe_key_pairs(self) -> str:
         names = self._get_multi_param("KeyName")
         filters = self._filters_from_querystring()
         keypairs = self.ec2_backend.describe_key_pairs(names, filters)
         template = self.response_template(DESCRIBE_KEY_PAIRS_RESPONSE)
         return template.render(keypairs=keypairs)
 
-    def import_key_pair(self):
+    def import_key_pair(self) -> str:
         name = self._get_param("KeyName")
         material = self._get_param("PublicKeyMaterial")
         self.error_on_dryrun()

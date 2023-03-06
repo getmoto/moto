@@ -2,7 +2,7 @@ from ._base_response import EC2BaseResponse
 
 
 class InternetGateways(EC2BaseResponse):
-    def attach_internet_gateway(self):
+    def attach_internet_gateway(self) -> str:
         igw_id = self._get_param("InternetGatewayId")
         vpc_id = self._get_param("VpcId")
 
@@ -11,7 +11,7 @@ class InternetGateways(EC2BaseResponse):
         self.ec2_backend.attach_internet_gateway(igw_id, vpc_id)
         return self.response_template(ATTACH_INTERNET_GATEWAY_RESPONSE).render()
 
-    def create_internet_gateway(self):
+    def create_internet_gateway(self) -> str:
         self.error_on_dryrun()
 
         tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
@@ -22,14 +22,14 @@ class InternetGateways(EC2BaseResponse):
             internet_gateway=igw
         )
 
-    def delete_internet_gateway(self):
+    def delete_internet_gateway(self) -> str:
         igw_id = self._get_param("InternetGatewayId")
         self.error_on_dryrun()
 
         self.ec2_backend.delete_internet_gateway(igw_id)
         return self.response_template(DELETE_INTERNET_GATEWAY_RESPONSE).render()
 
-    def describe_internet_gateways(self):
+    def describe_internet_gateways(self) -> str:
         filter_dict = self._filters_from_querystring()
         if "InternetGatewayId.1" in self.querystring:
             igw_ids = self._get_multi_param("InternetGatewayId")
@@ -42,7 +42,7 @@ class InternetGateways(EC2BaseResponse):
         template = self.response_template(DESCRIBE_INTERNET_GATEWAYS_RESPONSE)
         return template.render(internet_gateways=igws)
 
-    def detach_internet_gateway(self):
+    def detach_internet_gateway(self) -> str:
         # TODO validate no instances with EIPs in VPC before detaching
         # raise else DependencyViolationError()
         igw_id = self._get_param("InternetGatewayId")

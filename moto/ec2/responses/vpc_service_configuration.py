@@ -1,10 +1,9 @@
-from moto.core.responses import BaseResponse
-
+from ._base_response import EC2BaseResponse
 from ..exceptions import NoLoadBalancersProvided
 
 
-class VPCEndpointServiceConfiguration(BaseResponse):
-    def create_vpc_endpoint_service_configuration(self):
+class VPCEndpointServiceConfiguration(EC2BaseResponse):
+    def create_vpc_endpoint_service_configuration(self) -> str:
         gateway_lbs = self._get_multi_param("GatewayLoadBalancerArn")
         network_lbs = self._get_multi_param("NetworkLoadBalancerArn")
         if not gateway_lbs and not network_lbs:
@@ -27,7 +26,7 @@ class VPCEndpointServiceConfiguration(BaseResponse):
         template = self.response_template(CREATE_VPC_ENDPOINT_SERVICE_CONFIGURATION)
         return template.render(config=config)
 
-    def describe_vpc_endpoint_service_configurations(self):
+    def describe_vpc_endpoint_service_configurations(self) -> str:
         service_ids = self._get_multi_param("ServiceId")
 
         configs = self.ec2_backend.describe_vpc_endpoint_service_configurations(
@@ -37,7 +36,7 @@ class VPCEndpointServiceConfiguration(BaseResponse):
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_SERVICE_CONFIGURATION)
         return template.render(configs=configs)
 
-    def delete_vpc_endpoint_service_configurations(self):
+    def delete_vpc_endpoint_service_configurations(self) -> str:
         service_ids = self._get_multi_param("ServiceId")
         missing_configs = self.ec2_backend.delete_vpc_endpoint_service_configurations(
             service_ids
@@ -46,7 +45,7 @@ class VPCEndpointServiceConfiguration(BaseResponse):
         template = self.response_template(DELETE_VPC_ENDPOINT_SERVICE_CONFIGURATION)
         return template.render(missing=missing_configs)
 
-    def describe_vpc_endpoint_service_permissions(self):
+    def describe_vpc_endpoint_service_permissions(self) -> str:
         service_id = self._get_param("ServiceId")
 
         principals = self.ec2_backend.describe_vpc_endpoint_service_permissions(
@@ -56,7 +55,7 @@ class VPCEndpointServiceConfiguration(BaseResponse):
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_SERVICE_PERMISSIONS)
         return template.render(principals=principals)
 
-    def modify_vpc_endpoint_service_configuration(self):
+    def modify_vpc_endpoint_service_configuration(self) -> str:
         service_id = self._get_param("ServiceId")
         private_dns_name = self._get_param("PrivateDnsName")
         acceptance_required = self._get_param("AcceptanceRequired")
@@ -77,7 +76,7 @@ class VPCEndpointServiceConfiguration(BaseResponse):
 
         return MODIFY_VPC_ENDPOINT_SERVICE_CONFIGURATION
 
-    def modify_vpc_endpoint_service_permissions(self):
+    def modify_vpc_endpoint_service_permissions(self) -> str:
         service_id = self._get_param("ServiceId")
         add_principals = self._get_multi_param("AddAllowedPrincipals")
         remove_principals = self._get_multi_param("RemoveAllowedPrincipals")

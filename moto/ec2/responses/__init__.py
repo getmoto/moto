@@ -1,5 +1,4 @@
 from .account_attributes import AccountAttributes
-from .amazon_dev_pay import AmazonDevPay
 from .amis import AmisResponse
 from .availability_zones_and_regions import AvailabilityZonesAndRegions
 from .customer_gateways import CustomerGateways
@@ -18,7 +17,6 @@ from .key_pairs import KeyPairs
 from .launch_templates import LaunchTemplates
 from .monitoring import Monitoring
 from .network_acls import NetworkACLs
-from .placement_groups import PlacementGroups
 from .reserved_instances import ReservedInstances
 from .route_tables import RouteTables
 from .security_groups import SecurityGroups
@@ -29,8 +27,6 @@ from .subnets import Subnets
 from .flow_logs import FlowLogs
 from .tags import TagResponse
 from .virtual_private_gateways import VirtualPrivateGateways
-from .vm_export import VMExport
-from .vm_import import VMImport
 from .vpcs import VPCs
 from .vpc_service_configuration import VPCEndpointServiceConfiguration
 from .vpc_peering_connections import VPCPeeringConnections
@@ -46,7 +42,6 @@ from .carrier_gateways import CarrierGateway
 
 class EC2Response(
     AccountAttributes,
-    AmazonDevPay,
     AmisResponse,
     AvailabilityZonesAndRegions,
     CustomerGateways,
@@ -65,7 +60,6 @@ class EC2Response(
     LaunchTemplates,
     Monitoring,
     NetworkACLs,
-    PlacementGroups,
     ReservedInstances,
     RouteTables,
     SecurityGroups,
@@ -76,8 +70,6 @@ class EC2Response(
     FlowLogs,
     TagResponse,
     VirtualPrivateGateways,
-    VMExport,
-    VMImport,
     VPCs,
     VPCEndpointServiceConfiguration,
     VPCPeeringConnections,
@@ -90,15 +82,9 @@ class EC2Response(
     IamInstanceProfiles,
     CarrierGateway,
 ):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="ec2")
 
     @property
-    def ec2_backend(self):
-        from moto.ec2.models import ec2_backends
-
-        return ec2_backends[self.current_account][self.region]
-
-    @property
-    def should_autoescape(self):
+    def should_autoescape(self) -> bool:
         return True

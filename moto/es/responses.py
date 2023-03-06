@@ -1,38 +1,40 @@
 import json
 import re
+from typing import Any
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from .exceptions import InvalidDomainName
-from .models import es_backends
+from .models import es_backends, ElasticsearchServiceBackend
 
 
 class ElasticsearchServiceResponse(BaseResponse):
     """Handler for ElasticsearchService requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="elasticsearch")
 
     @property
-    def es_backend(self):
+    def es_backend(self) -> ElasticsearchServiceBackend:
         """Return backend instance specific for this region."""
         return es_backends[self.current_account][self.region]
 
     @classmethod
-    def list_domains(cls, request, full_url, headers):
+    def list_domains(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         response = ElasticsearchServiceResponse()
         response.setup_class(request, full_url, headers)
         if request.method == "GET":
             return response.list_domain_names()
 
     @classmethod
-    def domains(cls, request, full_url, headers):
+    def domains(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         response = ElasticsearchServiceResponse()
         response.setup_class(request, full_url, headers)
         if request.method == "POST":
             return response.create_elasticsearch_domain()
 
     @classmethod
-    def domain(cls, request, full_url, headers):
+    def domain(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         response = ElasticsearchServiceResponse()
         response.setup_class(request, full_url, headers)
         if request.method == "DELETE":
@@ -40,7 +42,7 @@ class ElasticsearchServiceResponse(BaseResponse):
         if request.method == "GET":
             return response.describe_elasticsearch_domain()
 
-    def create_elasticsearch_domain(self):
+    def create_elasticsearch_domain(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         domain_name = params.get("DomainName")
         if not re.match(r"^[a-z][a-z0-9\-]+$", domain_name):
@@ -78,12 +80,12 @@ class ElasticsearchServiceResponse(BaseResponse):
         )
         return 200, {}, json.dumps({"DomainStatus": domain_status})
 
-    def delete_elasticsearch_domain(self):
+    def delete_elasticsearch_domain(self) -> TYPE_RESPONSE:
         domain_name = self.path.split("/")[-1]
         self.es_backend.delete_elasticsearch_domain(domain_name=domain_name)
         return 200, {}, json.dumps(dict())
 
-    def describe_elasticsearch_domain(self):
+    def describe_elasticsearch_domain(self) -> TYPE_RESPONSE:
         domain_name = self.path.split("/")[-1]
         if not re.match(r"^[a-z][a-z0-9\-]+$", domain_name):
             raise InvalidDomainName(domain_name)
@@ -92,6 +94,6 @@ class ElasticsearchServiceResponse(BaseResponse):
         )
         return 200, {}, json.dumps({"DomainStatus": domain_status})
 
-    def list_domain_names(self):
+    def list_domain_names(self) -> TYPE_RESPONSE:
         domain_names = self.es_backend.list_domain_names()
         return 200, {}, json.dumps({"DomainNames": domain_names})

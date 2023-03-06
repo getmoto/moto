@@ -606,7 +606,12 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         """
         try:
             import docker
+        except ImportError as err:
+            logger.error(f"Failed to run AWS Batch container {self.name}. Error {err}")
+            self._mark_stopped(success=False)
+            return
 
+        try:
             containers: List[docker.models.containers.Container] = []
 
             self.advance()

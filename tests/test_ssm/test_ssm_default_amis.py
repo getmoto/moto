@@ -14,11 +14,12 @@ def test_ssm_get_latest_ami_by_path():
     params = client.get_parameters_by_path(Path=path)["Parameters"]
     params.should.have.length_of(10)
 
-    ami = [p for p in params if p["Name"] == test_ami][0]
-    ami["Type"].should.equal("String")
-    ami["Version"].should.equal(18)
-    ami["Value"].should.equal("ami-0f4e67e32313f0d0e")
-    ami.should.have.key("LastModifiedDate")
+    assert all(
+        [p["Name"].startswith("/aws/service/ami-amazon-linux-latest") for p in params]
+    )
+    assert all([p["Type"] == "String" for p in params])
+    assert all([p["DataType"] == "text" for p in params])
+    assert all([p["ARN"].startswith("arn:aws:ssm:us-west-1") for p in params])
 
 
 @mock_ssm

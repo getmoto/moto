@@ -7,7 +7,7 @@ from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-from typing import Any, Dict, List, TypeVar, Tuple, Optional
+from typing import Any, Dict, List, Set, TypeVar, Tuple, Optional, Union
 
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
@@ -64,11 +64,11 @@ EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items(
 HEX_CHARS = list(str(x) for x in range(10)) + ["a", "b", "c", "d", "e", "f"]
 
 
-def random_resource_id(size=8):
+def random_resource_id(size: int = 8) -> str:
     return "".join(random.choice(HEX_CHARS) for _ in range(size))
 
 
-def random_id(prefix="", size=8):
+def random_id(prefix: str = "", size: int = 8) -> str:
     return f"{prefix}-{random_resource_id(size)}"
 
 
@@ -244,7 +244,7 @@ def random_dedicated_host_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dedicated_host"], size=17)
 
 
-def random_private_ip(cidr: str = None, ipv6: bool = False) -> str:
+def random_private_ip(cidr: Optional[str] = None, ipv6: bool = False) -> str:
     # prefix - ula.prefixlen : get number of remaing length for the IP.
     #                          prefix will be 32 for IPv4 and 128 for IPv6.
     #  random.getrandbits() will generate remaining bits for IPv6 or Ipv4 in decimal format
@@ -252,7 +252,7 @@ def random_private_ip(cidr: str = None, ipv6: bool = False) -> str:
         if ipv6:
             ula = ipaddress.IPv6Network(cidr)
             return str(ula.network_address + (random.getrandbits(128 - ula.prefixlen)))
-        ula = ipaddress.IPv4Network(cidr)
+        ula = ipaddress.IPv4Network(cidr)  # type: ignore[assignment]
         return str(ula.network_address + (random.getrandbits(32 - ula.prefixlen)))
     if ipv6:
         return f"2001::cafe:{random.getrandbits(16)}x/64"
@@ -285,7 +285,7 @@ def generate_route_id(
     cidr_block: Optional[str],
     ipv6_cidr_block: Optional[str] = None,
     prefix_list: Optional[str] = None,
-):
+) -> str:
     if ipv6_cidr_block and not cidr_block:
         cidr_block = ipv6_cidr_block
     if prefix_list and not cidr_block:
@@ -315,7 +315,9 @@ def split_route_id(route_id: str) -> Tuple[str, str]:
     return values[0], values[1]
 
 
-def get_attribute_value(parameter, querystring_dict):
+def get_attribute_value(
+    parameter: str, querystring_dict: Dict[str, List[str]]
+) -> Union[None, bool, str]:
     for key, value in querystring_dict.items():
         match = re.search(rf"{parameter}.Value", key)
         if match:
@@ -325,7 +327,7 @@ def get_attribute_value(parameter, querystring_dict):
     return None
 
 
-def get_object_value(obj, attr):
+def get_object_value(obj: Any, attr: str) -> Any:
     keys = attr.split(".")
     val = obj
     for key in keys:
@@ -353,25 +355,25 @@ def is_tag_filter(filter_name: str) -> bool:
     )
 
 
-def get_obj_tag(obj, filter_name):
+def get_obj_tag(obj: Any, filter_name: str) -> Optional[str]:
     tag_name = filter_name.replace("tag:", "", 1)
     tags = dict((tag["key"], tag["value"]) for tag in obj.get_tags())
     return tags.get(tag_name)
 
 
-def get_obj_tag_names(obj):
+def get_obj_tag_names(obj: Any) -> Set[str]:
     tags = set((tag["key"] for tag in obj.get_tags()))
     return tags
 
 
-def get_obj_tag_values(obj, key=None):
+def get_obj_tag_values(obj: Any, key: Optional[str] = None) -> Set[str]:
     tags = set(
         (tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None)
     )
     return tags
 
 
-def add_tag_specification(tags):
+def add_tag_specification(tags: Any) -> Dict[str, str]:
     tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
     tags = (tags or {}).get("Tag", [])
     tags = {t["Key"]: t["Value"] for t in tags}
@@ -388,10 +390,12 @@ def tag_filter_matches(obj: Any, filter_name: str, filter_values: List[str]) -> 
         key = filter_name[4:]
         tag_values = get_obj_tag_values(obj, key=key)
     else:
-        tag_values = [get_obj_tag(obj, filter_name) or ""]
+        tag_values = [get_obj_tag(obj, filter_name) or ""]  # type: ignore[assignment]
 
     for tag_value in tag_values:
         if any(regex.match(tag_value) for regex in regex_filters):
+            return True
+        if tag_value in filter_values:
             return True
 
     return False
@@ -421,7 +425,7 @@ filter_dict_attribute_mapping = {
 }
 
 
-def passes_filter_dict(instance, filter_dict):
+def passes_filter_dict(instance: Any, filter_dict: Dict[str, Any]) -> bool:
     for filter_name, filter_values in filter_dict.items():
         if filter_name in filter_dict_attribute_mapping:
             instance_attr = filter_dict_attribute_mapping[filter_name]
@@ -440,7 +444,7 @@ def passes_filter_dict(instance, filter_dict):
     return True
 
 
-def instance_value_in_filter_values(instance_value, filter_values):
+def instance_value_in_filter_values(instance_value: Any, filter_values: Any) -> bool:
     if isinstance(instance_value, list):
         if not set(filter_values).intersection(set(instance_value)):
             return False
@@ -458,11 +462,11 @@ def filter_reservations(
     result = []
     for reservation in reservations:
         new_instances = []
-        for instance in reservation.instances:
+        for instance in reservation.instances:  # type: ignore[attr-defined]
             if passes_filter_dict(instance, filter_dict):
                 new_instances.append(instance)
         if new_instances:
-            reservation.instances = new_instances
+            reservation.instances = new_instances  # type: ignore[attr-defined]
             result.append(reservation)
     return result
 
@@ -474,7 +478,7 @@ filter_dict_igw_mapping = {
 }
 
 
-def passes_igw_filter_dict(igw, filter_dict):
+def passes_igw_filter_dict(igw: Any, filter_dict: Dict[str, Any]) -> bool:
     for filter_name, filter_values in filter_dict.items():
         if filter_name in filter_dict_igw_mapping:
             igw_attr = filter_dict_igw_mapping[filter_name]
@@ -501,7 +505,7 @@ def filter_internet_gateways(
     return result
 
 
-def is_filter_matching(obj, _filter, filter_value):
+def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
     value = obj.get_filter_value(_filter)
 
     if filter_value is None:
@@ -583,7 +587,7 @@ def get_prefix(resource_id: str) -> str:
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX["reserved-instance"]
         else:
             # We should probably raise an error here, to make it more obvious this is not yet supported
-            return None
+            return None  # type: ignore[return-value]
     return resource_id_prefix
 
 
@@ -609,7 +613,7 @@ def is_valid_ipv6_cidr(cird: str) -> bool:
     return cidr_pattern_re.match(cird) is not None
 
 
-def generate_instance_identity_document(instance):
+def generate_instance_identity_document(instance: Any) -> Dict[str, Any]:
     """
     http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html
 
@@ -681,12 +685,12 @@ def filter_iam_instance_profile_associations(
         filter_passed = True
         if filter_dict.get("instance-id"):
             if (
-                iam_instance_association.instance.id
+                iam_instance_association.instance.id  # type: ignore[attr-defined]
                 not in filter_dict.get("instance-id").values()
             ):
                 filter_passed = False
         if filter_dict.get("state"):
-            if iam_instance_association.state not in filter_dict.get("state").values():
+            if iam_instance_association.state not in filter_dict.get("state").values():  # type: ignore[attr-defined]
                 filter_passed = False
         if filter_passed:
             result.append(iam_instance_association)
@@ -732,7 +736,7 @@ def describe_tag_filter(
                 if match:
                     tag_key_name = match.group(1)
                     need_delete = True
-                    for tag in instance.get_tags():
+                    for tag in instance.get_tags():  # type: ignore[attr-defined]
                         if tag.get("key") == tag_key_name and tag.get(
                             "value"
                         ) in filters.get(key):
@@ -746,7 +750,9 @@ def describe_tag_filter(
     return result
 
 
-def gen_moto_amis(described_images, drop_images_missing_keys=True):
+def gen_moto_amis(
+    described_images: List[Dict[str, Any]], drop_images_missing_keys: bool = True
+) -> List[Dict[str, Any]]:
     """Convert `boto3.EC2.Client.describe_images` output to form acceptable to `MOTO_AMIS_PATH`
 
     Parameters
@@ -804,7 +810,7 @@ def convert_tag_spec(
     # IN:   [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
     #  (or) [{"ResourceType": _type, "Tags": [{"Key": k, "Value": v}, ..]}] <-- special cfn case
     # OUT:  {_type: {k: v, ..}}
-    tags = {}
+    tags: Dict[str, Dict[str, str]] = {}
     for tag_spec in tag_spec_set:
         if tag_spec["ResourceType"] not in tags:
             tags[tag_spec["ResourceType"]] = {}

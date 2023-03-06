@@ -3,16 +3,13 @@ from ._base_response import EC2BaseResponse
 
 
 class TransitGatewayAttachment(EC2BaseResponse):
-    def create_transit_gateway_vpc_attachment(self):
+    def create_transit_gateway_vpc_attachment(self) -> str:
         options = self._get_multi_param_dict("Options")
         subnet_ids = self._get_multi_param("SubnetIds")
         transit_gateway_id = self._get_param("TransitGatewayId")
         vpc_id = self._get_param("VpcId")
 
-        tags = self._get_multi_param("TagSpecifications")
-        tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
-        tags = (tags or {}).get("Tag", [])
-        tags = {t["Key"]: t["Value"] for t in tags}
+        tags = self._parse_tag_specification().get("transit-gateway-route-table", {})
 
         transit_gateway_attachment = (
             self.ec2_backend.create_transit_gateway_vpc_attachment(
@@ -26,7 +23,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
         template = self.response_template(CREATE_TRANSIT_GATEWAY_VPC_ATTACHMENT)
         return template.render(transit_gateway_attachment=transit_gateway_attachment)
 
-    def describe_transit_gateway_vpc_attachments(self):
+    def describe_transit_gateway_vpc_attachments(self) -> str:
         transit_gateways_attachment_ids = self._get_multi_param(
             "TransitGatewayAttachmentIds"
         )
@@ -42,7 +39,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
             transit_gateway_vpc_attachments=transit_gateway_vpc_attachments
         )
 
-    def modify_transit_gateway_vpc_attachment(self):
+    def modify_transit_gateway_vpc_attachment(self) -> str:
         add_subnet_ids = self._get_multi_param("AddSubnetIds")
         options = self._get_multi_param_dict("Options")
         remove_subnet_ids = self._get_multi_param("RemoveSubnetIds")
@@ -59,7 +56,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
         template = self.response_template(MODIFY_TRANSIT_GATEWAY_VPC_ATTACHMENTS)
         return template.render(transit_gateway_attachment=transit_gateway_attachment)
 
-    def describe_transit_gateway_attachments(self):
+    def describe_transit_gateway_attachments(self) -> str:
         transit_gateways_attachment_ids = self._get_multi_param(
             "TransitGatewayAttachmentIds"
         )
@@ -73,7 +70,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_ATTACHMENTS)
         return template.render(transit_gateway_attachments=transit_gateway_attachments)
 
-    def delete_transit_gateway_vpc_attachment(self):
+    def delete_transit_gateway_vpc_attachment(self) -> str:
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
         transit_gateway_attachment = (
             self.ec2_backend.delete_transit_gateway_vpc_attachment(
@@ -83,7 +80,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
         template = self.response_template(DELETE_TRANSIT_GATEWAY_VPC_ATTACHMENTS)
         return template.render(transit_gateway_attachment=transit_gateway_attachment)
 
-    def associate_transit_gateway_route_table(self):
+    def associate_transit_gateway_route_table(self) -> str:
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
         transit_gateway_association = (
@@ -95,7 +92,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
         template = self.response_template(TRANSIT_GATEWAY_ASSOCIATION)
         return template.render(transit_gateway_association=transit_gateway_association)
 
-    def disassociate_transit_gateway_route_table(self):
+    def disassociate_transit_gateway_route_table(self) -> str:
         tgw_attach_id = self._get_param("TransitGatewayAttachmentId")
         tgw_rt_id = self._get_param("TransitGatewayRouteTableId")
 
@@ -105,7 +102,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
         template = self.response_template(TRANSIT_GATEWAY_DISASSOCIATION)
         return template.render(tgw_association=tgw_association)
 
-    def enable_transit_gateway_route_table_propagation(self):
+    def enable_transit_gateway_route_table_propagation(self) -> str:
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
         transit_gateway_propagation = (
@@ -117,7 +114,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
         template = self.response_template(TRANSIT_GATEWAY_PROPAGATION)
         return template.render(transit_gateway_propagation=transit_gateway_propagation)
 
-    def disable_transit_gateway_route_table_propagation(self):
+    def disable_transit_gateway_route_table_propagation(self) -> str:
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
         transit_gateway_propagation = (
@@ -129,7 +126,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
         template = self.response_template(TRANSIT_GATEWAY_PROPAGATION)
         return template.render(transit_gateway_propagation=transit_gateway_propagation)
 
-    def create_transit_gateway_peering_attachment(self):
+    def create_transit_gateway_peering_attachment(self) -> str:
         peer_account_id = self._get_param("PeerAccountId")
         peer_region = self._get_param("PeerRegion")
         peer_transit_gateway_id = self._get_param("PeerTransitGatewayId")
@@ -150,7 +147,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
             transit_gateway_peering_attachment=transit_gateway_peering_attachment,
         )
 
-    def describe_transit_gateway_peering_attachments(self):
+    def describe_transit_gateway_peering_attachments(self) -> str:
         transit_gateways_attachment_ids = self._get_multi_param(
             "TransitGatewayAttachmentIds"
         )
@@ -166,7 +163,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
             transit_gateway_peering_attachments=transit_gateway_peering_attachments
         )
 
-    def accept_transit_gateway_peering_attachment(self):
+    def accept_transit_gateway_peering_attachment(self) -> str:
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
         transit_gateway_peering_attachment = (
             self.ec2_backend.accept_transit_gateway_peering_attachment(
@@ -179,7 +176,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
             transit_gateway_peering_attachment=transit_gateway_peering_attachment,
         )
 
-    def delete_transit_gateway_peering_attachment(self):
+    def delete_transit_gateway_peering_attachment(self) -> str:
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
         transit_gateway_peering_attachment = (
             self.ec2_backend.delete_transit_gateway_peering_attachment(
@@ -192,7 +189,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
             transit_gateway_peering_attachment=transit_gateway_peering_attachment,
         )
 
-    def reject_transit_gateway_peering_attachment(self):
+    def reject_transit_gateway_peering_attachment(self) -> str:
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
         transit_gateway_peering_attachment = (
             self.ec2_backend.reject_transit_gateway_peering_attachment(

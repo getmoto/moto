@@ -60,7 +60,7 @@ def get_s3_default_key_buffer_size():
     )
 
 
-def ecs_new_arn_format():
+def ecs_new_arn_format() -> bool:
     # True by default - only the value 'false' will return false
     return os.environ.get("MOTO_ECS_NEW_ARN", "true").lower() != "false"
 

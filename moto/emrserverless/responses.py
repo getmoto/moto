@@ -1,8 +1,9 @@
 """Handles incoming emrserverless requests, invokes methods, returns responses."""
 import json
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import emrserverless_backends
+from .models import emrserverless_backends, EMRServerlessBackend
 
 DEFAULT_MAX_RESULTS = 100
 DEFAULT_NEXT_TOKEN = ""
@@ -33,15 +34,15 @@ These are the available methos:
 class EMRServerlessResponse(BaseResponse):
     """Handler for EMRServerless requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("emr-serverless")
 
     @property
-    def emrserverless_backend(self):
+    def emrserverless_backend(self) -> EMRServerlessBackend:
         """Return backend instance specific for this region."""
         return emrserverless_backends[self.current_account][self.region]
 
-    def create_application(self):
+    def create_application(self) -> TYPE_RESPONSE:
         name = self._get_param("name")
         release_label = self._get_param("releaseLabel")
         application_type = self._get_param("type")
@@ -65,15 +66,15 @@ class EMRServerlessResponse(BaseResponse):
             auto_stop_configuration=auto_stop_configuration,
             network_configuration=network_configuration,
         )
-        return (200, {}, json.dumps(dict(application)))
+        return 200, {}, json.dumps(dict(application))
 
-    def delete_application(self):
+    def delete_application(self) -> TYPE_RESPONSE:
         application_id = self._get_param("applicationId")
 
         self.emrserverless_backend.delete_application(application_id=application_id)
-        return (200, {}, None)
+        return 200, {}, ""
 
-    def get_application(self):
+    def get_application(self) -> TYPE_RESPONSE:
         application_id = self._get_param("applicationId")
 
         application = self.emrserverless_backend.get_application(
@@ -82,7 +83,7 @@ class EMRServerlessResponse(BaseResponse):
         response = {"application": application}
         return 200, {}, json.dumps(response)
 
-    def list_applications(self):
+    def list_applications(self) -> TYPE_RESPONSE:
         states = self.querystring.get("states", [])
         max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
@@ -95,19 +96,19 @@ class EMRServerlessResponse(BaseResponse):
         response = {"applications": applications, "nextToken": next_token}
         return 200, {}, json.dumps(response)
 
-    def start_application(self):
+    def start_application(self) -> TYPE_RESPONSE:
         application_id = self._get_param("applicationId")
 
         self.emrserverless_backend.start_application(application_id=application_id)
-        return (200, {}, None)
+        return 200, {}, ""
 
-    def stop_application(self):
+    def stop_application(self) -> TYPE_RESPONSE:
         application_id = self._get_param("applicationId")
 
         self.emrserverless_backend.stop_application(application_id=application_id)
-        return (200, {}, None)
+        return 200, {}, ""
 
-    def update_application(self):
+    def update_application(self) -> TYPE_RESPONSE:
         application_id = self._get_param("applicationId")
         initial_capacity = self._get_param("initialCapacity")
         maximum_capacity = self._get_param("maximumCapacity")

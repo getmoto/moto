@@ -110,6 +110,53 @@ def test_get_job_exists():
 
 
 @mock_glue
+def test_get_jobs_job_name_exists():
+    client = create_glue_client()
+    test_job_name = create_test_job(client)
+    response = client.get_jobs()
+    response["Jobs"].should.have.length_of(1)
+    response["Jobs"][0].should.have.key("Name").equals(test_job_name)
+
+
+@mock_glue
+def test_get_jobs_with_max_results():
+    client = create_glue_client()
+    create_test_jobs(client, 4)
+    response = client.get_jobs(MaxResults=2)
+    response["Jobs"].should.have.length_of(2)
+    response.should.have.key("NextToken")
+
+
+@mock_glue
+def test_get_jobs_from_next_token():
+    client = create_glue_client()
+    create_test_jobs(client, 10)
+    first_response = client.get_jobs(MaxResults=3)
+    response = client.get_jobs(NextToken=first_response["NextToken"])
+    response["Jobs"].should.have.length_of(7)
+
+
+@mock_glue
+def test_get_jobs_with_max_results_greater_than_actual_results():
+    client = create_glue_client()
+    create_test_jobs(client, 4)
+    response = client.get_jobs(MaxResults=10)
+    response["Jobs"].should.have.length_of(4)
+
+
+@mock_glue
+def test_get_jobs_next_token_logic_does_not_create_infinite_loop():
+    client = create_glue_client()
+    create_test_jobs(client, 4)
+    first_response = client.get_jobs(MaxResults=1)
+    next_token = first_response["NextToken"]
+    while next_token:
+        response = client.get_jobs(NextToken=next_token)
+        next_token = response.get("NextToken")
+    assert not next_token
+
+
+@mock_glue
 def test_list_jobs_with_max_results():
     client = create_glue_client()
     create_test_jobs(client, 4)

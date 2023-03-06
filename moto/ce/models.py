@@ -3,8 +3,21 @@
 from .exceptions import CostCategoryNotFound
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.utilities.tagging_service import TaggingService
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.moto_api._internal import mock_random
-from typing import Any, Dict, List, Tuple
+from datetime import datetime
+from typing import Any, Dict, List, Tuple, Optional
+
+
+def first_day() -> str:
+    as_date = (
+        datetime.today()
+        .replace(day=1)
+        .replace(hour=0)
+        .replace(minute=0)
+        .replace(second=0)
+    )
+    return iso_8601_datetime_without_milliseconds(as_date)  # type: ignore[return-value]
 
 
 class CostCategoryDefinition(BaseModel):
@@ -12,6 +25,7 @@ class CostCategoryDefinition(BaseModel):
         self,
         account_id: str,
         name: str,
+        effective_start: Optional[str],
         rule_version: str,
         rules: List[Dict[str, Any]],
         default_value: str,
@@ -23,10 +37,12 @@ class CostCategoryDefinition(BaseModel):
         self.default_value = default_value
         self.split_charge_rules = split_charge_rules
         self.arn = f"arn:aws:ce::{account_id}:costcategory/{str(mock_random.uuid4())}"
+        self.effective_start: str = effective_start or first_day()
 
     def update(
         self,
         rule_version: str,
+        effective_start: Optional[str],
         rules: List[Dict[str, Any]],
         default_value: str,
         split_charge_rules: List[Dict[str, Any]],
@@ -35,11 +51,13 @@ class CostCategoryDefinition(BaseModel):
         self.rules = rules
         self.default_value = default_value
         self.split_charge_rules = split_charge_rules
+        self.effective_start = effective_start or first_day()
 
     def to_json(self) -> Dict[str, Any]:
         return {
             "CostCategoryArn": self.arn,
             "Name": self.name,
+            "EffectiveStart": self.effective_start,
             "RuleVersion": self.rule_version,
             "Rules": self.rules,
             "DefaultValue": self.default_value,
@@ -58,6 +76,7 @@ class CostExplorerBackend(BaseBackend):
     def create_cost_category_definition(
         self,
         name: str,
+        effective_start: Optional[str],
         rule_version: str,
         rules: List[Dict[str, Any]],
         default_value: str,
@@ -70,6 +89,7 @@ class CostExplorerBackend(BaseBackend):
         ccd = CostCategoryDefinition(
             self.account_id,
             name,
+            effective_start,
             rule_version,
             rules,
             default_value,
@@ -77,7 +97,7 @@ class CostExplorerBackend(BaseBackend):
         )
         self.cost_categories[ccd.arn] = ccd
         self.tag_resource(ccd.arn, tags)
-        return ccd.arn, ""
+        return ccd.arn, ccd.effective_start
 
     def describe_cost_category_definition(
         self, cost_category_arn: str
@@ -102,6 +122,7 @@ class CostExplorerBackend(BaseBackend):
     def update_cost_category_definition(
         self,
         cost_category_arn: str,
+        effective_start: Optional[str],
         rule_version: str,
         rules: List[Dict[str, Any]],
         default_value: str,
@@ -111,9 +132,15 @@ class CostExplorerBackend(BaseBackend):
         The EffectiveOn-parameter is not yet implemented
         """
         cost_category = self.describe_cost_category_definition(cost_category_arn)
-        cost_category.update(rule_version, rules, default_value, split_charge_rules)
+        cost_category.update(
+            rule_version=rule_version,
+            rules=rules,
+            default_value=default_value,
+            split_charge_rules=split_charge_rules,
+            effective_start=effective_start,
+        )
 
-        return cost_category_arn, ""
+        return cost_category_arn, cost_category.effective_start
 
     def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
         return self.tagger.list_tags_for_resource(arn=resource_arn)["Tags"]

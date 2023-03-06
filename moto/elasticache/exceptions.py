@@ -1,3 +1,4 @@
+from typing import Any
 from moto.core.exceptions import RESTError
 
 EXCEPTION_RESPONSE = """<?xml version="1.0"?>
@@ -15,21 +16,20 @@ class ElastiCacheException(RESTError):
 
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, code: str, message: str, **kwargs: Any):
         kwargs.setdefault("template", "ecerror")
         self.templates["ecerror"] = EXCEPTION_RESPONSE
-        super().__init__(*args, **kwargs)
+        super().__init__(code, message)
 
 
 class PasswordTooShort(ElastiCacheException):
 
     code = 404
 
-    def __init__(self, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidParameterValue",
             message="Passwords length must be between 16-128 characters.",
-            **kwargs,
         )
 
 
@@ -37,11 +37,10 @@ class PasswordRequired(ElastiCacheException):
 
     code = 404
 
-    def __init__(self, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidParameterValue",
             message="No password was provided. If you want to create/update the user without password, please use the NoPasswordRequired flag.",
-            **kwargs,
         )
 
 
@@ -49,15 +48,13 @@ class UserAlreadyExists(ElastiCacheException):
 
     code = 404
 
-    def __init__(self, **kwargs):
-        super().__init__(
-            "UserAlreadyExists", message="User user1 already exists.", **kwargs
-        )
+    def __init__(self) -> None:
+        super().__init__("UserAlreadyExists", message="User user1 already exists.")
 
 
 class UserNotFound(ElastiCacheException):
 
     code = 404
 
-    def __init__(self, user_id, **kwargs):
-        super().__init__("UserNotFound", message=f"User {user_id} not found.", **kwargs)
+    def __init__(self, user_id: str):
+        super().__init__("UserNotFound", message=f"User {user_id} not found.")

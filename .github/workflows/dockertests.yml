@@ -25,7 +25,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
-          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
+          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
       - name: Update pip
         if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
@@ -65,7 +65,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
     - name: Update pip
       run: |
         python -m pip install --upgrade pip
@@ -125,7 +125,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
     - name: Update pip
       run: |
         python -m pip install --upgrade pip
@@ -182,7 +182,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
     - name: Update pip
       run: |
         python -m pip install --upgrade pip

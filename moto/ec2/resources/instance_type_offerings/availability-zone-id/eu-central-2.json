@@ -72,6 +72,10 @@
   "Location": "euc2-az1"
  },
  {
+  "InstanceType": "c6g.16xlarge",
+  "Location": "euc2-az1"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "euc2-az1"
  },
@@ -200,6 +204,10 @@
   "Location": "euc2-az1"
  },
  {
+  "InstanceType": "m6g.16xlarge",
+  "Location": "euc2-az1"
+ },
+ {
   "InstanceType": "m6gd.12xlarge",
   "Location": "euc2-az1"
  },
@@ -308,6 +316,10 @@
   "Location": "euc2-az1"
  },
  {
+  "InstanceType": "r6g.16xlarge",
+  "Location": "euc2-az1"
+ },
+ {
   "InstanceType": "t3.2xlarge",
   "Location": "euc2-az1"
  },
@@ -333,6 +345,22 @@
  },
  {
   "InstanceType": "t3.xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "x2idn.metal",
   "Location": "euc2-az1"
  },
  {
@@ -408,6 +436,10 @@
   "Location": "euc2-az2"
  },
  {
+  "InstanceType": "c6g.16xlarge",
+  "Location": "euc2-az2"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "euc2-az2"
  },
@@ -536,6 +568,10 @@
   "Location": "euc2-az2"
  },
  {
+  "InstanceType": "m6g.16xlarge",
+  "Location": "euc2-az2"
+ },
+ {
   "InstanceType": "m6gd.12xlarge",
   "Location": "euc2-az2"
  },
@@ -644,6 +680,10 @@
   "Location": "euc2-az2"
  },
  {
+  "InstanceType": "r6g.16xlarge",
+  "Location": "euc2-az2"
+ },
+ {
   "InstanceType": "t3.2xlarge",
   "Location": "euc2-az2"
  },
@@ -669,6 +709,22 @@
  },
  {
   "InstanceType": "t3.xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "x2idn.metal",
   "Location": "euc2-az2"
  },
  {
@@ -744,6 +800,10 @@
   "Location": "euc2-az3"
  },
  {
+  "InstanceType": "c6g.16xlarge",
+  "Location": "euc2-az3"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "euc2-az3"
  },
@@ -872,6 +932,10 @@
   "Location": "euc2-az3"
  },
  {
+  "InstanceType": "m6g.16xlarge",
+  "Location": "euc2-az3"
+ },
+ {
   "InstanceType": "m6gd.12xlarge",
   "Location": "euc2-az3"
  },
@@ -977,6 +1041,10 @@
  },
  {
   "InstanceType": "r5d.xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r6g.16xlarge",
   "Location": "euc2-az3"
  },
  {

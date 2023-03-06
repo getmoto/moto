@@ -135,9 +135,27 @@ ec2:
   - TestAccEC2VPNGatewayAttachment_
   - TestAccVPCEgressOnlyInternetGateway_
   - TestAccVPCInternetGateway
-  - TestAccVPCNATGateway_
+  - TestAccVPCNATGateway_basic
+  - TestAccVPCNATGateway_disappears
+  - TestAccVPCNATGateway_ConnectivityType_private
+  - TestAccVPCNATGateway_tags
   - TestAccVPCSecurityGroupDataSource_basic
-  - TestAccVPCSecurityGroupRule_
+  - TestAccVPCSecurityGroupRule_Ingress
+  - TestAccVPCSecurityGroupRule_egress
+  - TestAccVPCSecurityGroupRule_selfReference
+  - TestAccVPCSecurityGroupRule_expectInvalid
+  - TestAccVPCSecurityGroupRule_PartialMatching
+  - TestAccVPCSecurityGroupRule_issue5310
+  - TestAccVPCSecurityGroupRule_race
+  - TestAccVPCSecurityGroupRule_selfSource
+  - TestAccVPCSecurityGroupRule_prefixList
+  - TestAccVPCSecurityGroupRule_ingressDescription
+  - TestAccVPCSecurityGroupRule_egressDescription
+  - TestAccVPCSecurityGroupRule_IngressDescription_updates
+  - TestAccVPCSecurityGroupRule_EgressDescription_updates
+  - TestAccVPCSecurityGroupRule_Description
+  - TestAccVPCSecurityGroupRule_MultipleRuleSearching_allProtocolCrash
+  - TestAccVPCSecurityGroupRule_protocolChange
   - TestAccVPCSecurityGroup_allowAll
   - TestAccVPCSecurityGroup_basic
   - TestAccVPCSecurityGroup_change
@@ -220,7 +238,10 @@ ecs:
 efs:
   - TestAccEFSAccessPoint_
   - TestAccEFSAccessPointDataSource
-  - TestAccEFSFileSystemDataSource
+  - TestAccEFSFileSystemDataSource_availabilityZone
+  - TestAccEFSFileSystemDataSource_id
+  - TestAccEFSFileSystemDataSource_name
+  - TestAccEFSFileSystemDataSource_tags
 elasticbeanstalk:
   - TestAccElasticBeanstalkHostedZoneDataSource
   - TestAccElasticBeanstalkSolutionStackDataSource
@@ -228,7 +249,8 @@ elb:
   - TestAccELBAttachment
   - TestAccELBBackendServerPolicy
   - TestAccELBHostedZoneIDDataSource
-  - TestAccELBListenerPolicy
+  - TestAccELBListenerPolicy_basic
+  - TestAccELBListenerPolicy_disappears
   - TestAccELBServiceAccountDataSource
   - TestAccELBSSLNegotiationPolicy
 elbv2:
@@ -251,7 +273,9 @@ guardduty:
 iam:
   - TestAccIAMAccessKey_
   - TestAccIAMAccountAlias_
-  - TestAccIAMGroup_
+  - TestAccIAMGroup_basic
+  - TestAccIAMGroup_disappears
+  - TestAccIAMGroup_nameChange
   - TestAccIAMInstanceProfileDataSource_
   - TestAccIAMGroupPolicy_
   - TestAccIAMOpenIDConnectProvider_
@@ -298,12 +322,24 @@ lambda:
   - TestAccLambdaLayerVersion_licenseInfo
   - TestAccLambdaLayerVersion_s3
   - TestAccLambdaLayerVersion_update
-  - TestAccLambdaFunctionURL
+  - TestAccLambdaFunctionURL_Alias
+  - TestAccLambdaFunctionURL_basic
+  - TestAccLambdaFunctionURL_TwoURLs
 meta:
   - TestAccMetaBillingServiceAccountDataSource
 mq:
   - TestAccMQBrokerDataSource
   - TestAccMQBroker_
+neptune:
+  - TestAccNeptuneCluster_basic
+  - TestAccNeptuneCluster_namePrefix
+  - TestAccNeptuneCluster_serverlessConfiguration
+  - TestAccNeptuneCluster_encrypted
+  - TestAccNeptuneCluster_backupsUpdate
+  - TestAccNeptuneCluster_kmsKey
+  - TestAccNeptuneCluster_tags
+  - TestAccNeptuneCluster_disappears
+  - TestAccNeptuneGlobalCluster_basic
 quicksight:
   - TestAccQuickSightUser
   - TestAccQuickSightGroup_
@@ -405,7 +441,11 @@ servicediscovery:
   - TestAccServiceDiscoveryHTTPNamespace
   - TestAccServiceDiscoveryPrivateDNSNamespace
   - TestAccServiceDiscoveryPublicDNSNamespace
-  - TestAccServiceDiscoveryService
+  - TestAccServiceDiscoveryService_disappears
+  - TestAccServiceDiscoveryService_http
+  - TestAccServiceDiscoveryService_tags
+  - TestAccServiceDiscoveryService_private_http
+  - TestAccServiceDiscoveryService_public
 signer:
  - TestAccSignerSigningProfileDataSource_basic
  - TestAccSignerSigningProfile_basic

@@ -39,6 +39,7 @@ class CertificateAuthority(BaseModel):
         self.created_at = unix_time()
         self.updated_at: Optional[float] = None
         self.status = "PENDING_CERTIFICATE"
+        self.usage_mode = "SHORT_LIVED_CERTIFICATE"
 
         common_name = self.certificate_authority_configuration.get("Subject", {}).get(
             "CommonName", "Moto.org"
@@ -168,6 +169,7 @@ class CertificateAuthority(BaseModel):
             "RevocationConfiguration": self.revocation_configuration,
             "CreatedAt": self.created_at,
             "Status": self.status,
+            "UsageMode": self.usage_mode,
         }
         if self.updated_at:
             dct["LastStateChangeAt"] = self.updated_at

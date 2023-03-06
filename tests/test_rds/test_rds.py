@@ -1228,6 +1228,9 @@ def test_create_option_group():
         "test option group"
     )
     option_group["OptionGroup"]["MajorEngineVersion"].should.equal("5.6")
+    option_group["OptionGroup"]["OptionGroupArn"].should.equal(
+        f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:og:test"
+    )
 
 
 @mock_rds

@@ -40,12 +40,12 @@ jobs:
     - name: Pull SSM default Parameters from AWS
       uses: technote-space/create-pr-action@v2
       with:
-        GITHUB_TOKEN: ${{ secrets.PR_ACCESS_TOKEN }}
         EXECUTE_COMMANDS: |
           pip install boto3
+          pip install moto[all]
           python scripts/ssm_get_default_params.py
         COMMIT_MESSAGE: "chore: update SSM default parameters"
         COMMIT_NAME: 'Moto Admin'
         COMMIT_EMAIL: 'admin@getmoto.org'
-        PR_BRANCH_NAME: 'chore-update-${PR_ID}'
+        PR_BRANCH_NAME: 'chore-update-ssm-params-${{ github.run_number }}'
         PR_TITLE: "chore: update SSM Instance parameters"

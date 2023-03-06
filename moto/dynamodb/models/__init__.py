@@ -60,7 +60,7 @@ class DynamoDBBackend(BaseBackend):
 
     def create_table(self, name: str, **params: Any) -> Table:
         if name in self.tables:
-            raise ResourceInUseException
+            raise ResourceInUseException(f"Table already exists: {name}")
         table = Table(
             name, account_id=self.account_id, region=self.region_name, **params
         )
@@ -123,8 +123,10 @@ class DynamoDBBackend(BaseBackend):
         return tables, None
 
     def describe_table(self, name: str) -> Dict[str, Any]:
-        table = self.get_table(name)
-        return table.describe(base_key="Table")
+        # We can't use get_table() here, because the error message is slightly different for this operation
+        if name not in self.tables:
+            raise ResourceNotFoundException(table_name=name)
+        return self.tables[name].describe(base_key="Table")
 
     def update_table(
         self,

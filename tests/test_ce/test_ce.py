@@ -24,6 +24,24 @@ def test_create_cost_category_definition():
     resp.should.have.key("CostCategoryArn").match(
         f"arn:aws:ce::{ACCOUNT_ID}:costcategory/"
     )
+    resp.should.have.key("EffectiveStart")
+
+
+@mock_ce
+def test_create_cost_category_definition_with_effective_start():
+    client = boto3.client("ce", region_name="ap-southeast-1")
+    resp = client.create_cost_category_definition(
+        Name="ccd",
+        RuleVersion="CostCategoryExpression.v1",
+        Rules=[
+            {"Value": "v", "Rule": {"CostCategories": {"Key": "k", "Values": ["v"]}}}
+        ],
+        EffectiveStart="2022-11-01T00:00:00Z",
+    )
+    resp.should.have.key("CostCategoryArn").match(
+        f"arn:aws:ce::{ACCOUNT_ID}:costcategory/"
+    )
+    resp.should.have.key("EffectiveStart").equals("2022-11-01T00:00:00Z")
 
 
 @mock_ce

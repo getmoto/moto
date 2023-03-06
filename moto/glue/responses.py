@@ -66,20 +66,18 @@ class GlueResponse(BaseResponse):
         database_name = self.parameters.get("DatabaseName")
         table_input = self.parameters.get("TableInput")
         table_name = table_input.get("Name")
-        table = self.glue_backend.get_table(database_name, table_name)
-        table.update(table_input)
+        self.glue_backend.update_table(database_name, table_name, table_input)
         return ""
 
     def get_table_versions(self):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
-        table = self.glue_backend.get_table(database_name, table_name)
-
+        versions = self.glue_backend.get_table_versions(database_name, table_name)
         return json.dumps(
             {
                 "TableVersions": [
-                    {"Table": table.as_dict(version=n), "VersionId": str(n + 1)}
-                    for n in range(len(table.versions))
+                    {"Table": data, "VersionId": version}
+                    for version, data in versions.items()
                 ]
             }
         )
@@ -87,17 +85,15 @@ class GlueResponse(BaseResponse):
     def get_table_version(self):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
-        table = self.glue_backend.get_table(database_name, table_name)
         ver_id = self.parameters.get("VersionId")
+        return self.glue_backend.get_table_version(database_name, table_name, ver_id)
 
-        return json.dumps(
-            {
-                "TableVersion": {
-                    "Table": table.as_dict(version=ver_id),
-                    "VersionId": ver_id,
-                }
-            }
-        )
+    def delete_table_version(self) -> str:
+        database_name = self.parameters.get("DatabaseName")
+        table_name = self.parameters.get("TableName")
+        version_id = self.parameters.get("VersionId")
+        self.glue_backend.delete_table_version(database_name, table_name, version_id)
+        return "{}"
 
     def get_tables(self):
         database_name = self.parameters.get("DatabaseName")
@@ -138,9 +134,7 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         values = self.parameters.get("PartitionValues")
 
-        table = self.glue_backend.get_table(database_name, table_name)
-
-        p = table.get_partition(values)
+        p = self.glue_backend.get_partition(database_name, table_name, values)
 
         return json.dumps({"Partition": p.as_dict()})
 
@@ -160,9 +154,7 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         part_input = self.parameters.get("PartitionInput")
 
-        table = self.glue_backend.get_table(database_name, table_name)
-        table.create_partition(part_input)
-
+        self.glue_backend.create_partition(database_name, table_name, part_input)
         return ""
 
     def batch_create_partition(self):
@@ -185,9 +177,9 @@ class GlueResponse(BaseResponse):
         part_input = self.parameters.get("PartitionInput")
         part_to_update = self.parameters.get("PartitionValueList")
 
-        table = self.glue_backend.get_table(database_name, table_name)
-        table.update_partition(part_to_update, part_input)
-
+        self.glue_backend.update_partition(
+            database_name, table_name, part_input, part_to_update
+        )
         return ""
 
     def batch_update_partition(self):
@@ -210,9 +202,7 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         part_to_delete = self.parameters.get("PartitionValues")
 
-        table = self.glue_backend.get_table(database_name, table_name)
-        table.delete_partition(part_to_delete)
-
+        self.glue_backend.delete_partition(database_name, table_name, part_to_delete)
         return ""
 
     def batch_delete_partition(self):
@@ -346,6 +336,19 @@ class GlueResponse(BaseResponse):
         name = self.parameters.get("JobName")
         job = self.glue_backend.get_job(name)
         return json.dumps({"Job": job.as_dict()})
+
+    def get_jobs(self):
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        jobs, next_token = self.glue_backend.get_jobs(
+            next_token=next_token, max_results=max_results
+        )
+        return json.dumps(
+            dict(
+                Jobs=[job.as_dict() for job in jobs],
+                NextToken=next_token,
+            )
+        )
 
     def start_job_run(self):
         name = self.parameters.get("JobName")

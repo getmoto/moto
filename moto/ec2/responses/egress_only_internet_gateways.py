@@ -1,12 +1,12 @@
-from moto.core.responses import BaseResponse
+from ._base_response import EC2BaseResponse
 from moto.ec2.utils import add_tag_specification
 
 
-class EgressOnlyInternetGateway(BaseResponse):
-    def create_egress_only_internet_gateway(self):
+class EgressOnlyInternetGateway(EC2BaseResponse):
+    def create_egress_only_internet_gateway(self) -> str:
         vpc_id = self._get_param("VpcId")
-        tags = self._get_multi_param("TagSpecification")
-        tags = add_tag_specification(tags)
+        tag_param = self._get_multi_param("TagSpecification")
+        tags = add_tag_specification(tag_param)
 
         egress_only_igw = self.ec2_backend.create_egress_only_internet_gateway(
             vpc_id=vpc_id, tags=tags
@@ -14,7 +14,7 @@ class EgressOnlyInternetGateway(BaseResponse):
         template = self.response_template(CREATE_EGRESS_ONLY_IGW_RESPONSE)
         return template.render(egress_only_igw=egress_only_igw)
 
-    def describe_egress_only_internet_gateways(self):
+    def describe_egress_only_internet_gateways(self) -> str:
         egress_only_igw_ids = self._get_multi_param("EgressOnlyInternetGatewayId")
         egress_only_igws = self.ec2_backend.describe_egress_only_internet_gateways(
             egress_only_igw_ids
@@ -22,7 +22,7 @@ class EgressOnlyInternetGateway(BaseResponse):
         template = self.response_template(DESCRIBE_EGRESS_ONLY_IGW_RESPONSE)
         return template.render(egress_only_igws=egress_only_igws)
 
-    def delete_egress_only_internet_gateway(self):
+    def delete_egress_only_internet_gateway(self) -> str:
         egress_only_igw_id = self._get_param("EgressOnlyInternetGatewayId")
         self.ec2_backend.delete_egress_only_internet_gateway(
             gateway_id=egress_only_igw_id

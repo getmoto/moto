@@ -1,11 +1,13 @@
 import io
 from urllib.parse import urlparse, parse_qs
 import sure  # noqa # pylint: disable=unused-import
+import requests
 import pytest
 import xmltodict
 
 from flask.testing import FlaskClient
 import moto.server as server
+from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 from unittest.mock import patch
 
 """
@@ -223,7 +225,7 @@ def test_s3_server_post_cors_exposed_header():
     preflight_headers = {
         "Access-Control-Request-Method": "POST",
         "Access-Control-Request-Headers": "origin, x-requested-with",
-        "Origin": "https://localhost:9000",
+        "Origin": "https://example.org",
     }
     # Returns 403 on non existing bucket
     preflight_response = test_client.options(
@@ -257,3 +259,91 @@ def test_s3_server_post_cors_exposed_header():
         for header_name, header_value in expected_cors_headers.items():
             assert header_name in preflight_response.headers
             assert preflight_response.headers[header_name] == header_value
+
+
+def test_s3_server_post_cors_multiple_origins():
+    """Test that Moto only responds with the Origin that we that hosts the server"""
+    # github.com/getmoto/moto/issues/6003
+
+    cors_config_payload = """<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <CORSRule>
+    <AllowedOrigin>https://example.org</AllowedOrigin>
+    <AllowedOrigin>https://localhost:6789</AllowedOrigin>
+    <AllowedMethod>POST</AllowedMethod>
+  </CORSRule>
+</CORSConfiguration>
+    """
+
+    thread = ThreadedMotoServer(port="6789", verbose=False)
+    thread.start()
+
+    # Create the bucket
+    requests.put("http://testcors.localhost:6789/")
+    requests.put("http://testcors.localhost:6789/?cors", data=cors_config_payload)
+
+    # Test only our requested origin is returned
+    preflight_response = requests.options(
+        "http://testcors.localhost:6789/test",
+        headers={
+            "Access-Control-Request-Method": "POST",
+            "Origin": "https://localhost:6789",
+        },
+    )
+    assert preflight_response.status_code == 200
+    assert (
+        preflight_response.headers["Access-Control-Allow-Origin"]
+        == "https://localhost:6789"
+    )
+    assert preflight_response.content == b""
+
+    # Verify a request with unknown origin fails
+    preflight_response = requests.options(
+        "http://testcors.localhost:6789/test",
+        headers={
+            "Access-Control-Request-Method": "POST",
+            "Origin": "https://unknown.host",
+        },
+    )
+    assert preflight_response.status_code == 403
+    assert b"<Code>AccessForbidden</Code>" in preflight_response.content
+
+    # Verify we can use a wildcard anywhere in the origin
+    cors_config_payload = """<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><CORSRule>
+            <AllowedOrigin>https://*.google.com</AllowedOrigin>
+            <AllowedMethod>POST</AllowedMethod>
+          </CORSRule></CORSConfiguration>"""
+    requests.put("http://testcors.localhost:6789/?cors", data=cors_config_payload)
+    for origin in ["https://sth.google.com", "https://a.google.com"]:
+        preflight_response = requests.options(
+            "http://testcors.localhost:6789/test",
+            headers={"Access-Control-Request-Method": "POST", "Origin": origin},
+        )
+        assert preflight_response.status_code == 200
+        assert preflight_response.headers["Access-Control-Allow-Origin"] == origin
+
+    # Non-matching requests throw an error though - it does not act as a full wildcard
+    preflight_response = requests.options(
+        "http://testcors.localhost:6789/test",
+        headers={
+            "Access-Control-Request-Method": "POST",
+            "Origin": "sth.microsoft.com",
+        },
+    )
+    assert preflight_response.status_code == 403
+    assert b"<Code>AccessForbidden</Code>" in preflight_response.content
+
+    # Verify we can use a wildcard as the origin
+    cors_config_payload = """<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><CORSRule>
+                <AllowedOrigin>*</AllowedOrigin>
+                <AllowedMethod>POST</AllowedMethod>
+              </CORSRule></CORSConfiguration>"""
+    requests.put("http://testcors.localhost:6789/?cors", data=cors_config_payload)
+    for origin in ["https://a.google.com", "http://b.microsoft.com", "any"]:
+        preflight_response = requests.options(
+            "http://testcors.localhost:6789/test",
+            headers={"Access-Control-Request-Method": "POST", "Origin": origin},
+        )
+        assert preflight_response.status_code == 200
+        assert preflight_response.headers["Access-Control-Allow-Origin"] == origin
+
+    thread.stop()

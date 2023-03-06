@@ -319,6 +319,11 @@ def test_get_table_versions():
     helpers.create_table(client, database_name, table_name, table_input)
     version_inputs["1"] = table_input
 
+    # Get table should retrieve the first version
+    table = client.get_table(DatabaseName=database_name, Name=table_name)["Table"]
+    table["StorageDescriptor"]["Columns"].should.equal([])
+    table["VersionId"].should.equal("1")
+
     columns = [{"Name": "country", "Type": "string"}]
     table_input = helpers.create_table_input(database_name, table_name, columns=columns)
     helpers.update_table(client, database_name, table_name, table_input)
@@ -339,11 +344,13 @@ def test_get_table_versions():
     for n, ver in enumerate(vers):
         n = str(n + 1)
         ver["VersionId"].should.equal(n)
+        ver["Table"]["VersionId"].should.equal(n)
         ver["Table"]["Name"].should.equal(table_name)
         ver["Table"]["StorageDescriptor"].should.equal(
             version_inputs[n]["StorageDescriptor"]
         )
         ver["Table"]["PartitionKeys"].should.equal(version_inputs[n]["PartitionKeys"])
+        ver["Table"].should.have.key("UpdateTime")
 
     response = helpers.get_table_version(client, database_name, table_name, "3")
     ver = response["TableVersion"]
@@ -351,6 +358,15 @@ def test_get_table_versions():
     ver["VersionId"].should.equal("3")
     ver["Table"]["Name"].should.equal(table_name)
     ver["Table"]["StorageDescriptor"]["Columns"].should.equal(columns)
+
+    # get_table should retrieve the latest version
+    table = client.get_table(DatabaseName=database_name, Name=table_name)["Table"]
+    table["StorageDescriptor"]["Columns"].should.equal(columns)
+    table["VersionId"].should.equal("3")
+
+    table = client.get_tables(DatabaseName=database_name)["TableList"][0]
+    table["StorageDescriptor"]["Columns"].should.equal(columns)
+    table["VersionId"].should.equal("3")
 
 
 @mock_glue
@@ -380,6 +396,42 @@ def test_get_table_version_invalid_input():
         helpers.get_table_version(client, database_name, "myfirsttable", "10not-an-int")
 
     exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+
+
+@mock_glue
+def test_delete_table_version():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    helpers.create_database(client, database_name)
+
+    table_name = "myfirsttable"
+    version_inputs = {}
+
+    table_input = helpers.create_table_input(database_name, table_name)
+    helpers.create_table(client, database_name, table_name, table_input)
+    version_inputs["1"] = table_input
+
+    columns = [{"Name": "country", "Type": "string"}]
+    table_input = helpers.create_table_input(database_name, table_name, columns=columns)
+    helpers.update_table(client, database_name, table_name, table_input)
+    version_inputs["2"] = table_input
+
+    # Updateing with an identical input should still create a new version
+    helpers.update_table(client, database_name, table_name, table_input)
+    version_inputs["3"] = table_input
+
+    response = helpers.get_table_versions(client, database_name, table_name)
+    vers = response["TableVersions"]
+    vers.should.have.length_of(3)
+
+    client.delete_table_version(
+        DatabaseName=database_name, TableName=table_name, VersionId="2"
+    )
+
+    response = helpers.get_table_versions(client, database_name, table_name)
+    vers = response["TableVersions"]
+    vers.should.have.length_of(2)
+    [v["VersionId"] for v in vers].should.equal(["1", "3"])
 
 
 @mock_glue
