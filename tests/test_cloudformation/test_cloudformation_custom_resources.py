@@ -3,12 +3,14 @@ import json
 import requests
 import sure  # noqa # pylint: disable=unused-import
 import time
+import pytest
 
+from botocore.exceptions import ClientError
 from moto import mock_lambda, mock_cloudformation, mock_logs, mock_s3, settings
 from unittest import SkipTest
 from uuid import uuid4
 from tests.test_awslambda.utilities import wait_for_log_msg
-from .fixtures.custom_lambda import get_template
+from .fixtures.custom_lambda import get_template, get_template_for_unknown_lambda
 
 
 def get_lambda_code():
@@ -167,6 +169,24 @@ def test_create_custom_lambda_resource__verify_manual_request():
     stack["StackStatus"].should.equal("CREATE_COMPLETE")
     stack["Outputs"].should.equal(
         [{"OutputKey": "infokey", "OutputValue": "resultfromthirdpartysystem"}]
+    )
+
+
+@mock_cloudformation
+def test_create_custom_lambda_resource__unknown_arn():
+    # Try to create a Lambda with an unknown ARN
+    # Verify that this fails in a predictable manner
+    cf = boto3.client("cloudformation", region_name="eu-north-1")
+    with pytest.raises(ClientError) as exc:
+        cf.create_stack(
+            StackName=f"stack{str(uuid4())[0:6]}",
+            TemplateBody=json.dumps(get_template_for_unknown_lambda()),
+            Capabilities=["CAPABILITY_IAM"],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal(
+        "Template error: instance of Fn::GetAtt references undefined resource InfoFunction"
     )
 
 

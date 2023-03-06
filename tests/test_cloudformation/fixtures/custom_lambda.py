@@ -69,3 +69,16 @@ def get_template(lambda_code):
             }
         },
     }
+
+
+def get_template_for_unknown_lambda():
+    return {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Sample template using Custom Resource pointing to unknown Function",
+        "Resources": {
+            "CustomInfo": {
+                "Type": "Custom::Info",
+                "Properties": {"ServiceToken": {"Fn::GetAtt": ["InfoFunction", "Arn"]}},
+            },
+        },
+    }
