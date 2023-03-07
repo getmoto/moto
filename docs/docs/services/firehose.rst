@@ -56,8 +56,8 @@ firehose
 - [X] put_record_batch
   Write multiple data records into a Kinesis Data firehose stream.
 
-- [ ] start_delivery_stream_encryption
-- [ ] stop_delivery_stream_encryption
+- [X] start_delivery_stream_encryption
+- [X] stop_delivery_stream_encryption
 - [X] tag_delivery_stream
   Add/update tags for specified delivery stream.
 
@@ -65,6 +65,4 @@ firehose
   Removes tags from specified delivery stream.
 
 - [X] update_destination
-  Updates specified destination of specified delivery stream.
-
 

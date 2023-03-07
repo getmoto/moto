@@ -109,3 +109,18 @@ class FirehoseResponse(BaseResponse):
             self._get_param("HttpEndpointDestinationUpdate"),
         )
         return json.dumps({})
+
+    def start_delivery_stream_encryption(self) -> str:
+        stream_name = self._get_param("DeliveryStreamName")
+        encryption_config = self._get_param(
+            "DeliveryStreamEncryptionConfigurationInput"
+        )
+        self.firehose_backend.start_delivery_stream_encryption(
+            stream_name, encryption_config
+        )
+        return "{}"
+
+    def stop_delivery_stream_encryption(self) -> str:
+        stream_name = self._get_param("DeliveryStreamName")
+        self.firehose_backend.stop_delivery_stream_encryption(stream_name)
+        return "{}"

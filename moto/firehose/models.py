@@ -1,10 +1,6 @@
 """FirehoseBackend class with methods for supported APIs.
 
 Incomplete list of unfinished items:
-  - The create_delivery_stream() argument
-    DeliveryStreamEncryptionConfigurationInput is not supported.
-  - The S3BackupMode argument is ignored as are most of the other
-    destination arguments.
   - Data record size and number of transactions are ignored.
   - Better validation of delivery destination parameters, e.g.,
     validation of the url for an http endpoint (boto3 does this).
@@ -116,12 +112,20 @@ class DeliveryStream(
 
     MAX_STREAMS_PER_REGION = 50
 
+    ALTERNATIVE_FIELD_NAMES = [
+        ("S3Configuration", "S3DestinationDescription"),
+        ("S3Update", "S3DestinationDescription"),
+        ("S3BackupConfiguration", "S3BackupDescription"),
+        ("S3BackupUpdate", "S3BackupDescription"),
+    ]
+
     def __init__(
         self,
         account_id: str,
         region: str,
         delivery_stream_name: str,
         delivery_stream_type: str,
+        encryption: Dict[str, Any],
         kinesis_stream_source_configuration: Dict[str, Any],
         destination_name: str,
         destination_config: Dict[str, Any],
@@ -131,6 +135,7 @@ class DeliveryStream(
         self.delivery_stream_type = (
             delivery_stream_type if delivery_stream_type else "DirectPut"
         )
+        self.delivery_stream_encryption_configuration = encryption
 
         self.source = kinesis_stream_source_configuration
         self.destinations: List[Dict[str, Any]] = [
@@ -139,18 +144,19 @@ class DeliveryStream(
                 destination_name: destination_config,
             }
         ]
+
         if destination_name == "ExtendedS3":
             # Add a S3 destination as well, minus a few ExtendedS3 fields.
             self.destinations[0]["S3"] = create_s3_destination_config(
                 destination_config
             )
-        elif "S3Configuration" in destination_config:
-            # S3Configuration becomes S3DestinationDescription for the
-            # other destinations.
-            self.destinations[0][destination_name][
-                "S3DestinationDescription"
-            ] = destination_config["S3Configuration"]
-            del self.destinations[0][destination_name]["S3Configuration"]
+
+        # S3Configuration becomes S3DestinationDescription for the
+        # other destinations. Same for S3Backup
+        for old, new in DeliveryStream.ALTERNATIVE_FIELD_NAMES:
+            if old in destination_config:
+                self.destinations[0][destination_name][new] = destination_config[old]
+                del self.destinations[0][destination_name][old]
 
         self.delivery_stream_status = "ACTIVE"
         self.delivery_stream_arn = f"arn:aws:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
@@ -213,12 +219,6 @@ class FirehoseBackend(BaseBackend):
             )
 
         # Rule out situations that are not yet implemented.
-        if delivery_stream_encryption_configuration_input:
-            warnings.warn(
-                "A delivery stream with server-side encryption enabled is not "
-                "yet implemented"
-            )
-
         if destination_name == "Splunk":
             warnings.warn("A Splunk destination delivery stream is not yet implemented")
 
@@ -247,13 +247,14 @@ class FirehoseBackend(BaseBackend):
         # by delivery stream name.  This instance will update the state and
         # create the ARN.
         delivery_stream = DeliveryStream(
-            self.account_id,
-            region,
-            delivery_stream_name,
-            delivery_stream_type,
-            kinesis_stream_source_configuration,
-            destination_name,
-            destination_config,
+            account_id=self.account_id,
+            region=region,
+            delivery_stream_name=delivery_stream_name,
+            delivery_stream_type=delivery_stream_type,
+            encryption=delivery_stream_encryption_configuration_input,
+            kinesis_stream_source_configuration=kinesis_stream_source_configuration,
+            destination_name=destination_name,
+            destination_config=destination_config,
         )
         self.tagger.tag_resource(delivery_stream.delivery_stream_arn, tags or [])
 
@@ -562,6 +563,27 @@ class FirehoseBackend(BaseBackend):
             delivery_stream.delivery_stream_arn, tag_keys
         )
 
+    def start_delivery_stream_encryption(
+        self, stream_name: str, encryption_config: Dict[str, Any]
+    ) -> None:
+        delivery_stream = self.delivery_streams.get(stream_name)
+        if not delivery_stream:
+            raise ResourceNotFoundException(
+                f"Firehose {stream_name} under account {self.account_id} not found."
+            )
+
+        delivery_stream.delivery_stream_encryption_configuration = encryption_config
+        delivery_stream.delivery_stream_encryption_configuration["Status"] = "ENABLED"
+
+    def stop_delivery_stream_encryption(self, stream_name: str) -> None:
+        delivery_stream = self.delivery_streams.get(stream_name)
+        if not delivery_stream:
+            raise ResourceNotFoundException(
+                f"Firehose {stream_name} under account {self.account_id} not found."
+            )
+
+        delivery_stream.delivery_stream_encryption_configuration["Status"] = "DISABLED"
+
     def update_destination(  # pylint: disable=unused-argument
         self,
         delivery_stream_name: str,
@@ -575,10 +597,7 @@ class FirehoseBackend(BaseBackend):
         splunk_destination_update: Dict[str, Any],
         http_endpoint_destination_update: Dict[str, Any],
     ) -> None:
-        """Updates specified destination of specified delivery stream."""
-        (destination_name, destination_config) = find_destination_config_in_args(
-            locals()
-        )
+        (dest_name, dest_config) = find_destination_config_in_args(locals())
 
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
@@ -586,7 +605,7 @@ class FirehoseBackend(BaseBackend):
                 f"Firehose {delivery_stream_name} under accountId {self.account_id} not found."
             )
 
-        if destination_name == "Splunk":
+        if dest_name == "Splunk":
             warnings.warn("A Splunk destination delivery stream is not yet implemented")
 
         if delivery_stream.version_id != current_delivery_stream_version_id:
@@ -609,35 +628,42 @@ class FirehoseBackend(BaseBackend):
         # Switching between Amazon ES and other services is not supported.
         # For an Amazon ES destination, you can only update to another Amazon
         # ES destination.  Same with HTTP.  Didn't test Splunk.
-        if (
-            destination_name == "Elasticsearch" and "Elasticsearch" not in destination
-        ) or (destination_name == "HttpEndpoint" and "HttpEndpoint" not in destination):
+        if (dest_name == "Elasticsearch" and "Elasticsearch" not in destination) or (
+            dest_name == "HttpEndpoint" and "HttpEndpoint" not in destination
+        ):
             raise InvalidArgumentException(
-                f"Changing the destination type to or from {destination_name} "
+                f"Changing the destination type to or from {dest_name} "
                 f"is not supported at this time."
             )
 
         # If this is a different type of destination configuration,
         # the existing configuration is reset first.
-        if destination_name in destination:
-            delivery_stream.destinations[destination_idx][destination_name].update(
-                destination_config
-            )
+        if dest_name in destination:
+            delivery_stream.destinations[destination_idx][dest_name].update(dest_config)
         else:
             delivery_stream.destinations[destination_idx] = {
                 "destination_id": destination_id,
-                destination_name: destination_config,
+                dest_name: dest_config,
             }
+
+        # Some names in the Update-request differ from the names used by Describe
+        for old, new in DeliveryStream.ALTERNATIVE_FIELD_NAMES:
+            if old in dest_config:
+                if new not in delivery_stream.destinations[destination_idx][dest_name]:
+                    delivery_stream.destinations[destination_idx][dest_name][new] = {}
+                delivery_stream.destinations[destination_idx][dest_name][new].update(
+                    dest_config[old]
+                )
 
         # Once S3 is updated to an ExtendedS3 destination, both remain in
         # the destination.  That means when one is updated, the other needs
         # to be updated as well.  The problem is that they don't have the
         # same fields.
-        if destination_name == "ExtendedS3":
+        if dest_name == "ExtendedS3":
             delivery_stream.destinations[destination_idx][
                 "S3"
-            ] = create_s3_destination_config(destination_config)
-        elif destination_name == "S3" and "ExtendedS3" in destination:
+            ] = create_s3_destination_config(dest_config)
+        elif dest_name == "S3" and "ExtendedS3" in destination:
             destination["ExtendedS3"] = {
                 k: v
                 for k, v in destination["S3"].items()
