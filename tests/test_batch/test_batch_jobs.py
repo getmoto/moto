@@ -8,6 +8,8 @@ import pytest
 import time
 from uuid import uuid4
 
+from ..markers import requires_docker
+
 
 @mock_logs
 @mock_ec2
@@ -94,6 +96,7 @@ def test_submit_job_by_name():
 @mock_iam
 @mock_batch
 @pytest.mark.network
+@requires_docker
 def test_submit_job():
     ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -158,6 +161,7 @@ def test_submit_job():
 @mock_iam
 @mock_batch
 @pytest.mark.network
+@requires_docker
 def test_submit_job_multinode():
     ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -224,6 +228,7 @@ def test_submit_job_multinode():
 @mock_iam
 @mock_batch
 @pytest.mark.network
+@requires_docker
 def test_list_jobs():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)

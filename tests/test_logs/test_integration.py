@@ -13,6 +13,8 @@ from moto import mock_logs, mock_lambda, mock_iam, mock_firehose, mock_s3
 from moto.core.utils import unix_time_millis
 import pytest
 
+from tests.markers import requires_docker
+
 
 @mock_lambda
 @mock_logs
@@ -100,6 +102,7 @@ def test_put_subscription_filter_update():
 @mock_lambda
 @mock_logs
 @pytest.mark.network
+@requires_docker
 def test_put_subscription_filter_with_lambda():
     # given
     region_name = "us-east-1"
@@ -184,6 +187,7 @@ def test_put_subscription_filter_with_lambda():
 @mock_lambda
 @mock_logs
 @pytest.mark.network
+@requires_docker
 def test_subscription_filter_applies_to_new_streams():
     # given
     region_name = "us-east-1"

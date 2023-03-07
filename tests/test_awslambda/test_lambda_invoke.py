@@ -20,6 +20,7 @@ from .utilities import (
     get_lambda_using_network_mode,
     get_test_zip_largeresponse,
 )
+from ..markers import requires_docker
 
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
@@ -27,6 +28,7 @@ boto3.setup_default_session(region_name=_lambda_region)
 
 @pytest.mark.network
 @mock_lambda
+@requires_docker
 def test_invoke_function_that_throws_error():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -61,6 +63,7 @@ def test_invoke_function_that_throws_error():
 @pytest.mark.parametrize("invocation_type", [None, "RequestResponse"])
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
 @mock_lambda
+@requires_docker
 def test_invoke_requestresponse_function(invocation_type, key):
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -118,6 +121,7 @@ def test_invoke_requestresponse_function(invocation_type, key):
 
 @pytest.mark.network
 @mock_lambda
+@requires_docker
 def test_invoke_event_function():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -211,6 +215,7 @@ def test_invoke_lambda_using_networkmode():
 
 @pytest.mark.network
 @mock_lambda
+@requires_docker
 def test_invoke_function_with_multiple_files_in_zip():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -360,6 +365,7 @@ def test_invoke_async_function(key):
 
 @pytest.mark.network
 @mock_lambda
+@requires_docker
 def test_invoke_function_large_response():
     # AWS Lambda should only return bodies smaller than 6 MB
     conn = boto3.client("lambda", _lambda_region)

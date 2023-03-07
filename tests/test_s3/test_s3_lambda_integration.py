@@ -3,6 +3,7 @@ import json
 import pytest
 from moto import mock_lambda, mock_logs, mock_s3, mock_sqs
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests.markers import requires_docker
 from tests.test_awslambda.utilities import (
     get_test_zip_file_print_event,
     get_role_name,
@@ -26,6 +27,7 @@ REGION_NAME = "us-east-1"
         (["s3:ObjectCreated:Post", "s3:ObjectCreated:*"], "ObjectCreated:Put"),
     ],
 )
+@requires_docker
 def test_objectcreated_put__invokes_lambda(match_events, actual_event):
     s3_res = boto3.resource("s3", region_name=REGION_NAME)
     s3_client = boto3.client("s3", region_name=REGION_NAME)
