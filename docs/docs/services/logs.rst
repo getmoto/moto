@@ -46,7 +46,7 @@ logs
 - [X] describe_log_groups
 - [X] describe_log_streams
 - [X] describe_metric_filters
-- [ ] describe_queries
+- [X] describe_queries
 - [ ] describe_query_definitions
 - [X] describe_resource_policies
   Return list of resource policies.

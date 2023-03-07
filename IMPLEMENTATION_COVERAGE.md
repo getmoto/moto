@@ -421,7 +421,7 @@
 
 ## autoscaling
 <details>
-<summary>52% implemented</summary>
+<summary>53% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
@@ -480,7 +480,6 @@
 - [ ] put_warm_pool
 - [ ] record_lifecycle_action_heartbeat
 - [X] resume_processes
-- [ ] rollback_instance_refresh
 - [X] set_desired_capacity
 - [X] set_instance_health
 - [X] set_instance_protection
@@ -778,16 +777,13 @@
 
 ## cloudtrail
 <details>
-<summary>36% implemented</summary>
+<summary>42% implemented</summary>
 
 - [X] add_tags
 - [ ] cancel_query
-- [ ] create_channel
 - [ ] create_event_data_store
 - [X] create_trail
-- [ ] delete_channel
 - [ ] delete_event_data_store
-- [ ] delete_resource_policy
 - [X] delete_trail
 - [ ] deregister_organization_delegated_admin
 - [ ] describe_query
@@ -798,7 +794,6 @@
 - [ ] get_import
 - [X] get_insight_selectors
 - [ ] get_query_results
-- [ ] get_resource_policy
 - [X] get_trail
 - [X] get_trail_status
 - [ ] list_channels
@@ -812,7 +807,6 @@
 - [ ] lookup_events
 - [X] put_event_selectors
 - [X] put_insight_selectors
-- [ ] put_resource_policy
 - [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
@@ -821,7 +815,6 @@
 - [ ] start_query
 - [ ] stop_import
 - [X] stop_logging
-- [ ] update_channel
 - [ ] update_event_data_store
 - [X] update_trail
 </details>
@@ -1187,7 +1180,7 @@
 
 ## comprehend
 <details>
-<summary>9% implemented</summary>
+<summary>10% implemented</summary>
 
 - [ ] batch_detect_dominant_language
 - [ ] batch_detect_entities
@@ -1197,17 +1190,13 @@
 - [ ] batch_detect_targeted_sentiment
 - [ ] classify_document
 - [ ] contains_pii_entities
-- [ ] create_dataset
 - [ ] create_document_classifier
 - [ ] create_endpoint
 - [X] create_entity_recognizer
-- [ ] create_flywheel
 - [ ] delete_document_classifier
 - [ ] delete_endpoint
 - [X] delete_entity_recognizer
-- [ ] delete_flywheel
 - [ ] delete_resource_policy
-- [ ] describe_dataset
 - [ ] describe_document_classification_job
 - [ ] describe_document_classifier
 - [ ] describe_dominant_language_detection_job
@@ -1215,8 +1204,6 @@
 - [ ] describe_entities_detection_job
 - [X] describe_entity_recognizer
 - [ ] describe_events_detection_job
-- [ ] describe_flywheel
-- [ ] describe_flywheel_iteration
 - [ ] describe_key_phrases_detection_job
 - [ ] describe_pii_entities_detection_job
 - [ ] describe_resource_policy
@@ -1231,7 +1218,6 @@
 - [ ] detect_syntax
 - [ ] detect_targeted_sentiment
 - [ ] import_model
-- [ ] list_datasets
 - [ ] list_document_classification_jobs
 - [ ] list_document_classifier_summaries
 - [ ] list_document_classifiers
@@ -1241,8 +1227,6 @@
 - [ ] list_entity_recognizer_summaries
 - [X] list_entity_recognizers
 - [ ] list_events_detection_jobs
-- [ ] list_flywheel_iteration_history
-- [ ] list_flywheels
 - [ ] list_key_phrases_detection_jobs
 - [ ] list_pii_entities_detection_jobs
 - [ ] list_sentiment_detection_jobs
@@ -1254,7 +1238,6 @@
 - [ ] start_dominant_language_detection_job
 - [ ] start_entities_detection_job
 - [ ] start_events_detection_job
-- [ ] start_flywheel_iteration
 - [ ] start_key_phrases_detection_job
 - [ ] start_pii_entities_detection_job
 - [ ] start_sentiment_detection_job
@@ -1272,7 +1255,6 @@
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_endpoint
-- [ ] update_flywheel
 </details>
 
 ## config
@@ -1768,7 +1750,6 @@
 - [ ] apply_security_groups_to_client_vpn_target_network
 - [X] assign_ipv6_addresses
 - [X] assign_private_ip_addresses
-- [ ] assign_private_nat_gateway_address
 - [X] associate_address
 - [ ] associate_client_vpn_target_network
 - [X] associate_dhcp_options
@@ -1776,7 +1757,6 @@
 - [X] associate_iam_instance_profile
 - [ ] associate_instance_event_window
 - [ ] associate_ipam_resource_discovery
-- [ ] associate_nat_gateway_address
 - [X] associate_route_table
 - [X] associate_subnet_cidr_block
 - [ ] associate_transit_gateway_multicast_domain
@@ -2137,7 +2117,6 @@
 - [X] disassociate_iam_instance_profile
 - [ ] disassociate_instance_event_window
 - [ ] disassociate_ipam_resource_discovery
-- [ ] disassociate_nat_gateway_address
 - [X] disassociate_route_table
 - [X] disassociate_subnet_cidr_block
 - [ ] disassociate_transit_gateway_multicast_domain
@@ -2338,7 +2317,6 @@
 - [X] terminate_instances
 - [X] unassign_ipv6_addresses
 - [X] unassign_private_ip_addresses
-- [ ] unassign_private_nat_gateway_address
 - [ ] unmonitor_instances
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
@@ -2402,7 +2380,7 @@
 
 ## ecs
 <details>
-<summary>78% implemented</summary>
+<summary>80% implemented</summary>
 
 - [X] create_capacity_provider
 - [X] create_cluster
@@ -2413,7 +2391,6 @@
 - [X] delete_capacity_provider
 - [X] delete_cluster
 - [X] delete_service
-- [ ] delete_task_definitions
 - [X] delete_task_set
 - [X] deregister_container_instance
 - [X] deregister_task_definition
@@ -4143,7 +4120,7 @@
 
 ## logs
 <details>
-<summary>52% implemented</summary>
+<summary>54% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -4164,7 +4141,7 @@
 - [X] describe_log_groups
 - [X] describe_log_streams
 - [X] describe_metric_filters
-- [ ] describe_queries
+- [X] describe_queries
 - [ ] describe_query_definitions
 - [X] describe_resource_policies
 - [X] describe_subscription_filters
@@ -6629,22 +6606,18 @@
 
 ## timestream-write
 <details>
-<summary>78% implemented</summary>
+<summary>100% implemented</summary>
 
-- [ ] create_batch_load_task
 - [X] create_database
 - [X] create_table
 - [X] delete_database
 - [X] delete_table
-- [ ] describe_batch_load_task
 - [X] describe_database
 - [X] describe_endpoints
 - [X] describe_table
-- [ ] list_batch_load_tasks
 - [X] list_databases
 - [X] list_tables
 - [X] list_tags_for_resource
-- [ ] resume_batch_load_task
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_database
@@ -6792,7 +6765,6 @@
 - cloudhsmv2
 - cloudsearch
 - cloudsearchdomain
-- cloudtrail-data
 - codeartifact
 - codecatalyst
 - codedeploy
@@ -6845,7 +6817,6 @@
 - importexport
 - inspector
 - inspector2
-- internetmonitor
 - iot-jobs-data
 - iot-roborunner
 - iot1click-devices
@@ -6971,7 +6942,6 @@
 - support-app
 - synthetics
 - timestream-query
-- tnb
 - transfer
 - translate
 - voice-id

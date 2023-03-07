@@ -87,7 +87,6 @@ autoscaling
 - [ ] put_warm_pool
 - [ ] record_lifecycle_action_heartbeat
 - [X] resume_processes
-- [ ] rollback_instance_refresh
 - [X] set_desired_capacity
 - [X] set_instance_health
   

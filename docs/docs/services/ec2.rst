@@ -41,7 +41,6 @@ ec2
 - [ ] apply_security_groups_to_client_vpn_target_network
 - [X] assign_ipv6_addresses
 - [X] assign_private_ip_addresses
-- [ ] assign_private_nat_gateway_address
 - [X] associate_address
 - [ ] associate_client_vpn_target_network
 - [X] associate_dhcp_options
@@ -49,7 +48,6 @@ ec2
 - [X] associate_iam_instance_profile
 - [ ] associate_instance_event_window
 - [ ] associate_ipam_resource_discovery
-- [ ] associate_nat_gateway_address
 - [X] associate_route_table
 - [X] associate_subnet_cidr_block
 - [ ] associate_transit_gateway_multicast_domain
@@ -441,7 +439,6 @@ ec2
 - [X] disassociate_iam_instance_profile
 - [ ] disassociate_instance_event_window
 - [ ] disassociate_ipam_resource_discovery
-- [ ] disassociate_nat_gateway_address
 - [X] disassociate_route_table
 - [X] disassociate_subnet_cidr_block
 - [ ] disassociate_transit_gateway_multicast_domain
@@ -663,7 +660,6 @@ ec2
 - [X] terminate_instances
 - [X] unassign_ipv6_addresses
 - [X] unassign_private_ip_addresses
-- [ ] unassign_private_nat_gateway_address
 - [ ] unmonitor_instances
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
