@@ -174,13 +174,14 @@ class FakeLaunchConfiguration(CloudFormationModel):
     def create_from_instance(
         cls, name: str, instance: Instance, backend: "AutoScalingBackend"
     ) -> "FakeLaunchConfiguration":
+        security_group_names = [sg.name for sg in instance.security_groups]
         config = backend.create_launch_configuration(
             name=name,
             image_id=instance.image_id,
             kernel_id="",
             ramdisk_id="",
             key_name=instance.key_name,
-            security_groups=instance.security_groups,
+            security_groups=security_group_names,
             user_data=instance.user_data,
             instance_type=instance.instance_type,
             instance_monitoring=False,
@@ -483,7 +484,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         if vpc_zone_identifier:
             # extract azs for vpcs
             subnet_ids = vpc_zone_identifier.split(",")
-            subnets = self.autoscaling_backend.ec2_backend.get_all_subnets(
+            subnets = self.autoscaling_backend.ec2_backend.describe_subnets(
                 subnet_ids=subnet_ids
             )
             vpc_zones = [subnet.availability_zone for subnet in subnets]

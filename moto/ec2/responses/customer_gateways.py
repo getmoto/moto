@@ -2,27 +2,24 @@ from ._base_response import EC2BaseResponse
 
 
 class CustomerGateways(EC2BaseResponse):
-    def create_customer_gateway(self):
+    def create_customer_gateway(self) -> str:
         gateway_type = self._get_param("Type")
         ip_address = self._get_param("IpAddress") or self._get_param("PublicIp")
         bgp_asn = self._get_param("BgpAsn")
-        tags = self._get_multi_param("TagSpecification")
-        tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
-        tags = (tags or {}).get("Tag", [])
-        tags = {t["Key"]: t["Value"] for t in tags}
+        tags = self._parse_tag_specification().get("customer-gateway", {})
         customer_gateway = self.ec2_backend.create_customer_gateway(
             gateway_type, ip_address=ip_address, bgp_asn=bgp_asn, tags=tags
         )
         template = self.response_template(CREATE_CUSTOMER_GATEWAY_RESPONSE)
         return template.render(customer_gateway=customer_gateway)
 
-    def delete_customer_gateway(self):
+    def delete_customer_gateway(self) -> str:
         customer_gateway_id = self._get_param("CustomerGatewayId")
         self.ec2_backend.delete_customer_gateway(customer_gateway_id)
         template = self.response_template(DELETE_CUSTOMER_GATEWAY_RESPONSE)
         return template.render(delete_status="true")
 
-    def describe_customer_gateways(self):
+    def describe_customer_gateways(self) -> str:
         self.error_on_dryrun()
         filters = self._filters_from_querystring()
         customer_gateway_ids = self._get_multi_param("CustomerGatewayId")

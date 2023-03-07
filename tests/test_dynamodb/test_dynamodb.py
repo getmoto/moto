@@ -66,7 +66,9 @@ def test_describe_missing_table_boto3():
         conn.describe_table(TableName="messages")
     ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Requested resource not found: Table: messages not found"
+    )
 
 
 @mock_dynamodb
@@ -4708,6 +4710,17 @@ def test_gsi_projection_type_include():
         }
     )
 
+    # Same when scanning the table
+    items = table.scan(IndexName="GSI-INC")["Items"]
+    items[0].should.equal(
+        {
+            "gsiK1PartitionKey": "gsi-pk",
+            "gsiK1SortKey": "gsi-sk",
+            "partitionKey": "pk-1",
+            "projectedAttribute": "lore ipsum",
+        }
+    )
+
 
 @mock_dynamodb
 def test_lsi_projection_type_keys_only():
@@ -4754,6 +4767,12 @@ def test_lsi_projection_type_keys_only():
     # Item should only include GSI Keys and Table Keys, as per the ProjectionType
     items[0].should.equal(
         {"partitionKey": "pk-1", "sortKey": "sk-1", "lsiK1SortKey": "lsi-sk"}
+    )
+
+    # Same when scanning the table
+    items = table.scan(IndexName="LSI")["Items"]
+    items[0].should.equal(
+        {"lsiK1SortKey": "lsi-sk", "partitionKey": "pk-1", "sortKey": "sk-1"}
     )
 
 

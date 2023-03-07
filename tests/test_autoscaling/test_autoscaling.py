@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 from moto import mock_autoscaling, mock_ec2
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
+from uuid import uuid4
 from .utils import setup_networking, setup_instance_with_networking
 
 
@@ -57,7 +58,7 @@ def test_create_autoscaling_group_from_instance():
     client = boto3.client("autoscaling", region_name="us-east-1")
     response = client.create_auto_scaling_group(
         AutoScalingGroupName=autoscaling_group_name,
-        InstanceId=mocked_instance_with_networking["instance"],
+        InstanceId=mocked_instance_with_networking["instances"][0].id,
         MinSize=1,
         MaxSize=3,
         DesiredCapacity=2,
@@ -78,6 +79,37 @@ def test_create_autoscaling_group_from_instance():
     )
     launch_configuration_from_instance["ImageId"].should.equal(image_id)
     launch_configuration_from_instance["InstanceType"].should.equal(instance_type)
+
+
+@mock_autoscaling
+@mock_ec2
+def test_create_autoscaling_group_from_instance_with_security_groups():
+    autoscaling_group_name = "test_asg"
+    image_id = EXAMPLE_AMI_ID
+    instance_type = "t2.micro"
+
+    mocked_instance_with_networking = setup_instance_with_networking(
+        image_id, instance_type
+    )
+    instance = mocked_instance_with_networking["instances"][0]
+
+    # create sg
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    sg_id = ec2.create_security_group(GroupName=str(uuid4()), Description="d").id
+    instance.modify_attribute(Groups=[sg_id])
+
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    response = client.create_auto_scaling_group(
+        AutoScalingGroupName=autoscaling_group_name,
+        InstanceId=instance.id,
+        MinSize=1,
+        MaxSize=3,
+        DesiredCapacity=2,
+        VPCZoneIdentifier=mocked_instance_with_networking["subnet1"],
+        NewInstancesProtectedFromScaleIn=False,
+    )
+    # Just verifying this works - used to throw an error when supplying a instance that belonged to an SG
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
 
 @mock_autoscaling

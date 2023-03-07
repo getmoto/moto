@@ -3,12 +3,11 @@ from ._base_response import EC2BaseResponse
 
 
 class NatGateways(EC2BaseResponse):
-    def create_nat_gateway(self):
+    def create_nat_gateway(self) -> str:
         subnet_id = self._get_param("SubnetId")
         allocation_id = self._get_param("AllocationId")
         connectivity_type = self._get_param("ConnectivityType")
-        tags = self._get_multi_param("TagSpecification")
-        tags = add_tag_specification(tags)
+        tags = add_tag_specification(self._get_multi_param("TagSpecification"))
 
         nat_gateway = self.ec2_backend.create_nat_gateway(
             subnet_id=subnet_id,
@@ -19,13 +18,13 @@ class NatGateways(EC2BaseResponse):
         template = self.response_template(CREATE_NAT_GATEWAY)
         return template.render(nat_gateway=nat_gateway)
 
-    def delete_nat_gateway(self):
+    def delete_nat_gateway(self) -> str:
         nat_gateway_id = self._get_param("NatGatewayId")
         nat_gateway = self.ec2_backend.delete_nat_gateway(nat_gateway_id)
         template = self.response_template(DELETE_NAT_GATEWAY_RESPONSE)
         return template.render(nat_gateway=nat_gateway)
 
-    def describe_nat_gateways(self):
+    def describe_nat_gateways(self) -> str:
         filters = self._filters_from_querystring()
         nat_gateway_ids = self._get_multi_param("NatGatewayId")
         nat_gateways = self.ec2_backend.describe_nat_gateways(filters, nat_gateway_ids)

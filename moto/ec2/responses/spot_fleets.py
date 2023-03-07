@@ -1,8 +1,8 @@
-from moto.core.responses import BaseResponse
+from ._base_response import EC2BaseResponse
 
 
-class SpotFleets(BaseResponse):
-    def cancel_spot_fleet_requests(self):
+class SpotFleets(EC2BaseResponse):
+    def cancel_spot_fleet_requests(self) -> str:
         spot_fleet_request_ids = self._get_multi_param("SpotFleetRequestId.")
         terminate_instances = self._get_bool_param("TerminateInstances")
         spot_fleets = self.ec2_backend.cancel_spot_fleet_requests(
@@ -11,7 +11,7 @@ class SpotFleets(BaseResponse):
         template = self.response_template(CANCEL_SPOT_FLEETS_TEMPLATE)
         return template.render(spot_fleets=spot_fleets)
 
-    def describe_spot_fleet_instances(self):
+    def describe_spot_fleet_instances(self) -> str:
         spot_fleet_request_id = self._get_param("SpotFleetRequestId")
 
         spot_requests = self.ec2_backend.describe_spot_fleet_instances(
@@ -22,26 +22,25 @@ class SpotFleets(BaseResponse):
             spot_request_id=spot_fleet_request_id, spot_requests=spot_requests
         )
 
-    def describe_spot_fleet_requests(self):
+    def describe_spot_fleet_requests(self) -> str:
         spot_fleet_request_ids = self._get_multi_param("SpotFleetRequestId.")
 
         requests = self.ec2_backend.describe_spot_fleet_requests(spot_fleet_request_ids)
         template = self.response_template(DESCRIBE_SPOT_FLEET_TEMPLATE)
         return template.render(requests=requests)
 
-    def modify_spot_fleet_request(self):
+    def modify_spot_fleet_request(self) -> str:
         spot_fleet_request_id = self._get_param("SpotFleetRequestId")
         target_capacity = self._get_int_param("TargetCapacity")
         terminate_instances = self._get_param(
             "ExcessCapacityTerminationPolicy", if_none="Default"
         )
-        successful = self.ec2_backend.modify_spot_fleet_request(
+        self.ec2_backend.modify_spot_fleet_request(
             spot_fleet_request_id, target_capacity, terminate_instances
         )
-        template = self.response_template(MODIFY_SPOT_FLEET_REQUEST_TEMPLATE)
-        return template.render(successful=successful)
+        return self.response_template(MODIFY_SPOT_FLEET_REQUEST_TEMPLATE).render()
 
-    def request_spot_fleet(self):
+    def request_spot_fleet(self) -> str:
         spot_config = self._get_multi_param_dict("SpotFleetRequestConfig")
         spot_price = spot_config.get("SpotPrice")
         target_capacity = spot_config["TargetCapacity"]
@@ -80,7 +79,7 @@ REQUEST_SPOT_FLEET_TEMPLATE = """<RequestSpotFleetResponse xmlns="http://ec2.ama
 
 MODIFY_SPOT_FLEET_REQUEST_TEMPLATE = """<ModifySpotFleetRequestResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">
     <requestId>21681fea-9987-aef3-2121-example</requestId>
-    <return>{{ 'true' if successful else 'false' }}</return>
+    <return>true</return>
 </ModifySpotFleetRequestResponse>"""
 
 DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">

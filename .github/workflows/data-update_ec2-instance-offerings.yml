@@ -1,0 +1,50 @@
+# Data Update:
+#   EC2 Instance Offerings
+#
+# This Github Action:
+#   - executes the script that updates the EC2 instance offerings that come bundled with Moto
+#   - creates a PR
+#
+name: "DataUpdate_EC2InstanceOfferings"
+
+on:
+  schedule:
+    - cron: '00 6 * * 0'
+  workflow_dispatch:
+
+jobs:
+  update:
+    name: Update EC2 Instance Offerings
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: us-east-1
+        role-to-assume: arn:aws:iam::486285699788:role/GithubActionsRole
+
+    - name: Pull EC2 instance types from AWS
+      uses: technote-space/create-pr-action@v2
+      with:
+        EXECUTE_COMMANDS: |
+          pip install boto3
+          scripts/ec2_get_instance_type_offerings.py
+        COMMIT_MESSAGE: 'chore: update EC2 Instance Offerings'
+        COMMIT_NAME: 'Moto Admin'
+        COMMIT_EMAIL: 'admin@getmoto.org'
+        PR_BRANCH_NAME: 'chore-update-ec2-offerings-${{ github.run_number }}'
+        PR_TITLE: 'chore: update EC2 Instance Offerings'

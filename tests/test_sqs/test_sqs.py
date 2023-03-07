@@ -56,7 +56,7 @@ def test_create_fifo_queue_fail():
     except botocore.exceptions.ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameterValue")
     else:
-        raise RuntimeError("Should of raised InvalidParameterValue Exception")
+        raise RuntimeError("Should have raised InvalidParameterValue Exception")
 
 
 @mock_sqs
@@ -96,7 +96,7 @@ def test_create_queue_with_different_attributes_fail():
     except botocore.exceptions.ClientError as err:
         err.response["Error"]["Code"].should.equal("QueueAlreadyExists")
     else:
-        raise RuntimeError("Should of raised QueueAlreadyExists Exception")
+        raise RuntimeError("Should have raised QueueAlreadyExists Exception")
 
     q_name2 = str(uuid4())[0:6]
     response = sqs.create_queue(QueueName=q_name2, Attributes={"FifoQueue": "tru"})

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 from moto.core import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.utils import filter_resources, merge_multiple_dicts
@@ -20,7 +21,12 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         "VpnEcmpSupport": "enable",
     }
 
-    def __init__(self, backend, description=None, options=None):
+    def __init__(
+        self,
+        backend: Any,
+        description: Optional[str],
+        options: Optional[Dict[str, str]] = None,
+    ):
         self.ec2_backend = backend
         self.id = random_transit_gateway_id()
         self.description = description
@@ -29,30 +35,35 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         self._created_at = datetime.utcnow()
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.id
 
     @property
-    def create_time(self):
+    def create_time(self) -> str:
         return iso_8601_datetime_with_milliseconds(self._created_at)
 
     @property
-    def owner_id(self):
+    def owner_id(self) -> str:
         return self.ec2_backend.account_id
 
     @staticmethod
-    def cloudformation_name_type():
-        return None
+    def cloudformation_name_type() -> str:
+        return ""
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-natgateway.html
         return "AWS::EC2::TransitGateway"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any
+    ) -> "TransitGateway":
         from ..models import ec2_backends
 
         ec2_backend = ec2_backends[account_id][region_name]
@@ -73,21 +84,26 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
 
 
 class TransitGatewayBackend:
-    def __init__(self):
-        self.transit_gateways = {}
+    def __init__(self) -> None:
+        self.transit_gateways: Dict[str, TransitGateway] = {}
 
-    def create_transit_gateway(self, description=None, options=None, tags=None):
+    def create_transit_gateway(
+        self,
+        description: Optional[str],
+        options: Optional[Dict[str, str]] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> TransitGateway:
         transit_gateway = TransitGateway(self, description, options)
         for tag in tags or []:
-            tag_key = tag.get("Key")
-            tag_value = tag.get("Value")
-            transit_gateway.add_tag(tag_key, tag_value)
+            transit_gateway.add_tag(tag["Key"], tag["Value"])
 
         self.transit_gateways[transit_gateway.id] = transit_gateway
         return transit_gateway
 
-    def describe_transit_gateways(self, filters, transit_gateway_ids):
-        transit_gateways = list(self.transit_gateways.copy().values())
+    def describe_transit_gateways(
+        self, filters: Any, transit_gateway_ids: Optional[List[str]]
+    ) -> List[TransitGateway]:
+        transit_gateways = list(self.transit_gateways.values())
 
         if transit_gateway_ids:
             transit_gateways = [
@@ -105,13 +121,16 @@ class TransitGatewayBackend:
             result = filter_resources(transit_gateways, filters, attr_pairs)
         return result
 
-    def delete_transit_gateway(self, transit_gateway_id):
+    def delete_transit_gateway(self, transit_gateway_id: str) -> TransitGateway:
         return self.transit_gateways.pop(transit_gateway_id)
 
     def modify_transit_gateway(
-        self, transit_gateway_id, description=None, options=None
-    ):
-        transit_gateway = self.transit_gateways.get(transit_gateway_id)
+        self,
+        transit_gateway_id: str,
+        description: Optional[str] = None,
+        options: Optional[Dict[str, str]] = None,
+    ) -> TransitGateway:
+        transit_gateway = self.transit_gateways[transit_gateway_id]
         if description:
             transit_gateway.description = description
         if options:

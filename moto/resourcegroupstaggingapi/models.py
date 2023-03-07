@@ -326,6 +326,21 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
                 yield {"ResourceARN": f"{kms_key.arn}", "Tags": tags}
 
+        # RDS Cluster
+        if (
+            not resource_type_filters
+            or "rds" in resource_type_filters
+            or "rds:cluster" in resource_type_filters
+        ):
+            for cluster in self.rds_backend.clusters.values():
+                tags = cluster.get_tags()
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": cluster.db_cluster_arn,
+                    "Tags": tags,
+                }
+
         # RDS Instance
         if (
             not resource_type_filters

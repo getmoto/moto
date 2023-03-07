@@ -2,21 +2,21 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import firehose_backends
+from .models import firehose_backends, FirehoseBackend
 
 
 class FirehoseResponse(BaseResponse):
     """Handler for Firehose requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="firehose")
 
     @property
-    def firehose_backend(self):
+    def firehose_backend(self) -> FirehoseBackend:
         """Return backend instance specific to this region."""
         return firehose_backends[self.current_account][self.region]
 
-    def create_delivery_stream(self):
+    def create_delivery_stream(self) -> str:
         """Prepare arguments and respond to CreateDeliveryStream request."""
         delivery_stream_arn = self.firehose_backend.create_delivery_stream(
             self.region,
@@ -34,23 +34,21 @@ class FirehoseResponse(BaseResponse):
         )
         return json.dumps({"DeliveryStreamARN": delivery_stream_arn})
 
-    def delete_delivery_stream(self):
+    def delete_delivery_stream(self) -> str:
         """Prepare arguments and respond to DeleteDeliveryStream request."""
         self.firehose_backend.delete_delivery_stream(
-            self._get_param("DeliveryStreamName"), self._get_param("AllowForceDelete")
+            self._get_param("DeliveryStreamName")
         )
         return json.dumps({})
 
-    def describe_delivery_stream(self):
+    def describe_delivery_stream(self) -> str:
         """Prepare arguments and respond to DescribeDeliveryStream request."""
         result = self.firehose_backend.describe_delivery_stream(
-            self._get_param("DeliveryStreamName"),
-            self._get_param("Limit"),
-            self._get_param("ExclusiveStartDestinationId"),
+            self._get_param("DeliveryStreamName")
         )
         return json.dumps(result)
 
-    def list_delivery_streams(self):
+    def list_delivery_streams(self) -> str:
         """Prepare arguments and respond to ListDeliveryStreams request."""
         stream_list = self.firehose_backend.list_delivery_streams(
             self._get_param("Limit"),
@@ -59,7 +57,7 @@ class FirehoseResponse(BaseResponse):
         )
         return json.dumps(stream_list)
 
-    def list_tags_for_delivery_stream(self):
+    def list_tags_for_delivery_stream(self) -> str:
         """Prepare arguments and respond to ListTagsForDeliveryStream()."""
         result = self.firehose_backend.list_tags_for_delivery_stream(
             self._get_param("DeliveryStreamName"),
@@ -68,35 +66,35 @@ class FirehoseResponse(BaseResponse):
         )
         return json.dumps(result)
 
-    def put_record(self):
+    def put_record(self) -> str:
         """Prepare arguments and response to PutRecord()."""
         result = self.firehose_backend.put_record(
             self._get_param("DeliveryStreamName"), self._get_param("Record")
         )
         return json.dumps(result)
 
-    def put_record_batch(self):
+    def put_record_batch(self) -> str:
         """Prepare arguments and response to PutRecordBatch()."""
         result = self.firehose_backend.put_record_batch(
             self._get_param("DeliveryStreamName"), self._get_param("Records")
         )
         return json.dumps(result)
 
-    def tag_delivery_stream(self):
+    def tag_delivery_stream(self) -> str:
         """Prepare arguments and respond to TagDeliveryStream request."""
         self.firehose_backend.tag_delivery_stream(
             self._get_param("DeliveryStreamName"), self._get_param("Tags")
         )
         return json.dumps({})
 
-    def untag_delivery_stream(self):
+    def untag_delivery_stream(self) -> str:
         """Prepare arguments and respond to UntagDeliveryStream()."""
         self.firehose_backend.untag_delivery_stream(
             self._get_param("DeliveryStreamName"), self._get_param("TagKeys")
         )
         return json.dumps({})
 
-    def update_destination(self):
+    def update_destination(self) -> str:
         """Prepare arguments and respond to UpdateDestination()."""
         self.firehose_backend.update_destination(
             self._get_param("DeliveryStreamName"),

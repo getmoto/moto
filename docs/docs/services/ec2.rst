@@ -360,7 +360,7 @@ ec2
 - [X] describe_spot_price_history
 - [ ] describe_stale_security_groups
 - [ ] describe_store_image_tasks
-- [ ] describe_subnets
+- [X] describe_subnets
 - [X] describe_tags
 - [ ] describe_traffic_mirror_filters
 - [ ] describe_traffic_mirror_sessions
@@ -403,7 +403,7 @@ ec2
 - [X] describe_vpc_endpoint_services
   Return info on services to which you can create a VPC endpoint.
 
-        Currently only the default endpoing services are returned.  When
+        Currently only the default endpoint services are returned.  When
         create_vpc_endpoint_service_configuration() is implemented, a
         list of those private endpoints would be kept and when this API
         is invoked, those private endpoints would be added to the list of
@@ -503,8 +503,8 @@ ec2
 - [ ] get_transit_gateway_policy_table_associations
 - [ ] get_transit_gateway_policy_table_entries
 - [ ] get_transit_gateway_prefix_list_references
-- [ ] get_transit_gateway_route_table_associations
-- [ ] get_transit_gateway_route_table_propagations
+- [X] get_transit_gateway_route_table_associations
+- [X] get_transit_gateway_route_table_propagations
 - [ ] get_verified_access_endpoint_policy
 - [ ] get_verified_access_group_policy
 - [ ] get_vpn_connection_device_sample_configuration

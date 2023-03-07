@@ -24,6 +24,16 @@ def test_ssm_get_by_path():
 
 
 @mock_ssm
+def test_global_infrastructure_services():
+    client = boto3.client("ssm", region_name="us-west-1")
+    path = "/aws/service/global-infrastructure/services"
+    params = client.get_parameters_by_path(Path=path)["Parameters"]
+    params[0]["Name"].should.equal(
+        "/aws/service/global-infrastructure/services/accessanalyzer"
+    )
+
+
+@mock_ssm
 def test_ssm_region_query():
     client = boto3.client("ssm", region_name="us-west-1")
     param = client.get_parameter(

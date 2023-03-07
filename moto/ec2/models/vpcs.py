@@ -2,6 +2,7 @@ import ipaddress
 import json
 import weakref
 from collections import defaultdict
+from typing import Any, Dict, List, Optional
 from operator import itemgetter
 
 from moto.core import CloudFormationModel
@@ -35,27 +36,35 @@ from ..utils import (
 )
 
 MAX_NUMBER_OF_ENDPOINT_SERVICES_RESULTS = 1000
-DEFAULT_VPC_ENDPOINT_SERVICES = []
+DEFAULT_VPC_ENDPOINT_SERVICES: List[Dict[str, str]] = []
 
 
 class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
+
+    DEFAULT_POLICY = {
+        "Version": "2008-10-17",
+        "Statement ": [
+            {"Effect": "Allow", "Principal": "*", "Action": "*", "Resource": "*"}
+        ],
+    }
+
     def __init__(
         self,
-        ec2_backend,
-        endpoint_id,
-        vpc_id,
-        service_name,
-        endpoint_type=None,
-        policy_document=False,
-        route_table_ids=None,
-        subnet_ids=None,
-        network_interface_ids=None,
-        dns_entries=None,
-        client_token=None,
-        security_group_ids=None,
-        tags=None,
-        private_dns_enabled=None,
-        destination_prefix_list_id=None,
+        ec2_backend: Any,
+        endpoint_id: str,
+        vpc_id: str,
+        service_name: str,
+        endpoint_type: Optional[str],
+        policy_document: Optional[str],
+        route_table_ids: List[str],
+        subnet_ids: Optional[List[str]] = None,
+        network_interface_ids: Optional[List[str]] = None,
+        dns_entries: Optional[List[Dict[str, str]]] = None,
+        client_token: Optional[str] = None,
+        security_group_ids: Optional[List[str]] = None,
+        tags: Optional[Dict[str, str]] = None,
+        private_dns_enabled: Optional[str] = None,
+        destination_prefix_list_id: Optional[str] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = endpoint_id
@@ -63,7 +72,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         self.service_name = service_name
         self.endpoint_type = endpoint_type
         self.state = "available"
-        self.policy_document = policy_document
+        self.policy_document = policy_document or json.dumps(VPCEndPoint.DEFAULT_POLICY)
         self.route_table_ids = route_table_ids
         self.network_interface_ids = network_interface_ids or []
         self.subnet_ids = subnet_ids
@@ -76,11 +85,17 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
         self.created_at = utc_date_and_time()
 
-    def modify(self, policy_doc, add_subnets, add_route_tables, remove_route_tables):
+    def modify(
+        self,
+        policy_doc: Optional[str],
+        add_subnets: Optional[List[str]],
+        add_route_tables: Optional[List[str]],
+        remove_route_tables: Optional[List[str]],
+    ) -> None:
         if policy_doc:
             self.policy_document = policy_doc
         if add_subnets:
-            self.subnet_ids.extend(add_subnets)
+            self.subnet_ids.extend(add_subnets)  # type: ignore[union-attr]
         if add_route_tables:
             self.route_table_ids.extend(add_route_tables)
         if remove_route_tables:
@@ -90,32 +105,39 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
                 if rt_id not in remove_route_tables
             ]
 
-    def get_filter_value(self, filter_name):
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         if filter_name in ("vpc-endpoint-type", "vpc_endpoint_type"):
             return self.endpoint_type
         else:
             return super().get_filter_value(filter_name, "DescribeVpcs")
 
     @property
-    def owner_id(self):
+    def owner_id(self) -> str:
         return self.ec2_backend.account_id
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.id
 
     @staticmethod
-    def cloudformation_name_type():
-        return None
+    def cloudformation_name_type() -> str:
+        return ""
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         return "AWS::EC2::VPCEndpoint"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "VPCEndPoint":
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
@@ -146,19 +168,19 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 class VPC(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
-        ec2_backend,
-        vpc_id,
-        cidr_block,
-        is_default,
-        instance_tenancy="default",
-        amazon_provided_ipv6_cidr_block=False,
-        ipv6_cidr_block_network_border_group=None,
+        ec2_backend: Any,
+        vpc_id: str,
+        cidr_block: str,
+        is_default: bool,
+        instance_tenancy: str = "default",
+        amazon_provided_ipv6_cidr_block: bool = False,
+        ipv6_cidr_block_network_border_group: Optional[str] = None,
     ):
 
         self.ec2_backend = ec2_backend
         self.id = vpc_id
         self.cidr_block = cidr_block
-        self.cidr_block_association_set = {}
+        self.cidr_block_association_set: Dict[str, Any] = {}
         self.dhcp_options = None
         self.state = "available"
         self.instance_tenancy = instance_tenancy
@@ -180,22 +202,27 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
             )
 
     @property
-    def owner_id(self):
+    def owner_id(self) -> str:
         return self.ec2_backend.account_id
 
     @staticmethod
-    def cloudformation_name_type():
-        return None
+    def cloudformation_name_type() -> str:
+        return ""
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc.html
         return "AWS::EC2::VPC"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "VPC":
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
@@ -213,10 +240,12 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         return vpc
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.id
 
-    def get_filter_value(self, filter_name):
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         if filter_name in ("vpc-id", "vpcId"):
             return self.id
         elif filter_name in ("cidr", "cidr-block", "cidrBlock"):
@@ -255,23 +284,22 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         else:
             return super().get_filter_value(filter_name, "DescribeVpcs")
 
-    def modify_vpc_tenancy(self, tenancy):
+    def modify_vpc_tenancy(self, tenancy: str) -> None:
         if tenancy != "default":
             raise UnsupportedTenancy(tenancy)
         self.instance_tenancy = tenancy
-        return True
 
     def associate_vpc_cidr_block(
         self,
-        cidr_block,
-        amazon_provided_ipv6_cidr_block=False,
-        ipv6_cidr_block_network_border_group=None,
-    ):
+        cidr_block: str,
+        amazon_provided_ipv6_cidr_block: bool = False,
+        ipv6_cidr_block_network_border_group: Optional[str] = None,
+    ) -> Dict[str, Any]:
         max_associations = 5 if not amazon_provided_ipv6_cidr_block else 1
 
         for cidr in self.cidr_block_association_set.copy():
             if (
-                self.cidr_block_association_set.get(cidr)
+                self.cidr_block_association_set.get(cidr)  # type: ignore[union-attr]
                 .get("cidr_block_state")
                 .get("state")
                 == "disassociated"
@@ -285,7 +313,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
         association_id = random_vpc_cidr_association_id()
 
-        association_set = {
+        association_set: Dict[str, Any] = {
             "association_id": association_id,
             "cidr_block_state": {"state": "associated", "StatusMessage": ""},
         }
@@ -301,7 +329,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         self.cidr_block_association_set[association_id] = association_set
         return association_set
 
-    def enable_vpc_classic_link(self):
+    def enable_vpc_classic_link(self) -> str:
         # Check if current cidr block doesn't fall within the 10.0.0.0/8 block, excluding 10.0.0.0/16 and 10.1.0.0/16.
         # Doesn't check any route tables, maybe something for in the future?
         # See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html#classiclink-limitations
@@ -315,19 +343,19 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
         return self.classic_link_enabled
 
-    def disable_vpc_classic_link(self):
+    def disable_vpc_classic_link(self) -> str:
         self.classic_link_enabled = "false"
         return self.classic_link_enabled
 
-    def enable_vpc_classic_link_dns_support(self):
+    def enable_vpc_classic_link_dns_support(self) -> str:
         self.classic_link_dns_supported = "true"
         return self.classic_link_dns_supported
 
-    def disable_vpc_classic_link_dns_support(self):
+    def disable_vpc_classic_link_dns_support(self) -> str:
         self.classic_link_dns_supported = "false"
         return self.classic_link_dns_supported
 
-    def disassociate_vpc_cidr_block(self, association_id):
+    def disassociate_vpc_cidr_block(self, association_id: str) -> Dict[str, Any]:
         if self.cidr_block == self.cidr_block_association_set.get(
             association_id, {}
         ).get("cidr_block"):
@@ -341,7 +369,9 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
             entry["cidr_block_state"]["state"] = "disassociated"
         return response
 
-    def get_cidr_block_association_set(self, ipv6=False):
+    def get_cidr_block_association_set(
+        self, ipv6: bool = False
+    ) -> List[Dict[str, Any]]:
         return [
             c
             for c in self.cidr_block_association_set.values()
@@ -350,14 +380,14 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
 
 class VPCBackend:
-    vpc_refs = defaultdict(set)
+    vpc_refs = defaultdict(set)  # type: ignore
 
-    def __init__(self):
-        self.vpcs = {}
-        self.vpc_end_points = {}
+    def __init__(self) -> None:
+        self.vpcs: Dict[str, VPC] = {}
+        self.vpc_end_points: Dict[str, VPCEndPoint] = {}
         self.vpc_refs[self.__class__].add(weakref.ref(self))
 
-    def create_default_vpc(self):
+    def create_default_vpc(self) -> VPC:
         default_vpc = self.describe_vpcs(filters={"is-default": "true"})
         if default_vpc:
             raise DefaultVpcAlreadyExists
@@ -366,13 +396,13 @@ class VPCBackend:
 
     def create_vpc(
         self,
-        cidr_block,
-        instance_tenancy="default",
-        amazon_provided_ipv6_cidr_block=False,
-        ipv6_cidr_block_network_border_group=None,
-        tags=None,
-        is_default=False,
-    ):
+        cidr_block: str,
+        instance_tenancy: str = "default",
+        amazon_provided_ipv6_cidr_block: bool = False,
+        ipv6_cidr_block_network_border_group: Optional[str] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
+        is_default: bool = False,
+    ) -> VPC:
         vpc_id = random_vpc_id()
         try:
             vpc_cidr_block = ipaddress.IPv4Network(str(cidr_block), strict=False)
@@ -391,45 +421,45 @@ class VPCBackend:
         )
 
         for tag in tags or []:
-            tag_key = tag.get("Key")
-            tag_value = tag.get("Value")
-            vpc.add_tag(tag_key, tag_value)
+            vpc.add_tag(tag["Key"], tag["Value"])
 
         self.vpcs[vpc_id] = vpc
 
         # AWS creates a default main route table and security group.
-        self.create_route_table(vpc_id, main=True)
+        self.create_route_table(vpc_id, main=True)  # type: ignore[attr-defined]
 
         # AWS creates a default Network ACL
-        self.create_network_acl(vpc_id, default=True)
+        self.create_network_acl(vpc_id, default=True)  # type: ignore[attr-defined]
 
-        default = self.get_security_group_from_name("default", vpc_id=vpc_id)
+        default = self.get_security_group_from_name("default", vpc_id=vpc_id)  # type: ignore[attr-defined]
         if not default:
-            self.create_security_group(
+            self.create_security_group(  # type: ignore[attr-defined]
                 "default", "default VPC security group", vpc_id=vpc_id, is_default=True
             )
 
         return vpc
 
-    def get_vpc(self, vpc_id):
+    def get_vpc(self, vpc_id: str) -> VPC:
         if vpc_id not in self.vpcs:
             raise InvalidVPCIdError(vpc_id)
-        return self.vpcs.get(vpc_id)
+        return self.vpcs[vpc_id]
 
-    def describe_vpcs(self, vpc_ids=None, filters=None):
-        matches = self.vpcs.copy().values()
+    def describe_vpcs(
+        self, vpc_ids: Optional[List[str]] = None, filters: Any = None
+    ) -> List[VPC]:
+        matches = list(self.vpcs.values())
         if vpc_ids:
             matches = [vpc for vpc in matches if vpc.id in vpc_ids]
             if len(vpc_ids) > len(matches):
-                unknown_ids = set(vpc_ids) - set(matches)
+                unknown_ids = set(vpc_ids) - set(matches)  # type: ignore[arg-type]
                 raise InvalidVPCIdError(unknown_ids)
         if filters:
             matches = generic_filter(filters, matches)
         return matches
 
-    def delete_vpc(self, vpc_id):
+    def delete_vpc(self, vpc_id: str) -> VPC:
         # Do not delete if any VPN Gateway is attached
-        vpn_gateways = self.describe_vpn_gateways(filters={"attachment.vpc-id": vpc_id})
+        vpn_gateways = self.describe_vpn_gateways(filters={"attachment.vpc-id": vpc_id})  # type: ignore[attr-defined]
         vpn_gateways = [
             item
             for item in vpn_gateways
@@ -441,18 +471,18 @@ class VPCBackend:
             )
 
         # Delete route table if only main route table remains.
-        route_tables = self.describe_route_tables(filters={"vpc-id": vpc_id})
+        route_tables = self.describe_route_tables(filters={"vpc-id": vpc_id})  # type: ignore[attr-defined]
         if len(route_tables) > 1:
             raise DependencyViolationError(
                 f"The vpc {vpc_id} has dependencies and cannot be deleted."
             )
         for route_table in route_tables:
-            self.delete_route_table(route_table.id)
+            self.delete_route_table(route_table.id)  # type: ignore[attr-defined]
 
         # Delete default security group if exists.
-        default = self.get_security_group_by_name_or_id("default", vpc_id=vpc_id)
+        default = self.get_security_group_by_name_or_id("default", vpc_id=vpc_id)  # type: ignore[attr-defined]
         if default:
-            self.delete_security_group(group_id=default.id)
+            self.delete_security_group(group_id=default.id)  # type: ignore[attr-defined]
 
         # Now delete VPC.
         vpc = self.vpcs.pop(vpc_id, None)
@@ -465,7 +495,7 @@ class VPCBackend:
             vpc.dhcp_options = None
         return vpc
 
-    def describe_vpc_attribute(self, vpc_id, attr_name):
+    def describe_vpc_attribute(self, vpc_id: str, attr_name: str) -> Any:
         vpc = self.get_vpc(vpc_id)
         if attr_name in (
             "enable_dns_support",
@@ -476,27 +506,29 @@ class VPCBackend:
         else:
             raise InvalidParameterValueError(attr_name)
 
-    def modify_vpc_tenancy(self, vpc_id, tenancy):
+    def modify_vpc_tenancy(self, vpc_id: str, tenancy: str) -> None:
         vpc = self.get_vpc(vpc_id)
-        return vpc.modify_vpc_tenancy(tenancy)
+        vpc.modify_vpc_tenancy(tenancy)
 
-    def enable_vpc_classic_link(self, vpc_id):
+    def enable_vpc_classic_link(self, vpc_id: str) -> str:
         vpc = self.get_vpc(vpc_id)
         return vpc.enable_vpc_classic_link()
 
-    def disable_vpc_classic_link(self, vpc_id):
+    def disable_vpc_classic_link(self, vpc_id: str) -> str:
         vpc = self.get_vpc(vpc_id)
         return vpc.disable_vpc_classic_link()
 
-    def enable_vpc_classic_link_dns_support(self, vpc_id):
+    def enable_vpc_classic_link_dns_support(self, vpc_id: str) -> str:
         vpc = self.get_vpc(vpc_id)
         return vpc.enable_vpc_classic_link_dns_support()
 
-    def disable_vpc_classic_link_dns_support(self, vpc_id):
+    def disable_vpc_classic_link_dns_support(self, vpc_id: str) -> str:
         vpc = self.get_vpc(vpc_id)
         return vpc.disable_vpc_classic_link_dns_support()
 
-    def modify_vpc_attribute(self, vpc_id, attr_name, attr_value):
+    def modify_vpc_attribute(
+        self, vpc_id: str, attr_name: str, attr_value: str
+    ) -> None:
         vpc = self.get_vpc(vpc_id)
         if attr_name in (
             "enable_dns_support",
@@ -507,58 +539,58 @@ class VPCBackend:
         else:
             raise InvalidParameterValueError(attr_name)
 
-    def disassociate_vpc_cidr_block(self, association_id):
+    def disassociate_vpc_cidr_block(self, association_id: str) -> Dict[str, Any]:
         for vpc in self.vpcs.copy().values():
             response = vpc.disassociate_vpc_cidr_block(association_id)
-            for route_table in self.route_tables.copy().values():
+            for route_table in self.route_tables.copy().values():  # type: ignore[attr-defined]
                 if route_table.vpc_id == response.get("vpc_id"):
-                    if "::/" in response.get("cidr_block"):
-                        self.delete_route(
+                    if "::/" in response.get("cidr_block"):  # type: ignore[operator]
+                        self.delete_route(  # type: ignore[attr-defined]
                             route_table.id, None, response.get("cidr_block")
                         )
                     else:
-                        self.delete_route(route_table.id, response.get("cidr_block"))
+                        self.delete_route(route_table.id, response.get("cidr_block"))  # type: ignore[attr-defined]
             if response:
                 return response
         raise InvalidVpcCidrBlockAssociationIdError(association_id)
 
     def associate_vpc_cidr_block(
-        self, vpc_id, cidr_block, amazon_provided_ipv6_cidr_block
-    ):
+        self, vpc_id: str, cidr_block: str, amazon_provided_ipv6_cidr_block: bool
+    ) -> Dict[str, Any]:
         vpc = self.get_vpc(vpc_id)
         association_set = vpc.associate_vpc_cidr_block(
             cidr_block, amazon_provided_ipv6_cidr_block
         )
-        for route_table in self.route_tables.copy().values():
+        for route_table in self.route_tables.copy().values():  # type: ignore[attr-defined]
             if route_table.vpc_id == vpc_id:
                 if amazon_provided_ipv6_cidr_block:
-                    self.create_route(
+                    self.create_route(  # type: ignore[attr-defined]
                         route_table.id,
                         None,
                         destination_ipv6_cidr_block=association_set["cidr_block"],
                         local=True,
                     )
                 else:
-                    self.create_route(
+                    self.create_route(  # type: ignore[attr-defined]
                         route_table.id, association_set["cidr_block"], local=True
                     )
         return association_set
 
     def create_vpc_endpoint(
         self,
-        vpc_id,
-        service_name,
-        endpoint_type=None,
-        policy_document=False,
-        route_table_ids=None,
-        subnet_ids=None,
-        network_interface_ids=None,
-        dns_entries=None,
-        client_token=None,
-        security_group_ids=None,
-        tags=None,
-        private_dns_enabled=None,
-    ):
+        vpc_id: str,
+        service_name: str,
+        endpoint_type: Optional[str],
+        policy_document: Optional[str],
+        route_table_ids: List[str],
+        subnet_ids: Optional[List[str]] = None,
+        network_interface_ids: Optional[List[str]] = None,
+        dns_entries: Optional[Dict[str, str]] = None,
+        client_token: Optional[str] = None,
+        security_group_ids: Optional[List[str]] = None,
+        tags: Optional[Dict[str, str]] = None,
+        private_dns_enabled: Optional[str] = None,
+    ) -> VPCEndPoint:
 
         vpc_endpoint_id = random_vpc_ep_id()
 
@@ -570,20 +602,17 @@ class VPCBackend:
 
             network_interface_ids = []
             for subnet_id in subnet_ids or []:
-                self.get_subnet(subnet_id)
-                eni = self.create_network_interface(subnet_id, random_private_ip())
+                self.get_subnet(subnet_id)  # type: ignore[attr-defined]
+                eni = self.create_network_interface(subnet_id, random_private_ip())  # type: ignore[attr-defined]
                 network_interface_ids.append(eni.id)
 
             dns_entries = create_dns_entries(service_name, vpc_endpoint_id)
 
         else:
             # considering gateway if type is not mentioned.
-            for prefix_list in self.managed_prefix_lists.values():
+            for prefix_list in self.managed_prefix_lists.values():  # type: ignore[attr-defined]
                 if prefix_list.prefix_list_name == service_name:
                     destination_prefix_list_id = prefix_list.id
-
-        if dns_entries:
-            dns_entries = [dns_entries]
 
         vpc_end_point = VPCEndPoint(
             self,
@@ -595,19 +624,19 @@ class VPCBackend:
             route_table_ids,
             subnet_ids,
             network_interface_ids,
-            dns_entries,
-            client_token,
-            security_group_ids,
-            tags,
-            private_dns_enabled,
-            destination_prefix_list_id,
+            dns_entries=[dns_entries] if dns_entries else None,
+            client_token=client_token,
+            security_group_ids=security_group_ids,
+            tags=tags,
+            private_dns_enabled=private_dns_enabled,
+            destination_prefix_list_id=destination_prefix_list_id,
         )
 
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
 
         if destination_prefix_list_id:
             for route_table_id in route_table_ids:
-                self.create_route(
+                self.create_route(  # type: ignore[attr-defined]
                     route_table_id,
                     None,
                     gateway_id=vpc_endpoint_id,
@@ -617,28 +646,34 @@ class VPCBackend:
         return vpc_end_point
 
     def modify_vpc_endpoint(
-        self, vpc_id, policy_doc, add_subnets, remove_route_tables, add_route_tables
-    ):
+        self,
+        vpc_id: str,
+        policy_doc: str,
+        add_subnets: Optional[List[str]],
+        remove_route_tables: Optional[List[str]],
+        add_route_tables: Optional[List[str]],
+    ) -> None:
         endpoint = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_id])[0]
         endpoint.modify(policy_doc, add_subnets, add_route_tables, remove_route_tables)
 
-    def delete_vpc_endpoints(self, vpce_ids=None):
+    def delete_vpc_endpoints(self, vpce_ids: Optional[List[str]] = None) -> None:
         for vpce_id in vpce_ids or []:
             vpc_endpoint = self.vpc_end_points.get(vpce_id, None)
             if vpc_endpoint:
-                if vpc_endpoint.endpoint_type.lower() == "interface":
+                if vpc_endpoint.endpoint_type.lower() == "interface":  # type: ignore[union-attr]
                     for eni_id in vpc_endpoint.network_interface_ids:
-                        self.enis.pop(eni_id, None)
+                        self.enis.pop(eni_id, None)  # type: ignore[attr-defined]
                 else:
                     for route_table_id in vpc_endpoint.route_table_ids:
-                        self.delete_route(
+                        self.delete_route(  # type: ignore[attr-defined]
                             route_table_id, vpc_endpoint.destination_prefix_list_id
                         )
                 vpc_endpoint.state = "deleted"
-        return True
 
-    def describe_vpc_endpoints(self, vpc_end_point_ids, filters=None):
-        vpc_end_points = self.vpc_end_points.values()
+    def describe_vpc_endpoints(
+        self, vpc_end_point_ids: Optional[List[str]], filters: Any = None
+    ) -> List[VPCEndPoint]:
+        vpc_end_points = list(self.vpc_end_points.values())
 
         if vpc_end_point_ids:
             vpc_end_points = [
@@ -657,7 +692,9 @@ class VPCBackend:
         return generic_filter(filters, vpc_end_points)
 
     @staticmethod
-    def _collect_default_endpoint_services(account_id, region):
+    def _collect_default_endpoint_services(
+        account_id: str, region: str
+    ) -> List[Dict[str, str]]:
         """Return list of default services using list of backends."""
         if DEFAULT_VPC_ENDPOINT_SERVICES:
             return DEFAULT_VPC_ENDPOINT_SERVICES
@@ -672,14 +709,16 @@ class VPCBackend:
         from moto import backends  # pylint: disable=import-outside-toplevel
 
         for _backends in backends.service_backends():
-            _backends = _backends[account_id]
-            if region in _backends:
-                service = _backends[region].default_vpc_endpoint_service(region, zones)
+            account_backend = _backends[account_id]
+            if region in account_backend:
+                service = account_backend[region].default_vpc_endpoint_service(
+                    region, zones
+                )
                 if service:
                     DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
 
-            if "global" in _backends:
-                service = _backends["global"].default_vpc_endpoint_service(
+            if "global" in account_backend:
+                service = account_backend["global"].default_vpc_endpoint_service(
                     region, zones
                 )
                 if service:
@@ -687,7 +726,7 @@ class VPCBackend:
         return DEFAULT_VPC_ENDPOINT_SERVICES
 
     @staticmethod
-    def _matches_service_by_tags(service, filter_item):
+    def _matches_service_by_tags(service: Dict[str, Any], filter_item: Dict[str, Any]) -> bool:  # type: ignore[misc]
         """Return True if service tags are not filtered by their tags.
 
         Note that the API specifies a key of "Values" for a filter, but
@@ -719,7 +758,7 @@ class VPCBackend:
         return matched
 
     @staticmethod
-    def _filter_endpoint_services(service_names_filters, filters, services):
+    def _filter_endpoint_services(service_names_filters: List[str], filters: List[Dict[str, Any]], services: List[Dict[str, Any]]) -> List[Dict[str, Any]]:  # type: ignore[misc]
         """Return filtered list of VPC endpoint services."""
         if not service_names_filters and not filters:
             return services
@@ -774,11 +813,16 @@ class VPCBackend:
         return filtered_services
 
     def describe_vpc_endpoint_services(
-        self, dry_run, service_names, filters, max_results, next_token, region
-    ):  # pylint: disable=unused-argument,too-many-arguments
+        self,
+        service_names: List[str],
+        filters: Any,
+        max_results: int,
+        next_token: Optional[str],
+        region: str,
+    ) -> Dict[str, Any]:  # pylint: disable=too-many-arguments
         """Return info on services to which you can create a VPC endpoint.
 
-        Currently only the default endpoing services are returned.  When
+        Currently only the default endpoint services are returned.  When
         create_vpc_endpoint_service_configuration() is implemented, a
         list of those private endpoints would be kept and when this API
         is invoked, those private endpoints would be added to the list of
@@ -787,7 +831,7 @@ class VPCBackend:
         The DryRun parameter is ignored.
         """
         default_services = self._collect_default_endpoint_services(
-            self.account_id, region
+            self.account_id, region  # type: ignore[attr-defined]
         )
         for service_name in service_names:
             if service_name not in [x["ServiceName"] for x in default_services]:
@@ -827,7 +871,7 @@ class VPCBackend:
             "nextToken": next_token,
         }
 
-    def get_vpc_end_point(self, vpc_end_point_id):
+    def get_vpc_end_point(self, vpc_end_point_id: str) -> VPCEndPoint:
         vpc_end_point = self.vpc_end_points.get(vpc_end_point_id)
         if not vpc_end_point:
             raise InvalidVpcEndPointIdError(vpc_end_point_id)

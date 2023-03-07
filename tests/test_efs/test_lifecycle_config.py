@@ -9,7 +9,7 @@ def test_describe_filesystem_config__unknown(efs):
         efs.describe_lifecycle_configuration(FileSystemId="unknown")
     err = exc_info.value.response["Error"]
     err["Code"].should.equal("FileSystemNotFound")
-    err["Message"].should.equal("File system unknown does not exist.")
+    err["Message"].should.equal("File system 'unknown' does not exist.")
 
 
 def test_describe_filesystem_config__initial(efs):

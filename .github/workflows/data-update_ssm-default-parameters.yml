@@ -1,0 +1,51 @@
+# Data Update:
+#   SSM default parameters
+#
+# This Github Action:
+#   - executes the script that updates the SSM default parameters that come bundled with Moto
+#   - creates a PR
+#
+name: "DataUpdate_SSMdefaultParameters"
+
+on:
+  schedule:
+    - cron: '00 12 * * 0'
+  workflow_dispatch:
+
+jobs:
+  update:
+    name: Update SSM default parameters
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: us-east-1
+        role-to-assume: arn:aws:iam::486285699788:role/GithubActionsRole
+
+    - name: Pull SSM default Parameters from AWS
+      uses: technote-space/create-pr-action@v2
+      with:
+        EXECUTE_COMMANDS: |
+          pip install boto3
+          pip install moto[all]
+          python scripts/ssm_get_default_params.py
+        COMMIT_MESSAGE: "chore: update SSM default parameters"
+        COMMIT_NAME: 'Moto Admin'
+        COMMIT_EMAIL: 'admin@getmoto.org'
+        PR_BRANCH_NAME: 'chore-update-ssm-params-${{ github.run_number }}'
+        PR_TITLE: "chore: update SSM Instance parameters"

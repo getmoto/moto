@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Iterator
 
 from moto.core import BaseBackend, BackendDict
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -52,7 +53,7 @@ DEFAULT_AMI_TYPE = "AL2_x86_64"
 DEFAULT_CAPACITY_TYPE = "ON_DEMAND"
 DEFAULT_DISK_SIZE = "20"
 DEFAULT_INSTANCE_TYPES = ["t3.medium"]
-DEFAULT_NODEGROUP_HEALTH = {"issues": []}
+DEFAULT_NODEGROUP_HEALTH: Dict[str, Any] = {"issues": []}
 DEFAULT_RELEASE_VERSION = "1.19.8-20210414"
 DEFAULT_REMOTE_ACCESS = {"ec2SshKey": "eksKeypair"}
 DEFAULT_SCALING_CONFIG = {"minSize": 2, "maxSize": 2, "desiredSize": 2}
@@ -91,28 +92,28 @@ NODEGROUP_NOT_FOUND_MSG = "No node group found for name: {nodegroupName}."
 class Cluster:
     def __init__(
         self,
-        name,
-        role_arn,
-        resources_vpc_config,
-        account_id,
-        region_name,
-        aws_partition,
-        version=None,
-        kubernetes_network_config=None,
-        logging=None,
-        client_request_token=None,
-        tags=None,
-        encryption_config=None,
+        name: str,
+        role_arn: str,
+        resources_vpc_config: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+        aws_partition: str,
+        version: Optional[str] = None,
+        kubernetes_network_config: Optional[Dict[str, str]] = None,
+        logging: Optional[Dict[str, Any]] = None,
+        client_request_token: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+        encryption_config: Optional[List[Dict[str, Any]]] = None,
     ):
         if encryption_config is None:
             encryption_config = []
         if tags is None:
             tags = dict()
 
-        self.nodegroups = dict()
+        self.nodegroups: Dict[str, ManagedNodegroup] = dict()
         self.nodegroup_count = 0
 
-        self.fargate_profiles = dict()
+        self.fargate_profiles: Dict[str, FargateProfile] = dict()
         self.fargate_profile_count = 0
 
         self.arn = CLUSTER_ARN_TEMPLATE.format(
@@ -141,7 +142,7 @@ class Cluster:
         self.role_arn = role_arn
         self.tags = tags
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
         yield "name", self.name
         yield "arn", self.arn
         yield "createdAt", self.creation_date
@@ -159,23 +160,23 @@ class Cluster:
         yield "tags", self.tags
         yield "encryptionConfig", self.encryption_config
 
-    def isActive(self):
+    def isActive(self) -> bool:
         return self.status == "ACTIVE"
 
 
 class FargateProfile:
     def __init__(
         self,
-        cluster_name,
-        fargate_profile_name,
-        pod_execution_role_arn,
-        selectors,
-        account_id,
-        region_name,
-        aws_partition,
-        client_request_token=None,
-        subnets=None,
-        tags=None,
+        cluster_name: str,
+        fargate_profile_name: str,
+        pod_execution_role_arn: str,
+        selectors: List[Dict[str, Any]],
+        account_id: str,
+        region_name: str,
+        aws_partition: str,
+        client_request_token: Optional[str] = None,
+        subnets: Optional[List[str]] = None,
+        tags: Optional[Dict[str, str]] = None,
     ):
         if subnets is None:
             subnets = list()
@@ -202,7 +203,7 @@ class FargateProfile:
         self.subnets = subnets
         self.tags = tags
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
         yield "clusterName", self.cluster_name
         yield "createdAt", self.created_at
         yield "fargateProfileArn", self.fargate_profile_arn
@@ -217,33 +218,33 @@ class FargateProfile:
 class ManagedNodegroup:
     def __init__(
         self,
-        cluster_name,
-        node_role,
-        nodegroup_name,
-        subnets,
-        account_id,
-        region_name,
-        aws_partition,
-        scaling_config=None,
-        disk_size=None,
-        instance_types=None,
-        ami_type=None,
-        remote_access=None,
-        labels=None,
-        taints=None,
-        tags=None,
-        client_request_token=None,
-        launch_template=None,
-        capacity_type=None,
-        version=None,
-        release_version=None,
+        cluster_name: str,
+        node_role: str,
+        nodegroup_name: str,
+        subnets: List[str],
+        account_id: str,
+        region_name: str,
+        aws_partition: str,
+        scaling_config: Optional[Dict[str, int]] = None,
+        disk_size: Optional[int] = None,
+        instance_types: Optional[List[str]] = None,
+        ami_type: Optional[str] = None,
+        remote_access: Optional[Dict[str, Any]] = None,
+        labels: Optional[Dict[str, str]] = None,
+        taints: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[Dict[str, str]] = None,
+        client_request_token: Optional[str] = None,
+        launch_template: Optional[Dict[str, str]] = None,
+        capacity_type: Optional[str] = None,
+        version: Optional[str] = None,
+        release_version: Optional[str] = None,
     ):
         if tags is None:
             tags = dict()
         if labels is None:
             labels = dict()
         if taints is None:
-            taints = dict()
+            taints = []
 
         self.uuid = str(random.uuid4())
         self.arn = NODEGROUP_ARN_TEMPLATE.format(
@@ -291,19 +292,19 @@ class ManagedNodegroup:
             ec2 = ec2_backends[account_id][region_name]
 
             template = None
-            if "name" in self.launch_template:
-                name = self.launch_template["name"]
+            if "name" in self.launch_template:  # type: ignore
+                name = self.launch_template["name"]  # type: ignore
                 template = ec2.describe_launch_templates(template_names=[name])[0]
-            elif "id" in self.launch_template:
-                _id = self.launch_template["id"]
+            elif "id" in self.launch_template:  # type: ignore
+                _id = self.launch_template["id"]  # type: ignore
                 template = ec2.describe_launch_templates(template_ids=[_id])[0]
 
-            self.launch_template["id"] = template.id
-            self.launch_template["name"] = template.name
+            self.launch_template["id"] = template.id  # type: ignore
+            self.launch_template["name"] = template.name  # type: ignore
         except:  # noqa: E722 Do not use bare except
             pass
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
         yield "nodegroupName", self.nodegroup_name
         yield "nodegroupArn", self.arn
         yield "clusterName", self.cluster_name
@@ -329,24 +330,24 @@ class ManagedNodegroup:
 
 
 class EKSBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.clusters = dict()
+        self.clusters: Dict[str, Cluster] = dict()
         self.cluster_count = 0
         self.partition = get_partition(region_name)
 
     def create_cluster(
         self,
-        name,
-        role_arn,
-        resources_vpc_config,
-        version=None,
-        kubernetes_network_config=None,
-        logging=None,
-        client_request_token=None,
-        tags=None,
-        encryption_config=None,
-    ):
+        name: str,
+        role_arn: str,
+        resources_vpc_config: Dict[str, Any],
+        version: Optional[str] = None,
+        kubernetes_network_config: Optional[Dict[str, str]] = None,
+        logging: Optional[Dict[str, Any]] = None,
+        client_request_token: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+        encryption_config: Optional[List[Dict[str, Any]]] = None,
+    ) -> Cluster:
         if name in self.clusters:
             # Cluster exists.
             raise ResourceInUseException(
@@ -377,14 +378,14 @@ class EKSBackend(BaseBackend):
 
     def create_fargate_profile(
         self,
-        fargate_profile_name,
-        cluster_name,
-        selectors,
-        pod_execution_role_arn,
-        subnets=None,
-        client_request_token=None,
-        tags=None,
-    ):
+        fargate_profile_name: str,
+        cluster_name: str,
+        selectors: List[Dict[str, Any]],
+        pod_execution_role_arn: str,
+        subnets: Optional[List[str]] = None,
+        client_request_token: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+    ) -> FargateProfile:
         try:
             # Cluster exists.
             cluster = self.clusters[cluster_name]
@@ -431,24 +432,24 @@ class EKSBackend(BaseBackend):
 
     def create_nodegroup(
         self,
-        cluster_name,
-        node_role,
-        nodegroup_name,
-        subnets,
-        scaling_config=None,
-        disk_size=None,
-        instance_types=None,
-        ami_type=None,
-        remote_access=None,
-        labels=None,
-        taints=None,
-        tags=None,
-        client_request_token=None,
-        launch_template=None,
-        capacity_type=None,
-        version=None,
-        release_version=None,
-    ):
+        cluster_name: str,
+        node_role: str,
+        nodegroup_name: str,
+        subnets: List[str],
+        scaling_config: Optional[Dict[str, int]] = None,
+        disk_size: Optional[int] = None,
+        instance_types: Optional[List[str]] = None,
+        ami_type: Optional[str] = None,
+        remote_access: Optional[Dict[str, Any]] = None,
+        labels: Optional[Dict[str, str]] = None,
+        taints: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[Dict[str, str]] = None,
+        client_request_token: Optional[str] = None,
+        launch_template: Optional[Dict[str, str]] = None,
+        capacity_type: Optional[str] = None,
+        version: Optional[str] = None,
+        release_version: Optional[str] = None,
+    ) -> ManagedNodegroup:
         try:
             # Cluster exists.
             cluster = self.clusters[cluster_name]
@@ -506,7 +507,7 @@ class EKSBackend(BaseBackend):
         cluster.nodegroup_count += 1
         return nodegroup
 
-    def describe_cluster(self, name):
+    def describe_cluster(self, name: str) -> Cluster:
         try:
             # Cluster exists.
             return self.clusters[name]
@@ -520,7 +521,9 @@ class EKSBackend(BaseBackend):
                 message=CLUSTER_NOT_FOUND_MSG.format(clusterName=name),
             )
 
-    def describe_fargate_profile(self, cluster_name, fargate_profile_name):
+    def describe_fargate_profile(
+        self, cluster_name: str, fargate_profile_name: str
+    ) -> FargateProfile:
         try:
             # Cluster exists.
             cluster = self.clusters[cluster_name]
@@ -548,7 +551,9 @@ class EKSBackend(BaseBackend):
                 ),
             )
 
-    def describe_nodegroup(self, cluster_name, nodegroup_name):
+    def describe_nodegroup(
+        self, cluster_name: str, nodegroup_name: str
+    ) -> ManagedNodegroup:
         try:
             # Cluster exists.
             cluster = self.clusters[cluster_name]
@@ -574,7 +579,7 @@ class EKSBackend(BaseBackend):
                 message=NODEGROUP_NOT_FOUND_MSG.format(nodegroupName=nodegroup_name),
             )
 
-    def delete_cluster(self, name):
+    def delete_cluster(self, name: str) -> Cluster:
         try:
             # Cluster exists.
             validate_safe_to_delete(self.clusters[name])
@@ -592,7 +597,9 @@ class EKSBackend(BaseBackend):
         self.cluster_count -= 1
         return result
 
-    def delete_fargate_profile(self, cluster_name, fargate_profile_name):
+    def delete_fargate_profile(
+        self, cluster_name: str, fargate_profile_name: str
+    ) -> FargateProfile:
         try:
             # Cluster exists.
             cluster = self.clusters[cluster_name]
@@ -623,7 +630,9 @@ class EKSBackend(BaseBackend):
         cluster.fargate_profile_count -= 1
         return deleted_fargate_profile
 
-    def delete_nodegroup(self, cluster_name, nodegroup_name):
+    def delete_nodegroup(
+        self, cluster_name: str, nodegroup_name: str
+    ) -> ManagedNodegroup:
         try:
             # Cluster exists.
             cluster = self.clusters[cluster_name]
@@ -652,7 +661,7 @@ class EKSBackend(BaseBackend):
         cluster.nodegroup_count -= 1
         return result
 
-    def tag_resource(self, resource_arn, tags):
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
         """
         This function currently will tag an EKS cluster only.  It does not tag a managed node group
         """
@@ -673,9 +682,8 @@ class EKSBackend(BaseBackend):
                 message="An error occurred (NotFoundException) when calling the TagResource operation: Resource was not found",
             )
         cluster.tags.update(tags)
-        return ""
 
-    def untag_resource(self, resource_arn, tag_keys):
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         """
         This function currently will remove tags on an EKS cluster only.  It does not remove tags from a managed node group
         """
@@ -700,9 +708,8 @@ class EKSBackend(BaseBackend):
         for name in tag_keys:
             if name in cluster.tags:
                 del cluster.tags[name]
-        return ""
 
-    def list_tags_for_resource(self, resource_arn):
+    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
         """
         This function currently will list tags on an EKS cluster only.  It does not list tags from a managed node group
         """
@@ -724,19 +731,29 @@ class EKSBackend(BaseBackend):
             )
         return cluster.tags
 
-    def list_clusters(self, max_results, next_token):
-        return paginated_list(self.clusters.keys(), max_results, next_token)
+    def list_clusters(
+        self, max_results: int, next_token: Optional[str]
+    ) -> Tuple[List[Cluster], Optional[Cluster]]:
+        return paginated_list(list(self.clusters.keys()), max_results, next_token)
 
-    def list_fargate_profiles(self, cluster_name, max_results, next_token):
+    def list_fargate_profiles(
+        self, cluster_name: str, max_results: int, next_token: Optional[str]
+    ) -> Tuple[List[FargateProfile], Optional[FargateProfile]]:
         cluster = self.clusters[cluster_name]
-        return paginated_list(cluster.fargate_profiles.keys(), max_results, next_token)
+        return paginated_list(
+            list(cluster.fargate_profiles.keys()), max_results, next_token
+        )
 
-    def list_nodegroups(self, cluster_name, max_results, next_token):
+    def list_nodegroups(
+        self, cluster_name: str, max_results: int, next_token: Optional[str]
+    ) -> Tuple[List[ManagedNodegroup], Optional[ManagedNodegroup]]:
         cluster = self.clusters[cluster_name]
-        return paginated_list(cluster.nodegroups.keys(), max_results, next_token)
+        return paginated_list(list(cluster.nodegroups.keys()), max_results, next_token)
 
 
-def paginated_list(full_list, max_results, next_token):
+def paginated_list(
+    full_list: List[Any], max_results: int, next_token: Optional[str]
+) -> Tuple[List[Any], Optional[Any]]:
     """
     Returns a tuple containing a slice of the full list
     starting at next_token and ending with at most the
@@ -754,7 +771,7 @@ def paginated_list(full_list, max_results, next_token):
     return sorted_list[start:end], new_next
 
 
-def validate_safe_to_delete(cluster):
+def validate_safe_to_delete(cluster: Cluster) -> None:
     # A cluster which has nodegroups attached can not be deleted.
     if cluster.nodegroup_count:
         nodegroup_names = ",".join(list(cluster.nodegroups.keys()))
@@ -766,7 +783,9 @@ def validate_safe_to_delete(cluster):
         )
 
 
-def validate_launch_template_combination(disk_size, remote_access):
+def validate_launch_template_combination(
+    disk_size: Optional[int], remote_access: Optional[Dict[str, Any]]
+) -> None:
     if not (disk_size or remote_access):
         return
 
@@ -777,8 +796,8 @@ def validate_launch_template_combination(disk_size, remote_access):
     )
 
 
-def _validate_fargate_profile_selectors(selectors):
-    def raise_exception(message):
+def _validate_fargate_profile_selectors(selectors: List[Dict[str, Any]]) -> None:
+    def raise_exception(message: str) -> None:
         raise InvalidParameterException(
             clusterName=None,
             nodegroupName=None,

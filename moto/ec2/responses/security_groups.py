@@ -1,19 +1,20 @@
+from typing import Any, Dict, List, Tuple
 from ._base_response import EC2BaseResponse
 
 
-def try_parse_int(value, default=None):
+def try_parse_int(value: Any, default: Any = None) -> Any:
     try:
         return int(value)
     except (TypeError, ValueError):
         return default
 
 
-def parse_sg_attributes_from_dict(sg_attributes):
+def parse_sg_attributes_from_dict(sg_attributes: Dict[str, Any]) -> Tuple[Any, ...]:
     ip_protocol = sg_attributes.get("IpProtocol", [None])[0]
     from_port = sg_attributes.get("FromPort", [None])[0]
     to_port = sg_attributes.get("ToPort", [None])[0]
 
-    ip_ranges = []
+    ip_ranges: List[Dict[str, Any]] = []
     ip_ranges_tree = sg_attributes.get("IpRanges") or {}
     for ip_range_idx in sorted(ip_ranges_tree.keys()):
         ip_range = {"CidrIp": ip_ranges_tree[ip_range_idx]["CidrIp"][0]}
@@ -22,7 +23,7 @@ def parse_sg_attributes_from_dict(sg_attributes):
 
         ip_ranges.append(ip_range)
 
-    ip_ranges_tree = sg_attributes.get("Ipv6Ranges") or {}
+    ip_ranges_tree: Dict[str, Any] = sg_attributes.get("Ipv6Ranges") or {}  # type: ignore[no-redef]
     for ip_range_idx in sorted(ip_ranges_tree.keys()):
         ip_range = {"CidrIpv6": ip_ranges_tree[ip_range_idx]["CidrIpv6"][0]}
         if ip_ranges_tree[ip_range_idx].get("Description"):
@@ -31,15 +32,15 @@ def parse_sg_attributes_from_dict(sg_attributes):
         ip_ranges.append(ip_range)
 
     if "CidrIp" in sg_attributes:
-        cidr_ip = sg_attributes.get("CidrIp")[0]
+        cidr_ip = sg_attributes.get("CidrIp")[0]  # type: ignore
         ip_ranges.append({"CidrIp": cidr_ip})
 
     if "CidrIpv6" in sg_attributes:
-        cidr_ipv6 = sg_attributes.get("CidrIpv6")[0]
+        cidr_ipv6 = sg_attributes.get("CidrIpv6")[0]  # type: ignore
         ip_ranges.append({"CidrIpv6": cidr_ipv6})
 
-    source_groups = []
-    groups_tree = sg_attributes.get("Groups") or {}
+    source_groups: List[Dict[str, Any]] = []
+    groups_tree: Dict[str, Any] = sg_attributes.get("Groups") or {}
     for group_idx in sorted(groups_tree.keys()):
         group_dict = groups_tree[group_idx]
         source_group = {}
@@ -53,8 +54,8 @@ def parse_sg_attributes_from_dict(sg_attributes):
             source_group["OwnerId"] = group_dict["OwnerId"][0]
         source_groups.append(source_group)
 
-    prefix_list_ids = []
-    pl_tree = sg_attributes.get("PrefixListIds") or {}
+    prefix_list_ids: List[Dict[str, Any]] = []
+    pl_tree: Dict[str, Any] = sg_attributes.get("PrefixListIds") or {}
     for pl_index in sorted(pl_tree):
         pl_dict = pl_tree.get(pl_index, {})
         pl_item = {}
@@ -68,10 +69,10 @@ def parse_sg_attributes_from_dict(sg_attributes):
 
 
 class SecurityGroups(EC2BaseResponse):
-    def _process_rules_from_querystring(self):
+    def _process_rules_from_querystring(self) -> Any:
         group_name_or_id = self._get_param("GroupName") or self._get_param("GroupId")
 
-        querytree = {}
+        querytree: Dict[str, Any] = {}
         for key, value in self.querystring.items():
             key_splitted = key.split(".")
             key_splitted = [try_parse_int(e, e) for e in key_splitted]
@@ -127,46 +128,42 @@ class SecurityGroups(EC2BaseResponse):
                 prefix_list_ids,
             )
 
-    def authorize_security_group_egress(self):
-        if self.is_not_dryrun("GrantSecurityGroupEgress"):
-            for args in self._process_rules_from_querystring():
-                rule, group = self.ec2_backend.authorize_security_group_egress(*args)
-            self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
-            template = self.response_template(AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE)
-            return template.render(rule=rule, group=group)
+    def authorize_security_group_egress(self) -> str:
+        self.error_on_dryrun()
 
-    def authorize_security_group_ingress(self):
-        if self.is_not_dryrun("GrantSecurityGroupIngress"):
-            for args in self._process_rules_from_querystring():
-                rule, group = self.ec2_backend.authorize_security_group_ingress(*args)
-            self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
-            template = self.response_template(AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE)
-            return template.render(rule=rule, group=group)
+        for args in self._process_rules_from_querystring():
+            rule, group = self.ec2_backend.authorize_security_group_egress(*args)
+        self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
+        template = self.response_template(AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE)
+        return template.render(rule=rule, group=group)
 
-    def create_security_group(self):
+    def authorize_security_group_ingress(self) -> str:
+        self.error_on_dryrun()
+
+        for args in self._process_rules_from_querystring():
+            rule, group = self.ec2_backend.authorize_security_group_ingress(*args)
+        self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
+        template = self.response_template(AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE)
+        return template.render(rule=rule, group=group)
+
+    def create_security_group(self) -> str:
         name = self._get_param("GroupName")
         description = self._get_param("GroupDescription")
         vpc_id = self._get_param("VpcId")
-        tags = self._get_multi_param("TagSpecification")
-        tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
-        tags = (tags or {}).get("Tag", [])
-        tags = {t["Key"]: t["Value"] for t in tags}
+        tags = self._parse_tag_specification().get("security-group", {})
 
-        if self.is_not_dryrun("CreateSecurityGroup"):
-            group = self.ec2_backend.create_security_group(
-                name, description, vpc_id=vpc_id, tags=tags
-            )
-            if group:
-                self.ec2_backend.sg_old_ingress_ruls[
-                    group.id
-                ] = group.ingress_rules.copy()
-                self.ec2_backend.sg_old_egress_ruls[
-                    group.id
-                ] = group.egress_rules.copy()
-            template = self.response_template(CREATE_SECURITY_GROUP_RESPONSE)
-            return template.render(group=group)
+        self.error_on_dryrun()
 
-    def delete_security_group(self):
+        group = self.ec2_backend.create_security_group(
+            name, description, vpc_id=vpc_id, tags=tags
+        )
+        if group:
+            self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
+            self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
+        template = self.response_template(CREATE_SECURITY_GROUP_RESPONSE)
+        return template.render(group=group)
+
+    def delete_security_group(self) -> str:
         # TODO this should raise an error if there are instances in the group.
         # See
         # http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DeleteSecurityGroup.html
@@ -174,15 +171,16 @@ class SecurityGroups(EC2BaseResponse):
         name = self._get_param("GroupName")
         sg_id = self._get_param("GroupId")
 
-        if self.is_not_dryrun("DeleteSecurityGroup"):
-            if name:
-                self.ec2_backend.delete_security_group(name)
-            elif sg_id:
-                self.ec2_backend.delete_security_group(group_id=sg_id)
+        self.error_on_dryrun()
 
-            return DELETE_GROUP_RESPONSE
+        if name:
+            self.ec2_backend.delete_security_group(name)
+        elif sg_id:
+            self.ec2_backend.delete_security_group(group_id=sg_id)
 
-    def describe_security_groups(self):
+        return DELETE_GROUP_RESPONSE
+
+    def describe_security_groups(self) -> str:
         groupnames = self._get_multi_param("GroupName")
         group_ids = self._get_multi_param("GroupId")
         filters = self._filters_from_querystring()
@@ -194,29 +192,31 @@ class SecurityGroups(EC2BaseResponse):
         template = self.response_template(DESCRIBE_SECURITY_GROUPS_RESPONSE)
         return template.render(groups=groups)
 
-    def describe_security_group_rules(self):
+    def describe_security_group_rules(self) -> str:
         group_id = self._get_param("GroupId")
         filters = self._get_param("Filter")
-        if self.is_not_dryrun("DescribeSecurityGroups"):
-            rules = self.ec2_backend.describe_security_group_rules(group_id, filters)
-            template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
-            return template.render(rules=rules)
 
-    def revoke_security_group_egress(self):
-        if self.is_not_dryrun("RevokeSecurityGroupEgress"):
-            for args in self._process_rules_from_querystring():
-                success = self.ec2_backend.revoke_security_group_egress(*args)
-                if not success:
-                    return "Could not find a matching egress rule", dict(status=404)
-            return REVOKE_SECURITY_GROUP_EGRESS_RESPONSE
+        self.error_on_dryrun()
 
-    def revoke_security_group_ingress(self):
-        if self.is_not_dryrun("RevokeSecurityGroupIngress"):
-            for args in self._process_rules_from_querystring():
-                self.ec2_backend.revoke_security_group_ingress(*args)
-            return REVOKE_SECURITY_GROUP_INGRESS_RESPONSE
+        rules = self.ec2_backend.describe_security_group_rules(group_id, filters)
+        template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
+        return template.render(rules=rules)
 
-    def update_security_group_rule_descriptions_ingress(self):
+    def revoke_security_group_egress(self) -> str:
+        self.error_on_dryrun()
+
+        for args in self._process_rules_from_querystring():
+            self.ec2_backend.revoke_security_group_egress(*args)
+        return REVOKE_SECURITY_GROUP_EGRESS_RESPONSE
+
+    def revoke_security_group_ingress(self) -> str:
+        self.error_on_dryrun()
+
+        for args in self._process_rules_from_querystring():
+            self.ec2_backend.revoke_security_group_ingress(*args)
+        return REVOKE_SECURITY_GROUP_INGRESS_RESPONSE
+
+    def update_security_group_rule_descriptions_ingress(self) -> str:
         for args in self._process_rules_from_querystring():
             group = self.ec2_backend.update_security_group_rule_descriptions_ingress(
                 *args
@@ -224,7 +224,7 @@ class SecurityGroups(EC2BaseResponse):
         self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
         return UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_INGRESS
 
-    def update_security_group_rule_descriptions_egress(self):
+    def update_security_group_rule_descriptions_egress(self) -> str:
         for args in self._process_rules_from_querystring():
             group = self.ec2_backend.update_security_group_rule_descriptions_egress(
                 *args

@@ -1,4 +1,6 @@
+import copy
 from collections import namedtuple
+from typing import Any, Dict
 
 from botocore.utils import merge_dicts
 
@@ -288,3 +290,58 @@ def valid_preferred_maintenance_window(maintenance_window, backup_window):
             return "Maintenance window must be less than 24 hours."
     except Exception:
         return f"Invalid day:hour:minute value: {maintenance_window}"
+
+
+ORDERABLE_DB_INSTANCE_ENCODING = {
+    "Engine": "E",
+    "EngineVersion": "EV",
+    "DBInstanceClass": "DBIC",
+    "LicenseModel": "L",
+    "AvailabilityZones": "AZ",
+    "MultiAZCapable": "MC",
+    "ReadReplicaCapable": "RC",
+    "Vpc": "V",
+    "SupportsStorageEncryption": "SE",
+    "StorageType": "ST",
+    "SupportsIops": "SI",
+    "SupportsEnhancedMonitoring": "SM",
+    "SupportsIAMDatabaseAuthentication": "SIAM",
+    "SupportsPerformanceInsights": "SPI",
+    "AvailableProcessorFeatures": "APF",
+    "SupportedEngineModes": "SEM",
+    "SupportsKerberosAuthentication": "SK",
+    "OutpostCapable": "O",
+    "SupportedActivityStreamModes": "SSM",
+    "SupportsGlobalDatabases": "SGD",
+    "SupportsClusters": "SC",
+    "SupportedNetworkTypes": "SN",
+    "SupportsStorageThroughput": "SST",
+}
+ORDERABLE_DB_INSTANCE_DECODING = {
+    v: k for (k, v) in ORDERABLE_DB_INSTANCE_ENCODING.items()
+}
+
+
+def encode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
+    encoded = copy.deepcopy(db)
+    if "AvailabilityZones" in encoded:
+        encoded["AvailabilityZones"] = [
+            az["Name"] for az in encoded["AvailabilityZones"]
+        ]
+    return {
+        ORDERABLE_DB_INSTANCE_ENCODING.get(key, key): value
+        for key, value in encoded.items()
+    }
+
+
+def decode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
+    decoded = copy.deepcopy(db)
+    decoded_az = ORDERABLE_DB_INSTANCE_ENCODING.get(
+        "AvailabilityZones", "AvailabilityZones"
+    )
+    if decoded_az in decoded:
+        decoded["AvailabilityZones"] = [{"Name": az} for az in decoded[decoded_az]]
+    return {
+        ORDERABLE_DB_INSTANCE_DECODING.get(key, key): value
+        for key, value in decoded.items()
+    }

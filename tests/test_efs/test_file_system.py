@@ -181,6 +181,8 @@ def test_describe_file_systems_using_unknown_identifier(efs):
         efs.describe_file_systems(FileSystemId="unknown")
     err = exc.value.response["Error"]
     err["Code"].should.equal("FileSystemNotFound")
+    # Verified against AWS
+    err["Message"].should.equal("File system 'unknown' does not exist.")
 
 
 def test_describe_file_systems_minimal_case(efs):

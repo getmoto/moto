@@ -5,7 +5,7 @@ import re
 import hashlib
 from urllib.parse import urlparse, unquote, quote
 from requests.structures import CaseInsensitiveDict
-from typing import Union, Tuple
+from typing import List, Union, Tuple
 import sys
 from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
@@ -24,6 +24,18 @@ user_settable_fields = {
     "content-disposition",
     "x-robots-tag",
 }
+ARCHIVE_STORAGE_CLASSES = [
+    "GLACIER",
+    "DEEP_ARCHIVE",
+    "GLACIER_IR",
+]
+STORAGE_CLASS = [
+    "STANDARD",
+    "REDUCED_REDUNDANCY",
+    "STANDARD_IA",
+    "ONEZONE_IA",
+    "INTELLIGENT_TIERING",
+] + ARCHIVE_STORAGE_CLASSES
 
 
 def bucket_name_from_url(url):
@@ -148,6 +160,12 @@ class _VersionedKeyStore(dict):
         elif not isinstance(list_, list):
             list_ = [list_]
 
+        for existing_version in self.getlist(key, []):
+            # Dispose of any FakeKeys that we will not keep
+            # We should only have FakeKeys here - but we're checking hasattr to be sure
+            if existing_version not in list_ and hasattr(existing_version, "dispose"):
+                existing_version.dispose()
+
         super().__setitem__(key, list_)
 
     def _iteritems(self):
@@ -194,3 +212,14 @@ def _hash(fn, args) -> bytes:
     except TypeError:
         # The usedforsecurity-parameter is only available as of Python 3.9
         return fn(*args).hexdigest().encode("utf-8")
+
+
+def cors_matches_origin(origin_header: str, allowed_origins: List[str]) -> bool:
+    if "*" in allowed_origins:
+        return True
+    if origin_header in allowed_origins:
+        return True
+    for allowed in allowed_origins:
+        if re.match(allowed.replace(".", "\\.").replace("*", ".*"), origin_header):
+            return True
+    return False

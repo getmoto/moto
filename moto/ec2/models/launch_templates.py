@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from typing import Any, Dict, List, Optional
 
 from moto.core import CloudFormationModel
 from .core import TaggedEC2Resource
@@ -16,8 +17,14 @@ from ..exceptions import (
 )
 
 
-class LaunchTemplateVersion(object):
-    def __init__(self, template, number, data, description):
+class LaunchTemplateVersion:
+    def __init__(
+        self,
+        template: "LaunchTemplate",
+        number: int,
+        data: Dict[str, Any],
+        description: str,
+    ):
         self.template = template
         self.number = number
         self.data = data
@@ -25,85 +32,101 @@ class LaunchTemplateVersion(object):
         self.create_time = utc_date_and_time()
 
     @property
-    def image_id(self):
+    def image_id(self) -> str:
         return self.data.get("ImageId", "")
 
     @property
-    def instance_type(self):
+    def instance_type(self) -> str:
         return self.data.get("InstanceType", "")
 
     @property
-    def security_groups(self):
+    def security_groups(self) -> List[str]:
         return self.data.get("SecurityGroups", [])
 
     @property
-    def user_data(self):
+    def user_data(self) -> str:
         return self.data.get("UserData", "")
 
 
 class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, backend, name, template_data, version_description, tag_spec):
+    def __init__(
+        self,
+        backend: Any,
+        name: str,
+        template_data: Dict[str, Any],
+        version_description: str,
+        tag_spec: Dict[str, Dict[str, str]],
+    ):
         self.ec2_backend = backend
         self.name = name
         self.id = random_launch_template_id()
         self.create_time = utc_date_and_time()
-        tag_map = tag_spec.get("launch-template", {})
+        tag_map: Dict[str, str] = tag_spec.get("launch-template", {})
         self.add_tags(tag_map)
         self.tags = self.get_tags()
 
-        self.versions = []
+        self.versions: List[LaunchTemplateVersion] = []
         self.create_version(template_data, version_description)
         self.default_version_number = 1
 
-    def create_version(self, data, description):
+    def create_version(
+        self, data: Dict[str, Any], description: str
+    ) -> LaunchTemplateVersion:
         num = len(self.versions) + 1
         version = LaunchTemplateVersion(self, num, data, description)
         self.versions.append(version)
         return version
 
-    def is_default(self, version):
-        return self.default_version == version.number
+    def is_default(self, version: LaunchTemplateVersion) -> bool:
+        return self.default_version == version.number  # type: ignore
 
-    def get_version(self, num):
+    def get_version(self, num: Any) -> LaunchTemplateVersion:
         if str(num).lower() == "$latest":
             return self.versions[-1]
         if str(num).lower() == "$default":
             return self.default_version()
         return self.versions[int(num) - 1]
 
-    def default_version(self):
+    def default_version(self) -> LaunchTemplateVersion:
         return self.versions[self.default_version_number - 1]
 
-    def latest_version(self):
+    def latest_version(self) -> LaunchTemplateVersion:
         return self.versions[-1]
 
     @property
-    def latest_version_number(self):
+    def latest_version_number(self) -> int:
         return self.latest_version().number
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.id
 
-    def get_filter_value(self, filter_name):
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         if filter_name == "launch-template-name":
             return self.name
         else:
             return super().get_filter_value(filter_name, "DescribeLaunchTemplates")
 
     @staticmethod
-    def cloudformation_name_type():
+    def cloudformation_name_type() -> str:
         return "LaunchTemplateName"
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-launchtemplate.html
         return "AWS::EC2::LaunchTemplate"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any
+    ) -> "LaunchTemplate":
 
         from ..models import ec2_backends
 
@@ -124,14 +147,14 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         return launch_template
 
     @classmethod
-    def update_from_cloudformation_json(
+    def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
-    ):
+        original_resource: Any,
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "LaunchTemplate":
 
         from ..models import ec2_backends
 
@@ -150,9 +173,13 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         return launch_template
 
     @classmethod
-    def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
-    ):
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
 
         from ..models import ec2_backends
 
@@ -166,12 +193,18 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
 
 
 class LaunchTemplateBackend:
-    def __init__(self):
-        self.launch_template_name_to_ids = {}
-        self.launch_templates = OrderedDict()
-        self.launch_template_insert_order = []
+    def __init__(self) -> None:
+        self.launch_template_name_to_ids: Dict[str, str] = {}
+        self.launch_templates: Dict[str, LaunchTemplate] = OrderedDict()
+        self.launch_template_insert_order: List[str] = []
 
-    def create_launch_template(self, name, description, template_data, tag_spec):
+    def create_launch_template(
+        self,
+        name: str,
+        description: str,
+        template_data: Dict[str, Any],
+        tag_spec: Dict[str, Any],
+    ) -> LaunchTemplate:
         if name in self.launch_template_name_to_ids:
             raise InvalidLaunchTemplateNameAlreadyExistsError()
         template = LaunchTemplate(self, name, template_data, description, tag_spec)
@@ -188,7 +221,7 @@ class LaunchTemplateBackend:
             raise InvalidLaunchTemplateNameNotFoundWithNameError(name)
         return self.get_launch_template(self.launch_template_name_to_ids[name])
 
-    def delete_launch_template(self, name, tid):
+    def delete_launch_template(self, name: str, tid: Optional[str]) -> LaunchTemplate:
         if name:
             tid = self.launch_template_name_to_ids.get(name)
         if tid is None:
@@ -200,8 +233,11 @@ class LaunchTemplateBackend:
         return template
 
     def describe_launch_templates(
-        self, template_names=None, template_ids=None, filters=None
-    ):
+        self,
+        template_names: Optional[List[str]] = None,
+        template_ids: Optional[List[str]] = None,
+        filters: Any = None,
+    ) -> List[LaunchTemplate]:
         if template_names and not template_ids:
             template_ids = []
             for name in template_names:

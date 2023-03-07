@@ -1,12 +1,14 @@
+import json
 import time
 from collections import OrderedDict
 from datetime import datetime
 import re
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
+from moto.core.utils import unix_time
 from moto.moto_api._internal.managed_state_model import ManagedState
 from .exceptions import (
     JsonRESTError,
@@ -62,6 +64,12 @@ class GlueBackend(BaseBackend):
             "unique_attribute": "name",
         },
         "list_jobs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "get_jobs": {
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
@@ -129,7 +137,7 @@ class GlueBackend(BaseBackend):
         database.tables[table_name] = table
         return table
 
-    def get_table(self, database_name, table_name):
+    def get_table(self, database_name: str, table_name: str) -> "FakeTable":
         database = self.get_database(database_name)
         try:
             return database.tables[table_name]
@@ -164,6 +172,44 @@ class GlueBackend(BaseBackend):
             raise TableNotFoundException(table_name)
         return {}
 
+    def update_table(self, database_name, table_name: str, table_input) -> None:
+        table = self.get_table(database_name, table_name)
+        table.update(table_input)
+
+    def get_table_version(
+        self, database_name: str, table_name: str, ver_id: str
+    ) -> str:
+        table = self.get_table(database_name, table_name)
+
+        return json.dumps(
+            {
+                "TableVersion": {
+                    "Table": table.as_dict(version=ver_id),
+                    "VersionId": ver_id,
+                }
+            }
+        )
+
+    def get_table_versions(
+        self, database_name: str, table_name: str
+    ) -> Dict[str, Dict[str, Any]]:
+        table = self.get_table(database_name, table_name)
+        return {version: table.as_dict(version) for version in table.versions.keys()}
+
+    def delete_table_version(
+        self, database_name: str, table_name: str, version_id: str
+    ) -> None:
+        table = self.get_table(database_name, table_name)
+        table.delete_version(version_id)
+
+    def create_partition(self, database_name: str, table_name: str, part_input) -> None:
+        table = self.get_table(database_name, table_name)
+        table.create_partition(part_input)
+
+    def get_partition(self, database_name: str, table_name: str, values):
+        table = self.get_table(database_name, table_name)
+        return table.get_partition(values)
+
     def get_partitions(self, database_name, table_name, expression):
         """
         See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
@@ -172,13 +218,24 @@ class GlueBackend(BaseBackend):
         Expression caveats:
 
         - Column names must consist of UPPERCASE, lowercase, dots and underscores only.
-        - Nanosecond expressions on timestamp columns are rounded to microseconds.
         - Literal dates and timestamps must be valid, i.e. no support for February 31st.
         - LIKE expressions are converted to Python regexes, escaping special characters.
           Only % and _ wildcards are supported, and SQL escaping using [] does not work.
         """
         table = self.get_table(database_name, table_name)
         return table.get_partitions(expression)
+
+    def update_partition(
+        self, database_name, table_name, part_input, part_to_update
+    ) -> None:
+        table = self.get_table(database_name, table_name)
+        table.update_partition(part_to_update, part_input)
+
+    def delete_partition(
+        self, database_name: str, table_name: str, part_to_delete
+    ) -> None:
+        table = self.get_table(database_name, table_name)
+        table.delete_partition(part_to_delete)
 
     def create_crawler(
         self,
@@ -297,6 +354,10 @@ class GlueBackend(BaseBackend):
             return self.jobs[name]
         except KeyError:
             raise JobNotFoundException(name)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_jobs(self):
+        return [job for _, job in self.jobs.items()]
 
     def start_job_run(self, name):
         job = self.get_job(name)
@@ -759,7 +820,7 @@ class FakeDatabase(BaseModel):
             "Description": self.input.get("Description"),
             "LocationUri": self.input.get("LocationUri"),
             "Parameters": self.input.get("Parameters"),
-            "CreateTime": self.created_time.isoformat(),
+            "CreateTime": unix_time(self.created_time),
             "CreateTableDefaultPermissions": self.input.get(
                 "CreateTableDefaultPermissions"
             ),
@@ -769,37 +830,48 @@ class FakeDatabase(BaseModel):
 
 
 class FakeTable(BaseModel):
-    def __init__(self, database_name, table_name, table_input):
+    def __init__(self, database_name: str, table_name: str, table_input):
         self.database_name = database_name
         self.name = table_name
         self.partitions = OrderedDict()
         self.created_time = datetime.utcnow()
-        self.versions = []
-        self.update(table_input)
+        self.updated_time = None
+        self._current_version = 1
+        self.versions: Dict[str, Dict[str, Any]] = {
+            str(self._current_version): table_input
+        }
 
     def update(self, table_input):
-        self.versions.append(table_input)
+        self.versions[str(self._current_version + 1)] = table_input
+        self._current_version += 1
+        self.updated_time = datetime.utcnow()
 
     def get_version(self, ver):
         try:
-            if not isinstance(ver, int):
-                # "1" goes to [0]
-                ver = int(ver) - 1
+            int(ver)
         except ValueError as e:
             raise JsonRESTError("InvalidInputException", str(e))
 
         try:
             return self.versions[ver]
-        except IndexError:
+        except KeyError:
             raise VersionNotFoundException()
 
-    def as_dict(self, version=-1):
+    def delete_version(self, version_id):
+        self.versions.pop(version_id)
+
+    def as_dict(self, version=None):
+        version = version or self._current_version
         obj = {
             "DatabaseName": self.database_name,
             "Name": self.name,
-            "CreateTime": self.created_time.isoformat(),
+            "CreateTime": unix_time(self.created_time),
+            **self.get_version(str(version)),
+            # Add VersionId after we get the version-details, just to make sure that it's a valid version (int)
+            "VersionId": str(version),
         }
-        obj.update(self.get_version(version))
+        if self.updated_time is not None:
+            obj["UpdateTime"] = unix_time(self.updated_time)
         return obj
 
     def create_partition(self, partiton_input):

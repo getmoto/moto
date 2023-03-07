@@ -4,7 +4,7 @@ from xml.sax.saxutils import escape
 
 
 class VPNConnections(EC2BaseResponse):
-    def create_vpn_connection(self):
+    def create_vpn_connection(self) -> str:
         vpn_conn_type = self._get_param("Type")
         cgw_id = self._get_param("CustomerGatewayId")
         vgw_id = self._get_param("VpnGatewayId")
@@ -26,7 +26,7 @@ class VPNConnections(EC2BaseResponse):
         template = self.response_template(CREATE_VPN_CONNECTION_RESPONSE)
         return template.render(vpn_connection=vpn_connection)
 
-    def delete_vpn_connection(self):
+    def delete_vpn_connection(self) -> str:
         vpn_connection_id = self._get_param("VpnConnectionId")
         vpn_connection = self.ec2_backend.delete_vpn_connection(vpn_connection_id)
         if vpn_connection.transit_gateway_id:
@@ -39,10 +39,10 @@ class VPNConnections(EC2BaseResponse):
         template = self.response_template(DELETE_VPN_CONNECTION_RESPONSE)
         return template.render(vpn_connection=vpn_connection)
 
-    def describe_vpn_connections(self):
+    def describe_vpn_connections(self) -> str:
         vpn_connection_ids = self._get_multi_param("VpnConnectionId")
         filters = self._filters_from_querystring()
-        vpn_connections = self.ec2_backend.get_all_vpn_connections(
+        vpn_connections = self.ec2_backend.describe_vpn_connections(
             vpn_connection_ids=vpn_connection_ids, filters=filters
         )
         template = self.response_template(DESCRIBE_VPN_CONNECTION_RESPONSE)

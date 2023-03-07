@@ -7,6 +7,7 @@ from moto.s3.utils import (
     clean_key_name,
     undo_clean_key_name,
     compute_checksum,
+    cors_matches_origin,
 )
 from unittest.mock import patch
 
@@ -141,3 +142,19 @@ def test_checksum_crc32():
 
 def test_checksum_crc32c():
     compute_checksum(b"somedata", "CRC32C").should.equal(b"MTM5MzM0Mzk1Mg==")
+
+
+def test_cors_utils():
+    "Fancy string matching"
+    assert cors_matches_origin("a", ["a"])
+    assert cors_matches_origin("b", ["a", "b"])
+    assert not cors_matches_origin("c", [])
+    assert not cors_matches_origin("c", ["a", "b"])
+
+    assert cors_matches_origin("http://www.google.com", ["http://*.google.com"])
+    assert cors_matches_origin("http://www.google.com", ["http://www.*.com"])
+    assert cors_matches_origin("http://www.google.com", ["http://*"])
+    assert cors_matches_origin("http://www.google.com", ["*"])
+
+    assert not cors_matches_origin("http://www.google.com", ["http://www.*.org"])
+    assert not cors_matches_origin("http://www.google.com", ["https://*"])

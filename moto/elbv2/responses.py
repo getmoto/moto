@@ -1,7 +1,7 @@
 from moto.core.exceptions import RESTError
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
-from .models import elbv2_backends
+from .models import elbv2_backends, ELBv2Backend
 from .exceptions import TargetGroupNotFoundError
 from .exceptions import ListenerOrBalancerMissingError
 
@@ -135,15 +135,15 @@ SSL_POLICIES = [
 
 
 class ELBV2Response(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="elbv2")
 
     @property
-    def elbv2_backend(self):
+    def elbv2_backend(self) -> ELBv2Backend:
         return elbv2_backends[self.current_account][self.region]
 
     @amzn_request_id
-    def create_load_balancer(self):
+    def create_load_balancer(self) -> str:
         params = self._get_params()
         load_balancer_name = params.get("Name")
         subnet_ids = self._get_multi_param("Subnets.member")
@@ -154,11 +154,11 @@ class ELBV2Response(BaseResponse):
         tags = params.get("Tags")
 
         load_balancer = self.elbv2_backend.create_load_balancer(
-            name=load_balancer_name,
+            name=load_balancer_name,  # type: ignore
             security_groups=security_groups,
             subnet_ids=subnet_ids,
             subnet_mappings=subnet_mappings,
-            scheme=scheme,
+            scheme=scheme,  # type: ignore
             loadbalancer_type=loadbalancer_type,
             tags=tags,
         )
@@ -166,7 +166,7 @@ class ELBV2Response(BaseResponse):
         return template.render(load_balancer=load_balancer)
 
     @amzn_request_id
-    def create_rule(self):
+    def create_rule(self) -> str:
         params = self._get_params()
         rules = self.elbv2_backend.create_rule(
             listener_arn=params["ListenerArn"],
@@ -180,7 +180,7 @@ class ELBV2Response(BaseResponse):
         return template.render(rules=rules)
 
     @amzn_request_id
-    def create_target_group(self):
+    def create_target_group(self) -> str:
         params = self._get_params()
         name = params.get("Name")
         vpc_id = params.get("VpcId")
@@ -200,7 +200,7 @@ class ELBV2Response(BaseResponse):
         tags = params.get("Tags")
 
         target_group = self.elbv2_backend.create_target_group(
-            name,
+            name,  # type: ignore
             vpc_id=vpc_id,
             protocol=protocol,
             protocol_version=protocol_version,
@@ -222,7 +222,7 @@ class ELBV2Response(BaseResponse):
         return template.render(target_group=target_group)
 
     @amzn_request_id
-    def create_listener(self):
+    def create_listener(self) -> str:
         params = self._get_params()
         load_balancer_arn = self._get_param("LoadBalancerArn")
         protocol = self._get_param("Protocol")
@@ -243,7 +243,7 @@ class ELBV2Response(BaseResponse):
             port=port,
             ssl_policy=ssl_policy,
             certificate=certificate,
-            default_actions=default_actions,
+            actions=default_actions,
             alpn_policy=alpn_policy,
             tags=tags,
         )
@@ -252,7 +252,7 @@ class ELBV2Response(BaseResponse):
         return template.render(listener=listener)
 
     @amzn_request_id
-    def describe_load_balancers(self):
+    def describe_load_balancers(self) -> str:
         arns = self._get_multi_param("LoadBalancerArns.member")
         names = self._get_multi_param("Names.member")
         all_load_balancers = list(
@@ -276,7 +276,7 @@ class ELBV2Response(BaseResponse):
         return template.render(load_balancers=load_balancers_resp, marker=next_marker)
 
     @amzn_request_id
-    def describe_rules(self):
+    def describe_rules(self) -> str:
         listener_arn = self._get_param("ListenerArn")
         rule_arns = (
             self._get_multi_param("RuleArns.member")
@@ -305,7 +305,7 @@ class ELBV2Response(BaseResponse):
         return template.render(rules=rules_resp, marker=next_marker)
 
     @amzn_request_id
-    def describe_target_groups(self):
+    def describe_target_groups(self) -> str:
         load_balancer_arn = self._get_param("LoadBalancerArn")
         target_group_arns = self._get_multi_param("TargetGroupArns.member")
         names = self._get_multi_param("Names.member")
@@ -317,7 +317,7 @@ class ELBV2Response(BaseResponse):
         return template.render(target_groups=target_groups)
 
     @amzn_request_id
-    def describe_target_group_attributes(self):
+    def describe_target_group_attributes(self) -> str:
         target_group_arn = self._get_param("TargetGroupArn")
         target_group = self.elbv2_backend.target_groups.get(target_group_arn)
         if not target_group:
@@ -326,7 +326,7 @@ class ELBV2Response(BaseResponse):
         return template.render(attributes=target_group.attributes)
 
     @amzn_request_id
-    def describe_listeners(self):
+    def describe_listeners(self) -> str:
         load_balancer_arn = self._get_param("LoadBalancerArn")
         listener_arns = self._get_multi_param("ListenerArns.member")
         if not load_balancer_arn and not listener_arns:
@@ -339,35 +339,35 @@ class ELBV2Response(BaseResponse):
         return template.render(listeners=listeners)
 
     @amzn_request_id
-    def delete_load_balancer(self):
+    def delete_load_balancer(self) -> str:
         arn = self._get_param("LoadBalancerArn")
         self.elbv2_backend.delete_load_balancer(arn)
         template = self.response_template(DELETE_LOAD_BALANCER_TEMPLATE)
         return template.render()
 
     @amzn_request_id
-    def delete_rule(self):
+    def delete_rule(self) -> str:
         arn = self._get_param("RuleArn")
         self.elbv2_backend.delete_rule(arn)
         template = self.response_template(DELETE_RULE_TEMPLATE)
         return template.render()
 
     @amzn_request_id
-    def delete_target_group(self):
+    def delete_target_group(self) -> str:
         arn = self._get_param("TargetGroupArn")
         self.elbv2_backend.delete_target_group(arn)
         template = self.response_template(DELETE_TARGET_GROUP_TEMPLATE)
         return template.render()
 
     @amzn_request_id
-    def delete_listener(self):
+    def delete_listener(self) -> str:
         arn = self._get_param("ListenerArn")
         self.elbv2_backend.delete_listener(arn)
         template = self.response_template(DELETE_LISTENER_TEMPLATE)
         return template.render()
 
     @amzn_request_id
-    def modify_rule(self):
+    def modify_rule(self) -> str:
         rule_arn = self._get_param("RuleArn")
         params = self._get_params()
         conditions = params.get("Conditions", [])
@@ -379,17 +379,17 @@ class ELBV2Response(BaseResponse):
         return template.render(rules=rules)
 
     @amzn_request_id
-    def modify_target_group_attributes(self):
+    def modify_target_group_attributes(self) -> str:
         target_group_arn = self._get_param("TargetGroupArn")
-        attributes = self._get_list_prefix("Attributes.member")
-        attributes = {attr["key"]: attr["value"] for attr in attributes}
+        attrs = self._get_list_prefix("Attributes.member")
+        attributes = {attr["key"]: attr["value"] for attr in attrs}
         self.elbv2_backend.modify_target_group_attributes(target_group_arn, attributes)
 
         template = self.response_template(MODIFY_TARGET_GROUP_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=attributes)
 
     @amzn_request_id
-    def register_targets(self):
+    def register_targets(self) -> str:
         target_group_arn = self._get_param("TargetGroupArn")
         targets = self._get_list_prefix("Targets.member")
         self.elbv2_backend.register_targets(target_group_arn, targets)
@@ -398,7 +398,7 @@ class ELBV2Response(BaseResponse):
         return template.render()
 
     @amzn_request_id
-    def deregister_targets(self):
+    def deregister_targets(self) -> str:
         target_group_arn = self._get_param("TargetGroupArn")
         targets = self._get_list_prefix("Targets.member")
         self.elbv2_backend.deregister_targets(target_group_arn, targets)
@@ -407,7 +407,7 @@ class ELBV2Response(BaseResponse):
         return template.render()
 
     @amzn_request_id
-    def describe_target_health(self):
+    def describe_target_health(self) -> str:
         target_group_arn = self._get_param("TargetGroupArn")
         targets = self._get_list_prefix("Targets.member")
         target_health_descriptions = self.elbv2_backend.describe_target_health(
@@ -418,7 +418,7 @@ class ELBV2Response(BaseResponse):
         return template.render(target_health_descriptions=target_health_descriptions)
 
     @amzn_request_id
-    def set_rule_priorities(self):
+    def set_rule_priorities(self) -> str:
         rule_priorities = self._get_list_prefix("RulePriorities.member")
         for rule_priority in rule_priorities:
             rule_priority["priority"] = int(rule_priority["priority"])
@@ -427,18 +427,17 @@ class ELBV2Response(BaseResponse):
         return template.render(rules=rules)
 
     @amzn_request_id
-    def add_tags(self):
+    def add_tags(self) -> str:
         resource_arns = self._get_multi_param("ResourceArns.member")
         tags = self._get_params().get("Tags")
-        tags = self._get_params().get("Tags")
 
-        self.elbv2_backend.add_tags(resource_arns, tags)
+        self.elbv2_backend.add_tags(resource_arns, tags)  # type: ignore
 
         template = self.response_template(ADD_TAGS_TEMPLATE)
         return template.render()
 
     @amzn_request_id
-    def remove_tags(self):
+    def remove_tags(self) -> str:
         resource_arns = self._get_multi_param("ResourceArns.member")
         tag_keys = self._get_multi_param("TagKeys.member")
 
@@ -448,7 +447,7 @@ class ELBV2Response(BaseResponse):
         return template.render()
 
     @amzn_request_id
-    def describe_tags(self):
+    def describe_tags(self) -> str:
         resource_arns = self._get_multi_param("ResourceArns.member")
         resource_tags = self.elbv2_backend.describe_tags(resource_arns)
 
@@ -456,7 +455,7 @@ class ELBV2Response(BaseResponse):
         return template.render(resource_tags=resource_tags)
 
     @amzn_request_id
-    def describe_account_limits(self):
+    def describe_account_limits(self) -> str:
         # Supports paging but not worth implementing yet
         # marker = self._get_param('Marker')
         # page_size = self._get_int_param('PageSize')
@@ -476,7 +475,7 @@ class ELBV2Response(BaseResponse):
         return template.render(limits=limits)
 
     @amzn_request_id
-    def describe_ssl_policies(self):
+    def describe_ssl_policies(self) -> str:
         names = self._get_multi_param("Names.member.")
         # Supports paging but not worth implementing yet
         # marker = self._get_param('Marker')
@@ -484,13 +483,13 @@ class ELBV2Response(BaseResponse):
 
         policies = SSL_POLICIES
         if names:
-            policies = filter(lambda policy: policy["name"] in names, policies)
+            policies = filter(lambda policy: policy["name"] in names, policies)  # type: ignore
 
         template = self.response_template(DESCRIBE_SSL_POLICIES_TEMPLATE)
         return template.render(policies=policies)
 
     @amzn_request_id
-    def set_ip_address_type(self):
+    def set_ip_address_type(self) -> str:
         arn = self._get_param("LoadBalancerArn")
         ip_type = self._get_param("IpAddressType")
 
@@ -500,7 +499,7 @@ class ELBV2Response(BaseResponse):
         return template.render(ip_type=ip_type)
 
     @amzn_request_id
-    def set_security_groups(self):
+    def set_security_groups(self) -> str:
         arn = self._get_param("LoadBalancerArn")
         sec_groups = self._get_multi_param("SecurityGroups.member.")
 
@@ -510,7 +509,7 @@ class ELBV2Response(BaseResponse):
         return template.render(sec_groups=sec_groups)
 
     @amzn_request_id
-    def set_subnets(self):
+    def set_subnets(self) -> str:
         arn = self._get_param("LoadBalancerArn")
         subnets = self._get_multi_param("Subnets.member.")
         subnet_mappings = self._get_params().get("SubnetMappings", [])
@@ -521,7 +520,7 @@ class ELBV2Response(BaseResponse):
         return template.render(subnets=subnet_zone_list)
 
     @amzn_request_id
-    def modify_load_balancer_attributes(self):
+    def modify_load_balancer_attributes(self) -> str:
         arn = self._get_param("LoadBalancerArn")
         attrs = self._get_map_prefix(
             "Attributes.member", key_end="Key", value_end="Value"
@@ -533,7 +532,7 @@ class ELBV2Response(BaseResponse):
         return template.render(attrs=all_attrs)
 
     @amzn_request_id
-    def describe_load_balancer_attributes(self):
+    def describe_load_balancer_attributes(self) -> str:
         arn = self._get_param("LoadBalancerArn")
         attrs = self.elbv2_backend.describe_load_balancer_attributes(arn)
 
@@ -541,7 +540,7 @@ class ELBV2Response(BaseResponse):
         return template.render(attrs=attrs)
 
     @amzn_request_id
-    def modify_target_group(self):
+    def modify_target_group(self) -> str:
         arn = self._get_param("TargetGroupArn")
 
         health_check_proto = self._get_param(
@@ -573,7 +572,7 @@ class ELBV2Response(BaseResponse):
         return template.render(target_group=target_group)
 
     @amzn_request_id
-    def modify_listener(self):
+    def modify_listener(self) -> str:
         arn = self._get_param("ListenerArn")
         port = self._get_param("Port")
         protocol = self._get_param("Protocol")
@@ -595,16 +594,18 @@ class ELBV2Response(BaseResponse):
         return template.render(listener=listener)
 
     @amzn_request_id
-    def add_listener_certificates(self):
+    def add_listener_certificates(self) -> str:
         arn = self._get_param("ListenerArn")
         certificates = self._get_list_prefix("Certificates.member")
-        certificates = self.elbv2_backend.add_listener_certificates(arn, certificates)
+        certificate_arns = self.elbv2_backend.add_listener_certificates(
+            arn, certificates
+        )
 
         template = self.response_template(ADD_LISTENER_CERTIFICATES_TEMPLATE)
-        return template.render(certificates=certificates)
+        return template.render(certificates=certificate_arns)
 
     @amzn_request_id
-    def describe_listener_certificates(self):
+    def describe_listener_certificates(self) -> str:
         arn = self._get_param("ListenerArn")
         certificates = self.elbv2_backend.describe_listener_certificates(arn)
 
@@ -612,15 +613,13 @@ class ELBV2Response(BaseResponse):
         return template.render(certificates=certificates)
 
     @amzn_request_id
-    def remove_listener_certificates(self):
+    def remove_listener_certificates(self) -> str:
         arn = self._get_param("ListenerArn")
         certificates = self._get_list_prefix("Certificates.member")
-        certificates = self.elbv2_backend.remove_listener_certificates(
-            arn, certificates
-        )
+        self.elbv2_backend.remove_listener_certificates(arn, certificates)
 
         template = self.response_template(REMOVE_LISTENER_CERTIFICATES_TEMPLATE)
-        return template.render(certificates=certificates)
+        return template.render()
 
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
@@ -1580,7 +1579,7 @@ SET_SECURITY_GROUPS_TEMPLATE = """<SetSecurityGroupsResponse xmlns="http://elast
 SET_SUBNETS_TEMPLATE = """<SetSubnetsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <SetSubnetsResult>
     <AvailabilityZones>
-      {% for zone_id, subnet_id in subnets %}
+      {% for zone_id, subnet_id in subnets.items() %}
       <member>
         <SubnetId>{{ subnet_id }}</SubnetId>
         <ZoneName>{{ zone_id }}</ZoneName>

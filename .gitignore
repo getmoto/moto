@@ -30,3 +30,4 @@ htmlcov/
 docs/_build
 moto_recording
 .hypothesis
+other_langs/tests_java/target

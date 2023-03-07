@@ -356,6 +356,10 @@
   "Location": "eu-north-1"
  },
  {
+  "InstanceType": "hpc6id.32xlarge",
+  "Location": "eu-north-1"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "eu-north-1"
  },
@@ -797,6 +801,42 @@
  },
  {
   "InstanceType": "r6g.xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r6gd.12xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r6gd.16xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r6gd.2xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r6gd.4xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r6gd.8xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r6gd.large",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r6gd.medium",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r6gd.metal",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r6gd.xlarge",
   "Location": "eu-north-1"
  },
  {

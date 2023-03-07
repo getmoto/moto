@@ -251,7 +251,7 @@ class Table(CloudFormationModel):
             if elem["KeyType"] == "HASH":
                 self.hash_key_attr = elem["AttributeName"]
                 self.hash_key_type = attr_type
-            else:
+            elif elem["KeyType"] == "RANGE":
                 self.range_key_attr = elem["AttributeName"]
                 self.range_key_type = attr_type
         self.table_key_attrs = [
@@ -465,7 +465,7 @@ class Table(CloudFormationModel):
 
     @property
     def range_key_names(self) -> List[str]:
-        keys = [self.range_key_attr]
+        keys = [self.range_key_attr] if self.has_range_key else []
         for index in self.global_indexes:
             for key in index.schema:
                 if key["KeyType"] == "RANGE":
@@ -842,6 +842,12 @@ class Table(CloudFormationModel):
 
             if passes_all_conditions:
                 results.append(item)
+
+        results = copy.deepcopy(results)
+        if index_name:
+            index = self.get_index(index_name)
+            for result in results:
+                index.project(result)
 
         results, last_evaluated_key = self._trim_results(
             results, limit, exclusive_start_key, scanned_index=index_name

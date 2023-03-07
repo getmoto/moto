@@ -384,7 +384,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
 
     @property
     def subnets(self):
-        return self.ec2_backend.get_all_subnets(filters={"subnet-id": self.subnet_ids})
+        return self.ec2_backend.describe_subnets(filters={"subnet-id": self.subnet_ids})
 
     @property
     def vpc_id(self):

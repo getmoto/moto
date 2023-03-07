@@ -15,6 +15,7 @@ from moto.dynamodb.exceptions import (
     ProvidedKeyDoesNotExist,
     EmptyKeyAttributeException,
     UpdateHashRangeKeyException,
+    MockValidationException,
 )
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.models.table import Table
@@ -239,6 +240,10 @@ class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):  # type: ignore[mi
             assert isinstance(result, (DDBTypedValue, NoneExistingPath))
             return result
         elif function_name == "list_append":
+            if isinstance(first_arg, NoneExistingPath):
+                raise MockValidationException(
+                    "The provided expression refers to an attribute that does not exist in the item"
+                )
             first_arg = deepcopy(
                 self.get_list_from_ddb_typed_value(first_arg, function_name)
             )

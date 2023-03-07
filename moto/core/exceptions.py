@@ -71,9 +71,13 @@ class RESTError(HTTPException):
         self, *args: Any, **kwargs: Any  # pylint: disable=unused-argument
     ) -> List[Tuple[str, str]]:
         return [
-            ("X-Amzn-ErrorType", self.error_type or "UnknownError"),
+            ("X-Amzn-ErrorType", self.relative_error_type or "UnknownError"),
             ("Content-Type", self.content_type),
         ]
+
+    @property
+    def relative_error_type(self) -> str:
+        return self.error_type
 
     def get_body(
         self, *args: Any, **kwargs: Any  # pylint: disable=unused-argument
@@ -94,6 +98,12 @@ class JsonRESTError(RESTError):
             {"__type": self.error_type, "message": self.message}
         )
         self.content_type = "application/json"
+
+    @property
+    def relative_error_type(self) -> str:
+        # https://smithy.io/2.0/aws/protocols/aws-json-1_1-protocol.html
+        # If a # character is present, then take only the contents after the first # character in the value
+        return self.error_type.split("#")[-1]
 
     def get_body(self, *args: Any, **kwargs: Any) -> str:
         return self.description

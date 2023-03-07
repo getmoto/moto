@@ -3,7 +3,7 @@ from ._base_response import EC2BaseResponse
 
 
 class FlowLogs(EC2BaseResponse):
-    def create_flow_logs(self):
+    def create_flow_logs(self) -> str:
         resource_type = self._get_param("ResourceType")
         resource_ids = self._get_multi_param("ResourceId")
         traffic_type = self._get_param("TrafficType")
@@ -15,39 +15,43 @@ class FlowLogs(EC2BaseResponse):
         max_aggregation_interval = self._get_param("MaxAggregationInterval")
         validate_resource_ids(resource_ids)
 
-        tags = self._parse_tag_specification()
-        tags = tags.get("vpc-flow-log", {})
-        if self.is_not_dryrun("CreateFlowLogs"):
-            flow_logs, errors = self.ec2_backend.create_flow_logs(
-                resource_type=resource_type,
-                resource_ids=resource_ids,
-                traffic_type=traffic_type,
-                deliver_logs_permission_arn=deliver_logs_permission_arn,
-                log_destination_type=log_destination_type,
-                log_destination=log_destination,
-                log_group_name=log_group_name,
-                log_format=log_format,
-                max_aggregation_interval=max_aggregation_interval,
-            )
-            for fl in flow_logs:
-                fl.add_tags(tags)
-            template = self.response_template(CREATE_FLOW_LOGS_RESPONSE)
-            return template.render(flow_logs=flow_logs, errors=errors)
+        tags = self._parse_tag_specification().get("vpc-flow-log", {})
 
-    def describe_flow_logs(self):
+        self.error_on_dryrun()
+
+        flow_logs, errors = self.ec2_backend.create_flow_logs(
+            resource_type=resource_type,
+            resource_ids=resource_ids,
+            traffic_type=traffic_type,
+            deliver_logs_permission_arn=deliver_logs_permission_arn,
+            log_destination_type=log_destination_type,
+            log_destination=log_destination,
+            log_group_name=log_group_name,
+            log_format=log_format,
+            max_aggregation_interval=max_aggregation_interval,
+        )
+        for fl in flow_logs:
+            fl.add_tags(tags)
+        template = self.response_template(CREATE_FLOW_LOGS_RESPONSE)
+        return template.render(flow_logs=flow_logs, errors=errors)
+
+    def describe_flow_logs(self) -> str:
         flow_log_ids = self._get_multi_param("FlowLogId")
         filters = self._filters_from_querystring()
         flow_logs = self.ec2_backend.describe_flow_logs(flow_log_ids, filters)
-        if self.is_not_dryrun("DescribeFlowLogs"):
-            template = self.response_template(DESCRIBE_FLOW_LOGS_RESPONSE)
-            return template.render(flow_logs=flow_logs)
 
-    def delete_flow_logs(self):
+        self.error_on_dryrun()
+
+        template = self.response_template(DESCRIBE_FLOW_LOGS_RESPONSE)
+        return template.render(flow_logs=flow_logs)
+
+    def delete_flow_logs(self) -> str:
         flow_log_ids = self._get_multi_param("FlowLogId")
+
+        self.error_on_dryrun()
+
         self.ec2_backend.delete_flow_logs(flow_log_ids)
-        if self.is_not_dryrun("DeleteFlowLogs"):
-            template = self.response_template(DELETE_FLOW_LOGS_RESPONSE)
-            return template.render()
+        return self.response_template(DELETE_FLOW_LOGS_RESPONSE).render()
 
 
 CREATE_FLOW_LOGS_RESPONSE = """

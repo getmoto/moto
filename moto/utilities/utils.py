@@ -3,14 +3,15 @@ import hashlib
 import pkgutil
 
 from collections.abc import MutableMapping
-from typing import Any, Dict, List, TypeVar, Tuple
+from typing import Any, Dict, List, TypeVar, Tuple, Optional
 
 
-def str2bool(v):
+def str2bool(v: Any) -> Optional[bool]:
     if v in ("yes", True, "true", "True", "TRUE", "t", "1"):
         return True
     elif v in ("no", False, "false", "False", "FALSE", "f", "0"):
         return False
+    return None
 
 
 def load_resource(package: str, resource: str) -> Dict[str, Any]:
@@ -41,7 +42,7 @@ RESOURCE_TYPE = TypeVar("RESOURCE_TYPE")
 def filter_resources(
     resources: List[RESOURCE_TYPE],
     filters: Any,
-    attr_pairs: Tuple[Tuple[str, str], ...],
+    attr_pairs: Tuple[Tuple[str, ...], ...],
 ) -> List[RESOURCE_TYPE]:
     """
     Used to filter resources. Usually in get and describe apis.

@@ -1,8 +1,10 @@
+import boto3
 import copy
 import gc
 import warnings
 from functools import wraps
-from moto import settings
+from moto import settings, mock_s3
+from moto.dynamodb.models import DynamoDBBackend
 from moto.s3 import models as s3model
 from moto.s3.responses import S3ResponseInstance
 from unittest import SkipTest, TestCase
@@ -14,9 +16,11 @@ def verify_zero_warnings(f):
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always", ResourceWarning)  # add filter
             resp = f(*args, **kwargs)
-            # Get the TestClass reference, and reset the S3Backend that we've created as part of that class
+            # Get the TestClass reference, and reset any S3Backends that we've created as part of that class
             (class_ref,) = args
-            class_ref.__dict__["s3"].reset()
+            for obj in class_ref.__dict__:
+                if isinstance(obj, s3model.S3Backend):
+                    obj.reset()
             # Now collect garbage, which will throw any warnings if there are unclosed FileHandles
             gc.collect()
         warning_types = [type(warn.message) for warn in warning_list]
@@ -39,9 +43,6 @@ class TestS3FileHandleClosures(TestCase):
         self.s3.create_bucket("my-bucket", "us-west-1")
         self.s3.create_bucket("versioned-bucket", "us-west-1")
         self.s3.put_object("my-bucket", "my-key", "x" * 10_000_000)
-
-    def tearDown(self) -> None:
-        self.s3.reset()
 
     @verify_zero_warnings
     def test_upload_large_file(self):
@@ -167,6 +168,7 @@ class TestS3FileHandleClosures(TestCase):
     @verify_zero_warnings
     def test_overwrite_versioned_upload(self):
         self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
+        self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
 
     @verify_zero_warnings
     def test_multiple_versions_upload(self):
@@ -187,6 +189,94 @@ class TestS3FileHandleClosures(TestCase):
         self.s3.delete_object(
             bucket_name="my-bucket", key_name="my-key", version_id=key._version_id
         )
+
+    @verify_zero_warnings
+    def test_reset_other_backend(self):
+        db = DynamoDBBackend("us-west-1", "1234")
+        # This used to empty the entire list of `model_instances`, which can contain FakeKey-references
+        # Verify that we can reset an unrelated backend, without throwing away FakeKey-references that still need to be disposed
+        db.reset()
+
+
+class TestS3FileHandleClosuresUsingMocks(TestCase):
+    def setUp(self) -> None:
+        self.s3 = boto3.client("s3", "us-east-1")
+
+    @verify_zero_warnings
+    @mock_s3
+    def test_use_decorator(self):
+        self.s3.create_bucket(Bucket="foo")
+        self.s3.put_object(Bucket="foo", Key="bar", Body="stuff")
+
+    @verify_zero_warnings
+    @mock_s3
+    def test_use_decorator_and_context_mngt(self):
+        with mock_s3():
+            self.s3.create_bucket(Bucket="foo")
+            self.s3.put_object(Bucket="foo", Key="bar", Body="stuff")
+
+    @verify_zero_warnings
+    def test_use_multiple_context_managers(self):
+        with mock_s3():
+            self.s3.create_bucket(Bucket="foo")
+            self.s3.put_object(Bucket="foo", Key="bar", Body="stuff")
+
+        with mock_s3():
+            pass
+
+    @verify_zero_warnings
+    def test_create_multipart(self):
+        with mock_s3():
+            self.s3.create_bucket(Bucket="foo")
+            self.s3.put_object(Bucket="foo", Key="k1", Body="stuff")
+
+            mp = self.s3.create_multipart_upload(Bucket="foo", Key="key2")
+            self.s3.upload_part(
+                Body=b"hello",
+                PartNumber=1,
+                Bucket="foo",
+                Key="key2",
+                UploadId=mp["UploadId"],
+            )
+
+        with mock_s3():
+            pass
+
+    @verify_zero_warnings
+    def test_overwrite_file(self):
+        with mock_s3():
+            self.s3.create_bucket(Bucket="foo")
+            self.s3.put_object(Bucket="foo", Key="k1", Body="stuff")
+            self.s3.put_object(Bucket="foo", Key="k1", Body="b" * 10_000_000)
+
+        with mock_s3():
+            pass
+
+    @verify_zero_warnings
+    def test_delete_object_with_version(self):
+        with mock_s3():
+            self.s3.create_bucket(Bucket="foo")
+            self.s3.put_bucket_versioning(
+                Bucket="foo",
+                VersioningConfiguration={"Status": "Enabled", "MFADelete": "Disabled"},
+            )
+            version = self.s3.put_object(Bucket="foo", Key="b", Body="s")["VersionId"]
+            self.s3.delete_object(Bucket="foo", Key="b", VersionId=version)
+
+    @verify_zero_warnings
+    def test_update_versioned_object__while_looping(self):
+        for _ in (1, 2):
+            with mock_s3():
+                self.s3.create_bucket(Bucket="foo")
+                self.s3.put_bucket_versioning(
+                    Bucket="foo",
+                    VersioningConfiguration={
+                        "Status": "Enabled",
+                        "MFADelete": "Disabled",
+                    },
+                )
+                self.s3.put_object(Bucket="foo", Key="bar", Body="stuff")
+                self.s3.put_object(Bucket="foo", Key="bar", Body="stuff2")
 
 
 def test_verify_key_can_be_copied_after_disposing():

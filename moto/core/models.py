@@ -23,6 +23,7 @@ from .custom_responses_mock import (
     not_implemented_callback,
     reset_responses_mock,
 )
+from .model_instances import reset_model_data
 
 DEFAULT_ACCOUNT_ID = "123456789012"
 CALLABLE_RETURN = TypeVar("CALLABLE_RETURN")
@@ -63,10 +64,12 @@ class BaseMockAWS:
         if self.__class__.nested_count == 0:
             self.reset()  # type: ignore[attr-defined]
 
-    def __call__(self, func: Callable[..., Any], reset: bool = True) -> Any:
+    def __call__(
+        self, func: Callable[..., Any], reset: bool = True, remove_data: bool = True
+    ) -> Any:
         if inspect.isclass(func):
             return self.decorate_class(func)
-        return self.decorate_callable(func, reset)
+        return self.decorate_callable(func, reset, remove_data)
 
     def __enter__(self) -> "BaseMockAWS":
         self.start()
@@ -88,7 +91,7 @@ class BaseMockAWS:
 
         self.enable_patching(reset)  # type: ignore[attr-defined]
 
-    def stop(self) -> None:
+    def stop(self, remove_data: bool = True) -> None:
         self.__class__.nested_count -= 1
 
         if self.__class__.nested_count < 0:
@@ -104,17 +107,23 @@ class BaseMockAWS:
                     pass
                 self.unmock_env_variables()
                 self.__class__.mocks_active = False
+                if remove_data:
+                    # Reset the data across all backends
+                    for backend in self.backends.values():
+                        backend.reset()
+                    # Remove references to all model instances that were created
+                    reset_model_data()
             self.disable_patching()  # type: ignore[attr-defined]
 
     def decorate_callable(
-        self, func: Callable[..., CALLABLE_RETURN], reset: bool
+        self, func: Callable[..., CALLABLE_RETURN], reset: bool, remove_data: bool
     ) -> Callable[..., CALLABLE_RETURN]:
         def wrapper(*args: Any, **kwargs: Any) -> CALLABLE_RETURN:
             self.start(reset=reset)
             try:
                 result = func(*args, **kwargs)
             finally:
-                self.stop()
+                self.stop(remove_data=remove_data)
             return result
 
         functools.update_wrapper(wrapper, func)
@@ -171,15 +180,18 @@ class BaseMockAWS:
                 # Special case for UnitTests-class
                 is_test_method = attr.startswith(unittest.TestLoader.testMethodPrefix)
                 should_reset = False
+                should_remove_data = False
                 if attr in ["setUp", "setup_method"]:
                     should_reset = True
                 elif not has_setup_method and is_test_method:
                     should_reset = True
+                    should_remove_data = True
                 else:
                     # Method is unrelated to the test setup
                     # Method is a test, but was already reset while executing the setUp-method
                     pass
-                setattr(klass, attr, self(attr_value, reset=should_reset))
+                kwargs = {"reset": should_reset, "remove_data": should_remove_data}
+                setattr(klass, attr, self(attr_value, **kwargs))
             except TypeError:
                 # Sometimes we can't set this for built-in types
                 continue

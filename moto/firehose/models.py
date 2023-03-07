@@ -18,6 +18,7 @@ Incomplete list of unfinished items:
 from base64 import b64decode, b64encode
 from datetime import datetime, timezone
 from gzip import GzipFile
+from typing import Any, Dict, List, Optional, Tuple
 import io
 import json
 from time import time
@@ -50,8 +51,8 @@ DESTINATION_TYPES_TO_NAMES = {
 }
 
 
-def find_destination_config_in_args(api_args):
-    """Return (config_arg, config_name) tuple for destination config.
+def find_destination_config_in_args(api_args: Dict[str, Any]) -> Tuple[str, Any]:
+    """Return (config_name, config) tuple for destination config.
 
     Determines which destination config(s) have been specified.  The
     alternative is to use a bunch of 'if' statements to check each
@@ -83,7 +84,9 @@ def find_destination_config_in_args(api_args):
     return configs[0]
 
 
-def create_s3_destination_config(extended_s3_destination_config):
+def create_s3_destination_config(
+    extended_s3_destination_config: Dict[str, Any]
+) -> Dict[str, Any]:
     """Return dict with selected fields copied from ExtendedS3 config.
 
     When an ExtendedS3 config is chosen, AWS tacks on a S3 config as
@@ -115,13 +118,13 @@ class DeliveryStream(
 
     def __init__(
         self,
-        account_id,
-        region,
-        delivery_stream_name,
-        delivery_stream_type,
-        kinesis_stream_source_configuration,
-        destination_name,
-        destination_config,
+        account_id: str,
+        region: str,
+        delivery_stream_name: str,
+        delivery_stream_type: str,
+        kinesis_stream_source_configuration: Dict[str, Any],
+        destination_name: str,
+        destination_config: Dict[str, Any],
     ):  # pylint: disable=too-many-arguments
         self.delivery_stream_status = "CREATING"
         self.delivery_stream_name = delivery_stream_name
@@ -130,7 +133,7 @@ class DeliveryStream(
         )
 
         self.source = kinesis_stream_source_configuration
-        self.destinations = [
+        self.destinations: List[Dict[str, Any]] = [
             {
                 "destination_id": "destinationId-000000000001",
                 destination_name: destination_config,
@@ -162,33 +165,35 @@ class DeliveryStream(
 class FirehoseBackend(BaseBackend):
     """Implementation of Firehose APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.delivery_streams = {}
+        self.delivery_streams: Dict[str, DeliveryStream] = {}
         self.tagger = TaggingService()
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region, zones):
+    def default_vpc_endpoint_service(
+        service_region: str, zones: List[str]
+    ) -> List[Dict[str, str]]:
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "firehose", special_service_name="kinesis-firehose"
         )
 
-    def create_delivery_stream(
+    def create_delivery_stream(  # pylint: disable=unused-argument
         self,
-        region,
-        delivery_stream_name,
-        delivery_stream_type,
-        kinesis_stream_source_configuration,
-        delivery_stream_encryption_configuration_input,
-        s3_destination_configuration,
-        extended_s3_destination_configuration,
-        redshift_destination_configuration,
-        elasticsearch_destination_configuration,
-        splunk_destination_configuration,
-        http_endpoint_destination_configuration,
-        tags,
-    ):  # pylint: disable=too-many-arguments,too-many-locals,unused-argument
+        region: str,
+        delivery_stream_name: str,
+        delivery_stream_type: str,
+        kinesis_stream_source_configuration: Dict[str, Any],
+        delivery_stream_encryption_configuration_input: Dict[str, Any],
+        s3_destination_configuration: Dict[str, Any],
+        extended_s3_destination_configuration: Dict[str, Any],
+        redshift_destination_configuration: Dict[str, Any],
+        elasticsearch_destination_configuration: Dict[str, Any],
+        splunk_destination_configuration: Dict[str, Any],
+        http_endpoint_destination_configuration: Dict[str, Any],
+        tags: List[Dict[str, str]],
+    ) -> str:
         """Create a Kinesis Data Firehose delivery stream."""
         (destination_name, destination_config) = find_destination_config_in_args(
             locals()
@@ -255,9 +260,7 @@ class FirehoseBackend(BaseBackend):
         self.delivery_streams[delivery_stream_name] = delivery_stream
         return self.delivery_streams[delivery_stream_name].delivery_stream_arn
 
-    def delete_delivery_stream(
-        self, delivery_stream_name, allow_force_delete=False
-    ):  # pylint: disable=unused-argument
+    def delete_delivery_stream(self, delivery_stream_name: str) -> None:
         """Delete a delivery stream and its data.
 
         AllowForceDelete option is ignored as we only superficially
@@ -275,9 +278,7 @@ class FirehoseBackend(BaseBackend):
         delivery_stream.delivery_stream_status = "DELETING"
         self.delivery_streams.pop(delivery_stream_name)
 
-    def describe_delivery_stream(
-        self, delivery_stream_name, limit, exclusive_start_destination_id
-    ):  # pylint: disable=unused-argument
+    def describe_delivery_stream(self, delivery_stream_name: str) -> Dict[str, Any]:
         """Return description of specified delivery stream and its status.
 
         Note:  the 'limit' and 'exclusive_start_destination_id' parameters
@@ -290,7 +291,9 @@ class FirehoseBackend(BaseBackend):
                 f"not found."
             )
 
-        result = {"DeliveryStreamDescription": {"HasMoreDestinations": False}}
+        result: Dict[str, Any] = {
+            "DeliveryStreamDescription": {"HasMoreDestinations": False}
+        }
         for attribute, attribute_value in vars(delivery_stream).items():
             if not attribute_value:
                 continue
@@ -326,8 +329,11 @@ class FirehoseBackend(BaseBackend):
         return result
 
     def list_delivery_streams(
-        self, limit, delivery_stream_type, exclusive_start_delivery_stream_name
-    ):
+        self,
+        limit: Optional[int],
+        delivery_stream_type: str,
+        exclusive_start_delivery_stream_name: str,
+    ) -> Dict[str, Any]:
         """Return list of delivery streams in alphabetic order of names."""
         result = {"DeliveryStreamNames": [], "HasMoreDeliveryStreams": False}
         if not self.delivery_streams:
@@ -335,7 +341,7 @@ class FirehoseBackend(BaseBackend):
 
         # If delivery_stream_type is specified, filter out any stream that's
         # not of that type.
-        stream_list = self.delivery_streams.keys()
+        stream_list = list(self.delivery_streams.keys())
         if delivery_stream_type:
             stream_list = [
                 x
@@ -363,8 +369,11 @@ class FirehoseBackend(BaseBackend):
         return result
 
     def list_tags_for_delivery_stream(
-        self, delivery_stream_name, exclusive_start_tag_key, limit
-    ):
+        self,
+        delivery_stream_name: str,
+        exclusive_start_tag_key: str,
+        limit: Optional[int],
+    ) -> Dict[str, Any]:
         """Return list of tags."""
         result = {"Tags": [], "HasMoreTags": False}
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
@@ -391,7 +400,9 @@ class FirehoseBackend(BaseBackend):
             result["HasMoreTags"] = True
         return result
 
-    def put_record(self, delivery_stream_name, record):
+    def put_record(
+        self, delivery_stream_name: str, record: Dict[str, bytes]
+    ) -> Dict[str, Any]:
         """Write a single data record into a Kinesis Data firehose stream."""
         result = self.put_record_batch(delivery_stream_name, [record])
         return {
@@ -400,7 +411,7 @@ class FirehoseBackend(BaseBackend):
         }
 
     @staticmethod
-    def put_http_records(http_destination, records):
+    def put_http_records(http_destination: Dict[str, Any], records: List[Dict[str, bytes]]) -> List[Dict[str, str]]:  # type: ignore[misc]
         """Put records to a HTTP destination."""
         # Mostly copied from localstack
         url = http_destination["EndpointConfiguration"]["Url"]
@@ -420,7 +431,9 @@ class FirehoseBackend(BaseBackend):
         return [{"RecordId": str(mock_random.uuid4())} for _ in range(len(records))]
 
     @staticmethod
-    def _format_s3_object_path(delivery_stream_name, version_id, prefix):
+    def _format_s3_object_path(
+        delivery_stream_name: str, version_id: str, prefix: str
+    ) -> str:
         """Return a S3 object path in the expected format."""
         # Taken from LocalStack's firehose logic, with minor changes.
         # See https://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html#s3-object-name
@@ -435,7 +448,13 @@ class FirehoseBackend(BaseBackend):
             f"{now.strftime('%Y-%m-%d-%H-%M-%S')}-{str(mock_random.uuid4())}"
         )
 
-    def put_s3_records(self, delivery_stream_name, version_id, s3_destination, records):
+    def put_s3_records(
+        self,
+        delivery_stream_name: str,
+        version_id: str,
+        s3_destination: Dict[str, Any],
+        records: List[Dict[str, bytes]],
+    ) -> List[Dict[str, str]]:
         """Put records to a ExtendedS3 or S3 destination."""
         # Taken from LocalStack's firehose logic, with minor changes.
         bucket_name = s3_destination["BucketARN"].split(":")[-1]
@@ -456,7 +475,9 @@ class FirehoseBackend(BaseBackend):
             ) from exc
         return [{"RecordId": str(mock_random.uuid4())} for _ in range(len(records))]
 
-    def put_record_batch(self, delivery_stream_name, records):
+    def put_record_batch(
+        self, delivery_stream_name: str, records: List[Dict[str, bytes]]
+    ) -> Dict[str, Any]:
         """Write multiple data records into a Kinesis Data firehose stream."""
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
@@ -502,7 +523,9 @@ class FirehoseBackend(BaseBackend):
             "RequestResponses": request_responses,
         }
 
-    def tag_delivery_stream(self, delivery_stream_name, tags):
+    def tag_delivery_stream(
+        self, delivery_stream_name: str, tags: List[Dict[str, str]]
+    ) -> None:
         """Add/update tags for specified delivery stream."""
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
@@ -524,7 +547,9 @@ class FirehoseBackend(BaseBackend):
 
         self.tagger.tag_resource(delivery_stream.delivery_stream_arn, tags)
 
-    def untag_delivery_stream(self, delivery_stream_name, tag_keys):
+    def untag_delivery_stream(
+        self, delivery_stream_name: str, tag_keys: List[str]
+    ) -> None:
         """Removes tags from specified delivery stream."""
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
@@ -537,19 +562,19 @@ class FirehoseBackend(BaseBackend):
             delivery_stream.delivery_stream_arn, tag_keys
         )
 
-    def update_destination(
+    def update_destination(  # pylint: disable=unused-argument
         self,
-        delivery_stream_name,
-        current_delivery_stream_version_id,
-        destination_id,
-        s3_destination_update,
-        extended_s3_destination_update,
-        s3_backup_mode,
-        redshift_destination_update,
-        elasticsearch_destination_update,
-        splunk_destination_update,
-        http_endpoint_destination_update,
-    ):  # pylint: disable=unused-argument,too-many-arguments,too-many-locals
+        delivery_stream_name: str,
+        current_delivery_stream_version_id: str,
+        destination_id: str,
+        s3_destination_update: Dict[str, Any],
+        extended_s3_destination_update: Dict[str, Any],
+        s3_backup_mode: str,
+        redshift_destination_update: Dict[str, Any],
+        elasticsearch_destination_update: Dict[str, Any],
+        splunk_destination_update: Dict[str, Any],
+        http_endpoint_destination_update: Dict[str, Any],
+    ) -> None:
         """Updates specified destination of specified delivery stream."""
         (destination_name, destination_config) = find_destination_config_in_args(
             locals()
@@ -628,18 +653,18 @@ class FirehoseBackend(BaseBackend):
         # S3 backup if it is disabled.  If backup is enabled, you can't update
         # the delivery stream to disable it."
 
-    def lookup_name_from_arn(self, arn):
+    def lookup_name_from_arn(self, arn: str) -> Optional[DeliveryStream]:
         """Given an ARN, return the associated delivery stream name."""
         return self.delivery_streams.get(arn.split("/")[-1])
 
     def send_log_event(
         self,
-        delivery_stream_arn,
-        filter_name,
-        log_group_name,
-        log_stream_name,
-        log_events,
-    ):  # pylint:  disable=too-many-arguments
+        delivery_stream_arn: str,
+        filter_name: str,
+        log_group_name: str,
+        log_stream_name: str,
+        log_events: List[Dict[str, Any]],
+    ) -> None:
         """Send log events to a S3 bucket after encoding and gzipping it."""
         data = {
             "logEvents": log_events,
@@ -653,9 +678,9 @@ class FirehoseBackend(BaseBackend):
         output = io.BytesIO()
         with GzipFile(fileobj=output, mode="w") as fhandle:
             fhandle.write(json.dumps(data, separators=(",", ":")).encode("utf-8"))
-        gzipped_payload = b64encode(output.getvalue()).decode("utf-8")
+        gzipped_payload = b64encode(output.getvalue())
 
-        delivery_stream = self.lookup_name_from_arn(delivery_stream_arn)
+        delivery_stream: DeliveryStream = self.lookup_name_from_arn(delivery_stream_arn)  # type: ignore[assignment]
         self.put_s3_records(
             delivery_stream.delivery_stream_name,
             delivery_stream.version_id,

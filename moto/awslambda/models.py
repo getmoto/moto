@@ -25,7 +25,7 @@ import requests.exceptions
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.ecr.exceptions import ImageNotFoundException
@@ -456,7 +456,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         # auto-generated
         self.version = version
-        self.last_modified = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        self.last_modified = iso_8601_datetime_with_nanoseconds(
+            datetime.datetime.utcnow()
+        )
 
         if "ZipFile" in self.code:
             (
@@ -534,8 +536,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, self.account_id, self.function_name, version
         )
         self.version = version
-        self.last_modified = datetime.datetime.utcnow().strftime(
-            "%Y-%m-%dT%H:%M:%S.000+0000"
+        self.last_modified = iso_8601_datetime_with_nanoseconds(
+            datetime.datetime.utcnow()
         )
 
     @property
@@ -1641,19 +1643,15 @@ class LambdaBackend(BaseBackend):
                     raise RESTError(
                         "ResourceConflictException", "The resource already exists."
                     )
-                if queue.fifo_queue:
-                    raise RESTError(
-                        "InvalidParameterValueException", f"{queue.queue_arn} is FIFO"
-                    )
-                else:
-                    spec.update({"FunctionArn": func.function_arn})
-                    esm = EventSourceMapping(spec)
-                    self._event_source_mappings[esm.uuid] = esm
+                spec.update({"FunctionArn": func.function_arn})
+                esm = EventSourceMapping(spec)
+                self._event_source_mappings[esm.uuid] = esm
 
-                    # Set backend function on queue
-                    queue.lambda_event_source_mappings[esm.function_arn] = esm
+                # Set backend function on queue
+                queue.lambda_event_source_mappings[esm.function_arn] = esm
 
-                    return esm
+                return esm
+
         ddbstream_backend = dynamodbstreams_backends[self.account_id][self.region_name]
         ddb_backend = dynamodb_backends[self.account_id][self.region_name]
         for stream in json.loads(ddbstream_backend.list_streams())["Streams"]:
@@ -1790,6 +1788,14 @@ class LambdaBackend(BaseBackend):
                 }
             ]
         }
+        if queue_arn.endswith(".fifo"):
+            # Messages from FIFO queue have additional attributes
+            event["Records"][0]["attributes"].update(
+                {
+                    "MessageGroupId": message.group_id,
+                    "MessageDeduplicationId": message.deduplication_id,
+                }
+            )
 
         request_headers: Dict[str, Any] = {}
         response_headers: Dict[str, Any] = {}

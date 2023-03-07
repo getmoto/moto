@@ -14,7 +14,6 @@ from moto import mock_acm, mock_elb, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest import SkipTest, mock
 
-
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 
 
@@ -85,45 +84,48 @@ def test_import_bad_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ValidationException")
     else:
-        raise RuntimeError("Should of raised ValidationException")
+        raise RuntimeError("Should have raised ValidationException")
 
 
 @mock_acm
 def test_list_certificates():
     client = boto3.client("acm", region_name="eu-central-1")
-    arn = _import_cert(client)
-
-    resp = client.list_certificates()
-    len(resp["CertificateSummaryList"]).should.equal(1)
-
-    resp["CertificateSummaryList"][0]["CertificateArn"].should.equal(arn)
-    resp["CertificateSummaryList"][0]["DomainName"].should.equal(SERVER_COMMON_NAME)
-
-
-@mock_acm
-def test_list_certificates_by_status():
-    client = boto3.client("acm", region_name="eu-central-1")
     issued_arn = _import_cert(client)
     pending_arn = client.request_certificate(DomainName="google.com")["CertificateArn"]
 
-    resp = client.list_certificates()
-    len(resp["CertificateSummaryList"]).should.equal(2)
+    certs = client.list_certificates()["CertificateSummaryList"]
+    [c["CertificateArn"] for c in certs].should.contain(issued_arn)
+    [c["CertificateArn"] for c in certs].should.contain(pending_arn)
+    for cert in certs:
+        cert.should.have.key("CertificateArn")
+        cert.should.have.key("DomainName")
+        cert.should.have.key("Status")
+        cert.should.have.key("Type")
+        cert.should.have.key("KeyAlgorithm")
+        cert.should.have.key("RenewalEligibility")
+        cert.should.have.key("NotBefore")
+        cert.should.have.key("NotAfter")
+
     resp = client.list_certificates(CertificateStatuses=["EXPIRED", "INACTIVE"])
     len(resp["CertificateSummaryList"]).should.equal(0)
-    resp = client.list_certificates(CertificateStatuses=["PENDING_VALIDATION"])
-    len(resp["CertificateSummaryList"]).should.equal(1)
-    resp["CertificateSummaryList"][0]["CertificateArn"].should.equal(pending_arn)
 
-    resp = client.list_certificates(CertificateStatuses=["ISSUED"])
-    len(resp["CertificateSummaryList"]).should.equal(1)
-    resp["CertificateSummaryList"][0]["CertificateArn"].should.equal(issued_arn)
-    resp = client.list_certificates(
+    certs = client.list_certificates(CertificateStatuses=["PENDING_VALIDATION"])[
+        "CertificateSummaryList"
+    ]
+    [c["CertificateArn"] for c in certs].shouldnt.contain(issued_arn)
+    [c["CertificateArn"] for c in certs].should.contain(pending_arn)
+
+    certs = client.list_certificates(CertificateStatuses=["ISSUED"])[
+        "CertificateSummaryList"
+    ]
+    [c["CertificateArn"] for c in certs].should.contain(issued_arn)
+    [c["CertificateArn"] for c in certs].shouldnt.contain(pending_arn)
+
+    certs = client.list_certificates(
         CertificateStatuses=["ISSUED", "PENDING_VALIDATION"]
-    )
-    len(resp["CertificateSummaryList"]).should.equal(2)
-    arns = {cert["CertificateArn"] for cert in resp["CertificateSummaryList"]}
-    arns.should.contain(issued_arn)
-    arns.should.contain(pending_arn)
+    )["CertificateSummaryList"]
+    [c["CertificateArn"] for c in certs].should.contain(issued_arn)
+    [c["CertificateArn"] for c in certs].should.contain(pending_arn)
 
 
 @mock_acm
@@ -135,7 +137,7 @@ def test_get_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 # Also tests deleting invalid certificate
@@ -152,7 +154,7 @@ def test_delete_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -255,7 +257,7 @@ def test_add_tags_to_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -267,7 +269,7 @@ def test_list_tags_for_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -316,7 +318,7 @@ def test_remove_tags_from_invalid_certificate():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -346,7 +348,7 @@ def test_resend_validation_email_invalid():
             "InvalidDomainValidationOptionsException"
         )
     else:
-        raise RuntimeError("Should of raised InvalidDomainValidationOptionsException")
+        raise RuntimeError("Should have raised InvalidDomainValidationOptionsException")
 
     try:
         client.resend_validation_email(
@@ -357,7 +359,7 @@ def test_resend_validation_email_invalid():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+        raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
 @mock_acm
@@ -690,7 +692,7 @@ def test_elb_acm_in_use_by():
     certificate_arn = acm_request_response["CertificateArn"]
 
     create_load_balancer_request = elb_client.create_load_balancer(
-        LoadBalancerName="test",
+        LoadBalancerName=str(uuid.uuid4()),
         Listeners=[
             {
                 "Protocol": "https",

@@ -130,10 +130,14 @@ class ActionAuthenticatorMixin(object):
             ActionAuthenticatorMixin.request_count
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
         ):
+            parsed_url = urlparse(self.uri)  # type: ignore[attr-defined]
+            path = parsed_url.path
+            if parsed_url.query:
+                path += "?" + parsed_url.query
             iam_request = iam_request_cls(
                 account_id=self.current_account,  # type: ignore[attr-defined]
                 method=self.method,  # type: ignore[attr-defined]
-                path=self.path,  # type: ignore[attr-defined]
+                path=path,
                 data=self.data,  # type: ignore[attr-defined]
                 headers=self.headers,  # type: ignore[attr-defined]
             )
@@ -214,7 +218,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
-    aws_service_spec = None
+    aws_service_spec: Optional["AWSServiceSpec"] = None
 
     def __init__(self, service_name: Optional[str] = None):
         super().__init__()
@@ -838,14 +842,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return "JSON" in self.querystring.get("ContentType", [])
 
     def error_on_dryrun(self) -> None:
-        self.is_not_dryrun()
-
-    def is_not_dryrun(self, action: Optional[str] = None) -> bool:
         if "true" in self.querystring.get("DryRun", ["false"]):
-            a = action or self._get_param("Action")
+            a = self._get_param("Action")
             message = f"An error occurred (DryRunOperation) when calling the {a} operation: Request would have succeeded, but DryRun flag is set"
             raise DryRunClientError(error_type="DryRunOperation", message=message)
-        return True
 
 
 class _RecursiveDictRef(object):

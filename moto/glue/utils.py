@@ -2,7 +2,7 @@ import abc
 import operator
 import re
 import warnings
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from itertools import repeat
 from typing import Any, Dict, List, Optional, Union
 
@@ -74,15 +74,17 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
                 f" {value} is not a timestamp."
             )
 
+        # use nanosecond representation for timestamps
+        posix_nanoseconds = int(timestamp.timestamp() * 1_000_000_000)
+
         nanos = match.group("nanos")
         if nanos is not None:
             # strip leading dot, reverse and left pad with zeros to nanoseconds
             nanos = "".join(reversed(nanos[1:])).zfill(9)
             for i, nanoseconds in enumerate(nanos):
-                microseconds = (int(nanoseconds) * 10**i) / 1000
-                timestamp += timedelta(microseconds=round(microseconds))
+                posix_nanoseconds += int(nanoseconds) * 10**i
 
-        return timestamp
+        return posix_nanoseconds
 
     raise InvalidInputException("GetPartitions", f"Unknown type : '{type_}'")
 
@@ -351,7 +353,8 @@ class PartitionFilter:
             return True
 
         warnings.warn("Expression filtering is experimental")
+        versions = list(self.fake_table.versions.values())
         return expression.eval(
-            part_keys=self.fake_table.versions[-1].get("PartitionKeys", []),
+            part_keys=versions[-1].get("PartitionKeys", []),
             part_input=fake_partition.partition_input,
         )

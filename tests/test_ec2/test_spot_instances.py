@@ -57,7 +57,7 @@ def test_request_spot_instances():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the RequestSpotInstance operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the RequestSpotInstances operation: Request would have succeeded, but DryRun flag is set"
     )
 
     request = conn.request_spot_instances(
@@ -178,7 +178,7 @@ def test_cancel_spot_instance_request():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the CancelSpotInstance operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the CancelSpotInstanceRequests operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.cancel_spot_instance_requests(

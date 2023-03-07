@@ -363,7 +363,7 @@ class KmsBackend(BaseBackend):
         key_id = self.get_alias_name(key_id)
         key_id = self.get_key_id(key_id)
         if key_id.startswith("alias/"):
-            key_id = self.get_key_id_from_alias(key_id)
+            key_id = self.get_key_id(self.get_key_id_from_alias(key_id))
         return key_id
 
     def alias_exists(self, alias_name):
@@ -374,7 +374,8 @@ class KmsBackend(BaseBackend):
         return False
 
     def add_alias(self, target_key_id, alias_name):
-        self.key_to_aliases[target_key_id].add(alias_name)
+        raw_key_id = self.get_key_id(target_key_id)
+        self.key_to_aliases[raw_key_id].add(alias_name)
 
     def delete_alias(self, alias_name):
         """Delete the alias."""

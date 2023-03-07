@@ -2,21 +2,18 @@ from ._base_response import EC2BaseResponse
 
 
 class VirtualPrivateGateways(EC2BaseResponse):
-    def attach_vpn_gateway(self):
+    def attach_vpn_gateway(self) -> str:
         vpn_gateway_id = self._get_param("VpnGatewayId")
         vpc_id = self._get_param("VpcId")
         attachment = self.ec2_backend.attach_vpn_gateway(vpn_gateway_id, vpc_id)
         template = self.response_template(ATTACH_VPN_GATEWAY_RESPONSE)
         return template.render(attachment=attachment)
 
-    def create_vpn_gateway(self):
+    def create_vpn_gateway(self) -> str:
         gateway_type = self._get_param("Type")
         amazon_side_asn = self._get_param("AmazonSideAsn")
         availability_zone = self._get_param("AvailabilityZone")
-        tags = self._get_multi_param("TagSpecification")
-        tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
-        tags = (tags or {}).get("Tag", [])
-        tags = {t["Key"]: t["Value"] for t in tags}
+        tags = self._parse_tag_specification().get("virtual-private-gateway", {})
         vpn_gateway = self.ec2_backend.create_vpn_gateway(
             gateway_type=gateway_type,
             amazon_side_asn=amazon_side_asn,
@@ -26,20 +23,20 @@ class VirtualPrivateGateways(EC2BaseResponse):
         template = self.response_template(CREATE_VPN_GATEWAY_RESPONSE)
         return template.render(vpn_gateway=vpn_gateway)
 
-    def delete_vpn_gateway(self):
+    def delete_vpn_gateway(self) -> str:
         vpn_gateway_id = self._get_param("VpnGatewayId")
         vpn_gateway = self.ec2_backend.delete_vpn_gateway(vpn_gateway_id)
         template = self.response_template(DELETE_VPN_GATEWAY_RESPONSE)
         return template.render(vpn_gateway=vpn_gateway)
 
-    def describe_vpn_gateways(self):
+    def describe_vpn_gateways(self) -> str:
         filters = self._filters_from_querystring()
         vpn_gw_ids = self._get_multi_param("VpnGatewayId")
         vpn_gateways = self.ec2_backend.describe_vpn_gateways(filters, vpn_gw_ids)
         template = self.response_template(DESCRIBE_VPN_GATEWAYS_RESPONSE)
         return template.render(vpn_gateways=vpn_gateways)
 
-    def detach_vpn_gateway(self):
+    def detach_vpn_gateway(self) -> str:
         vpn_gateway_id = self._get_param("VpnGatewayId")
         vpc_id = self._get_param("VpcId")
         attachment = self.ec2_backend.detach_vpn_gateway(vpn_gateway_id, vpc_id)

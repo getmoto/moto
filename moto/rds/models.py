@@ -11,6 +11,7 @@ from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random as random
+from moto.neptune.models import neptune_backends, NeptuneBackend
 from .exceptions import (
     RDSClientError,
     DBClusterNotFoundError,
@@ -1335,6 +1336,14 @@ class RDSBackend(BaseBackend):
         self.security_groups = {}
         self.subnet_groups = {}
 
+    def reset(self):
+        self.neptune.reset()
+        super().reset()
+
+    @property
+    def neptune(self) -> NeptuneBackend:
+        return neptune_backends[self.account_id][self.region_name]
+
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint service."""
@@ -1677,6 +1686,10 @@ class RDSBackend(BaseBackend):
         #     "OptionGroupArn": "arn:aws:rds:us-east-1:{account}:og:default:postgres-10"
         # }
         # The CLI does not allow deletion of default groups
+
+        # add region and account-id to construct the arn
+        option_group_kwargs["region"] = self.region_name
+        option_group_kwargs["account_id"] = self.account_id
         option_group = OptionGroup(**option_group_kwargs)
         self.option_groups[option_group_id] = option_group
         return option_group
@@ -1864,6 +1877,9 @@ class RDSBackend(BaseBackend):
     def modify_db_cluster(self, kwargs):
         cluster_id = kwargs["db_cluster_identifier"]
 
+        if cluster_id in self.neptune.clusters:
+            return self.neptune.modify_db_cluster(kwargs)
+
         cluster = self.clusters[cluster_id]
         del self.clusters[cluster_id]
 
@@ -1929,10 +1945,12 @@ class RDSBackend(BaseBackend):
 
     def describe_db_clusters(self, cluster_identifier):
         if cluster_identifier:
-            if cluster_identifier not in self.clusters:
-                raise DBClusterNotFoundError(cluster_identifier)
-            return [self.clusters[cluster_identifier]]
-        return self.clusters.values()
+            if cluster_identifier in self.clusters:
+                return [self.clusters[cluster_identifier]]
+            if cluster_identifier in self.neptune.clusters:
+                return [self.neptune.clusters[cluster_identifier]]
+            raise DBClusterNotFoundError(cluster_identifier)
+        return list(self.clusters.values()) + list(self.neptune.clusters.values())
 
     def describe_db_cluster_snapshots(
         self, db_cluster_identifier, db_snapshot_identifier, filters=None
@@ -1959,10 +1977,13 @@ class RDSBackend(BaseBackend):
             if snapshot_name:
                 self.create_db_cluster_snapshot(cluster_identifier, snapshot_name)
             return self.clusters.pop(cluster_identifier)
+        if cluster_identifier in self.neptune.clusters:
+            return self.neptune.delete_db_cluster(cluster_identifier)
         raise DBClusterNotFoundError(cluster_identifier)
 
     def start_db_cluster(self, cluster_identifier):
         if cluster_identifier not in self.clusters:
+            return self.neptune.start_db_cluster(cluster_identifier)
             raise DBClusterNotFoundError(cluster_identifier)
         cluster = self.clusters[cluster_identifier]
         if cluster.status != "stopped":
@@ -2079,6 +2100,8 @@ class RDSBackend(BaseBackend):
             elif resource_type == "cluster":  # Cluster
                 if resource_name in self.clusters:
                     return self.clusters[resource_name].get_tags()
+                if resource_name in self.neptune.clusters:
+                    return self.neptune.clusters[resource_name].get_tags()
             elif resource_type == "es":  # Event Subscription
                 if resource_name in self.event_subscriptions:
                     return self.event_subscriptions[resource_name].get_tags()
@@ -2138,6 +2161,8 @@ class RDSBackend(BaseBackend):
             elif resource_type == "cluster":
                 if resource_name in self.clusters:
                     return self.clusters[resource_name].remove_tags(tag_keys)
+                if resource_name in self.neptune.clusters:
+                    return self.neptune.clusters[resource_name].remove_tags(tag_keys)
             elif resource_type == "cluster-snapshot":  # DB Cluster Snapshot
                 if resource_name in self.cluster_snapshots:
                     return self.cluster_snapshots[resource_name].remove_tags(tag_keys)
@@ -2177,6 +2202,8 @@ class RDSBackend(BaseBackend):
             elif resource_type == "cluster":
                 if resource_name in self.clusters:
                     return self.clusters[resource_name].add_tags(tags)
+                if resource_name in self.neptune.clusters:
+                    return self.neptune.clusters[resource_name].add_tags(tags)
             elif resource_type == "cluster-snapshot":  # DB Cluster Snapshot
                 if resource_name in self.cluster_snapshots:
                     return self.cluster_snapshots[resource_name].add_tags(tags)
@@ -2207,9 +2234,25 @@ class RDSBackend(BaseBackend):
         tags_dict.update({d["Key"]: d["Value"] for d in new_tags})
         return [{"Key": k, "Value": v} for k, v in tags_dict.items()]
 
+    def describe_orderable_db_instance_options(self, engine, engine_version):
+        """
+        Only the Neptune-engine is currently implemented
+        """
+        if engine == "neptune":
+            return self.neptune.describe_orderable_db_instance_options(engine_version)
+        return []
+
 
 class OptionGroup(object):
-    def __init__(self, name, engine_name, major_engine_version, description=None):
+    def __init__(
+        self,
+        name,
+        engine_name,
+        major_engine_version,
+        region,
+        account_id,
+        description=None,
+    ):
         self.engine_name = engine_name
         self.major_engine_version = major_engine_version
         self.description = description
@@ -2218,6 +2261,7 @@ class OptionGroup(object):
         self.options = {}
         self.vpcId = "null"
         self.tags = []
+        self.arn = f"arn:aws:rds:{region}:{account_id}:og:{name}"
 
     def to_json(self):
         template = Template(
@@ -2228,7 +2272,8 @@ class OptionGroup(object):
     "AllowsVpcAndNonVpcInstanceMemberships": "{{ option_group.vpc_and_non_vpc_instance_memberships }}",
     "EngineName": "{{ option_group.engine_name }}",
     "Options": [],
-    "OptionGroupName": "{{ option_group.name }}"
+    "OptionGroupName": "{{ option_group.name }},
+    "OptionGroupArn": "{{ option_group.arn }}
 }"""
         )
         return template.render(option_group=self)
@@ -2241,6 +2286,7 @@ class OptionGroup(object):
           <MajorEngineVersion>{{ option_group.major_engine_version }}</MajorEngineVersion>
           <EngineName>{{ option_group.engine_name }}</EngineName>
           <OptionGroupDescription>{{ option_group.description }}</OptionGroupDescription>
+          <OptionGroupArn>{{ option_group.arn }}</OptionGroupArn>
           <Options/>
         </OptionGroup>"""
         )

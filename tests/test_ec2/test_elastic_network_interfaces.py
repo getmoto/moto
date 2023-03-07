@@ -182,7 +182,7 @@ def test_elastic_network_interfaces_modify_attribute():
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
+        "An error occurred (DryRunOperation) when calling the ModifyNetworkInterfaceAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.modify_network_interface_attribute(

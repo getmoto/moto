@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 from os import listdir
 from ..utils import generic_filter
 
@@ -13,18 +13,18 @@ INSTANCE_FAMILIES = list(set([i.split(".")[0] for i in INSTANCE_TYPES.keys()]))
 
 root = pathlib.Path(__file__).parent
 offerings_path = "../resources/instance_type_offerings"
-INSTANCE_TYPE_OFFERINGS = {}
+INSTANCE_TYPE_OFFERINGS: Dict[str, Any] = {}
 for _location_type in listdir(root / offerings_path):
     INSTANCE_TYPE_OFFERINGS[_location_type] = {}
     for _region in listdir(root / offerings_path / _location_type):
         full_path = offerings_path + "/" + _location_type + "/" + _region
         res = load_resource(__name__, full_path)
         for instance in res:
-            instance["LocationType"] = _location_type
+            instance["LocationType"] = _location_type  # type: ignore
         INSTANCE_TYPE_OFFERINGS[_location_type][_region.replace(".json", "")] = res
 
 
-class InstanceType(dict):
+class InstanceType(Dict[str, Any]):
     _filter_attributes = {
         "auto-recovery-supported": ["AutoRecoverySupported"],
         "bare-metal": ["BareMetal"],
@@ -106,21 +106,21 @@ class InstanceType(dict):
         "vcpu-info.valid-threads-per-core": ["VCpuInfo", "ValidThreadsPerCore"],
     }  # fmt: skip
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
         self.update(INSTANCE_TYPES[name])
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> str:
         return self[name]
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: str) -> None:
         self[name] = value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<InstanceType: {self.name}>"
 
-    def get_filter_value(self, filter_name):
-        def stringify(v):
+    def get_filter_value(self, filter_name: str) -> Any:
+        def stringify(v: Any) -> Any:
             if isinstance(v, (bool, int)):
                 return str(v).lower()
             elif isinstance(v, list):
@@ -130,7 +130,7 @@ class InstanceType(dict):
         path = self._filter_attributes.get(filter_name)
         if not path:
             raise InvalidFilter(filter_name, error_type="InvalidParameterValue")
-        value = self
+        value: Any = self
         for key in path:
             value = (value or {}).get(key)
         return stringify(value)
@@ -139,7 +139,9 @@ class InstanceType(dict):
 class InstanceTypeBackend:
     instance_types = list(map(InstanceType, INSTANCE_TYPES.keys()))
 
-    def describe_instance_types(self, instance_types=None, filters=None):
+    def describe_instance_types(
+        self, instance_types: Optional[List[str]] = None, filters: Any = None
+    ) -> List[InstanceType]:
         matches = self.instance_types
         if instance_types:
             matches = [t for t in matches if t.get("InstanceType") in instance_types]
@@ -156,24 +158,28 @@ class InstanceTypeBackend:
 
 
 class InstanceTypeOfferingBackend:
-    def describe_instance_type_offerings(self, location_type=None, filters=None):
+    def describe_instance_type_offerings(
+        self,
+        location_type: Optional[str] = None,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> List[Any]:
         location_type = location_type or "region"
         matches = INSTANCE_TYPE_OFFERINGS[location_type]
-        matches = matches.get(self.region_name, [])
+        matches = matches.get(self.region_name, [])  # type: ignore[attr-defined]
         matches = [
             o for o in matches if self.matches_filters(o, filters or {}, location_type)
         ]
         return matches
 
-    def matches_filters(self, offering, filters, location_type):
-        def matches_filter(key, values):
+    def matches_filters(
+        self, offering: Dict[str, Any], filters: Any, location_type: str
+    ) -> bool:
+        def matches_filter(key: str, values: List[str]) -> bool:
             if key == "location":
                 if location_type in ("availability-zone", "availability-zone-id"):
                     return offering.get("Location") in values
                 elif location_type == "region":
-                    return any(
-                        v for v in values if offering.get("Location").startswith(v)
-                    )
+                    return any(v for v in values if offering["Location"].startswith(v))
                 else:
                     return False
             elif key == "instance-type":

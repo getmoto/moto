@@ -1,34 +1,31 @@
-from moto.core.responses import BaseResponse
+from ._base_response import EC2BaseResponse
 
 
-class Settings(BaseResponse):
-    def disable_ebs_encryption_by_default(self):
-        if self.is_not_dryrun("DisableEbsEncryptionByDefault"):
-            self.ec2_backend.disable_ebs_encryption_by_default()
-            template = self.response_template(
-                DISABLE_EBS_ENCRYPTION_BY_DEFAULT_RESPONSE
-            )
-            return template.render(ebsEncryptionByDefault=False).replace(
-                "False", "false"
-            )
+class Settings(EC2BaseResponse):
+    def disable_ebs_encryption_by_default(self) -> str:
+        self.error_on_dryrun()
 
-    def enable_ebs_encryption_by_default(self):
-        if self.is_not_dryrun("EnableEbsEncryptionByDefault"):
-            self.ec2_backend.enable_ebs_encryption_by_default()
-            template = self.response_template(
-                ENABLED_EBS_ENCRYPTION_BY_DEFAULT_RESPONSE
-            )
-            return template.render(ebsEncryptionByDefault=True).replace("True", "true")
+        self.ec2_backend.disable_ebs_encryption_by_default()
+        template = self.response_template(DISABLE_EBS_ENCRYPTION_BY_DEFAULT_RESPONSE)
+        return template.render(ebsEncryptionByDefault=False).replace("False", "false")
 
-    def get_ebs_encryption_by_default(self):
-        if self.is_not_dryrun("GetEbsEncryptionByDefault"):
-            result = self.ec2_backend.get_ebs_encryption_by_default()
-            template = self.response_template(GET_EBS_ENCRYPTION_BY_DEFAULT_RESPONSE)
-            return (
-                template.render(ebsEncryptionByDefault=result)
-                .replace("False", "false")
-                .replace("True", "true")
-            )
+    def enable_ebs_encryption_by_default(self) -> str:
+        self.error_on_dryrun()
+
+        self.ec2_backend.enable_ebs_encryption_by_default()
+        template = self.response_template(ENABLED_EBS_ENCRYPTION_BY_DEFAULT_RESPONSE)
+        return template.render(ebsEncryptionByDefault=True).replace("True", "true")
+
+    def get_ebs_encryption_by_default(self) -> str:
+        self.error_on_dryrun()
+
+        result = self.ec2_backend.get_ebs_encryption_by_default()
+        template = self.response_template(GET_EBS_ENCRYPTION_BY_DEFAULT_RESPONSE)
+        return (
+            template.render(ebsEncryptionByDefault=result)
+            .replace("False", "false")
+            .replace("True", "true")
+        )
 
 
 DISABLE_EBS_ENCRYPTION_BY_DEFAULT_RESPONSE = """<DisableEbsEncryptionByDefaultResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">

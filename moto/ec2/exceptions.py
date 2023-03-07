@@ -23,14 +23,14 @@ class EC2ClientError(RESTError):
     # EC2 uses <RequestID> as tag name in the XML response
     request_id_tag_name = "RequestID"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "custom_response")
         self.templates["custom_response"] = EC2_ERROR_RESPONSE
         super().__init__(*args, **kwargs)
 
 
 class DefaultVpcAlreadyExists(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "DefaultVpcAlreadyExists",
             "A Default VPC already exists for this account in this region.",
@@ -38,12 +38,12 @@ class DefaultVpcAlreadyExists(EC2ClientError):
 
 
 class DependencyViolationError(EC2ClientError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__("DependencyViolation", message)
 
 
 class MissingParameterError(EC2ClientError):
-    def __init__(self, parameter):
+    def __init__(self, parameter: str):
         super().__init__(
             "MissingParameter",
             f"The request must contain the parameter {parameter}",
@@ -59,12 +59,12 @@ class InvalidDHCPOptionsIdError(EC2ClientError):
 
 
 class InvalidRequest(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("InvalidRequest", "The request received was invalid")
 
 
 class InvalidParameterCombination(EC2ClientError):
-    def __init__(self, msg):
+    def __init__(self, msg: str):
         super().__init__("InvalidParameterCombination", msg)
 
 
@@ -77,33 +77,33 @@ class MalformedDHCPOptionsIdError(EC2ClientError):
 
 
 class InvalidKeyPairNameError(EC2ClientError):
-    def __init__(self, key):
+    def __init__(self, key: Iterable[str]):
         super().__init__(
             "InvalidKeyPair.NotFound", f"The keypair '{key}' does not exist."
         )
 
 
 class InvalidKeyPairDuplicateError(EC2ClientError):
-    def __init__(self, key):
+    def __init__(self, key: str):
         super().__init__(
             "InvalidKeyPair.Duplicate", f"The keypair '{key}' already exists."
         )
 
 
 class InvalidKeyPairFormatError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidKeyPair.Format", "Key is not in valid OpenSSH public key format"
         )
 
 
 class InvalidVPCIdError(EC2ClientError):
-    def __init__(self, vpc_id: str):
+    def __init__(self, vpc_id: Any):
         super().__init__("InvalidVpcID.NotFound", f"VpcID {vpc_id} does not exist.")
 
 
 class InvalidSubnetIdError(EC2ClientError):
-    def __init__(self, subnet_id):
+    def __init__(self, subnet_id: str):
         super().__init__(
             "InvalidSubnetID.NotFound", f"The subnet ID '{subnet_id}' does not exist"
         )
@@ -126,7 +126,7 @@ class FlowLogAlreadyExists(EC2ClientError):
 
 
 class InvalidNetworkAclIdError(EC2ClientError):
-    def __init__(self, network_acl_id):
+    def __init__(self, network_acl_id: str):
         super().__init__(
             "InvalidNetworkAclID.NotFound",
             f"The network acl ID '{network_acl_id}' does not exist",
@@ -134,7 +134,7 @@ class InvalidNetworkAclIdError(EC2ClientError):
 
 
 class InvalidVpnGatewayIdError(EC2ClientError):
-    def __init__(self, vpn_gw):
+    def __init__(self, vpn_gw: str):
         super().__init__(
             "InvalidVpnGatewayID.NotFound",
             f"The virtual private gateway ID '{vpn_gw}' does not exist",
@@ -142,7 +142,7 @@ class InvalidVpnGatewayIdError(EC2ClientError):
 
 
 class InvalidVpnGatewayAttachmentError(EC2ClientError):
-    def __init__(self, vpn_gw, vpc_id):
+    def __init__(self, vpn_gw: str, vpc_id: str):
         super().__init__(
             "InvalidVpnGatewayAttachment.NotFound",
             f"The attachment with vpn gateway ID '{vpn_gw}' and vpc ID '{vpc_id}' does not exist",
@@ -150,7 +150,7 @@ class InvalidVpnGatewayAttachmentError(EC2ClientError):
 
 
 class InvalidVpnConnectionIdError(EC2ClientError):
-    def __init__(self, network_acl_id):
+    def __init__(self, network_acl_id: str):
         super().__init__(
             "InvalidVpnConnectionID.NotFound",
             f"The vpnConnection ID '{network_acl_id}' does not exist",
@@ -182,14 +182,14 @@ class InvalidNetworkAttachmentIdError(EC2ClientError):
 
 
 class InvalidSecurityGroupDuplicateError(EC2ClientError):
-    def __init__(self, name):
+    def __init__(self, name: str):
         super().__init__(
             "InvalidGroup.Duplicate", f"The security group '{name}' already exists"
         )
 
 
 class InvalidSecurityGroupNotFoundError(EC2ClientError):
-    def __init__(self, name):
+    def __init__(self, name: Any):
         super().__init__(
             "InvalidGroup.NotFound",
             f"The security group '{name}' does not exist",
@@ -197,7 +197,7 @@ class InvalidSecurityGroupNotFoundError(EC2ClientError):
 
 
 class InvalidPermissionNotFoundError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidPermission.NotFound",
             "The specified rule does not exist in this security group",
@@ -205,14 +205,14 @@ class InvalidPermissionNotFoundError(EC2ClientError):
 
 
 class InvalidPermissionDuplicateError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidPermission.Duplicate", "The specified rule already exists"
         )
 
 
 class InvalidRouteTableIdError(EC2ClientError):
-    def __init__(self, route_table_id):
+    def __init__(self, route_table_id: str):
         super().__init__(
             "InvalidRouteTableID.NotFound",
             f"The routeTable ID '{route_table_id}' does not exist",
@@ -220,7 +220,7 @@ class InvalidRouteTableIdError(EC2ClientError):
 
 
 class InvalidRouteError(EC2ClientError):
-    def __init__(self, route_table_id, cidr):
+    def __init__(self, route_table_id: str, cidr: str):
         super().__init__(
             "InvalidRoute.NotFound",
             f"no route with destination-cidr-block {cidr} in route table {route_table_id}",
@@ -228,14 +228,14 @@ class InvalidRouteError(EC2ClientError):
 
 
 class RouteAlreadyExistsError(EC2ClientError):
-    def __init__(self, cidr):
+    def __init__(self, cidr: str):
         super().__init__(
             "RouteAlreadyExists", f"The route identified by {cidr} already exists"
         )
 
 
 class InvalidInstanceIdError(EC2ClientError):
-    def __init__(self, instance_id):
+    def __init__(self, instance_id: Any):
         if isinstance(instance_id, str):
             instance_id = [instance_id]
         if len(instance_id) > 1:
@@ -246,7 +246,9 @@ class InvalidInstanceIdError(EC2ClientError):
 
 
 class InvalidInstanceTypeError(EC2ClientError):
-    def __init__(self, instance_type, error_type="InvalidInstanceType.NotFound"):
+    def __init__(
+        self, instance_type: Any, error_type: str = "InvalidInstanceType.NotFound"
+    ):
         if isinstance(instance_type, str):
             msg = f"The instance type '{instance_type}' does not exist"
         else:
@@ -338,14 +340,6 @@ class InvalidAddressError(EC2ClientError):
         super().__init__("InvalidAddress.NotFound", f"Address '{ip}' not found.")
 
 
-class LogDestinationNotFoundError(EC2ClientError):
-    def __init__(self, bucket_name):
-        super().__init__(
-            "LogDestinationNotFoundException",
-            f"LogDestination: '{bucket_name}' does not exist.",
-        )
-
-
 class InvalidAllocationIdError(EC2ClientError):
     def __init__(self, allocation_id: Any):
         super().__init__(
@@ -363,7 +357,7 @@ class InvalidAssociationIdError(EC2ClientError):
 
 
 class InvalidVpcCidrBlockAssociationIdError(EC2ClientError):
-    def __init__(self, association_id):
+    def __init__(self, association_id: str):
         super().__init__(
             "InvalidVpcCidrBlockAssociationIdError.NotFound",
             f"The vpc CIDR block association ID '{association_id}' does not exist",
@@ -371,7 +365,7 @@ class InvalidVpcCidrBlockAssociationIdError(EC2ClientError):
 
 
 class InvalidVPCPeeringConnectionIdError(EC2ClientError):
-    def __init__(self, vpc_peering_connection_id):
+    def __init__(self, vpc_peering_connection_id: str):
         super().__init__(
             "InvalidVpcPeeringConnectionId.NotFound",
             f"VpcPeeringConnectionID {vpc_peering_connection_id} does not exist.",
@@ -379,7 +373,7 @@ class InvalidVPCPeeringConnectionIdError(EC2ClientError):
 
 
 class InvalidVPCPeeringConnectionStateTransitionError(EC2ClientError):
-    def __init__(self, vpc_peering_connection_id):
+    def __init__(self, vpc_peering_connection_id: str):
         super().__init__(
             "InvalidStateTransition",
             f"VpcPeeringConnectionID {vpc_peering_connection_id} is not in the correct state for the request.",
@@ -387,7 +381,7 @@ class InvalidVPCPeeringConnectionStateTransitionError(EC2ClientError):
 
 
 class InvalidServiceName(EC2ClientError):
-    def __init__(self, service_name):
+    def __init__(self, service_name: str):
         super().__init__(
             "InvalidServiceName",
             f"The Vpc Endpoint Service '{service_name}' does not exist",
@@ -395,12 +389,12 @@ class InvalidServiceName(EC2ClientError):
 
 
 class InvalidFilter(EC2ClientError):
-    def __init__(self, filter_name, error_type="InvalidFilter"):
+    def __init__(self, filter_name: str, error_type: str = "InvalidFilter"):
         super().__init__(error_type, f"The filter '{filter_name}' is invalid")
 
 
 class InvalidNextToken(EC2ClientError):
-    def __init__(self, next_token):
+    def __init__(self, next_token: str):
         super().__init__("InvalidNextToken", f"The token '{next_token}' is invalid")
 
 
@@ -434,14 +428,14 @@ class InvalidParameterValueError(EC2ClientError):
 
 
 class EmptyTagSpecError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidParameterValue", "Tag specification must have at least one tag"
         )
 
 
 class InvalidParameterValueErrorTagNull(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidParameterValue",
             "Tag value cannot be null. Use empty string instead.",
@@ -449,7 +443,7 @@ class InvalidParameterValueErrorTagNull(EC2ClientError):
 
 
 class InvalidParameterValueErrorUnknownAttribute(EC2ClientError):
-    def __init__(self, parameter_value):
+    def __init__(self, parameter_value: str):
         super().__init__(
             "InvalidParameterValue",
             f"Value ({parameter_value}) for parameter attribute is invalid. Unknown attribute.",
@@ -457,14 +451,14 @@ class InvalidParameterValueErrorUnknownAttribute(EC2ClientError):
 
 
 class InvalidGatewayIDError(EC2ClientError):
-    def __init__(self, gateway_id):
+    def __init__(self, gateway_id: str):
         super().__init__(
             "InvalidGatewayID.NotFound", f"The eigw ID '{gateway_id}' does not exist"
         )
 
 
 class InvalidInternetGatewayIdError(EC2ClientError):
-    def __init__(self, internet_gateway_id):
+    def __init__(self, internet_gateway_id: str):
         super().__init__(
             "InvalidInternetGatewayID.NotFound",
             f"InternetGatewayID {internet_gateway_id} does not exist.",
@@ -472,7 +466,7 @@ class InvalidInternetGatewayIdError(EC2ClientError):
 
 
 class GatewayNotAttachedError(EC2ClientError):
-    def __init__(self, internet_gateway_id, vpc_id):
+    def __init__(self, internet_gateway_id: str, vpc_id: str):
         super().__init__(
             "Gateway.NotAttached",
             f"InternetGatewayID {internet_gateway_id} is not attached to a VPC {vpc_id}.",
@@ -488,7 +482,7 @@ class ResourceAlreadyAssociatedError(EC2ClientError):
 
 
 class TagLimitExceeded(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "TagLimitExceeded",
             "The maximum number of Tags for a resource has been reached.",
@@ -496,19 +490,19 @@ class TagLimitExceeded(EC2ClientError):
 
 
 class InvalidID(EC2ClientError):
-    def __init__(self, resource_id):
+    def __init__(self, resource_id: str):
         super().__init__("InvalidID", f"The ID '{resource_id}' is not valid")
 
 
 class InvalidCIDRSubnetError(EC2ClientError):
-    def __init__(self, cidr):
+    def __init__(self, cidr: Any):
         super().__init__(
             "InvalidParameterValue", f"invalid CIDR subnet specification: {cidr}"
         )
 
 
 class RulesPerSecurityGroupLimitExceededError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "RulesPerSecurityGroupLimitExceeded",
             "The maximum number of rules per security group " "has been reached.",
@@ -516,7 +510,7 @@ class RulesPerSecurityGroupLimitExceededError(EC2ClientError):
 
 
 class MotoNotImplementedError(NotImplementedError):
-    def __init__(self, blurb):
+    def __init__(self, blurb: str):
         super().__init__(
             f"{blurb} has not been implemented in Moto yet."
             " Feel free to open an issue at"
@@ -530,7 +524,7 @@ class FilterNotImplementedError(MotoNotImplementedError):
 
 
 class CidrLimitExceeded(EC2ClientError):
-    def __init__(self, vpc_id, max_cidr_limit):
+    def __init__(self, vpc_id: str, max_cidr_limit: int):
         super().__init__(
             "CidrLimitExceeded",
             f"This network '{vpc_id}' has met its maximum number of allowed CIDRs: {max_cidr_limit}",
@@ -538,14 +532,14 @@ class CidrLimitExceeded(EC2ClientError):
 
 
 class UnsupportedTenancy(EC2ClientError):
-    def __init__(self, tenancy):
+    def __init__(self, tenancy: str):
         super().__init__(
             "UnsupportedTenancy", f"The tenancy value {tenancy} is not supported."
         )
 
 
 class OperationNotPermitted(EC2ClientError):
-    def __init__(self, association_id):
+    def __init__(self, association_id: str):
         super().__init__(
             "OperationNotPermitted",
             f"The vpc CIDR block with association ID {association_id} may not be disassociated. It is the primary IPv4 CIDR block of the VPC",
@@ -553,7 +547,9 @@ class OperationNotPermitted(EC2ClientError):
 
 
 class InvalidAvailabilityZoneError(EC2ClientError):
-    def __init__(self, availability_zone_value, valid_availability_zones):
+    def __init__(
+        self, availability_zone_value: Optional[str], valid_availability_zones: str
+    ):
         super().__init__(
             "InvalidParameterValue",
             f"Value ({availability_zone_value}) for parameter availabilityZone is invalid. "
@@ -562,7 +558,7 @@ class InvalidAvailabilityZoneError(EC2ClientError):
 
 
 class AvailabilityZoneNotFromRegionError(EC2ClientError):
-    def __init__(self, availability_zone_value):
+    def __init__(self, availability_zone_value: str):
         super().__init__(
             "InvalidParameterValue",
             f"Invalid Availability Zone ({availability_zone_value})",
@@ -570,7 +566,7 @@ class AvailabilityZoneNotFromRegionError(EC2ClientError):
 
 
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
-    def __init__(self, rule_number):
+    def __init__(self, rule_number: str):
         super().__init__(
             "NetworkAclEntryAlreadyExists",
             f"The network acl entry identified by {rule_number} already exists.",
@@ -578,12 +574,12 @@ class NetworkAclEntryAlreadyExistsError(EC2ClientError):
 
 
 class InvalidSubnetRangeError(EC2ClientError):
-    def __init__(self, cidr_block):
+    def __init__(self, cidr_block: str):
         super().__init__("InvalidSubnet.Range", f"The CIDR '{cidr_block}' is invalid.")
 
 
 class InvalidCIDRBlockParameterError(EC2ClientError):
-    def __init__(self, cidr_block):
+    def __init__(self, cidr_block: str):
         super().__init__(
             "InvalidParameterValue",
             f"Value ({cidr_block}) for parameter cidrBlock is invalid. This is not a valid CIDR block.",
@@ -591,7 +587,7 @@ class InvalidCIDRBlockParameterError(EC2ClientError):
 
 
 class InvalidDestinationCIDRBlockParameterError(EC2ClientError):
-    def __init__(self, cidr_block):
+    def __init__(self, cidr_block: str):
         super().__init__(
             "InvalidParameterValue",
             f"Value ({cidr_block}) for parameter destinationCidrBlock is invalid. This is not a valid CIDR block.",
@@ -599,7 +595,7 @@ class InvalidDestinationCIDRBlockParameterError(EC2ClientError):
 
 
 class InvalidSubnetConflictError(EC2ClientError):
-    def __init__(self, cidr_block):
+    def __init__(self, cidr_block: str):
         super().__init__(
             "InvalidSubnet.Conflict",
             f"The CIDR '{cidr_block}' conflicts with another subnet",
@@ -607,13 +603,13 @@ class InvalidSubnetConflictError(EC2ClientError):
 
 
 class InvalidVPCRangeError(EC2ClientError):
-    def __init__(self, cidr_block):
+    def __init__(self, cidr_block: str):
         super().__init__("InvalidVpc.Range", f"The CIDR '{cidr_block}' is invalid.")
 
 
 # accept exception
 class OperationNotPermitted2(EC2ClientError):
-    def __init__(self, client_region, pcx_id, acceptor_region):
+    def __init__(self, client_region: str, pcx_id: str, acceptor_region: str):
         super().__init__(
             "OperationNotPermitted",
             f"Incorrect region ({client_region}) specified for this request.VPC peering connection {pcx_id} must be accepted in region {acceptor_region}",
@@ -622,7 +618,7 @@ class OperationNotPermitted2(EC2ClientError):
 
 # reject exception
 class OperationNotPermitted3(EC2ClientError):
-    def __init__(self, client_region, pcx_id, acceptor_region):
+    def __init__(self, client_region: str, pcx_id: str, acceptor_region: str):
         super().__init__(
             "OperationNotPermitted",
             f"Incorrect region ({client_region}) specified for this request.VPC peering connection {pcx_id} must be accepted or rejected in region {acceptor_region}",
@@ -630,7 +626,7 @@ class OperationNotPermitted3(EC2ClientError):
 
 
 class OperationNotPermitted4(EC2ClientError):
-    def __init__(self, instance_id):
+    def __init__(self, instance_id: str):
         super().__init__(
             "OperationNotPermitted",
             f"The instance '{instance_id}' may not be terminated. Modify its 'disableApiTermination' instance attribute and try again.",
@@ -638,7 +634,7 @@ class OperationNotPermitted4(EC2ClientError):
 
 
 class InvalidLaunchTemplateNameAlreadyExistsError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidLaunchTemplateName.AlreadyExistsException",
             "Launch template name already in use.",
@@ -646,7 +642,7 @@ class InvalidLaunchTemplateNameAlreadyExistsError(EC2ClientError):
 
 
 class InvalidLaunchTemplateNameNotFoundError(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidLaunchTemplateName.NotFoundException",
             "At least one of the launch templates specified in the request does not exist.",
@@ -654,7 +650,7 @@ class InvalidLaunchTemplateNameNotFoundError(EC2ClientError):
 
 
 class InvalidLaunchTemplateNameNotFoundWithNameError(EC2ClientError):
-    def __init__(self, name):
+    def __init__(self, name: str):
         super().__init__(
             "InvalidLaunchTemplateName.NotFoundException",
             f"The specified launch template, with template name {name}, does not exist",
@@ -670,7 +666,7 @@ class InvalidParameterDependency(EC2ClientError):
 
 
 class IncorrectStateIamProfileAssociationError(EC2ClientError):
-    def __init__(self, instance_id):
+    def __init__(self, instance_id: str):
         super().__init__(
             "IncorrectState",
             f"There is an existing association for instance {instance_id}",
@@ -678,7 +674,7 @@ class IncorrectStateIamProfileAssociationError(EC2ClientError):
 
 
 class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
-    def __init__(self, association_id):
+    def __init__(self, association_id: str):
         super().__init__(
             "InvalidAssociationID.NotFound",
             f"An invalid association-id of '{association_id}' was given",
@@ -686,7 +682,7 @@ class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
 
 
 class InvalidVpcEndPointIdError(EC2ClientError):
-    def __init__(self, vpc_end_point_id):
+    def __init__(self, vpc_end_point_id: str):
         super().__init__(
             "InvalidVpcEndpointId.NotFound",
             f"The VpcEndPoint ID '{vpc_end_point_id}' does not exist",
@@ -702,7 +698,7 @@ class InvalidTaggableResourceType(EC2ClientError):
 
 
 class GenericInvalidParameterValueError(EC2ClientError):
-    def __init__(self, attribute, value):
+    def __init__(self, attribute: str, value: str):
         super().__init__(
             "InvalidParameterValue",
             f"invalid value for parameter {attribute}: {value}",
@@ -710,7 +706,7 @@ class GenericInvalidParameterValueError(EC2ClientError):
 
 
 class InvalidSubnetCidrBlockAssociationID(EC2ClientError):
-    def __init__(self, association_id):
+    def __init__(self, association_id: str):
         super().__init__(
             "InvalidSubnetCidrBlockAssociationID.NotFound",
             f"The subnet CIDR block with association ID '{association_id}' does not exist",
@@ -726,7 +722,7 @@ class InvalidCarrierGatewayID(EC2ClientError):
 
 
 class NoLoadBalancersProvided(EC2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidParameter",
             "exactly one of network_load_balancer_arn or gateway_load_balancer_arn is a required member",
@@ -734,7 +730,7 @@ class NoLoadBalancersProvided(EC2ClientError):
 
 
 class UnknownVpcEndpointService(EC2ClientError):
-    def __init__(self, service_id):
+    def __init__(self, service_id: str):
         super().__init__(
             "InvalidVpcEndpointServiceId.NotFound",
             f"The VpcEndpointService Id '{service_id}' does not exist",

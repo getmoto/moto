@@ -480,6 +480,7 @@ class SageMakerResponse(BaseResponse):
             self._get_param("PipelineParameters"),
             self._get_param("PipelineExecutionDescription"),
             self._get_param("ParallelismConfiguration"),
+            self._get_param("ClientRequestToken"),
         )
         return 200, {}, json.dumps(response)
 

@@ -106,7 +106,11 @@ rds
 - [ ] describe_global_clusters
 - [X] describe_option_group_options
 - [X] describe_option_groups
-- [ ] describe_orderable_db_instance_options
+- [X] describe_orderable_db_instance_options
+  
+        Only the Neptune-engine is currently implemented
+        
+
 - [ ] describe_pending_maintenance_actions
 - [ ] describe_reserved_db_instances
 - [ ] describe_reserved_db_instances_offerings
