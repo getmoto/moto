@@ -2986,7 +2986,7 @@
 
 ## firehose
 <details>
-<summary>83% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_delivery_stream
 - [X] delete_delivery_stream
@@ -2995,8 +2995,8 @@
 - [X] list_tags_for_delivery_stream
 - [X] put_record
 - [X] put_record_batch
-- [ ] start_delivery_stream_encryption
-- [ ] stop_delivery_stream_encryption
+- [X] start_delivery_stream_encryption
+- [X] stop_delivery_stream_encryption
 - [X] tag_delivery_stream
 - [X] untag_delivery_stream
 - [X] update_destination

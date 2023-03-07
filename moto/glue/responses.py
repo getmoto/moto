@@ -514,3 +514,6 @@ class GlueResponse(BaseResponse):
                 "CrawlersNotFound": crawlers_not_found,
             }
         )
+
+    def get_partition_indexes(self):
+        return json.dumps({"PartitionIndexDescriptorList": []})
