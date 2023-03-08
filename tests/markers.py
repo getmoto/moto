@@ -2,8 +2,10 @@ import docker
 import pytest
 from docker.errors import DockerException
 
+from moto import settings
 
-def validate_docker_is_available() -> bool:
+
+def _docker_is_available() -> bool:
     try:
         docker.from_env()
         return True
@@ -11,6 +13,7 @@ def validate_docker_is_available() -> bool:
         return False
 
 
-requires_docker = pytest.mark.skipif(
-    not validate_docker_is_available(), reason="running docker required"
+requires_docker = pytest.mark.xfail(
+    not _docker_is_available() and settings.SKIP_DOCKER_REQUIRED,
+    reason="running docker required",
 )

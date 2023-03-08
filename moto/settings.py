@@ -32,6 +32,8 @@ ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False)
 
 PRETTIFY_RESPONSES = bool(os.environ.get("MOTO_PRETTIFY_RESPONSES", False))
 
+SKIP_DOCKER_REQUIRED = bool(os.environ.get("TESTS_SKIP_DOCKER_REQUIRED", False))
+
 
 def get_sf_execution_history_type():
     """
