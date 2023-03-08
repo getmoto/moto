@@ -12,7 +12,7 @@ from collections import defaultdict, OrderedDict
 from moto import settings
 from moto.core.common_types import TYPE_RESPONSE, TYPE_IF_NONE
 from moto.core.exceptions import DryRunClientError
-from moto.core.utils import camelcase_to_underscores, method_names_from_class
+from moto.core.utils import camelcase_to_underscores, method_names_from_class, params_sort_function
 from moto.utilities.utils import load_resource
 from jinja2 import Environment, DictLoader, Template
 from typing import (
@@ -687,7 +687,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         }
         """
         params: Dict[str, Any] = {}
-        for k, v in sorted(self.querystring.items()):
+        for k, v in sorted(self.querystring.items(), key=params_sort_function):
             self._parse_param(k, v[0], params)
         return params
 

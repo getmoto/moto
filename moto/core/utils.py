@@ -307,3 +307,15 @@ def extract_region_from_aws_authorization(string: str) -> Optional[str]:
     if region == auth:
         return None
     return region
+
+
+def params_sort_function(item):
+    """
+    Comparison function used to sort params appropriately taking tags non
+    alphabetical ordre into consideration
+    """
+    key, _ = item
+    if key.startswith('Tags.member'):
+        member_num = int(key.split('.')[2])
+        return ('Tags.member', member_num)
+    return item
