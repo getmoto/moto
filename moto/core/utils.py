@@ -312,7 +312,7 @@ def extract_region_from_aws_authorization(string: str) -> Optional[str]:
 def params_sort_function(item):
     """
     Comparison function used to sort params appropriately taking tags non
-    alphabetical ordre into consideration
+    alphabetical order into consideration
     """
     key, _ = item
     if key.startswith("Tags.member"):
