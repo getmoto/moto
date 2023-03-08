@@ -1,18 +1,20 @@
+from typing import Any
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import guardduty_backends
+from .models import guardduty_backends, GuardDutyBackend
 import json
 from urllib.parse import unquote
 
 
 class GuardDutyResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="guardduty")
 
     @property
-    def guardduty_backend(self):
+    def guardduty_backend(self) -> GuardDutyBackend:
         return guardduty_backends[self.current_account][self.region]
 
-    def filter(self, request, full_url, headers):
+    def filter(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self.get_filter()
@@ -21,12 +23,12 @@ class GuardDutyResponse(BaseResponse):
         elif request.method == "POST":
             return self.update_filter()
 
-    def filters(self, request, full_url, headers):
+    def filters(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self.create_filter()
 
-    def detectors(self, request, full_url, headers):
+    def detectors(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self.create_detector()
@@ -35,7 +37,7 @@ class GuardDutyResponse(BaseResponse):
         else:
             return 404, {}, ""
 
-    def detector(self, request, full_url, headers):
+    def detector(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self.get_detector()
@@ -44,7 +46,7 @@ class GuardDutyResponse(BaseResponse):
         elif request.method == "POST":
             return self.update_detector()
 
-    def create_filter(self):
+    def create_filter(self) -> TYPE_RESPONSE:
         detector_id = self.path.split("/")[-2]
         name = self._get_param("name")
         action = self._get_param("action")
@@ -57,7 +59,7 @@ class GuardDutyResponse(BaseResponse):
         )
         return 200, {}, json.dumps({"name": name})
 
-    def create_detector(self):
+    def create_detector(self) -> TYPE_RESPONSE:
         enable = self._get_param("enable")
         finding_publishing_frequency = self._get_param("findingPublishingFrequency")
         data_sources = self._get_param("dataSources")
@@ -69,20 +71,22 @@ class GuardDutyResponse(BaseResponse):
 
         return 200, {}, json.dumps(dict(detectorId=detector_id))
 
-    def delete_detector(self):
+    def delete_detector(self) -> TYPE_RESPONSE:
         detector_id = self.path.split("/")[-1]
 
         self.guardduty_backend.delete_detector(detector_id)
         return 200, {}, "{}"
 
-    def delete_filter(self):
+    def delete_filter(self) -> TYPE_RESPONSE:
         detector_id = self.path.split("/")[-3]
         filter_name = unquote(self.path.split("/")[-1])
 
         self.guardduty_backend.delete_filter(detector_id, filter_name)
         return 200, {}, "{}"
 
-    def enable_organization_admin_account(self, request, full_url, headers):
+    def enable_organization_admin_account(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         admin_account = self._get_param("adminAccountId")
@@ -90,7 +94,9 @@ class GuardDutyResponse(BaseResponse):
 
         return 200, {}, "{}"
 
-    def list_organization_admin_accounts(self, request, full_url, headers):
+    def list_organization_admin_accounts(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         account_ids = self.guardduty_backend.list_organization_admin_accounts()
@@ -108,25 +114,25 @@ class GuardDutyResponse(BaseResponse):
             ),
         )
 
-    def list_detectors(self):
+    def list_detectors(self) -> TYPE_RESPONSE:
         detector_ids = self.guardduty_backend.list_detectors()
 
         return 200, {}, json.dumps({"detectorIds": detector_ids})
 
-    def get_detector(self):
+    def get_detector(self) -> TYPE_RESPONSE:
         detector_id = self.path.split("/")[-1]
 
         detector = self.guardduty_backend.get_detector(detector_id)
         return 200, {}, json.dumps(detector.to_json())
 
-    def get_filter(self):
+    def get_filter(self) -> TYPE_RESPONSE:
         detector_id = self.path.split("/")[-3]
         filter_name = unquote(self.path.split("/")[-1])
 
         _filter = self.guardduty_backend.get_filter(detector_id, filter_name)
         return 200, {}, json.dumps(_filter.to_json())
 
-    def update_detector(self):
+    def update_detector(self) -> TYPE_RESPONSE:
         detector_id = self.path.split("/")[-1]
         enable = self._get_param("enable")
         finding_publishing_frequency = self._get_param("findingPublishingFrequency")
@@ -137,7 +143,7 @@ class GuardDutyResponse(BaseResponse):
         )
         return 200, {}, "{}"
 
-    def update_filter(self):
+    def update_filter(self) -> TYPE_RESPONSE:
         detector_id = self.path.split("/")[-3]
         filter_name = unquote(self.path.split("/")[-1])
         action = self._get_param("action")
