@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .models import guardduty_backends
 from ..core.models import base_decorator
 
