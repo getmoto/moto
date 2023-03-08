@@ -295,6 +295,7 @@ def test_list_jobs():
 @mock_ecs
 @mock_iam
 @mock_batch
+@requires_docker
 def test_terminate_job():
     ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -401,6 +402,7 @@ def test_cancel_pending_job():
 @mock_ecs
 @mock_iam
 @mock_batch
+@requires_docker
 def test_cancel_running_job():
     """
     Test verifies that the moment the job has started, we can't cancel anymore
@@ -481,6 +483,7 @@ def _wait_for_job_statuses(client, job_id, statuses, seconds_to_wait=30):
 @mock_ecs
 @mock_iam
 @mock_batch
+@requires_docker
 def test_failed_job():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -514,6 +517,7 @@ def test_failed_job():
 @mock_ecs
 @mock_iam
 @mock_batch
+@requires_docker
 def test_dependencies():
     ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -600,6 +604,7 @@ def retrieve_all_streams(log_stream_name, logs_client):
 @mock_ecs
 @mock_iam
 @mock_batch
+@requires_docker
 def test_failed_dependencies():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -699,6 +704,7 @@ def test_failed_dependencies():
 @mock_ecs
 @mock_iam
 @mock_batch
+@requires_docker
 def test_container_overrides():
     """
     Test if container overrides have any effect.
@@ -974,6 +980,7 @@ def test_register_job_definition_with_timeout():
 @mock_batch
 @mock_ec2
 @mock_iam
+@requires_docker
 def test_submit_job_with_timeout():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -997,6 +1004,7 @@ def test_submit_job_with_timeout():
 @mock_batch
 @mock_ec2
 @mock_iam
+@requires_docker
 def test_submit_job_with_timeout_set_at_definition():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)

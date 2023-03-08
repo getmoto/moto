@@ -35,6 +35,7 @@ from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.docker_utilities import DockerModel
 from moto import settings
+from ..core.exceptions import MotoDockerException
 
 logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
@@ -483,6 +484,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
         self.job_stopped = False
         self.job_stopped_reason: Optional[str] = None
+        self.raised_exception: Optional[Exception] = None
         self.depends_on = depends_on
         self.timeout = timeout
         self.all_jobs = all_jobs
@@ -506,6 +508,10 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.latest_attempt: Optional[Dict[str, Any]] = None
 
     def describe_short(self) -> Dict[str, Any]:
+        if settings.RAISE_DOCKER_EXCEPTION and isinstance(
+            self.raised_exception, MotoDockerException
+        ):
+            raise self.raised_exception
         result = {
             "jobId": self.job_id,
             "jobArn": self.arn,
@@ -606,9 +612,10 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         """
         try:
             import docker
+            import docker.errors
         except ImportError as err:
             logger.error(f"Failed to run AWS Batch container {self.name}. Error {err}")
-            self._mark_stopped(success=False)
+            self._mark_stopped(success=False, exception=MotoDockerException(err))
             return
 
         try:
@@ -844,7 +851,16 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     if job_failed:
                         self._mark_stopped(success=False)
                         break
-
+                except docker.errors.DockerException as err:
+                    logger.error(
+                        f"Failed to run AWS Batch container {self.name}. Error {err}"
+                    )
+                    self._mark_stopped(
+                        # not doing just raise, as the stack trace is
+                        # a) long and b) very docker specific.
+                        success=False,
+                        exception=MotoDockerException(err),
+                    )
                 except Exception as err:
                     logger.error(
                         f"Failed to run AWS Batch container {self.name}. Error {err}"
@@ -852,6 +868,11 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     self._mark_stopped(success=False)
 
             self._mark_stopped(success=True)
+        except docker.errors.DockerException as err:
+            logger.error(f"Failed to run AWS Batch container {self.name}. Error {err}")
+            # not doing just raise, as the stack trace is
+            # a) long and b) very docker specific.
+            self._mark_stopped(success=False, exception=MotoDockerException(err))
         except Exception as err:
             logger.error(f"Failed to run AWS Batch container {self.name}. Error {err}")
             self._mark_stopped(success=False)
@@ -862,7 +883,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     container.kill()
                 container.remove()
 
-    def _mark_stopped(self, success: bool = True) -> None:
+    def _mark_stopped(
+        self, success: bool = True, exception: Optional[Exception] = None
+    ) -> None:
         if self.job_stopped:
             return
         # Ensure that job_stopped/job_stopped_at-attributes are set first
@@ -870,6 +893,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_stopped = True
         self.job_stopped_at = datetime.datetime.now()
         self.status = "SUCCEEDED" if success else "FAILED"
+        self.raised_exception = exception
         self._stop_attempt()
 
     def _start_attempt(self) -> None:

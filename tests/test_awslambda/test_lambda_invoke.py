@@ -242,6 +242,7 @@ def test_invoke_function_with_multiple_files_in_zip():
 
 @pytest.mark.network
 @mock_lambda
+@requires_docker
 def test_invoke_dryrun_function():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -305,6 +306,7 @@ if settings.TEST_SERVER_MODE:
 
 @pytest.mark.network
 @mock_lambda
+@requires_docker
 def test_invoke_lambda_error():
     lambda_fx = """
 def lambda_handler(event, context):
@@ -340,6 +342,7 @@ def lambda_handler(event, context):
 @pytest.mark.network
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
 @mock_lambda
+@requires_docker
 def test_invoke_async_function(key):
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]

@@ -1,19 +1,14 @@
-import docker
 import pytest
-from docker.errors import DockerException
 
 from moto import settings
+from moto.core.exceptions import MotoDockerException
 
+requires_docker = pytest.mark.requires_docker
 
-def _docker_is_available() -> bool:
-    try:
-        docker.from_env()
-        return True
-    except DockerException:
-        return False
-
-
-requires_docker = pytest.mark.xfail(
-    not _docker_is_available() and settings.SKIP_DOCKER_REQUIRED,
-    reason="running docker required",
-)
+if settings.SKIP_REQUIRES_DOCKER:
+    requires_docker = pytest.mark.skip(reason="running docker required")
+elif settings.RAISE_DOCKER_EXCEPTION:
+    requires_docker = pytest.mark.xfail(
+        raises=MotoDockerException,
+        reason="running docker required",
+    )

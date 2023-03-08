@@ -1,7 +1,10 @@
+import logging
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
 from typing import Any, List, Tuple, Optional
 import json
+
+from moto import settings
 
 # TODO: add "<Type>Sender</Type>" to error responses below?
 
@@ -178,3 +181,40 @@ class InvalidToken(AWSError):
 
     def __init__(self, message: str = "Invalid token"):
         super().__init__(f"Invalid Token: {message}", "InvalidToken")
+
+
+class MotoDockerException(RuntimeError):
+    ...
+
+
+def setup_threading_except_hook() -> None:
+
+    logging.info("Trying to setup except hook.")
+    if not settings.RAISE_DOCKER_EXCEPTION:
+        logging.info("Not required.")
+        return
+
+    # This is available as of py 3.8
+    try:
+        from _thread import _ExceptHookArgs
+    except ImportError:
+        logging.warning("Cannot import _ExceptHookArgs, skipping setup.")
+        return
+
+    def moto_except_hook(args: _ExceptHookArgs) -> None:
+        logging.warning("Uncaught exception from thread: %s", args)
+        if args.exc_type is MotoDockerException:
+            raise args.exc_type(args.exc_value)
+
+    try:
+        import threading
+
+        if threading.excepthook == moto_except_hook:
+            logging.info("Already in place.")
+            return
+        threading.excepthook = moto_except_hook
+        logging.info("Done.")
+
+    except Exception as err:
+        logging.warning("Failed setting except hook: %s", err)
+        return

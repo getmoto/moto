@@ -5,6 +5,7 @@ from typing import Any, Dict
 from moto import settings
 from moto.core import CloudFormationModel
 from moto.awslambda import lambda_backends
+from moto.core.exceptions import setup_threading_except_hook
 from moto.moto_api._internal import mock_random
 
 
@@ -84,6 +85,8 @@ class CustomModel(CloudFormationModel):
             "ResourceType": resource_type,
             "ResourceProperties": properties,
         }
+
+        setup_threading_except_hook()
 
         invoke_thread = threading.Thread(
             target=fn.invoke, args=(json.dumps(event), {}, {})

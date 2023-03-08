@@ -24,7 +24,7 @@ import requests.exceptions
 
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import RESTError, MotoDockerException
 from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
@@ -861,6 +861,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         res, errored, logs = self._invoke_lambda(event=body)
         if errored:
             response_headers["x-amz-function-error"] = "Handled"
+            if settings.RAISE_DOCKER_EXCEPTION and "error running docker" in res:
+                raise MotoDockerException(res)
 
         inv_type = request_headers.get("x-amz-invocation-type", "RequestResponse")
         if inv_type == "RequestResponse":

@@ -32,7 +32,10 @@ ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False)
 
 PRETTIFY_RESPONSES = bool(os.environ.get("MOTO_PRETTIFY_RESPONSES", False))
 
-SKIP_DOCKER_REQUIRED = bool(os.environ.get("TESTS_SKIP_DOCKER_REQUIRED", False))
+# Fully skip test that require docker
+SKIP_REQUIRES_DOCKER = bool(os.environ.get("TESTS_SKIP_REQUIRES_DOCKER", False))
+# Run test that require docker, but allow failing when docker exceptions are raised
+RAISE_DOCKER_EXCEPTION = bool(os.environ.get("TESTS_XFAIL_REQUIRES_DOCKER", False))
 
 
 def get_sf_execution_history_type():
