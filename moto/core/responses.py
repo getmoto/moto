@@ -12,7 +12,11 @@ from collections import defaultdict, OrderedDict
 from moto import settings
 from moto.core.common_types import TYPE_RESPONSE, TYPE_IF_NONE
 from moto.core.exceptions import DryRunClientError
-from moto.core.utils import camelcase_to_underscores, method_names_from_class, params_sort_function
+from moto.core.utils import (
+    camelcase_to_underscores,
+    method_names_from_class,
+    params_sort_function,
+)
 from moto.utilities.utils import load_resource
 from jinja2 import Environment, DictLoader, Template
 from typing import (
@@ -122,7 +126,6 @@ class _TemplateEnvironmentMixin(object):
 
 
 class ActionAuthenticatorMixin(object):
-
     request_count: ClassVar[int] = 0
 
     def _authenticate_and_authorize_action(self, iam_request_cls: type) -> None:
@@ -204,7 +207,6 @@ class ActionAuthenticatorMixin(object):
 
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
-
     default_region = "us-east-1"
     # to extract region, use [^.]
     # Note that the URL region can be anything, thanks to our MOTO_ALLOW_NONEXISTENT_REGION-config - so we can't have a very specific regex

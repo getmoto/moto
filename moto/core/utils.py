@@ -315,7 +315,7 @@ def params_sort_function(item):
     alphabetical ordre into consideration
     """
     key, _ = item
-    if key.startswith('Tags.member'):
-        member_num = int(key.split('.')[2])
-        return ('Tags.member', member_num)
+    if key.startswith("Tags.member"):
+        member_num = int(key.split(".")[2])
+        return ("Tags.member", member_num)
     return item
