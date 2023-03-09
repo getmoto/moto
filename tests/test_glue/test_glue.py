@@ -83,6 +83,9 @@ def test_get_job_exists():
         "SecurityConfiguration": "test_config",
         "NotificationProperty": {"NotifyDelayAfter": 123},
         "GlueVersion": "string",
+        "CodeGenConfigurationNodes": {},
+        "ExecutionClass": "string",
+        "SourceControlDetails": {},
     }
     job_name = create_test_job_w_all_attributes(client, **job_attributes)
     job = client.get_job(JobName=job_name)["Job"]
@@ -107,6 +110,9 @@ def test_get_job_exists():
     job.should.have.key("SecurityConfiguration")
     job.should.have.key("NotificationProperty")
     job.should.have.key("GlueVersion")
+    job.should.have.key("CodeGenConfigurationNodes")
+    job.should.have.key("ExecutionClass")
+    job.should.have.key("SourceControlDetails")
 
 
 @mock_glue
