@@ -6055,11 +6055,11 @@
 
 ## secretsmanager
 <details>
-<summary>72% implemented</summary>
+<summary>81% implemented</summary>
 
 - [X] cancel_rotate_secret
 - [X] create_secret
-- [ ] delete_resource_policy
+- [X] delete_resource_policy
 - [X] delete_secret
 - [X] describe_secret
 - [X] get_random_password
@@ -6067,7 +6067,7 @@
 - [X] get_secret_value
 - [X] list_secret_version_ids
 - [X] list_secrets
-- [ ] put_resource_policy
+- [X] put_resource_policy
 - [X] put_secret_value
 - [ ] remove_regions_from_replication
 - [ ] replicate_secret_to_regions

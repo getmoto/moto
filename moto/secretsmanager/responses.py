@@ -174,6 +174,17 @@ class SecretsManagerResponse(BaseResponse):
         secret_id = self._get_param("SecretId")
         return self.backend.get_resource_policy(secret_id=secret_id)
 
+    def put_resource_policy(self):
+        secret_id = self._get_param("SecretId")
+        policy = self._get_param("ResourcePolicy")
+        arn, name = self.backend.put_resource_policy(secret_id, policy)
+        return json.dumps(dict(ARN=arn, Name=name))
+
+    def delete_resource_policy(self):
+        secret_id = self._get_param("SecretId")
+        arn, name = self.backend.delete_resource_policy(secret_id)
+        return json.dumps(dict(ARN=arn, Name=name))
+
     def tag_resource(self):
         secret_id = self._get_param("SecretId")
         tags = self._get_param("Tags", if_none=[])
