@@ -231,8 +231,18 @@ def test_s3_copy_object_for_deep_archive_storage_class_restored():
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="DEEP_ARCHIVE"
     )
 
+    with pytest.raises(ClientError) as exc:
+        s3.get_object(Bucket="Bucket", Key="First_Object")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidObjectState")
+    err["Message"].should.equal(
+        "The operation is not valid for the object's storage class"
+    )
+    err["StorageClass"].should.equal("DEEP_ARCHIVE")
+
     s3.create_bucket(Bucket="Bucket2")
     s3.restore_object(Bucket="Bucket", Key="First_Object", RestoreRequest={"Days": 123})
+    s3.get_object(Bucket="Bucket", Key="First_Object")
 
     s3.copy_object(
         CopySource={"Bucket": "Bucket", "Key": "First_Object"},
