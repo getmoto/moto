@@ -309,7 +309,7 @@ class GlueResponse(BaseResponse):
         glue_version = self._get_param("GlueVersion")
         number_of_workers = self._get_int_param("NumberOfWorkers")
         worker_type = self._get_param("WorkerType")
-        code_gen_configuration_nodes =  self._get_param("CodeGenConfigurationNodes")
+        code_gen_configuration_nodes = self._get_param("CodeGenConfigurationNodes")
         execution_class = self._get_param("ExecutionClass")
         source_control_details = self._get_param("SourceControlDetails")
         name = self.glue_backend.create_job(
