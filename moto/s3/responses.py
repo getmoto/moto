@@ -1319,7 +1319,9 @@ class S3Response(BaseResponse):
             response_headers["x-amz-version-id"] = key.version_id
 
         if key.storage_class in ARCHIVE_STORAGE_CLASSES:
-            if 'ongoing-request="false"' not in key.response_dict.get("x-amz-restore", ""):
+            if 'ongoing-request="false"' not in key.response_dict.get(
+                "x-amz-restore", ""
+            ):
                 raise InvalidObjectState(storage_class=key.storage_class)
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
