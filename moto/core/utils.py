@@ -2,7 +2,7 @@ import datetime
 import inspect
 import re
 from botocore.exceptions import ClientError
-from typing import Any, Optional, List, Callable, Dict
+from typing import Any, Optional, List, Callable, Dict, Tuple
 from urllib.parse import urlparse
 from .common_types import TYPE_RESPONSE
 
