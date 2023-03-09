@@ -309,7 +309,7 @@ def extract_region_from_aws_authorization(string: str) -> Optional[str]:
     return region
 
 
-def params_sort_function(item: tuple[str, Any]) -> tuple[str, Any]:
+def params_sort_function(item: Tuple[str, Any]) -> Tuple[str, Any]:
     """
     Comparison function used to sort params appropriately taking tags non
     alphabetical order into consideration
