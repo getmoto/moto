@@ -13,7 +13,6 @@ from moto.glacier import glacier_backends
 from moto.redshift import redshift_backends
 from moto.emr import emr_backends
 from moto.awslambda import lambda_backends
-from moto.cloudformation import cloudformation_backends
 from moto.ecs import ecs_backends
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
@@ -109,13 +108,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return lambda_backends[self.account_id][self.region_name]
 
     @property
-    def cloudformation_backend(self):
-        """
-        :rtype: moto.cloudformation.models.CloudFormationBackend
-        """
-        return cloudformation_backends[self.account_id][self.region_name]
-
-    @property
     def ecs_backend(self):
         """
         :rtype: moto.ecs.models.EcsnBackend
@@ -183,11 +175,19 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
-            for stack in self.cloudformation_backend.stacks.values():
-                tags = format_tags(stack.tags)
-                if not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{stack.stack_id}", "Tags": tags}
+
+            try:
+                from moto.cloudformation import cloudformation_backends
+
+                backend = cloudformation_backends[self.account_id][self.region_name]
+
+                for stack in backend.stacks.values():
+                    tags = format_tags(stack.tags)
+                    if not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{stack.stack_id}", "Tags": tags}
+            except Exception:
+                yield {}
 
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
