@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 # Standard library modules
 import unittest
 

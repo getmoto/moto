@@ -265,6 +265,22 @@ events:
   - TestAccEventsConnection
   - TestAccEventsConnectionDataSource
   - TestAccEventsPermission
+firehose:
+  - TestAccFirehoseDeliveryStreamDataSource_basic
+  - TestAccFirehoseDeliveryStream_basic
+  - TestAccFirehoseDeliveryStream_missingProcessing
+  - TestAccFirehoseDeliveryStream_HTTPEndpoint_retryDuration
+  - TestAccFirehoseDeliveryStream_ExtendedS3_
+  - TestAccFirehoseDeliveryStream_extendedS3DynamicPartitioningUpdate
+  - TestAccFirehoseDeliveryStream_extendedS3DynamicPartitioning
+  - TestAccFirehoseDeliveryStream_extendedS3KMSKeyARN
+  - TestAccFirehoseDeliveryStream_ExtendedS3Processing_empty
+  - TestAccFirehoseDeliveryStream_extendedS3Updates
+  - TestAccFirehoseDeliveryStream_s3
+  - TestAccFirehoseDeliveryStream_HTTP
+  - TestAccFirehoseDeliveryStream_http
+  - TestAccFirehoseDeliveryStream_splunk
+  - TestAccFirehoseDeliveryStream_Splunk
 glue:
   - TestAccGlueSchema_
 guardduty:

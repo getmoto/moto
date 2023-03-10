@@ -1,11 +1,11 @@
 """Unit tests for dax-supported APIs."""
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
-
 from botocore.exceptions import ClientError
+
 from moto import mock_dax
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -21,31 +21,28 @@ def test_create_cluster_minimal():
         ReplicationFactor=3,
         IamRoleArn=iam_role_arn,
     )["Cluster"]
-
     described_cluster = client.describe_clusters(ClusterNames=["daxcluster"])[
         "Clusters"
     ][0]
 
     for cluster in [created_cluster, described_cluster]:
-        cluster["ClusterName"].should.equal("daxcluster")
-        cluster["ClusterArn"].should.equal(
-            f"arn:aws:dax:us-east-2:{ACCOUNT_ID}:cache/daxcluster"
+        assert cluster["ClusterName"] == "daxcluster"
+        assert (
+            cluster["ClusterArn"]
+            == f"arn:aws:dax:us-east-2:{ACCOUNT_ID}:cache/daxcluster"
         )
-        cluster["TotalNodes"].should.equal(3)
-        cluster["ActiveNodes"].should.equal(0)
-        cluster["NodeType"].should.equal("dax.t3.small")
-        cluster["Status"].should.equal("creating")
-        cluster["ClusterDiscoveryEndpoint"].should.equal({"Port": 8111})
-        cluster["PreferredMaintenanceWindow"].should.equal("thu:23:30-fri:00:30")
-        cluster["SubnetGroup"].should.equal("default")
-        cluster["SecurityGroups"].should.have.length_of(1)
-        cluster["IamRoleArn"].should.equal(iam_role_arn)
-        cluster.should.have.key("ParameterGroup")
-        cluster["ParameterGroup"].should.have.key("ParameterGroupName").equals(
-            "default.dax1.0"
-        )
-        cluster["SSEDescription"].should.equal({"Status": "DISABLED"})
-        cluster.should.have.key("ClusterEndpointEncryptionType").equals("NONE")
+        assert cluster["TotalNodes"] == 3
+        assert cluster["ActiveNodes"] == 0
+        assert cluster["NodeType"] == "dax.t3.small"
+        assert cluster["Status"] == "creating"
+        assert cluster["ClusterDiscoveryEndpoint"] == {"Port": 8111}
+        assert cluster["PreferredMaintenanceWindow"] == "thu:23:30-fri:00:30"
+        assert cluster["SubnetGroup"] == "default"
+        assert len(cluster["SecurityGroups"]) == 1
+        assert cluster["IamRoleArn"] == iam_role_arn
+        assert cluster["ParameterGroup"]["ParameterGroupName"] == "default.dax1.0"
+        assert cluster["SSEDescription"] == {"Status": "DISABLED"}
+        assert cluster["ClusterEndpointEncryptionType"] == "NONE"
 
 
 @mock_dax
@@ -59,14 +56,13 @@ def test_create_cluster_description():
         ReplicationFactor=3,
         IamRoleArn=iam_role_arn,
     )["Cluster"]
-
     described_cluster = client.describe_clusters(ClusterNames=["daxcluster"])[
         "Clusters"
     ][0]
 
     for cluster in [created_cluster, described_cluster]:
-        cluster["ClusterName"].should.equal("daxcluster")
-        cluster["Description"].should.equal("my cluster")
+        assert cluster["ClusterName"] == "daxcluster"
+        assert cluster["Description"] == "my cluster"
 
 
 @mock_dax
@@ -81,94 +77,46 @@ def test_create_cluster_with_sse_enabled():
         SSESpecification={"Enabled": True},
         ClusterEndpointEncryptionType="TLS",
     )["Cluster"]
-
     described_cluster = client.describe_clusters(ClusterNames=["daxcluster"])[
         "Clusters"
     ][0]
 
     for cluster in [created_cluster, described_cluster]:
-        cluster["ClusterName"].should.equal("daxcluster")
-        cluster["SSEDescription"].should.equal({"Status": "ENABLED"})
-        cluster["ClusterEndpointEncryptionType"].should.equal("TLS")
+        assert cluster["ClusterName"] == "daxcluster"
+        assert cluster["SSEDescription"] == {"Status": "ENABLED"}
+        assert cluster["ClusterEndpointEncryptionType"] == "TLS"
 
 
 @mock_dax
-def test_create_cluster_invalid_arn():
+@pytest.mark.parametrize(
+    "iam_role,expected",
+    (
+        ("n/a", "ARNs must start with 'arn:': n/a"),
+        ("arn:sth", "Second colon partition not found: arn:sth"),
+        ("arn:sth:aws", "Third colon vendor not found: arn:sth:aws"),
+        (
+            "arn:sth:aws:else",
+            "Fourth colon (region/namespace delimiter) not found: arn:sth:aws:else",
+        ),
+        (
+            "arn:sth:aws:else:eu-west-1",
+            "Fifth colon (namespace/relative-id delimiter) not found: arn:sth:aws:else:eu-west-1",
+        ),
+    ),
+)
+def test_create_cluster_invalid_arn(iam_role: str, expected: str):
     client = boto3.client("dax", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
         client.create_cluster(
             ClusterName="1invalid",
             NodeType="dax.t3.small",
             ReplicationFactor=3,
-            IamRoleArn="n/a",
+            IamRoleArn=iam_role,
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValueException")
-    err["Message"].should.equal("ARNs must start with 'arn:': n/a")
 
-
-@mock_dax
-def test_create_cluster_invalid_arn_no_partition():
-    client = boto3.client("dax", region_name="eu-west-1")
-    with pytest.raises(ClientError) as exc:
-        client.create_cluster(
-            ClusterName="1invalid",
-            NodeType="dax.t3.small",
-            ReplicationFactor=3,
-            IamRoleArn="arn:sth",
-        )
-    err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValueException")
-    err["Message"].should.equal("Second colon partition not found: arn:sth")
-
-
-@mock_dax
-def test_create_cluster_invalid_arn_no_vendor():
-    client = boto3.client("dax", region_name="eu-west-1")
-    with pytest.raises(ClientError) as exc:
-        client.create_cluster(
-            ClusterName="1invalid",
-            NodeType="dax.t3.small",
-            ReplicationFactor=3,
-            IamRoleArn="arn:sth:aws",
-        )
-    err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValueException")
-    err["Message"].should.equal("Third colon vendor not found: arn:sth:aws")
-
-
-@mock_dax
-def test_create_cluster_invalid_arn_no_region():
-    client = boto3.client("dax", region_name="eu-west-1")
-    with pytest.raises(ClientError) as exc:
-        client.create_cluster(
-            ClusterName="1invalid",
-            NodeType="dax.t3.small",
-            ReplicationFactor=3,
-            IamRoleArn="arn:sth:aws:else",
-        )
-    err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValueException")
-    err["Message"].should.equal(
-        "Fourth colon (region/namespace delimiter) not found: arn:sth:aws:else"
-    )
-
-
-@mock_dax
-def test_create_cluster_invalid_arn_no_namespace():
-    client = boto3.client("dax", region_name="eu-west-1")
-    with pytest.raises(ClientError) as exc:
-        client.create_cluster(
-            ClusterName="1invalid",
-            NodeType="dax.t3.small",
-            ReplicationFactor=3,
-            IamRoleArn="arn:sth:aws:else:eu-west-1",
-        )
-    err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValueException")
-    err["Message"].should.equal(
-        "Fifth colon (namespace/relative-id delimiter) not found: arn:sth:aws:else:eu-west-1"
-    )
+    assert err["Code"] == "InvalidParameterValueException"
+    assert err["Message"] == expected
 
 
 @mock_dax
@@ -177,7 +125,6 @@ def test_create_cluster_invalid_arn_no_namespace():
 )
 def test_create_cluster_invalid_name(name):
     client = boto3.client("dax", region_name="eu-west-1")
-
     with pytest.raises(ClientError) as exc:
         client.create_cluster(
             ClusterName=name,
@@ -186,8 +133,9 @@ def test_create_cluster_invalid_name(name):
             IamRoleArn="arn:aws:iam::486285699788:role/apigatewayrole",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValueException")
-    err["Message"].should.equal(
+
+    assert err["Code"] == "InvalidParameterValueException"
+    assert err["Message"] == (
         "Cluster ID specified is not a valid identifier. Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; and must not end with a hyphen or contain two consecutive hyphens."
     )
 
@@ -198,7 +146,6 @@ def test_create_cluster_invalid_name(name):
 )
 def test_describe_clusters_invalid_name(name):
     client = boto3.client("dax", region_name="eu-west-1")
-
     with pytest.raises(ClientError) as exc:
         client.describe_clusters(ClusterNames=[name])
     err = exc.value.response["Error"]
@@ -211,19 +158,17 @@ def test_describe_clusters_invalid_name(name):
 @mock_dax
 def test_delete_cluster_unknown():
     client = boto3.client("dax", region_name="eu-west-1")
-
     with pytest.raises(ClientError) as exc:
         client.delete_cluster(ClusterName="unknown")
-
     err = exc.value.response["Error"]
-    err["Code"].should.equals("ClusterNotFoundFault")
-    err["Message"].should.equal("Cluster not found.")
+
+    assert err["Code"] == "ClusterNotFoundFault"
+    assert err["Message"] == "Cluster not found."
 
 
 @mock_dax
 def test_delete_cluster():
     client = boto3.client("dax", region_name="eu-west-1")
-
     iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX"
     client.create_cluster(
         ClusterName="daxcluster",
@@ -231,32 +176,33 @@ def test_delete_cluster():
         ReplicationFactor=2,
         IamRoleArn=iam_role_arn,
     )
-
     client.delete_cluster(ClusterName="daxcluster")
 
     for _ in range(0, 3):
         # Cluster takes a while to delete...
         cluster = client.describe_clusters(ClusterNames=["daxcluster"])["Clusters"][0]
-        cluster["Status"].should.equal("deleting")
-        cluster["TotalNodes"].should.equal(2)
-        cluster["ActiveNodes"].should.equal(0)
-        cluster.shouldnt.have.key("Nodes")
+
+        assert cluster["Status"] == "deleting"
+        assert cluster["TotalNodes"] == 2
+        assert cluster["ActiveNodes"] == 0
+        assert "Nodes" not in cluster
 
     with pytest.raises(ClientError) as exc:
         client.describe_clusters(ClusterNames=["daxcluster"])
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ClusterNotFoundFault")
+
+    assert err["Code"] == "ClusterNotFoundFault"
 
 
 @mock_dax
 def test_describe_cluster_unknown():
     client = boto3.client("dax", region_name="eu-west-1")
-
     with pytest.raises(ClientError) as exc:
         client.describe_clusters(ClusterNames=["unknown"])
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ClusterNotFoundFault")
-    err["Message"].should.equal("Cluster unknown not found.")
+
+    assert err["Code"] == "ClusterNotFoundFault"
+    assert err["Message"] == "Cluster unknown not found."
 
 
 @mock_dax
@@ -271,8 +217,7 @@ def test_describe_clusters_returns_all():
             IamRoleArn=iam_role_arn,
         )
 
-    clusters = client.describe_clusters()["Clusters"]
-    clusters.should.have.length_of(50)
+    assert len(client.describe_clusters()["Clusters"]) == 50
 
 
 @mock_dax
@@ -288,99 +233,81 @@ def test_describe_clusters_paginates():
         )
 
     resp = client.describe_clusters(MaxResults=10)
-    resp["Clusters"].should.have.length_of(10)
-    resp.should.have.key("NextToken")
+    assert len(resp["Clusters"]) == 10
+    assert "NextToken" in resp
 
     resp = client.describe_clusters(MaxResults=10, NextToken=resp["NextToken"])
-    resp["Clusters"].should.have.length_of(10)
-    resp.should.have.key("NextToken")
+    assert len(resp["Clusters"]) == 10
+    assert "NextToken" in resp
 
     resp = client.describe_clusters(NextToken=resp["NextToken"])
-    resp["Clusters"].should.have.length_of(30)
-    resp.shouldnt.have.key("NextToken")
+    assert len(resp["Clusters"]) == 30
+    assert "NextToken" not in resp
 
 
 @mock_dax
 def test_describe_clusters_returns_nodes_after_some_time():
     client = boto3.client("dax", region_name="us-east-2")
+    iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX"
     client.create_cluster(
         ClusterName="daxcluster",
         NodeType="dax.t3.small",
         ReplicationFactor=3,
-        IamRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX",
-    )["Cluster"]
+        IamRoleArn=iam_role_arn,
+    )
 
     for _ in range(0, 3):
         # Cluster takes a while to load...
         cluster = client.describe_clusters(ClusterNames=["daxcluster"])["Clusters"][0]
-        cluster["Status"].should.equal("creating")
-        cluster.shouldnt.have.key("Nodes")
+        assert cluster["Status"] == "creating"
+        assert "Nodes" not in cluster
 
     # Finished loading by now
     cluster = client.describe_clusters(ClusterNames=["daxcluster"])["Clusters"][0]
 
-    cluster["ClusterName"].should.equal("daxcluster")
-    cluster["ClusterArn"].should.equal(
-        f"arn:aws:dax:us-east-2:{ACCOUNT_ID}:cache/daxcluster"
-    )
-    cluster["TotalNodes"].should.equal(3)
-    cluster["ActiveNodes"].should.equal(0)
-    cluster["NodeType"].should.equal("dax.t3.small")
-    cluster["Status"].should.equal("available")
+    assert cluster["TotalNodes"].should.equal(3)
+    assert cluster["ActiveNodes"].should.equal(0)
+    assert cluster["Status"].should.equal("available")
 
     # Address Info is only available when the cluster is ready
-    cluster.should.have.key("ClusterDiscoveryEndpoint")
     endpoint = cluster["ClusterDiscoveryEndpoint"]
-    endpoint.should.have.key("Address")
     address = endpoint["Address"]
     cluster_id = address.split(".")[1]
-    address.should.equal(
-        f"daxcluster.{cluster_id}.dax-clusters.us-east-2.amazonaws.com"
-    )
-    endpoint.should.have.key("Port").equal(8111)
-    endpoint.should.have.key("URL").equal(f"dax://{address}")
+
+    assert address == f"daxcluster.{cluster_id}.dax-clusters.us-east-2.amazonaws.com"
+    assert endpoint["Port"] == 8111
+    assert endpoint["URL"] == f"dax://{address}"
 
     # Nodes are only shown when the cluster is ready
-    cluster.should.have.key("Nodes").length_of(3)
+    assert len(cluster["Nodes"]) == 3
+
     for idx, a in enumerate(["a", "b", "c"]):
         node = cluster["Nodes"][idx]
-        node.should.have.key("NodeId").equals(f"daxcluster-{a}")
-        node.should.have.key("Endpoint")
-        node_address = (
+        expected_node_address = (
             f"daxcluster-{a}.{cluster_id}.nodes.dax-clusters.us-east-2.amazonaws.com"
         )
-        node["Endpoint"].should.have.key("Address").equals(node_address)
-        node["Endpoint"].should.have.key("Port").equals(8111)
-        node.should.contain("AvailabilityZone")
-        node.should.have.key("NodeStatus").equals("available")
-        node.should.have.key("ParameterGroupStatus").equals("in-sync")
 
-    cluster["PreferredMaintenanceWindow"].should.equal("thu:23:30-fri:00:30")
-    cluster["SubnetGroup"].should.equal("default")
-    cluster["SecurityGroups"].should.have.length_of(1)
-    cluster.should.have.key("ParameterGroup")
-    cluster["ParameterGroup"].should.have.key("ParameterGroupName").equals(
-        "default.dax1.0"
-    )
-    cluster["SSEDescription"].should.equal({"Status": "DISABLED"})
-    cluster.should.have.key("ClusterEndpointEncryptionType").equals("NONE")
+        assert node["NodeId"] == f"daxcluster-{a}"
+        assert node["Endpoint"]["Address"] == expected_node_address
+        assert node["Endpoint"]["Port"] == 8111
+        assert "AvailabilityZone" in node
+        assert node["NodeStatus"] == "available"
+        assert node["ParameterGroupStatus"] == "in-sync"
 
 
 @mock_dax
 def test_list_tags_unknown():
     client = boto3.client("dax", region_name="ap-southeast-1")
-
     with pytest.raises(ClientError) as exc:
         client.list_tags(ResourceName="unknown")
-
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ClusterNotFoundFault")
+
+    assert err["Code"] == "ClusterNotFoundFault"
 
 
 @mock_dax
 def test_list_tags():
     client = boto3.client("dax", region_name="ap-southeast-1")
-
     cluster = client.create_cluster(
         ClusterName="daxcluster",
         NodeType="dax.t3.small",
@@ -396,8 +323,8 @@ def test_list_tags():
     for name in ["daxcluster", cluster["ClusterArn"]]:
         resp = client.list_tags(ResourceName=name)
 
-        resp.shouldnt.have.key("NextToken")
-        resp.should.have.key("Tags").equals(
+        assert "NextToken" not in resp
+        assert resp["Tags"] == (
             [
                 {"Key": "tag1", "Value": "value1"},
                 {"Key": "tag2", "Value": "value2"},
@@ -409,20 +336,18 @@ def test_list_tags():
 @mock_dax
 def test_increase_replication_factor_unknown():
     client = boto3.client("dax", region_name="ap-southeast-1")
-
     with pytest.raises(ClientError) as exc:
         client.increase_replication_factor(
             ClusterName="unknown", NewReplicationFactor=2
         )
-
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ClusterNotFoundFault")
+
+    assert err["Code"] == "ClusterNotFoundFault"
 
 
 @mock_dax
 def test_increase_replication_factor():
     client = boto3.client("dax", region_name="ap-southeast-1")
-
     name = "daxcluster"
     cluster = client.create_cluster(
         ClusterName=name,
@@ -435,23 +360,25 @@ def test_increase_replication_factor():
             {"Key": "tag3", "Value": "value3"},
         ],
     )["Cluster"]
-    cluster["TotalNodes"].should.equal(2)
 
-    new_cluster = client.increase_replication_factor(
+    assert cluster["TotalNodes"] == 2
+
+    adjusted_cluster = client.increase_replication_factor(
         ClusterName=name, NewReplicationFactor=5
     )["Cluster"]
-    new_cluster["TotalNodes"].should.equal(5)
+    described_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
 
-    new_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    new_cluster["TotalNodes"].should.equal(5)
+    assert adjusted_cluster["TotalNodes"] == 5
+    assert described_cluster["TotalNodes"] == 5
 
     # Progress cluster until it's available
-    client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    client.describe_clusters(ClusterNames=[name])["Clusters"][0]
+    for _ in range(0, 3):
+        client.describe_clusters(ClusterNames=[name])
 
-    cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    node_ids = set([n["NodeId"] for n in cluster["Nodes"]])
-    node_ids.should.equal(
+    described_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
+    node_ids = set([node["NodeId"] for node in described_cluster["Nodes"]])
+
+    assert node_ids == (
         {f"{name}-a", f"{name}-b", f"{name}-c", f"{name}-d", f"{name}-e"}
     )
 
@@ -459,81 +386,70 @@ def test_increase_replication_factor():
 @mock_dax
 def test_decrease_replication_factor_unknown():
     client = boto3.client("dax", region_name="ap-southeast-1")
-
     with pytest.raises(ClientError) as exc:
         client.decrease_replication_factor(
             ClusterName="unknown", NewReplicationFactor=2
         )
-
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ClusterNotFoundFault")
+
+    assert err["Code"] == "ClusterNotFoundFault"
 
 
 @mock_dax
 def test_decrease_replication_factor():
     client = boto3.client("dax", region_name="eu-west-1")
-
     name = "daxcluster"
     client.create_cluster(
         ClusterName=name,
         NodeType="dax.t3.small",
         ReplicationFactor=5,
         IamRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX",
-        Tags=[
-            {"Key": "tag1", "Value": "value1"},
-            {"Key": "tag2", "Value": "value2"},
-            {"Key": "tag3", "Value": "value3"},
-        ],
     )
 
-    new_cluster = client.decrease_replication_factor(
+    adjusted_cluster = client.decrease_replication_factor(
         ClusterName=name, NewReplicationFactor=3
     )["Cluster"]
-    new_cluster["TotalNodes"].should.equal(3)
+    described_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
 
-    new_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    new_cluster["TotalNodes"].should.equal(3)
+    assert adjusted_cluster["TotalNodes"] == 3
+    assert described_cluster["TotalNodes"] == 3
 
     # Progress cluster until it's available
-    client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    client.describe_clusters(ClusterNames=[name])["Clusters"][0]
+    for _ in range(0, 3):
+        client.describe_clusters(ClusterNames=[name])
 
-    cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    node_ids = set([n["NodeId"] for n in cluster["Nodes"]])
-    node_ids.should.equal({f"{name}-a", f"{name}-b", f"{name}-c"})
+    described_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
+    node_ids = set([node["NodeId"] for node in described_cluster["Nodes"]])
+
+    assert node_ids == ({f"{name}-a", f"{name}-b", f"{name}-c"})
 
 
 @mock_dax
 def test_decrease_replication_factor_specific_nodeids():
     client = boto3.client("dax", region_name="ap-southeast-1")
-
     name = "daxcluster"
     client.create_cluster(
         ClusterName=name,
         NodeType="dax.t3.small",
         ReplicationFactor=5,
         IamRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX",
-        Tags=[
-            {"Key": "tag1", "Value": "value1"},
-            {"Key": "tag2", "Value": "value2"},
-            {"Key": "tag3", "Value": "value3"},
-        ],
     )
 
-    new_cluster = client.decrease_replication_factor(
+    adjusted_cluster = client.decrease_replication_factor(
         ClusterName=name,
         NewReplicationFactor=3,
         NodeIdsToRemove=["daxcluster-b", "daxcluster-c"],
     )["Cluster"]
-    new_cluster["TotalNodes"].should.equal(3)
+    described_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
 
-    new_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    new_cluster["TotalNodes"].should.equal(3)
+    assert adjusted_cluster["TotalNodes"] == 3
+    assert described_cluster["TotalNodes"] == 3
 
     # Progress cluster until it's available
-    client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    client.describe_clusters(ClusterNames=[name])["Clusters"][0]
+    for _ in range(0, 3):
+        client.describe_clusters(ClusterNames=[name])
 
-    cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    node_ids = set([n["NodeId"] for n in cluster["Nodes"]])
-    node_ids.should.equal({f"{name}-a", f"{name}-d", f"{name}-e"})
+    described_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
+    node_ids = set([node["NodeId"] for node in described_cluster["Nodes"]])
+
+    assert node_ids == ({f"{name}-a", f"{name}-d", f"{name}-e"})
