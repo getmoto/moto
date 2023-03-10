@@ -37,13 +37,12 @@ jobs:
         role-to-assume: arn:aws:iam::486285699788:role/GithubActionsRole
 
     - name: Pull EC2 instance types from AWS
-      uses: technote-space/create-pr-action@v2
+      run: |
+        pip install boto3
+        scripts/get_instance_info.py
+    - name: Create PR
+      uses: peter-evans/create-pull-request@v4
       with:
-        EXECUTE_COMMANDS: |
-          pip install boto3
-          scripts/get_instance_info.py
-        COMMIT_MESSAGE: 'chore: update EC2 Instance Types'
-        COMMIT_NAME: 'Moto Admin'
-        COMMIT_EMAIL: 'admin@getmoto.org'
-        PR_BRANCH_NAME: 'chore-update-ec2-types-${{ github.run_number }}'
-        PR_TITLE: 'chore: update EC2 Instance Types'
+        branch: 'chore-update-ec2-types-${{ github.run_number }}'
+        title: 'chore: update EC2 Instance Types'
+        commit-message: 'chore: update EC2 Instance Types'
