@@ -1,5 +1,4 @@
 """Test different server responses."""
-import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 
@@ -9,5 +8,6 @@ def test_{{ escaped_service }}_list():
     test_client = backend.test_client()
 
     resp = test_client.get("/")
-    resp.status_code.should.equal(200)
-    str(resp.data).should.contain("?")
+
+    assert resp.status_code == 200
+    assert "?" in str(resp.data)
