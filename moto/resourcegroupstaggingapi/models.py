@@ -186,8 +186,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if not tag_filter(tags):
                         continue
                     yield {"ResourceARN": f"{stack.stack_id}", "Tags": tags}
+
             except Exception:
-                yield {}
+                pass
 
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
