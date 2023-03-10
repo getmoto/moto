@@ -345,6 +345,9 @@ class GlueBackend(BaseBackend):
         glue_version: str,
         number_of_workers: int,
         worker_type: str,
+        code_gen_configuration_nodes: Dict[str, Any],
+        execution_class: str,
+        source_control_details: Dict[str, str],
     ) -> None:
         self.jobs[name] = FakeJob(
             name,
@@ -366,6 +369,9 @@ class GlueBackend(BaseBackend):
             glue_version,
             number_of_workers,
             worker_type,
+            code_gen_configuration_nodes,
+            execution_class,
+            source_control_details,
             backend=self,
         )
 
@@ -1131,6 +1137,9 @@ class FakeJob:
         glue_version: str,
         number_of_workers: int,
         worker_type: str,
+        code_gen_configuration_nodes: Dict[str, Any],
+        execution_class: str,
+        source_control_details: Dict[str, str],
         backend: GlueBackend,
     ):
         self.name = name
@@ -1151,6 +1160,9 @@ class FakeJob:
         self.glue_version = glue_version
         self.number_of_workers = number_of_workers
         self.worker_type = worker_type
+        self.code_gen_configuration_nodes = code_gen_configuration_nodes
+        self.execution_class = execution_class or "STANDARD"
+        self.source_control_details = source_control_details
         self.created_on = datetime.utcnow()
         self.last_modified_on = datetime.utcnow()
         self.arn = (
@@ -1186,6 +1198,9 @@ class FakeJob:
             "SecurityConfiguration": self.security_configuration,
             "NotificationProperty": self.notification_property,
             "GlueVersion": self.glue_version,
+            "CodeGenConfigurationNodes": self.code_gen_configuration_nodes,
+            "ExecutionClass": self.execution_class,
+            "SourceControlDetails": self.source_control_details,
         }
 
     def start_job_run(self) -> str:
