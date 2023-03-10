@@ -1,8 +1,10 @@
+import logging
+
 import pytest
 
-from moto.core.exceptions import MotoDockerException
 from tests.markers import requires_docker
 
+logger = logging.getLogger(__name__)
 
 @requires_docker
 @pytest.mark.run(order=0)
@@ -10,7 +12,8 @@ def test_docker_package_is_available():
     try:
         import docker  # noqa: F401   # pylint: disable=unused-import
     except ImportError as err:
-        raise MotoDockerException(
+        logger.error("error running docker: %s", err)
+        assert False, (
             "Docker package cannot be imported. "
             + f"This causes various tests to fail. Err: {err}"
         )
@@ -25,7 +28,8 @@ def test_docker_is_running_and_available():
     try:
         docker.from_env()
     except DockerException as err:
-        raise MotoDockerException(
+        logger.error("error running docker: %s", err)
+        assert False, (
             "Docker seems not to be running. "
             + f"This causes various tests to fail. Err: {err}"
         )

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
@@ -14,8 +15,6 @@ from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL, EventMessageFilter
-from .. import settings
-from ..core.exceptions import MotoDockerException
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
 
@@ -185,13 +184,6 @@ class LogStream(BaseModel):
                         "The specified nextToken is invalid."
                     )
             return None, 0
-
-        # raising here, as putting the logs is done in a separate thread
-        # causing other issues if an error is raised at that time.
-        if settings.RAISE_DOCKER_EXCEPTION:
-            for event in self.events:
-                if "error running docker" in event.message:
-                    raise MotoDockerException(event.message)
 
         events = sorted(
             filter(filter_func, self.events), key=lambda event: event.timestamp

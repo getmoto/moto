@@ -24,7 +24,6 @@ import requests.exceptions
 
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError, MotoDockerException
 from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
@@ -58,7 +57,6 @@ from moto.utilities.docker_utilities import DockerModel, parse_image_ref
 from tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
-
 
 docker_3 = docker.__version__[0] >= "3"
 
@@ -830,6 +828,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         except docker.errors.DockerException as e:
             # Docker itself is probably not running - there will be no Lambda-logs to handle
             msg = f"error running docker: {e}"
+            logger.error(msg)
             self.save_logs(msg)
             return msg, True, ""
 
@@ -861,8 +860,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         res, errored, logs = self._invoke_lambda(event=body)
         if errored:
             response_headers["x-amz-function-error"] = "Handled"
-            if settings.RAISE_DOCKER_EXCEPTION and "error running docker" in res:
-                raise MotoDockerException(res)
 
         inv_type = request_headers.get("x-amz-invocation-type", "RequestResponse")
         if inv_type == "RequestResponse":
