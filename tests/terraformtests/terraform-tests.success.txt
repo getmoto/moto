@@ -455,7 +455,6 @@ sagemaker:
 secretsmanager:
   - TestAccSecretsManagerSecretDataSource_basic
   - TestAccSecretsManagerSecretPolicy_
-  - TestAccSecretsManagerSecret_basic
   - TestAccSecretsManagerSecret_RecoveryWindowInDays_recreate
   - TestAccSecretsManagerSecret_tags
   - TestAccSecretsManagerSecret_kmsKeyID
