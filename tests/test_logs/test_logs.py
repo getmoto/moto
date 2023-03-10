@@ -1407,19 +1407,11 @@ def test_create_export_raises_ResourceNotFoundException_log_group_not_found():
             destination=destination,
         )
 
-
 @mock_logs
-def test_describe_queries():
+def test_describe_queries_single_log_group():
     client = boto3.client("logs", "us-east-1")
-
-    for _ in range(3):
-        client.create_log_group(logGroupName=f"/aws/codebuild/{uuid.uuid4()}")
-
-    log_group_response = client.describe_log_groups(
-        logGroupNamePrefix="/aws/codebuild/",
-    )
-
-    log_group_name = log_group_response["logGroups"][0]["logGroupName"]
+    log_group_name = f"/aws/codebuild/{uuid.uuid4()}"
+    client.create_log_group(logGroupName=log_group_name)
 
     # Create query for single log group
     client.start_query(
@@ -1429,28 +1421,17 @@ def test_describe_queries():
         queryString="test",
     )
 
-    # Create query with multiple log groups
-    client.start_query(
-        logGroupNames=[
-            log_group_response["logGroups"][0]["logGroupName"],
-            log_group_response["logGroups"][1]["logGroupName"],
-        ],
-        startTime=int(time.time()),
-        endTime=int(time.time()) + 300,
-        queryString="test",
-    )
-
     # Test via logGroupName
     response = client.describe_queries(
         logGroupName=log_group_name,
     )
-    assert len(response["queries"]) == 2
+    assert len(response["queries"]) == 1
 
     # Test via status
     response = client.describe_queries(
         status="Complete",
     )
-    assert len(response["queries"]) == 2
+    assert len(response["queries"]) == 1
 
     response = client.describe_queries(
         status="Running",
@@ -1462,10 +1443,82 @@ def test_describe_queries():
         logGroupName=log_group_name,
         status="Complete",
     )
-    assert len(response["queries"]) == 2
+    assert len(response["queries"]) == 1
 
     response = client.describe_queries(
         logGroupName=log_group_name,
+        status="Running",
+    )
+    assert len(response["queries"]) == 0
+
+@mock_logs
+def test_describe_queries_multiple_log_groups():
+    client = boto3.client("logs", "us-east-1")
+
+    for _ in range(2):
+        client.create_log_group(logGroupName=f"/aws/codebuild/{uuid.uuid4()}")
+
+    log_group_response = client.describe_log_groups(
+        logGroupNamePrefix="/aws/codebuild/",
+    )
+
+    first_log_group_name = log_group_response["logGroups"][0]["logGroupName"]
+    second_log_group_name = log_group_response["logGroups"][1]["logGroupName"]
+
+    # Create query with multiple log groups
+    client.start_query(
+        logGroupNames=[
+            first_log_group_name,
+            second_log_group_name,
+        ],
+        startTime=int(time.time()),
+        endTime=int(time.time()) + 300,
+        queryString="test",
+    )
+
+    # Test via logGroupName
+    response = client.describe_queries(
+        logGroupName=first_log_group_name,
+    )
+    assert len(response["queries"]) == 1
+
+    response = client.describe_queries(
+        logGroupName=second_log_group_name,
+    )
+    assert len(response["queries"]) == 1
+
+    # Test via status
+    response = client.describe_queries(
+        status="Complete",
+    )
+    assert len(response["queries"]) == 1
+
+    response = client.describe_queries(
+        status="Running",
+    )
+    assert len(response["queries"]) == 0
+
+    # Test via status and logGroupName
+    response = client.describe_queries(
+        logGroupName=first_log_group_name,
+        status="Complete",
+    )
+    assert len(response["queries"]) == 1
+
+    response = client.describe_queries(
+        logGroupName=first_log_group_name,
+        status="Running",
+    )
+    assert len(response["queries"]) == 0
+
+    response = client.describe_queries(
+        logGroupName=second_log_group_name,
+        status="Complete",
+    )
+    assert len(response["queries"]) == 1
+
+    response = client.describe_queries(
+        logGroupName=second_log_group_name,
         status="Running",
     )
     assert len(response["queries"]) == 0
