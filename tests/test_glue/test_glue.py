@@ -89,30 +89,30 @@ def test_get_job_exists():
     }
     job_name = create_test_job_w_all_attributes(client, **job_attributes)
     job = client.get_job(JobName=job_name)["Job"]
-    job.should.have.key("Name").equals(job_name)
-    job.should.have.key("Description")
-    job.should.have.key("LogUri")
-    job.should.have.key("Role")
-    job.should.have.key("ExecutionProperty").equals({"MaxConcurrentRuns": 123})
-    job.should.have.key("CreatedOn")
-    job.should.have.key("LastModifiedOn")
-    job.should.have.key("ExecutionProperty")
-    job.should.have.key("Command")
-    job.should.have.key("DefaultArguments")
-    job.should.have.key("NonOverridableArguments")
-    job.should.have.key("Connections")
-    job.should.have.key("MaxRetries")
-    job.should.have.key("AllocatedCapacity")
-    job.should.have.key("Timeout")
-    job.should.have.key("MaxCapacity")
-    job.should.have.key("WorkerType")
-    job.should.have.key("NumberOfWorkers")
-    job.should.have.key("SecurityConfiguration")
-    job.should.have.key("NotificationProperty")
-    job.should.have.key("GlueVersion")
-    job.should.have.key("CodeGenConfigurationNodes")
-    job.should.have.key("ExecutionClass")
-    job.should.have.key("SourceControlDetails")
+    assert job["Name"] == job_name
+    assert "Description" in job
+    assert "LogUri" in job
+    assert "Role" in job
+    assert job["ExecutionProperty"] == {"MaxConcurrentRuns": 123}
+    assert "CreatedOn" in job
+    assert "LastModifiedOn" in job
+    assert "ExecutionProperty" in job
+    assert "Command" in job
+    assert "DefaultArguments" in job
+    assert "NonOverridableArguments" in job
+    assert "Connections" in job
+    assert "MaxRetries" in job
+    assert "AllocatedCapacity" in job
+    assert "Timeout" in job
+    assert "MaxCapacity" in job
+    assert "WorkerType" in job
+    assert "NumberOfWorkers" in job
+    assert "SecurityConfiguration" in job
+    assert "NotificationProperty" in job
+    assert "GlueVersion" in job
+    assert "CodeGenConfigurationNodes" in job
+    assert "ExecutionClass" in job
+    assert "SourceControlDetails" in job
 
 
 @mock_glue
