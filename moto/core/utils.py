@@ -2,7 +2,7 @@ import datetime
 import inspect
 import re
 from botocore.exceptions import ClientError
-from typing import Any, Optional, List, Callable, Dict
+from typing import Any, Optional, List, Callable, Dict, Tuple
 from urllib.parse import urlparse
 from .common_types import TYPE_RESPONSE
 
@@ -307,3 +307,15 @@ def extract_region_from_aws_authorization(string: str) -> Optional[str]:
     if region == auth:
         return None
     return region
+
+
+def params_sort_function(item: Tuple[str, Any]) -> Tuple[str, Any]:
+    """
+    Comparison function used to sort params appropriately taking tags non
+    alphabetical order into consideration
+    """
+    key, _ = item
+    if key.startswith("Tags.member"):
+        member_num = int(key.split(".")[2])
+        return ("Tags.member", member_num)
+    return item

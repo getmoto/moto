@@ -38,14 +38,13 @@ jobs:
         role-to-assume: arn:aws:iam::486285699788:role/GithubActionsRole
 
     - name: Pull SSM default Parameters from AWS
-      uses: technote-space/create-pr-action@v2
+      run: |
+        pip install boto3
+        pip install moto[all]
+        python scripts/ssm_get_default_params.py
+    - name: Create PR
+      uses: peter-evans/create-pull-request@v4
       with:
-        EXECUTE_COMMANDS: |
-          pip install boto3
-          pip install moto[all]
-          python scripts/ssm_get_default_params.py
-        COMMIT_MESSAGE: "chore: update SSM default parameters"
-        COMMIT_NAME: 'Moto Admin'
-        COMMIT_EMAIL: 'admin@getmoto.org'
-        PR_BRANCH_NAME: 'chore-update-ssm-params-${{ github.run_number }}'
-        PR_TITLE: "chore: update SSM Instance parameters"
+        branch: 'chore-update-ssm-params-${{ github.run_number }}'
+        title: "chore: update SSM Instance parameters"
+        commit-message: "chore: update SSM default parameters"

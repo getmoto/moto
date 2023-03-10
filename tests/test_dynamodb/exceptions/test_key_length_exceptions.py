@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import boto3
 import sure  # noqa # pylint: disable=unused-import
 import pytest
