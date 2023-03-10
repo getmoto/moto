@@ -24,6 +24,7 @@ import requests.exceptions
 
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException

@@ -1,10 +1,7 @@
-import logging
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
 from typing import Any, List, Tuple, Optional
 import json
-
-from moto import settings
 
 # TODO: add "<Type>Sender</Type>" to error responses below?
 

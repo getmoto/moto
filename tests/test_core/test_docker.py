@@ -6,6 +6,7 @@ from tests.markers import requires_docker
 
 logger = logging.getLogger(__name__)
 
+
 @requires_docker
 @pytest.mark.run(order=0)
 def test_docker_package_is_available():
