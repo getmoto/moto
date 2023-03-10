@@ -15,6 +15,7 @@ from random import randint
 from uuid import uuid4
 from unittest import SkipTest
 
+
 @mock_ec2
 def test_create_and_describe_security_group():
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -564,11 +565,6 @@ def test_authorize_all_protocols_with_no_port_specification():
 
 @mock_ec2
 def test_create_and_describe_security_grp_rule():
-    ip_protocol = "tcp"
-    from_port = 27017
-    to_port = 27017
-    cidr_ip_range = "1.2.3.4/32"
-
     ec2 = boto3.resource("ec2", "us-east-1")
     client = boto3.client("ec2", "us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
