@@ -171,7 +171,9 @@ class TaggingService:
         )
 
     @staticmethod
-    def convert_dict_to_tags_input(tags: Dict[str, str]) -> List[Dict[str, str]]:
+    def convert_dict_to_tags_input(
+        tags: Optional[Dict[str, str]]
+    ) -> List[Dict[str, str]]:
         """Given a dictionary, return generic boto params for tags"""
         if not tags:
             return []

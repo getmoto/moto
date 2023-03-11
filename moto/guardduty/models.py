@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api._internal import mock_random
 from datetime import datetime
@@ -6,12 +7,18 @@ from .exceptions import DetectorNotFoundException, FilterNotFoundException
 
 
 class GuardDutyBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.admin_account_ids = []
-        self.detectors = {}
+        self.admin_account_ids: List[str] = []
+        self.detectors: Dict[str, Detector] = {}
 
-    def create_detector(self, enable, finding_publishing_frequency, data_sources, tags):
+    def create_detector(
+        self,
+        enable: bool,
+        finding_publishing_frequency: str,
+        data_sources: Dict[str, Any],
+        tags: Dict[str, str],
+    ) -> str:
         if finding_publishing_frequency not in [
             "FIFTEEN_MINUTES",
             "ONE_HOUR",
@@ -31,29 +38,35 @@ class GuardDutyBackend(BaseBackend):
         return detector.id
 
     def create_filter(
-        self, detector_id, name, action, description, finding_criteria, rank
-    ):
+        self,
+        detector_id: str,
+        name: str,
+        action: str,
+        description: str,
+        finding_criteria: Dict[str, Any],
+        rank: int,
+    ) -> None:
         detector = self.get_detector(detector_id)
         _filter = Filter(name, action, description, finding_criteria, rank)
         detector.add_filter(_filter)
 
-    def delete_detector(self, detector_id):
+    def delete_detector(self, detector_id: str) -> None:
         self.detectors.pop(detector_id, None)
 
-    def delete_filter(self, detector_id, filter_name):
+    def delete_filter(self, detector_id: str, filter_name: str) -> None:
         detector = self.get_detector(detector_id)
         detector.delete_filter(filter_name)
 
-    def enable_organization_admin_account(self, admin_account_id):
+    def enable_organization_admin_account(self, admin_account_id: str) -> None:
         self.admin_account_ids.append(admin_account_id)
 
-    def list_organization_admin_accounts(self):
+    def list_organization_admin_accounts(self) -> List[str]:
         """
         Pagination is not yet implemented
         """
         return self.admin_account_ids
 
-    def list_detectors(self):
+    def list_detectors(self) -> List[str]:
         """
         The MaxResults and NextToken-parameter have not yet been implemented.
         """
@@ -62,24 +75,34 @@ class GuardDutyBackend(BaseBackend):
             detectorids.append(self.detectors[detector].id)
         return detectorids
 
-    def get_detector(self, detector_id):
+    def get_detector(self, detector_id: str) -> "Detector":
         if detector_id not in self.detectors:
             raise DetectorNotFoundException
         return self.detectors[detector_id]
 
-    def get_filter(self, detector_id, filter_name):
+    def get_filter(self, detector_id: str, filter_name: str) -> "Filter":
         detector = self.get_detector(detector_id)
         return detector.get_filter(filter_name)
 
     def update_detector(
-        self, detector_id, enable, finding_publishing_frequency, data_sources
-    ):
+        self,
+        detector_id: str,
+        enable: bool,
+        finding_publishing_frequency: str,
+        data_sources: Dict[str, Any],
+    ) -> None:
         detector = self.get_detector(detector_id)
         detector.update(enable, finding_publishing_frequency, data_sources)
 
     def update_filter(
-        self, detector_id, filter_name, action, description, finding_criteria, rank
-    ):
+        self,
+        detector_id: str,
+        filter_name: str,
+        action: str,
+        description: str,
+        finding_criteria: Dict[str, Any],
+        rank: int,
+    ) -> None:
         detector = self.get_detector(detector_id)
         detector.update_filter(
             filter_name,
@@ -91,14 +114,27 @@ class GuardDutyBackend(BaseBackend):
 
 
 class Filter(BaseModel):
-    def __init__(self, name, action, description, finding_criteria, rank):
+    def __init__(
+        self,
+        name: str,
+        action: str,
+        description: str,
+        finding_criteria: Dict[str, Any],
+        rank: int,
+    ):
         self.name = name
         self.action = action
         self.description = description
         self.finding_criteria = finding_criteria
         self.rank = rank or 1
 
-    def update(self, action, description, finding_criteria, rank):
+    def update(
+        self,
+        action: Optional[str],
+        description: Optional[str],
+        finding_criteria: Optional[Dict[str, Any]],
+        rank: Optional[int],
+    ) -> None:
         if action is not None:
             self.action = action
         if description is not None:
@@ -108,7 +144,7 @@ class Filter(BaseModel):
         if rank is not None:
             self.rank = rank
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "action": self.action,
@@ -121,12 +157,12 @@ class Filter(BaseModel):
 class Detector(BaseModel):
     def __init__(
         self,
-        account_id,
-        created_at,
-        finding_publish_freq,
-        enabled,
-        datasources,
-        tags,
+        account_id: str,
+        created_at: datetime,
+        finding_publish_freq: str,
+        enabled: bool,
+        datasources: Dict[str, Any],
+        tags: Dict[str, str],
     ):
         self.id = mock_random.get_random_hex(length=32)
         self.created_at = created_at
@@ -137,20 +173,27 @@ class Detector(BaseModel):
         self.datasources = datasources or {}
         self.tags = tags or {}
 
-        self.filters = dict()
+        self.filters: Dict[str, Filter] = dict()
 
-    def add_filter(self, _filter: Filter):
+    def add_filter(self, _filter: Filter) -> None:
         self.filters[_filter.name] = _filter
 
-    def delete_filter(self, filter_name):
+    def delete_filter(self, filter_name: str) -> None:
         self.filters.pop(filter_name, None)
 
-    def get_filter(self, filter_name: str):
+    def get_filter(self, filter_name: str) -> Filter:
         if filter_name not in self.filters:
             raise FilterNotFoundException
         return self.filters[filter_name]
 
-    def update_filter(self, filter_name, action, description, finding_criteria, rank):
+    def update_filter(
+        self,
+        filter_name: str,
+        action: str,
+        description: str,
+        finding_criteria: Dict[str, Any],
+        rank: int,
+    ) -> None:
         _filter = self.get_filter(filter_name)
         _filter.update(
             action=action,
@@ -159,7 +202,12 @@ class Detector(BaseModel):
             rank=rank,
         )
 
-    def update(self, enable, finding_publishing_frequency, data_sources):
+    def update(
+        self,
+        enable: bool,
+        finding_publishing_frequency: str,
+        data_sources: Dict[str, Any],
+    ) -> None:
         if enable is not None:
             self.enabled = enable
         if finding_publishing_frequency is not None:
@@ -167,7 +215,7 @@ class Detector(BaseModel):
         if data_sources is not None:
             self.datasources = data_sources
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         data_sources = {
             "cloudTrail": {"status": "DISABLED"},
             "dnsLogs": {"status": "DISABLED"},

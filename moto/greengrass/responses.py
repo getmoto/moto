@@ -1,20 +1,22 @@
 from datetime import datetime
+from typing import Any
 import json
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core.responses import BaseResponse
-from .models import greengrass_backends
+from .models import greengrass_backends, GreengrassBackend
 
 
 class GreengrassResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="greengrass")
 
     @property
-    def greengrass_backend(self):
+    def greengrass_backend(self) -> GreengrassBackend:
         return greengrass_backends[self.current_account][self.region]
 
-    def core_definitions(self, request, full_url, headers):
+    def core_definitions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -23,7 +25,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "POST":
             return self.create_core_definition()
 
-    def list_core_definitions(self):
+    def list_core_definitions(self) -> TYPE_RESPONSE:
         res = self.greengrass_backend.list_core_definitions()
         return (
             200,
@@ -33,7 +35,7 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def create_core_definition(self):
+    def create_core_definition(self) -> TYPE_RESPONSE:
         name = self._get_param("Name")
         initial_version = self._get_param("InitialVersion")
         res = self.greengrass_backend.create_core_definition(
@@ -41,7 +43,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def core_definition(self, request, full_url, headers):
+    def core_definition(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -53,21 +55,21 @@ class GreengrassResponse(BaseResponse):
         if self.method == "PUT":
             return self.update_core_definition()
 
-    def get_core_definition(self):
+    def get_core_definition(self) -> TYPE_RESPONSE:
         core_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_core_definition(
             core_definition_id=core_definition_id
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def delete_core_definition(self):
+    def delete_core_definition(self) -> TYPE_RESPONSE:
         core_definition_id = self.path.split("/")[-1]
         self.greengrass_backend.delete_core_definition(
             core_definition_id=core_definition_id
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def update_core_definition(self):
+    def update_core_definition(self) -> TYPE_RESPONSE:
         core_definition_id = self.path.split("/")[-1]
         name = self._get_param("Name")
         self.greengrass_backend.update_core_definition(
@@ -75,7 +77,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def core_definition_versions(self, request, full_url, headers):
+    def core_definition_versions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -84,7 +86,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "POST":
             return self.create_core_definition_version()
 
-    def create_core_definition_version(self):
+    def create_core_definition_version(self) -> TYPE_RESPONSE:
         core_definition_id = self.path.split("/")[-2]
         cores = self._get_param("Cores")
 
@@ -93,7 +95,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_core_definition_versions(self):
+    def list_core_definition_versions(self) -> TYPE_RESPONSE:
         core_definition_id = self.path.split("/")[-2]
         res = self.greengrass_backend.list_core_definition_versions(core_definition_id)
         return (
@@ -102,13 +104,13 @@ class GreengrassResponse(BaseResponse):
             json.dumps({"Versions": [core_def_ver.to_dict() for core_def_ver in res]}),
         )
 
-    def core_definition_version(self, request, full_url, headers):
+    def core_definition_version(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
             return self.get_core_definition_version()
 
-    def get_core_definition_version(self):
+    def get_core_definition_version(self) -> TYPE_RESPONSE:
         core_definition_id = self.path.split("/")[-3]
         core_definition_version_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_core_definition_version(
@@ -117,7 +119,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
 
-    def device_definitions(self, request, full_url, headers):
+    def device_definitions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -126,7 +128,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_device_definition()
 
-    def create_device_definition(self):
+    def create_device_definition(self) -> TYPE_RESPONSE:
 
         name = self._get_param("Name")
         initial_version = self._get_param("InitialVersion")
@@ -135,7 +137,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_device_definition(self):
+    def list_device_definition(self) -> TYPE_RESPONSE:
         res = self.greengrass_backend.list_device_definitions()
         return (
             200,
@@ -149,7 +151,7 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def device_definition_versions(self, request, full_url, headers):
+    def device_definition_versions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -158,7 +160,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_device_definition_versions()
 
-    def create_device_definition_version(self):
+    def create_device_definition_version(self) -> TYPE_RESPONSE:
 
         device_definition_id = self.path.split("/")[-2]
         devices = self._get_param("Devices")
@@ -168,7 +170,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_device_definition_versions(self):
+    def list_device_definition_versions(self) -> TYPE_RESPONSE:
 
         device_definition_id = self.path.split("/")[-2]
         res = self.greengrass_backend.list_device_definition_versions(
@@ -182,7 +184,7 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def device_definition(self, request, full_url, headers):
+    def device_definition(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -194,14 +196,14 @@ class GreengrassResponse(BaseResponse):
         if self.method == "PUT":
             return self.update_device_definition()
 
-    def get_device_definition(self):
+    def get_device_definition(self) -> TYPE_RESPONSE:
         device_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_device_definition(
             device_definition_id=device_definition_id
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def delete_device_definition(self):
+    def delete_device_definition(self) -> TYPE_RESPONSE:
 
         device_definition_id = self.path.split("/")[-1]
         self.greengrass_backend.delete_device_definition(
@@ -209,7 +211,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def update_device_definition(self):
+    def update_device_definition(self) -> TYPE_RESPONSE:
 
         device_definition_id = self.path.split("/")[-1]
         name = self._get_param("Name")
@@ -218,13 +220,13 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def device_definition_version(self, request, full_url, headers):
+    def device_definition_version(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
             return self.get_device_definition_version()
 
-    def get_device_definition_version(self):
+    def get_device_definition_version(self) -> TYPE_RESPONSE:
         device_definition_id = self.path.split("/")[-3]
         device_definition_version_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_device_definition_version(
@@ -233,7 +235,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
 
-    def resource_definitions(self, request, full_url, headers):
+    def resource_definitions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -242,7 +244,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_resource_definitions()
 
-    def create_resource_definition(self):
+    def create_resource_definition(self) -> TYPE_RESPONSE:
 
         initial_version = self._get_param("InitialVersion")
         name = self._get_param("Name")
@@ -251,16 +253,16 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_resource_definitions(self):
+    def list_resource_definitions(self) -> TYPE_RESPONSE:
 
         res = self.greengrass_backend.list_resource_definitions()
         return (
             200,
             {"status": 200},
-            json.dumps({"Definitions": [i.to_dict() for i in res.values()]}),
+            json.dumps({"Definitions": [i.to_dict() for i in res]}),
         )
 
-    def resource_definition(self, request, full_url, headers):
+    def resource_definition(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -272,14 +274,14 @@ class GreengrassResponse(BaseResponse):
         if self.method == "PUT":
             return self.update_resource_definition()
 
-    def get_resource_definition(self):
+    def get_resource_definition(self) -> TYPE_RESPONSE:
         resource_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_resource_definition(
             resource_definition_id=resource_definition_id
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def delete_resource_definition(self):
+    def delete_resource_definition(self) -> TYPE_RESPONSE:
 
         resource_definition_id = self.path.split("/")[-1]
         self.greengrass_backend.delete_resource_definition(
@@ -287,7 +289,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def update_resource_definition(self):
+    def update_resource_definition(self) -> TYPE_RESPONSE:
 
         resource_definition_id = self.path.split("/")[-1]
         name = self._get_param("Name")
@@ -296,7 +298,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def resource_definition_versions(self, request, full_url, headers):
+    def resource_definition_versions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -305,7 +307,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_resource_definition_versions()
 
-    def create_resource_definition_version(self):
+    def create_resource_definition_version(self) -> TYPE_RESPONSE:
 
         resource_definition_id = self.path.split("/")[-2]
         resources = self._get_param("Resources")
@@ -315,7 +317,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_resource_definition_versions(self):
+    def list_resource_definition_versions(self) -> TYPE_RESPONSE:
 
         resource_device_definition_id = self.path.split("/")[-2]
         res = self.greengrass_backend.list_resource_definition_versions(
@@ -330,13 +332,13 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def resource_definition_version(self, request, full_url, headers):
+    def resource_definition_version(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
             return self.get_resource_definition_version()
 
-    def get_resource_definition_version(self):
+    def get_resource_definition_version(self) -> TYPE_RESPONSE:
         resource_definition_id = self.path.split("/")[-3]
         resource_definition_version_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_resource_definition_version(
@@ -345,7 +347,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def function_definitions(self, request, full_url, headers):
+    def function_definitions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -354,7 +356,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_function_definitions()
 
-    def create_function_definition(self):
+    def create_function_definition(self) -> TYPE_RESPONSE:
 
         initial_version = self._get_param("InitialVersion")
         name = self._get_param("Name")
@@ -363,7 +365,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_function_definitions(self):
+    def list_function_definitions(self) -> TYPE_RESPONSE:
         res = self.greengrass_backend.list_function_definitions()
         return (
             200,
@@ -373,7 +375,7 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def function_definition(self, request, full_url, headers):
+    def function_definition(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -385,21 +387,21 @@ class GreengrassResponse(BaseResponse):
         if self.method == "PUT":
             return self.update_function_definition()
 
-    def get_function_definition(self):
+    def get_function_definition(self) -> TYPE_RESPONSE:
         function_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_function_definition(
             function_definition_id=function_definition_id,
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def delete_function_definition(self):
+    def delete_function_definition(self) -> TYPE_RESPONSE:
         function_definition_id = self.path.split("/")[-1]
         self.greengrass_backend.delete_function_definition(
             function_definition_id=function_definition_id,
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def update_function_definition(self):
+    def update_function_definition(self) -> TYPE_RESPONSE:
         function_definition_id = self.path.split("/")[-1]
         name = self._get_param("Name")
         self.greengrass_backend.update_function_definition(
@@ -407,7 +409,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def function_definition_versions(self, request, full_url, headers):
+    def function_definition_versions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -416,7 +418,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_function_definition_versions()
 
-    def create_function_definition_version(self):
+    def create_function_definition_version(self) -> TYPE_RESPONSE:
 
         default_config = self._get_param("DefaultConfig")
         function_definition_id = self.path.split("/")[-2]
@@ -429,7 +431,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_function_definition_versions(self):
+    def list_function_definition_versions(self) -> TYPE_RESPONSE:
         function_definition_id = self.path.split("/")[-2]
         res = self.greengrass_backend.list_function_definition_versions(
             function_definition_id=function_definition_id
@@ -437,13 +439,13 @@ class GreengrassResponse(BaseResponse):
         versions = [i.to_dict() for i in res.values()]
         return 200, {"status": 200}, json.dumps({"Versions": versions})
 
-    def function_definition_version(self, request, full_url, headers):
+    def function_definition_version(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
             return self.get_function_definition_version()
 
-    def get_function_definition_version(self):
+    def get_function_definition_version(self) -> TYPE_RESPONSE:
         function_definition_id = self.path.split("/")[-3]
         function_definition_version_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_function_definition_version(
@@ -452,7 +454,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def subscription_definitions(self, request, full_url, headers):
+    def subscription_definitions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -461,7 +463,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_subscription_definitions()
 
-    def create_subscription_definition(self):
+    def create_subscription_definition(self) -> TYPE_RESPONSE:
 
         initial_version = self._get_param("InitialVersion")
         name = self._get_param("Name")
@@ -470,7 +472,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_subscription_definitions(self):
+    def list_subscription_definitions(self) -> TYPE_RESPONSE:
 
         res = self.greengrass_backend.list_subscription_definitions()
         return (
@@ -486,7 +488,7 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def subscription_definition(self, request, full_url, headers):
+    def subscription_definition(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -498,21 +500,21 @@ class GreengrassResponse(BaseResponse):
         if self.method == "PUT":
             return self.update_subscription_definition()
 
-    def get_subscription_definition(self):
+    def get_subscription_definition(self) -> TYPE_RESPONSE:
         subscription_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_subscription_definition(
             subscription_definition_id=subscription_definition_id
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def delete_subscription_definition(self):
+    def delete_subscription_definition(self) -> TYPE_RESPONSE:
         subscription_definition_id = self.path.split("/")[-1]
         self.greengrass_backend.delete_subscription_definition(
             subscription_definition_id=subscription_definition_id
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def update_subscription_definition(self):
+    def update_subscription_definition(self) -> TYPE_RESPONSE:
         subscription_definition_id = self.path.split("/")[-1]
         name = self._get_param("Name")
         self.greengrass_backend.update_subscription_definition(
@@ -520,7 +522,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def subscription_definition_versions(self, request, full_url, headers):
+    def subscription_definition_versions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -529,7 +531,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_subscription_definition_versions()
 
-    def create_subscription_definition_version(self):
+    def create_subscription_definition_version(self) -> TYPE_RESPONSE:
 
         subscription_definition_id = self.path.split("/")[-2]
         subscriptions = self._get_param("Subscriptions")
@@ -539,7 +541,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_subscription_definition_versions(self):
+    def list_subscription_definition_versions(self) -> TYPE_RESPONSE:
         subscription_definition_id = self.path.split("/")[-2]
         res = self.greengrass_backend.list_subscription_definition_versions(
             subscription_definition_id=subscription_definition_id
@@ -547,13 +549,13 @@ class GreengrassResponse(BaseResponse):
         versions = [i.to_dict() for i in res.values()]
         return 200, {"status": 200}, json.dumps({"Versions": versions})
 
-    def subscription_definition_version(self, request, full_url, headers):
+    def subscription_definition_version(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
             return self.get_subscription_definition_version()
 
-    def get_subscription_definition_version(self):
+    def get_subscription_definition_version(self) -> TYPE_RESPONSE:
         subscription_definition_id = self.path.split("/")[-3]
         subscription_definition_version_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_subscription_definition_version(
@@ -562,7 +564,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def groups(self, request, full_url, headers):
+    def groups(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -571,7 +573,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_groups()
 
-    def create_group(self):
+    def create_group(self) -> TYPE_RESPONSE:
 
         initial_version = self._get_param("InitialVersion")
         name = self._get_param("Name")
@@ -580,7 +582,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_groups(self):
+    def list_groups(self) -> TYPE_RESPONSE:
 
         res = self.greengrass_backend.list_groups()
         return (
@@ -589,7 +591,7 @@ class GreengrassResponse(BaseResponse):
             json.dumps({"Groups": [group.to_dict() for group in res]}),
         )
 
-    def group(self, request, full_url, headers):
+    def group(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -601,27 +603,25 @@ class GreengrassResponse(BaseResponse):
         if self.method == "PUT":
             return self.update_group()
 
-    def get_group(self):
+    def get_group(self) -> TYPE_RESPONSE:
         group_id = self.path.split("/")[-1]
-        res = self.greengrass_backend.get_group(
-            group_id=group_id,
-        )
-        return 200, {"status": 200}, json.dumps(res.to_dict())
+        res = self.greengrass_backend.get_group(group_id=group_id)
+        return 200, {"status": 200}, json.dumps(res.to_dict())  # type: ignore
 
-    def delete_group(self):
+    def delete_group(self) -> TYPE_RESPONSE:
         group_id = self.path.split("/")[-1]
         self.greengrass_backend.delete_group(
             group_id=group_id,
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def update_group(self):
+    def update_group(self) -> TYPE_RESPONSE:
         group_id = self.path.split("/")[-1]
         name = self._get_param("Name")
         self.greengrass_backend.update_group(group_id=group_id, name=name)
         return 200, {"status": 200}, json.dumps({})
 
-    def group_versions(self, request, full_url, headers):
+    def group_versions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -630,7 +630,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_group_versions()
 
-    def create_group_version(self):
+    def create_group_version(self) -> TYPE_RESPONSE:
 
         group_id = self.path.split("/")[-2]
 
@@ -656,7 +656,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def list_group_versions(self):
+    def list_group_versions(self) -> TYPE_RESPONSE:
         group_id = self.path.split("/")[-2]
         res = self.greengrass_backend.list_group_versions(group_id=group_id)
         return (
@@ -665,13 +665,13 @@ class GreengrassResponse(BaseResponse):
             json.dumps({"Versions": [group_ver.to_dict() for group_ver in res]}),
         )
 
-    def group_version(self, request, full_url, headers):
+    def group_version(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
             return self.get_group_version()
 
-    def get_group_version(self):
+    def get_group_version(self) -> TYPE_RESPONSE:
 
         group_id = self.path.split("/")[-3]
         group_version_id = self.path.split("/")[-1]
@@ -681,7 +681,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
 
-    def deployments(self, request, full_url, headers):
+    def deployments(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -690,7 +690,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.list_deployments()
 
-    def create_deployment(self):
+    def create_deployment(self) -> TYPE_RESPONSE:
 
         group_id = self.path.split("/")[-2]
         group_version_id = self._get_param("GroupVersionId")
@@ -705,7 +705,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def list_deployments(self):
+    def list_deployments(self) -> TYPE_RESPONSE:
         group_id = self.path.split("/")[-2]
         res = self.greengrass_backend.list_deployments(group_id=group_id)
 
@@ -721,13 +721,13 @@ class GreengrassResponse(BaseResponse):
             json.dumps({"Deployments": deployments}),
         )
 
-    def deployment_satus(self, request, full_url, headers):
+    def deployment_satus(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
             return self.get_deployment_status()
 
-    def get_deployment_status(self):
+    def get_deployment_status(self) -> TYPE_RESPONSE:
         group_id = self.path.split("/")[-4]
         deployment_id = self.path.split("/")[-2]
 
@@ -737,13 +737,13 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def deployments_reset(self, request, full_url, headers):
+    def deployments_reset(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
             return self.reset_deployments()
 
-    def reset_deployments(self):
+    def reset_deployments(self) -> TYPE_RESPONSE:
         group_id = self.path.split("/")[-3]
 
         res = self.greengrass_backend.reset_deployments(
@@ -751,7 +751,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def role(self, request, full_url, headers):
+    def role(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
         if self.method == "PUT":
@@ -763,7 +763,7 @@ class GreengrassResponse(BaseResponse):
         if self.method == "DELETE":
             return self.disassociate_role_from_group()
 
-    def associate_role_to_group(self):
+    def associate_role_to_group(self) -> TYPE_RESPONSE:
 
         group_id = self.path.split("/")[-2]
         role_arn = self._get_param("RoleArn")
@@ -773,7 +773,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def get_associated_role(self):
+    def get_associated_role(self) -> TYPE_RESPONSE:
 
         group_id = self.path.split("/")[-2]
         res = self.greengrass_backend.get_associated_role(
@@ -781,7 +781,7 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
 
-    def disassociate_role_from_group(self):
+    def disassociate_role_from_group(self) -> TYPE_RESPONSE:
         group_id = self.path.split("/")[-2]
         self.greengrass_backend.disassociate_role_from_group(
             group_id=group_id,

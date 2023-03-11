@@ -97,7 +97,7 @@ def _escape_regex(pattern: str) -> str:
 
 class _Expr(abc.ABC):
     @abc.abstractmethod
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:  # type: ignore[misc]
         raise NotImplementedError()
 
 
@@ -196,7 +196,7 @@ class _Like(_Expr):
         pattern = _cast("string", self.literal)
 
         # prepare SQL pattern for conversion to regex pattern
-        pattern = _escape_regex(pattern)
+        pattern = _escape_regex(pattern)  # type: ignore
 
         # NOTE convert SQL wildcards to regex, no literal matches possible
         pattern = pattern.replace("_", ".").replace("%", ".*")
@@ -265,19 +265,19 @@ class _BoolOr(_Expr):
 
 
 class _PartitionFilterExpressionCache:
-    def __init__(self):
+    def __init__(self) -> None:
         # build grammar according to Glue.Client.get_partitions(Expression)
         lpar, rpar = map(Suppress, "()")
 
         # NOTE these are AWS Athena column name best practices
         ident = Forward().set_name("ident")
-        ident <<= Word(alphanums + "._").set_parse_action(_Ident) | lpar + ident + rpar
+        ident <<= Word(alphanums + "._").set_parse_action(_Ident) | lpar + ident + rpar  # type: ignore
 
         number = Forward().set_name("number")
-        number <<= pyparsing_common.number | lpar + number + rpar
+        number <<= pyparsing_common.number | lpar + number + rpar  # type: ignore
 
         string = Forward().set_name("string")
-        string <<= QuotedString(quote_char="'", esc_quote="''") | lpar + string + rpar
+        string <<= QuotedString(quote_char="'", esc_quote="''") | lpar + string + rpar  # type: ignore
 
         literal = (number | string).set_name("literal")
         literal_list = delimited_list(literal, min=1).set_name("list")
@@ -293,7 +293,7 @@ class _PartitionFilterExpressionCache:
         in_, between, like, not_, is_, null = map(
             CaselessKeyword, "in between like not is null".split()
         )
-        not_ = Suppress(not_)  # only needed for matching
+        not_ = Suppress(not_)  # type: ignore  # only needed for matching
 
         cond = (
             (ident + is_ + null).set_parse_action(_IsNull)
@@ -343,11 +343,11 @@ _PARTITION_FILTER_EXPRESSION_CACHE = _PartitionFilterExpressionCache()
 
 
 class PartitionFilter:
-    def __init__(self, expression: Optional[str], fake_table):
+    def __init__(self, expression: Optional[str], fake_table: Any):
         self.expression = expression
         self.fake_table = fake_table
 
-    def __call__(self, fake_partition) -> bool:
+    def __call__(self, fake_partition: Any) -> bool:
         expression = _PARTITION_FILTER_EXPRESSION_CACHE.get(self.expression)
         if expression is None:
             return True
