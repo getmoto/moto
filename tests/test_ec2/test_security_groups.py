@@ -575,7 +575,7 @@ def test_create_and_describe_security_grp_rule():
     )
 
     response = client.describe_security_group_rules(
-            Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
+        Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
     )
     rules = response["SecurityGroupRules"]
 
@@ -583,7 +583,7 @@ def test_create_and_describe_security_grp_rule():
     assert len(rules) == 1
 
     # Test default egress rule content
-    assert rules[0]["IsEgress"] == True
+    assert rules[0]["IsEgress"] is True
     assert rules[0]["IpProtocol"] == "-1"
     assert rules[0]["CidrIpv4"] == "0.0.0.0/0"
 
