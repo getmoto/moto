@@ -13,6 +13,7 @@ from moto.glacier import glacier_backends
 from moto.redshift import redshift_backends
 from moto.emr import emr_backends
 from moto.awslambda import lambda_backends
+from moto.ecs import ecs_backends
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
@@ -106,6 +107,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         """
         return lambda_backends[self.account_id][self.region_name]
 
+    @property
+    def ecs_backend(self):
+        """
+        :rtype: moto.ecs.models.EcsnBackend
+        """
+        return ecs_backends[self.account_id][self.region_name]
+
     def _get_resources_generator(self, tag_filters=None, resource_type_filters=None):
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -143,7 +151,19 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             else:
                 return True
 
-        # Do S3, resource type s3
+        def format_tags(tags):
+            result = []
+            for key, value in tags.items():
+                result.append({"Key": key, "Value": value})
+            return result
+
+        def format_tag_keys(tags, keys):
+            result = []
+            for tag in tags:
+                result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
+            return result
+
+        # S3
         if not resource_type_filters or "s3" in resource_type_filters:
             for bucket in self.s3_backend.buckets.values():
                 tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
@@ -153,12 +173,45 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": "arn:aws:s3:::" + bucket.name, "Tags": tags}
 
-        # EC2 tags
-        def get_ec2_tags(res_id):
-            result = []
-            for key, value in self.ec2_backend.tags.get(res_id, {}).items():
-                result.append({"Key": key, "Value": value})
-            return result
+        # CloudFormation
+        if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
+
+            try:
+                from moto.cloudformation import cloudformation_backends
+
+                backend = cloudformation_backends[self.account_id][self.region_name]
+
+                for stack in backend.stacks.values():
+                    tags = format_tags(stack.tags)
+                    if not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{stack.stack_id}", "Tags": tags}
+
+            except Exception:
+                pass
+
+        # ECS
+        if not resource_type_filters or "ecs:service" in resource_type_filters:
+            for service in self.ecs_backend.services.values():
+                tags = format_tag_keys(service.tags, ["key", "value"])
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{service.physical_resource_id}", "Tags": tags}
+
+        if not resource_type_filters or "ecs:cluster" in resource_type_filters:
+            for cluster in self.ecs_backend.clusters.values():
+                tags = format_tag_keys(cluster.tags, ["key", "value"])
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{cluster.arn}", "Tags": tags}
+
+        if not resource_type_filters or "ecs:task" in resource_type_filters:
+            for task_dict in self.ecs_backend.tasks.values():
+                for task in task_dict.values():
+                    tags = format_tag_keys(task.tags, ["key", "value"])
+                    if not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{task.task_arn}", "Tags": tags}
 
         # EC2 AMI, resource type ec2:image
         if (
@@ -167,7 +220,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "ec2:image" in resource_type_filters
         ):
             for ami in self.ec2_backend.amis.values():
-                tags = get_ec2_tags(ami.id)
+                tags = format_tags(self.ec2_backend.tags.get(ami.id, {}))
 
                 if not tags or not tag_filter(
                     tags
@@ -186,7 +239,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         ):
             for reservation in self.ec2_backend.reservations.values():
                 for instance in reservation.instances:
-                    tags = get_ec2_tags(instance.id)
+                    tags = format_tags(self.ec2_backend.tags.get(instance.id, {}))
 
                     if not tags or not tag_filter(
                         tags
@@ -204,7 +257,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "ec2:network-interface" in resource_type_filters
         ):
             for eni in self.ec2_backend.enis.values():
-                tags = get_ec2_tags(eni.id)
+                tags = format_tags(self.ec2_backend.tags.get(eni.id, {}))
 
                 if not tags or not tag_filter(
                     tags
@@ -225,7 +278,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         ):
             for vpc in self.ec2_backend.groups.values():
                 for sg in vpc.values():
-                    tags = get_ec2_tags(sg.id)
+                    tags = format_tags(self.ec2_backend.tags.get(sg.id, {}))
 
                     if not tags or not tag_filter(
                         tags
@@ -243,7 +296,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "ec2:snapshot" in resource_type_filters
         ):
             for snapshot in self.ec2_backend.snapshots.values():
-                tags = get_ec2_tags(snapshot.id)
+                tags = format_tags(self.ec2_backend.tags.get(snapshot.id, {}))
 
                 if not tags or not tag_filter(
                     tags
@@ -263,7 +316,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "ec2:volume" in resource_type_filters
         ):
             for volume in self.ec2_backend.volumes.values():
-                tags = get_ec2_tags(volume.id)
+                tags = format_tags(self.ec2_backend.tags.get(volume.id, {}))
 
                 if not tags or not tag_filter(
                     tags
@@ -312,15 +365,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Kinesis
 
         # KMS
-        def get_kms_tags(kms_key_id):
-            result = []
-            for tag in self.kms_backend.list_resource_tags(kms_key_id).get("Tags", []):
-                result.append({"Key": tag["TagKey"], "Value": tag["TagValue"]})
-            return result
-
         if not resource_type_filters or "kms" in resource_type_filters:
             for kms_key in self.kms_backend.list_keys():
-                tags = get_kms_tags(kms_key.id)
+                tags = format_tag_keys(
+                    self.kms_backend.list_resource_tags(kms_key.id).get("Tags", []),
+                    ["TagKey", "TagValue"],
+                )
                 if not tag_filter(tags):  # Skip if no tags, or invalid filter
                     continue
 
@@ -408,7 +458,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "ec2:vpc" in resource_type_filters
         ):
             for vpc in self.ec2_backend.vpcs.values():
-                tags = get_ec2_tags(vpc.id)
+                tags = format_tags(self.ec2_backend.tags.get(vpc.id, {}))
                 if not tags or not tag_filter(
                     tags
                 ):  # Skip if no tags, or invalid filter
@@ -427,15 +477,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # VPC VPN Connection
 
         # Lambda Instance
-        def transform_lambda_tags(dictTags):
-            result = []
-            for key, value in dictTags.items():
-                result.append({"Key": key, "Value": value})
-            return result
-
         if not resource_type_filters or "lambda" in resource_type_filters:
             for f in self.lambda_backend.list_functions():
-                tags = transform_lambda_tags(f.tags)
+                tags = format_tags(f.tags)
                 if not tags or not tag_filter(tags):
                     continue
                 yield {
@@ -447,7 +491,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
-        # Do S3, resource type s3
+        # S3
         for bucket in self.s3_backend.buckets.values():
             tags = self.s3_backend.tagger.get_tag_dict_for_resource(bucket.arn)
             for key, _ in tags.items():
