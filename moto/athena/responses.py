@@ -167,7 +167,7 @@ class AthenaResponse(BaseResponse):
         )
         return json.dumps({"NamedQueryIds": named_query_ids, "NextToken": next_token})
 
-    def create_prepared_statement(self) -> str:
+    def create_prepared_statement(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         statement_name = self._get_param("StatementName")
         work_group = self._get_param("WorkGroup")
         query_statement = self._get_param("QueryStatement")

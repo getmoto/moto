@@ -336,8 +336,8 @@ class AthenaBackend(BaseBackend):
         self.data_catalogs[name] = data_catalog
         return data_catalog
 
-    @paginate(pagination_model=PAGINATION_MODEL)
-    def list_named_queries(self, work_group: str) -> List[str]:
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    def list_named_queries(self, work_group: str) -> List[str]:  # type: ignore[misc]
         named_query_ids = [
             q.id for q in self.named_queries.values() if q.workgroup.name == work_group
         ]
