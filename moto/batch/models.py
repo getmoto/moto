@@ -483,7 +483,6 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
         self.job_stopped = False
         self.job_stopped_reason: Optional[str] = None
-        self.raised_exception: Optional[Exception] = None
         self.depends_on = depends_on
         self.timeout = timeout
         self.all_jobs = all_jobs
@@ -607,7 +606,6 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         """
         try:
             import docker
-            import docker.errors
         except ImportError as err:
             logger.error(f"Failed to run AWS Batch container {self.name}. Error {err}")
             self._mark_stopped(success=False)
@@ -846,6 +844,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     if job_failed:
                         self._mark_stopped(success=False)
                         break
+
                 except Exception as err:
                     logger.error(
                         f"Failed to run AWS Batch container {self.name}. Error {err}"
@@ -863,9 +862,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     container.kill()
                 container.remove()
 
-    def _mark_stopped(
-        self, success: bool = True, exception: Optional[Exception] = None
-    ) -> None:
+    def _mark_stopped(self, success: bool = True) -> None:
         if self.job_stopped:
             return
         # Ensure that job_stopped/job_stopped_at-attributes are set first
@@ -873,7 +870,6 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_stopped = True
         self.job_stopped_at = datetime.datetime.now()
         self.status = "SUCCEEDED" if success else "FAILED"
-        self.raised_exception = exception
         self._stop_attempt()
 
     def _start_attempt(self) -> None:

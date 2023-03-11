@@ -34,8 +34,6 @@ PRETTIFY_RESPONSES = bool(os.environ.get("MOTO_PRETTIFY_RESPONSES", False))
 
 # Fully skip test that require docker
 SKIP_REQUIRES_DOCKER = bool(os.environ.get("TESTS_SKIP_REQUIRES_DOCKER", False))
-# Run test that require docker, but allow failing when docker exceptions are raised
-RAISE_DOCKER_EXCEPTION = bool(os.environ.get("TESTS_XFAIL_REQUIRES_DOCKER", False))
 
 
 def get_sf_execution_history_type():
