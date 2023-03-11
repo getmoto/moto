@@ -1407,6 +1407,7 @@ def test_create_export_raises_ResourceNotFoundException_log_group_not_found():
             destination=destination,
         )
 
+
 @mock_logs
 def test_describe_queries_single_log_group():
     client = boto3.client("logs", "us-east-1")
@@ -1450,6 +1451,7 @@ def test_describe_queries_single_log_group():
         status="Running",
     )
     assert len(response["queries"]) == 0
+
 
 @mock_logs
 def test_describe_queries_multiple_log_groups():
