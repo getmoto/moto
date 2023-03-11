@@ -539,7 +539,7 @@ class CognitoIdpUserPool(BaseModel):
             "token_use": token_use,
             "auth_time": now,
             "exp": now + expires_in,
-            "username": username,
+            "username" if token_use == "access" else "cognito:username": username,
         }
         payload.update(extra_data or {})
         headers = {"kid": "dummy"}  # KID as present in jwks-public.json
