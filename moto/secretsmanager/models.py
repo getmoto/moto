@@ -87,6 +87,7 @@ class FakeSecret:
         self.rotation_lambda_arn = ""
         self.auto_rotate_after_days = 0
         self.deleted_date = None
+        self.policy = None
 
     def update(
         self, description=None, tags=None, kms_key_id=None, last_changed_date=None
@@ -825,29 +826,37 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret_id
 
-    @staticmethod
-    def get_resource_policy(secret_id):
-        resource_policy = {
-            "Version": "2012-10-17",
-            "Statement": {
-                "Effect": "Allow",
-                "Principal": {
-                    "AWS": [
-                        "arn:aws:iam::111122223333:root",
-                        "arn:aws:iam::444455556666:root",
-                    ]
-                },
-                "Action": ["secretsmanager:GetSecretValue"],
-                "Resource": "*",
-            },
+    def put_resource_policy(self, secret_id: str, policy: str):
+        """
+        The BlockPublicPolicy-parameter is not yet implemented
+        """
+        if not self._is_valid_identifier(secret_id):
+            raise SecretNotFoundException()
+
+        secret = self.secrets[secret_id]
+        secret.policy = policy
+        return secret.arn, secret.name
+
+    def get_resource_policy(self, secret_id):
+        if not self._is_valid_identifier(secret_id):
+            raise SecretNotFoundException()
+
+        secret = self.secrets[secret_id]
+        resp = {
+            "ARN": secret.arn,
+            "Name": secret.name,
         }
-        return json.dumps(
-            {
-                "ARN": secret_id,
-                "Name": secret_id,
-                "ResourcePolicy": json.dumps(resource_policy),
-            }
-        )
+        if secret.policy is not None:
+            resp["ResourcePolicy"] = secret.policy
+        return json.dumps(resp)
+
+    def delete_resource_policy(self, secret_id):
+        if not self._is_valid_identifier(secret_id):
+            raise SecretNotFoundException()
+
+        secret = self.secrets[secret_id]
+        secret.policy = None
+        return secret.arn, secret.name
 
 
 secretsmanager_backends = BackendDict(SecretsManagerBackend, "secretsmanager")

@@ -452,6 +452,14 @@ s3:
   - TestAccS3ObjectsDataSource_fetchOwner
 sagemaker:
   - TestAccSageMakerPrebuiltECRImageDataSource
+secretsmanager:
+  - TestAccSecretsManagerSecretDataSource_basic
+  - TestAccSecretsManagerSecretPolicy_
+  - TestAccSecretsManagerSecret_RecoveryWindowInDays_recreate
+  - TestAccSecretsManagerSecret_tags
+  - TestAccSecretsManagerSecret_kmsKeyID
+  - TestAccSecretsManagerSecret_withNamePrefix
+  - TestAccSecretsManagerSecret_rotationRules
 servicediscovery:
   - TestAccServiceDiscoveryDNSNamespaceDataSource
   - TestAccServiceDiscoveryHTTPNamespace
