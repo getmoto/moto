@@ -36,16 +36,18 @@ class SecurityRule:
         ip_ranges: Optional[List[Any]],
         source_groups: List[Dict[str, Any]],
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
+        is_egress: bool = True,
     ):
         self.account_id = account_id
         self.id = random_security_group_rule_id()
-        self.ip_protocol = str(ip_protocol)
+        self.ip_protocol = str(ip_protocol) if ip_protocol else None
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups or []
         self.prefix_list_ids = prefix_list_ids or []
         self.from_port = self.to_port = None
+        self.is_egress = is_egress
 
-        if self.ip_protocol != "-1":
+        if self.ip_protocol and self.ip_protocol != "-1":
             self.from_port = int(from_port)  # type: ignore[arg-type]
             self.to_port = int(to_port)  # type: ignore[arg-type]
 
@@ -65,7 +67,11 @@ class SecurityRule:
             "1": "icmp",
             "icmp": "icmp",
         }
-        proto = ip_protocol_keywords.get(self.ip_protocol.lower())
+        proto = (
+            ip_protocol_keywords.get(self.ip_protocol.lower())
+            if self.ip_protocol
+            else None
+        )
         self.ip_protocol = proto if proto else self.ip_protocol
 
     @property
@@ -629,6 +635,7 @@ class SecurityGroupBackend:
         ip_ranges: List[Any],
         source_groups: Optional[List[Dict[str, str]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
+        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
         vpc_id: Optional[str] = None,
     ) -> Tuple[SecurityRule, SecurityGroup]:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -669,6 +676,7 @@ class SecurityGroupBackend:
             ip_ranges,
             _source_groups,
             prefix_list_ids,
+            is_egress=False,
         )
 
         if security_rule in group.ingress_rules:
@@ -717,10 +725,17 @@ class SecurityGroupBackend:
         ip_ranges: List[Any],
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
+        security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
-    ) -> SecurityRule:
+    ) -> None:
 
         group: SecurityGroup = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)  # type: ignore[assignment]
+
+        if security_rule_ids:
+            group.ingress_rules = [
+                rule for rule in group.egress_rules if rule.id not in security_rule_ids
+            ]
+            return
 
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
@@ -732,6 +747,7 @@ class SecurityGroupBackend:
             ip_ranges,
             _source_groups,
             prefix_list_ids,
+            is_egress=False,
         )
 
         # To match drift property of the security rules.
@@ -770,7 +786,7 @@ class SecurityGroupBackend:
             ):
                 group.ingress_rules.remove(rule)
             self.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
-            return security_rule
+            return
         raise InvalidPermissionNotFoundError()
 
     def authorize_security_group_egress(
@@ -782,6 +798,7 @@ class SecurityGroupBackend:
         ip_ranges: List[Any],
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
+        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
         vpc_id: Optional[str] = None,
     ) -> Tuple[SecurityRule, SecurityGroup]:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -875,10 +892,17 @@ class SecurityGroupBackend:
         ip_ranges: List[Any],
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
+        security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
-    ) -> SecurityRule:
+    ) -> None:
 
         group: SecurityGroup = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)  # type: ignore[assignment]
+
+        if security_rule_ids:
+            group.egress_rules = [
+                rule for rule in group.egress_rules if rule.id not in security_rule_ids
+            ]
+            return
 
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
@@ -942,7 +966,7 @@ class SecurityGroupBackend:
             ):
                 group.egress_rules.remove(rule)
             self.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
-            return security_rule
+            return
         raise InvalidPermissionNotFoundError()
 
     def update_security_group_rule_descriptions_ingress(
@@ -954,6 +978,7 @@ class SecurityGroupBackend:
         ip_ranges: List[str],
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
+        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
         vpc_id: Optional[str] = None,
     ) -> SecurityGroup:
 
@@ -1010,6 +1035,7 @@ class SecurityGroupBackend:
         ip_ranges: List[str],
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
+        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
         vpc_id: Optional[str] = None,
     ) -> SecurityGroup:
 

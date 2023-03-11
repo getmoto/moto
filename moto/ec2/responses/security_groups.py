@@ -71,6 +71,7 @@ def parse_sg_attributes_from_dict(sg_attributes: Dict[str, Any]) -> Tuple[Any, .
 class SecurityGroups(EC2BaseResponse):
     def _process_rules_from_querystring(self) -> Any:
         group_name_or_id = self._get_param("GroupName") or self._get_param("GroupId")
+        security_rule_ids = self._get_multi_param("SecurityGroupRuleId")
 
         querytree: Dict[str, Any] = {}
         for key, value in self.querystring.items():
@@ -103,6 +104,7 @@ class SecurityGroups(EC2BaseResponse):
                 ip_ranges,
                 source_groups,
                 prefix_list_ids,
+                security_rule_ids,
             )
 
         ip_permissions = querytree.get("IpPermissions") or {}
@@ -126,6 +128,7 @@ class SecurityGroups(EC2BaseResponse):
                 ip_ranges,
                 source_groups,
                 prefix_list_ids,
+                security_rule_ids,
             )
 
     def authorize_security_group_egress(self) -> str:
@@ -264,7 +267,7 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
         {% endif %}
         <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
         <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
-        <isEgress>true</isEgress>
+        <isEgress>{{ 'true' if rule.is_egress else 'false' }}</isEgress>
         <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
     </item>
     {% endfor %}
