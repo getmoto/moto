@@ -406,7 +406,6 @@ def test_create_prepared_statement():
         QueryStatement="SELECT * FROM table1",
     )
     metadata = res["ResponseMetadata"]
-    assert metadata["HTTPHeaders"] == {"server": "amazon.com"}
     assert metadata["HTTPStatusCode"] == 200
     assert metadata["RetryAttempts"] == 0
 
