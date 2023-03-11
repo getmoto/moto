@@ -194,7 +194,7 @@ class SecurityGroups(EC2BaseResponse):
 
     def describe_security_group_rules(self) -> str:
         group_id = self._get_param("GroupId")
-        filters = self._get_param("Filter")
+        filters = self._filters_from_querystring()
 
         self.error_on_dryrun()
 
