@@ -1034,15 +1034,22 @@ def test_authorize_and_revoke_in_bulk():
 @mock_ec2
 def test_security_group_ingress_without_multirule():
     ec2 = boto3.resource("ec2", "ca-central-1")
+    client = boto3.client("ec2", "ca-central-1")
     sg = ec2.create_security_group(Description="Test SG", GroupName=str(uuid4()))
 
     assert len(sg.ip_permissions) == 0
-    sg.authorize_ingress(
+    rule_id = sg.authorize_ingress(
         CidrIp="192.168.0.1/32", FromPort=22, ToPort=22, IpProtocol="tcp"
-    )
+    )["SecurityGroupRules"][0]["SecurityGroupRuleId"]
 
-    # Fails
     assert len(sg.ip_permissions) == 1
+
+    rules = client.describe_security_group_rules(SecurityGroupRuleIds=[rule_id])[
+        "SecurityGroupRules"
+    ]
+    ingress = [rule for rule in rules if rule["SecurityGroupRuleId"] == rule_id]
+    assert len(ingress) == 1
+    assert ingress[0]["IsEgress"] is False
 
 
 @mock_ec2
@@ -1121,6 +1128,32 @@ def test_revoke_security_group_egress():
 
     sg.reload()
     sg.ip_permissions_egress.should.have.length_of(0)
+
+
+@mock_ec2
+def test_revoke_security_group_egress__without_ipprotocol():
+    ec2 = boto3.resource("ec2", "eu-west-2")
+    client = boto3.client("ec2", region_name="eu-west-2")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sec_group = client.describe_security_groups(
+        Filters=[
+            {"Name": "group-name", "Values": ["default"]},
+            {"Name": "vpc-id", "Values": [vpc.id]},
+        ]
+    )["SecurityGroups"][0]["GroupId"]
+
+    rule_id = client.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sec_group]}]
+    )["SecurityGroupRules"][0]["SecurityGroupRuleId"]
+
+    client.revoke_security_group_egress(
+        GroupId=sec_group, SecurityGroupRuleIds=[rule_id]
+    )
+
+    remaining_rules = client.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sec_group]}]
+    )["SecurityGroupRules"]
+    assert len(remaining_rules) == 0
 
 
 @mock_ec2
@@ -1237,6 +1270,7 @@ def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api()
     # Add an ingress/egress rule using the EC2 backend directly.
     rule_ingress = {
         "group_name_or_id": sg.id,
+        "security_rule_ids": None,
         "from_port": 0,
         "ip_protocol": "udp",
         "ip_ranges": [],
@@ -1246,6 +1280,7 @@ def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api()
     ec2_backend.authorize_security_group_ingress(**rule_ingress)
     rule_egress = {
         "group_name_or_id": sg.id,
+        "security_rule_ids": None,
         "from_port": 8443,
         "ip_protocol": "tcp",
         "ip_ranges": [],
