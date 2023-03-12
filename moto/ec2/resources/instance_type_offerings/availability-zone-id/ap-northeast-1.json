@@ -480,10 +480,6 @@
   "Location": "apne1-az1"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "apne1-az1"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "apne1-az1"
  },
@@ -4449,10 +4445,6 @@
  },
  {
   "InstanceType": "c6id.xlarge",
-  "Location": "apne1-az4"
- },
- {
-  "InstanceType": "cc2.8xlarge",
   "Location": "apne1-az4"
  },
  {

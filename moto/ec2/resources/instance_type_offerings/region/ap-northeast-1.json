@@ -504,10 +504,6 @@
   "Location": "ap-northeast-1"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "ap-northeast-1"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "ap-northeast-1"
  },

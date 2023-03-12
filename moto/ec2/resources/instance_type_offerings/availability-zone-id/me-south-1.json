@@ -296,6 +296,10 @@
   "Location": "mes1-az1"
  },
  {
+  "InstanceType": "i3.metal",
+  "Location": "mes1-az1"
+ },
+ {
   "InstanceType": "i3.xlarge",
   "Location": "mes1-az1"
  },
@@ -941,6 +945,10 @@
  },
  {
   "InstanceType": "i3.large",
+  "Location": "mes1-az2"
+ },
+ {
+  "InstanceType": "i3.metal",
   "Location": "mes1-az2"
  },
  {
@@ -1605,6 +1613,10 @@
  },
  {
   "InstanceType": "i3.large",
+  "Location": "mes1-az3"
+ },
+ {
+  "InstanceType": "i3.metal",
   "Location": "mes1-az3"
  },
  {

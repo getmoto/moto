@@ -432,10 +432,6 @@
   "Location": "ap-northeast-1a"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "ap-northeast-1a"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "ap-northeast-1a"
  },
@@ -2645,10 +2641,6 @@
  },
  {
   "InstanceType": "c7g.xlarge",
-  "Location": "ap-northeast-1c"
- },
- {
-  "InstanceType": "cc2.8xlarge",
   "Location": "ap-northeast-1c"
  },
  {

@@ -512,10 +512,6 @@
   "Location": "us-west-2a"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "us-west-2a"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "us-west-2a"
  },
@@ -2996,10 +2992,6 @@
   "Location": "us-west-2b"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "us-west-2b"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "us-west-2b"
  },
@@ -5413,10 +5405,6 @@
  },
  {
   "InstanceType": "c7g.xlarge",
-  "Location": "us-west-2c"
- },
- {
-  "InstanceType": "cc2.8xlarge",
   "Location": "us-west-2c"
  },
  {
