@@ -51,8 +51,11 @@ def test_create_work_group():
     # Then test the work group appears in the work group list
     response = client.list_work_groups()
 
-    response["WorkGroups"].should.have.length_of(1)
-    work_group = response["WorkGroups"][0]
+    work_groups = list(
+        filter(lambda wg: wg["Name"] != "primary", response["WorkGroups"])
+    )
+    work_groups.should.have.length_of(1)
+    work_group = work_groups[0]
     work_group["Name"].should.equal("athena_workgroup")
     work_group["Description"].should.equal("Test work group")
     work_group["State"].should.equal("ENABLED")
@@ -191,7 +194,7 @@ def test_get_named_query():
     database = "target_db"
     query_string = "SELECT * FROM tbl1"
     description = "description of this query"
-    # craete named query
+    # create named query
     res_create = client.create_named_query(
         Name=query_name,
         Database=database,
@@ -375,3 +378,48 @@ def test_list_query_executions():
     executions = client.list_query_executions()
     executions["QueryExecutionIds"].should.have.length_of(1)
     executions["QueryExecutionIds"][0].should.equal(exec_id)
+
+
+@mock_athena
+def test_list_named_queries():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    query_id = client.create_named_query(
+        Name="query-name",
+        Database="target_db",
+        QueryString="SELECT * FROM table1",
+        WorkGroup="athena_workgroup",
+    )
+    list_athena_wg = client.list_named_queries(WorkGroup="athena_workgroup")
+    assert list_athena_wg["NamedQueryIds"][0] == query_id["NamedQueryId"]
+    list_primary_wg = client.list_named_queries()
+    assert len(list_primary_wg["NamedQueryIds"]) == 0
+
+
+@mock_athena
+def test_create_prepared_statement():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    res = client.create_prepared_statement(
+        StatementName="test-statement",
+        WorkGroup="athena_workgroup",
+        QueryStatement="SELECT * FROM table1",
+    )
+    metadata = res["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 200
+    assert metadata["RetryAttempts"] == 0
+
+
+@mock_athena
+def test_get_prepared_statement():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    client.create_prepared_statement(
+        StatementName="stmt-name",
+        WorkGroup="athena_workgroup",
+        QueryStatement="SELECT * FROM table1",
+    )
+    resp = client.get_prepared_statement(
+        StatementName="stmt-name", WorkGroup="athena_workgroup"
+    )
+    assert "PreparedStatement" in resp

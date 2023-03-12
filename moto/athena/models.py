@@ -1,7 +1,8 @@
 import time
-
+from datetime import datetime
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
 from typing import Any, Dict, List, Optional
 
 
@@ -124,7 +125,31 @@ class NamedQuery(BaseModel):
         self.workgroup = workgroup
 
 
+class PreparedStatement(BaseModel):
+    def __init__(
+        self,
+        statement_name: str,
+        workgroup: WorkGroup,
+        query_statement: str,
+        description: str,
+    ):
+        self.statement_name = statement_name
+        self.workgroup = workgroup
+        self.query_statement = query_statement
+        self.description = description
+        self.last_modified_time = datetime.now()
+
+
 class AthenaBackend(BaseBackend):
+    PAGINATION_MODEL = {
+        "list_named_queries": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        }
+    }
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.work_groups: Dict[str, WorkGroup] = {}
@@ -133,6 +158,10 @@ class AthenaBackend(BaseBackend):
         self.data_catalogs: Dict[str, DataCatalog] = {}
         self.query_results: Dict[str, QueryResults] = {}
         self.query_results_queue: List[QueryResults] = []
+        self.prepared_statements: Dict[str, PreparedStatement] = {}
+
+        # Initialise with the primary workgroup
+        self.create_work_group("primary", "", "", [])
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -259,14 +288,14 @@ class AthenaBackend(BaseBackend):
         description: str,
         database: str,
         query_string: str,
-        workgroup: WorkGroup,
+        workgroup: str,
     ) -> str:
         nq = NamedQuery(
             name=name,
             description=description,
             database=database,
             query_string=query_string,
-            workgroup=workgroup,
+            workgroup=self.work_groups[workgroup],
         )
         self.named_queries[nq.id] = nq
         return nq.id
@@ -306,6 +335,38 @@ class AthenaBackend(BaseBackend):
         )
         self.data_catalogs[name] = data_catalog
         return data_catalog
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    def list_named_queries(self, work_group: str) -> List[str]:  # type: ignore[misc]
+        named_query_ids = [
+            q.id for q in self.named_queries.values() if q.workgroup.name == work_group
+        ]
+        return named_query_ids
+
+    def create_prepared_statement(
+        self,
+        statement_name: str,
+        workgroup: WorkGroup,
+        query_statement: str,
+        description: str,
+    ) -> None:
+        ps = PreparedStatement(
+            statement_name=statement_name,
+            workgroup=workgroup,
+            query_statement=query_statement,
+            description=description,
+        )
+        self.prepared_statements[ps.statement_name] = ps
+        return None
+
+    def get_prepared_statement(
+        self, statement_name: str, work_group: WorkGroup
+    ) -> Optional[PreparedStatement]:
+        if statement_name in self.prepared_statements:
+            ps = self.prepared_statements[statement_name]
+            if ps.workgroup == work_group:
+                return ps
+        return None
 
 
 athena_backends = BackendDict(AthenaBackend, "athena")

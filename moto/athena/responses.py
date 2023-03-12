@@ -104,8 +104,8 @@ class AthenaResponse(BaseResponse):
         description = self._get_param("Description")
         database = self._get_param("Database")
         query_string = self._get_param("QueryString")
-        workgroup = self._get_param("WorkGroup")
-        if workgroup and not self.athena_backend.get_work_group(workgroup):
+        workgroup = self._get_param("WorkGroup") or "primary"
+        if not self.athena_backend.get_work_group(workgroup):
             return self.error("WorkGroup does not exist", 400)
         query_id = self.athena_backend.create_named_query(
             name, description, database, query_string, workgroup
@@ -123,7 +123,7 @@ class AthenaResponse(BaseResponse):
                     "Database": nq.database,  # type: ignore[union-attr]
                     "QueryString": nq.query_string,  # type: ignore[union-attr]
                     "NamedQueryId": nq.id,  # type: ignore[union-attr]
-                    "WorkGroup": nq.workgroup,  # type: ignore[union-attr]
+                    "WorkGroup": nq.workgroup.name,  # type: ignore[union-attr]
                 }
             }
         )
@@ -154,6 +154,49 @@ class AthenaResponse(BaseResponse):
                     "ResponseMetadata": {
                         "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
                     }
+                }
+            }
+        )
+
+    def list_named_queries(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        work_group = self._get_param("WorkGroup") or "primary"
+        named_query_ids, next_token = self.athena_backend.list_named_queries(
+            next_token=next_token, max_results=max_results, work_group=work_group
+        )
+        return json.dumps({"NamedQueryIds": named_query_ids, "NextToken": next_token})
+
+    def create_prepared_statement(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+        statement_name = self._get_param("StatementName")
+        work_group = self._get_param("WorkGroup")
+        query_statement = self._get_param("QueryStatement")
+        description = self._get_param("Description")
+        if not self.athena_backend.get_work_group(work_group):
+            return self.error("WorkGroup does not exist", 400)
+        self.athena_backend.create_prepared_statement(
+            statement_name=statement_name,
+            workgroup=work_group,
+            query_statement=query_statement,
+            description=description,
+        )
+        return json.dumps(dict())
+
+    def get_prepared_statement(self) -> str:
+        statement_name = self._get_param("StatementName")
+        work_group = self._get_param("WorkGroup")
+        ps = self.athena_backend.get_prepared_statement(
+            statement_name=statement_name,
+            work_group=work_group,
+        )
+        return json.dumps(
+            {
+                "PreparedStatement": {
+                    "StatementName": ps.statement_name,  # type: ignore[union-attr]
+                    "QueryStatement": ps.query_statement,  # type: ignore[union-attr]
+                    "WorkGroupName": ps.workgroup,  # type: ignore[union-attr]
+                    "Description": ps.description,  # type: ignore[union-attr]
+                    # "LastModifiedTime": ps.last_modified_time,  # type: ignore[union-attr]
                 }
             }
         )
