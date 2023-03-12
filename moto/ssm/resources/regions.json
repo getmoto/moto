@@ -709,6 +709,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.af-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -1118,6 +1127,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.af-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -2123,6 +2141,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -2580,6 +2607,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4068,6 +4104,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ap-northeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -4984,6 +5029,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -6468,6 +6522,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ap-northeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -7204,6 +7267,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -8577,6 +8649,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
@@ -9789,6 +9870,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -10395,6 +10485,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "rekognition": {
                 "Value": "rekognition",
                 "endpoint": {
@@ -10513,6 +10612,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -12700,6 +12808,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ap-southeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -13520,6 +13637,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15151,6 +15277,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ap-southeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -16025,6 +16160,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -17357,10 +17501,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
                   "Value": "runtime.sagemaker.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "secretsmanager": {
+                "Value": "secretsmanager",
+                "endpoint": {
+                  "Value": "secretsmanager.ap-southeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19162,6 +19324,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ca-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -19732,6 +19903,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "rekognition": {
                 "Value": "rekognition",
                 "endpoint": {
@@ -19850,6 +20030,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -21208,6 +21397,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "rolesanywhere": {
+                "Value": "rolesanywhere",
+                "endpoint": {
+                  "Value": "rolesanywhere.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "route53": {
                 "Value": "route53",
                 "endpoint": {
@@ -21255,6 +21453,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics"
               },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
@@ -22388,6 +22589,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "rolesanywhere": {
+                "Value": "rolesanywhere",
+                "endpoint": {
+                  "Value": "rolesanywhere.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "route53": {
                 "Value": "route53",
                 "endpoint": {
@@ -22435,6 +22645,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics"
               },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
@@ -23864,6 +24077,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.eu-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -24780,6 +25002,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25764,6 +25995,15 @@
                 "Value": "route53",
                 "endpoint": {
                   "Value": "route53.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "route53resolver": {
+                "Value": "route53resolver",
+                "endpoint": {
+                  "Value": "route53resolver.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26805,6 +27045,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.eu-north-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -27388,6 +27637,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28495,6 +28753,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.eu-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -28841,6 +29108,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.eu-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30927,6 +31203,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.eu-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -31885,6 +32170,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -33478,6 +33772,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.eu-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -34235,6 +34538,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -35491,6 +35803,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.eu-west-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -35948,6 +36269,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36932,6 +37262,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafka": {
+                "Value": "kafka",
+                "endpoint": {
+                  "Value": "kafka.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -37153,6 +37492,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics"
               },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
@@ -38073,6 +38415,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.me-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -38503,6 +38854,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.me-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -39682,6 +40042,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.sa-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -40235,6 +40604,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -42034,6 +42412,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -43099,6 +43486,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
@@ -43556,6 +43952,9 @@
                 "Value": "wickr",
                 "endpoint": {
                   "Value": "gw-pro-prod.wickr.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "wisdom": {
@@ -44782,6 +45181,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.us-east-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -45587,6 +45995,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46975,6 +47392,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics"
               },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
@@ -48441,6 +48861,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics"
+              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
@@ -49621,6 +50044,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.us-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -50077,6 +50509,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "rekognition": {
                 "Value": "rekognition",
                 "endpoint": {
@@ -50195,6 +50636,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51913,6 +52363,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.us-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -52901,6 +53360,15 @@
                 "Value": "sagemaker-geospatial",
                 "endpoint": {
                   "Value": "sagemaker-geospatial.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
