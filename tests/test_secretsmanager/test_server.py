@@ -7,6 +7,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_secretsmanager, mock_lambda, mock_iam, mock_logs, settings
+from tests.markers import requires_docker
 from tests.test_awslambda.test_lambda import get_test_zip_file1
 
 DEFAULT_SECRET_NAME = "test-secret"
@@ -456,6 +457,7 @@ if not settings.TEST_SERVER_MODE:
     @mock_lambda
     @mock_logs
     @mock_secretsmanager
+    @requires_docker
     def test_rotate_secret_lambda_invocations():
         conn = boto3.client("iam", region_name="us-east-1")
         logs_conn = boto3.client("logs", region_name="us-east-1")

@@ -3,6 +3,7 @@ import json
 
 from moto import mock_events, mock_iam, mock_lambda, mock_logs, mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from ..markers import requires_docker
 from ..test_awslambda.utilities import get_test_zip_file1, wait_for_log_msg
 
 
@@ -11,6 +12,7 @@ from ..test_awslambda.utilities import get_test_zip_file1, wait_for_log_msg
 @mock_lambda
 @mock_logs
 @mock_s3
+@requires_docker
 def test_creating_bucket__invokes_lambda():
     iam_client = boto3.client("iam", "us-east-1")
     lambda_client = boto3.client("lambda", "us-east-1")

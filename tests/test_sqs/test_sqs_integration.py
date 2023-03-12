@@ -4,6 +4,7 @@ import time
 import uuid
 
 from moto import mock_lambda, mock_sqs, mock_logs
+from tests.markers import requires_docker
 from tests.test_awslambda.test_lambda import get_test_zip_file1, get_role_name
 from tests.test_awslambda.utilities import get_test_zip_file_print_event
 
@@ -11,6 +12,7 @@ from tests.test_awslambda.utilities import get_test_zip_file_print_event
 @mock_logs
 @mock_lambda
 @mock_sqs
+@requires_docker
 def test_invoke_function_from_sqs_queue():
     logs_conn = boto3.client("logs", region_name="us-east-1")
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -71,6 +73,7 @@ def test_invoke_function_from_sqs_queue():
 @mock_logs
 @mock_lambda
 @mock_sqs
+@requires_docker
 def test_invoke_function_from_sqs_fifo_queue():
     """
     Create a FIFO Queue

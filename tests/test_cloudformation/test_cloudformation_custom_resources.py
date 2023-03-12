@@ -11,6 +11,7 @@ from unittest import SkipTest
 from uuid import uuid4
 from tests.test_awslambda.utilities import wait_for_log_msg
 from .fixtures.custom_lambda import get_template, get_template_for_unknown_lambda
+from ..markers import requires_docker
 
 
 def get_lambda_code():
@@ -77,6 +78,7 @@ def test_create_custom_lambda_resource():
 @mock_lambda
 @mock_logs
 @mock_s3
+@requires_docker
 def test_create_custom_lambda_resource__verify_cfnresponse_failed():
     #########
     # Integration test using a Custom Resource

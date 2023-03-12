@@ -14,6 +14,7 @@ from .utilities import (
     wait_for_log_msg,
     get_test_zip_file_error,
 )
+from ..markers import requires_docker
 
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
@@ -54,6 +55,7 @@ def test_create_event_source_mapping():
 @mock_logs
 @mock_lambda
 @mock_sqs
+@requires_docker
 def test_invoke_function_from_sqs(key):
     function_name = str(uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -98,6 +100,7 @@ def test_invoke_function_from_sqs(key):
 @mock_logs
 @mock_lambda
 @mock_dynamodb
+@requires_docker
 def test_invoke_function_from_dynamodb_put():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     table_name = str(uuid4())[0:6] + "_table"
@@ -149,6 +152,7 @@ def test_invoke_function_from_dynamodb_put():
 @mock_logs
 @mock_lambda
 @mock_dynamodb
+@requires_docker
 def test_invoke_function_from_dynamodb_update():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     table_name = str(uuid4())[0:6] + "_table"
@@ -210,6 +214,7 @@ def test_invoke_function_from_dynamodb_update():
 @mock_logs
 @mock_lambda
 @mock_sqs
+@requires_docker
 def test_invoke_function_from_sqs_exception():
     function_name = str(uuid4())[0:6]
     logs_conn = boto3.client("logs", region_name="us-east-1")
@@ -274,6 +279,7 @@ def test_invoke_function_from_sqs_exception():
 @mock_logs
 @mock_sns
 @mock_lambda
+@requires_docker
 def test_invoke_function_from_sns():
     logs_conn = boto3.client("logs", region_name=_lambda_region)
     sns_conn = boto3.client("sns", region_name=_lambda_region)

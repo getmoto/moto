@@ -59,7 +59,6 @@ from tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
 
-
 docker_3 = docker.__version__[0] >= "3"
 
 
@@ -830,6 +829,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         except docker.errors.DockerException as e:
             # Docker itself is probably not running - there will be no Lambda-logs to handle
             msg = f"error running docker: {e}"
+            logger.error(msg)
             self.save_logs(msg)
             return msg, True, ""
 

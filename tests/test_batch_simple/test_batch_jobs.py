@@ -60,17 +60,17 @@ def test_submit_job_by_name():
     job_id = resp["jobId"]
 
     resp_jobs = batch_client.describe_jobs(jobs=[job_id])
+    assert len(resp_jobs["jobs"]) == 1
 
-    len(resp_jobs["jobs"]).should.equal(1)
     job = resp_jobs["jobs"][0]
 
-    job["jobId"].should.equal(job_id)
-    job["jobQueue"].should.equal(queue_arn)
-    job["jobDefinition"].should.equal(job_definition_arn)
-    job["status"].should.equal("SUCCEEDED")
-    job.should.contain("container")
-    job["container"].should.contain("command")
-    job["container"].should.contain("logStreamName")
+    assert job["jobId"] == job_id
+    assert job["jobQueue"] == queue_arn
+    assert job["jobDefinition"] == job_definition_arn
+    assert job["status"] == "SUCCEEDED"
+    assert "container" in job
+    assert "command" in job["container"]
+    assert "logStreamName" in job["container"]
 
 
 @mock_batch_simple

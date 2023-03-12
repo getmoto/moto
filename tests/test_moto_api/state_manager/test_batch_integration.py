@@ -1,3 +1,4 @@
+from tests.markers import requires_docker
 from tests.test_batch import _get_clients, _setup
 from tests.test_batch.test_batch_jobs import prepare_job, _wait_for_job_status
 
@@ -13,6 +14,7 @@ from unittest import SkipTest
 @mock_ecs
 @mock_iam
 @mock_batch
+@requires_docker
 def test_cancel_pending_job():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't use state_manager in ServerMode directly")
