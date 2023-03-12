@@ -2688,10 +2688,6 @@
   "Location": "use1-az2"
  },
  {
-  "InstanceType": "cc2.8xlarge",
-  "Location": "use1-az2"
- },
- {
   "InstanceType": "d2.2xlarge",
   "Location": "use1-az2"
  },
@@ -5421,10 +5417,6 @@
  },
  {
   "InstanceType": "c7g.xlarge",
-  "Location": "use1-az4"
- },
- {
-  "InstanceType": "cc2.8xlarge",
   "Location": "use1-az4"
  },
  {
@@ -9905,10 +9897,6 @@
  },
  {
   "InstanceType": "c7g.xlarge",
-  "Location": "use1-az6"
- },
- {
-  "InstanceType": "cc2.8xlarge",
   "Location": "use1-az6"
  },
  {
