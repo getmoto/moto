@@ -1,7 +1,7 @@
 import json
 import re
 from os import environ
-from typing import Any, Dict, List, Iterable, Optional, Set
+from typing import Any, Dict, List, Iterable, Optional, Set, cast
 from moto.utilities.utils import load_resource
 from ..exceptions import (
     InvalidAMIIdError,
@@ -21,9 +21,9 @@ from ..utils import (
 
 if "MOTO_AMIS_PATH" in environ:
     with open(environ["MOTO_AMIS_PATH"], "r", encoding="utf-8") as f:
-        AMIS = json.load(f)
+        AMIS = cast(List[Dict[str,Any]], json.load(f))
 else:
-    AMIS = load_resource(__name__, "../resources/amis.json")
+    AMIS = cast(List[Dict[str,Any]], load_resource(__name__, "../resources/amis.json"))
 
 
 class Ami(TaggedEC2Resource):
@@ -161,9 +161,9 @@ class AmiBackend:
         if "MOTO_AMIS_PATH" not in environ:
             for path in ["latest_amis", "ecs/optimized_amis"]:
                 try:
-                    latest_amis = load_resource(
+                    latest_amis = cast(List[Dict[str, Any]], load_resource(
                         __name__, f"../resources/{path}/{self.region_name}.json"  # type: ignore[attr-defined]
-                    )
+                    ))
                     for ami in latest_amis:
                         ami_id = ami["ami_id"]
                         ami["owner_alias"] = "amazon"
