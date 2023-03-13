@@ -108,7 +108,7 @@ class ConfigQueryModel:
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
         aggregator: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], str]:
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         """For AWS Config. This will list all of the resources of the given type and optional resource name and region.
 
         This supports both aggregated and non-aggregated listing. The following notes the difference:
@@ -165,7 +165,7 @@ class ConfigQueryModel:
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> Optional[Dict[str, Any]]:
         """For AWS Config. This will query the backend for the specific resource type configuration.
 
         This supports both aggregated, and non-aggregated fetching -- for batched fetching -- the Config batching requests
@@ -194,7 +194,7 @@ class ConfigQueryModel:
         raise NotImplementedError()
 
 
-class CloudWatchMetricProvider(object):
+class CloudWatchMetricProvider:
     @staticmethod
     @abstractmethod
     def get_cloudwatch_metrics(account_id: str) -> Any:  # type: ignore[misc]

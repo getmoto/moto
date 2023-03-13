@@ -55,12 +55,12 @@ class InvalidArgumentError(S3ClientError):
 class AccessForbidden(S3ClientError):
     code = 403
 
-    def __init__(self, msg):
+    def __init__(self, msg: str):
         super().__init__("AccessForbidden", msg)
 
 
 class BucketError(S3ClientError):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: str, **kwargs: str):
         kwargs.setdefault("template", "bucket_error")
         self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super().__init__(*args, **kwargs)
@@ -335,45 +335,40 @@ class DuplicateTagKeys(S3ClientError):
 class S3AccessDeniedError(S3ClientError):
     code = 403
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: str, **kwargs: str):
         super().__init__("AccessDenied", "Access Denied", *args, **kwargs)
 
 
 class BucketAccessDeniedError(BucketError):
     code = 403
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: str, **kwargs: str):
         super().__init__("AccessDenied", "Access Denied", *args, **kwargs)
 
 
 class S3InvalidTokenError(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
-            "InvalidToken",
-            "The provided token is malformed or otherwise invalid.",
-            *args,
-            **kwargs,
+            "InvalidToken", "The provided token is malformed or otherwise invalid."
         )
 
 
 class S3AclAndGrantError(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidRequest",
             "Specifying both Canned ACLs and Header Grants is not allowed",
-            *args,
-            **kwargs,
         )
 
 
 class BucketInvalidTokenError(BucketError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: str, **kwargs: str):
         super().__init__(
             "InvalidToken",
             "The provided token is malformed or otherwise invalid.",
@@ -385,19 +380,17 @@ class BucketInvalidTokenError(BucketError):
 class S3InvalidAccessKeyIdError(S3ClientError):
     code = 403
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidAccessKeyId",
             "The AWS Access Key Id you provided does not exist in our records.",
-            *args,
-            **kwargs,
         )
 
 
 class BucketInvalidAccessKeyIdError(S3ClientError):
     code = 403
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: str, **kwargs: str):
         super().__init__(
             "InvalidAccessKeyId",
             "The AWS Access Key Id you provided does not exist in our records.",
@@ -409,19 +402,17 @@ class BucketInvalidAccessKeyIdError(S3ClientError):
 class S3SignatureDoesNotMatchError(S3ClientError):
     code = 403
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "SignatureDoesNotMatch",
             "The request signature we calculated does not match the signature you provided. Check your key and signing method.",
-            *args,
-            **kwargs,
         )
 
 
 class BucketSignatureDoesNotMatchError(S3ClientError):
     code = 403
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: str, **kwargs: str):
         super().__init__(
             "SignatureDoesNotMatch",
             "The request signature we calculated does not match the signature you provided. Check your key and signing method.",

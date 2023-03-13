@@ -154,7 +154,9 @@ def iso_8601_datetime_with_nanoseconds(value: datetime.datetime) -> str:
     return value.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
 
 
-def iso_8601_datetime_without_milliseconds(value: datetime.datetime) -> Optional[str]:
+def iso_8601_datetime_without_milliseconds(
+    value: Optional[datetime.datetime],
+) -> Optional[str]:
     return value.strftime("%Y-%m-%dT%H:%M:%SZ") if value else None
 
 

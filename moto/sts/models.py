@@ -10,7 +10,6 @@ from moto.sts.utils import (
     DEFAULT_STS_SESSION_DURATION,
     random_assumed_role_id,
 )
-from typing import Mapping
 
 
 class Token(BaseModel):
@@ -185,6 +184,6 @@ class STSBackend(BaseBackend):
         return account_id, iam_backend.create_temp_access_key()
 
 
-sts_backends: Mapping[str, STSBackend] = BackendDict(
+sts_backends = BackendDict(
     STSBackend, "sts", use_boto3_regions=False, additional_regions=["global"]
 )
