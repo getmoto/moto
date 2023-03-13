@@ -31,7 +31,7 @@ jobs:
         python-version: 3.9
 
     - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-region: us-east-1
         role-to-assume: arn:aws:iam::486285699788:role/GithubActionsRole
