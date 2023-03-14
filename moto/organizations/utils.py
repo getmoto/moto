@@ -2,7 +2,6 @@ import re
 import string
 from moto.moto_api._internal import mock_random as random
 
-
 MASTER_ACCOUNT_EMAIL = "master@example.com"
 DEFAULT_POLICY_ID = "p-FullAWSAccess"
 ORGANIZATION_ARN_FORMAT = "arn:aws:organizations::{0}:organization/{1}"
@@ -56,21 +55,21 @@ PAGINATION_MODEL = {
 }
 
 
-def make_random_org_id():
+def make_random_org_id() -> str:
     # The regex pattern for an organization ID string requires "o-"
     # followed by from 10 to 32 lower-case letters or digits.
     # e.g. 'o-vipjnq5z86'
     return "o-" + "".join(random.choice(CHARSET) for x in range(ORG_ID_SIZE))
 
 
-def make_random_root_id():
+def make_random_root_id() -> str:
     # The regex pattern for a root ID string requires "r-" followed by
     # from 4 to 32 lower-case letters or digits.
     # e.g. 'r-3zwx'
     return "r-" + "".join(random.choice(CHARSET) for x in range(ROOT_ID_SIZE))
 
 
-def make_random_ou_id(root_id):
+def make_random_ou_id(root_id: str) -> str:
     # The regex pattern for an organizational unit ID string requires "ou-"
     # followed by from 4 to 32 lower-case letters or digits (the ID of the root
     # that contains the OU) followed by a second "-" dash and from 8 to 32
@@ -85,13 +84,13 @@ def make_random_ou_id(root_id):
     )
 
 
-def make_random_account_id():
+def make_random_account_id() -> str:
     # The regex pattern for an account ID string requires exactly 12 digits.
     # e.g. '488633172133'
     return "".join([random.choice(string.digits) for n in range(ACCOUNT_ID_SIZE)])
 
 
-def make_random_create_account_status_id():
+def make_random_create_account_status_id() -> str:
     # The regex pattern for an create account request ID string requires
     # "car-" followed by from 8 to 32 lower-case letters or digits.
     # e.g. 'car-35gxzwrp'
@@ -100,14 +99,14 @@ def make_random_create_account_status_id():
     )
 
 
-def make_random_policy_id():
+def make_random_policy_id() -> str:
     # The regex pattern for a policy ID string requires "p-" followed by
     # from 8 to 128 lower-case letters or digits.
     # e.g. 'p-k2av4a8a'
     return "p-" + "".join(random.choice(CHARSET) for x in range(POLICY_ID_SIZE))
 
 
-def fullmatch(regex, s, flags=0):
+def fullmatch(regex: bytes, s: bytes, flags=0):
     """Emulate python-3.4 re.fullmatch()."""
     m = re.match(regex, s, flags=flags)
     if m and m.span()[1] == len(s):

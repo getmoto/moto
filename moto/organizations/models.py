@@ -199,6 +199,7 @@ class FakePolicy(BaseModel):
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
         self.attachments = []
+        self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
         if not FakePolicy.supported_policy_type(self.type):
             raise InvalidInputException("You specified an invalid value.")
