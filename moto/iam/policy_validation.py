@@ -1,6 +1,6 @@
 import json
 import re
-
+from typing import Any, Dict, List
 from moto.iam.exceptions import MalformedPolicyDocument
 
 
@@ -61,7 +61,7 @@ SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS = {
     "s3": "Resource {resource} can not contain region information.",
 }
 
-VALID_RESOURCE_PATH_STARTING_VALUES = {
+VALID_RESOURCE_PATH_STARTING_VALUES: Dict[str, Any] = {
     "iam": {
         "values": [
             "user/",
@@ -84,13 +84,13 @@ VALID_RESOURCE_PATH_STARTING_VALUES = {
 
 
 class BaseIAMPolicyValidator:
-    def __init__(self, policy_document):
+    def __init__(self, policy_document: str):
         self._policy_document = policy_document
-        self._policy_json = {}
-        self._statements = []
+        self._policy_json: Dict[str, Any] = {}
+        self._statements: List[Dict[str, Any]] = []
         self._resource_error = ""  # the first resource error found that does not generate a legacy parsing error
 
-    def validate(self):
+    def validate(self) -> None:
         try:
             self._validate_syntax()
         except Exception:
@@ -124,7 +124,7 @@ class BaseIAMPolicyValidator:
         self._validate_actions_for_prefixes()
         self._validate_not_actions_for_prefixes()
 
-    def _validate_syntax(self):
+    def _validate_syntax(self) -> None:
         self._policy_json = json.loads(self._policy_document)
         assert isinstance(self._policy_json, dict)
         self._validate_top_elements()
@@ -132,19 +132,19 @@ class BaseIAMPolicyValidator:
         self._validate_id_syntax()
         self._validate_statements_syntax()
 
-    def _validate_top_elements(self):
+    def _validate_top_elements(self) -> None:
         top_elements = self._policy_json.keys()
         for element in top_elements:
             assert element in VALID_TOP_ELEMENTS
 
-    def _validate_version_syntax(self):
+    def _validate_version_syntax(self) -> None:
         if "Version" in self._policy_json:
             assert self._policy_json["Version"] in VALID_VERSIONS
 
-    def _validate_version(self):
+    def _validate_version(self) -> None:
         assert self._policy_json["Version"] == "2012-10-17"
 
-    def _validate_sid_uniqueness(self):
+    def _validate_sid_uniqueness(self) -> None:
         sids = []
         for statement in self._statements:
             if "Sid" in statement:
@@ -153,7 +153,7 @@ class BaseIAMPolicyValidator:
                     assert statementId not in sids
                     sids.append(statementId)
 
-    def _validate_statements_syntax(self):
+    def _validate_statements_syntax(self) -> None:
         assert "Statement" in self._policy_json
         assert isinstance(self._policy_json["Statement"], (dict, list))
 
@@ -167,7 +167,7 @@ class BaseIAMPolicyValidator:
             self._validate_statement_syntax(statement)
 
     @staticmethod
-    def _validate_statement_syntax(statement):
+    def _validate_statement_syntax(statement: Dict[str, Any]) -> None:  # type: ignore[misc]
         assert isinstance(statement, dict)
         for statement_element in statement.keys():
             assert statement_element in VALID_STATEMENT_ELEMENTS
@@ -184,7 +184,7 @@ class BaseIAMPolicyValidator:
         IAMPolicyDocumentValidator._validate_sid_syntax(statement)
 
     @staticmethod
-    def _validate_effect_syntax(statement):
+    def _validate_effect_syntax(statement: Dict[str, Any]) -> None:  # type: ignore[misc]
         assert "Effect" in statement
         assert isinstance(statement["Effect"], str)
         assert statement["Effect"].lower() in [
@@ -192,31 +192,31 @@ class BaseIAMPolicyValidator:
         ]
 
     @staticmethod
-    def _validate_action_syntax(statement):
+    def _validate_action_syntax(statement: Dict[str, Any]) -> None:  # type: ignore[misc]
         IAMPolicyDocumentValidator._validate_string_or_list_of_strings_syntax(
             statement, "Action"
         )
 
     @staticmethod
-    def _validate_not_action_syntax(statement):
+    def _validate_not_action_syntax(statement: Dict[str, Any]) -> None:  # type: ignore[misc]
         IAMPolicyDocumentValidator._validate_string_or_list_of_strings_syntax(
             statement, "NotAction"
         )
 
     @staticmethod
-    def _validate_resource_syntax(statement):
+    def _validate_resource_syntax(statement: Dict[str, Any]) -> None:  # type: ignore[misc]
         IAMPolicyDocumentValidator._validate_string_or_list_of_strings_syntax(
             statement, "Resource"
         )
 
     @staticmethod
-    def _validate_not_resource_syntax(statement):
+    def _validate_not_resource_syntax(statement: Dict[str, Any]) -> None:  # type: ignore[misc]
         IAMPolicyDocumentValidator._validate_string_or_list_of_strings_syntax(
             statement, "NotResource"
         )
 
     @staticmethod
-    def _validate_string_or_list_of_strings_syntax(statement, key):
+    def _validate_string_or_list_of_strings_syntax(statement: Dict[str, Any], key: str) -> None:  # type: ignore[misc]
         if key in statement:
             assert isinstance(statement[key], (str, list))
             if isinstance(statement[key], list):
@@ -224,7 +224,7 @@ class BaseIAMPolicyValidator:
                     assert isinstance(resource, str)
 
     @staticmethod
-    def _validate_condition_syntax(statement):
+    def _validate_condition_syntax(statement: Dict[str, Any]) -> None:  # type: ignore[misc]
         if "Condition" in statement:
             assert isinstance(statement["Condition"], dict)
             for condition_key, condition_value in statement["Condition"].items():
@@ -239,7 +239,7 @@ class BaseIAMPolicyValidator:
                     assert not condition_value  # empty dict
 
     @staticmethod
-    def _strip_condition_key(condition_key):
+    def _strip_condition_key(condition_key: str) -> str:
         for valid_prefix in VALID_CONDITION_PREFIXES:
             if condition_key.startswith(valid_prefix):
                 condition_key = condition_key[len(valid_prefix) :]
@@ -253,15 +253,15 @@ class BaseIAMPolicyValidator:
         return condition_key
 
     @staticmethod
-    def _validate_sid_syntax(statement):
+    def _validate_sid_syntax(statement: Dict[str, Any]) -> None:  # type: ignore[misc]
         if "Sid" in statement:
             assert isinstance(statement["Sid"], str)
 
-    def _validate_id_syntax(self):
+    def _validate_id_syntax(self) -> None:
         if "Id" in self._policy_json:
             assert isinstance(self._policy_json["Id"], str)
 
-    def _validate_resource_exist(self):
+    def _validate_resource_exist(self) -> None:
         for statement in self._statements:
             assert "Resource" in statement or "NotResource" in statement
             if "Resource" in statement and isinstance(statement["Resource"], list):
@@ -271,7 +271,7 @@ class BaseIAMPolicyValidator:
             ):
                 assert statement["NotResource"]
 
-    def _validate_action_like_exist(self):
+    def _validate_action_like_exist(self) -> None:
         for statement in self._statements:
             assert "Action" in statement or "NotAction" in statement
             if "Action" in statement and isinstance(statement["Action"], list):
@@ -279,13 +279,13 @@ class BaseIAMPolicyValidator:
             elif "NotAction" in statement and isinstance(statement["NotAction"], list):
                 assert statement["NotAction"]
 
-    def _validate_actions_for_prefixes(self):
+    def _validate_actions_for_prefixes(self) -> None:
         self._validate_action_like_for_prefixes("Action")
 
-    def _validate_not_actions_for_prefixes(self):
+    def _validate_not_actions_for_prefixes(self) -> None:
         self._validate_action_like_for_prefixes("NotAction")
 
-    def _validate_action_like_for_prefixes(self, key):
+    def _validate_action_like_for_prefixes(self, key: str) -> None:
         for statement in self._statements:
             if key in statement:
                 if isinstance(statement[key], str):
@@ -295,7 +295,7 @@ class BaseIAMPolicyValidator:
                         self._validate_action_prefix(action)
 
     @staticmethod
-    def _validate_action_prefix(action):
+    def _validate_action_prefix(action: str) -> None:
         action_parts = action.split(":")
         if len(action_parts) == 1 and action_parts[0] != "*":
             raise MalformedPolicyDocument(
@@ -310,13 +310,13 @@ class BaseIAMPolicyValidator:
         if action_parts[0] != "*" and vendor_pattern.search(action_parts[0]):
             raise MalformedPolicyDocument(f"Vendor {action_parts[0]} is not valid")
 
-    def _validate_resources_for_formats(self):
+    def _validate_resources_for_formats(self) -> None:
         self._validate_resource_like_for_formats("Resource")
 
-    def _validate_not_resources_for_formats(self):
+    def _validate_not_resources_for_formats(self) -> None:
         self._validate_resource_like_for_formats("NotResource")
 
-    def _validate_resource_like_for_formats(self, key):
+    def _validate_resource_like_for_formats(self, key: str) -> None:
         for statement in self._statements:
             if key in statement:
                 if isinstance(statement[key], str):
@@ -329,7 +329,7 @@ class BaseIAMPolicyValidator:
                         statement, key
                     )
 
-    def _validate_resource_format(self, resource):
+    def _validate_resource_format(self, resource: str) -> None:
         if resource != "*":
             resource_partitions = resource.partition(":")
 
@@ -407,13 +407,13 @@ class BaseIAMPolicyValidator:
                         )
                     )
 
-    def _perform_first_legacy_parsing(self):
+    def _perform_first_legacy_parsing(self) -> None:
         """This method excludes legacy parsing resources, since that have to be done later."""
         for statement in self._statements:
             self._legacy_parse_statement(statement)
 
     @staticmethod
-    def _legacy_parse_statement(statement):
+    def _legacy_parse_statement(statement: Dict[str, Any]) -> None:  # type: ignore[misc]
         assert statement["Effect"] in VALID_EFFECTS  # case-sensitive matching
         if "Condition" in statement:
             for condition_key, condition_value in statement["Condition"].items():
@@ -422,7 +422,7 @@ class BaseIAMPolicyValidator:
                 )
 
     @staticmethod
-    def _legacy_parse_resource_like(statement, key):
+    def _legacy_parse_resource_like(statement: Dict[str, Any], key: str) -> None:  # type: ignore[misc]
         if isinstance(statement[key], str):
             if statement[key] != "*":
                 assert statement[key].count(":") >= 5 or "::" not in statement[key]
@@ -434,7 +434,7 @@ class BaseIAMPolicyValidator:
                     assert resource[2] != ""
 
     @staticmethod
-    def _legacy_parse_condition(condition_key, condition_value):
+    def _legacy_parse_condition(condition_key: str, condition_value: Dict[str, Any]) -> None:  # type: ignore[misc]
         stripped_condition_key = IAMPolicyDocumentValidator._strip_condition_key(
             condition_key
         )
@@ -452,7 +452,7 @@ class BaseIAMPolicyValidator:
                         )
 
     @staticmethod
-    def _legacy_parse_date_condition_value(date_condition_value):
+    def _legacy_parse_date_condition_value(date_condition_value: str) -> None:
         if "t" in date_condition_value.lower() or "-" in date_condition_value:
             IAMPolicyDocumentValidator._validate_iso_8601_datetime(
                 date_condition_value.lower()
@@ -461,7 +461,7 @@ class BaseIAMPolicyValidator:
             assert 0 <= int(date_condition_value) <= 9223372036854775807
 
     @staticmethod
-    def _validate_iso_8601_datetime(datetime):
+    def _validate_iso_8601_datetime(datetime: str) -> None:
         datetime_parts = datetime.partition("t")
         negative_year = datetime_parts[0].startswith("-")
         date_parts = (
@@ -525,10 +525,10 @@ class IAMPolicyDocumentValidator(BaseIAMPolicyValidator):
 
 
 class IAMTrustPolicyDocumentValidator(BaseIAMPolicyValidator):
-    def __init__(self, policy_document):
+    def __init__(self, policy_document: str):
         super().__init__(policy_document)
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         try:
             for statement in self._statements:
@@ -551,12 +551,12 @@ class IAMTrustPolicyDocumentValidator(BaseIAMPolicyValidator):
         except Exception:
             raise MalformedPolicyDocument("Has prohibited field Resource.")
 
-    def _validate_resource_not_exist(self):
+    def _validate_resource_not_exist(self) -> None:
         for statement in self._statements:
             assert "Resource" not in statement and "NotResource" not in statement
 
     @staticmethod
-    def _validate_trust_policy_action(action):
+    def _validate_trust_policy_action(action: str) -> None:
         # https://docs.aws.amazon.com/service-authorization/latest/reference/list_awssecuritytokenservice.html
         assert action in (
             "sts:AssumeRole",

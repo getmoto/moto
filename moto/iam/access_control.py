@@ -17,6 +17,7 @@ import logging
 import re
 from abc import abstractmethod, ABCMeta
 from enum import Enum
+from typing import Any, Dict, Optional, Match, List, Union
 
 from botocore.auth import SigV4Auth, S3SigV4Auth
 from botocore.awsrequest import AWSRequest
@@ -39,12 +40,14 @@ from moto.s3.exceptions import (
     S3SignatureDoesNotMatchError,
 )
 from moto.sts.models import sts_backends
-from .models import iam_backends, Policy
+from .models import iam_backends, Policy, IAMBackend
 
 log = logging.getLogger(__name__)
 
 
-def create_access_key(account_id, access_key_id, headers):
+def create_access_key(
+    account_id: str, access_key_id: str, headers: Dict[str, str]
+) -> Union["IAMUserAccessKey", "AssumedRoleAccessKey"]:
     if access_key_id.startswith("AKIA") or "X-Amz-Security-Token" not in headers:
         return IAMUserAccessKey(account_id, access_key_id, headers)
     else:
@@ -53,10 +56,10 @@ def create_access_key(account_id, access_key_id, headers):
 
 class IAMUserAccessKey:
     @property
-    def backend(self):
+    def backend(self) -> IAMBackend:
         return iam_backends[self.account_id]["global"]
 
-    def __init__(self, account_id, access_key_id, headers):
+    def __init__(self, account_id: str, access_key_id: str, headers: Dict[str, str]):
         self.account_id = account_id
         iam_users = self.backend.list_users("/", None, None)
 
@@ -72,13 +75,13 @@ class IAMUserAccessKey:
         raise CreateAccessKeyFailure(reason="InvalidId")
 
     @property
-    def arn(self):
+    def arn(self) -> str:
         return f"arn:aws:iam::{self.account_id}:user/{self._owner_user_name}"
 
-    def create_credentials(self):
+    def create_credentials(self) -> Credentials:
         return Credentials(self._access_key_id, self._secret_access_key)
 
-    def collect_policies(self):
+    def collect_policies(self) -> List[Dict[str, str]]:
         user_policies = []
 
         inline_policy_names = self.backend.list_user_policies(self._owner_user_name)
@@ -112,12 +115,12 @@ class IAMUserAccessKey:
         return user_policies
 
 
-class AssumedRoleAccessKey(object):
+class AssumedRoleAccessKey:
     @property
-    def backend(self):
+    def backend(self) -> IAMBackend:  # type: ignore[misc]
         return iam_backends[self.account_id]["global"]
 
-    def __init__(self, account_id, access_key_id, headers):
+    def __init__(self, account_id: str, access_key_id: str, headers: Dict[str, str]):
         self.account_id = account_id
         for assumed_role in sts_backends[account_id]["global"].assumed_roles:
             if assumed_role.access_key_id == access_key_id:
@@ -132,15 +135,15 @@ class AssumedRoleAccessKey(object):
         raise CreateAccessKeyFailure(reason="InvalidId")
 
     @property
-    def arn(self):
+    def arn(self) -> str:
         return f"arn:aws:sts::{self.account_id}:assumed-role/{self._owner_role_name}/{self._session_name}"
 
-    def create_credentials(self):
+    def create_credentials(self) -> Credentials:
         return Credentials(
             self._access_key_id, self._secret_access_key, self._session_token
         )
 
-    def collect_policies(self):
+    def collect_policies(self) -> List[str]:
         role_policies = []
 
         inline_policy_names = self.backend.list_role_policies(self._owner_role_name)
@@ -153,19 +156,26 @@ class AssumedRoleAccessKey(object):
         attached_policies, _ = self.backend.list_attached_role_policies(
             self._owner_role_name
         )
-        role_policies += attached_policies
+        role_policies += attached_policies  # type: ignore[arg-type]
 
         return role_policies
 
 
 class CreateAccessKeyFailure(Exception):
-    def __init__(self, reason, *args):
-        super().__init__(*args)
+    def __init__(self, reason: str):
+        super().__init__()
         self.reason = reason
 
 
 class IAMRequestBase(object, metaclass=ABCMeta):
-    def __init__(self, account_id, method, path, data, headers):
+    def __init__(
+        self,
+        account_id: str,
+        method: str,
+        path: str,
+        data: Dict[str, str],
+        headers: Dict[str, str],
+    ):
         log.debug(
             f"Creating {self.__class__.__name__} with method={method}, path={path}, data={data}, headers={headers}"
         )
@@ -198,7 +208,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         except CreateAccessKeyFailure as e:
             self._raise_invalid_access_key(e.reason)
 
-    def check_signature(self):
+    def check_signature(self) -> None:
         original_signature = self._get_string_between(
             "Signature=", ",", self._headers["Authorization"]
         )
@@ -206,11 +216,11 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         if original_signature != calculated_signature:
             self._raise_signature_does_not_match()
 
-    def check_action_permitted(self):
+    def check_action_permitted(self) -> None:
         if (
             self._action == "sts:GetCallerIdentity"
         ):  # always allowed, even if there's an explicit Deny for it
-            return True
+            return
         policies = self._access_key.collect_policies()
 
         permitted = False
@@ -226,30 +236,32 @@ class IAMRequestBase(object, metaclass=ABCMeta):
             self._raise_access_denied()
 
     @abstractmethod
-    def _raise_signature_does_not_match(self):
+    def _raise_signature_does_not_match(self) -> None:
         raise NotImplementedError()
 
     @abstractmethod
-    def _raise_access_denied(self):
+    def _raise_access_denied(self) -> None:
         raise NotImplementedError()
 
     @abstractmethod
-    def _raise_invalid_access_key(self, reason):
+    def _raise_invalid_access_key(self, reason: str) -> None:
         raise NotImplementedError()
 
     @abstractmethod
-    def _create_auth(self, credentials):
+    def _create_auth(self, credentials: Credentials) -> SigV4Auth:  # type: ignore[misc]
         raise NotImplementedError()
 
     @staticmethod
-    def _create_headers_for_aws_request(signed_headers, original_headers):
+    def _create_headers_for_aws_request(
+        signed_headers: List[str], original_headers: Dict[str, str]
+    ) -> Dict[str, str]:
         headers = {}
         for key, value in original_headers.items():
             if key.lower() in signed_headers:
                 headers[key] = value
         return headers
 
-    def _create_aws_request(self):
+    def _create_aws_request(self) -> AWSRequest:
         signed_headers = self._get_string_between(
             "SignedHeaders=", ",", self._headers["Authorization"]
         ).split(";")
@@ -261,7 +273,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
 
         return request
 
-    def _calculate_signature(self):
+    def _calculate_signature(self) -> str:
         credentials = self._access_key.create_credentials()
         auth = self._create_auth(credentials)
         request = self._create_aws_request()
@@ -270,38 +282,40 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         return auth.signature(string_to_sign, request)
 
     @staticmethod
-    def _get_string_between(first_separator, second_separator, string):
+    def _get_string_between(
+        first_separator: str, second_separator: str, string: str
+    ) -> str:
         return string.partition(first_separator)[2].partition(second_separator)[0]
 
 
 class IAMRequest(IAMRequestBase):
-    def _raise_signature_does_not_match(self):
+    def _raise_signature_does_not_match(self) -> None:
         if self._service == "ec2":
             raise AuthFailureError()
         else:
             raise SignatureDoesNotMatchError()
 
-    def _raise_invalid_access_key(self, _):
+    def _raise_invalid_access_key(self, _: str) -> None:
         if self._service == "ec2":
             raise AuthFailureError()
         else:
             raise InvalidClientTokenIdError()
 
-    def _create_auth(self, credentials):
+    def _create_auth(self, credentials: Any) -> SigV4Auth:
         return SigV4Auth(credentials, self._service, self._region)
 
-    def _raise_access_denied(self):
+    def _raise_access_denied(self) -> None:
         raise AccessDeniedError(user_arn=self._access_key.arn, action=self._action)
 
 
 class S3IAMRequest(IAMRequestBase):
-    def _raise_signature_does_not_match(self):
+    def _raise_signature_does_not_match(self) -> None:
         if "BucketName" in self._data:
             raise BucketSignatureDoesNotMatchError(bucket=self._data["BucketName"])
         else:
             raise S3SignatureDoesNotMatchError()
 
-    def _raise_invalid_access_key(self, reason):
+    def _raise_invalid_access_key(self, reason: str) -> None:
         if reason == "InvalidToken":
             if "BucketName" in self._data:
                 raise BucketInvalidTokenError(bucket=self._data["BucketName"])
@@ -313,18 +327,18 @@ class S3IAMRequest(IAMRequestBase):
             else:
                 raise S3InvalidAccessKeyIdError()
 
-    def _create_auth(self, credentials):
+    def _create_auth(self, credentials: Any) -> S3SigV4Auth:
         return S3SigV4Auth(credentials, self._service, self._region)
 
-    def _raise_access_denied(self):
+    def _raise_access_denied(self) -> None:
         if "BucketName" in self._data:
             raise BucketAccessDeniedError(bucket=self._data["BucketName"])
         else:
             raise S3AccessDeniedError()
 
 
-class IAMPolicy(object):
-    def __init__(self, policy):
+class IAMPolicy:
+    def __init__(self, policy: Any):
         if isinstance(policy, Policy):
             default_version = next(
                 policy_version
@@ -337,9 +351,11 @@ class IAMPolicy(object):
         else:
             policy_document = policy["policy_document"]
 
-        self._policy_json = json.loads(policy_document)
+        self._policy_json = json.loads(policy_document)  # type: ignore[arg-type]
 
-    def is_action_permitted(self, action, resource="*"):
+    def is_action_permitted(
+        self, action: str, resource: str = "*"
+    ) -> "PermissionResult":
         permitted = False
         if isinstance(self._policy_json["Statement"], list):
             for policy_statement in self._policy_json["Statement"]:
@@ -361,11 +377,13 @@ class IAMPolicy(object):
             return PermissionResult.NEUTRAL
 
 
-class IAMPolicyStatement(object):
-    def __init__(self, statement):
+class IAMPolicyStatement:
+    def __init__(self, statement: Any):
         self._statement = statement
 
-    def is_action_permitted(self, action, resource="*"):
+    def is_action_permitted(
+        self, action: str, resource: str = "*"
+    ) -> "PermissionResult":
         is_action_concerned = False
 
         if "NotAction" in self._statement:
@@ -386,7 +404,7 @@ class IAMPolicyStatement(object):
         else:
             return PermissionResult.NEUTRAL
 
-    def is_unknown_principal(self, principal) -> bool:
+    def is_unknown_principal(self, principal: Optional[str]) -> bool:
         # https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-bucket-user-policy-specifying-principal-intro.html
         # For now, Moto only verifies principal == *
         # 'Unknown' principals are not verified
@@ -401,17 +419,17 @@ class IAMPolicyStatement(object):
             return True
         return False
 
-    def _check_element_matches(self, statement_element, value):
+    def _check_element_matches(self, statement_element: Any, value: str) -> bool:
         if isinstance(self._statement[statement_element], list):
             for statement_element_value in self._statement[statement_element]:
                 if self._match(statement_element_value, value):
                     return True
             return False
         else:  # string
-            return self._match(self._statement[statement_element], value)
+            return self._match(self._statement[statement_element], value) is not None
 
     @staticmethod
-    def _match(pattern, string):
+    def _match(pattern: str, string: str) -> Optional[Match[str]]:
         pattern = pattern.replace("*", ".*")
         pattern = f"^{pattern}$"
         return re.match(pattern, string)
