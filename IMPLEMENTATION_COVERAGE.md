@@ -5563,7 +5563,7 @@
 
 ## s3
 <details>
-<summary>62% implemented</summary>
+<summary>63% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -5611,7 +5611,7 @@
 - [ ] get_bucket_website
 - [X] get_object
 - [X] get_object_acl
-- [ ] get_object_attributes
+- [X] get_object_attributes
 - [X] get_object_legal_hold
 - [X] get_object_lock_configuration
 - [ ] get_object_retention

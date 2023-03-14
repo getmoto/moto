@@ -12,7 +12,7 @@ import sys
 import urllib.parse
 
 from bisect import insort
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from importlib import reload
 from moto.core import BaseBackend, BaseModel, BackendDict, CloudFormationModel
 from moto.core import CloudWatchMetricProvider
@@ -99,6 +99,7 @@ class FakeKey(BaseModel, ManagedState):
         lock_mode=None,
         lock_legal_status=None,
         lock_until=None,
+        checksum_value=None,
     ):
         ManagedState.__init__(
             self,
@@ -138,6 +139,7 @@ class FakeKey(BaseModel, ManagedState):
         self.lock_mode = lock_mode
         self.lock_legal_status = lock_legal_status
         self.lock_until = lock_until
+        self.checksum_value = checksum_value
 
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
@@ -1775,6 +1777,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         lock_mode=None,
         lock_legal_status=None,
         lock_until=None,
+        checksum_value=None,
     ):
         key_name = clean_key_name(key_name)
         if storage is not None and storage not in STORAGE_CLASS:
@@ -1813,6 +1816,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
+            checksum_value=checksum_value,
         )
 
         existing_keys = bucket.keys.getlist(key_name, [])
@@ -1846,6 +1850,30 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key = self.get_object(bucket_name, key_name, version_id=version_id)
         key.lock_mode = retention[0]
         key.lock_until = retention[1]
+
+    def get_object_attributes(
+        self,
+        key: FakeKey,
+        attributes_to_get: List[str],
+    ) -> Dict[str, Any]:
+        """
+        The following attributes are not yet returned: DeleteMarker, RequestCharged, ObjectParts
+        """
+        response_keys = {
+            "etag": None,
+            "checksum": None,
+            "size": None,
+            "storage_class": None,
+        }
+        if "ETag" in attributes_to_get:
+            response_keys["etag"] = key.etag.replace('"', "")
+        if "Checksum" in attributes_to_get and key.checksum_value is not None:
+            response_keys["checksum"] = {key.checksum_algorithm: key.checksum_value}
+        if "ObjectSize" in attributes_to_get:
+            response_keys["size"] = key.size
+        if "StorageClass" in attributes_to_get:
+            response_keys["storage_class"] = key.storage_class
+        return response_keys
 
     def get_object(
         self,
