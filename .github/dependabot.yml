@@ -9,7 +9,7 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
-  - package-cosystem: "maven"
+  - package-ecosystem: "maven"
     directory: "other_langs/tests_java"
     schedule:
       interval: "weekly"
