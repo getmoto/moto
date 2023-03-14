@@ -21,9 +21,9 @@ from ..utils import (
 
 if "MOTO_AMIS_PATH" in environ:
     with open(environ["MOTO_AMIS_PATH"], "r", encoding="utf-8") as f:
-        AMIS = cast(List[Dict[str, Any]], json.load(f))
+        AMIS: List[Dict[str, Any]] = json.load(f)
 else:
-    AMIS = cast(List[Dict[str, Any]], load_resource(__name__, "../resources/amis.json"))
+    AMIS = load_resource(__name__, "../resources/amis.json")
 
 
 class Ami(TaggedEC2Resource):
