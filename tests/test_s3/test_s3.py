@@ -1630,7 +1630,7 @@ def test_delete_versioned_bucket_returns_meta():
         Bucket="blah", VersioningConfiguration={"Status": "Enabled"}
     )
 
-    client.put_object(Bucket="blah", Key="test1", Body=b"test1")
+    put_resp = client.put_object(Bucket="blah", Key="test1", Body=b"test1")
 
     # Delete the object
     del_resp = client.delete_object(Bucket="blah", Key="test1")
@@ -1642,7 +1642,14 @@ def test_delete_versioned_bucket_returns_meta():
         Bucket="blah", Key="test1", VersionId=del_resp["VersionId"]
     )
     assert del_resp2["DeleteMarker"] is True
-    assert "VersionId" not in del_resp2
+    assert del_resp2["VersionId"] == del_resp["VersionId"]
+
+    # Delete the versioned object
+    del_resp3 = client.delete_object(
+        Bucket="blah", Key="test1", VersionId=put_resp["VersionId"]
+    )
+    assert "DeleteMarker" not in del_resp3
+    assert del_resp3["VersionId"] == put_resp["VersionId"]
 
 
 @mock_s3

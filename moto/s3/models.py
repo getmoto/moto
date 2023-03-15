@@ -2158,7 +2158,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     if key_name not in bucket.keys:
                         raise KeyError
 
-                    response_meta["delete-marker"] = "false"
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
 
@@ -2168,6 +2167,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                                 and not bypass
                             ):
                                 raise AccessDeniedByLock
+
+                            response_meta["version-id"] = key.version_id
 
                             if type(key) is FakeDeleteMarker:
                                 response_meta["delete-marker"] = "true"
