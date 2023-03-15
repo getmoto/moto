@@ -2153,6 +2153,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 if version_id is None:
                     delete_marker = self._set_delete_marker(bucket_name, key_name)
                     response_meta["version-id"] = delete_marker.version_id
+                    response_meta["delete-marker"] = "false"
                 else:
                     if key_name not in bucket.keys:
                         raise KeyError

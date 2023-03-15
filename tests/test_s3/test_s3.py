@@ -1634,7 +1634,7 @@ def test_delete_versioned_bucket_returns_meta():
 
     # Delete the object
     del_resp = client.delete_object(Bucket="blah", Key="test1")
-    assert "DeleteMarker" not in del_resp
+    assert del_resp["DeleteMarker"] is False
     assert del_resp["VersionId"] is not None
 
     # Delete the delete marker
