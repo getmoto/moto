@@ -14,7 +14,7 @@ def str2bool(v: Any) -> Optional[bool]:
     return None
 
 
-def load_resource(package: str, resource: str) -> Dict[str, Any]:
+def load_resource(package: str, resource: str) -> Any:
     """
     Open a file, and return the contents as JSON.
     Usage:
