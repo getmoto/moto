@@ -60,13 +60,20 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
-    - id: build_and_push
-      name: Build and push
+    - name: Login to GHCR
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Push to DockerHub and GHCR
       uses: docker/build-push-action@v4
       with:
         platforms: linux/amd64,linux/arm64
         push: true
-        tags: motoserver/moto:${{ env.VERSION }}
+        tags: |
+          motoserver/moto:${{ env.VERSION }}
+          ghcr.io/getmoto/motoserver:${{ env.VERSION }}
     - name: Increase patch version number
       run: |
         python update_version_from_git.py patch
