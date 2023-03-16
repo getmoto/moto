@@ -118,12 +118,20 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push to DockerHub and GHCR
         uses: docker/build-push-action@v4
         with:
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: motoserver/moto:latest
+          tags: |
+            motoserver/moto:latest
+            ghcr.io/getmoto/motoserver:latest
       - name: Get version number
         run: |
           version=$(grep -oP '(?<=__version__ = ")[0-9.a-z]+(?=")' moto/__init__.py)
