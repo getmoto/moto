@@ -52,7 +52,7 @@ from .exceptions import (
     LockNotEnabled,
     AccessForbidden,
 )
-from .models import s3_backends
+from .models import s3_backends, S3Backend
 from .models import get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
 from .utils import (
     bucket_name_from_url,
@@ -154,7 +154,7 @@ class S3Response(BaseResponse):
         super().__init__(service_name="s3")
 
     @property
-    def backend(self):
+    def backend(self) -> S3Backend:
         return s3_backends[self.current_account]["global"]
 
     @property
@@ -1349,6 +1349,16 @@ class S3Response(BaseResponse):
             legal_hold = self.backend.get_object_legal_hold(key)
             template = self.response_template(S3_OBJECT_LEGAL_HOLD)
             return 200, response_headers, template.render(legal_hold=legal_hold)
+        if "attributes" in query:
+            attributes_to_get = headers.get("x-amz-object-attributes", "").split(",")
+            response_keys = self.backend.get_object_attributes(key, attributes_to_get)
+
+            if key.version_id == "null":
+                response_headers.pop("x-amz-version-id")
+            response_headers["Last-Modified"] = key.last_modified_ISO8601
+
+            template = self.response_template(S3_OBJECT_ATTRIBUTES_RESPONSE)
+            return 200, response_headers, template.render(**response_keys)
 
         response_headers.update(key.metadata)
         response_headers.update(key.response_dict)
@@ -1420,12 +1430,14 @@ class S3Response(BaseResponse):
         checksum_value = request.headers.get(checksum_header)
         if not checksum_value and checksum_algorithm:
             # Extract the checksum-value from the body first
-            search = re.search(rb"x-amz-checksum-\w+:(\w+={1,2})", body)
+            search = re.search(rb"x-amz-checksum-\w+:(.+={1,2})", body)
             checksum_value = search.group(1) if search else None
 
         if checksum_value:
             # TODO: AWS computes the provided value and verifies it's the same
             # Afterwards, it should be returned in every subsequent call
+            if isinstance(checksum_value, bytes):
+                checksum_value = checksum_value.decode("utf-8")
             response_headers.update({checksum_header: checksum_value})
         elif checksum_algorithm:
             # If the value is not provided, we compute it and only return it as part of this request
@@ -1580,6 +1592,7 @@ class S3Response(BaseResponse):
             lock_mode=lock_mode,
             lock_legal_status=legal_hold,
             lock_until=lock_until,
+            checksum_value=checksum_value,
         )
 
         metadata = metadata_from_headers(request.headers)
@@ -2895,4 +2908,21 @@ S3_ERROR_BUCKET_ONWERSHIP_NOT_FOUND = """
     <RequestId>294PFVCB9GFVXY2S</RequestId>
     <HostId>l/tqqyk7HZbfvFFpdq3+CAzA9JXUiV4ZajKYhwolOIpnmlvZrsI88AKsDLsgQI6EvZ9MuGHhk7M=</HostId>
 </Error>
+"""
+
+
+S3_OBJECT_ATTRIBUTES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetObjectAttributesOutput xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    {% if etag is not none %}<ETag>{{ etag }}</ETag>{% endif %}
+    {% if checksum is not none %}
+      <Checksum>
+      {% if "CRC32" in checksum %}<ChecksumCRC32>{{ checksum["CRC32"] }}</ChecksumCRC32>{% endif %}
+      {% if "CRC32C" in checksum %}<ChecksumCRC32C>{{ checksum["CRC32C"] }}</ChecksumCRC32C>{% endif %}
+      {% if "SHA1" in checksum %}<ChecksumSHA1>{{ checksum["SHA1"] }}</ChecksumSHA1>{% endif %}
+      {% if "SHA256" in checksum %}<ChecksumSHA256>{{ checksum["SHA256"] }}</ChecksumSHA256>{% endif %}
+      </Checksum>
+    {% endif %}
+    {% if size is not none %}<ObjectSize>{{ size }}</ObjectSize>{% endif %}
+    {% if storage_class is not none %}<StorageClass>{{ storage_class }}</StorageClass>{% endif %}
+</GetObjectAttributesOutput>
 """
