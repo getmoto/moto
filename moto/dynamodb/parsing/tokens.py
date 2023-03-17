@@ -116,8 +116,9 @@ class ExpressionTokenizer(object):
         An expression attribute name must begin with a pound sign (#), and be followed by one or more alphanumeric
          characters.
         """
-        return input_string.startswith("#") and cls.is_expression_attribute(
-            input_string[1:]
+        return (
+            input_string.startswith("#")
+            and re.compile("^[a-zA-Z0-9_]+$").match(input_string[1:]) is not None
         )
 
     @classmethod
@@ -182,8 +183,9 @@ class ExpressionTokenizer(object):
 
     def _make_list(self) -> List[Token]:
         """
-        Just go through characters if a character is not a token boundary stage it for adding it as a grouped token
-        later if it is a tokenboundary process staged characters and then process the token boundary as well.
+        Just go through characters
+          if a character is not a token boundary,  stage it for adding it as a grouped token later
+          if it is a tokenboundary, process staged characters, and then process the token boundary as well.
         """
         for character in self.input_expression_str:
             if not self.is_possible_token_boundary(character):

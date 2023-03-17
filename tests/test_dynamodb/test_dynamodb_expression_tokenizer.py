@@ -231,6 +231,18 @@ def test_expression_tokenizer_single_set_action_attribute_name_leading_number():
     ]
 
 
+def test_expression_tokenizer_single_set_action_attribute_name_leading_underscore():
+    set_action = "SET attr=#_sth"
+    token_list = ExpressionTokenizer.make_list(set_action)
+    assert token_list == [
+        Token(Token.ATTRIBUTE, "SET"),
+        Token(Token.WHITESPACE, " "),
+        Token(Token.ATTRIBUTE, "attr"),
+        Token(Token.EQUAL_SIGN, "="),
+        Token(Token.ATTRIBUTE_NAME, "#_sth"),
+    ]
+
+
 def test_expression_tokenizer_just_a_pipe():
     set_action = "|"
     try:
