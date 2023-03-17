@@ -6,6 +6,7 @@ import warnings
 import re
 
 import collections.abc as collections_abc
+from functools import lru_cache
 from typing import (
     Any,
     Dict,
@@ -70,13 +71,6 @@ from .exceptions import (
     UnsupportedAttribute,
 )
 
-# List of supported CloudFormation models
-MODEL_LIST = CloudFormationModel.__subclasses__()
-MODEL_MAP = {model.cloudformation_type(): model for model in MODEL_LIST}
-NAME_TYPE_MAP = {
-    model.cloudformation_type(): model.cloudformation_name_type()
-    for model in MODEL_LIST
-}
 CF_MODEL = TypeVar("CF_MODEL", bound=CloudFormationModel)
 
 # Just ignore these models types for now
@@ -88,6 +82,25 @@ NULL_MODELS = [
 DEFAULT_REGION = "us-east-1"
 
 logger = logging.getLogger("moto")
+
+
+# List of supported CloudFormation models
+@lru_cache()
+def get_model_list() -> List[Type[CloudFormationModel]]:
+    return CloudFormationModel.__subclasses__()
+
+
+@lru_cache()
+def get_model_map() -> Dict[str, Type[CloudFormationModel]]:
+    return {model.cloudformation_type(): model for model in get_model_list()}
+
+
+@lru_cache()
+def get_name_type_map() -> Dict[str, str]:
+    return {
+        model.cloudformation_type(): model.cloudformation_name_type()
+        for model in get_model_list()
+    }
 
 
 class Output(object):
@@ -250,18 +263,19 @@ def resource_class_from_type(resource_type: str) -> Type[CloudFormationModel]:
         return None  # type: ignore[return-value]
     if resource_type.startswith("Custom::"):
         return CustomModel
-    if resource_type not in MODEL_MAP:
+    if resource_type not in get_model_map():
         logger.warning("No Moto CloudFormation support for %s", resource_type)
         return None  # type: ignore[return-value]
 
-    return MODEL_MAP.get(resource_type)  # type: ignore[return-value]
+    return get_model_map()[resource_type]  # type: ignore[return-value]
 
 
 def resource_name_property_from_type(resource_type: str) -> Optional[str]:
-    for model in MODEL_LIST:
+    for model in get_model_list():
         if model.cloudformation_type() == resource_type:
             return model.cloudformation_name_type()
-    return NAME_TYPE_MAP.get(resource_type)
+
+    return get_name_type_map().get(resource_type)
 
 
 def generate_resource_name(resource_type: str, stack_name: str, logical_id: str) -> str:
@@ -830,9 +844,9 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                         not isinstance(parsed_resource, str)
                         and parsed_resource is not None
                     ):
-                        if parsed_resource and hasattr(parsed_resource, "delete"):
+                        try:
                             parsed_resource.delete(self._account_id, self._region_name)
-                        else:
+                        except (TypeError, AttributeError):
                             if hasattr(parsed_resource, "physical_resource_id"):
                                 resource_name = parsed_resource.physical_resource_id
                             else:

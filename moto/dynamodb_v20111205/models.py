@@ -4,7 +4,7 @@ import datetime
 import json
 
 from collections import OrderedDict
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import unix_time
 from .comparisons import get_comparison_func
 
@@ -94,7 +94,7 @@ class Item(BaseModel):
         return {"Item": included}
 
 
-class Table(CloudFormationModel):
+class Table(BaseModel):
     def __init__(
         self,
         account_id: str,
@@ -150,45 +150,6 @@ class Table(CloudFormationModel):
                 "AttributeType": self.range_key_type,
             }
         return results
-
-    @staticmethod
-    def cloudformation_name_type() -> str:
-        return "TableName"
-
-    @staticmethod
-    def cloudformation_type() -> str:
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
-        return "AWS::DynamoDB::Table"
-
-    @classmethod
-    def create_from_cloudformation_json(  # type: ignore[misc]
-        cls,
-        resource_name: str,
-        cloudformation_json: Dict[str, Any],
-        account_id: str,
-        region_name: str,
-        **kwargs: Any,
-    ) -> "Table":
-        properties = cloudformation_json["Properties"]
-        key_attr = [
-            i["AttributeName"]
-            for i in properties["KeySchema"]
-            if i["KeyType"] == "HASH"
-        ][0]
-        key_type = [
-            i["AttributeType"]
-            for i in properties["AttributeDefinitions"]
-            if i["AttributeName"] == key_attr
-        ][0]
-        spec = {
-            "account_id": account_id,
-            "name": properties["TableName"],
-            "hash_key_attr": key_attr,
-            "hash_key_type": key_type,
-        }
-        # TODO: optional properties still missing:
-        # range_key_attr, range_key_type, read_capacity, write_capacity
-        return Table(**spec)
 
     def __len__(self) -> int:
         return sum(
@@ -323,19 +284,6 @@ class Table(CloudFormationModel):
             if update["Action"] == "ADD":
                 item.attrs[attr].add(DynamoType(update["Value"]))
         return item
-
-    @classmethod
-    def has_cfn_attr(cls, attr: str) -> bool:
-        return attr in ["StreamArn"]
-
-    def get_cfn_attribute(self, attribute_name: str) -> str:
-        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-
-        if attribute_name == "StreamArn":
-            region = "us-east-1"
-            time = "2000-01-01T00:00:00.000"
-            return f"arn:aws:dynamodb:{region}:{self.account_id}:table/{self.name}/stream/{time}"
-        raise UnformattedGetAttTemplateException()
 
 
 class DynamoDBBackend(BaseBackend):
