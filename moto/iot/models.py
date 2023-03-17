@@ -857,12 +857,12 @@ class IoTBackend(BaseBackend):
         self._validation_delete(cert)
         del self.ca_certificates[certificate_id]
 
-    def delete_certificate(self, certificate_id):
+    def delete_certificate(self, certificate_id, force_delete):
         cert = self.describe_certificate(certificate_id)
-        self._validation_delete(cert)
+        self._validation_delete(cert, force_delete)
         del self.certificates[certificate_id]
 
-    def _validation_delete(self, cert):
+    def _validation_delete(self, cert, force_delete: bool = False):
         if cert.status == "ACTIVE":
             raise CertificateStateException(
                 "Certificate must be deactivated (not ACTIVE) before deletion.",
@@ -884,7 +884,7 @@ class IoTBackend(BaseBackend):
             for k, v in self.principal_policies.items()
             if self._get_principal(k[0]).certificate_id == cert.certificate_id
         ]
-        if len(certs) > 0:
+        if len(certs) > 0 and not force_delete:
             raise DeleteConflictException(
                 "Certificate policies must be detached before deletion (arn: %s)"
                 % certs[0]

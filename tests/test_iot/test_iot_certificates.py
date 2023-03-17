@@ -233,6 +233,31 @@ def test_delete_certificate_validation():
 
 
 @mock_iot
+def test_delete_certificate_force():
+    policy_name = "my-policy"
+    client = boto3.client("iot", "us-east-1")
+    client.create_policy(policyName=policy_name, policyDocument="doc")
+
+    cert_arn = client.create_keys_and_certificate(setAsActive=True)["certificateArn"]
+    cert_id = cert_arn.split("/")[-1]
+
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    # Forced deletion does not work if the status is ACTIVE
+    with pytest.raises(ClientError) as e:
+        client.delete_certificate(certificateId=cert_id, forceDelete=True)
+    err = e.value.response["Error"]
+    err["Message"].should.contain("Certificate must be deactivated")
+
+    client.update_certificate(certificateId=cert_id, newStatus="INACTIVE")
+    # If does work if the status is INACTIVE, even though we still have policies attached
+    client.delete_certificate(certificateId=cert_id, forceDelete=True)
+
+    res = client.list_certificates()
+    res.should.have.key("certificates").which.should.have.length_of(0)
+
+
+@mock_iot
 def test_delete_thing_with_certificate_validation():
     client = boto3.client("iot", region_name="ap-northeast-1")
     cert = client.create_keys_and_certificate(setAsActive=True)

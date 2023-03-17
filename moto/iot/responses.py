@@ -304,7 +304,8 @@ class IoTResponse(BaseResponse):
 
     def delete_certificate(self):
         certificate_id = self._get_param("certificateId")
-        self.iot_backend.delete_certificate(certificate_id=certificate_id)
+        force_delete = self._get_bool_param("forceDelete", False)
+        self.iot_backend.delete_certificate(certificate_id, force_delete)
         return json.dumps(dict())
 
     def describe_ca_certificate(self):
