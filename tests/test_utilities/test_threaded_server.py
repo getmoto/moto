@@ -19,14 +19,24 @@ class TestThreadedMotoServer(unittest.TestCase):
         self.server.stop()
 
     def test_server_is_reachable(self):
-        s3_client = boto3.client("s3", endpoint_url="http://127.0.0.1:5000")
+        s3_client = boto3.client(
+            "s3",
+            endpoint_url="http://127.0.0.1:5000",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
+        )
         s3_client.create_bucket(Bucket="test")
         buckets = s3_client.list_buckets()["Buckets"]
         buckets.should.have.length_of(1)
         [b["Name"] for b in buckets].should.equal(["test"])
 
     def test_server_can_handle_multiple_services(self):
-        s3_client = boto3.client("s3", endpoint_url="http://127.0.0.1:5000")
+        s3_client = boto3.client(
+            "s3",
+            endpoint_url="http://127.0.0.1:5000",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
+        )
         dynamodb_client = boto3.client(
             "dynamodb", endpoint_url="http://127.0.0.1:5000", region_name="us-east-1"
         )
@@ -45,7 +55,12 @@ class TestThreadedMotoServer(unittest.TestCase):
 
     @mock_s3
     def test_load_data_from_inmemory_client(self):
-        server_client = boto3.client("s3", endpoint_url="http://127.0.0.1:5000")
+        server_client = boto3.client(
+            "s3",
+            endpoint_url="http://127.0.0.1:5000",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
+        )
         server_client.create_bucket(Bucket="test")
 
         in_mem_client = boto3.client("s3")
@@ -60,7 +75,12 @@ def test_threaded_moto_server__different_port():
     server.start()
     requests.post("http://localhost:5001/moto-api/reset")
     try:
-        s3_client = boto3.client("s3", endpoint_url="http://127.0.0.1:5001")
+        s3_client = boto3.client(
+            "s3",
+            endpoint_url="http://127.0.0.1:5001",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
+        )
         s3_client.create_bucket(Bucket="test")
         buckets = s3_client.list_buckets()["Buckets"]
         [b["Name"] for b in buckets].should.equal(["test"])

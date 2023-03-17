@@ -65,14 +65,18 @@ class TestRecorder(TestCase):
         self._stop_recording()
 
     def test_ec2_instance_creation__recording_off(self):
-        ec2 = boto3.client("ec2", region_name="us-west-1")
+        ec2 = boto3.client(
+            "ec2", "us-west-1", aws_access_key_id="ak", aws_secret_access_key="sk"
+        )
         ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
 
         self._download_recording().should.be.empty
 
     def test_ec2_instance_creation_recording_on(self):
         self._start_recording()
-        ec2 = boto3.client("ec2", region_name="us-west-1")
+        ec2 = boto3.client(
+            "ec2", "us-west-1", aws_access_key_id="ak", aws_secret_access_key="sk"
+        )
         ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
 
         content = json.loads(self._download_recording())
@@ -82,7 +86,9 @@ class TestRecorder(TestCase):
 
     def test_multiple_services(self):
         self._start_recording()
-        ddb = boto3.client("dynamodb", "eu-west-1")
+        ddb = boto3.client(
+            "dynamodb", "eu-west-1", aws_access_key_id="ak", aws_secret_access_key="sk"
+        )
         ddb.create_table(
             TableName="test",
             AttributeDefinitions=[{"AttributeName": "client", "AttributeType": "S"}],
@@ -91,10 +97,20 @@ class TestRecorder(TestCase):
         )
         ddb.put_item(TableName="test", Item={"client": {"S": "test1"}})
 
-        ts = boto3.client("timestream-write", region_name="us-east-1")
+        ts = boto3.client(
+            "timestream-write",
+            "us-east-1",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
+        )
         ts.create_database(DatabaseName="mydatabase")
 
-        apigw = boto3.client("apigateway", region_name="us-west-2")
+        apigw = boto3.client(
+            "apigateway",
+            "us-west-2",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
+        )
         apigw.create_rest_api(name="my_api", description="desc")
 
         content = self._download_recording()
@@ -107,10 +123,17 @@ class TestRecorder(TestCase):
 
     def test_replay(self):
         self._start_recording()
-        ddb = boto3.client("dynamodb", "eu-west-1")
+        ddb = boto3.client(
+            "dynamodb", "eu-west-1", aws_access_key_id="ak", aws_secret_access_key="sk"
+        )
         self._create_ddb_table(ddb, "test")
 
-        apigw = boto3.client("apigateway", region_name="us-west-2")
+        apigw = boto3.client(
+            "apigateway",
+            "us-west-2",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
+        )
         api_id = apigw.create_rest_api(name="my_api", description="desc")["id"]
 
         self._stop_recording()
@@ -130,10 +153,17 @@ class TestRecorder(TestCase):
 
     def test_replay__partial_delete(self):
         self._start_recording()
-        ddb = boto3.client("dynamodb", "eu-west-1")
+        ddb = boto3.client(
+            "dynamodb", "eu-west-1", aws_access_key_id="ak", aws_secret_access_key="sk"
+        )
         self._create_ddb_table(ddb, "test")
 
-        apigw = boto3.client("apigateway", region_name="us-west-2")
+        apigw = boto3.client(
+            "apigateway",
+            "us-west-2",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
+        )
         api_id = apigw.create_rest_api(name="my_api", description="desc")["id"]
 
         ddb.delete_table(TableName="test")
@@ -152,7 +182,9 @@ class TestRecorder(TestCase):
 
     def test_s3_upload_data(self):
         self._start_recording()
-        s3 = boto3.client("s3", region_name="us-east-1")
+        s3 = boto3.client(
+            "s3", "us-east-1", aws_access_key_id="ak", aws_secret_access_key="sk"
+        )
         s3.create_bucket(Bucket="mybucket")
         s3.put_object(Bucket="mybucket", Body=b"ABCD", Key="data")
 
@@ -166,7 +198,9 @@ class TestRecorder(TestCase):
         resp["Body"].read().should.equal(b"ABCD")
 
     def test_s3_upload_file_using_requests(self):
-        s3 = boto3.client("s3", region_name="us-east-1")
+        s3 = boto3.client(
+            "s3", "us-east-1", aws_access_key_id="ak", aws_secret_access_key="sk"
+        )
         s3.create_bucket(Bucket="mybucket")
 
         params = {"Bucket": "mybucket", "Key": "file_upload"}
@@ -222,6 +256,8 @@ class TestThreadedMotoServer(TestCase):
             "s3",
             region_name="us-east-1",
             endpoint_url=f"http://localhost:{self.port_1}",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
         )
         s3.create_bucket(Bucket="mybucket")
         s3.put_object(Bucket="mybucket", Body=b"ABCD", Key="data")
@@ -256,6 +292,8 @@ class TestThreadedMotoServer(TestCase):
             "s3",
             region_name="us-east-1",
             endpoint_url=f"http://localhost:{self.port_2}",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
         )
         resp = s3.get_object(Bucket="mybucket", Key="data")
         resp["Body"].read().should.equal(b"ABCD")

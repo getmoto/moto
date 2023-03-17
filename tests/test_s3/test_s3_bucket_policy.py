@@ -16,7 +16,11 @@ class TestBucketPolicy:
 
     def setup_method(self) -> None:
         self.client = boto3.client(
-            "s3", region_name="us-east-1", endpoint_url="http://localhost:6000"
+            "s3",
+            region_name="us-east-1",
+            endpoint_url="http://localhost:6000",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
         )
         self.client.create_bucket(Bucket="mybucket")
         self.client.put_object(Bucket="mybucket", Key="test_txt", Body=b"mybytes")
