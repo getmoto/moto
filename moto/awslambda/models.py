@@ -59,8 +59,6 @@ from tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
 
-docker_3 = docker.__version__[0] >= "3"
-
 
 def zip2tar(zip_bytes: bytes) -> bytes:
     with TemporaryDirectory() as td:
@@ -127,11 +125,7 @@ class _DockerDataVolumeContext:
             self._vol_ref.volume = self._lambda_func.docker_client.volumes.create(
                 self._lambda_func.code_digest
             )
-            volumes = {
-                self.name: {"bind": "/tmp/data", "mode": "rw"}
-                if docker_3
-                else "/tmp/data"
-            }
+            volumes = {self.name: {"bind": settings.LAMBDA_DATA_DIR, "mode": "rw"}}
 
             self._lambda_func.docker_client.images.pull(
                 ":".join(parse_image_ref("alpine"))
@@ -141,7 +135,7 @@ class _DockerDataVolumeContext:
             )
             try:
                 tar_bytes = zip2tar(self._lambda_func.code_bytes)
-                container.put_archive("/tmp/data", tar_bytes)
+                container.put_archive(settings.LAMBDA_DATA_DIR, tar_bytes)
             finally:
                 container.remove(force=True)
 
@@ -801,14 +795,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 finally:
                     if container:
                         try:
-                            exit_code = container.wait(timeout=300)
+                            exit_code = container.wait(timeout=300)["StatusCode"]
                         except requests.exceptions.ReadTimeout:
                             exit_code = -1
                             container.stop()
                             container.kill()
-                        else:
-                            if docker_3:
-                                exit_code = exit_code["StatusCode"]
 
                         output = container.logs(stdout=False, stderr=True)
                         output += container.logs(stdout=True, stderr=False)
@@ -1513,6 +1504,12 @@ class LambdaBackend(BaseBackend):
     .. sourcecode:: bash
 
         MOTO_DOCKER_LAMBDA_IMAGE=mlupin/docker-lambda
+
+    Use the following environment variable if you want to configure the data directory used by the Docker containers:
+
+    .. sourcecode:: bash
+
+        MOTO_LAMBDA_DATA_DIR=/tmp/data
 
     .. note:: When using the decorators, a Docker container cannot reach Moto, as the Docker-container loses all mock-context. Any boto3-invocations used within your Lambda will try to connect to AWS.
     """
