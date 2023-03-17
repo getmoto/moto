@@ -963,6 +963,11 @@ class DatabaseSnapshot(BaseModel):
               <PercentProgress>{{ 100 }}</PercentProgress>
               <SourceRegion>{{ database.region }}</SourceRegion>
               <SourceDBSnapshotIdentifier></SourceDBSnapshotIdentifier>
+              <TagList>
+              {%- for tag in snapshot.tags -%}
+                <Tag><Key>{{ tag['Key'] }}</Key><Value>{{ tag['Value'] }}</Value></Tag>
+              {%- endfor -%}
+              </TagList>
               <TdeCredentialArn></TdeCredentialArn>
               <Encrypted>{{ database.storage_encrypted }}</Encrypted>
               <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
