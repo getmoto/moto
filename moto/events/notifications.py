@@ -43,13 +43,14 @@ def _send_safe_notification(
     for account_id, account in events_backends.items():
         for backend in account.values():
             applicable_targets = []
-            for rule in backend.rules.values():
-                if rule.state != "ENABLED":
-                    continue
-                pattern = rule.event_pattern.get_pattern()
-                if source in pattern.get("source", []):
-                    if event_name in pattern.get("detail", {}).get("eventName", []):
-                        applicable_targets.extend(rule.targets)
+            for event_bus in backend.event_buses.values():
+                for rule in event_bus.rules.values():
+                    if rule.state != "ENABLED":
+                        continue
+                    pattern = rule.event_pattern.get_pattern()
+                    if source in pattern.get("source", []):
+                        if event_name in pattern.get("detail", {}).get("eventName", []):
+                            applicable_targets.extend(rule.targets)
 
             for target in applicable_targets:
                 if target.get("Arn", "").startswith("arn:aws:lambda"):

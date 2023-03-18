@@ -265,6 +265,18 @@ events:
   - TestAccEventsConnection
   - TestAccEventsConnectionDataSource
   - TestAccEventsPermission
+  - TestAccEventsRule
+  - TestAccEventsTarget_basic
+  - TestAccEventsTarget_batch
+  - TestAccEventsTarget_disappears
+  - TestAccEventsTarget_eventBusName
+  - TestAccEventsTarget_ecs
+  - TestAccEventsTarget_eventBusARN
+  - TestAccEventsTarget_full
+  - TestAccEventsTarget_generatedTargetID
+  - TestAccEventsTarget_inputTransformer
+  - TestAccEventsTarget_kinesis
+  - TestAccEventsTarget_ssmDocument
 firehose:
   - TestAccFirehoseDeliveryStreamDataSource_basic
   - TestAccFirehoseDeliveryStream_basic
