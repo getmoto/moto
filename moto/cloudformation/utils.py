@@ -3,6 +3,7 @@ import os
 import string
 from moto.moto_api._internal import mock_random as random
 from typing import Any, List
+from urllib.parse import urlparse
 
 
 def generate_stack_id(stack_name: str, region: str, account: str) -> str:
@@ -84,3 +85,26 @@ def validate_template_cfn_lint(template: str) -> List[Any]:
     matches = core.run_checks(abs_filename, template, rules, regions)
 
     return matches
+
+
+def get_stack_from_s3_url(template_url: str, account_id: str) -> str:
+    from moto.s3.models import s3_backends
+
+    template_url_parts = urlparse(template_url)
+    if "localhost" in template_url:
+        bucket_name, key_name = template_url_parts.path.lstrip("/").split("/", 1)
+    else:
+        if template_url_parts.netloc.endswith(
+            "amazonaws.com"
+        ) and template_url_parts.netloc.startswith("s3"):
+            # Handle when S3 url uses amazon url with bucket in path
+            # Also handles getting region as technically s3 is region'd
+
+            # region = template_url.netloc.split('.')[1]
+            bucket_name, key_name = template_url_parts.path.lstrip("/").split("/", 1)
+        else:
+            bucket_name = template_url_parts.netloc.split(".")[0]
+            key_name = template_url_parts.path.lstrip("/")
+
+    key = s3_backends[account_id]["global"].get_object(bucket_name, key_name)
+    return key.value.decode("utf-8")

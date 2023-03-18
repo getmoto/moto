@@ -25,6 +25,7 @@ from .utils import (
     generate_stackset_id,
     yaml_tag_constructor,
     validate_template_cfn_lint,
+    get_stack_from_s3_url,
 )
 from .exceptions import ValidationError, StackSetNotEmpty, StackSetNotFoundException
 
@@ -356,7 +357,7 @@ class FakeStackInstances(BaseModel):
                 return self.stack_instances[i]
 
 
-class FakeStack(BaseModel):
+class FakeStack(CloudFormationModel):
     def __init__(
         self,
         stack_id: str,
@@ -531,6 +532,68 @@ class FakeStack(BaseModel):
         self.resource_map.delete()
         self._add_stack_event("DELETE_COMPLETE")
         self.status = "DELETE_COMPLETE"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::CloudFormation::Stack"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:  # pylint: disable=unused-argument
+        return True
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.name
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeStack":
+        cf_backend: CloudFormationBackend = cloudformation_backends[account_id][
+            region_name
+        ]
+        properties = cloudformation_json["Properties"]
+
+        template_body = get_stack_from_s3_url(properties["TemplateURL"], account_id)
+        parameters = properties.get("Parameters", {})
+
+        return cf_backend.create_stack(
+            name=resource_name, template=template_body, parameters=parameters
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: Any,
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakeStack":
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, account_id, region_name
+        )
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        cf_backend: CloudFormationBackend = cloudformation_backends[account_id][
+            region_name
+        ]
+        cf_backend.delete_stack(resource_name)
 
 
 class FakeChange(BaseModel):

@@ -2,17 +2,15 @@ import json
 import re
 import yaml
 from typing import Any, Dict, Tuple, List, Optional, Union
-from urllib.parse import urlparse
 from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
 from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
 from moto.core.responses import BaseResponse
-from moto.s3.models import s3_backends
 from moto.s3.exceptions import S3ClientError
 from moto.utilities.aws_headers import amzn_request_id
 from .models import cloudformation_backends, CloudFormationBackend, FakeStack
 from .exceptions import ValidationError, MissingParameterError
-from .utils import yaml_tag_constructor
+from .utils import yaml_tag_constructor, get_stack_from_s3_url
 
 
 def get_template_summary_response_from_template(template_body: str) -> Dict[str, Any]:
@@ -54,28 +52,7 @@ class CloudFormationResponse(BaseResponse):
         return cls.dispatch(request=request, full_url=full_url, headers=headers)
 
     def _get_stack_from_s3_url(self, template_url: str) -> str:
-        template_url_parts = urlparse(template_url)
-        if "localhost" in template_url:
-            bucket_name, key_name = template_url_parts.path.lstrip("/").split("/", 1)
-        else:
-            if template_url_parts.netloc.endswith(
-                "amazonaws.com"
-            ) and template_url_parts.netloc.startswith("s3"):
-                # Handle when S3 url uses amazon url with bucket in path
-                # Also handles getting region as technically s3 is region'd
-
-                # region = template_url.netloc.split('.')[1]
-                bucket_name, key_name = template_url_parts.path.lstrip("/").split(
-                    "/", 1
-                )
-            else:
-                bucket_name = template_url_parts.netloc.split(".")[0]
-                key_name = template_url_parts.path.lstrip("/")
-
-        key = s3_backends[self.current_account]["global"].get_object(
-            bucket_name, key_name
-        )
-        return key.value.decode("utf-8")
+        return get_stack_from_s3_url(template_url, account_id=self.current_account)
 
     def _get_params_from_list(
         self, parameters_list: List[Dict[str, Any]]
