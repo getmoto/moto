@@ -1,11 +1,11 @@
 from moto.core.responses import BaseResponse
-from .models import iotdata_backends
+from .models import iotdata_backends, IoTDataPlaneBackend
 import json
 from urllib.parse import unquote
 
 
 class IoTDataPlaneResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="iot-data")
 
     def _get_action(self) -> str:
@@ -15,10 +15,10 @@ class IoTDataPlaneResponse(BaseResponse):
         return super()._get_action()
 
     @property
-    def iotdata_backend(self):
+    def iotdata_backend(self) -> IoTDataPlaneBackend:
         return iotdata_backends[self.current_account][self.region]
 
-    def update_thing_shadow(self):
+    def update_thing_shadow(self) -> str:
         thing_name = self._get_param("thingName")
         payload = self.body
         payload = self.iotdata_backend.update_thing_shadow(
@@ -26,17 +26,17 @@ class IoTDataPlaneResponse(BaseResponse):
         )
         return json.dumps(payload.to_response_dict())
 
-    def get_thing_shadow(self):
+    def get_thing_shadow(self) -> str:
         thing_name = self._get_param("thingName")
         payload = self.iotdata_backend.get_thing_shadow(thing_name=thing_name)
         return json.dumps(payload.to_dict())
 
-    def delete_thing_shadow(self):
+    def delete_thing_shadow(self) -> str:
         thing_name = self._get_param("thingName")
         payload = self.iotdata_backend.delete_thing_shadow(thing_name=thing_name)
         return json.dumps(payload.to_dict())
 
-    def publish(self):
+    def publish(self) -> str:
         topic = self.path.split("/topics/")[-1]
         # a uri parameter containing forward slashes is not correctly url encoded when we're running in server mode.
         # https://github.com/pallets/flask/issues/900

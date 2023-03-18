@@ -1,10 +1,11 @@
 import json
 import time
 import jsondiff
+from typing import Any, Dict, List, Tuple, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import merge_dicts
-from moto.iot import iot_backends
+from moto.iot.models import iot_backends, IoTBackend
 from .exceptions import (
     ConflictException,
     ResourceNotFoundException,
@@ -17,7 +18,14 @@ class FakeShadow(BaseModel):
     http://docs.aws.amazon.com/iot/latest/developerguide/thing-shadow-document-syntax.html
     """
 
-    def __init__(self, desired, reported, requested_payload, version, deleted=False):
+    def __init__(
+        self,
+        desired: Optional[str],
+        reported: Optional[str],
+        requested_payload: Optional[Dict[str, Any]],
+        version: int,
+        deleted: bool = False,
+    ):
         self.desired = desired
         self.reported = reported
         self.requested_payload = requested_payload
@@ -33,7 +41,7 @@ class FakeShadow(BaseModel):
         )
 
     @classmethod
-    def create_from_previous_version(cls, previous_shadow, payload):
+    def create_from_previous_version(cls, previous_shadow: Optional["FakeShadow"], payload: Optional[Dict[str, Any]]) -> "FakeShadow":  # type: ignore[misc]
         """
         set None to payload when you want to delete shadow
         """
@@ -55,11 +63,10 @@ class FakeShadow(BaseModel):
         merge_dicts(state_document, payload, remove_nulls=True)
         desired = state_document.get("state", {}).get("desired")
         reported = state_document.get("state", {}).get("reported")
-        shadow = FakeShadow(desired, reported, payload, version)
-        return shadow
+        return FakeShadow(desired, reported, payload, version)
 
     @classmethod
-    def parse_payload(cls, desired, reported):
+    def parse_payload(cls, desired: Optional[str], reported: Optional[str]) -> Any:  # type: ignore[misc]
         if desired is None:
             delta = reported
         elif reported is None:
@@ -68,15 +75,15 @@ class FakeShadow(BaseModel):
             delta = jsondiff.diff(desired, reported)
         return delta
 
-    def _create_metadata_from_state(self, state, ts):
+    def _create_metadata_from_state(self, state: Any, ts: Any) -> Any:
         """
-        state must be disired or reported stype dict object
-        replces primitive type with {"timestamp": ts} in dict
+        state must be desired or reported stype dict object
+        replaces primitive type with {"timestamp": ts} in dict
         """
         if state is None:
             return None
 
-        def _f(elem, ts):
+        def _f(elem: Any, ts: Any) -> Any:
             if isinstance(elem, dict):
                 return {_: _f(elem[_], ts) for _ in elem.keys()}
             if isinstance(elem, list):
@@ -85,9 +92,9 @@ class FakeShadow(BaseModel):
 
         return _f(state, ts)
 
-    def to_response_dict(self):
-        desired = self.requested_payload["state"].get("desired", None)
-        reported = self.requested_payload["state"].get("reported", None)
+    def to_response_dict(self) -> Dict[str, Any]:
+        desired = self.requested_payload["state"].get("desired", None)  # type: ignore
+        reported = self.requested_payload["state"].get("reported", None)  # type: ignore
 
         payload = {}
         if desired is not None:
@@ -111,7 +118,7 @@ class FakeShadow(BaseModel):
             "version": self.version,
         }
 
-    def to_dict(self, include_delta=True):
+    def to_dict(self, include_delta: bool = True) -> Dict[str, Any]:
         """returning nothing except for just top-level keys for now."""
         if self.deleted:
             return {"timestamp": self.timestamp, "version": self.version}
@@ -139,15 +146,15 @@ class FakeShadow(BaseModel):
 
 
 class IoTDataPlaneBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.published_payloads = list()
+        self.published_payloads: List[Tuple[str, str]] = list()
 
     @property
-    def iot_backend(self):
+    def iot_backend(self) -> IoTBackend:
         return iot_backends[self.account_id][self.region_name]
 
-    def update_thing_shadow(self, thing_name, payload):
+    def update_thing_shadow(self, thing_name: str, payload: str) -> FakeShadow:
         """
         spec of payload:
           - need node `state`
@@ -158,32 +165,32 @@ class IoTDataPlaneBackend(BaseBackend):
 
         # validate
         try:
-            payload = json.loads(payload)
+            _payload = json.loads(payload)
         except ValueError:
             raise InvalidRequestException("invalid json")
-        if "state" not in payload:
+        if "state" not in _payload:
             raise InvalidRequestException("need node `state`")
-        if not isinstance(payload["state"], dict):
+        if not isinstance(_payload["state"], dict):
             raise InvalidRequestException("state node must be an Object")
-        if any(_ for _ in payload["state"].keys() if _ not in ["desired", "reported"]):
+        if any(_ for _ in _payload["state"].keys() if _ not in ["desired", "reported"]):
             raise InvalidRequestException("State contains an invalid node")
 
-        if "version" in payload and thing.thing_shadow.version != payload["version"]:
+        if "version" in _payload and thing.thing_shadow.version != _payload["version"]:
             raise ConflictException("Version conflict")
         new_shadow = FakeShadow.create_from_previous_version(
-            thing.thing_shadow, payload
+            thing.thing_shadow, _payload
         )
         thing.thing_shadow = new_shadow
         return thing.thing_shadow
 
-    def get_thing_shadow(self, thing_name):
+    def get_thing_shadow(self, thing_name: str) -> FakeShadow:
         thing = self.iot_backend.describe_thing(thing_name)
 
         if thing.thing_shadow is None or thing.thing_shadow.deleted:
             raise ResourceNotFoundException()
         return thing.thing_shadow
 
-    def delete_thing_shadow(self, thing_name):
+    def delete_thing_shadow(self, thing_name: str) -> FakeShadow:
         thing = self.iot_backend.describe_thing(thing_name)
         if thing.thing_shadow is None:
             raise ResourceNotFoundException()
@@ -194,7 +201,7 @@ class IoTDataPlaneBackend(BaseBackend):
         thing.thing_shadow = new_shadow
         return thing.thing_shadow
 
-    def publish(self, topic, payload):
+    def publish(self, topic: str, payload: str) -> None:
         self.published_payloads.append((topic, payload))
 
 
