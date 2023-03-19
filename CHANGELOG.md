@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.5
 -----
-Docker Digest for 4.1.5: <autopopulateddigest>
+Docker Digest for 4.1.5: __
 
     General: 
         * Our Docker-images are now also hosted in GHCR:
