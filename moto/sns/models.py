@@ -4,7 +4,7 @@ import requests
 import re
 
 from collections import OrderedDict
-from typing import Any, Dict, List, Iterable, Optional, Tuple
+from typing import Any, Dict, List, Iterable, Optional, Tuple, Union, Callable
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import (
@@ -203,7 +203,7 @@ class Subscription(BaseModel):
         group_id: Optional[str] = None,
         deduplication_id: Optional[str] = None,
     ) -> None:
-        if not self._matches_filter_policy(message_attributes):
+        if not self._matches_filter_policy(message_attributes, message):
             return
 
         if self.protocol == "sqs":
@@ -278,7 +278,7 @@ class Subscription(BaseModel):
             )
 
     def _matches_filter_policy(
-        self, message_attributes: Optional[Dict[str, Any]]
+        self, message_attributes: Optional[Dict[str, Any]], message: str
     ) -> bool:
         if not self._filter_policy:
             return True
@@ -286,121 +286,353 @@ class Subscription(BaseModel):
         if message_attributes is None:
             message_attributes = {}
 
+        filter_policy_scope = self.attributes.get(
+            "FilterPolicyScope", "MessageAttributes"
+        )
+
         def _field_match(
-            field: str, rules: List[Any], message_attributes: Dict[str, Any]
+            field: str,
+            rules: List[Any],
+            dict_body: Dict[str, Any],
+            attributes_based_check: bool = True,
         ) -> bool:
+            # dict_body = MessageAttributes if attributes_based_check is True
+            # otherwise it's the cut-out part of the MessageBody (so only single-level nesting must be supported)
+
+            def _str_exact_match(value: str, rule: Union[str, List[str]]) -> bool:
+                if value == rule:
+                    return True
+
+                if isinstance(value, list):
+                    if rule in value:
+                        return True
+
+                try:
+                    json_data = json.loads(value)
+                    if rule in json_data:
+                        return True
+                except (ValueError, TypeError):
+                    pass
+
+                return False
+
+            def _number_match(values: List[float], rule: float) -> bool:
+                for value in values:
+                    # Even the official documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
+                    # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
+                    if int(value * 1000000) == int(rule * 1000000):
+                        return True
+
+                return False
+
+            def _exists_match(
+                should_exist: bool, field: str, dict_body: Dict[str, Any]
+            ) -> bool:
+                if should_exist and field in dict_body:
+                    return True
+                elif not should_exist and field not in dict_body:
+                    return True
+
+                return False
+
+            def _prefix_match(prefix: str, value: str) -> bool:
+                return value.startswith(prefix)
+
+            def _anything_but_match(
+                filter_value: Union[Dict[str, Any], List[str], str],
+                actual_values: List[str],
+            ) -> bool:
+                if isinstance(filter_value, dict):
+                    # We can combine anything-but with the prefix-filter
+                    anything_but_key = list(filter_value.keys())[0]
+                    anything_but_val = list(filter_value.values())[0]
+                    if anything_but_key != "prefix":
+                        return False
+                    if all([not v.startswith(anything_but_val) for v in actual_values]):
+                        return True
+                else:
+                    undesired_values = (
+                        [filter_value]
+                        if isinstance(filter_value, str)
+                        else filter_value
+                    )
+                    if all([v not in undesired_values for v in actual_values]):
+                        return True
+
+                return False
+
+            def _numeric_match(
+                numeric_ranges: Iterable[Tuple[str, float]], numeric_value: float
+            ) -> bool:
+                # numeric_ranges' format:
+                # [(< x), (=, y), (>=, z)]
+                msg_value = numeric_value
+                matches = []
+                for operator, test_value in numeric_ranges:
+                    if operator == ">":
+                        matches.append((msg_value > test_value))
+                    if operator == ">=":
+                        matches.append((msg_value >= test_value))
+                    if operator == "=":
+                        matches.append((msg_value == test_value))
+                    if operator == "<":
+                        matches.append((msg_value < test_value))
+                    if operator == "<=":
+                        matches.append((msg_value <= test_value))
+                return all(matches)
+
             for rule in rules:
                 #  TODO: boolean value matching is not supported, SNS behavior unknown
                 if isinstance(rule, str):
-                    if field not in message_attributes:
-                        return False
-                    if message_attributes[field]["Value"] == rule:
-                        return True
-                    try:
-                        json_data = json.loads(message_attributes[field]["Value"])
-                        if rule in json_data:
-                            return True
-                    except (ValueError, TypeError):
-                        pass
-                if isinstance(rule, (int, float)):
-                    if field not in message_attributes:
-                        return False
-                    if message_attributes[field]["Type"] == "Number":
-                        attribute_values = [message_attributes[field]["Value"]]
-                    elif message_attributes[field]["Type"] == "String.Array":
-                        try:
-                            attribute_values = json.loads(
-                                message_attributes[field]["Value"]
-                            )
-                            if not isinstance(attribute_values, list):
-                                attribute_values = [attribute_values]
-                        except (ValueError, TypeError):
+                    if attributes_based_check:
+                        if field not in dict_body:
                             return False
-                    else:
-                        return False
-
-                    for attribute_value in attribute_values:
-                        attribute_value = float(attribute_value)
-                        # Even the official documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
-                        # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
-                        if int(attribute_value * 1000000) == int(rule * 1000000):
+                        if _str_exact_match(dict_body[field]["Value"], rule):
                             return True
+                    else:
+                        if field not in dict_body:
+                            return False
+                        if _str_exact_match(dict_body[field], rule):
+                            return True
+
+                if isinstance(rule, (int, float)):
+                    if attributes_based_check:
+                        if field not in dict_body:
+                            return False
+                        if dict_body[field]["Type"] == "Number":
+                            attribute_values = [dict_body[field]["Value"]]
+                        elif dict_body[field]["Type"] == "String.Array":
+                            try:
+                                attribute_values = json.loads(dict_body[field]["Value"])
+                                if not isinstance(attribute_values, list):
+                                    attribute_values = [attribute_values]
+                            except (ValueError, TypeError):
+                                return False
+                        else:
+                            return False
+
+                        values = [float(value) for value in attribute_values]
+                        if _number_match(values, rule):
+                            return True
+                    else:
+                        if field not in dict_body:
+                            return False
+
+                        if isinstance(dict_body[field], (int, float)):
+                            values = [dict_body[field]]
+                        elif isinstance(dict_body[field], list):
+                            values = [float(value) for value in dict_body[field]]
+                        else:
+                            return False
+
+                        if _number_match(values, rule):
+                            return True
+
                 if isinstance(rule, dict):
                     keyword = list(rule.keys())[0]
                     value = list(rule.values())[0]
                     if keyword == "exists":
-                        if value and field in message_attributes:
-                            return True
-                        elif not value and field not in message_attributes:
-                            return True
-                    elif keyword == "prefix" and isinstance(value, str):
-                        if field in message_attributes:
-                            attr = message_attributes[field]
-                            if attr["Type"] == "String" and attr["Value"].startswith(
-                                value
-                            ):
-                                return True
-                    elif keyword == "anything-but":
-                        if field not in message_attributes:
-                            continue
-                        attr = message_attributes[field]
-                        if isinstance(value, dict):
-                            # We can combine anything-but with the prefix-filter
-                            anything_but_key = list(value.keys())[0]
-                            anything_but_val = list(value.values())[0]
-                            if anything_but_key != "prefix":
-                                return False
-                            if attr["Type"] == "String":
-                                actual_values = [attr["Value"]]
-                            else:
-                                actual_values = [v for v in attr["Value"]]
-                            if all(
-                                [
-                                    not v.startswith(anything_but_val)
-                                    for v in actual_values
-                                ]
-                            ):
+                        if attributes_based_check:
+                            if _exists_match(value, field, dict_body):
                                 return True
                         else:
-                            undesired_values = (
-                                [value] if isinstance(value, str) else value
-                            )
-                            if attr["Type"] == "Number":
-                                actual_values = [float(attr["Value"])]
-                            elif attr["Type"] == "String":
-                                actual_values = [attr["Value"]]
-                            else:
-                                actual_values = [v for v in attr["Value"]]
-                            if all([v not in undesired_values for v in actual_values]):
+                            if _exists_match(value, field, dict_body):
                                 return True
+                    elif keyword == "prefix" and isinstance(value, str):
+                        if attributes_based_check:
+                            if field in dict_body:
+                                attr = dict_body[field]
+                                if attr["Type"] == "String":
+                                    if _prefix_match(value, attr["Value"]):
+                                        return True
+                        else:
+                            if field in dict_body:
+                                if _prefix_match(value, dict_body[field]):
+                                    return True
+
+                    elif keyword == "anything-but":
+                        if attributes_based_check:
+                            if field not in dict_body:
+                                return False
+                            attr = dict_body[field]
+                            if isinstance(value, dict):
+                                # We can combine anything-but with the prefix-filter
+                                if attr["Type"] == "String":
+                                    actual_values = [attr["Value"]]
+                                else:
+                                    actual_values = [v for v in attr["Value"]]
+                            else:
+                                if attr["Type"] == "Number":
+                                    actual_values = [float(attr["Value"])]
+                                elif attr["Type"] == "String":
+                                    actual_values = [attr["Value"]]
+                                else:
+                                    actual_values = [v for v in attr["Value"]]
+
+                            if _anything_but_match(value, actual_values):
+                                return True
+                        else:
+                            if field not in dict_body:
+                                return False
+                            attr = dict_body[field]
+                            if isinstance(value, dict):
+                                if isinstance(attr, str):
+                                    actual_values = [attr]
+                                elif isinstance(attr, list):
+                                    actual_values = attr
+                                else:
+                                    return False
+                            else:
+                                if isinstance(attr, (int, float, str)):
+                                    actual_values = [attr]
+                                elif isinstance(attr, list):
+                                    actual_values = attr
+                                else:
+                                    return False
+
+                            if _anything_but_match(value, actual_values):
+                                return True
+
                     elif keyword == "numeric" and isinstance(value, list):
-                        # [(< x), (=, y), (>=, z)]
-                        numeric_ranges = zip(value[0::2], value[1::2])
-                        if (
-                            message_attributes.get(field, {}).get("Type", "")
-                            == "Number"
-                        ):
-                            msg_value = float(message_attributes[field]["Value"])
-                            matches = []
-                            for operator, test_value in numeric_ranges:
-                                test_value = test_value
-                                if operator == ">":
-                                    matches.append((msg_value > test_value))
-                                if operator == ">=":
-                                    matches.append((msg_value >= test_value))
-                                if operator == "=":
-                                    matches.append((msg_value == test_value))
-                                if operator == "<":
-                                    matches.append((msg_value < test_value))
-                                if operator == "<=":
-                                    matches.append((msg_value <= test_value))
-                            return all(matches)
+                        if attributes_based_check:
+                            if dict_body.get(field, {}).get("Type", "") == "Number":
+
+                                checks = value
+                                numeric_ranges = zip(checks[0::2], checks[1::2])
+                                if _numeric_match(
+                                    numeric_ranges, float(dict_body[field]["Value"])
+                                ):
+                                    return True
+                        else:
+                            if field not in dict_body:
+                                return False
+
+                            checks = value
+                            numeric_ranges = zip(checks[0::2], checks[1::2])
+                            if _numeric_match(numeric_ranges, dict_body[field]):
+                                return True
+
             return False
 
-        return all(
-            _field_match(field, rules, message_attributes)
-            for field, rules in self._filter_policy.items()
-        )
+        if filter_policy_scope == "MessageAttributes":
+            return all(
+                _field_match(field, rules, message_attributes)
+                for field, rules in self._filter_policy.items()
+            )
+        else:
+
+            class CheckException(Exception):
+                pass
+
+            def compute_checks(
+                filter_policy: Dict[str, Union[Dict[str, Any], List[Any]]],
+                message_body: Union[Dict[str, Any], List[Any]],
+            ) -> Tuple[Callable[[Iterable[Any]], bool], Any]:
+                """
+                Generate (possibly nested) list of checks to be performed based on the filter policy
+                Returned list is of format (any|all, checks), where first elem defines what aggregation should be used in checking
+                and the second argument is a list containing sublists of the same format or concrete checks (field, rule, body): Tuple[str, List[Any], Dict[str, Any]]
+
+                All the checks returned by this function will only require one-level-deep entry into dict in _field_match function
+                This is done this way to simplify the actual check logic and keep it as close as possible between MessageAttributes and MessageBody
+
+                Given message_body:
+                {"Records": [
+                   {
+                       "eventName": "ObjectCreated:Put",
+                   },
+                   {
+                       "eventName": "ObjectCreated:Delete",
+                   },
+                ]}
+
+                and filter policy:
+                {"Records": {
+                   "eventName": [{"prefix": "ObjectCreated:"}],
+                }}
+
+                the following check list would be computed:
+                (<built-in function all>, (
+                   (<built-in function all>, (
+                       (<built-in function any>, (
+                           ('eventName', [{'prefix': 'ObjectCreated:'}], {'eventName': 'ObjectCreated:Put'}),
+                           ('eventName', [{'prefix': 'ObjectCreated:'}], {'eventName': 'ObjectCreated:Delete'}))
+                       ),
+                   )
+                ),))
+                """
+                rules = []
+                for filter_key, filter_value in filter_policy.items():
+                    if isinstance(filter_value, dict):
+                        if isinstance(message_body, dict):
+                            message_value = message_body.get(filter_key)
+                            if message_value is not None:
+                                rules.append(
+                                    compute_checks(filter_value, message_value)
+                                )
+                            else:
+                                raise CheckException
+                        elif isinstance(message_body, list):
+                            subchecks = []
+                            for entry in message_body:
+                                subchecks.append(compute_checks(filter_policy, entry))
+                            rules.append((any, tuple(subchecks)))
+                        else:
+                            raise CheckException
+
+                    elif isinstance(filter_value, list):
+                        # These are the real rules, same as in MessageAttributes case
+
+                        concrete_checks = []
+                        if isinstance(message_body, dict):
+                            if message_body is not None:
+                                concrete_checks.append(
+                                    (filter_key, filter_value, message_body)
+                                )
+                            else:
+                                raise CheckException
+                        elif isinstance(message_body, list):
+                            # Apply policy to each element of the list, pass if at list one element matches
+                            for list_elem in message_body:
+                                concrete_checks.append(
+                                    (filter_key, filter_value, list_elem)
+                                )
+                        else:
+                            raise CheckException
+                        rules.append((any, tuple(concrete_checks)))
+                    else:
+                        raise CheckException
+
+                return (all, tuple(rules))
+
+            try:
+                message_dict = json.loads(message)
+            except ValueError:
+                return False
+
+            try:
+                checks = compute_checks(self._filter_policy, message_dict)
+            except CheckException:
+                return False
+
+            def perform_checks(check: Any) -> bool:
+                # If the checks are a list, only a single elem has to pass
+                # otherwise all the entries have to pass
+
+                if isinstance(check, tuple):
+                    if len(check) == 2:
+                        # (any|all, checks)
+                        aggregate_func, checks = check
+                        return aggregate_func(
+                            perform_checks(single_check) for single_check in checks
+                        )
+                    elif len(check) == 3:
+                        field, rules, dict_body = check
+                        return _field_match(field, rules, dict_body, False)
+
+                raise CheckException(f"Check is not a tuple: {str(check)}")
+
+            return perform_checks(checks)
 
     def get_post_data(
         self,
@@ -848,6 +1080,7 @@ class SNSBackend(BaseBackend):
             "RawMessageDelivery",
             "DeliveryPolicy",
             "FilterPolicy",
+            "FilterPolicyScope",
             "RedrivePolicy",
             "SubscriptionRoleArn",
         ]:
@@ -859,26 +1092,87 @@ class SNSBackend(BaseBackend):
             raise SNSNotFoundError(f"Subscription with arn {arn} not found")
         subscription = _subscription[0]
 
-        subscription.attributes[name] = value
-
         if name == "FilterPolicy":
             filter_policy = json.loads(value)
-            self._validate_filter_policy(filter_policy)
+            # we validate the filter policy differently depending on the scope
+            # we need to always set the scope first
+            filter_policy_scope = subscription.attributes.get("FilterPolicyScope")
+            self._validate_filter_policy(filter_policy, scope=filter_policy_scope)
             subscription._filter_policy = filter_policy
 
-    def _validate_filter_policy(self, value: Any) -> None:
-        # TODO: extend validation checks
+        subscription.attributes[name] = value
+
+    def _validate_filter_policy(self, value: Any, scope: str) -> None:
         combinations = 1
-        for rules in value.values():
-            combinations *= len(rules)
-        # Even the official documentation states the total combination of values must not exceed 100, in reality it is 150
-        # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
+
+        def aggregate_rules(
+            filter_policy: Dict[str, Any], depth: int = 1
+        ) -> List[List[Any]]:
+            """
+            This method evaluate the filter policy recursively, and returns only a list of lists of rules.
+            It also calculates the combinations of rules, calculated depending on the nesting of the rules.
+            Example:
+            nested_filter_policy = {
+                "key_a": {
+                    "key_b": {
+                        "key_c": ["value_one", "value_two", "value_three", "value_four"]
+                    }
+                },
+                "key_d": {
+                    "key_e": ["value_one", "value_two", "value_three"]
+                }
+            }
+            This function then iterates on the values of the top level keys of the filter policy: ("key_a", "key_d")
+            If the iterated value is not a list, it means it is a nested property. If the scope is `MessageBody`, it is
+            allowed, we call this method on the value, adding a level to the depth to keep track on how deep the key is.
+            If the value is a list, it means it contains rules: we will append this list of rules in _rules, and
+            calculate the combinations it adds.
+            For the example filter policy containing nested properties, we calculate it this way
+            The first array has four values in a three-level nested key, and the second has three values in a two-level
+            nested key. 3 x 4 x 2 x 3 = 72
+            The return value would be:
+            [["value_one", "value_two", "value_three", "value_four"], ["value_one", "value_two", "value_three"]]
+            It allows us to later iterate of the list of rules in an easy way, to verify its conditions.
+
+            :param filter_policy: a dict, starting at the FilterPolicy
+            :param depth: the depth/level of the rules we are evaluating
+            :return: a list of lists of rules
+            """
+            nonlocal combinations
+            _rules = []
+            for key, _value in filter_policy.items():
+                if isinstance(_value, dict):
+                    if scope == "MessageBody":
+                        # From AWS docs: "unlike attribute-based policies, payload-based policies support property nesting."
+                        _rules.extend(aggregate_rules(_value, depth=depth + 1))
+                    else:
+                        raise SNSInvalidParameter(
+                            "Invalid parameter: Filter policy scope MessageAttributes does not support nested filter policy"
+                        )
+                elif isinstance(_value, list):
+                    _rules.append(_value)
+                    combinations = combinations * len(_value) * depth
+                else:
+                    raise SNSInvalidParameter(
+                        f'Invalid parameter: FilterPolicy: "{key}" must be an object or an array'
+                    )
+            return _rules
+
+        # A filter policy can have a maximum of five attribute names. For a nested policy, only parent keys are counted.
+        if len(value.values()) > 5:
+            raise SNSInvalidParameter(
+                "Invalid parameter: FilterPolicy: Filter policy can not have more than 5 keys"
+            )
+
+        aggregated_rules = aggregate_rules(value)
+        # For the complexity of the filter policy, the total combination of values must not exceed 150.
+        # https://docs.aws.amazon.com/sns/latest/dg/subscription-filter-policy-constraints.html
         if combinations > 150:
             raise SNSInvalidParameter(
                 "Invalid parameter: FilterPolicy: Filter policy is too complex"
             )
 
-        for rules in value.values():
+        for rules in aggregated_rules:
             for rule in rules:
                 if rule is None:
                     continue
