@@ -9348,6 +9348,14 @@
   "Location": "us-east-1d"
  },
  {
+  "InstanceType": "trn1.2xlarge",
+  "Location": "us-east-1d"
+ },
+ {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "us-east-1d"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "us-east-1d"
  },
