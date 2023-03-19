@@ -2,6 +2,38 @@ Moto Changelog
 ==============
 
 
+4.1.5
+-----
+Docker Digest for 4.1.5: <autopopulateddigest>
+
+    General: 
+        * Our Docker-images are now also hosted in GHCR:
+          https://github.com/getmoto/moto/pkgs/container/motoserver
+
+    New Methods:
+        * Athena:
+            * create_prepared_statement()
+            * get_prepared_statement()
+            * list_named_queries()
+
+        * S3:
+            * get_object_attributes()
+
+        * SecretsManager:
+            * delete_resource_policy()
+            * put_resource_policy()
+
+    Miscellaneous:
+        * Athena: Now automatically creates the default WorkGroup called `primary`
+        * AWSLambda: the default data dir for Docker containers can now be customized using the environment variable MOTO_LAMBDA_DATA_DIR
+        * CloudFormation now supports the resource AWS::CloudFormation::Stack 
+        * CognitoIDP: the ID-token now uses the key cognito:username, instead of username
+        * EC2: describe_security_group_rules() now provides the correct value for the IsEgress-parameter
+        * EC2: revoke_security_group_egress() no longer throws an error when the IPProtocol-argument is not provided
+        * Glue: get_job() now supports the parameters CodeGenConfigurationNodes, ExecutionClass, SourceControlDetails
+        * IOT: delete_certificate() now supports the forceDelete-parameter
+
+
 4.1.4
 -----
 Docker Digest for 4.1.4: _sha256:32ed22e2c69826a90482d0e473c460d60c3c7dc60819d95c0c165e0e978208db_

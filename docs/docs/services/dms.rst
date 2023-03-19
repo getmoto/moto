@@ -27,6 +27,7 @@ dms
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
+- [ ] batch_start_recommendations
 - [ ] cancel_replication_task_assessment_run
 - [ ] create_endpoint
 - [ ] create_event_subscription
@@ -66,6 +67,8 @@ dms
 - [ ] describe_fleet_advisor_schemas
 - [ ] describe_orderable_replication_instances
 - [ ] describe_pending_maintenance_actions
+- [ ] describe_recommendation_limitations
+- [ ] describe_recommendations
 - [ ] describe_refresh_schemas_status
 - [ ] describe_replication_instance_task_logs
 - [ ] describe_replication_instances
@@ -93,6 +96,7 @@ dms
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
 - [ ] run_fleet_advisor_lsa_analysis
+- [ ] start_recommendations
 - [X] start_replication_task
   
         The following parameters have not yet been implemented:
