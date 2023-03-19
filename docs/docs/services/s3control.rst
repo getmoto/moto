@@ -37,6 +37,7 @@ s3control
 - [ ] delete_bucket
 - [ ] delete_bucket_lifecycle_configuration
 - [ ] delete_bucket_policy
+- [ ] delete_bucket_replication
 - [ ] delete_bucket_tagging
 - [ ] delete_job_tagging
 - [ ] delete_multi_region_access_point
@@ -59,6 +60,7 @@ s3control
 - [ ] get_bucket
 - [ ] get_bucket_lifecycle_configuration
 - [ ] get_bucket_policy
+- [ ] get_bucket_replication
 - [ ] get_bucket_tagging
 - [ ] get_bucket_versioning
 - [ ] get_job_tagging
@@ -80,6 +82,7 @@ s3control
 - [ ] put_access_point_policy_for_object_lambda
 - [ ] put_bucket_lifecycle_configuration
 - [ ] put_bucket_policy
+- [ ] put_bucket_replication
 - [ ] put_bucket_tagging
 - [ ] put_bucket_versioning
 - [ ] put_job_tagging

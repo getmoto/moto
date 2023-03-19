@@ -91,11 +91,15 @@ Note that the decorators will destroy any resources on start, so make sure to no
 
 Run using Docker
 ----------------------
-You could also use the official Docker image from https://hub.docker.com/r/motoserver/moto/tags:
+You could also use the official Docker image.
+This is stored in two different repositories:
+ - https://hub.docker.com/r/motoserver/moto/tags
+ - https://github.com/getmoto/moto/pkgs/container/motoserver
 
 .. code-block:: bash
 
     docker run motoserver/moto:latest
+    docker run ghcr.io/getmoto/motoserver:latest
 
 Example Usage
 --------------

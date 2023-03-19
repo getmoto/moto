@@ -355,7 +355,7 @@
 
 ## athena
 <details>
-<summary>21% implemented</summary>
+<summary>26% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_prepared_statement
@@ -363,7 +363,7 @@
 - [X] create_data_catalog
 - [X] create_named_query
 - [ ] create_notebook
-- [ ] create_prepared_statement
+- [X] create_prepared_statement
 - [ ] create_presigned_notebook_url
 - [X] create_work_group
 - [ ] delete_data_catalog
@@ -379,7 +379,7 @@
 - [ ] get_database
 - [X] get_named_query
 - [ ] get_notebook_metadata
-- [ ] get_prepared_statement
+- [X] get_prepared_statement
 - [X] get_query_execution
 - [X] get_query_results
 - [ ] get_query_runtime_statistics
@@ -394,7 +394,7 @@
 - [ ] list_databases
 - [ ] list_engine_versions
 - [ ] list_executors
-- [ ] list_named_queries
+- [X] list_named_queries
 - [ ] list_notebook_metadata
 - [ ] list_notebook_sessions
 - [ ] list_prepared_statements
@@ -1531,6 +1531,7 @@
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
+- [ ] batch_start_recommendations
 - [ ] cancel_replication_task_assessment_run
 - [ ] create_endpoint
 - [ ] create_event_subscription
@@ -1565,6 +1566,8 @@
 - [ ] describe_fleet_advisor_schemas
 - [ ] describe_orderable_replication_instances
 - [ ] describe_pending_maintenance_actions
+- [ ] describe_recommendation_limitations
+- [ ] describe_recommendations
 - [ ] describe_refresh_schemas_status
 - [ ] describe_replication_instance_task_logs
 - [ ] describe_replication_instances
@@ -1588,6 +1591,7 @@
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
 - [ ] run_fleet_advisor_lsa_analysis
+- [ ] start_recommendations
 - [X] start_replication_task
 - [ ] start_replication_task_assessment
 - [ ] start_replication_task_assessment_run
@@ -5680,6 +5684,7 @@
 - [ ] delete_bucket
 - [ ] delete_bucket_lifecycle_configuration
 - [ ] delete_bucket_policy
+- [ ] delete_bucket_replication
 - [ ] delete_bucket_tagging
 - [ ] delete_job_tagging
 - [ ] delete_multi_region_access_point
@@ -5698,6 +5703,7 @@
 - [ ] get_bucket
 - [ ] get_bucket_lifecycle_configuration
 - [ ] get_bucket_policy
+- [ ] get_bucket_replication
 - [ ] get_bucket_tagging
 - [ ] get_bucket_versioning
 - [ ] get_job_tagging
@@ -5719,6 +5725,7 @@
 - [ ] put_access_point_policy_for_object_lambda
 - [ ] put_bucket_lifecycle_configuration
 - [ ] put_bucket_policy
+- [ ] put_bucket_replication
 - [ ] put_bucket_tagging
 - [ ] put_bucket_versioning
 - [ ] put_job_tagging

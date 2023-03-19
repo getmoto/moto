@@ -31,7 +31,7 @@ athena
 - [X] create_data_catalog
 - [X] create_named_query
 - [ ] create_notebook
-- [ ] create_prepared_statement
+- [X] create_prepared_statement
 - [ ] create_presigned_notebook_url
 - [X] create_work_group
 - [ ] delete_data_catalog
@@ -47,7 +47,7 @@ athena
 - [ ] get_database
 - [X] get_named_query
 - [ ] get_notebook_metadata
-- [ ] get_prepared_statement
+- [X] get_prepared_statement
 - [X] get_query_execution
 - [X] get_query_results
   
@@ -108,7 +108,7 @@ athena
 - [ ] list_databases
 - [ ] list_engine_versions
 - [ ] list_executors
-- [ ] list_named_queries
+- [X] list_named_queries
 - [ ] list_notebook_metadata
 - [ ] list_notebook_sessions
 - [ ] list_prepared_statements
