@@ -11640,6 +11640,14 @@
   "Location": "use1-az6"
  },
  {
+  "InstanceType": "trn1.2xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "use1-az6"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "use1-az6"
  },
