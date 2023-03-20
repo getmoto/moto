@@ -1,19 +1,19 @@
-"""IdentityStoreBackend class with methods for supported APIs."""
-from moto.moto_api._internal import mock_random
+from typing import Dict, Tuple
 
+from moto.moto_api._internal import mock_random
 from moto.core import BaseBackend, BackendDict
 
 
 class IdentityStoreBackend(BaseBackend):
     """Implementation of IdentityStore APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.groups = {}
+        self.groups: Dict[str, Dict[str, str]] = {}
 
-    # add methods from here
-
-    def create_group(self, identity_store_id, display_name, description):
+    def create_group(
+        self, identity_store_id: str, display_name: str, description: str
+    ) -> Tuple[str, str]:
         group_id = str(mock_random.uuid4())
         group_dict = {
             "GroupId": group_id,

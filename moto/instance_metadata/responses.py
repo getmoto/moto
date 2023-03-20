@@ -1,20 +1,25 @@
 import datetime
 import json
+from typing import Any
 from urllib.parse import urlparse
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 
 class InstanceMetadataResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name=None)
 
-    def backends(self):
+    def backends(self) -> None:
         pass
 
     def metadata_response(
-        self, request, full_url, headers
-    ):  # pylint: disable=unused-argument
+        self,
+        request: Any,  # pylint: disable=unused-argument
+        full_url: str,
+        headers: Any,
+    ) -> TYPE_RESPONSE:
         """
         Mock response for localhost metadata
 
