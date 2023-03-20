@@ -724,6 +724,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 else {}
             )
 
+            network_mode = settings.moto_network_mode()
+            network_name = settings.moto_network_name()
+
             for kwargs in container_kwargs:
                 environment = kwargs["environment"]
                 environment["MOTO_HOST"] = settings.moto_server_host()
@@ -732,8 +735,6 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     "MOTO_HTTP_ENDPOINT"
                 ] = f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
 
-                network_name = settings.moto_network_name()
-                network_mode = settings.moto_network_mode()
                 if network_name:
                     kwargs["network"] = network_name
                 elif network_mode:
@@ -753,7 +754,12 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             for kwargs in container_kwargs:
                 if len(containers) > 0:
                     env = kwargs["environment"]
-                    ip = containers[0].attrs["NetworkSettings"]["IPAddress"]
+                    network_settings = containers[0].attrs["NetworkSettings"]
+                    networks = network_settings["Networks"]
+                    if network_name in networks:
+                        ip = networks[network_name]["IPAddress"]
+                    else:
+                        ip = network_settings["IPAddress"]
                     env["AWS_BATCH_JOB_MAIN_NODE_PRIVATE_IPV4_ADDRESS"] = ip
                 container = self.docker_client.containers.run(
                     detach=True,
