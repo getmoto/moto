@@ -40,7 +40,7 @@ class EventsHandler(BaseResponse):
         state = self._get_param("State")
         desc = self._get_param("Description")
         role_arn = self._get_param("RoleArn")
-        event_bus_name = self._get_param("EventBusName")
+        event_bus_arn = self._get_param("EventBusName")
         tags = self._get_param("Tags")
 
         rule = self.events_backend.put_rule(
@@ -50,7 +50,7 @@ class EventsHandler(BaseResponse):
             state=state,
             description=desc,
             role_arn=role_arn,
-            event_bus_name=event_bus_name,
+            event_bus_arn=event_bus_arn,
             tags=tags,
         )
         result = {"RuleArn": rule.arn}
@@ -58,31 +58,34 @@ class EventsHandler(BaseResponse):
 
     def delete_rule(self) -> Tuple[str, Dict[str, Any]]:
         name = self._get_param("Name")
+        event_bus_arn = self._get_param("EventBusName")
 
         if not name:
             return self.error("ValidationException", "Parameter Name is required.")
-        self.events_backend.delete_rule(name)
+        self.events_backend.delete_rule(name, event_bus_arn)
 
         return "", self.response_headers
 
     def describe_rule(self) -> Tuple[str, Dict[str, Any]]:
         name = self._get_param("Name")
+        event_bus_arn = self._get_param("EventBusName")
 
         if not name:
             return self.error("ValidationException", "Parameter Name is required.")
 
-        rule = self.events_backend.describe_rule(name)
+        rule = self.events_backend.describe_rule(name, event_bus_arn)
 
         result = rule.describe()
         return self._create_response(result)
 
     def disable_rule(self) -> Tuple[str, Dict[str, Any]]:
         name = self._get_param("Name")
+        event_bus_arn = self._get_param("EventBusName")
 
         if not name:
             return self.error("ValidationException", "Parameter Name is required.")
 
-        if not self.events_backend.disable_rule(name):
+        if not self.events_backend.disable_rule(name, event_bus_arn):
             return self.error(
                 "ResourceNotFoundException", "Rule " + name + " does not exist."
             )
@@ -91,11 +94,12 @@ class EventsHandler(BaseResponse):
 
     def enable_rule(self) -> Tuple[str, Dict[str, Any]]:
         name = self._get_param("Name")
+        event_bus_arn = self._get_param("EventBusName")
 
         if not name:
             return self.error("ValidationException", "Parameter Name is required.")
 
-        if not self.events_backend.enable_rule(name):
+        if not self.events_backend.enable_rule(name, event_bus_arn):
             return self.error(
                 "ResourceNotFoundException", "Rule " + name + " does not exist."
             )
@@ -107,6 +111,7 @@ class EventsHandler(BaseResponse):
 
     def list_rule_names_by_target(self) -> Tuple[str, Dict[str, Any]]:
         target_arn = self._get_param("TargetArn")
+        event_bus_arn = self._get_param("EventBusName")
         next_token = self._get_param("NextToken")
         limit = self._get_param("Limit")
 
@@ -114,7 +119,10 @@ class EventsHandler(BaseResponse):
             return self.error("ValidationException", "Parameter TargetArn is required.")
 
         rules, token = self.events_backend.list_rule_names_by_target(
-            target_arn=target_arn, next_token=next_token, limit=limit
+            target_arn=target_arn,
+            event_bus_arn=event_bus_arn,
+            next_token=next_token,
+            limit=limit,
         )
 
         res = {"RuleNames": [rule.name for rule in rules], "NextToken": token}
@@ -123,11 +131,15 @@ class EventsHandler(BaseResponse):
 
     def list_rules(self) -> Tuple[str, Dict[str, Any]]:
         prefix = self._get_param("NamePrefix")
+        event_bus_arn = self._get_param("EventBusName")
         next_token = self._get_param("NextToken")
         limit = self._get_param("Limit")
 
         rules, token = self.events_backend.list_rules(
-            prefix=prefix, next_token=next_token, limit=limit
+            prefix=prefix,
+            event_bus_arn=event_bus_arn,
+            next_token=next_token,
+            limit=limit,
         )
         rules_obj = {
             "Rules": [rule.describe() for rule in rules],
@@ -138,6 +150,7 @@ class EventsHandler(BaseResponse):
 
     def list_targets_by_rule(self) -> Tuple[str, Dict[str, Any]]:
         rule_name = self._get_param("Rule")
+        event_bus_arn = self._get_param("EventBusName")
         next_token = self._get_param("NextToken")
         limit = self._get_param("Limit")
 
@@ -146,7 +159,7 @@ class EventsHandler(BaseResponse):
 
         try:
             targets = self.events_backend.list_targets_by_rule(
-                rule_name, next_token, limit
+                rule_name, event_bus_arn, next_token, limit
             )
         except KeyError:
             return self.error(
@@ -170,7 +183,7 @@ class EventsHandler(BaseResponse):
 
     def put_targets(self) -> Tuple[str, Dict[str, Any]]:
         rule_name = self._get_param("Rule")
-        event_bus_name = self._get_param("EventBusName", "default")
+        event_bus_name = self._get_param("EventBusName")
         targets = self._get_param("Targets")
 
         self.events_backend.put_targets(rule_name, event_bus_name, targets)
@@ -182,7 +195,7 @@ class EventsHandler(BaseResponse):
 
     def remove_targets(self) -> Tuple[str, Dict[str, Any]]:
         rule_name = self._get_param("Rule")
-        event_bus_name = self._get_param("EventBusName", "default")
+        event_bus_name = self._get_param("EventBusName")
         ids = self._get_param("Ids")
 
         self.events_backend.remove_targets(rule_name, event_bus_name, ids)
