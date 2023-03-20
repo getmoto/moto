@@ -9,7 +9,7 @@ name: "DataUpdate_SSMdefaultAMIs"
 
 on:
   schedule:
-    - cron: '00 10 * * 0'
+    - cron: '00 10 1 * *'
 
 jobs:
   update:
