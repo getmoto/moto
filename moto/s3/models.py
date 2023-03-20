@@ -52,6 +52,7 @@ from moto.s3.exceptions import (
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from . import notifications
+from .select_object_content import parse_query, csv_to_json
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
 from .utils import ARCHIVE_STORAGE_CLASSES, STORAGE_CLASS
 from ..events.notifications import send_notification as events_send_notification
@@ -2307,6 +2308,35 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def get_bucket_notification_configuration(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         return bucket.notification_configuration
+
+    def select_object_content(
+        self,
+        bucket_name: str,
+        key_name: str,
+        select_query: str,
+        input_details: Dict[str, Any],
+        output_details: Dict[str, Any],  # pylint: disable=unused-argument
+    ):
+        """
+        Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
+
+        Known missing features:
+         - Function aliases (count(*) as cnt)
+         - Most functions (only count() is supported)
+         - Result is always in JSON
+         - FieldDelimiters and RecordDelimiters are ignored
+        """
+        self.get_bucket(bucket_name)
+        key = self.get_object(bucket_name, key_name)
+        query_input = key.value.decode("utf-8")
+        if "CSV" in input_details:
+            # input is in CSV - we need to convert it to JSON before parsing
+            use_headers = input_details["CSV"].get("FileHeaderInfo", "") == "USE"
+            query_input = csv_to_json(query_input, use_headers)
+        return [
+            json.dumps(x, indent=None, separators=(",", ":")).encode("utf-8")
+            for x in parse_query(query_input, select_query)
+        ]
 
 
 s3_backends = BackendDict(

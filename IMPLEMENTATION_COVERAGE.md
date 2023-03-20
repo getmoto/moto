@@ -5567,7 +5567,7 @@
 
 ## s3
 <details>
-<summary>63% implemented</summary>
+<summary>64% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -5662,7 +5662,7 @@
 - [ ] put_object_tagging
 - [ ] put_public_access_block
 - [ ] restore_object
-- [ ] select_object_content
+- [X] select_object_content
 - [X] upload_part
 - [ ] upload_part_copy
 - [ ] write_get_object_response
