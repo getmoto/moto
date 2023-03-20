@@ -10037,7 +10037,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6i.8xlarge",
@@ -16654,7 +16654,10 @@
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
    "EnaSrdSupported": false,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
@@ -17349,7 +17352,10 @@
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
    "EnaSrdSupported": false,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
@@ -17454,7 +17460,10 @@
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
    "EnaSrdSupported": false,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
@@ -17559,7 +17568,10 @@
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
    "EnaSrdSupported": false,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
@@ -17982,7 +17994,10 @@
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
    "EnaSrdSupported": false,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
