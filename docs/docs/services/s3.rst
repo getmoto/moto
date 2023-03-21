@@ -144,7 +144,17 @@ s3
 - [ ] put_object_tagging
 - [ ] put_public_access_block
 - [ ] restore_object
-- [ ] select_object_content
+- [X] select_object_content
+  
+        Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
+
+        Known missing features:
+         - Function aliases (count(*) as cnt)
+         - Most functions (only count() is supported)
+         - Result is always in JSON
+         - FieldDelimiters and RecordDelimiters are ignored
+        
+
 - [X] upload_part
 - [ ] upload_part_copy
 - [ ] write_get_object_response

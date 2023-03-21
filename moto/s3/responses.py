@@ -54,6 +54,7 @@ from .exceptions import (
 )
 from .models import s3_backends, S3Backend
 from .models import get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
+from .select_object_content import serialize_select
 from .utils import (
     bucket_name_from_url,
     metadata_from_headers,
@@ -134,6 +135,7 @@ ACTION_MAP = {
             "uploads": "PutObject",
             "restore": "RestoreObject",
             "uploadId": "PutObject",
+            "select": "SelectObject",
         },
     },
     "CONTROL": {
@@ -2120,6 +2122,15 @@ class S3Response(BaseResponse):
                 r = 200
             key.restore(int(days))
             return r, {}, ""
+        elif "select" in query:
+            request = xmltodict.parse(body)["SelectObjectContentRequest"]
+            select_query = request["Expression"]
+            input_details = request["InputSerialization"]
+            output_details = request["OutputSerialization"]
+            results = self.backend.select_object_content(
+                bucket_name, key_name, select_query, input_details, output_details
+            )
+            return 200, {}, serialize_select(results)
 
         else:
             raise NotImplementedError(
