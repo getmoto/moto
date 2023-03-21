@@ -113,7 +113,13 @@
                 }
               },
               "appflow": {
-                "Value": "appflow"
+                "Value": "appflow",
+                "endpoint": {
+                  "Value": "appflow.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "appintegrations": {
                 "Value": "appintegrations",
@@ -5185,15 +5191,6 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
-                }
-              },
-              "simpledb": {
-                "Value": "simpledb",
-                "endpoint": {
-                  "Value": "sdb.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS, HTTP"
                 }
               },
               "sms": {
@@ -11596,6 +11593,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "storagegateway": {
+                "Value": "storagegateway",
+                "endpoint": {
+                  "Value": "storagegateway.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sts": {
                 "Value": "sts",
                 "endpoint": {
@@ -13784,15 +13790,6 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
-                }
-              },
-              "simpledb": {
-                "Value": "simpledb",
-                "endpoint": {
-                  "Value": "sdb.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS, HTTP"
                 }
               },
               "simspaceweaver": {
@@ -16318,15 +16315,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "simpledb": {
-                "Value": "simpledb",
-                "endpoint": {
-                  "Value": "sdb.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS, HTTP"
-                }
-              },
               "simspaceweaver": {
                 "Value": "simspaceweaver",
                 "endpoint": {
@@ -17988,6 +17976,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "eks": {
+                "Value": "eks",
+                "endpoint": {
+                  "Value": "eks.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "elasticache": {
                 "Value": "elasticache",
                 "endpoint": {
@@ -18038,6 +18035,15 @@
               },
               "fargate": {
                 "Value": "fargate"
+              },
+              "firehose": {
+                "Value": "firehose",
+                "endpoint": {
+                  "Value": "firehose.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "iam": {
                 "Value": "iam",
@@ -18216,6 +18222,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "servicediscovery": {
+                "Value": "servicediscovery",
+                "endpoint": {
+                  "Value": "servicediscovery.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sns": {
                 "Value": "sns",
                 "endpoint": {
@@ -18247,6 +18262,15 @@
                 "Value": "stepfunctions",
                 "endpoint": {
                   "Value": "states.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "storagegateway": {
+                "Value": "storagegateway",
+                "endpoint": {
+                  "Value": "storagegateway.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32328,15 +32352,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "simpledb": {
-                "Value": "simpledb",
-                "endpoint": {
-                  "Value": "sdb.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS, HTTP"
-                }
-              },
               "simspaceweaver": {
                 "Value": "simspaceweaver",
                 "endpoint": {
@@ -37190,6 +37205,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -37635,6 +37659,15 @@
                 "Value": "synthetics",
                 "endpoint": {
                   "Value": "synthetics.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "transfer": {
+                "Value": "transfer",
+                "endpoint": {
+                  "Value": "transfer.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40744,15 +40777,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "simpledb": {
-                "Value": "simpledb",
-                "endpoint": {
-                  "Value": "sdb.sa-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS, HTTP"
-                }
-              },
               "sms": {
                 "Value": "sms",
                 "endpoint": {
@@ -43637,15 +43661,6 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
-                }
-              },
-              "simpledb": {
-                "Value": "simpledb",
-                "endpoint": {
-                  "Value": "sdb.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS, HTTP"
                 }
               },
               "simspaceweaver": {
@@ -50776,15 +50791,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "simpledb": {
-                "Value": "simpledb",
-                "endpoint": {
-                  "Value": "sdb.us-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS, HTTP"
-                }
-              },
               "sms": {
                 "Value": "sms",
                 "endpoint": {
@@ -53516,15 +53522,6 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
-                }
-              },
-              "simpledb": {
-                "Value": "simpledb",
-                "endpoint": {
-                  "Value": "sdb.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS, HTTP"
                 }
               },
               "simspaceweaver": {
