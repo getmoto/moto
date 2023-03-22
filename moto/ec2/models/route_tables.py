@@ -514,7 +514,7 @@ class RouteBackend:
         for route in route_table.routes.values():
             if not route.destination_cidr_block:
                 continue
-            if not route.local and ip_v4_network.overlaps(
-                ipaddress.IPv4Network(str(route.destination_cidr_block))
+            if not route.local and ip_v4_network == ipaddress.IPv4Network(
+                str(route.destination_cidr_block)
             ):
                 raise RouteAlreadyExistsError(destination_cidr_block)
