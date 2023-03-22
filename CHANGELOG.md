@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.5
 -----
-Docker Digest for 4.1.5: __
+Docker Digest for 4.1.5: _sha256:0e43c36e1b1390106ec43b2e383486c45fef27646838acaa8073cbd2b4a97a31_
 
     General: 
         * Our Docker-images are now also hosted in GHCR:

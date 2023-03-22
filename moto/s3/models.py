@@ -52,7 +52,7 @@ from moto.s3.exceptions import (
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from . import notifications
-from .select_object_content import parse_query, csv_to_json
+from .select_object_content import parse_query
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
 from .utils import ARCHIVE_STORAGE_CLASSES, STORAGE_CLASS
 from ..events.notifications import send_notification as events_send_notification
@@ -2331,6 +2331,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         query_input = key.value.decode("utf-8")
         if "CSV" in input_details:
             # input is in CSV - we need to convert it to JSON before parsing
+            from py_partiql_parser._internal.csv_converter import (  # noqa # pylint: disable=unused-import
+                csv_to_json,
+            )
+
             use_headers = input_details["CSV"].get("FileHeaderInfo", "") == "USE"
             query_input = csv_to_json(query_input, use_headers)
         return [

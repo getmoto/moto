@@ -67,6 +67,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Push to DockerHub and GHCR
+      id: build_and_push
       uses: docker/build-push-action@v4
       with:
         platforms: linux/amd64,linux/arm64
