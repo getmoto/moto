@@ -338,14 +338,14 @@ class S3Response(BaseResponse):
         self._authenticate_and_authorize_s3_action()
 
         try:
-            self.backend.head_bucket(bucket_name)
+            bucket = self.backend.head_bucket(bucket_name)
         except MissingBucket:
             # Unless we do this, boto3 does not raise ClientError on
             # HEAD (which the real API responds with), and instead
             # raises NoSuchBucket, leading to inconsistency in
             # error response between real and mocked responses.
             return 404, {}, ""
-        return 200, {}, ""
+        return 200, {"x-amz-bucket-region": bucket.region_name}, ""
 
     def _set_cors_headers(self, headers, bucket):
         """
