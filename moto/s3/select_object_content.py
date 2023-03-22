@@ -1,13 +1,11 @@
 import binascii
 import struct
 from typing import List
-from py_partiql_parser import Parser
-from py_partiql_parser._internal.csv_converter import (  # noqa # pylint: disable=unused-import
-    csv_to_json,
-)
 
 
 def parse_query(text_input, query):
+    from py_partiql_parser import Parser
+
     return Parser(source_data={"s3object": text_input}).parse(query)
 
 
