@@ -1,3 +1,4 @@
+import contextlib
 import copy
 import warnings
 from collections import OrderedDict
@@ -28,6 +29,7 @@ from ..exceptions import (
     InvalidParameterValueErrorUnknownAttribute,
     InvalidSecurityGroupNotFoundError,
     OperationNotPermitted4,
+    InvalidSubnetIdError,
 )
 from ..utils import (
     convert_tag_spec,
@@ -185,8 +187,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     @property
     def vpc_id(self) -> Optional[str]:
         if self.subnet_id:
-            subnet: Subnet = self.ec2_backend.get_subnet(self.subnet_id)
-            return subnet.vpc_id
+            with contextlib.suppress(InvalidSubnetIdError):
+                subnet: Subnet = self.ec2_backend.get_subnet(self.subnet_id)
+                return subnet.vpc_id
         if self.nics and 0 in self.nics:
             return self.nics[0].subnet.vpc_id
         return None
