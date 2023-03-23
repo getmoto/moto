@@ -1,17 +1,17 @@
 from moto.core.responses import BaseResponse
-from .models import kinesisvideo_backends
+from .models import kinesisvideo_backends, KinesisVideoBackend
 import json
 
 
 class KinesisVideoResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="kinesisvideo")
 
     @property
-    def kinesisvideo_backend(self):
+    def kinesisvideo_backend(self) -> KinesisVideoBackend:
         return kinesisvideo_backends[self.current_account][self.region]
 
-    def create_stream(self):
+    def create_stream(self) -> str:
         device_name = self._get_param("DeviceName")
         stream_name = self._get_param("StreamName")
         media_type = self._get_param("MediaType")
@@ -28,7 +28,7 @@ class KinesisVideoResponse(BaseResponse):
         )
         return json.dumps(dict(StreamARN=stream_arn))
 
-    def describe_stream(self):
+    def describe_stream(self) -> str:
         stream_name = self._get_param("StreamName")
         stream_arn = self._get_param("StreamARN")
         stream_info = self.kinesisvideo_backend.describe_stream(
@@ -36,16 +36,16 @@ class KinesisVideoResponse(BaseResponse):
         )
         return json.dumps(dict(StreamInfo=stream_info))
 
-    def list_streams(self):
-        stream_info_list, next_token = self.kinesisvideo_backend.list_streams()
-        return json.dumps(dict(StreamInfoList=stream_info_list, NextToken=next_token))
+    def list_streams(self) -> str:
+        stream_info_list = self.kinesisvideo_backend.list_streams()
+        return json.dumps(dict(StreamInfoList=stream_info_list, NextToken=None))
 
-    def delete_stream(self):
+    def delete_stream(self) -> str:
         stream_arn = self._get_param("StreamARN")
         self.kinesisvideo_backend.delete_stream(stream_arn=stream_arn)
         return json.dumps(dict())
 
-    def get_data_endpoint(self):
+    def get_data_endpoint(self) -> str:
         stream_name = self._get_param("StreamName")
         stream_arn = self._get_param("StreamARN")
         api_name = self._get_param("APIName")

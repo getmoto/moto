@@ -1,14 +1,17 @@
+from typing import Tuple
 from moto.core import BaseBackend, BackendDict
-from moto.kinesisvideo import kinesisvideo_backends
+from moto.kinesisvideo.models import kinesisvideo_backends, KinesisVideoBackend
 from moto.sts.utils import random_session_token
 
 
 class KinesisVideoArchivedMediaBackend(BaseBackend):
     @property
-    def backend(self):
+    def backend(self) -> KinesisVideoBackend:
         return kinesisvideo_backends[self.account_id][self.region_name]
 
-    def _get_streaming_url(self, stream_name, stream_arn, api_name):
+    def _get_streaming_url(
+        self, stream_name: str, stream_arn: str, api_name: str
+    ) -> str:
         stream = self.backend._get_stream(stream_name, stream_arn)
         data_endpoint = stream.get_data_endpoint(api_name)
         session_token = random_session_token()
@@ -19,19 +22,17 @@ class KinesisVideoArchivedMediaBackend(BaseBackend):
         relative_path = api_to_relative_path[api_name]
         return f"{data_endpoint}{relative_path}?SessionToken={session_token}"
 
-    def get_hls_streaming_session_url(self, stream_name, stream_arn):
-        # Ignore option paramters as the format of hls_url does't depends on them
+    def get_hls_streaming_session_url(self, stream_name: str, stream_arn: str) -> str:
+        # Ignore option paramters as the format of hls_url doesn't depend on them
         api_name = "GET_HLS_STREAMING_SESSION_URL"
-        url = self._get_streaming_url(stream_name, stream_arn, api_name)
-        return url
+        return self._get_streaming_url(stream_name, stream_arn, api_name)
 
-    def get_dash_streaming_session_url(self, stream_name, stream_arn):
-        # Ignore option paramters as the format of hls_url does't depends on them
+    def get_dash_streaming_session_url(self, stream_name: str, stream_arn: str) -> str:
+        # Ignore option paramters as the format of hls_url doesn't depend on them
         api_name = "GET_DASH_STREAMING_SESSION_URL"
-        url = self._get_streaming_url(stream_name, stream_arn, api_name)
-        return url
+        return self._get_streaming_url(stream_name, stream_arn, api_name)
 
-    def get_clip(self, stream_name, stream_arn):
+    def get_clip(self, stream_name: str, stream_arn: str) -> Tuple[str, bytes]:
         self.backend._get_stream(stream_name, stream_arn)
         content_type = "video/mp4"  # Fixed content_type as it depends on input stream
         payload = b"sample-mp4-video"

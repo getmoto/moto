@@ -9,7 +9,7 @@ SESSION_TOKEN_PREFIX = "FQoGZXIvYXdzEBYaD"
 DEFAULT_STS_SESSION_DURATION = 3600
 
 
-def random_session_token():
+def random_session_token() -> str:
     return (
         SESSION_TOKEN_PREFIX
         + base64.b64encode(os.urandom(266))[len(SESSION_TOKEN_PREFIX) :].decode()

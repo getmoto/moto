@@ -1,4 +1,5 @@
 from collections import namedtuple
+from typing import Any, Dict, Tuple
 import io
 import os
 import struct
@@ -47,7 +48,7 @@ RESERVED_ALIASE_TARGET_KEY_IDS = {
 RESERVED_ALIASES = list(RESERVED_ALIASE_TARGET_KEY_IDS.keys())
 
 
-def generate_key_id(multi_region=False):
+def generate_key_id(multi_region: bool = False) -> str:
     key = str(mock_random.uuid4())
     # https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html
     # "Notice that multi-Region keys have a distinctive key ID that begins with mrk-. You can use the mrk- prefix to
@@ -58,17 +59,17 @@ def generate_key_id(multi_region=False):
     return key
 
 
-def generate_data_key(number_of_bytes):
+def generate_data_key(number_of_bytes: int) -> bytes:
     """Generate a data key."""
     return os.urandom(number_of_bytes)
 
 
-def generate_master_key():
+def generate_master_key() -> bytes:
     """Generate a master key."""
     return generate_data_key(MASTER_KEY_LEN)
 
 
-def generate_private_key():
+def generate_private_key() -> rsa.RSAPrivateKey:
     """Generate a private key to be used on asymmetric sign/verify.
 
     NOTE: KeySpec is not taken into consideration and the key is always RSA_2048
@@ -80,7 +81,7 @@ def generate_private_key():
     )
 
 
-def _serialize_ciphertext_blob(ciphertext):
+def _serialize_ciphertext_blob(ciphertext: Ciphertext) -> bytes:
     """Serialize Ciphertext object into a ciphertext blob.
 
     NOTE: This is just a simple binary format. It is not what KMS actually does.
@@ -94,7 +95,7 @@ def _serialize_ciphertext_blob(ciphertext):
     return header + ciphertext.ciphertext
 
 
-def _deserialize_ciphertext_blob(ciphertext_blob):
+def _deserialize_ciphertext_blob(ciphertext_blob: bytes) -> Ciphertext:
     """Deserialize ciphertext blob into a Ciphertext object.
 
     NOTE: This is just a simple binary format. It is not what KMS actually does.
@@ -107,7 +108,7 @@ def _deserialize_ciphertext_blob(ciphertext_blob):
     )
 
 
-def _serialize_encryption_context(encryption_context):
+def _serialize_encryption_context(encryption_context: Dict[str, str]) -> bytes:
     """Serialize encryption context for use a AAD.
 
     NOTE: This is not necessarily what KMS does, but it retains the same properties.
@@ -119,7 +120,12 @@ def _serialize_encryption_context(encryption_context):
     return aad.getvalue()
 
 
-def encrypt(master_keys, key_id, plaintext, encryption_context):
+def encrypt(
+    master_keys: Dict[str, Any],
+    key_id: str,
+    plaintext: bytes,
+    encryption_context: Dict[str, str],
+) -> bytes:
     """Encrypt data using a master key material.
 
     NOTE: This is not necessarily what KMS does, but it retains the same properties.
@@ -159,7 +165,11 @@ def encrypt(master_keys, key_id, plaintext, encryption_context):
     )
 
 
-def decrypt(master_keys, ciphertext_blob, encryption_context):
+def decrypt(
+    master_keys: Dict[str, Any],
+    ciphertext_blob: bytes,
+    encryption_context: Dict[str, str],
+) -> Tuple[bytes, str]:
     """Decrypt a ciphertext blob using a master key material.
 
     NOTE: This is not necessarily what KMS does, but it retains the same properties.
