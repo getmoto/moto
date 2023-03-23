@@ -1237,6 +1237,36 @@ def test_delete_stack_containing_cloudwatch_logs_resource_policy():
 
 
 @mock_cloudformation
+@mock_sqs
+def test_delete_stack_with_deletion_policy_boto3():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "QueueGroup": {
+                "DeletionPolicy": "Retain",
+                "Type": "AWS::SQS::Queue",
+                "Properties": {"QueueName": "my-queue", "VisibilityTimeout": 60},
+            }
+        },
+    }
+
+    sqs_template_json = json.dumps(sqs_template)
+
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    cf.create_stack(
+        StackName="test_stack",
+        TemplateBody=sqs_template_json,
+    )
+    sqs = boto3.client("sqs", region_name="us-west-1")
+    sqs.list_queues()["QueueUrls"].should.have.length_of(1)
+
+    cf.delete_stack(
+        StackName="test_stack",
+    )
+    sqs.list_queues()["QueueUrls"].should.have.length_of(1)
+
+
+@mock_cloudformation
 @mock_events
 def test_stack_events_create_rule_integration():
     events_template = {
