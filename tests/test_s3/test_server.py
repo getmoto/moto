@@ -66,6 +66,10 @@ def test_s3_server_bucket_create(key_name):
     content.should.be.a(dict)
     content["Key"].should.equal(key_name)
 
+    res = test_client.head("http://foobaz.localhost:5000")
+    assert res.status_code == 200
+    assert res.headers.get("x-amz-bucket-region") == "us-east-1"
+
     res = test_client.get(f"/{key_name}", "http://foobaz.localhost:5000/")
     res.status_code.should.equal(200)
     res.data.should.equal(b"test value")

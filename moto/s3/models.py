@@ -1615,7 +1615,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         except KeyError:
             raise MissingBucket(bucket=bucket_name)
 
-    def head_bucket(self, bucket_name):
+    def head_bucket(self, bucket_name: str) -> FakeBucket:
         return self.get_bucket(bucket_name)
 
     def delete_bucket(self, bucket_name):
