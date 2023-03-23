@@ -1803,6 +1803,9 @@ def test_delete_stack():
 
 @mock_cloudformation
 @mock_ec2
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Can't patch model delete attributes in server mode."
+)
 def test_delete_stack_delete_not_implemented(monkeypatch):
     monkeypatch.delattr(
         "moto.ec2.models.instances.Instance.delete_from_cloudformation_json"
