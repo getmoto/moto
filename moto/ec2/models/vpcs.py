@@ -239,6 +239,18 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
         return vpc
 
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        from ..models import ec2_backends
+
+        ec2_backends[account_id][region_name].delete_vpc(resource_name)
+
     @property
     def physical_resource_id(self) -> str:
         return self.id
