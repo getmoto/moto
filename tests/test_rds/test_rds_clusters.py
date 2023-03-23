@@ -250,16 +250,20 @@ def test_describe_db_cluster_after_creation():
         MasterUserPassword="hunter2_",
     )
 
-    client.create_db_cluster(
+    cluster_arn = client.create_db_cluster(
         DBClusterIdentifier="cluster-id2",
         Engine="aurora",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
-    )
+    )["DBCluster"]["DBClusterArn"]
 
     client.describe_db_clusters()["DBClusters"].should.have.length_of(2)
 
     client.describe_db_clusters(DBClusterIdentifier="cluster-id2")[
+        "DBClusters"
+    ].should.have.length_of(1)
+
+    client.describe_db_clusters(DBClusterIdentifier=cluster_arn)[
         "DBClusters"
     ].should.have.length_of(1)
 
