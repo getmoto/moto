@@ -835,7 +835,11 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
 
     def delete(self) -> None:
         # Only try to delete resources without a Retain DeletionPolicy
-        remaining_resources = set(key for key, value in self._resource_json_map.items() if not value.get("DeletionPolicy") == "Retain")
+        remaining_resources = set(
+            key
+            for key, value in self._resource_json_map.items()
+            if not value.get("DeletionPolicy") == "Retain"
+        )
         tries = 1
         while remaining_resources and tries < 5:
             for resource in remaining_resources.copy():
