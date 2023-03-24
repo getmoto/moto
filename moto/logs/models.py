@@ -306,6 +306,19 @@ class LogGroup(CloudFormationModel):
             resource_name, tags, **properties
         )
 
+    @classmethod
+    def has_cfn_attr(cls, attr):
+        return attr in [
+            "Arn",
+        ]
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        raise UnformattedGetAttTemplateException()
+
     @property
     def physical_resource_id(self) -> str:
         return self.name
