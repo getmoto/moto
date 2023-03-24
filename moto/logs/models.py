@@ -306,6 +306,10 @@ class LogGroup(CloudFormationModel):
             resource_name, tags, **properties
         )
 
+    @property
+    def physical_resource_id(self) -> str:
+        return self.name
+
     def create_log_stream(self, log_stream_name: str) -> None:
         if log_stream_name in self.streams:
             raise ResourceAlreadyExistsException()
