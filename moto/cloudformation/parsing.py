@@ -1,3 +1,4 @@
+import string
 import functools
 import json
 import logging
@@ -189,40 +190,41 @@ def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
             return select_list[select_index]
 
         if "Fn::Sub" in resource_json:
-            if isinstance(resource_json["Fn::Sub"], list):
-                warnings.warn(
-                    "Tried to parse Fn::Sub with variable mapping but it's not supported by moto's CloudFormation implementation"
-                )
-            else:
-                fn_sub_value = clean_json(resource_json["Fn::Sub"], resources_map)
-                to_sub = re.findall(r'(?=\${)[^!^"]*?}', fn_sub_value)
-                literals = re.findall(r'(?=\${!)[^"]*?}', fn_sub_value)
-                for sub in to_sub:
-                    if "." in sub:
-                        cleaned_ref = clean_json(
-                            {
-                                "Fn::GetAtt": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[
-                                    0
-                                ].split(".")
-                            },
-                            resources_map,
-                        )
-                    else:
-                        cleaned_ref = clean_json(
-                            {"Ref": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[0]},
-                            resources_map,
-                        )
-                    if cleaned_ref is not None:
-                        fn_sub_value = fn_sub_value.replace(sub, str(cleaned_ref))
-                    else:
-                        # The ref was not found in the template - either it didn't exist, or we couldn't parse it
-                        pass
-                for literal in literals:
-                    fn_sub_value = fn_sub_value.replace(
-                        literal, literal.replace("!", "")
+            template = resource_json["Fn::Sub"]
+
+            if isinstance(template, list):
+                template, mappings = resource_json["Fn::Sub"]
+                for key, value in mappings.items():
+                    template = string.Template(template).safe_substitute(
+                        **{key: str(clean_json(value, resources_map))}
                     )
-                return fn_sub_value
-            pass
+
+            fn_sub_value = clean_json(template, resources_map)
+            to_sub = re.findall(r'(?=\${)[^!^"]*?}', fn_sub_value)
+            literals = re.findall(r'(?=\${!)[^"]*?}', fn_sub_value)
+            for sub in to_sub:
+                if "." in sub:
+                    cleaned_ref = clean_json(
+                        {
+                            "Fn::GetAtt": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[
+                                0
+                            ].split(".")
+                        },
+                        resources_map,
+                    )
+                else:
+                    cleaned_ref = clean_json(
+                        {"Ref": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[0]},
+                        resources_map,
+                    )
+                if cleaned_ref is not None:
+                    fn_sub_value = fn_sub_value.replace(sub, str(cleaned_ref))
+                else:
+                    # The ref was not found in the template - either it didn't exist, or we couldn't parse it
+                    pass
+            for literal in literals:
+                fn_sub_value = fn_sub_value.replace(literal, literal.replace("!", ""))
+            return fn_sub_value
 
         if "Fn::ImportValue" in resource_json:
             cleaned_val = clean_json(resource_json["Fn::ImportValue"], resources_map)

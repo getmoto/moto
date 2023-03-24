@@ -137,6 +137,33 @@ sub_num_template = {
     },
 }
 
+sub_mapping_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "TestRef": {"Type": "String"},
+    },
+    "Conditions": {
+        "IsApple": {"Fn::Equals": [{"Ref": "TestRef"}, "apple"]},
+    },
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {
+                    "Fn::Sub": [
+                        "${AWS::StackName}-queue-${TestRef}-${TestFn}",
+                        {
+                            "TestRef": {"Ref": "TestRef"},
+                            "TestFn": {"Fn::If": ["IsApple", "yes", "no"]},
+                        },
+                    ],
+                },
+                "VisibilityTimeout": 60,
+            },
+        },
+    },
+}
+
 export_value_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Resources": {
@@ -191,6 +218,7 @@ ssm_parameter_template_json = json.dumps(ssm_parameter_template)
 split_select_template_json = json.dumps(split_select_template)
 sub_template_json = json.dumps(sub_template)
 sub_num_template_json = json.dumps(sub_num_template)
+sub_mapping_json = json.dumps(sub_mapping_template)
 export_value_template_json = json.dumps(export_value_template)
 import_value_template_json = json.dumps(import_value_template)
 
@@ -519,6 +547,30 @@ def test_sub_num():
     # Errors on moto<=4.0.10 because int(42) is used with str.replace
     queue = stack.resource_map["Queue"]
     queue.name.should.equal("test_stack-queue-42")
+
+
+def test_sub_mapping():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=sub_mapping_json,
+        parameters={"TestRef": "apple"},
+        account_id=ACCOUNT_ID,
+        region_name="us-west-1",
+    )
+    queue = stack.resource_map["Queue"]
+    queue.name.should.equal("test_stack-queue-apple-yes")
+
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=sub_mapping_json,
+        parameters={"TestRef": "banana"},
+        account_id=ACCOUNT_ID,
+        region_name="us-west-1",
+    )
+    queue = stack.resource_map["Queue"]
+    queue.name.should.equal("test_stack-queue-banana-no")
 
 
 def test_import():
