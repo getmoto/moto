@@ -1,10 +1,11 @@
 import json
 import re
+from typing import Any, Callable, Optional
 
 from .exceptions import InvalidParameterException
 
 from moto.core.responses import BaseResponse
-from .models import logs_backends
+from .models import logs_backends, LogsBackend
 
 # See http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/Welcome.html
 
@@ -13,8 +14,12 @@ REGEX_LOG_GROUP_NAME = r"[-._\/#A-Za-z0-9]+"
 
 
 def validate_param(
-    param_name, param_value, constraint, constraint_expression, pattern=None
-):
+    param_name: str,
+    param_value: str,
+    constraint: str,
+    constraint_expression: Callable[[str], bool],
+    pattern: Optional[str] = None,
+) -> None:
     try:
         assert constraint_expression(param_value)
     except (AssertionError, TypeError):
@@ -33,31 +38,25 @@ def validate_param(
 
 
 class LogsResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="logs")
 
     @property
-    def logs_backend(self):
+    def logs_backend(self) -> LogsBackend:
         return logs_backends[self.current_account][self.region]
 
-    @property
-    def request_params(self):
-        try:
-            return json.loads(self.body)
-        except ValueError:
-            return {}
-
-    def _get_param(self, param_name, if_none=None):
-        return self.request_params.get(param_name, if_none)
-
     def _get_validated_param(
-        self, param, constraint, constraint_expression, pattern=None
-    ):
+        self,
+        param: str,
+        constraint: str,
+        constraint_expression: Callable[[str], bool],
+        pattern: Optional[str] = None,
+    ) -> Any:
         param_value = self._get_param(param)
         validate_param(param, param_value, constraint, constraint_expression, pattern)
         return param_value
 
-    def put_metric_filter(self):
+    def put_metric_filter(self) -> str:
         filter_name = self._get_validated_param(
             "filterName",
             "Minimum length of 1. Maximum length of 512.",
@@ -85,7 +84,7 @@ class LogsResponse(BaseResponse):
 
         return ""
 
-    def describe_metric_filters(self):
+    def describe_metric_filters(self) -> str:
         filter_name_prefix = self._get_validated_param(
             "filterNamePrefix",
             "Minimum length of 1. Maximum length of 512.",
@@ -134,7 +133,7 @@ class LogsResponse(BaseResponse):
         )
         return json.dumps({"metricFilters": filters, "nextToken": next_token})
 
-    def delete_metric_filter(self):
+    def delete_metric_filter(self) -> str:
         filter_name = self._get_validated_param(
             "filterName",
             "Minimum length of 1. Maximum length of 512.",
@@ -151,7 +150,7 @@ class LogsResponse(BaseResponse):
         self.logs_backend.delete_metric_filter(filter_name, log_group_name)
         return ""
 
-    def create_log_group(self):
+    def create_log_group(self) -> str:
         log_group_name = self._get_param("logGroupName")
         tags = self._get_param("tags")
         kms_key_id = self._get_param("kmsKeyId")
@@ -159,12 +158,12 @@ class LogsResponse(BaseResponse):
         self.logs_backend.create_log_group(log_group_name, tags, kmsKeyId=kms_key_id)
         return ""
 
-    def delete_log_group(self):
+    def delete_log_group(self) -> str:
         log_group_name = self._get_param("logGroupName")
         self.logs_backend.delete_log_group(log_group_name)
         return ""
 
-    def describe_log_groups(self):
+    def describe_log_groups(self) -> str:
         log_group_name_prefix = self._get_param("logGroupNamePrefix")
         next_token = self._get_param("nextToken")
         limit = self._get_param("limit", 50)
@@ -184,19 +183,19 @@ class LogsResponse(BaseResponse):
             result["nextToken"] = next_token
         return json.dumps(result)
 
-    def create_log_stream(self):
+    def create_log_stream(self) -> str:
         log_group_name = self._get_param("logGroupName")
         log_stream_name = self._get_param("logStreamName")
         self.logs_backend.create_log_stream(log_group_name, log_stream_name)
         return ""
 
-    def delete_log_stream(self):
+    def delete_log_stream(self) -> str:
         log_group_name = self._get_param("logGroupName")
         log_stream_name = self._get_param("logStreamName")
         self.logs_backend.delete_log_stream(log_group_name, log_stream_name)
         return ""
 
-    def describe_log_streams(self):
+    def describe_log_streams(self) -> str:
         log_group_name = self._get_param("logGroupName")
         log_stream_name_prefix = self._get_param("logStreamNamePrefix", "")
         descending = self._get_param("descending", False)
@@ -214,7 +213,7 @@ class LogsResponse(BaseResponse):
         )
         return json.dumps({"logStreams": streams, "nextToken": next_token})
 
-    def put_log_events(self):
+    def put_log_events(self) -> str:
         log_group_name = self._get_param("logGroupName")
         log_stream_name = self._get_param("logStreamName")
         log_events = self._get_param("logEvents")
@@ -232,7 +231,7 @@ class LogsResponse(BaseResponse):
         else:
             return json.dumps({"nextSequenceToken": next_sequence_token})
 
-    def get_log_events(self):
+    def get_log_events(self) -> str:
         log_group_name = self._get_param("logGroupName")
         log_stream_name = self._get_param("logStreamName")
         start_time = self._get_param("startTime")
@@ -262,7 +261,7 @@ class LogsResponse(BaseResponse):
             }
         )
 
-    def filter_log_events(self):
+    def filter_log_events(self) -> str:
         log_group_name = self._get_param("logGroupName")
         log_stream_names = self._get_param("logStreamNames", [])
         start_time = self._get_param("startTime")
@@ -291,52 +290,50 @@ class LogsResponse(BaseResponse):
             }
         )
 
-    def put_retention_policy(self):
+    def put_retention_policy(self) -> str:
         log_group_name = self._get_param("logGroupName")
         retention_in_days = self._get_param("retentionInDays")
         self.logs_backend.put_retention_policy(log_group_name, retention_in_days)
         return ""
 
-    def delete_retention_policy(self):
+    def delete_retention_policy(self) -> str:
         log_group_name = self._get_param("logGroupName")
         self.logs_backend.delete_retention_policy(log_group_name)
         return ""
 
-    def describe_resource_policies(self):
-        next_token = self._get_param("nextToken")
-        limit = self._get_param("limit")
-        policies = self.logs_backend.describe_resource_policies(next_token, limit)
+    def describe_resource_policies(self) -> str:
+        policies = self.logs_backend.describe_resource_policies()
         return json.dumps({"resourcePolicies": [p.describe() for p in policies]})
 
-    def put_resource_policy(self):
+    def put_resource_policy(self) -> str:
         policy_name = self._get_param("policyName")
         policy_doc = self._get_param("policyDocument")
         policy = self.logs_backend.put_resource_policy(policy_name, policy_doc)
         return json.dumps({"resourcePolicy": policy.describe()})
 
-    def delete_resource_policy(self):
+    def delete_resource_policy(self) -> str:
         policy_name = self._get_param("policyName")
         self.logs_backend.delete_resource_policy(policy_name)
         return ""
 
-    def list_tags_log_group(self):
+    def list_tags_log_group(self) -> str:
         log_group_name = self._get_param("logGroupName")
         tags = self.logs_backend.list_tags_log_group(log_group_name)
         return json.dumps({"tags": tags})
 
-    def tag_log_group(self):
+    def tag_log_group(self) -> str:
         log_group_name = self._get_param("logGroupName")
         tags = self._get_param("tags")
         self.logs_backend.tag_log_group(log_group_name, tags)
         return ""
 
-    def untag_log_group(self):
+    def untag_log_group(self) -> str:
         log_group_name = self._get_param("logGroupName")
         tags = self._get_param("tags")
         self.logs_backend.untag_log_group(log_group_name, tags)
         return ""
 
-    def describe_subscription_filters(self):
+    def describe_subscription_filters(self) -> str:
         log_group_name = self._get_param("logGroupName")
 
         subscription_filters = self.logs_backend.describe_subscription_filters(
@@ -345,7 +342,7 @@ class LogsResponse(BaseResponse):
 
         return json.dumps({"subscriptionFilters": subscription_filters})
 
-    def put_subscription_filter(self):
+    def put_subscription_filter(self) -> str:
         log_group_name = self._get_param("logGroupName")
         filter_name = self._get_param("filterName")
         filter_pattern = self._get_param("filterPattern")
@@ -358,7 +355,7 @@ class LogsResponse(BaseResponse):
 
         return ""
 
-    def delete_subscription_filter(self):
+    def delete_subscription_filter(self) -> str:
         log_group_name = self._get_param("logGroupName")
         filter_name = self._get_param("filterName")
 
@@ -366,7 +363,7 @@ class LogsResponse(BaseResponse):
 
         return ""
 
-    def start_query(self):
+    def start_query(self) -> str:
         log_group_name = self._get_param("logGroupName")
         log_group_names = self._get_param("logGroupNames")
         start_time = self._get_param("startTime")
@@ -385,7 +382,7 @@ class LogsResponse(BaseResponse):
 
         return json.dumps({"queryId": f"{query_id}"})
 
-    def create_export_task(self):
+    def create_export_task(self) -> str:
         log_group_name = self._get_param("logGroupName")
         destination = self._get_param("destination")
         task_id = self.logs_backend.create_export_task(

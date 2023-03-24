@@ -1,3 +1,4 @@
+from typing import Any, Optional
 from moto.core.exceptions import JsonRESTError
 
 
@@ -6,7 +7,7 @@ class LogsClientError(JsonRESTError):
 
 
 class ResourceNotFoundException(LogsClientError):
-    def __init__(self, msg=None):
+    def __init__(self, msg: Optional[str] = None):
         self.code = 400
         super().__init__(
             "ResourceNotFoundException", msg or "The specified log group does not exist"
@@ -14,7 +15,13 @@ class ResourceNotFoundException(LogsClientError):
 
 
 class InvalidParameterException(LogsClientError):
-    def __init__(self, msg=None, constraint=None, parameter=None, value=None):
+    def __init__(
+        self,
+        msg: Optional[str] = None,
+        constraint: Optional[str] = None,
+        parameter: Optional[str] = None,
+        value: Any = None,
+    ):
         self.code = 400
         if constraint:
             msg = f"1 validation error detected: Value '{value}' at '{parameter}' failed to satisfy constraint: {constraint}"
@@ -24,7 +31,7 @@ class InvalidParameterException(LogsClientError):
 
 
 class ResourceAlreadyExistsException(LogsClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         self.code = 400
         super().__init__(
             "ResourceAlreadyExistsException", "The specified log group already exists"
@@ -32,6 +39,6 @@ class ResourceAlreadyExistsException(LogsClientError):
 
 
 class LimitExceededException(LogsClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         self.code = 400
         super().__init__("LimitExceededException", "Resource limit exceeded.")

@@ -1,22 +1,35 @@
-def find_metric_transformation_by_name(metric_transformations, metric_name):
+from typing import Any, Dict, List, Optional
+
+
+def find_metric_transformation_by_name(
+    metric_transformations: List[Dict[str, Any]], metric_name: str
+) -> Optional[Dict[str, Any]]:
     for metric in metric_transformations:
         if metric["metricName"] == metric_name:
             return metric
+    return None
 
 
-def find_metric_transformation_by_namespace(metric_transformations, metric_namespace):
+def find_metric_transformation_by_namespace(
+    metric_transformations: List[Dict[str, Any]], metric_namespace: str
+) -> Optional[Dict[str, Any]]:
     for metric in metric_transformations:
         if metric["metricNamespace"] == metric_namespace:
             return metric
+    return None
 
 
 class MetricFilters:
-    def __init__(self):
-        self.metric_filters = []
+    def __init__(self) -> None:
+        self.metric_filters: List[Dict[str, Any]] = []
 
     def add_filter(
-        self, filter_name, filter_pattern, log_group_name, metric_transformations
-    ):
+        self,
+        filter_name: str,
+        filter_pattern: str,
+        log_group_name: str,
+        metric_transformations: str,
+    ) -> None:
         self.metric_filters.append(
             {
                 "filterName": filter_name,
@@ -27,9 +40,13 @@ class MetricFilters:
         )
 
     def get_matching_filters(
-        self, prefix=None, log_group_name=None, metric_name=None, metric_namespace=None
-    ):
-        result = []
+        self,
+        prefix: Optional[str] = None,
+        log_group_name: Optional[str] = None,
+        metric_name: Optional[str] = None,
+        metric_namespace: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        result: List[Dict[str, Any]] = []
         for f in self.metric_filters:
             prefix_matches = prefix is None or f["filterName"].startswith(prefix)
             log_group_matches = (
@@ -58,7 +75,9 @@ class MetricFilters:
 
         return result
 
-    def delete_filter(self, filter_name=None, log_group_name=None):
+    def delete_filter(
+        self, filter_name: Optional[str] = None, log_group_name: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         for f in self.metric_filters:
             if f["filterName"] == filter_name and f["logGroupName"] == log_group_name:
                 self.metric_filters.remove(f)
