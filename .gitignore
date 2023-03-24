@@ -31,3 +31,5 @@ docs/_build
 moto_recording
 .hypothesis
 other_langs/tests_java/target
+other_langs/tests_dotnet/ExampleTestProject/bin
+other_langs/tests_dotnet/ExampleTestProject/obj

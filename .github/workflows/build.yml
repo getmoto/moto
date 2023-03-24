@@ -74,6 +74,10 @@ jobs:
     needs: lint
     uses: ./.github/workflows/tests_sdk_java.yml
 
+  dotnettest:
+    needs: lint
+    uses: ./.github/workflows/tests_sdk_dotnet.yml
+
   test:
     needs: [lint]
     uses: ./.github/workflows/tests_decoratormode.yml
@@ -85,7 +89,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [javatest, test, testserver ]
+    needs: [dotnettest, javatest, test, testserver ]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
     steps:
       - uses: actions/checkout@v3
