@@ -1785,13 +1785,48 @@ def test_delete_stack_by_name():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_delete_stack():
     cf = boto3.client("cloudformation", region_name="us-east-1")
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
     cf.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
+    state = ec2.describe_instances()["Reservations"][0]["Instances"][0]["State"]
 
     cf.delete_stack(StackName="test_stack")
     stacks = cf.list_stacks()
     assert stacks["StackSummaries"][0]["StackStatus"] == "DELETE_COMPLETE"
+    ec2.describe_instances()["Reservations"][0]["Instances"][0]["State"].shouldnt.equal(
+        state
+    )
+
+
+@mock_cloudformation
+@mock_ec2
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE,
+    reason="Can't patch model delete attributes in server mode.",
+)
+def test_delete_stack_delete_not_implemented(monkeypatch):
+    monkeypatch.delattr(
+        "moto.ec2.models.instances.Instance.delete_from_cloudformation_json"
+    )
+    monkeypatch.delattr("moto.ec2.models.instances.Instance.delete")
+
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    cf.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
+    state = ec2.describe_instances()["Reservations"][0]["Instances"][0]["State"]
+
+    # Mock stack deletion succeeds
+    cf.delete_stack(StackName="test_stack")
+    stacks = cf.list_stacks()
+    assert stacks["StackSummaries"][0]["StackStatus"] == "DELETE_COMPLETE"
+    # But the underlying resource is untouched
+    ec2.describe_instances()["Reservations"][0]["Instances"][0]["State"].should.equal(
+        state
+    )
 
 
 @mock_cloudformation

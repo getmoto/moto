@@ -21,6 +21,18 @@ template_vpc = {
     },
 }
 
+template_subnet = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Create VPC",
+    "Resources": {
+        "VPC": {"Properties": {"CidrBlock": "192.168.0.0/16"}, "Type": "AWS::EC2::VPC"},
+        "Subnet": {
+            "Properties": {"VpcId": {"Ref": "VPC"}, "CidrBlock": "192.168.0.0/18"},
+            "Type": "AWS::EC2::Subnet",
+        },
+    },
+}
+
 
 @mock_ec2
 @mock_cloudformation
@@ -84,28 +96,43 @@ def test_vpc_single_instance_in_subnet():
 
 @mock_cloudformation
 @mock_ec2
-def test_delete_stack_with_resource_missing_delete_attr():
+def test_delete_stack_with_vpc():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     ec2 = boto3.client("ec2", region_name="us-east-1")
     name = str(uuid4())[0:6]
 
     cf.create_stack(StackName=name, TemplateBody=json.dumps(template_vpc))
-    cf.describe_stacks(StackName=name)["Stacks"].should.have.length_of(1)
-
     resources = cf.list_stack_resources(StackName=name)["StackResourceSummaries"]
     vpc_id = resources[0]["PhysicalResourceId"]
 
-    cf.delete_stack(
-        StackName=name
-    )  # should succeed, despite the fact that the resource itself cannot be deleted
-    with pytest.raises(ClientError) as exc:
-        cf.describe_stacks(StackName=name)
-    err = exc.value.response["Error"]
-    err.should.have.key("Code").equals("ValidationError")
-    err.should.have.key("Message").equals(f"Stack with id {name} does not exist")
-
-    # We still have our VPC, as the VPC-object does not have a delete-method yet
     ec2.describe_vpcs(VpcIds=[vpc_id])["Vpcs"].should.have.length_of(1)
+
+    cf.delete_stack(StackName=name)
+    with pytest.raises(ec2.exceptions.ClientError):
+        ec2.describe_vpcs(VpcIds=[vpc_id])
+
+
+@mock_cloudformation
+@mock_ec2
+def test_delete_stack_with_subnet():
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    name = str(uuid4())[0:6]
+
+    cf.create_stack(StackName=name, TemplateBody=json.dumps(template_subnet))
+    subnet_ids = [
+        resource["PhysicalResourceId"]
+        for resource in cf.list_stack_resources(StackName=name)[
+            "StackResourceSummaries"
+        ]
+        if resource["ResourceType"] == "AWS::EC2::Subnet"
+    ]
+
+    ec2.describe_subnets(SubnetIds=subnet_ids)["Subnets"].should.have.length_of(1)
+
+    cf.delete_stack(StackName=name)
+    with pytest.raises(ec2.exceptions.ClientError):
+        ec2.describe_subnets(SubnetIds=subnet_ids)
 
 
 @mock_ec2
