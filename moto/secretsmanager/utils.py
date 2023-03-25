@@ -68,17 +68,20 @@ def secret_arn(account_id, region, secret_id):
     )
 
 
-def get_secret_name_from_arn(secret_id):
-    # can fetch by both arn and by name
-    # but we are storing via name
-    # so we need to change the arn to name
-    # if it starts with arn then the secret id is arn
-    if secret_id.startswith("arn:aws:secretsmanager:"):
+def get_secret_name_from_partial_arn(partial_arn: str) -> str:
+    # We can retrieve a secret either using a full ARN, or using a partial ARN
+    # name:        testsecret
+    # full ARN:    arn:aws:secretsmanager:us-west-2:123456789012:secret:testsecret-xxxxxx
+    # partial ARN: arn:aws:secretsmanager:us-west-2:123456789012:secret:testsecret
+    #
+    # This method only deals with partial ARN's, and will return the name: testsecret
+    #
+    # If you were to pass in  full url, this method will return 'testsecret-xxxxxx' - which has no meaning on it's own
+    if partial_arn.startswith("arn:aws:secretsmanager:"):
         # split the arn by colon
         # then get the last value which is the name appended with a random string
-        # then remove the random string
-        secret_id = "-".join(secret_id.split(":")[-1].split("-")[:-1])
-    return secret_id
+        return partial_arn.split(":")[-1]
+    return partial_arn
 
 
 def _exclude_characters(password, exclude_characters):

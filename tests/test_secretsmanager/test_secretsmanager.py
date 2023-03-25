@@ -547,16 +547,25 @@ def test_describe_secret():
 
 
 @mock_secretsmanager
-def test_describe_secret_with_arn():
+@pytest.mark.parametrize("name", ["testsecret", "test-secret"])
+def test_describe_secret_with_arn(name):
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    results = conn.create_secret(Name="test-secret", SecretString="foosecret")
+    results = conn.create_secret(Name=name, SecretString="foosecret")
 
     secret_description = conn.describe_secret(SecretId=results["ARN"])
 
     assert secret_description  # Returned dict is not empty
-    secret_description["Name"].should.equal("test-secret")
+    secret_description["Name"].should.equal(name)
     secret_description["ARN"].should.equal(results["ARN"])
     conn.list_secrets()["SecretList"][0]["ARN"].should.equal(results["ARN"])
+
+    # We can also supply a partial ARN
+    partial_arn = f"arn:aws:secretsmanager:us-west-2:{ACCOUNT_ID}:secret:{name}"
+    resp = conn.get_secret_value(SecretId=partial_arn)
+    assert resp["Name"] == name
+
+    resp = conn.describe_secret(SecretId=partial_arn)
+    assert resp["Name"] == name
 
 
 @mock_secretsmanager

@@ -16,7 +16,7 @@ from .exceptions import (
     InvalidRequestException,
     ClientError,
 )
-from .utils import random_password, secret_arn, get_secret_name_from_arn
+from .utils import random_password, secret_arn, get_secret_name_from_partial_arn
 from .list_secrets.filters import (
     filter_all,
     tag_key,
@@ -176,25 +176,40 @@ class FakeSecret:
 
 
 class SecretsStore(dict):
+    # Parameters to this dictionary can be three possible values:
+    # names, full ARNs, and partial ARNs
+    # Every retrieval method should check which type of input it receives
+
     def __setitem__(self, key, value):
-        new_key = get_secret_name_from_arn(key)
-        super().__setitem__(new_key, value)
+        super().__setitem__(key, value)
 
     def __getitem__(self, key):
-        new_key = get_secret_name_from_arn(key)
-        return super().__getitem__(new_key)
+        for secret in dict.values(self):
+            if secret.arn == key or secret.name == key:
+                return secret
+        name = get_secret_name_from_partial_arn(key)
+        return super().__getitem__(name)
 
     def __contains__(self, key):
-        new_key = get_secret_name_from_arn(key)
-        return dict.__contains__(self, new_key)
+        for secret in dict.values(self):
+            if secret.arn == key or secret.name == key:
+                return True
+        name = get_secret_name_from_partial_arn(key)
+        return dict.__contains__(self, name)
 
     def get(self, key, *args, **kwargs):
-        new_key = get_secret_name_from_arn(key)
-        return super().get(new_key, *args, **kwargs)
+        for secret in dict.values(self):
+            if secret.arn == key or secret.name == key:
+                return secret
+        name = get_secret_name_from_partial_arn(key)
+        return super().get(name, *args, **kwargs)
 
     def pop(self, key, *args, **kwargs):
-        new_key = get_secret_name_from_arn(key)
-        return super().pop(new_key, *args, **kwargs)
+        for secret in dict.values(self):
+            if secret.arn == key or secret.name == key:
+                key = secret.name
+        name = get_secret_name_from_partial_arn(key)
+        return super().pop(name, *args, **kwargs)
 
 
 class SecretsManagerBackend(BaseBackend):
