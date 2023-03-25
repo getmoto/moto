@@ -35,6 +35,7 @@ sagemaker
 - [ ] create_app_image_config
 - [ ] create_artifact
 - [ ] create_auto_ml_job
+- [ ] create_auto_ml_job_v2
 - [ ] create_code_repository
 - [ ] create_compilation_job
 - [ ] create_context
@@ -134,6 +135,7 @@ sagemaker
 - [ ] describe_app_image_config
 - [ ] describe_artifact
 - [ ] describe_auto_ml_job
+- [ ] describe_auto_ml_job_v2
 - [ ] describe_code_repository
 - [ ] describe_compilation_job
 - [ ] describe_context

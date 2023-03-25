@@ -282,7 +282,7 @@
 
 ## application-autoscaling
 <details>
-<summary>90% implemented</summary>
+<summary>69% implemented</summary>
 
 - [X] delete_scaling_policy
 - [X] delete_scheduled_action
@@ -291,9 +291,12 @@
 - [ ] describe_scaling_activities
 - [X] describe_scaling_policies
 - [X] describe_scheduled_actions
+- [ ] list_tags_for_resource
 - [X] put_scaling_policy
 - [X] put_scheduled_action
 - [X] register_scalable_target
+- [ ] tag_resource
+- [ ] untag_resource
 </details>
 
 ## appsync
@@ -5752,6 +5755,7 @@
 - [ ] create_app_image_config
 - [ ] create_artifact
 - [ ] create_auto_ml_job
+- [ ] create_auto_ml_job_v2
 - [ ] create_code_repository
 - [ ] create_compilation_job
 - [ ] create_context
@@ -5851,6 +5855,7 @@
 - [ ] describe_app_image_config
 - [ ] describe_artifact
 - [ ] describe_auto_ml_job
+- [ ] describe_auto_ml_job_v2
 - [ ] describe_code_repository
 - [ ] describe_compilation_job
 - [ ] describe_context
@@ -6869,6 +6874,7 @@
 - iottwinmaker
 - iotwireless
 - ivs
+- ivs-realtime
 - ivschat
 - kafka
 - kafkaconnect
