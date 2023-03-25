@@ -114,6 +114,7 @@ mock_mediastoredata = lazy_load(
 mock_meteringmarketplace = lazy_load(".meteringmarketplace", "mock_meteringmarketplace")
 mock_mq = lazy_load(".mq", "mock_mq")
 mock_neptune = lazy_load(".rds", "mock_rds", boto3_name="neptune")
+mock_opensearch = lazy_load(".opensearch", "mock_opensearch")
 mock_opsworks = lazy_load(".opsworks", "mock_opsworks")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
 mock_personalize = lazy_load(".personalize", "mock_personalize")

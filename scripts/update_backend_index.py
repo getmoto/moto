@@ -18,7 +18,9 @@ output_path = os.path.join(script_dir, "..", output_file)
 # Ignore the MotoAPI and InstanceMetadata backend, as they do not represent AWS services
 # Ignore the APIGatewayV2, as it's URL's are managed by APIGateway
 # Ignore S3bucket_path, as the functionality is covered in the S3 service
-IGNORE_BACKENDS = ["moto_api", "instance_metadata", "apigatewayv2", "s3bucket_path", "neptune"]
+# Ignore neptune, as it shares a URL with RDS
+# Ignore OpenSearch, as it shares a URL with ElasticSearch
+IGNORE_BACKENDS = ["moto_api", "instance_metadata", "apigatewayv2", "s3bucket_path", "neptune", "opensearch"]
 
 
 def iter_backend_url_patterns():
