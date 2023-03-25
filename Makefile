@@ -59,6 +59,12 @@ implementation_coverage:
 	./scripts/implementation_coverage.py
 	git commit IMPLEMENTATION_COVERAGE.md -m "Updating implementation coverage" || true
 
+cloudformation_coverage:
+	./scripts/cloudformation_coverage.py > CLOUDFORMATION_COVERAGE.md
+	git commit CLOUDFORMATION_COVERAGE.md -m "Updating CloudFormation coverage" || true
+
+coverage: implementation_coverage cloudformation_coverage
+
 scaffold:
 	@pip install -r requirements-dev.txt > /dev/null
 	exec python scripts/scaffold.py
