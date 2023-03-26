@@ -2,6 +2,39 @@ Moto Changelog
 ==============
 
 
+4.1.6
+-----
+Docker Digest for 4.1.6: <autopopulateddigest>
+
+    New Services:
+        * OpenSearch:
+            * add_tags()
+            * create_domain()
+            * delete_domain()
+            * describe_domain()
+            * describe_domain_config()
+            * get_compatible_versions()
+            * list_tags()
+            * remove_tags()
+            * update_domain_config()
+
+    Methods:
+        * S3: select_object_content()
+
+    Miscellaneous:
+        * Batch: The AWS_BATCH_JOB_MAIN_NODE_PRIVATE_IPV4_ADDRESS-variable now plays nicely with custom Docker networks
+        * CloudFormation now supports deletion of AWS::EC2::Subnet, AWS::EC2::VPC
+        * CloudFormation now supports variable mapping inside "Fn::Sub"
+        * CloudFormation: delete_stack() now adheres to "DeletionPolicy": "Retain" set for individual resources
+        * Events: The EventBusName-parameter is now supported for these methods:
+          delete_rule(), describe_rule(), disable_rule(), enable_rule(), list_rule_names_by_target(), list_rules(), list_targets_by_rule()
+        * RDS: describe_db_clusters() now accepts an ARN as identifier
+        * RDS: describe_db_snapshots() now returns the TagList-attribute
+        * S3: get_object() now returns the AcceptRanges header
+        * S3: head_bucket() now returns the region-header
+        * SecretsManager now supports partial ARN's
+
+
 4.1.5
 -----
 Docker Digest for 4.1.5: _sha256:0e43c36e1b1390106ec43b2e383486c45fef27646838acaa8073cbd2b4a97a31_
@@ -37,6 +70,12 @@ Docker Digest for 4.1.5: _sha256:0e43c36e1b1390106ec43b2e383486c45fef27646838aca
 4.1.4
 -----
 Docker Digest for 4.1.4: _sha256:32ed22e2c69826a90482d0e473c460d60c3c7dc60819d95c0c165e0e978208db_
+
+    General:
+        Data is now deleted after the mock ends. If you use manual mocks, you can still choose the keep the data:
+        mock = mock_sqs()
+        mock.start()
+        mock.stop(remove_data=False)
 
     New Services:
         * Neptune:
