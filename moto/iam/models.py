@@ -1788,6 +1788,8 @@ class IAMBackend(BaseBackend):
 
         self.tagger = TaggingService()
 
+        self.initialize_service_roles()
+
     def _init_aws_policies(self) -> List[ManagedPolicy]:
         # AWS defines some of its own managed policies and we periodically
         # import them via `make aws_managed_policies`
@@ -1807,6 +1809,16 @@ class IAMBackend(BaseBackend):
         aws_policies = self.aws_managed_policies
         self.__dict__ = {}
         self.__init__(region_name, account_id, aws_policies)  # type: ignore[misc]
+
+    def initialize_service_roles(self) -> None:
+        pass
+        # TODO: This role is required for some TF tests to work
+        # Enabling it breaks an assumption that no roles exist unless created by the user
+        #    Our tests, and probably users' tests, rely on this assumption
+        # Maybe we can enable this (and roles for other services) as part of a major release
+        # self.create_service_linked_role(
+        #    service_name="opensearchservice.amazonaws.com", suffix="", description=""
+        # )
 
     def attach_role_policy(self, policy_arn: str, role_name: str) -> None:
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -3244,7 +3256,7 @@ class IAMBackend(BaseBackend):
             permissions_boundary=None,
             description=description,
             tags=[],
-            max_session_duration=None,
+            max_session_duration="3600",
             linked_service=service_name,
         )
 

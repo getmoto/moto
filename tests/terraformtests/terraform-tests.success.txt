@@ -368,6 +368,22 @@ neptune:
   - TestAccNeptuneCluster_tags
   - TestAccNeptuneCluster_disappears
   - TestAccNeptuneGlobalCluster_basic
+opensearch:
+  - TestAccOpenSearchDomain_basic
+  - TestAccOpenSearchDomain_LogPublishingOptions_searchSlowLogs
+  - TestAccOpenSearchDomain_AdvancedSecurityOptions
+  - TestAccOpenSearchDomain_autoTuneOptions
+  - TestAccOpenSearchDomain_v23
+  - TestAccOpenSearchDomain_Cluster_
+  - TestAccOpenSearchDomain_disappears
+  - TestAccOpenSearchDomain_VolumeType
+  - TestAccOpenSearchDomain_VPC_
+  - TestAccOpenSearchDomain_Encryption_
+  - TestAccOpenSearchDomain_LogPublishingOptions_
+  - TestAccOpenSearchDomain_Policy_
+  - TestAccOpenSearchDomain_requireHTTPS
+  - TestAccOpenSearchDomain_tags
+  - TestAccOpenSearchDomain_customEndpoint
 quicksight:
   - TestAccQuickSightUser
   - TestAccQuickSightGroup_
