@@ -2130,10 +2130,10 @@
     {
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
-     "NetworkPerformance": "10 Gigabit"
+     "NetworkPerformance": "12 Gigabit"
     }
    ],
-   "NetworkPerformance": "10 Gigabit"
+   "NetworkPerformance": "12 Gigabit"
   },
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -4618,10 +4618,10 @@
     {
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
-     "NetworkPerformance": "10 Gigabit"
+     "NetworkPerformance": "12 Gigabit"
     }
    ],
-   "NetworkPerformance": "10 Gigabit"
+   "NetworkPerformance": "12 Gigabit"
   },
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -5604,12 +5604,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 10000,
-    "BaselineIops": 40000,
-    "BaselineThroughputInMBps": 1250.0,
-    "MaximumBandwidthInMbps": 10000,
-    "MaximumIops": 40000,
-    "MaximumThroughputInMBps": 1250.0
+    "BaselineBandwidthInMbps": 15000,
+    "BaselineIops": 60000,
+    "BaselineThroughputInMBps": 1875.0,
+    "MaximumBandwidthInMbps": 15000,
+    "MaximumIops": 60000,
+    "MaximumThroughputInMBps": 1875.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -5700,12 +5700,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 13300,
-    "BaselineIops": 53333,
-    "BaselineThroughputInMBps": 1662.5,
-    "MaximumBandwidthInMbps": 13300,
-    "MaximumIops": 53333,
-    "MaximumThroughputInMBps": 1662.5
+    "BaselineBandwidthInMbps": 20000,
+    "BaselineIops": 80000,
+    "BaselineThroughputInMBps": 2500.0,
+    "MaximumBandwidthInMbps": 20000,
+    "MaximumIops": 80000,
+    "MaximumThroughputInMBps": 2500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -5795,12 +5795,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 20000,
-    "BaselineIops": 80000,
-    "BaselineThroughputInMBps": 2500.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 80000,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 30000,
+    "BaselineIops": 120000,
+    "BaselineThroughputInMBps": 3750.0,
+    "MaximumBandwidthInMbps": 30000,
+    "MaximumIops": 120000,
+    "MaximumThroughputInMBps": 3750.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -5891,12 +5891,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 2122,
-    "BaselineIops": 8333,
-    "BaselineThroughputInMBps": 265.25,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineBandwidthInMbps": 2500,
+    "BaselineIops": 12000,
+    "BaselineThroughputInMBps": 312.5,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -5981,12 +5981,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 26666,
-    "BaselineIops": 100000,
-    "BaselineThroughputInMBps": 3333.333333,
-    "MaximumBandwidthInMbps": 26666,
-    "MaximumIops": 100000,
-    "MaximumThroughputInMBps": 3333.333333
+    "BaselineBandwidthInMbps": 40000,
+    "BaselineIops": 160000,
+    "BaselineThroughputInMBps": 5000.0,
+    "MaximumBandwidthInMbps": 40000,
+    "MaximumIops": 160000,
+    "MaximumThroughputInMBps": 5000.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -6077,10 +6077,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 40000,
-    "BaselineIops": 160000,
+    "BaselineIops": 240000,
     "BaselineThroughputInMBps": 5000.0,
     "MaximumBandwidthInMbps": 40000,
-    "MaximumIops": 160000,
+    "MaximumIops": 240000,
     "MaximumThroughputInMBps": 5000.0
    },
    "EbsOptimizedSupport": "default",
@@ -6175,12 +6175,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 4245,
-    "BaselineIops": 16000,
-    "BaselineThroughputInMBps": 530.625,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineBandwidthInMbps": 5000,
+    "BaselineIops": 20000,
+    "BaselineThroughputInMBps": 625.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -6269,12 +6269,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 6666,
-    "BaselineIops": 26667,
-    "BaselineThroughputInMBps": 833.333333,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineBandwidthInMbps": 10000,
+    "BaselineIops": 40000,
+    "BaselineThroughputInMBps": 1250.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -6364,12 +6364,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 531,
+    "BaselineBandwidthInMbps": 650,
     "BaselineIops": 3600,
-    "BaselineThroughputInMBps": 66.375,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineThroughputInMBps": 81.25,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -6452,10 +6452,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 40000,
-    "BaselineIops": 160000,
+    "BaselineIops": 240000,
     "BaselineThroughputInMBps": 5000.0,
     "MaximumBandwidthInMbps": 40000,
-    "MaximumIops": 160000,
+    "MaximumIops": 240000,
     "MaximumThroughputInMBps": 5000.0
    },
    "EbsOptimizedSupport": "default",
@@ -6532,12 +6532,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 1061,
+    "BaselineBandwidthInMbps": 1250,
     "BaselineIops": 6000,
-    "BaselineThroughputInMBps": 132.625,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineThroughputInMBps": 156.25,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -12279,6 +12279,92 @@
     1,
     2
    ]
+  }
+ },
+ "c6in.metal": {
+  "AutoRecoverySupported": true,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 80000,
+    "BaselineIops": 350000,
+    "BaselineThroughputInMBps": 10000.0,
+    "MaximumBandwidthInMbps": 80000,
+    "MaximumIops": 350000,
+    "MaximumThroughputInMBps": 10000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageSupported": false,
+  "InstanceType": "c6in.metal",
+  "MemoryInfo": {
+   "SizeInMiB": 262144
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 14,
+   "NetworkCards": [
+    {
+     "MaximumNetworkInterfaces": 7,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 170 Gigabit"
+    },
+    {
+     "MaximumNetworkInterfaces": 7,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "Up to 170 Gigabit"
+    }
+   ],
+   "NetworkPerformance": "200 Gigabit"
+  },
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.5
+  },
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 64,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 128
   }
  },
  "c6in.xlarge": {
@@ -25701,7 +25787,7 @@
      "NetworkPerformance": "12 Gigabit"
     }
    ],
-   "NetworkPerformance": "10 Gigabit"
+   "NetworkPerformance": "12 Gigabit"
   },
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -28092,7 +28178,7 @@
      "NetworkPerformance": "12 Gigabit"
     }
    ],
-   "NetworkPerformance": "10 Gigabit"
+   "NetworkPerformance": "12 Gigabit"
   },
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -31400,12 +31486,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 10000,
-    "BaselineIops": 40000,
-    "BaselineThroughputInMBps": 1250.0,
-    "MaximumBandwidthInMbps": 10000,
-    "MaximumIops": 40000,
-    "MaximumThroughputInMBps": 1250.0
+    "BaselineBandwidthInMbps": 15000,
+    "BaselineIops": 60000,
+    "BaselineThroughputInMBps": 1875.0,
+    "MaximumBandwidthInMbps": 15000,
+    "MaximumIops": 60000,
+    "MaximumThroughputInMBps": 1875.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -31496,12 +31582,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 13300,
-    "BaselineIops": 53333,
-    "BaselineThroughputInMBps": 1662.5,
-    "MaximumBandwidthInMbps": 13300,
-    "MaximumIops": 53333,
-    "MaximumThroughputInMBps": 1662.5
+    "BaselineBandwidthInMbps": 20000,
+    "BaselineIops": 80000,
+    "BaselineThroughputInMBps": 2500.0,
+    "MaximumBandwidthInMbps": 20000,
+    "MaximumIops": 80000,
+    "MaximumThroughputInMBps": 2500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -31591,12 +31677,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 20000,
-    "BaselineIops": 80000,
-    "BaselineThroughputInMBps": 2500.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 80000,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 30000,
+    "BaselineIops": 120000,
+    "BaselineThroughputInMBps": 3750.0,
+    "MaximumBandwidthInMbps": 30000,
+    "MaximumIops": 120000,
+    "MaximumThroughputInMBps": 3750.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -31687,12 +31773,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 2122,
-    "BaselineIops": 8333,
-    "BaselineThroughputInMBps": 265.25,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineBandwidthInMbps": 2500,
+    "BaselineIops": 12000,
+    "BaselineThroughputInMBps": 312.5,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -31777,12 +31863,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 26666,
-    "BaselineIops": 100000,
-    "BaselineThroughputInMBps": 3333.333333,
-    "MaximumBandwidthInMbps": 26666,
-    "MaximumIops": 100000,
-    "MaximumThroughputInMBps": 3333.333333
+    "BaselineBandwidthInMbps": 40000,
+    "BaselineIops": 160000,
+    "BaselineThroughputInMBps": 5000.0,
+    "MaximumBandwidthInMbps": 40000,
+    "MaximumIops": 160000,
+    "MaximumThroughputInMBps": 5000.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -31873,10 +31959,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 40000,
-    "BaselineIops": 160000,
+    "BaselineIops": 240000,
     "BaselineThroughputInMBps": 5000.0,
     "MaximumBandwidthInMbps": 40000,
-    "MaximumIops": 160000,
+    "MaximumIops": 240000,
     "MaximumThroughputInMBps": 5000.0
    },
    "EbsOptimizedSupport": "default",
@@ -31971,12 +32057,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 4245,
-    "BaselineIops": 16000,
-    "BaselineThroughputInMBps": 530.625,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineBandwidthInMbps": 5000,
+    "BaselineIops": 20000,
+    "BaselineThroughputInMBps": 625.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -32065,12 +32151,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 6666,
-    "BaselineIops": 26667,
-    "BaselineThroughputInMBps": 833.333333,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineBandwidthInMbps": 10000,
+    "BaselineIops": 40000,
+    "BaselineThroughputInMBps": 1250.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -32160,12 +32246,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 531,
+    "BaselineBandwidthInMbps": 650,
     "BaselineIops": 3600,
-    "BaselineThroughputInMBps": 66.375,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineThroughputInMBps": 81.25,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -32248,10 +32334,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 40000,
-    "BaselineIops": 160000,
+    "BaselineIops": 240000,
     "BaselineThroughputInMBps": 5000.0,
     "MaximumBandwidthInMbps": 40000,
-    "MaximumIops": 160000,
+    "MaximumIops": 240000,
     "MaximumThroughputInMBps": 5000.0
    },
    "EbsOptimizedSupport": "default",
@@ -32328,12 +32414,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 1061,
+    "BaselineBandwidthInMbps": 1250,
     "BaselineIops": 6000,
-    "BaselineThroughputInMBps": 132.625,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineThroughputInMBps": 156.25,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -37323,6 +37409,104 @@
    ]
   }
  },
+ "m6idn.metal": {
+  "AutoRecoverySupported": false,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 80000,
+    "BaselineIops": 350000,
+    "BaselineThroughputInMBps": 10000.0,
+    "MaximumBandwidthInMbps": 80000,
+    "MaximumIops": 350000,
+    "MaximumThroughputInMBps": 10000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 4,
+     "SizeInGB": 1900,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 7600
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "m6idn.metal",
+  "MemoryInfo": {
+   "SizeInMiB": 524288
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 14,
+   "NetworkCards": [
+    {
+     "MaximumNetworkInterfaces": 7,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 170 Gigabit"
+    },
+    {
+     "MaximumNetworkInterfaces": 7,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "Up to 170 Gigabit"
+    }
+   ],
+   "NetworkPerformance": "200 Gigabit"
+  },
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.5
+  },
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 64,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 128
+  }
+ },
  "m6idn.xlarge": {
   "AutoRecoverySupported": false,
   "BareMetal": false,
@@ -38256,6 +38440,92 @@
     1,
     2
    ]
+  }
+ },
+ "m6in.metal": {
+  "AutoRecoverySupported": true,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 80000,
+    "BaselineIops": 350000,
+    "BaselineThroughputInMBps": 10000.0,
+    "MaximumBandwidthInMbps": 80000,
+    "MaximumIops": 350000,
+    "MaximumThroughputInMBps": 10000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageSupported": false,
+  "InstanceType": "m6in.metal",
+  "MemoryInfo": {
+   "SizeInMiB": 524288
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 14,
+   "NetworkCards": [
+    {
+     "MaximumNetworkInterfaces": 7,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 170 Gigabit"
+    },
+    {
+     "MaximumNetworkInterfaces": 7,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "Up to 170 Gigabit"
+    }
+   ],
+   "NetworkPerformance": "200 Gigabit"
+  },
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.5
+  },
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 64,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 128
   }
  },
  "m6in.xlarge": {
@@ -41466,10 +41736,10 @@
     {
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
-     "NetworkPerformance": "10 Gigabit"
+     "NetworkPerformance": "12 Gigabit"
     }
    ],
-   "NetworkPerformance": "10 Gigabit"
+   "NetworkPerformance": "12 Gigabit"
   },
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -43845,10 +44115,10 @@
     {
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
-     "NetworkPerformance": "10 Gigabit"
+     "NetworkPerformance": "12 Gigabit"
     }
    ],
-   "NetworkPerformance": "10 Gigabit"
+   "NetworkPerformance": "12 Gigabit"
   },
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -44692,10 +44962,10 @@
     {
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
-     "NetworkPerformance": "10 Gigabit"
+     "NetworkPerformance": "12 Gigabit"
     }
    ],
-   "NetworkPerformance": "10 Gigabit"
+   "NetworkPerformance": "12 Gigabit"
   },
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -53300,6 +53570,104 @@
    ]
   }
  },
+ "r6idn.metal": {
+  "AutoRecoverySupported": false,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 80000,
+    "BaselineIops": 350000,
+    "BaselineThroughputInMBps": 10000.0,
+    "MaximumBandwidthInMbps": 80000,
+    "MaximumIops": 350000,
+    "MaximumThroughputInMBps": 10000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 4,
+     "SizeInGB": 1900,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 7600
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "r6idn.metal",
+  "MemoryInfo": {
+   "SizeInMiB": 1048576
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 14,
+   "NetworkCards": [
+    {
+     "MaximumNetworkInterfaces": 7,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 170 Gigabit"
+    },
+    {
+     "MaximumNetworkInterfaces": 7,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "Up to 170 Gigabit"
+    }
+   ],
+   "NetworkPerformance": "200 Gigabit"
+  },
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.5
+  },
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 64,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 128
+  }
+ },
  "r6idn.xlarge": {
   "AutoRecoverySupported": false,
   "BareMetal": false,
@@ -54233,6 +54601,92 @@
     1,
     2
    ]
+  }
+ },
+ "r6in.metal": {
+  "AutoRecoverySupported": true,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 80000,
+    "BaselineIops": 350000,
+    "BaselineThroughputInMBps": 10000.0,
+    "MaximumBandwidthInMbps": 80000,
+    "MaximumIops": 350000,
+    "MaximumThroughputInMBps": 10000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageSupported": false,
+  "InstanceType": "r6in.metal",
+  "MemoryInfo": {
+   "SizeInMiB": 1048576
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 14,
+   "NetworkCards": [
+    {
+     "MaximumNetworkInterfaces": 7,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 170 Gigabit"
+    },
+    {
+     "MaximumNetworkInterfaces": 7,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "Up to 170 Gigabit"
+    }
+   ],
+   "NetworkPerformance": "200 Gigabit"
+  },
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.5
+  },
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 64,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 128
   }
  },
  "r6in.xlarge": {
@@ -63074,10 +63528,10 @@
     {
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
-     "NetworkPerformance": "10 Gigabit"
+     "NetworkPerformance": "12 Gigabit"
     }
    ],
-   "NetworkPerformance": "10 Gigabit"
+   "NetworkPerformance": "12 Gigabit"
   },
   "PlacementGroupInfo": {
    "SupportedStrategies": [
