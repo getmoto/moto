@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.6
 -----
-Docker Digest for 4.1.6: <autopopulateddigest>
+Docker Digest for 4.1.6: _sha256:36122dca33cb8f70d84734d1a0a6a5931f7a533fab3c58edd7ca0b2ebe325797_
 
     New Services:
         * OpenSearch:
