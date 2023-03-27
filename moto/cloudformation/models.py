@@ -349,8 +349,7 @@ class FakeStackInstances(BaseModel):
         for instance in self.stack_instances:
             if instance.region_name in regions and instance.account_id in accounts:
                 instance.delete()
-        # clear the stack_instances in the end to prevent IndexError
-        self.stack_instances.clear()
+                self.stack_instances.remove(instance)
 
     def get_instance(self, account: str, region: str) -> FakeStackInstance:  # type: ignore[return]
         for i, instance in enumerate(self.stack_instances):
