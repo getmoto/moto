@@ -4888,6 +4888,35 @@ def test_update_item_add_to_list_using_legacy_attribute_updates():
 
 
 @mock_dynamodb
+def test_update_item_add_to_num_set_using_legacy_attribute_updates():
+    resource = boto3.resource("dynamodb", region_name="us-west-2")
+    resource.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = resource.Table("TestTable")
+    table.wait_until_exists()
+    table.put_item(Item={"id": "set_add", "attr": {1, 2}})
+
+    table.update_item(
+        TableName="TestTable",
+        Key={"id": "set_add"},
+        AttributeUpdates={"attr": {"Action": "PUT", "Value": {1, 2, 3}}},
+    )
+
+    table.update_item(
+        TableName="TestTable",
+        Key={"id": "set_add"},
+        AttributeUpdates={"attr": {"Action": "ADD", "Value": {4, 5}}},
+    )
+
+    resp = table.get_item(Key={"id": "set_add"})
+    resp["Item"]["attr"].should.equal({1, 2, 3, 4, 5})
+
+
+@mock_dynamodb
 def test_get_item_for_non_existent_table_raises_error():
     client = boto3.client("dynamodb", "us-east-1")
     with pytest.raises(ClientError) as ex:

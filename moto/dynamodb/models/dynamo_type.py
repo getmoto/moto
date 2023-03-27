@@ -341,6 +341,8 @@ class Item(BaseModel):
                 # TODO deal with other types
                 if set(update_action["Value"].keys()) == set(["SS"]):
                     self.attrs[attribute_name] = DynamoType({"SS": new_value})
+                elif set(update_action["Value"].keys()) == set(["NS"]):
+                    self.attrs[attribute_name] = DynamoType({"NS": new_value})
                 elif isinstance(new_value, list):
                     self.attrs[attribute_name] = DynamoType({"L": new_value})
                 elif isinstance(new_value, dict):
@@ -367,6 +369,10 @@ class Item(BaseModel):
                     existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))
                     new_set = set(existing.value).union(set(new_value))
                     self.attrs[attribute_name] = DynamoType({"SS": list(new_set)})
+                elif set(update_action["Value"].keys()) == set(["NS"]):
+                    existing = self.attrs.get(attribute_name, DynamoType({"NS": {}}))
+                    new_set = set(existing.value).union(set(new_value))
+                    self.attrs[attribute_name] = DynamoType({"NS": list(new_set)})
                 elif set(update_action["Value"].keys()) == {"L"}:
                     existing = self.attrs.get(attribute_name, DynamoType({"L": []}))
                     new_list = existing.value + new_value
