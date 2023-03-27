@@ -1959,9 +1959,6 @@ class RDSBackend(BaseBackend):
         clusters = self.clusters
         clusters_neptune = self.neptune.clusters
         if cluster_identifier:
-            # ARN to identifier
-            # arn:aws:rds:eu-north-1:123456789012:cluster:cluster --> cluster-id
-            cluster_identifier = cluster_identifier.split(":")[-1]
             filters = merge_filters(filters, {"db-cluster-id": [cluster_identifier]})
         if filters:
             clusters = self._filter_resources(clusters, filters, Cluster)
