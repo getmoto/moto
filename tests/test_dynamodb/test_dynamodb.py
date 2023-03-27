@@ -4915,6 +4915,15 @@ def test_update_item_add_to_num_set_using_legacy_attribute_updates():
     resp = table.get_item(Key={"id": "set_add"})
     resp["Item"]["attr"].should.equal({1, 2, 3, 4, 5})
 
+    table.update_item(
+        TableName="TestTable",
+        Key={"id": "set_add"},
+        AttributeUpdates={"attr": {"Action": "DELETE", "Value": {2, 3}}},
+    )
+
+    resp = table.get_item(Key={"id": "set_add"})
+    resp["Item"]["attr"].should.equal({1, 4, 5})
+
 
 @mock_dynamodb
 def test_get_item_for_non_existent_table_raises_error():

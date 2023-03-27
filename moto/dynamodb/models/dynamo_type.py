@@ -388,6 +388,10 @@ class Item(BaseModel):
                     existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))
                     new_set = set(existing.value).difference(set(new_value))
                     self.attrs[attribute_name] = DynamoType({"SS": list(new_set)})
+                elif set(update_action["Value"].keys()) == set(["NS"]):
+                    existing = self.attrs.get(attribute_name, DynamoType({"NS": {}}))
+                    new_set = set(existing.value).difference(set(new_value))
+                    self.attrs[attribute_name] = DynamoType({"NS": list(new_set)})
                 else:
                     raise NotImplementedError(
                         "ADD not supported for %s"
