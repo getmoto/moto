@@ -1,0 +1,351 @@
+- AWS::ApiGateway::Deployment:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] DeploymentId
+- AWS::ApiGateway::Method:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::ApiGateway::Resource:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] ResourceId
+- AWS::AutoScaling::AutoScalingGroup:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] LaunchConfigurationName
+      - [ ] LaunchTemplateSpecification
+      - [ ] MixedInstancesPolicy
+      - [ ] PlacementGroup
+      - [ ] VPCZoneIdentifier
+- AWS::AutoScaling::LaunchConfiguration:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::AutoScaling::ScheduledAction:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] ScheduledActionName
+- AWS::Batch::ComputeEnvironment:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] ComputeEnvironmentArn
+- AWS::Batch::JobDefinition:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::Batch::JobQueue:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] JobQueueArn
+- AWS::CloudFormation::Stack:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::DataPipeline::Pipeline:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::DynamoDB::Table:
+   - [x] create implemented
+   - [ ] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::EC2::Instance:
+   - [x] create implemented
+   - [ ] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::EC2::InternetGateway:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] InternetGatewayId
+- AWS::EC2::LaunchTemplate:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] LatestVersionNumber
+      - [ ] DefaultVersionNumber
+- AWS::EC2::NatGateway:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] NatGatewayId
+- AWS::EC2::NetworkInterface:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] Id
+- AWS::EC2::Route:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::EC2::RouteTable:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] RouteTableId
+- AWS::EC2::SecurityGroup:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] VpcId
+- AWS::EC2::SecurityGroupIngress:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::EC2::Subnet:
+   - [x] create implemented
+   - [ ] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] VpcId
+      - [ ] NetworkAclAssociationId
+      - [ ] OutpostArn
+      - [ ] SubnetId
+      - [ ] Ipv6CidrBlocks
+- AWS::EC2::SubnetRouteTableAssociation:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] Id
+- AWS::EC2::TransitGateway:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] Id
+- AWS::EC2::VPC:
+   - [x] create implemented
+   - [ ] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] VpcId
+      - [ ] CidrBlockAssociations
+      - [ ] CidrBlock
+      - [ ] DefaultNetworkAcl
+      - [ ] Ipv6CidrBlocks
+      - [ ] DefaultSecurityGroup
+- AWS::EC2::VPCGatewayAttachment:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::EC2::VPCPeeringConnection:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] Id
+- AWS::EC2::Volume:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] VolumeId
+- AWS::EC2::VolumeAttachment:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::ECR::Repository:
+   - [x] create implemented
+   - [x] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::ECS::Cluster:
+   - [x] create implemented
+   - [x] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::ECS::Service:
+   - [x] create implemented
+   - [x] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] ServiceArn
+- AWS::ECS::TaskDefinition:
+   - [x] create implemented
+   - [x] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] TaskDefinitionArn
+- AWS::EFS::FileSystem:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] FileSystemId
+      - [ ] Arn
+- AWS::EFS::MountTarget:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] IpAddress
+      - [ ] Id
+- AWS::Events::Archive:
+   - [x] create implemented
+   - [x] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::Events::EventBus:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::Events::Rule:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::IAM::AccessKey:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::IAM::InstanceProfile:
+   - [x] create implemented
+   - [ ] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::IAM::ManagedPolicy:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::IAM::Policy:
+   - [ ] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::IAM::Role:
+   - [x] create implemented
+   - [ ] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] RoleId
+- AWS::IAM::User:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::KMS::Key:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] KeyId
+- AWS::Kinesis::Stream:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::Logs::LogGroup:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] Arn
+- AWS::RDS::DBParameterGroup:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] DBParameterGroupName
+- AWS::Redshift::Cluster:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] Id
+      - [ ] DeferMaintenanceIdentifier
+- AWS::Route53::HealthCheck:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] HealthCheckId
+- AWS::Route53::RecordSet:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::Route53::RecordSetGroup:
+   - [x] create implemented
+   - [ ] update implemented
+   - [ ] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::S3::Bucket:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::SNS::Topic:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] TopicArn
+- AWS::SQS::Queue:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] QueueUrl
+- AWS::SSM::Parameter:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] Type
+      - [ ] Value
+- AWS::SageMaker::Endpoint:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::SageMaker::EndpointConfig:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::SageMaker::Model:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
+- AWS::StepFunctions::StateMachine:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [ ] Fn::GetAtt implemented
+      - [ ] StateMachineRevisionId
+      - [ ] Arn
