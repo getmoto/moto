@@ -312,7 +312,7 @@ class LogGroup(CloudFormationModel):
             "Arn",
         ]
 
-    def get_cfn_attribute(self, attribute_name: str):
+    def get_cfn_attribute(self, attribute_name: str) -> str:
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "Arn":
