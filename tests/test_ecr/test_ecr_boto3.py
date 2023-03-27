@@ -350,6 +350,44 @@ def test_put_image():
     response["image"]["registryId"].should.equal(ACCOUNT_ID)
 
 
+@mock_ecr
+def test_put_image_without_mediatype():
+    client = boto3.client("ecr", region_name="us-east-1")
+    _ = client.create_repository(repositoryName="test_repository")
+
+    image_manifest = _create_image_manifest()
+    _ = image_manifest.pop("mediaType")
+
+    error_msg = "image manifest mediatype not provided in manifest or parameter"
+    client.put_image.when.called_with(
+        repositoryName="test_repository",
+        imageManifest=json.dumps(image_manifest),
+        imageTag="latest",
+    ).should.throw(Exception, error_msg)
+
+
+@mock_ecr
+def test_put_image_with_imagemanifestmediatype():
+    client = boto3.client("ecr", region_name="us-east-1")
+    _ = client.create_repository(repositoryName="test_repository")
+
+    image_manifest = _create_image_manifest()
+    media_type = image_manifest.pop("mediaType")
+
+    response = client.put_image(
+        repositoryName="test_repository",
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType=media_type,
+        imageTag="latest",
+    )
+
+    response["image"]["imageId"]["imageTag"].should.equal("latest")
+    response["image"]["imageId"]["imageDigest"].should.contain("sha")
+    response["image"]["repositoryName"].should.equal("test_repository")
+    response["image"]["imageManifestMediaType"].should.equal(media_type)
+    response["image"]["registryId"].should.equal(ACCOUNT_ID)
+
+
 @mock_ecr()
 def test_put_manifest_list():
     client = boto3.client("ecr", region_name="us-east-1")
