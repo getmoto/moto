@@ -583,7 +583,11 @@ class RDSResponse(BaseResponse):
 
     def describe_db_clusters(self):
         _id = self._get_param("DBClusterIdentifier")
-        clusters = self.backend.describe_db_clusters(cluster_identifier=_id)
+        filters = self._get_multi_param("Filters.Filter.")
+        filters = {f["Name"]: f["Values"] for f in filters}
+        clusters = self.backend.describe_db_clusters(
+            cluster_identifier=_id, filters=filters
+        )
         template = self.response_template(DESCRIBE_CLUSTERS_TEMPLATE)
         return template.render(clusters=clusters)
 
