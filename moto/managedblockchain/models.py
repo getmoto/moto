@@ -1,5 +1,6 @@
 import datetime
 import re
+from typing import Any, Dict, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 
@@ -32,7 +33,7 @@ FRAMEWORKVERSIONS = [
     "1.2",
 ]
 
-EDITIONS = {
+EDITIONS: Dict[str, Any] = {
     "STARTER": {
         "MaxMembers": 5,
         "MaxNodesPerMember": 2,
@@ -51,15 +52,15 @@ VOTEVALUES = ["YES", "NO"]
 class ManagedBlockchainNetwork(BaseModel):
     def __init__(
         self,
-        network_id,
-        name,
-        framework,
-        frameworkversion,
-        frameworkconfiguration,
-        voting_policy,
-        member_configuration,
-        region,
-        description=None,
+        network_id: str,
+        name: str,
+        framework: str,
+        frameworkversion: str,
+        frameworkconfiguration: Dict[str, Any],
+        voting_policy: Dict[str, Any],
+        member_configuration: Dict[str, Any],
+        region: str,
+        description: Optional[str] = None,
     ):
         self.creationdate = datetime.datetime.utcnow()
         self.id = network_id
@@ -73,42 +74,42 @@ class ManagedBlockchainNetwork(BaseModel):
         self.region = region
 
     @property
-    def network_name(self):
+    def network_name(self) -> str:
         return self.name
 
     @property
-    def network_framework(self):
+    def network_framework(self) -> str:
         return self.framework
 
     @property
-    def network_framework_version(self):
+    def network_framework_version(self) -> str:
         return self.frameworkversion
 
     @property
-    def network_creationdate(self):
+    def network_creationdate(self) -> str:
         return self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
     @property
-    def network_description(self):
+    def network_description(self) -> Optional[str]:
         return self.description
 
     @property
-    def network_edition(self):
+    def network_edition(self) -> str:
         return self.frameworkconfiguration["Fabric"]["Edition"]
 
     @property
-    def vote_pol_proposal_duration(self):
+    def vote_pol_proposal_duration(self) -> float:
         return self.voting_policy["ApprovalThresholdPolicy"]["ProposalDurationInHours"]
 
     @property
-    def vote_pol_threshold_percentage(self):
+    def vote_pol_threshold_percentage(self) -> float:
         return self.voting_policy["ApprovalThresholdPolicy"]["ThresholdPercentage"]
 
     @property
-    def vote_pol_threshold_comparator(self):
+    def vote_pol_threshold_comparator(self) -> str:
         return self.voting_policy["ApprovalThresholdPolicy"]["ThresholdComparator"]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         # Format for list_networks
         d = {
             "Id": self.id,
@@ -122,7 +123,7 @@ class ManagedBlockchainNetwork(BaseModel):
             d["Description"] = self.description
         return d
 
-    def get_format(self):
+    def get_format(self) -> Dict[str, Any]:
         # Format for get_network
         frameworkattributes = {
             "Fabric": {
@@ -154,16 +155,16 @@ class ManagedBlockchainNetwork(BaseModel):
 class ManagedBlockchainProposal(BaseModel):
     def __init__(
         self,
-        proposal_id,
-        networkid,
-        memberid,
-        membername,
-        numofmembers,
-        actions,
-        network_expirtation,
-        network_threshold,
-        network_threshold_comp,
-        description=None,
+        proposal_id: str,
+        networkid: str,
+        memberid: str,
+        membername: str,
+        numofmembers: int,
+        actions: Dict[str, Any],
+        network_expiration: float,
+        network_threshold: float,
+        network_threshold_comp: str,
+        description: Optional[str] = None,
     ):
         # In general, passing all values instead of creating
         # an apparatus to look them up
@@ -173,60 +174,58 @@ class ManagedBlockchainProposal(BaseModel):
         self.membername = membername
         self.numofmembers = numofmembers
         self.actions = actions
-        self.network_expirtation = network_expirtation
+        self.network_expiration = network_expiration
         self.network_threshold = network_threshold
         self.network_threshold_comp = network_threshold_comp
         self.description = description
 
         self.creationdate = datetime.datetime.utcnow()
-        self.expirtationdate = self.creationdate + datetime.timedelta(
-            hours=network_expirtation
+        self.expirationdate = self.creationdate + datetime.timedelta(
+            hours=network_expiration
         )
         self.yes_vote_count = 0
         self.no_vote_count = 0
         self.outstanding_vote_count = self.numofmembers
         self.status = "IN_PROGRESS"
-        self.votes = {}
+        self.votes: Dict[str, Dict[str, str]] = {}
 
     @property
-    def network_id(self):
+    def network_id(self) -> str:
         return self.networkid
 
     @property
-    def proposal_status(self):
+    def proposal_status(self) -> str:
         return self.status
 
     @property
-    def proposal_votes(self):
+    def proposal_votes(self) -> Dict[str, Any]:  # type: ignore[misc]
         return self.votes
 
-    def proposal_actions(self, action_type):
-        default_return = []
+    def proposal_actions(self, action_type: str) -> List[Dict[str, Any]]:
         if action_type.lower() == "invitations":
             if "Invitations" in self.actions:
                 return self.actions["Invitations"]
         elif action_type.lower() == "removals":
             if "Removals" in self.actions:
                 return self.actions["Removals"]
-        return default_return
+        return []
 
-    def check_to_expire_proposal(self):
-        if datetime.datetime.utcnow() > self.expirtationdate:
+    def check_to_expire_proposal(self) -> None:
+        if datetime.datetime.utcnow() > self.expirationdate:
             self.status = "EXPIRED"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         # Format for list_proposals
-        d = {
+        return {
             "ProposalId": self.id,
             "ProposedByMemberId": self.memberid,
             "ProposedByMemberName": self.membername,
             "Status": self.status,
             "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-            "ExpirationDate": self.expirtationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
+            "ExpirationDate": self.expirationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
         }
-        return d
 
-    def get_format(self):
+    def get_format(self) -> Dict[str, Any]:
         # Format for get_proposal
         d = {
             "ProposalId": self.id,
@@ -236,7 +235,7 @@ class ManagedBlockchainProposal(BaseModel):
             "ProposedByMemberName": self.membername,
             "Status": self.status,
             "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-            "ExpirationDate": self.expirtationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
+            "ExpirationDate": self.expirationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
             "YesVoteCount": self.yes_vote_count,
             "NoVoteCount": self.no_vote_count,
             "OutstandingVoteCount": self.outstanding_vote_count,
@@ -245,7 +244,7 @@ class ManagedBlockchainProposal(BaseModel):
             d["Description"] = self.description
         return d
 
-    def set_vote(self, votermemberid, votermembername, vote):
+    def set_vote(self, votermemberid: str, votermembername: str, vote: str) -> None:
         if vote.upper() == "YES":
             self.yes_vote_count += 1
         else:
@@ -284,14 +283,14 @@ class ManagedBlockchainProposal(BaseModel):
 class ManagedBlockchainInvitation(BaseModel):
     def __init__(
         self,
-        invitation_id,
-        networkid,
-        networkname,
-        networkframework,
-        networkframeworkversion,
-        networkcreationdate,
-        region,
-        networkdescription=None,
+        invitation_id: str,
+        networkid: str,
+        networkname: str,
+        networkframework: str,
+        networkframeworkversion: str,
+        networkcreationdate: str,
+        region: str,
+        networkdescription: Optional[str] = None,
     ):
         self.id = invitation_id
         self.networkid = networkid
@@ -305,21 +304,21 @@ class ManagedBlockchainInvitation(BaseModel):
         self.region = region
 
         self.creationdate = datetime.datetime.utcnow()
-        self.expirtationdate = self.creationdate + datetime.timedelta(days=7)
+        self.expirationdate = self.creationdate + datetime.timedelta(days=7)
 
     @property
-    def invitation_status(self):
+    def invitation_status(self) -> str:
         return self.status
 
     @property
-    def invitation_networkid(self):
+    def invitation_networkid(self) -> str:
         return self.networkid
 
-    def to_dict(self):
-        d = {
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
             "InvitationId": self.id,
             "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-            "ExpirationDate": self.expirtationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
+            "ExpirationDate": self.expirationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
             "Status": self.status,
             "NetworkSummary": {
                 "Id": self.networkid,
@@ -334,18 +333,24 @@ class ManagedBlockchainInvitation(BaseModel):
             d["NetworkSummary"]["Description"] = self.networkdescription
         return d
 
-    def accept_invitation(self):
+    def accept_invitation(self) -> None:
         self.status = "ACCEPTED"
 
-    def reject_invitation(self):
+    def reject_invitation(self) -> None:
         self.status = "REJECTED"
 
-    def set_network_status(self, network_status):
+    def set_network_status(self, network_status: str) -> None:
         self.networkstatus = network_status
 
 
 class ManagedBlockchainMember(BaseModel):
-    def __init__(self, member_id, networkid, member_configuration, region):
+    def __init__(
+        self,
+        member_id: str,
+        networkid: str,
+        member_configuration: Dict[str, Any],
+        region: str,
+    ):
         self.creationdate = datetime.datetime.utcnow()
         self.id = member_id
         self.networkid = networkid
@@ -355,18 +360,18 @@ class ManagedBlockchainMember(BaseModel):
         self.description = None
 
     @property
-    def network_id(self):
+    def network_id(self) -> str:
         return self.networkid
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.member_configuration["Name"]
 
     @property
-    def member_status(self):
+    def member_status(self) -> str:
         return self.status
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         # Format for list_members
         d = {
             "Id": self.id,
@@ -379,7 +384,7 @@ class ManagedBlockchainMember(BaseModel):
             self.description = self.member_configuration["Description"]
         return d
 
-    def get_format(self):
+    def get_format(self) -> Dict[str, Any]:
         # Format for get_member
         frameworkattributes = {
             "Fabric": {
@@ -405,10 +410,10 @@ class ManagedBlockchainMember(BaseModel):
             d["Description"] = self.description
         return d
 
-    def delete(self):
+    def delete(self) -> None:
         self.status = "DELETED"
 
-    def update(self, logpublishingconfiguration):
+    def update(self, logpublishingconfiguration: Dict[str, Any]) -> None:
         self.member_configuration[
             "LogPublishingConfiguration"
         ] = logpublishingconfiguration
@@ -417,13 +422,13 @@ class ManagedBlockchainMember(BaseModel):
 class ManagedBlockchainNode(BaseModel):
     def __init__(
         self,
-        node_id,
-        networkid,
-        memberid,
-        availabilityzone,
-        instancetype,
-        logpublishingconfiguration,
-        region,
+        node_id: str,
+        networkid: str,
+        memberid: str,
+        availabilityzone: str,
+        instancetype: str,
+        logpublishingconfiguration: Dict[str, Any],
+        region: str,
     ):
         self.creationdate = datetime.datetime.utcnow()
         self.id = node_id
@@ -436,25 +441,24 @@ class ManagedBlockchainNode(BaseModel):
         self.availabilityzone = availabilityzone
 
     @property
-    def member_id(self):
+    def member_id(self) -> str:
         return self.memberid
 
     @property
-    def node_status(self):
+    def node_status(self) -> str:
         return self.status
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         # Format for list_nodes
-        d = {
+        return {
             "Id": self.id,
             "Status": self.status,
             "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
             "AvailabilityZone": self.availabilityzone,
             "InstanceType": self.instancetype,
         }
-        return d
 
-    def get_format(self):
+    def get_format(self) -> Dict[str, Any]:
         # Format for get_node
         frameworkattributes = {
             "Fabric": {
@@ -463,7 +467,7 @@ class ManagedBlockchainNode(BaseModel):
             }
         }
 
-        d = {
+        return {
             "NetworkId": self.networkid,
             "MemberId": self.memberid,
             "Id": self.id,
@@ -474,34 +478,33 @@ class ManagedBlockchainNode(BaseModel):
             "Status": self.status,
             "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
         }
-        return d
 
-    def delete(self):
+    def delete(self) -> None:
         self.status = "DELETED"
 
-    def update(self, logpublishingconfiguration):
+    def update(self, logpublishingconfiguration: Dict[str, Any]) -> None:
         self.logpublishingconfiguration = logpublishingconfiguration
 
 
 class ManagedBlockchainBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.networks = {}
-        self.members = {}
-        self.proposals = {}
-        self.invitations = {}
-        self.nodes = {}
+        self.networks: Dict[str, ManagedBlockchainNetwork] = {}
+        self.members: Dict[str, ManagedBlockchainMember] = {}
+        self.proposals: Dict[str, ManagedBlockchainProposal] = {}
+        self.invitations: Dict[str, ManagedBlockchainInvitation] = {}
+        self.nodes: Dict[str, ManagedBlockchainNode] = {}
 
     def create_network(
         self,
-        name,
-        framework,
-        frameworkversion,
-        frameworkconfiguration,
-        voting_policy,
-        member_configuration,
-        description=None,
-    ):
+        name: str,
+        framework: str,
+        frameworkversion: str,
+        frameworkconfiguration: Dict[str, Any],
+        voting_policy: Dict[str, Any],
+        member_configuration: Dict[str, Any],
+        description: Optional[str] = None,
+    ) -> Dict[str, str]:
         # Check framework
         if framework not in FRAMEWORKS:
             raise BadRequestException("CreateNetwork", "Invalid request body")
@@ -542,20 +545,25 @@ class ManagedBlockchainBackend(BaseBackend):
         )
 
         # Return the network and member ID
-        d = {"NetworkId": network_id, "MemberId": member_id}
-        return d
+        return {"NetworkId": network_id, "MemberId": member_id}
 
-    def list_networks(self):
-        return self.networks.values()
+    def list_networks(self) -> List[ManagedBlockchainNetwork]:
+        return list(self.networks.values())
 
-    def get_network(self, network_id):
+    def get_network(self, network_id: str) -> ManagedBlockchainNetwork:
         if network_id not in self.networks:
             raise ResourceNotFoundException(
                 "GetNetwork", f"Network {network_id} not found."
             )
-        return self.networks.get(network_id)
+        return self.networks[network_id]
 
-    def create_proposal(self, networkid, memberid, actions, description=None):
+    def create_proposal(
+        self,
+        networkid: str,
+        memberid: str,
+        actions: Dict[str, Any],
+        description: Optional[str] = None,
+    ) -> Dict[str, str]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -593,24 +601,21 @@ class ManagedBlockchainBackend(BaseBackend):
             proposal_id=proposal_id,
             networkid=networkid,
             memberid=memberid,
-            membername=self.members.get(memberid).name,
+            membername=self.members[memberid].name,
             numofmembers=number_of_members_in_network(self.members, networkid),
             actions=actions,
-            network_expirtation=self.networks.get(networkid).vote_pol_proposal_duration,
-            network_threshold=self.networks.get(
+            network_expiration=self.networks[networkid].vote_pol_proposal_duration,
+            network_threshold=self.networks[networkid].vote_pol_threshold_percentage,
+            network_threshold_comp=self.networks[
                 networkid
-            ).vote_pol_threshold_percentage,
-            network_threshold_comp=self.networks.get(
-                networkid
-            ).vote_pol_threshold_comparator,
+            ].vote_pol_threshold_comparator,
             description=description,
         )
 
         # Return the proposal ID
-        d = {"ProposalId": proposal_id}
-        return d
+        return {"ProposalId": proposal_id}
 
-    def list_proposals(self, networkid):
+    def list_proposals(self, networkid: str) -> List[ManagedBlockchainProposal]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -619,13 +624,15 @@ class ManagedBlockchainBackend(BaseBackend):
 
         proposalsfornetwork = []
         for proposal_id in self.proposals:
-            if self.proposals.get(proposal_id).network_id == networkid:
+            if self.proposals[proposal_id].network_id == networkid:
                 # See if any are expired
-                self.proposals.get(proposal_id).check_to_expire_proposal()
+                self.proposals[proposal_id].check_to_expire_proposal()
                 proposalsfornetwork.append(self.proposals[proposal_id])
         return proposalsfornetwork
 
-    def get_proposal(self, networkid, proposalid):
+    def get_proposal(
+        self, networkid: str, proposalid: str
+    ) -> ManagedBlockchainProposal:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -638,10 +645,12 @@ class ManagedBlockchainBackend(BaseBackend):
             )
 
         # See if it needs to be set to expipred
-        self.proposals.get(proposalid).check_to_expire_proposal()
-        return self.proposals.get(proposalid)
+        self.proposals[proposalid].check_to_expire_proposal()
+        return self.proposals[proposalid]
 
-    def vote_on_proposal(self, networkid, proposalid, votermemberid, vote):
+    def vote_on_proposal(
+        self, networkid: str, proposalid: str, votermemberid: str, vote: str
+    ) -> None:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -662,60 +671,56 @@ class ManagedBlockchainBackend(BaseBackend):
             raise BadRequestException("VoteOnProposal", "Invalid request body")
 
         # See if it needs to be set to expipred
-        self.proposals.get(proposalid).check_to_expire_proposal()
+        self.proposals[proposalid].check_to_expire_proposal()
 
         # Exception if EXPIRED
-        if self.proposals.get(proposalid).proposal_status == "EXPIRED":
+        if self.proposals[proposalid].proposal_status == "EXPIRED":
             raise InvalidRequestException(
                 "VoteOnProposal",
                 f"Proposal {proposalid} is expired and you cannot vote on it.",
             )
 
         # Check if IN_PROGRESS
-        if self.proposals.get(proposalid).proposal_status != "IN_PROGRESS":
+        if self.proposals[proposalid].proposal_status != "IN_PROGRESS":
             raise InvalidRequestException(
                 "VoteOnProposal",
-                f"Proposal {proposalid} has status {self.proposals.get(proposalid).proposal_status} and you cannot vote on it.",
+                f"Proposal {proposalid} has status {self.proposals[proposalid].proposal_status} and you cannot vote on it.",
             )
 
         # Check to see if this member already voted
-        if votermemberid in self.proposals.get(proposalid).proposal_votes:
+        if votermemberid in self.proposals[proposalid].proposal_votes:
             raise ResourceAlreadyExistsException(
                 "VoteOnProposal",
                 f"Member {votermemberid} has already voted on proposal {proposalid}.",
             )
 
         # Cast vote
-        self.proposals.get(proposalid).set_vote(
-            votermemberid, self.members.get(votermemberid).name, vote.upper()
+        self.proposals[proposalid].set_vote(
+            votermemberid, self.members[votermemberid].name, vote.upper()
         )
 
-        if self.proposals.get(proposalid).proposal_status == "APPROVED":
+        if self.proposals[proposalid].proposal_status == "APPROVED":
             # Generate invitations
-            for _ in self.proposals.get(proposalid).proposal_actions("Invitations"):
+            for _ in self.proposals[proposalid].proposal_actions("Invitations"):
                 invitation_id = get_invitation_id()
                 self.invitations[invitation_id] = ManagedBlockchainInvitation(
                     invitation_id=invitation_id,
                     networkid=networkid,
-                    networkname=self.networks.get(networkid).network_name,
-                    networkframework=self.networks.get(networkid).network_framework,
-                    networkframeworkversion=self.networks.get(
+                    networkname=self.networks[networkid].network_name,
+                    networkframework=self.networks[networkid].network_framework,
+                    networkframeworkversion=self.networks[
                         networkid
-                    ).network_framework_version,
-                    networkcreationdate=self.networks.get(
-                        networkid
-                    ).network_creationdate,
+                    ].network_framework_version,
+                    networkcreationdate=self.networks[networkid].network_creationdate,
                     region=self.region_name,
-                    networkdescription=self.networks.get(networkid).network_description,
+                    networkdescription=self.networks[networkid].network_description,
                 )
 
             # Delete members
-            for propmember in self.proposals.get(proposalid).proposal_actions(
-                "Removals"
-            ):
+            for propmember in self.proposals[proposalid].proposal_actions("Removals"):
                 self.delete_member(networkid, propmember["MemberId"])
 
-    def list_proposal_votes(self, networkid, proposalid):
+    def list_proposal_votes(self, networkid: str, proposalid: str) -> List[str]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -729,25 +734,25 @@ class ManagedBlockchainBackend(BaseBackend):
 
         # Output the vote summaries
         proposalvotesfornetwork = []
-        for proposal_id in self.proposals:
-            if self.proposals.get(proposal_id).network_id == networkid:
-                for pvmemberid in self.proposals.get(proposal_id).proposal_votes:
-                    proposalvotesfornetwork.append(
-                        self.proposals.get(proposal_id).proposal_votes[pvmemberid]
-                    )
+        for proposal in self.proposals.values():
+            if proposal.network_id == networkid:
+                for proposal_vote in proposal.proposal_votes.values():
+                    proposalvotesfornetwork.append(proposal_vote)
         return proposalvotesfornetwork
 
-    def list_invitations(self):
-        return self.invitations.values()
+    def list_invitations(self) -> List[ManagedBlockchainInvitation]:
+        return list(self.invitations.values())
 
-    def reject_invitation(self, invitationid):
+    def reject_invitation(self, invitationid: str) -> None:
         if invitationid not in self.invitations:
             raise ResourceNotFoundException(
                 "RejectInvitation", f"InvitationId {invitationid} not found."
             )
-        self.invitations.get(invitationid).reject_invitation()
+        self.invitations[invitationid].reject_invitation()
 
-    def create_member(self, invitationid, networkid, member_configuration):
+    def create_member(
+        self, invitationid: str, networkid: str, member_configuration: Dict[str, Any]
+    ) -> Dict[str, str]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -759,7 +764,7 @@ class ManagedBlockchainBackend(BaseBackend):
                 "CreateMember", f"Invitation {invitationid} not valid"
             )
 
-        if self.invitations.get(invitationid).invitation_status != "PENDING":
+        if self.invitations[invitationid].invitation_status != "PENDING":
             raise InvalidRequestException(
                 "CreateMember", f"Invitation {invitationid} not valid"
             )
@@ -772,7 +777,7 @@ class ManagedBlockchainBackend(BaseBackend):
                 f"Member name {member_configuration['Name']} already exists in network {networkid}.",
             )
 
-        networkedition = self.networks.get(networkid).network_edition
+        networkedition = self.networks[networkid].network_edition
         if (
             number_of_members_in_network(self.members, networkid)
             >= EDITIONS[networkedition]["MaxMembers"]
@@ -797,13 +802,12 @@ class ManagedBlockchainBackend(BaseBackend):
         )
 
         # Accept the invitaiton
-        self.invitations.get(invitationid).accept_invitation()
+        self.invitations[invitationid].accept_invitation()
 
         # Return the member ID
-        d = {"MemberId": member_id}
-        return d
+        return {"MemberId": member_id}
 
-    def list_members(self, networkid):
+    def list_members(self, networkid: str) -> List[ManagedBlockchainMember]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -811,12 +815,12 @@ class ManagedBlockchainBackend(BaseBackend):
             )
 
         membersfornetwork = []
-        for member_id in self.members:
-            if self.members.get(member_id).network_id == networkid:
-                membersfornetwork.append(self.members[member_id])
+        for member in self.members.values():
+            if member.network_id == networkid:
+                membersfornetwork.append(member)
         return membersfornetwork
 
-    def get_member(self, networkid, memberid):
+    def get_member(self, networkid: str, memberid: str) -> ManagedBlockchainMember:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -829,14 +833,14 @@ class ManagedBlockchainBackend(BaseBackend):
             )
 
         # Cannot get a member than has been deleted (it does show up in the list)
-        if self.members.get(memberid).member_status == "DELETED":
+        if self.members[memberid].member_status == "DELETED":
             raise ResourceNotFoundException(
                 "GetMember", f"Member {memberid} not found."
             )
 
-        return self.members.get(memberid)
+        return self.members[memberid]
 
-    def delete_member(self, networkid, memberid):
+    def delete_member(self, networkid: str, memberid: str) -> None:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -848,19 +852,16 @@ class ManagedBlockchainBackend(BaseBackend):
                 "DeleteMember", f"Member {memberid} not found."
             )
 
-        self.members.get(memberid).delete()
+        self.members[memberid].delete()
 
         # Is this the last member in the network? (all set to DELETED)
         if number_of_members_in_network(
             self.members, networkid, member_status="DELETED"
         ) == len(self.members):
             # Set network status to DELETED for all invitations
-            for invitation_id in self.invitations:
-                if (
-                    self.invitations.get(invitation_id).invitation_networkid
-                    == networkid
-                ):
-                    self.invitations.get(invitation_id).set_network_status("DELETED")
+            for invitation in self.invitations.values():
+                if invitation.invitation_networkid == networkid:
+                    invitation.set_network_status("DELETED")
 
             # Remove network
             del self.networks[networkid]
@@ -869,7 +870,9 @@ class ManagedBlockchainBackend(BaseBackend):
         for nodeid in nodes_in_member(self.nodes, memberid):
             del self.nodes[nodeid]
 
-    def update_member(self, networkid, memberid, logpublishingconfiguration):
+    def update_member(
+        self, networkid: str, memberid: str, logpublishingconfiguration: Dict[str, Any]
+    ) -> None:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -881,16 +884,16 @@ class ManagedBlockchainBackend(BaseBackend):
                 "UpdateMember", f"Member {memberid} not found."
             )
 
-        self.members.get(memberid).update(logpublishingconfiguration)
+        self.members[memberid].update(logpublishingconfiguration)
 
     def create_node(
         self,
-        networkid,
-        memberid,
-        availabilityzone,
-        instancetype,
-        logpublishingconfiguration,
-    ):
+        networkid: str,
+        memberid: str,
+        availabilityzone: str,
+        instancetype: str,
+        logpublishingconfiguration: Dict[str, Any],
+    ) -> Dict[str, str]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -902,7 +905,7 @@ class ManagedBlockchainBackend(BaseBackend):
                 "CreateNode", f"Member {memberid} not found."
             )
 
-        networkedition = self.networks.get(networkid).network_edition
+        networkedition = self.networks[networkid].network_edition
         if (
             number_of_nodes_in_member(self.nodes, memberid)
             >= EDITIONS[networkedition]["MaxNodesPerMember"]
@@ -953,10 +956,11 @@ class ManagedBlockchainBackend(BaseBackend):
         )
 
         # Return the node ID
-        d = {"NodeId": node_id}
-        return d
+        return {"NodeId": node_id}
 
-    def list_nodes(self, networkid, memberid, status=None):
+    def list_nodes(
+        self, networkid: str, memberid: str, status: Optional[str] = None
+    ) -> List[ManagedBlockchainNode]:
         if networkid not in self.networks:
             raise ResourceNotFoundException(
                 "ListNodes", f"Network {networkid} not found."
@@ -968,20 +972,22 @@ class ManagedBlockchainBackend(BaseBackend):
             )
 
         # If member is deleted, cannot list nodes
-        if self.members.get(memberid).member_status == "DELETED":
+        if self.members[memberid].member_status == "DELETED":
             raise ResourceNotFoundException(
                 "ListNodes", f"Member {memberid} not found."
             )
 
         nodesformember = []
-        for node_id in self.nodes:
-            if self.nodes.get(node_id).member_id == memberid and (
-                status is None or self.nodes.get(node_id).node_status == status
+        for node in self.nodes.values():
+            if node.member_id == memberid and (
+                status is None or node.node_status == status
             ):
-                nodesformember.append(self.nodes[node_id])
+                nodesformember.append(node)
         return nodesformember
 
-    def get_node(self, networkid, memberid, nodeid):
+    def get_node(
+        self, networkid: str, memberid: str, nodeid: str
+    ) -> ManagedBlockchainNode:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -995,12 +1001,12 @@ class ManagedBlockchainBackend(BaseBackend):
             raise ResourceNotFoundException("GetNode", f"Node {nodeid} not found.")
 
         # Cannot get a node than has been deleted (it does show up in the list)
-        if self.nodes.get(nodeid).node_status == "DELETED":
+        if self.nodes[nodeid].node_status == "DELETED":
             raise ResourceNotFoundException("GetNode", f"Node {nodeid} not found.")
 
-        return self.nodes.get(nodeid)
+        return self.nodes[nodeid]
 
-    def delete_node(self, networkid, memberid, nodeid):
+    def delete_node(self, networkid: str, memberid: str, nodeid: str) -> None:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -1015,9 +1021,15 @@ class ManagedBlockchainBackend(BaseBackend):
         if nodeid not in self.nodes:
             raise ResourceNotFoundException("DeleteNode", f"Node {nodeid} not found.")
 
-        self.nodes.get(nodeid).delete()
+        self.nodes[nodeid].delete()
 
-    def update_node(self, networkid, memberid, nodeid, logpublishingconfiguration):
+    def update_node(
+        self,
+        networkid: str,
+        memberid: str,
+        nodeid: str,
+        logpublishingconfiguration: Dict[str, Any],
+    ) -> None:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -1032,7 +1044,7 @@ class ManagedBlockchainBackend(BaseBackend):
         if nodeid not in self.nodes:
             raise ResourceNotFoundException("UpdateNode", f"Node {nodeid} not found.")
 
-        self.nodes.get(nodeid).update(logpublishingconfiguration)
+        self.nodes[nodeid].update(logpublishingconfiguration)
 
 
 managedblockchain_backends = BackendDict(ManagedBlockchainBackend, "managedblockchain")

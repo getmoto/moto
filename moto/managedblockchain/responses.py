@@ -1,9 +1,11 @@
 import json
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse, parse_qs
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from .exceptions import exception_handler
-from .models import managedblockchain_backends
+from .models import managedblockchain_backends, ManagedBlockchainBackend
 from .utils import (
     networkid_from_managedblockchain_url,
     proposalid_from_managedblockchain_url,
@@ -14,19 +16,19 @@ from .utils import (
 
 
 class ManagedBlockchainResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="managedblockchain")
 
     @property
-    def backend(self):
+    def backend(self) -> ManagedBlockchainBackend:
         return managedblockchain_backends[self.current_account][self.region]
 
     @exception_handler
-    def network_response(self, request, full_url, headers):
+    def network_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._network_response(request, headers)
 
-    def _network_response(self, request, headers):
+    def _network_response(self, request: Any, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         if method == "GET":
             return self._all_networks_response(headers)
@@ -34,7 +36,7 @@ class ManagedBlockchainResponse(BaseResponse):
             json_body = json.loads(self.body)
             return self._network_response_post(json_body, headers)
 
-    def _all_networks_response(self, headers):
+    def _all_networks_response(self, headers: Any) -> TYPE_RESPONSE:
         mbcnetworks = self.backend.list_networks()
         response = json.dumps(
             {"Networks": [mbcnetwork.to_dict() for mbcnetwork in mbcnetworks]}
@@ -42,7 +44,9 @@ class ManagedBlockchainResponse(BaseResponse):
         headers["content-type"] = "application/json"
         return 200, headers, response
 
-    def _network_response_post(self, json_body, headers):
+    def _network_response_post(
+        self, json_body: Dict[str, Any], headers: Any
+    ) -> TYPE_RESPONSE:
         name = json_body["Name"]
         framework = json_body["Framework"]
         frameworkversion = json_body["FrameworkVersion"]
@@ -65,29 +69,29 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, json.dumps(response)
 
     @exception_handler
-    def networkid_response(self, request, full_url, headers):
+    def networkid_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._networkid_response(request, full_url, headers)
 
-    def _networkid_response(self, request, full_url, headers):
+    def _networkid_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
 
         if method == "GET":
             network_id = networkid_from_managedblockchain_url(full_url)
             return self._networkid_response_get(network_id, headers)
 
-    def _networkid_response_get(self, network_id, headers):
+    def _networkid_response_get(self, network_id: str, headers: Any) -> TYPE_RESPONSE:
         mbcnetwork = self.backend.get_network(network_id)
         response = json.dumps({"Network": mbcnetwork.get_format()})
         headers["content-type"] = "application/json"
         return 200, headers, response
 
     @exception_handler
-    def proposal_response(self, request, full_url, headers):
+    def proposal_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._proposal_response(request, full_url, headers)
 
-    def _proposal_response(self, request, full_url, headers):
+    def _proposal_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         network_id = networkid_from_managedblockchain_url(full_url)
         if method == "GET":
@@ -96,7 +100,7 @@ class ManagedBlockchainResponse(BaseResponse):
             json_body = json.loads(self.body)
             return self._proposal_response_post(network_id, json_body, headers)
 
-    def _all_proposals_response(self, network_id, headers):
+    def _all_proposals_response(self, network_id: str, headers: Any) -> TYPE_RESPONSE:
         proposals = self.backend.list_proposals(network_id)
         response = json.dumps(
             {"Proposals": [proposal.to_dict() for proposal in proposals]}
@@ -104,7 +108,9 @@ class ManagedBlockchainResponse(BaseResponse):
         headers["content-type"] = "application/json"
         return 200, headers, response
 
-    def _proposal_response_post(self, network_id, json_body, headers):
+    def _proposal_response_post(
+        self, network_id: str, json_body: Dict[str, Any], headers: Any
+    ) -> TYPE_RESPONSE:
         memberid = json_body["MemberId"]
         actions = json_body["Actions"]
 
@@ -117,29 +123,31 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, json.dumps(response)
 
     @exception_handler
-    def proposalid_response(self, request, full_url, headers):
+    def proposalid_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._proposalid_response(request, full_url, headers)
 
-    def _proposalid_response(self, request, full_url, headers):
+    def _proposalid_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         network_id = networkid_from_managedblockchain_url(full_url)
         if method == "GET":
             proposal_id = proposalid_from_managedblockchain_url(full_url)
             return self._proposalid_response_get(network_id, proposal_id, headers)
 
-    def _proposalid_response_get(self, network_id, proposal_id, headers):
+    def _proposalid_response_get(
+        self, network_id: str, proposal_id: str, headers: Any
+    ) -> TYPE_RESPONSE:
         proposal = self.backend.get_proposal(network_id, proposal_id)
         response = json.dumps({"Proposal": proposal.get_format()})
         headers["content-type"] = "application/json"
         return 200, headers, response
 
     @exception_handler
-    def proposal_votes_response(self, request, full_url, headers):
+    def proposal_votes_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._proposal_votes_response(request, full_url, headers)
 
-    def _proposal_votes_response(self, request, full_url, headers):
+    def _proposal_votes_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         network_id = networkid_from_managedblockchain_url(full_url)
         proposal_id = proposalid_from_managedblockchain_url(full_url)
@@ -151,15 +159,17 @@ class ManagedBlockchainResponse(BaseResponse):
                 network_id, proposal_id, json_body, headers
             )
 
-    def _all_proposal_votes_response(self, network_id, proposal_id, headers):
+    def _all_proposal_votes_response(
+        self, network_id: str, proposal_id: str, headers: Any
+    ) -> TYPE_RESPONSE:
         proposalvotes = self.backend.list_proposal_votes(network_id, proposal_id)
         response = json.dumps({"ProposalVotes": proposalvotes})
         headers["content-type"] = "application/json"
         return 200, headers, response
 
     def _proposal_votes_response_post(
-        self, network_id, proposal_id, json_body, headers
-    ):
+        self, network_id: str, proposal_id: str, json_body: Dict[str, Any], headers: Any
+    ) -> TYPE_RESPONSE:
         votermemberid = json_body["VoterMemberId"]
         vote = json_body["Vote"]
 
@@ -167,16 +177,16 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, ""
 
     @exception_handler
-    def invitation_response(self, request, full_url, headers):
+    def invitation_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._invitation_response(request, headers)
 
-    def _invitation_response(self, request, headers):
+    def _invitation_response(self, request: Any, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         if method == "GET":
             return self._all_invitation_response(headers)
 
-    def _all_invitation_response(self, headers):
+    def _all_invitation_response(self, headers: Any) -> TYPE_RESPONSE:
         invitations = self.backend.list_invitations()
         response = json.dumps(
             {"Invitations": [invitation.to_dict() for invitation in invitations]}
@@ -185,27 +195,29 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, response
 
     @exception_handler
-    def invitationid_response(self, request, full_url, headers):
+    def invitationid_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._invitationid_response(request, full_url, headers)
 
-    def _invitationid_response(self, request, full_url, headers):
+    def _invitationid_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         if method == "DELETE":
             invitation_id = invitationid_from_managedblockchain_url(full_url)
             return self._invitationid_response_delete(invitation_id, headers)
 
-    def _invitationid_response_delete(self, invitation_id, headers):
+    def _invitationid_response_delete(
+        self, invitation_id: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.backend.reject_invitation(invitation_id)
         headers["content-type"] = "application/json"
         return 200, headers, ""
 
     @exception_handler
-    def member_response(self, request, full_url, headers):
+    def member_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._member_response(request, full_url, headers)
 
-    def _member_response(self, request, full_url, headers):
+    def _member_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         network_id = networkid_from_managedblockchain_url(full_url)
         if method == "GET":
@@ -214,13 +226,15 @@ class ManagedBlockchainResponse(BaseResponse):
             json_body = json.loads(self.body)
             return self._member_response_post(network_id, json_body, headers)
 
-    def _all_members_response(self, network_id, headers):
+    def _all_members_response(self, network_id: str, headers: Any) -> TYPE_RESPONSE:
         members = self.backend.list_members(network_id)
         response = json.dumps({"Members": [member.to_dict() for member in members]})
         headers["content-type"] = "application/json"
         return 200, headers, response
 
-    def _member_response_post(self, network_id, json_body, headers):
+    def _member_response_post(
+        self, network_id: str, json_body: Dict[str, Any], headers: Any
+    ) -> TYPE_RESPONSE:
         invitationid = json_body["InvitationId"]
         member_configuration = json_body["MemberConfiguration"]
 
@@ -230,11 +244,11 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, json.dumps(response)
 
     @exception_handler
-    def memberid_response(self, request, full_url, headers):
+    def memberid_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._memberid_response(request, full_url, headers)
 
-    def _memberid_response(self, request, full_url, headers):
+    def _memberid_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         network_id = networkid_from_managedblockchain_url(full_url)
         member_id = memberid_from_managedblockchain_request(full_url, self.body)
@@ -248,28 +262,34 @@ class ManagedBlockchainResponse(BaseResponse):
         elif method == "DELETE":
             return self._memberid_response_delete(network_id, member_id, headers)
 
-    def _memberid_response_get(self, network_id, member_id, headers):
+    def _memberid_response_get(
+        self, network_id: str, member_id: str, headers: Dict[str, Any]
+    ) -> TYPE_RESPONSE:
         member = self.backend.get_member(network_id, member_id)
         response = json.dumps({"Member": member.get_format()})
         headers["content-type"] = "application/json"
         return 200, headers, response
 
-    def _memberid_response_patch(self, network_id, member_id, json_body, headers):
+    def _memberid_response_patch(
+        self, network_id: str, member_id: str, json_body: Dict[str, Any], headers: Any
+    ) -> TYPE_RESPONSE:
         logpublishingconfiguration = json_body["LogPublishingConfiguration"]
         self.backend.update_member(network_id, member_id, logpublishingconfiguration)
         return 200, headers, ""
 
-    def _memberid_response_delete(self, network_id, member_id, headers):
+    def _memberid_response_delete(
+        self, network_id: str, member_id: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.backend.delete_member(network_id, member_id)
         headers["content-type"] = "application/json"
         return 200, headers, ""
 
     @exception_handler
-    def node_response(self, request, full_url, headers):
+    def node_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._node_response(request, full_url, headers)
 
-    def _node_response(self, request, full_url, headers):
+    def _node_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         parsed_url = urlparse(full_url)
         querystring = parse_qs(parsed_url.query, keep_blank_values=True)
@@ -284,13 +304,17 @@ class ManagedBlockchainResponse(BaseResponse):
             json_body = json.loads(self.body)
             return self._node_response_post(network_id, member_id, json_body, headers)
 
-    def _all_nodes_response(self, network_id, member_id, status, headers):
+    def _all_nodes_response(
+        self, network_id: str, member_id: str, status: Optional[str], headers: Any
+    ) -> TYPE_RESPONSE:
         nodes = self.backend.list_nodes(network_id, member_id, status)
         response = json.dumps({"Nodes": [node.to_dict() for node in nodes]})
         headers["content-type"] = "application/json"
         return 200, headers, response
 
-    def _node_response_post(self, network_id, member_id, json_body, headers):
+    def _node_response_post(
+        self, network_id: str, member_id: str, json_body: Dict[str, Any], headers: Any
+    ) -> TYPE_RESPONSE:
         instancetype = json_body["NodeConfiguration"]["InstanceType"]
         availabilityzone = json_body["NodeConfiguration"]["AvailabilityZone"]
         logpublishingconfiguration = json_body["NodeConfiguration"][
@@ -307,11 +331,11 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, json.dumps(response)
 
     @exception_handler
-    def nodeid_response(self, request, full_url, headers):
+    def nodeid_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         self.setup_class(request, full_url, headers)
         return self._nodeid_response(request, full_url, headers)
 
-    def _nodeid_response(self, request, full_url, headers):
+    def _nodeid_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         network_id = networkid_from_managedblockchain_url(full_url)
         member_id = memberid_from_managedblockchain_request(full_url, self.body)
@@ -326,22 +350,31 @@ class ManagedBlockchainResponse(BaseResponse):
         elif method == "DELETE":
             return self._nodeid_response_delete(network_id, member_id, node_id, headers)
 
-    def _nodeid_response_get(self, network_id, member_id, node_id, headers):
+    def _nodeid_response_get(
+        self, network_id: str, member_id: str, node_id: str, headers: Any
+    ) -> TYPE_RESPONSE:
         node = self.backend.get_node(network_id, member_id, node_id)
         response = json.dumps({"Node": node.get_format()})
         headers["content-type"] = "application/json"
         return 200, headers, response
 
     def _nodeid_response_patch(
-        self, network_id, member_id, node_id, json_body, headers
-    ):
+        self,
+        network_id: str,
+        member_id: str,
+        node_id: str,
+        json_body: Dict[str, Any],
+        headers: Any,
+    ) -> TYPE_RESPONSE:
         logpublishingconfiguration = json_body
         self.backend.update_node(
             network_id, member_id, node_id, logpublishingconfiguration
         )
         return 200, headers, ""
 
-    def _nodeid_response_delete(self, network_id, member_id, node_id, headers):
+    def _nodeid_response_delete(
+        self, network_id: str, member_id: str, node_id: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.backend.delete_node(network_id, member_id, node_id)
         headers["content-type"] = "application/json"
         return 200, headers, ""
