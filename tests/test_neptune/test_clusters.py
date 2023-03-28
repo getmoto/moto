@@ -64,7 +64,9 @@ def test_describe_db_clusters():
 
     client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="neptune")
 
-    clusters = client.describe_db_clusters()["DBClusters"]
+    clusters = client.describe_db_clusters(DBClusterIdentifier="cluster-id")[
+        "DBClusters"
+    ]
     clusters.should.have.length_of(1)
     clusters[0]["DBClusterIdentifier"].should.equal("cluster-id")
     clusters[0].should.have.key("Engine").equals("neptune")

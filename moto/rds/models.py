@@ -1965,7 +1965,7 @@ class RDSBackend(BaseBackend):
             clusters_neptune = self._filter_resources(
                 clusters_neptune, filters, Cluster
             )
-        if cluster_identifier and not clusters:
+        if cluster_identifier and not (clusters or clusters_neptune):
             raise DBClusterNotFoundError(cluster_identifier)
         return list(clusters.values()) + list(clusters_neptune.values())
 
