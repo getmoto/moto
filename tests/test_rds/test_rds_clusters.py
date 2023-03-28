@@ -811,3 +811,37 @@ def test_create_db_cluster_with_enable_http_endpoint_invalid():
     )
     cluster = resp["DBCluster"]
     cluster.should.have.key("HttpEndpointEnabled").equal(False)
+
+
+@mock_rds
+def test_describe_db_clusters_filter_by_engine():
+    client = boto3.client("rds", region_name="eu-north-1")
+
+    client.create_db_cluster(
+        DBClusterIdentifier="id1",
+        Engine="aurora-mysql",
+        MasterUsername="root",
+        MasterUserPassword="hunter21",
+    )
+
+    client.create_db_cluster(
+        DBClusterIdentifier="id2",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="hunter21",
+    )
+
+    resp = client.describe_db_clusters(
+        Filters=[
+            {
+                "Name": "engine",
+                "Values": ["aurora-postgresql"],
+            }
+        ]
+    )
+
+    clusters = resp["DBClusters"]
+    assert len(clusters) == 1
+    cluster = clusters[0]
+    assert cluster["DBClusterIdentifier"] == "id2"
+    assert cluster["Engine"] == "aurora-postgresql"

@@ -46,6 +46,13 @@ from .utils import (
 
 
 class Cluster:
+    SUPPORTED_FILTERS = {
+        "db-cluster-id": FilterDef(
+            ["db_cluster_arn", "db_cluster_identifier"], "DB Cluster Identifiers"
+        ),
+        "engine": FilterDef(["engine"], "Engine Names"),
+    }
+
     def __init__(self, **kwargs):
         self.db_name = kwargs.get("db_name")
         self.db_cluster_identifier = kwargs.get("db_cluster_identifier")
@@ -1948,17 +1955,19 @@ class RDSBackend(BaseBackend):
 
         return self.cluster_snapshots.pop(db_snapshot_identifier)
 
-    def describe_db_clusters(self, cluster_identifier):
+    def describe_db_clusters(self, cluster_identifier=None, filters=None):
+        clusters = self.clusters
+        clusters_neptune = self.neptune.clusters
         if cluster_identifier:
-            # ARN to identifier
-            # arn:aws:rds:eu-north-1:123456789012:cluster:cluster --> cluster-id
-            cluster_identifier = cluster_identifier.split(":")[-1]
-            if cluster_identifier in self.clusters:
-                return [self.clusters[cluster_identifier]]
-            if cluster_identifier in self.neptune.clusters:
-                return [self.neptune.clusters[cluster_identifier]]
+            filters = merge_filters(filters, {"db-cluster-id": [cluster_identifier]})
+        if filters:
+            clusters = self._filter_resources(clusters, filters, Cluster)
+            clusters_neptune = self._filter_resources(
+                clusters_neptune, filters, Cluster
+            )
+        if cluster_identifier and not (clusters or clusters_neptune):
             raise DBClusterNotFoundError(cluster_identifier)
-        return list(self.clusters.values()) + list(self.neptune.clusters.values())
+        return list(clusters.values()) + list(clusters_neptune.values())
 
     def describe_db_cluster_snapshots(
         self, db_cluster_identifier, db_snapshot_identifier, filters=None
