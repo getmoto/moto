@@ -787,6 +787,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "lex-runtime": {
                 "Value": "lex-runtime",
                 "endpoint": {
@@ -2272,6 +2275,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "license-manager": {
                 "Value": "license-manager",
@@ -4352,6 +4358,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "lex-models": {
                 "Value": "lex-models",
@@ -6708,6 +6717,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "lex-runtime": {
                 "Value": "lex-runtime",
                 "endpoint": {
@@ -8339,6 +8351,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "license-manager": {
                 "Value": "license-manager",
@@ -10083,6 +10098,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "license-manager": {
                 "Value": "license-manager",
                 "endpoint": {
@@ -11098,6 +11116,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appconfigdata": {
+                "Value": "appconfigdata",
+                "endpoint": {
+                  "Value": "appconfigdata.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "artifact": {
                 "Value": "artifact"
               },
@@ -11503,6 +11530,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-data": {
+                "Value": "redshift-data",
+                "endpoint": {
+                  "Value": "redshift-data.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -11543,6 +11579,15 @@
                 "Value": "secretsmanager",
                 "endpoint": {
                   "Value": "secretsmanager.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securityhub": {
+                "Value": "securityhub",
+                "endpoint": {
+                  "Value": "securityhub.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13006,6 +13051,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "lex-models": {
                 "Value": "lex-models",
                 "endpoint": {
@@ -13715,6 +13763,15 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securitylake": {
+                "Value": "securitylake",
+                "endpoint": {
+                  "Value": "securitylake.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15484,6 +15541,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "lex-models": {
                 "Value": "lex-models",
                 "endpoint": {
@@ -16733,6 +16793,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appconfigdata": {
+                "Value": "appconfigdata",
+                "endpoint": {
+                  "Value": "appconfigdata.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "application-autoscaling": {
                 "Value": "application-autoscaling",
                 "endpoint": {
@@ -17806,6 +17875,15 @@
                 "Value": "appconfig",
                 "endpoint": {
                   "Value": "appconfig.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "appconfigdata": {
+                "Value": "appconfigdata",
+                "endpoint": {
+                  "Value": "appconfigdata.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19536,6 +19614,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "lex-runtime": {
                 "Value": "lex-runtime",
@@ -21319,6 +21400,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "oam": {
+                "Value": "oam",
+                "endpoint": {
+                  "Value": "oam.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -22509,6 +22599,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "oam": {
+                "Value": "oam",
+                "endpoint": {
+                  "Value": "oam.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "organizations": {
@@ -24338,6 +24437,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "lex-models": {
                 "Value": "lex-models",
                 "endpoint": {
@@ -25583,6 +25685,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appconfigdata": {
+                "Value": "appconfigdata",
+                "endpoint": {
+                  "Value": "appconfigdata.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "artifact": {
                 "Value": "artifact"
               },
@@ -25997,6 +26108,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-data": {
+                "Value": "redshift-data",
+                "endpoint": {
+                  "Value": "redshift-data.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -26042,10 +26162,46 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "sagemaker": {
+                "Value": "sagemaker",
+                "endpoint": {
+                  "Value": "api.sagemaker.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
                   "Value": "secretsmanager.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securityhub": {
+                "Value": "securityhub",
+                "endpoint": {
+                  "Value": "securityhub.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27203,6 +27359,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "license-manager": {
                 "Value": "license-manager",
@@ -28840,6 +28999,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "license-manager": {
                 "Value": "license-manager",
                 "endpoint": {
@@ -29489,6 +29651,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appconfigdata": {
+                "Value": "appconfigdata",
+                "endpoint": {
+                  "Value": "appconfigdata.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "artifact": {
                 "Value": "artifact"
               },
@@ -29943,6 +30114,15 @@
                 "Value": "secretsmanager",
                 "endpoint": {
                   "Value": "secretsmanager.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securityhub": {
+                "Value": "securityhub",
+                "endpoint": {
+                  "Value": "securityhub.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31472,6 +31652,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "lex-models": {
                 "Value": "lex-models",
@@ -33958,6 +34141,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "lex-models": {
                 "Value": "lex-models",
                 "endpoint": {
@@ -34607,6 +34793,15 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securitylake": {
+                "Value": "securitylake",
+                "endpoint": {
+                  "Value": "securitylake.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -35953,6 +36148,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "license-manager": {
                 "Value": "license-manager",
                 "endpoint": {
@@ -36869,6 +37067,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appconfigdata": {
+                "Value": "appconfigdata",
+                "endpoint": {
+                  "Value": "appconfigdata.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "artifact": {
                 "Value": "artifact"
               },
@@ -37551,6 +37758,15 @@
                 "Value": "service-quotas",
                 "endpoint": {
                   "Value": "servicequotas.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "servicecatalog": {
+                "Value": "servicecatalog",
+                "endpoint": {
+                  "Value": "servicecatalog.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38564,6 +38780,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "license-manager": {
                 "Value": "license-manager",
@@ -40210,6 +40429,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "license-manager": {
                 "Value": "license-manager",
                 "endpoint": {
@@ -40700,6 +40922,15 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securitylake": {
+                "Value": "securitylake",
+                "endpoint": {
+                  "Value": "securitylake.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -42699,6 +42930,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "lex-models": {
                 "Value": "lex-models",
@@ -45403,6 +45637,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "license-manager": {
                 "Value": "license-manager",
                 "endpoint": {
@@ -47183,6 +47420,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "license-manager": {
                 "Value": "license-manager",
                 "endpoint": {
@@ -48507,6 +48747,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "iottwinmaker": {
+                "Value": "iottwinmaker"
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -48569,6 +48812,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "lex-models": {
                 "Value": "lex-models",
@@ -50184,6 +50430,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "license-manager": {
                 "Value": "license-manager",
@@ -52624,6 +52873,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "lex-models": {
                 "Value": "lex-models",
                 "endpoint": {
@@ -53736,9 +53988,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "transcribemedical": {
-                "Value": "transcribemedical"
               },
               "transfer": {
                 "Value": "transfer",
