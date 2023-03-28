@@ -124,7 +124,8 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
     def assign_private_ip_addresses(self) -> str:
         eni_id = self._get_param("NetworkInterfaceId")
         secondary_ips_count = self._get_int_param("SecondaryPrivateIpAddressCount", 0)
-        eni = self.ec2_backend.assign_private_ip_addresses(eni_id, secondary_ips_count)
+        private_ip_addresses = self._get_multi_param("PrivateIpAddress")
+        eni = self.ec2_backend.assign_private_ip_addresses(eni_id, private_ip_addresses, secondary_ips_count)
         template = self.response_template(ASSIGN_PRIVATE_IP_ADDRESSES)
         return template.render(eni=eni)
 

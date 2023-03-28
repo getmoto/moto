@@ -376,9 +376,19 @@ class NetworkInterfaceBackend:
         return eni
 
     def assign_private_ip_addresses(
-        self, eni_id: str, secondary_ips_count: Optional[int] = None
+        self,
+        eni_id: str,
+        private_ip_addresses: Optional[List[str]] = None,
+        secondary_ips_count: Optional[int] = None,
     ) -> NetworkInterface:
         eni = self.get_network_interface(eni_id)
+        if private_ip_addresses:
+            eni.private_ip_addresses.extend(
+                {"Primary": False, "PrivateIpAddress": ip}
+                for ip in private_ip_addresses
+            )
+            return eni
+
         eni_assigned_ips = [
             item.get("PrivateIpAddress") for item in eni.private_ip_addresses
         ]
