@@ -272,8 +272,7 @@
    - [x] create implemented
    - [ ] update implemented
    - [ ] delete implemented
-   - [ ] Fn::GetAtt implemented
-      - [ ] Arn
+   - [x] Fn::GetAtt implemented
 - AWS::RDS::DBParameterGroup:
    - [x] create implemented
    - [ ] update implemented

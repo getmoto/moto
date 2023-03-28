@@ -306,6 +306,23 @@ class LogGroup(CloudFormationModel):
             resource_name, tags, **properties
         )
 
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "Arn",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> str:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        raise UnformattedGetAttTemplateException()
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.name
+
     def create_log_stream(self, log_stream_name: str) -> None:
         if log_stream_name in self.streams:
             raise ResourceAlreadyExistsException()
