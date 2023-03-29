@@ -359,7 +359,7 @@ def test_put_image_without_mediatype():
     _ = image_manifest.pop("mediaType")
 
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
-        with pytest.raises(ClientError) as e:
+        with pytest.raises(ClientError):
             client.put_image(
                 repositoryName="test_repository",
                 imageManifest=json.dumps(image_manifest),
@@ -368,10 +368,10 @@ def test_put_image_without_mediatype():
     else:
         error_msg = "image manifest mediatype not provided in manifest or parameter"
         client.put_image.when.called_with(
-                repositoryName="test_repository",
-                imageManifest=json.dumps(image_manifest),
-                imageTag="latest",
-            ).should.throw(Exception, error_msg)
+            repositoryName="test_repository",
+            imageManifest=json.dumps(image_manifest),
+            imageTag="latest",
+        ).should.throw(Exception, error_msg)
 
 
 @mock_ecr
