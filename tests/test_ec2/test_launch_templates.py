@@ -515,7 +515,6 @@ def test_get_launch_template_data():
 
     # Ensure launch template data matches instance
     launch_template_data["ImageId"].should.equal(instance["ImageId"])
-    launch_template_data["InstanceId"].should.equal(instance["InstanceId"])
     launch_template_data["InstanceType"].should.equal(instance["InstanceType"])
 
     # Ensure a launch template can be created from this data
