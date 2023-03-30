@@ -7,6 +7,8 @@ from botocore.client import ClientError
 from moto import mock_ec2, settings
 from uuid import uuid4
 
+from tests import EXAMPLE_AMI_ID
+
 
 @mock_ec2
 def test_launch_template_create():
@@ -497,6 +499,28 @@ def test_create_launch_template_with_tag_spec():
     version["LaunchTemplateData"]["TagSpecifications"].should.have.length_of(1)
     version["LaunchTemplateData"]["TagSpecifications"][0].should.equal(
         {"ResourceType": "instance", "Tags": [{"Key": "key", "Value": "value"}]}
+    )
+
+
+@mock_ec2
+def test_get_launch_template_data():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    launch_template_data = client.get_launch_template_data(
+        InstanceId=instance["InstanceId"]
+    )["LaunchTemplateData"]
+
+    # Ensure launch template data matches instance
+    launch_template_data["ImageId"].should.equal(instance["ImageId"])
+    launch_template_data["InstanceType"].should.equal(instance["InstanceType"])
+
+    # Ensure a launch template can be created from this data
+    client.create_launch_template(
+        LaunchTemplateName=str(uuid4()),
+        LaunchTemplateData=launch_template_data,
     )
 
 

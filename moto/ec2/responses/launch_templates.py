@@ -258,3 +258,110 @@ class LaunchTemplates(EC2BaseResponse):
             )
 
         return pretty_xml(tree)
+
+    def get_launch_template_data(self) -> str:
+        instance_id = self._get_param("InstanceId")
+        instance = self.ec2_backend.get_instance(instance_id)
+        template = self.response_template(GET_LAUNCH_TEMPLATE_DATA_RESPONSE)
+        return template.render(i=instance)
+
+
+GET_LAUNCH_TEMPLATE_DATA_RESPONSE = """<GetLaunchTemplateDataResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>801986a5-0ee2-46bd-be02-abcde1234567</requestId>
+    <launchTemplateData>
+        <blockDeviceMappingSet>
+        {% for device_name, device in i.block_device_mapping.items() %}
+            <item>
+                <deviceName>{{ device_name }}</deviceName>
+                <ebs>
+                    <deleteOnTermination>{{ device.delete_on_termination }}</deleteOnTermination>
+                    <encrypted>{{ device.encrypted }}</encrypted>
+                    <snapshotId>{{ device.snapshot_id }}</snapshotId>
+                    <volumeSize>{{ device.size }}</volumeSize>
+                    <volumeType>{{ device.volume_type }}</volumeType>
+                </ebs>
+            </item>
+        {% endfor %}
+        </blockDeviceMappingSet>
+        <capacityReservationSpecification>
+            <capacityReservationPreference>open</capacityReservationPreference>
+        </capacityReservationSpecification>
+        <creditSpecification>
+            <cpuCredits>standard</cpuCredits>
+        </creditSpecification>
+        <disableApiStop>{{ i.disable_api_stop }}</disableApiStop>
+        <disableApiTermination>{{ i.disable_api_termination }}</disableApiTermination>
+        <ebsOptimized>{{ i.ebs_optimised }}</ebsOptimized>
+        <enclaveOptions>
+            <enabled>false</enabled>
+        </enclaveOptions>
+        <hibernationOptions>
+            <configured>false</configured>
+        </hibernationOptions>
+        <imageId>{{ i.image_id }}</imageId>
+        <instanceInitiatedShutdownBehavior>{{ i.instance_initiated_shutdown_behavior }}</instanceInitiatedShutdownBehavior>
+        <instanceType>{{ i.instance_type }}</instanceType>
+        <keyName>{{ i.key_name }}</keyName>
+        <maintenanceOptions>
+            <autoRecovery>default</autoRecovery>
+        </maintenanceOptions>
+        <metadataOptions>
+            <httpEndpoint>enabled</httpEndpoint>
+            <httpProtocolIpv6>disabled</httpProtocolIpv6>
+            <httpPutResponseHopLimit>1</httpPutResponseHopLimit>
+            <httpTokens>optional</httpTokens>
+            <instanceMetadataTags>disabled</instanceMetadataTags>
+        </metadataOptions>
+        <monitoring>
+            <enabled>{{ i.monitored }}</enabled>
+        </monitoring>
+        <networkInterfaceSet>
+        {% for nic_index, nic in i.nics.items() %}
+            <item>
+                <associatePublicIpAddress>true</associatePublicIpAddress>
+                <deleteOnTermination>{{ nic.delete_on_termination }}</deleteOnTermination>
+                <description/>
+                <deviceIndex>{{ nic.device_index }}</deviceIndex>
+                <groupSet>
+                    <groupId>{{ nic.group_set[0].group_id if nic.group_set }}</groupId>
+                </groupSet>
+                <interfaceType>{{ nic.interface_type }}</interfaceType>
+                <ipv6AddressesSet/>
+                <networkCardIndex>{{ nic_index }}</networkCardIndex>
+                <privateIpAddressesSet>
+                    {% for addr in nic.private_ip_addresses %}
+                    <item>
+                        <primary>{{ addr["Primary"] }}</primary>
+                        <privateIpAddress>{{ addr["PrivateIpAddress"] }}</privateIpAddress>
+                    </item>
+                    {% endfor %}
+                </privateIpAddressesSet>
+                <subnetId>{{ nic.subnet.id }}</subnetId>
+            </item>
+        {% endfor %}
+        </networkInterfaceSet>
+        <placement>
+            <availabilityZone>{{ i.placement }}</availabilityZone>
+            <groupName/>
+            <tenancy>default</tenancy>
+        </placement>
+        <privateDnsNameOptions>
+            <enableResourceNameDnsAAAARecord>false</enableResourceNameDnsAAAARecord>
+            <enableResourceNameDnsARecord>true</enableResourceNameDnsARecord>
+            <hostnameType>ip-name</hostnameType>
+        </privateDnsNameOptions>
+        <tagSpecificationSet>
+        {% for tag in i.tags %}
+            <item>
+                <resourceType>instance</resourceType>
+                <tagSet>
+                    <item>
+                        <key>{{ tag.key }}</key>
+                        <value>{{ tag.value }}</value>
+                    </item>
+                </tagSet>
+            </item>
+        {% endfor %}
+        </tagSpecificationSet>
+    </launchTemplateData>
+</GetLaunchTemplateDataResponse>"""
