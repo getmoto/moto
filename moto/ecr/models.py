@@ -318,6 +318,7 @@ class Image(BaseObject):
         response_object["imageId"]["imageTag"] = self.image_tag
         response_object["imageId"]["imageDigest"] = self.get_image_digest()
         response_object["imageManifest"] = self.image_manifest
+        response_object["imageManifestMediaType"] = self.image_manifest_mediatype
         response_object["repositoryName"] = self.repository
         response_object["registryId"] = self.registry_id
         return {
