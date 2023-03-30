@@ -78,6 +78,7 @@ class SNSResponse(BaseResponse):
                                 "when calling the Publish operation: "
                                 f"Could not cast message attribute '{name}' value to number."
                             )
+                    transform_value = str(transform_value)
                 else:
                     transform_value = value["StringValue"]
             elif "BinaryValue" in value:

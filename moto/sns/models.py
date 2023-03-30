@@ -302,6 +302,7 @@ class Subscription(BaseModel):
                         return False
 
                     for attribute_values in attribute_values:
+                        attribute_values = float(attribute_values)
                         # Even the official documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
                         # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
                         if int(attribute_values * 1000000) == int(rule * 1000000):
@@ -347,7 +348,7 @@ class Subscription(BaseModel):
                                 [value] if isinstance(value, str) else value
                             )
                             if attr["Type"] == "Number":
-                                actual_values = [str(attr["Value"])]
+                                actual_values = [float(attr["Value"])]
                             elif attr["Type"] == "String":
                                 actual_values = [attr["Value"]]
                             else:
@@ -361,7 +362,7 @@ class Subscription(BaseModel):
                             message_attributes.get(field, {}).get("Type", "")
                             == "Number"
                         ):
-                            msg_value = message_attributes[field]["Value"]
+                            msg_value = float(message_attributes[field]["Value"])
                             matches = []
                             for operator, test_value in numeric_ranges:
                                 test_value = int(test_value)
