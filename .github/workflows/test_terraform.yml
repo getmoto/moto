@@ -11,6 +11,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
   test_service:
     needs: prepare_list
+    if: "!contains(github.event.pull_request.labels.*.name, 'java')"
     strategy:
       fail-fast: false
       matrix:
