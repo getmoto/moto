@@ -1794,7 +1794,6 @@ def test_run_task_awsvpc_network():
 @mock_ec2
 @mock_ecs
 def test_run_task_awsvpc_network_error():
-
     # Setup
     client = boto3.client("ecs", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -1811,11 +1810,12 @@ def test_run_task_awsvpc_network_error():
             startedBy="moto",
             launchType="FARGATE",
         )
-        err = exc.value.response["Error"]
-        assert err["Code"].equals("InvalidParameterException")
-        assert err["Message"].equals(
-            "Network Configuration must be provided when networkMode 'awsvpc' is specified."
-        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == "Network Configuration must be provided when networkMode 'awsvpc' is specified."
+    )
 
 
 @mock_ecs
@@ -1824,9 +1824,9 @@ def test_run_task_default_cluster():
 
     test_cluster_name = "default"
 
-    _ = client.create_cluster(clusterName=test_cluster_name)
+    client.create_cluster(clusterName=test_cluster_name)
 
-    _ = client.register_task_definition(
+    client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
             {
@@ -1834,11 +1834,6 @@ def test_run_task_default_cluster():
                 "image": "docker/hello-world:latest",
                 "cpu": 1024,
                 "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
     )
@@ -1918,21 +1913,26 @@ def test_run_task_default_cluster_new_arn_format():
 @mock_ecs
 def test_run_task_exceptions():
     client = boto3.client("ecs", region_name="us-east-1")
-    _ = client.register_task_definition(
+    client.register_task_definition(
         family="test_ecs_task",
-        containerDefinitions=[
-            {
-                "name": "hello_world",
-                "image": "docker/hello-world:latest",
-                "cpu": 1024,
-                "memory": 400,
-            }
-        ],
+        containerDefinitions=[{"name": "irrelevant"}],
     )
 
-    client.run_task.when.called_with(
-        cluster="not_a_cluster", taskDefinition="test_ecs_task"
-    ).should.throw(ClientError, ClusterNotFoundException().message)
+    with pytest.raises(ClientError) as exc:
+        client.run_task(cluster="not_a_cluster", taskDefinition="test_ecs_task")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ClusterNotFoundException"
+    assert err["Message"] == "Cluster not found."
+
+    with pytest.raises(ClientError) as exc:
+        client.run_task(
+            cluster="not_a_cluster",
+            taskDefinition="test_ecs_task",
+            launchType="Fargate",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert err["Message"] == "launch type should be one of [EC2,FARGATE,EXTERNAL]"
 
 
 @mock_ec2
@@ -2504,7 +2504,7 @@ def test_task_definitions_unable_to_be_placed():
 
     test_cluster_name = "test_ecs_cluster"
 
-    _ = client.create_cluster(clusterName=test_cluster_name)
+    client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
         ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
@@ -2514,11 +2514,11 @@ def test_task_definitions_unable_to_be_placed():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
-    _ = client.register_task_definition(
+    client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
             {
@@ -2526,20 +2526,13 @@ def test_task_definitions_unable_to_be_placed():
                 "image": "docker/hello-world:latest",
                 "cpu": 5000,
                 "memory": 40000,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
     )
     response = client.run_task(
         cluster="test_ecs_cluster",
-        overrides={},
         taskDefinition="test_ecs_task",
         count=2,
-        startedBy="moto",
     )
     len(response["tasks"]).should.equal(0)
 
@@ -2657,7 +2650,7 @@ def test_attributes():
 
     full_arn2.should_not.equal(
         full_arn1
-    )  # uuid1 isnt unique enough when the pc is fast ;-)
+    )  # uuid1 isn't unique enough when the pc is fast ;-)
 
     # Ok set instance 1 with 1 attribute, instance 2 with another, and all of them with a 3rd.
     ecs_client.put_attributes(
@@ -2918,11 +2911,6 @@ def test_create_service_load_balancing():
                 "image": "docker/hello-world:latest",
                 "cpu": 1024,
                 "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
     )
@@ -3029,11 +3017,6 @@ def test_list_tags_for_resource_ecs_service():
                 "image": "docker/hello-world:latest",
                 "cpu": 1024,
                 "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
     )
@@ -3074,11 +3057,6 @@ def test_ecs_service_tag_resource(long_arn):
                 "image": "docker/hello-world:latest",
                 "cpu": 1024,
                 "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
     )
@@ -3140,11 +3118,6 @@ def test_ecs_service_tag_resource_overwrites_tag():
                 "image": "docker/hello-world:latest",
                 "cpu": 1024,
                 "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
     )
@@ -3186,11 +3159,6 @@ def test_ecs_service_untag_resource():
                 "image": "docker/hello-world:latest",
                 "cpu": 1024,
                 "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
     )
@@ -3222,11 +3190,6 @@ def test_ecs_service_untag_resource_multiple_tags():
                 "image": "docker/hello-world:latest",
                 "cpu": 1024,
                 "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
     )
@@ -3277,11 +3240,6 @@ def test_ecs_task_definition_placement_constraints():
                 "image": "docker/hello-world:latest",
                 "cpu": 1024,
                 "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
         networkMode="bridge",
@@ -3333,9 +3291,6 @@ def test_list_tasks_with_filters():
         "image": "docker/hello-world:latest",
         "cpu": 1024,
         "memory": 400,
-        "essential": True,
-        "environment": [{"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}],
-        "logConfiguration": {"logDriver": "json-file"},
     }
 
     _ = ecs.register_task_definition(
@@ -3465,11 +3420,6 @@ def setup_ecs(client, ec2):
                 "image": "docker/hello-world:latest",
                 "cpu": 1024,
                 "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
     )
@@ -3491,7 +3441,7 @@ def setup_ecs_cluster_with_ec2_instance(client, test_cluster_name):
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
-    _ = client.register_task_definition(
+    client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
             {
@@ -3499,11 +3449,6 @@ def setup_ecs_cluster_with_ec2_instance(client, test_cluster_name):
                 "image": "docker/hello-world:latest",
                 "cpu": 1024,
                 "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
             }
         ],
     )
