@@ -272,7 +272,7 @@ def test_create_resource__validate_name():
     ]["id"]
 
     invalid_names = ["/users", "users/", "users/{user_id}", "us{er", "us+er"]
-    valid_names = ["users", "{user_id}", "{proxy+}", "user_09", "good-dog"]
+    valid_names = ["users", "{user_id}", "{proxy+}", "{pro:xy+}", "us:er_0-9"]
     # All invalid names should throw an exception
     for name in invalid_names:
         with pytest.raises(ClientError) as ex:
