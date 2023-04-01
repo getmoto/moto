@@ -12,4 +12,8 @@ updates:
   - package-ecosystem: "maven"
     directory: "other_langs/tests_java"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+  - package-ecosystem: "nuget"
+    directory: "other_langs/tests_dotnet"
+    schedule:
+      interval: "monthly"
