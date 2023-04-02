@@ -1198,6 +1198,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         launch_type: Optional[str],
         networking_configuration: Optional[Dict[str, Any]] = None,
     ) -> List[Task]:
+        if launch_type and launch_type not in ["EC2", "FARGATE", "EXTERNAL"]:
+            raise InvalidParameterException(
+                "launch type should be one of [EC2,FARGATE,EXTERNAL]"
+            )
+
         cluster = self._get_cluster(cluster_str)
 
         task_definition = self.describe_task_definition(task_definition_str)
