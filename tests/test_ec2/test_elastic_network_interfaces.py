@@ -736,32 +736,52 @@ def test_elastic_network_interfaces_auto_create_securitygroup():
 
 
 @mock_ec2
-def test_assign_private_ip_addresses():
+def test_assign_private_ip_addresses__by_address():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
 
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
 
-    private_ip = "54.0.0.1"
-    eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
+    primary_ip = "54.0.0.1"
+    secondary_ip = "80.0.0.1"
+    eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=primary_ip)
 
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
-    my_eni = resp["NetworkInterfaces"][0]
-    my_eni.should.have.key("PrivateIpAddress").equals("54.0.0.1")
-    my_eni.should.have.key("PrivateIpAddresses").equals(
-        [{"Primary": True, "PrivateIpAddress": "54.0.0.1"}]
+    resp_eni = resp["NetworkInterfaces"][0]
+    resp_eni.should.have.key("PrivateIpAddress").equals(primary_ip)
+    resp_eni.should.have.key("PrivateIpAddresses").equals(
+        [{"Primary": True, "PrivateIpAddress": primary_ip}]
     )
 
-    # Do not pass SecondaryPrivateIpAddressCount-parameter
-    client.assign_private_ip_addresses(NetworkInterfaceId=eni.id)
+    # Pass IP address to assign rather than SecondaryPrivateIpAddressCount.
+    client.assign_private_ip_addresses(
+        NetworkInterfaceId=eni.id, PrivateIpAddresses=[secondary_ip]
+    )
 
-    # Verify nothing changes
+    # Verify secondary IP address is now present.
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
-    my_eni = resp["NetworkInterfaces"][0]
-    my_eni.should.have.key("PrivateIpAddress").equals("54.0.0.1")
-    my_eni.should.have.key("PrivateIpAddresses").equals(
-        [{"Primary": True, "PrivateIpAddress": "54.0.0.1"}]
+    resp_eni = resp["NetworkInterfaces"][0]
+    resp_eni.should.have.key("PrivateIpAddress").equals(primary_ip)
+    resp_eni.should.have.key("PrivateIpAddresses").equals(
+        [
+            {"Primary": True, "PrivateIpAddress": primary_ip},
+            {"Primary": False, "PrivateIpAddress": secondary_ip},
+        ]
+    )
+
+    # Assign the same IP address, this time via the ENI object.
+    eni.assign_private_ip_addresses(PrivateIpAddresses=[secondary_ip])
+
+    # Verify nothing changes.
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    resp_eni = resp["NetworkInterfaces"][0]
+    resp_eni.should.have.key("PrivateIpAddress").equals(primary_ip)
+    resp_eni.should.have.key("PrivateIpAddresses").equals(
+        [
+            {"Primary": True, "PrivateIpAddress": primary_ip},
+            {"Primary": False, "PrivateIpAddress": secondary_ip},
+        ]
     )
 
 
