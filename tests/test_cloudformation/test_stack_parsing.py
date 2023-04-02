@@ -190,6 +190,31 @@ import_value_template = {
         }
     },
 }
+to_json_string_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "DLQ": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": "deadletter",
+                "VisibilityTimeout": 60,
+            },
+        },
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": "test",
+                "RedrivePolicy": {
+                    "Fn::ToJsonString": {
+                        "deadLetterTargetArn": {"Fn::Sub": "${DLQ.Arn}"},
+                        "maxReceiveCount": 1,
+                    }
+                },
+                "VisibilityTimeout": 60,
+            },
+        },
+    },
+}
 
 outputs_template = dict(list(dummy_template.items()) + list(output_dict.items()))
 null_outputs_template = dict(list(dummy_template.items()) + list(null_output.items()))
@@ -221,6 +246,7 @@ sub_num_template_json = json.dumps(sub_num_template)
 sub_mapping_json = json.dumps(sub_mapping_template)
 export_value_template_json = json.dumps(export_value_template)
 import_value_template_json = json.dumps(import_value_template)
+to_json_string_template_json = json.dumps(to_json_string_template)
 
 
 def test_parse_stack_resources():
@@ -594,6 +620,20 @@ def test_import():
 
     queue = import_stack.resource_map["Queue"]
     queue.name.should.equal("value")
+
+
+def test_to_json_string():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=to_json_string_template_json,
+        parameters={},
+        account_id=ACCOUNT_ID,
+        region_name="us-west-1",
+    )
+    queue = stack.resource_map["Queue"]
+    queue.name.should.equal("test")
+    queue.dead_letter_queue.name.should.equal("deadletter")
 
 
 def test_short_form_func_in_yaml_teamplate():
