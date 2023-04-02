@@ -612,6 +612,42 @@
   "Location": "eus1-az1"
  },
  {
+  "InstanceType": "r5b.12xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r5b.16xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r5b.24xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r5b.2xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r5b.4xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r5b.8xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r5b.large",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r5b.metal",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r5b.xlarge",
+  "Location": "eus1-az1"
+ },
+ {
   "InstanceType": "r5d.12xlarge",
   "Location": "eus1-az1"
  },
@@ -1580,6 +1616,42 @@
   "Location": "eus1-az2"
  },
  {
+  "InstanceType": "r5b.12xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r5b.16xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r5b.24xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r5b.2xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r5b.4xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r5b.8xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r5b.large",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r5b.metal",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r5b.xlarge",
+  "Location": "eus1-az2"
+ },
+ {
   "InstanceType": "r5d.12xlarge",
   "Location": "eus1-az2"
  },
@@ -2529,6 +2601,42 @@
  },
  {
   "InstanceType": "r5a.xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r5b.12xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r5b.16xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r5b.24xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r5b.2xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r5b.4xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r5b.8xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r5b.large",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r5b.metal",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r5b.xlarge",
   "Location": "eus1-az3"
  },
  {
