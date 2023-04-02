@@ -2,6 +2,7 @@ import io
 import os
 import os.path
 from threading import Lock
+from typing import Any, Callable, Dict, Optional, Tuple
 
 try:
     from flask import Flask
@@ -49,20 +50,22 @@ SIGNING_ALIASES = {
 SERVICE_BY_VERSION = {"2009-04-15": "sdb"}
 
 
-class DomainDispatcherApplication(object):
+class DomainDispatcherApplication:
     """
     Dispatch requests to different applications based on the "Host:" header
     value. We'll match the host header value with the url_bases of each backend.
     """
 
-    def __init__(self, create_app, service=None):
+    def __init__(
+        self, create_app: Callable[[str], Flask], service: Optional[str] = None
+    ):
         self.create_app = create_app
         self.lock = Lock()
-        self.app_instances = {}
+        self.app_instances: Dict[str, Flask] = {}
         self.service = service
         self.backend_url_patterns = backend_index.backend_url_patterns
 
-    def get_backend_for_host(self, host):
+    def get_backend_for_host(self, host: str) -> Any:
 
         if host == "moto_api":
             return host
@@ -83,7 +86,9 @@ class DomainDispatcherApplication(object):
                 "Remember to add the URL to urls.py, and run scripts/update_backend_index.py to index it."
             )
 
-    def infer_service_region_host(self, body, environ):
+    def infer_service_region_host(
+        self, body: Optional[str], environ: Dict[str, Any]
+    ) -> str:
         auth = environ.get("HTTP_AUTHORIZATION")
         target = environ.get("HTTP_X_AMZ_TARGET")
         service = None
@@ -111,7 +116,7 @@ class DomainDispatcherApplication(object):
                 service, region = UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
             elif action and action in UNSIGNED_ACTIONS:
                 # See if we can match the Action to a known service
-                service, region = UNSIGNED_ACTIONS.get(action)
+                service, region = UNSIGNED_ACTIONS[action]
             if not service:
                 service, region = self.get_service_from_body(body, environ)
             if not service:
@@ -153,7 +158,7 @@ class DomainDispatcherApplication(object):
 
         return host
 
-    def get_application(self, environ):
+    def get_application(self, environ: Dict[str, Any]) -> Flask:
         path_info = environ.get("PATH_INFO", "")
 
         # The URL path might contain non-ASCII text, for instance unicode S3 bucket names
@@ -181,7 +186,7 @@ class DomainDispatcherApplication(object):
                 self.app_instances[backend] = app
             return app
 
-    def _get_body(self, environ):
+    def _get_body(self, environ: Dict[str, Any]) -> Optional[str]:
         body = None
         try:
             # AWS requests use querystrings as the body (Action=x&Data=y&...)
@@ -190,7 +195,7 @@ class DomainDispatcherApplication(object):
             )
             request_body_size = int(environ["CONTENT_LENGTH"])
             if simple_form and request_body_size:
-                body = environ["wsgi.input"].read(request_body_size).decode("utf-8")
+                body = environ["wsgi.input"].read(request_body_size).decode("utf-8")  # type: ignore
         except (KeyError, ValueError):
             pass
         finally:
@@ -199,7 +204,9 @@ class DomainDispatcherApplication(object):
                 environ["wsgi.input"] = io.StringIO(body)
         return body
 
-    def get_service_from_body(self, body, environ):
+    def get_service_from_body(
+        self, body: Optional[str], environ: Dict[str, Any]
+    ) -> Tuple[Optional[str], Optional[str]]:
         # Some services have the SDK Version in the body
         # If the version is unique, we can derive the service from it
         version = self.get_version_from_body(body)
@@ -209,22 +216,24 @@ class DomainDispatcherApplication(object):
             return SERVICE_BY_VERSION[version], region
         return None, None
 
-    def get_version_from_body(self, body):
+    def get_version_from_body(self, body: Optional[str]) -> Optional[str]:
         try:
-            body_dict = dict(x.split("=") for x in body.split("&"))
+            body_dict = dict(x.split("=") for x in body.split("&"))  # type: ignore
             return body_dict["Version"]
         except (AttributeError, KeyError, ValueError):
             return None
 
-    def get_action_from_body(self, body):
+    def get_action_from_body(self, body: Optional[str]) -> Optional[str]:
         try:
             # AWS requests use querystrings as the body (Action=x&Data=y&...)
-            body_dict = dict(x.split("=") for x in body.split("&"))
+            body_dict = dict(x.split("=") for x in body.split("&"))  # type: ignore
             return body_dict["Action"]
         except (AttributeError, KeyError, ValueError):
             return None
 
-    def get_service_from_path(self, environ):
+    def get_service_from_path(
+        self, environ: Dict[str, Any]
+    ) -> Tuple[Optional[str], Optional[str]]:
         # Moto sometimes needs to send a HTTP request to itself
         # In which case it will send a request to 'http://localhost/service_region/whatever'
         try:
@@ -234,12 +243,12 @@ class DomainDispatcherApplication(object):
         except (AttributeError, KeyError, ValueError):
             return None, None
 
-    def __call__(self, environ, start_response):
+    def __call__(self, environ: Dict[str, Any], start_response: Any) -> Any:
         backend_app = self.get_application(environ)
         return backend_app(environ, start_response)
 
 
-def create_backend_app(service):
+def create_backend_app(service: str) -> Flask:
     from werkzeug.routing import Map
 
     current_file = os.path.abspath(__file__)
@@ -249,7 +258,7 @@ def create_backend_app(service):
     # Create the backend_app
     backend_app = Flask("moto", template_folder=template_dir)
     backend_app.debug = True
-    backend_app.service = service
+    backend_app.service = service  # type: ignore[attr-defined]
     CORS(backend_app)
 
     # Reset view functions to reset the app

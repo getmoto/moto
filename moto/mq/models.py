@@ -1,5 +1,6 @@
 import base64
 import xmltodict
+from typing import Any, Dict, List, Iterable, Optional, Tuple
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import unix_time
@@ -17,7 +18,13 @@ from .exceptions import (
 
 
 class ConfigurationRevision(BaseModel):
-    def __init__(self, configuration_id, revision_id, description, data=None):
+    def __init__(
+        self,
+        configuration_id: str,
+        revision_id: str,
+        description: str,
+        data: Optional[str] = None,
+    ):
         self.configuration_id = configuration_id
         self.created = unix_time()
         self.description = description
@@ -31,7 +38,7 @@ class ConfigurationRevision(BaseModel):
         else:
             self.data = data
 
-    def has_ldap_auth(self):
+    def has_ldap_auth(self) -> bool:
         try:
             xml = base64.b64decode(self.data)
             dct = xmltodict.parse(xml, dict_constructor=dict)
@@ -45,7 +52,7 @@ class ConfigurationRevision(BaseModel):
             # If anything fails, lets assume it's not LDAP
             return False
 
-    def to_json(self, full=True):
+    def to_json(self, full: bool = True) -> Dict[str, Any]:
         resp = {
             "created": self.created,
             "description": self.description,
@@ -58,7 +65,14 @@ class ConfigurationRevision(BaseModel):
 
 
 class Configuration(BaseModel):
-    def __init__(self, account_id, region, name, engine_type, engine_version):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        name: str,
+        engine_type: str,
+        engine_version: str,
+    ):
         self.id = f"c-{mock_random.get_random_hex(6)}"
         self.arn = f"arn:aws:mq:{region}:{account_id}:configuration:{self.id}"
         self.created = unix_time()
@@ -67,7 +81,7 @@ class Configuration(BaseModel):
         self.engine_type = engine_type
         self.engine_version = engine_version
 
-        self.revisions = dict()
+        self.revisions: Dict[str, ConfigurationRevision] = dict()
         default_desc = (
             f"Auto-generated default for {self.name} on {engine_type} {engine_version}"
         )
@@ -80,7 +94,7 @@ class Configuration(BaseModel):
             "ldap" if latest_revision.has_ldap_auth() else "simple"
         )
 
-    def update(self, data, description):
+    def update(self, data: str, description: str) -> None:
         max_revision_id, _ = sorted(self.revisions.items())[-1]
         next_revision_id = str(int(max_revision_id) + 1)
         latest_revision = ConfigurationRevision(
@@ -95,10 +109,10 @@ class Configuration(BaseModel):
             "ldap" if latest_revision.has_ldap_auth() else "simple"
         )
 
-    def get_revision(self, revision_id):
+    def get_revision(self, revision_id: str) -> ConfigurationRevision:
         return self.revisions[revision_id]
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         _, latest_revision = sorted(self.revisions.items())[-1]
         return {
             "arn": self.arn,
@@ -113,22 +127,30 @@ class Configuration(BaseModel):
 
 
 class User(BaseModel):
-    def __init__(self, broker_id, username, console_access=None, groups=None):
+    def __init__(
+        self,
+        broker_id: str,
+        username: str,
+        console_access: Optional[bool] = None,
+        groups: Optional[List[str]] = None,
+    ):
         self.broker_id = broker_id
         self.username = username
         self.console_access = console_access or False
         self.groups = groups or []
 
-    def update(self, console_access, groups):
+    def update(
+        self, console_access: Optional[bool], groups: Optional[List[str]]
+    ) -> None:
         if console_access is not None:
             self.console_access = console_access
         if groups:
             self.groups = groups
 
-    def summary(self):
+    def summary(self) -> Dict[str, str]:
         return {"username": self.username}
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         return {
             "brokerId": self.broker_id,
             "username": self.username,
@@ -140,25 +162,25 @@ class User(BaseModel):
 class Broker(BaseModel):
     def __init__(
         self,
-        name,
-        account_id,
-        region,
-        authentication_strategy,
-        auto_minor_version_upgrade,
-        configuration,
-        deployment_mode,
-        encryption_options,
-        engine_type,
-        engine_version,
-        host_instance_type,
-        ldap_server_metadata,
-        logs,
-        maintenance_window_start_time,
-        publicly_accessible,
-        security_groups,
-        storage_type,
-        subnet_ids,
-        users,
+        name: str,
+        account_id: str,
+        region: str,
+        authentication_strategy: str,
+        auto_minor_version_upgrade: bool,
+        configuration: Dict[str, Any],
+        deployment_mode: str,
+        encryption_options: Dict[str, Any],
+        engine_type: str,
+        engine_version: str,
+        host_instance_type: str,
+        ldap_server_metadata: Dict[str, Any],
+        logs: Dict[str, bool],
+        maintenance_window_start_time: Dict[str, str],
+        publicly_accessible: bool,
+        security_groups: List[str],
+        storage_type: str,
+        subnet_ids: List[str],
+        users: List[Dict[str, Any]],
     ):
         self.name = name
         self.id = mock_random.get_random_hex(6)
@@ -206,7 +228,7 @@ class Broker(BaseModel):
             else:
                 self.subnet_ids = ["default-subnet"]
 
-        self.users = dict()
+        self.users: Dict[str, User] = dict()
         for user in users:
             self.create_user(
                 username=user["username"],
@@ -215,13 +237,13 @@ class Broker(BaseModel):
             )
 
         if self.engine_type.upper() == "RABBITMQ":
-            self.configurations = None
+            self.configurations: Optional[Dict[str, Any]] = None
         else:
             current_config = configuration or {
                 "id": f"c-{mock_random.get_random_hex(6)}",
                 "revision": 1,
             }
-            self.configurations = {
+            self.configurations = {  # type: ignore[no-redef]
                 "current": current_config,
                 "history": [],
             }
@@ -256,23 +278,23 @@ class Broker(BaseModel):
 
     def update(
         self,
-        authentication_strategy,
-        auto_minor_version_upgrade,
-        configuration,
-        engine_version,
-        host_instance_type,
-        ldap_server_metadata,
-        logs,
-        maintenance_window_start_time,
-        security_groups,
-    ):
+        authentication_strategy: Optional[str],
+        auto_minor_version_upgrade: Optional[bool],
+        configuration: Optional[Dict[str, Any]],
+        engine_version: Optional[str],
+        host_instance_type: Optional[str],
+        ldap_server_metadata: Optional[Dict[str, Any]],
+        logs: Optional[Dict[str, bool]],
+        maintenance_window_start_time: Optional[Dict[str, str]],
+        security_groups: Optional[List[str]],
+    ) -> None:
         if authentication_strategy:
             self.authentication_strategy = authentication_strategy
         if auto_minor_version_upgrade is not None:
             self.auto_minor_version_upgrade = auto_minor_version_upgrade
         if configuration:
-            self.configurations["history"].append(self.configurations["current"])
-            self.configurations["current"] = configuration
+            self.configurations["history"].append(self.configurations["current"])  # type: ignore[index]
+            self.configurations["current"] = configuration  # type: ignore[index]
         if engine_version:
             self.engine_version = engine_version
         if host_instance_type:
@@ -286,29 +308,33 @@ class Broker(BaseModel):
         if security_groups:
             self.security_groups = security_groups
 
-    def reboot(self):
+    def reboot(self) -> None:
         pass
 
-    def create_user(self, username, console_access, groups):
+    def create_user(
+        self, username: str, console_access: bool, groups: List[str]
+    ) -> None:
         user = User(self.id, username, console_access, groups)
         self.users[username] = user
 
-    def update_user(self, username, console_access, groups):
+    def update_user(
+        self, username: str, console_access: bool, groups: List[str]
+    ) -> None:
         user = self.get_user(username)
         user.update(console_access, groups)
 
-    def get_user(self, username):
+    def get_user(self, username: str) -> User:
         if username not in self.users:
             raise UnknownUser(username)
         return self.users[username]
 
-    def delete_user(self, username):
+    def delete_user(self, username: str) -> None:
         self.users.pop(username, None)
 
-    def list_users(self):
+    def list_users(self) -> Iterable[User]:
         return self.users.values()
 
-    def summary(self):
+    def summary(self) -> Dict[str, Any]:
         return {
             "brokerArn": self.arn,
             "brokerId": self.id,
@@ -320,7 +346,7 @@ class Broker(BaseModel):
             "hostInstanceType": self.host_instance_type,
         }
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         return {
             "brokerId": self.id,
             "brokerArn": self.arn,
@@ -352,33 +378,33 @@ class MQBackend(BaseBackend):
     No EC2 integration exists yet - subnet ID's and security group values are not validated. Default values may not exist.
     """
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.brokers = dict()
-        self.configs = dict()
+        self.brokers: Dict[str, Broker] = dict()
+        self.configs: Dict[str, Configuration] = dict()
         self.tagger = TaggingService()
 
     def create_broker(
         self,
-        authentication_strategy,
-        auto_minor_version_upgrade,
-        broker_name,
-        configuration,
-        deployment_mode,
-        encryption_options,
-        engine_type,
-        engine_version,
-        host_instance_type,
-        ldap_server_metadata,
-        logs,
-        maintenance_window_start_time,
-        publicly_accessible,
-        security_groups,
-        storage_type,
-        subnet_ids,
-        tags,
-        users,
-    ):
+        authentication_strategy: str,
+        auto_minor_version_upgrade: bool,
+        broker_name: str,
+        configuration: Dict[str, Any],
+        deployment_mode: str,
+        encryption_options: Dict[str, Any],
+        engine_type: str,
+        engine_version: str,
+        host_instance_type: str,
+        ldap_server_metadata: Dict[str, Any],
+        logs: Dict[str, bool],
+        maintenance_window_start_time: Dict[str, str],
+        publicly_accessible: bool,
+        security_groups: List[str],
+        storage_type: str,
+        subnet_ids: List[str],
+        tags: Dict[str, str],
+        users: List[Dict[str, Any]],
+    ) -> Tuple[str, str]:
         broker = Broker(
             name=broker_name,
             account_id=self.account_id,
@@ -404,44 +430,50 @@ class MQBackend(BaseBackend):
         self.create_tags(broker.arn, tags)
         return broker.arn, broker.id
 
-    def delete_broker(self, broker_id):
+    def delete_broker(self, broker_id: str) -> None:
         del self.brokers[broker_id]
 
-    def describe_broker(self, broker_id):
+    def describe_broker(self, broker_id: str) -> Broker:
         if broker_id not in self.brokers:
             raise UnknownBroker(broker_id)
         return self.brokers[broker_id]
 
-    def reboot_broker(self, broker_id):
+    def reboot_broker(self, broker_id: str) -> None:
         self.brokers[broker_id].reboot()
 
-    def list_brokers(self):
+    def list_brokers(self) -> Iterable[Broker]:
         """
         Pagination is not yet implemented
         """
         return self.brokers.values()
 
-    def create_user(self, broker_id, username, console_access, groups):
+    def create_user(
+        self, broker_id: str, username: str, console_access: bool, groups: List[str]
+    ) -> None:
         broker = self.describe_broker(broker_id)
         broker.create_user(username, console_access, groups)
 
-    def update_user(self, broker_id, console_access, groups, username):
+    def update_user(
+        self, broker_id: str, console_access: bool, groups: List[str], username: str
+    ) -> None:
         broker = self.describe_broker(broker_id)
         broker.update_user(username, console_access, groups)
 
-    def describe_user(self, broker_id, username):
+    def describe_user(self, broker_id: str, username: str) -> User:
         broker = self.describe_broker(broker_id)
         return broker.get_user(username)
 
-    def delete_user(self, broker_id, username):
+    def delete_user(self, broker_id: str, username: str) -> None:
         broker = self.describe_broker(broker_id)
         broker.delete_user(username)
 
-    def list_users(self, broker_id):
+    def list_users(self, broker_id: str) -> Iterable[User]:
         broker = self.describe_broker(broker_id)
         return broker.list_users()
 
-    def create_configuration(self, name, engine_type, engine_version, tags):
+    def create_configuration(
+        self, name: str, engine_type: str, engine_version: str, tags: Dict[str, str]
+    ) -> Configuration:
         if engine_type.upper() == "RABBITMQ":
             raise UnsupportedEngineType(engine_type)
         if engine_type.upper() != "ACTIVEMQ":
@@ -459,7 +491,9 @@ class MQBackend(BaseBackend):
         )
         return config
 
-    def update_configuration(self, config_id, data, description):
+    def update_configuration(
+        self, config_id: str, data: str, description: str
+    ) -> Configuration:
         """
         No validation occurs on the provided XML. The authenticationStrategy may be changed depending on the provided configuration.
         """
@@ -467,47 +501,49 @@ class MQBackend(BaseBackend):
         config.update(data, description)
         return config
 
-    def describe_configuration(self, config_id):
+    def describe_configuration(self, config_id: str) -> Configuration:
         if config_id not in self.configs:
             raise UnknownConfiguration(config_id)
         return self.configs[config_id]
 
-    def describe_configuration_revision(self, config_id, revision_id):
+    def describe_configuration_revision(
+        self, config_id: str, revision_id: str
+    ) -> ConfigurationRevision:
         config = self.configs[config_id]
         return config.get_revision(revision_id)
 
-    def list_configurations(self):
+    def list_configurations(self) -> Iterable[Configuration]:
         """
         Pagination has not yet been implemented.
         """
         return self.configs.values()
 
-    def create_tags(self, resource_arn, tags):
+    def create_tags(self, resource_arn: str, tags: Dict[str, str]) -> None:
         self.tagger.tag_resource(
             resource_arn, self.tagger.convert_dict_to_tags_input(tags)
         )
 
-    def list_tags(self, arn):
+    def list_tags(self, arn: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(arn)
 
-    def delete_tags(self, resource_arn, tag_keys):
+    def delete_tags(self, resource_arn: str, tag_keys: List[str]) -> None:
         if not isinstance(tag_keys, list):
             tag_keys = [tag_keys]
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def update_broker(
         self,
-        authentication_strategy,
-        auto_minor_version_upgrade,
-        broker_id,
-        configuration,
-        engine_version,
-        host_instance_type,
-        ldap_server_metadata,
-        logs,
-        maintenance_window_start_time,
-        security_groups,
-    ):
+        authentication_strategy: str,
+        auto_minor_version_upgrade: bool,
+        broker_id: str,
+        configuration: Dict[str, Any],
+        engine_version: str,
+        host_instance_type: str,
+        ldap_server_metadata: Dict[str, Any],
+        logs: Dict[str, bool],
+        maintenance_window_start_time: Dict[str, str],
+        security_groups: List[str],
+    ) -> None:
         broker = self.describe_broker(broker_id)
         broker.update(
             authentication_strategy=authentication_strategy,

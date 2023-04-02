@@ -1,3 +1,4 @@
+from typing import Optional
 from moto.core.exceptions import JsonRESTError
 
 
@@ -6,7 +7,7 @@ class MediaStoreClientError(JsonRESTError):
 
 
 class ContainerNotFoundException(MediaStoreClientError):
-    def __init__(self, msg=None):
+    def __init__(self, msg: Optional[str] = None):
         self.code = 400
         super().__init__(
             "ContainerNotFoundException",
@@ -15,7 +16,7 @@ class ContainerNotFoundException(MediaStoreClientError):
 
 
 class ResourceNotFoundException(MediaStoreClientError):
-    def __init__(self, msg=None):
+    def __init__(self, msg: Optional[str] = None):
         self.code = 400
         super().__init__(
             "ResourceNotFoundException", msg or "The specified container does not exist"
@@ -23,7 +24,7 @@ class ResourceNotFoundException(MediaStoreClientError):
 
 
 class PolicyNotFoundException(MediaStoreClientError):
-    def __init__(self, msg=None):
+    def __init__(self, msg: Optional[str] = None):
         self.code = 400
         super().__init__(
             "PolicyNotFoundException",

@@ -206,6 +206,31 @@ def test_start_stop_flow_succeeds():
 
 
 @mock_mediaconnect
+def test_unknown_flow():
+    client = boto3.client("mediaconnect", region_name=region)
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_flow(FlowArn="unknown")
+    assert exc.value.response["Error"]["Code"] == "NotFoundException"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_flow(FlowArn="unknown")
+    assert exc.value.response["Error"]["Code"] == "NotFoundException"
+
+    with pytest.raises(ClientError) as exc:
+        client.start_flow(FlowArn="unknown")
+    assert exc.value.response["Error"]["Code"] == "NotFoundException"
+
+    with pytest.raises(ClientError) as exc:
+        client.stop_flow(FlowArn="unknown")
+    assert exc.value.response["Error"]["Code"] == "NotFoundException"
+
+    with pytest.raises(ClientError) as exc:
+        client.list_tags_for_resource(ResourceArn="unknown")
+    assert exc.value.response["Error"]["Code"] == "NotFoundException"
+
+
+@mock_mediaconnect
 def test_tag_resource_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
 
