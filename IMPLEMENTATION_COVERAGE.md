@@ -5233,6 +5233,18 @@
 - [ ] switchover_read_replica
 </details>
 
+## rds-data
+<details>
+<summary>16% implemented</summary>
+
+- [ ] batch_execute_statement
+- [ ] begin_transaction
+- [ ] commit_transaction
+- [ ] execute_sql
+- [X] execute_statement
+- [ ] rollback_transaction
+</details>
+
 ## redshift
 <details>
 <summary>25% implemented</summary>
@@ -6999,7 +7011,6 @@
 - qldb
 - qldb-session
 - rbin
-- rds-data
 - redshift-serverless
 - resiliencehub
 - resource-explorer-2
