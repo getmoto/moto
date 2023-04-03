@@ -24994,15 +24994,15 @@
    "paravirtual"
   ],
   "VCpuInfo": {
-   "DefaultCores": 2,
-   "DefaultThreadsPerCore": 1,
+   "DefaultCores": 1,
+   "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 2,
    "ValidCores": [
-    1,
-    2
+    1
    ],
    "ValidThreadsPerCore": [
-    1
+    1,
+    2
    ]
   }
  },
@@ -25177,17 +25177,16 @@
    "paravirtual"
   ],
   "VCpuInfo": {
-   "DefaultCores": 4,
-   "DefaultThreadsPerCore": 1,
+   "DefaultCores": 2,
+   "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 4,
    "ValidCores": [
     1,
-    2,
-    3,
-    4
+    2
    ],
    "ValidThreadsPerCore": [
-    1
+    1,
+    2
    ]
   }
  },
@@ -58148,8 +58147,7 @@
    "SustainedClockSpeedInGhz": 3.5
   },
   "SupportedBootModes": [
-   "legacy-bios",
-   "uefi"
+   "legacy-bios"
   ],
   "SupportedRootDeviceTypes": [
    "ebs"
@@ -58286,8 +58284,7 @@
    "SustainedClockSpeedInGhz": 3.5
   },
   "SupportedBootModes": [
-   "legacy-bios",
-   "uefi"
+   "legacy-bios"
   ],
   "SupportedRootDeviceTypes": [
    "ebs"

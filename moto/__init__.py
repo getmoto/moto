@@ -123,6 +123,7 @@ mock_polly = lazy_load(".polly", "mock_polly")
 mock_quicksight = lazy_load(".quicksight", "mock_quicksight")
 mock_ram = lazy_load(".ram", "mock_ram")
 mock_rds = lazy_load(".rds", "mock_rds")
+mock_rdsdata = lazy_load(".rdsdata", "mock_rdsdata")
 mock_redshift = lazy_load(".redshift", "mock_redshift")
 mock_redshiftdata = lazy_load(
     ".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data"

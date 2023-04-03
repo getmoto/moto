@@ -1168,6 +1168,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -2646,6 +2655,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -7308,6 +7326,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "schemas": {
                 "Value": "schemas",
                 "endpoint": {
@@ -8688,6 +8715,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -9121,6 +9157,15 @@
                 "Value": "appsync",
                 "endpoint": {
                   "Value": "appsync.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "arc-zonal-shift": {
+                "Value": "arc-zonal-shift",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -10659,6 +10704,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "schemas": {
                 "Value": "schemas",
                 "endpoint": {
@@ -11093,6 +11147,15 @@
                 "Value": "acm",
                 "endpoint": {
                   "Value": "acm.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11575,6 +11638,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -11588,6 +11660,24 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "service-quotas": {
+                "Value": "service-quotas",
+                "endpoint": {
+                  "Value": "servicequotas.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "servicecatalog": {
+                "Value": "servicecatalog",
+                "endpoint": {
+                  "Value": "servicecatalog.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11693,6 +11783,24 @@
                 "Value": "vpn",
                 "endpoint": {
                   "Value": "ec2.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf": {
+                "Value": "waf",
+                "endpoint": {
+                  "Value": "wafv2.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf-regional": {
+                "Value": "waf-regional",
+                "endpoint": {
+                  "Value": "waf-regional.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -17576,6 +17684,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -18291,10 +18408,37 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
                   "Value": "secretsmanager.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "service-quotas": {
+                "Value": "service-quotas",
+                "endpoint": {
+                  "Value": "servicequotas.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "servicecatalog": {
+                "Value": "servicecatalog",
+                "endpoint": {
+                  "Value": "servicecatalog.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -18400,6 +18544,24 @@
                 "Value": "vpn",
                 "endpoint": {
                   "Value": "ec2.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf": {
+                "Value": "waf",
+                "endpoint": {
+                  "Value": "wafv2.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf-regional": {
+                "Value": "waf-regional",
+                "endpoint": {
+                  "Value": "waf-regional.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20162,6 +20324,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25667,6 +25838,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "apigateway": {
                 "Value": "apigateway",
                 "endpoint": {
@@ -26189,6 +26369,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -26202,6 +26391,24 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "service-quotas": {
+                "Value": "service-quotas",
+                "endpoint": {
+                  "Value": "servicequotas.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "servicecatalog": {
+                "Value": "servicecatalog",
+                "endpoint": {
+                  "Value": "servicecatalog.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26316,6 +26523,24 @@
                 "Value": "vpn",
                 "endpoint": {
                   "Value": "ec2.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf": {
+                "Value": "waf",
+                "endpoint": {
+                  "Value": "wafv2.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf-regional": {
+                "Value": "waf-regional",
+                "endpoint": {
+                  "Value": "waf-regional.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29317,6 +29542,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -29628,6 +29862,15 @@
                 "Value": "acm",
                 "endpoint": {
                   "Value": "acm.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30110,6 +30353,42 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "sagemaker": {
+                "Value": "sagemaker",
+                "endpoint": {
+                  "Value": "api.sagemaker.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -30123,6 +30402,24 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "service-quotas": {
+                "Value": "service-quotas",
+                "endpoint": {
+                  "Value": "servicequotas.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "servicecatalog": {
+                "Value": "servicecatalog",
+                "endpoint": {
+                  "Value": "servicecatalog.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30228,6 +30525,24 @@
                 "Value": "vpn",
                 "endpoint": {
                   "Value": "ec2.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf": {
+                "Value": "waf",
+                "endpoint": {
+                  "Value": "wafv2.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf-regional": {
+                "Value": "waf-regional",
+                "endpoint": {
+                  "Value": "waf-regional.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31935,6 +32250,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "monitron": {
+                "Value": "monitron"
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -33083,6 +33401,15 @@
                 "Value": "aps",
                 "endpoint": {
                   "Value": "aps.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "arc-zonal-shift": {
+                "Value": "arc-zonal-shift",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -34771,6 +35098,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "schemas": {
                 "Value": "schemas",
                 "endpoint": {
@@ -34902,6 +35238,9 @@
                 "endpoint": {
                   "Value": "snowball.eu-west-2.amazonaws.com"
                 }
+              },
+              "snowcone": {
+                "Value": "snowcone"
               },
               "sns": {
                 "Value": "sns",
@@ -35351,6 +35690,15 @@
                 "Value": "appsync",
                 "endpoint": {
                   "Value": "appsync.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "arc-zonal-shift": {
+                "Value": "arc-zonal-shift",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36628,6 +36976,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "schemas": {
                 "Value": "schemas",
                 "endpoint": {
@@ -37529,6 +37886,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "lakeformation": {
+                "Value": "lakeformation",
+                "endpoint": {
+                  "Value": "lakeformation.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "lambda": {
                 "Value": "lambda",
                 "endpoint": {
@@ -37554,6 +37920,15 @@
                 "Value": "meteringmarketplace",
                 "endpoint": {
                   "Value": "metering.marketplace.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -37731,6 +38106,15 @@
                 "Value": "sagemaker-runtime",
                 "endpoint": {
                   "Value": "runtime.sagemaker.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -39138,6 +39522,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -39608,6 +40001,15 @@
                 "Value": "appsync",
                 "endpoint": {
                   "Value": "appsync.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "arc-zonal-shift": {
+                "Value": "arc-zonal-shift",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40886,6 +41288,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -43248,6 +43659,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "monitron": {
+                "Value": "monitron"
               },
               "mq": {
                 "Value": "mq",
@@ -49416,6 +49830,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "wickr": {
+                "Value": "wickr",
+                "endpoint": {
+                  "Value": "messaging.wickr.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "workspaces": {
                 "Value": "workspaces",
                 "endpoint": {
@@ -50927,6 +51350,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

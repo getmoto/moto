@@ -246,6 +246,14 @@ def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
                 result.append(f"{region}{az}")
             return result
 
+        if "Fn::ToJsonString" in resource_json:
+            return json.dumps(
+                clean_json(
+                    resource_json["Fn::ToJsonString"],
+                    resources_map,
+                )
+            )
+
         cleaned_json = {}
         for key, value in resource_json.items():
             cleaned_val = clean_json(value, resources_map)

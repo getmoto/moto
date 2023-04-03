@@ -121,6 +121,7 @@ backend_url_patterns = [
     ("ram", re.compile("https?://ram\\.(.+)\\.amazonaws.com")),
     ("rds", re.compile("https?://rds\\.(.+)\\.amazonaws\\.com")),
     ("rds", re.compile("https?://rds\\.amazonaws\\.com")),
+    ("rdsdata", re.compile("https?://rds-data\\.(.+)\\.amazonaws\\.com")),
     ("redshift", re.compile("https?://redshift\\.(.+)\\.amazonaws\\.com")),
     ("redshift-data", re.compile("https?://redshift-data\\.(.+)\\.amazonaws\\.com")),
     ("rekognition", re.compile("https?://rekognition\\.(.+)\\.amazonaws\\.com")),

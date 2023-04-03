@@ -376,12 +376,22 @@ class NetworkInterfaceBackend:
         return eni
 
     def assign_private_ip_addresses(
-        self, eni_id: str, secondary_ips_count: Optional[int] = None
+        self,
+        eni_id: str,
+        private_ip_addresses: Optional[List[str]] = None,
+        secondary_ips_count: Optional[int] = None,
     ) -> NetworkInterface:
         eni = self.get_network_interface(eni_id)
         eni_assigned_ips = [
             item.get("PrivateIpAddress") for item in eni.private_ip_addresses
         ]
+        if private_ip_addresses:
+            eni.private_ip_addresses.extend(
+                {"Primary": False, "PrivateIpAddress": ip}
+                for ip in private_ip_addresses
+                if ip not in eni_assigned_ips
+            )
+            return eni
         while secondary_ips_count:
             ip = random_private_ip(eni.subnet.cidr_block)
             if ip not in eni_assigned_ips:
@@ -399,7 +409,9 @@ class NetworkInterfaceBackend:
     ) -> NetworkInterface:
         eni = self.get_network_interface(eni_id)
         if ipv6_addresses:
-            eni.ipv6_addresses.extend(ipv6_addresses)
+            eni.ipv6_addresses.extend(
+                (ip for ip in ipv6_addresses if ip not in eni.ipv6_addresses)
+            )
 
         while ipv6_count:
             association = list(eni.subnet.ipv6_cidr_block_associations.values())[0]
