@@ -1,11 +1,12 @@
 from collections import OrderedDict
+from typing import Any, Dict, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api._internal import mock_random
 
 
 class Input(BaseModel):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         self.arn = kwargs.get("arn")
         self.attached_channels = kwargs.get("attached_channels", [])
         self.destinations = kwargs.get("destinations", [])
@@ -23,8 +24,8 @@ class Input(BaseModel):
         self.tags = kwargs.get("tags")
         self.input_type = kwargs.get("input_type")
 
-    def to_dict(self):
-        data = {
+    def to_dict(self) -> Dict[str, Any]:
+        return {
             "arn": self.arn,
             "attachedChannels": self.attached_channels,
             "destinations": self.destinations,
@@ -41,9 +42,8 @@ class Input(BaseModel):
             "tags": self.tags,
             "type": self.input_type,
         }
-        return data
 
-    def _resolve_transient_states(self):
+    def _resolve_transient_states(self) -> None:
         # Resolve transient states before second call
         # (to simulate AWS taking its sweet time with these things)
         if self.state in ["CREATING"]:
@@ -53,7 +53,7 @@ class Input(BaseModel):
 
 
 class Channel(BaseModel):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         self.arn = kwargs.get("arn")
         self.cdi_input_specification = kwargs.get("cdi_input_specification")
         self.channel_class = kwargs.get("channel_class", "STANDARD")
@@ -71,7 +71,7 @@ class Channel(BaseModel):
         self.tags = kwargs.get("tags")
         self._previous_state = None
 
-    def to_dict(self, exclude=None):
+    def to_dict(self, exclude: Optional[List[str]] = None) -> Dict[str, Any]:
         data = {
             "arn": self.arn,
             "cdiInputSpecification": self.cdi_input_specification,
@@ -97,7 +97,7 @@ class Channel(BaseModel):
                 del data[key]
         return data
 
-    def _resolve_transient_states(self):
+    def _resolve_transient_states(self) -> None:
         # Resolve transient states before second call
         # (to simulate AWS taking its sweet time with these things)
         if self.state in ["CREATING", "STOPPING"]:
@@ -112,24 +112,24 @@ class Channel(BaseModel):
 
 
 class MediaLiveBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._channels = OrderedDict()
-        self._inputs = OrderedDict()
+        self._channels: Dict[str, Channel] = OrderedDict()
+        self._inputs: Dict[str, Input] = OrderedDict()
 
     def create_channel(
         self,
-        cdi_input_specification,
-        channel_class,
-        destinations,
-        encoder_settings,
-        input_attachments,
-        input_specification,
-        log_level,
-        name,
-        role_arn,
-        tags,
-    ):
+        cdi_input_specification: Dict[str, Any],
+        channel_class: str,
+        destinations: List[Dict[str, Any]],
+        encoder_settings: Dict[str, Any],
+        input_attachments: List[Dict[str, Any]],
+        input_specification: Dict[str, str],
+        log_level: str,
+        name: str,
+        role_arn: str,
+        tags: Dict[str, str],
+    ) -> Channel:
         """
         The RequestID and Reserved parameters are not yet implemented
         """
@@ -155,47 +155,49 @@ class MediaLiveBackend(BaseBackend):
         self._channels[channel_id] = channel
         return channel
 
-    def list_channels(self, max_results, next_token):
+    def list_channels(self, max_results: Optional[int]) -> List[Dict[str, Any]]:
+        """
+        Pagination is not yet implemented
+        """
         channels = list(self._channels.values())
         if max_results is not None:
             channels = channels[:max_results]
-        response_channels = [
+        return [
             c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
         ]
-        return response_channels, next_token
 
-    def describe_channel(self, channel_id):
+    def describe_channel(self, channel_id: str) -> Channel:
         channel = self._channels[channel_id]
         channel._resolve_transient_states()
-        return channel.to_dict()
+        return channel
 
-    def delete_channel(self, channel_id):
+    def delete_channel(self, channel_id: str) -> Channel:
         channel = self._channels[channel_id]
         channel.state = "DELETING"
-        return channel.to_dict()
+        return channel
 
-    def start_channel(self, channel_id):
+    def start_channel(self, channel_id: str) -> Channel:
         channel = self._channels[channel_id]
         channel.state = "STARTING"
-        return channel.to_dict()
+        return channel
 
-    def stop_channel(self, channel_id):
+    def stop_channel(self, channel_id: str) -> Channel:
         channel = self._channels[channel_id]
         channel.state = "STOPPING"
-        return channel.to_dict()
+        return channel
 
     def update_channel(
         self,
-        channel_id,
-        cdi_input_specification,
-        destinations,
-        encoder_settings,
-        input_attachments,
-        input_specification,
-        log_level,
-        name,
-        role_arn,
-    ):
+        channel_id: str,
+        cdi_input_specification: Dict[str, str],
+        destinations: List[Dict[str, Any]],
+        encoder_settings: Dict[str, Any],
+        input_attachments: List[Dict[str, Any]],
+        input_specification: Dict[str, str],
+        log_level: str,
+        name: str,
+        role_arn: str,
+    ) -> Channel:
         channel = self._channels[channel_id]
         channel.cdi_input_specification = cdi_input_specification
         channel.destinations = destinations
@@ -214,16 +216,16 @@ class MediaLiveBackend(BaseBackend):
 
     def create_input(
         self,
-        destinations,
-        input_devices,
-        input_security_groups,
-        media_connect_flows,
-        name,
-        role_arn,
-        sources,
-        tags,
-        input_type,
-    ):
+        destinations: List[Dict[str, str]],
+        input_devices: List[Dict[str, str]],
+        input_security_groups: List[str],
+        media_connect_flows: List[Dict[str, str]],
+        name: str,
+        role_arn: str,
+        sources: List[Dict[str, str]],
+        tags: Dict[str, str],
+        input_type: str,
+    ) -> Input:
         """
         The VPC and RequestId parameters are not yet implemented
         """
@@ -246,34 +248,35 @@ class MediaLiveBackend(BaseBackend):
         self._inputs[input_id] = a_input
         return a_input
 
-    def describe_input(self, input_id):
+    def describe_input(self, input_id: str) -> Input:
         a_input = self._inputs[input_id]
         a_input._resolve_transient_states()
-        return a_input.to_dict()
+        return a_input
 
-    def list_inputs(self, max_results, next_token):
+    def list_inputs(self, max_results: Optional[int]) -> List[Dict[str, Any]]:
+        """
+        Pagination is not yet implemented
+        """
         inputs = list(self._inputs.values())
         if max_results is not None:
             inputs = inputs[:max_results]
-        response_inputs = [i.to_dict() for i in inputs]
-        return response_inputs, next_token
+        return [i.to_dict() for i in inputs]
 
-    def delete_input(self, input_id):
+    def delete_input(self, input_id: str) -> None:
         a_input = self._inputs[input_id]
         a_input.state = "DELETING"
-        return a_input.to_dict()
 
     def update_input(
         self,
-        destinations,
-        input_devices,
-        input_id,
-        input_security_groups,
-        media_connect_flows,
-        name,
-        role_arn,
-        sources,
-    ):
+        destinations: List[Dict[str, str]],
+        input_devices: List[Dict[str, str]],
+        input_id: str,
+        input_security_groups: List[str],
+        media_connect_flows: List[Dict[str, str]],
+        name: str,
+        role_arn: str,
+        sources: List[Dict[str, str]],
+    ) -> Input:
         a_input = self._inputs[input_id]
         a_input.destinations = destinations
         a_input.input_devices = input_devices
