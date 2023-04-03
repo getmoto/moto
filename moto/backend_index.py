@@ -92,6 +92,7 @@ backend_url_patterns = [
         re.compile("https?://.*\\.kinesisvideo\\.(.+)\\.amazonaws.com"),
     ),
     ("kms", re.compile("https?://kms\\.(.+)\\.amazonaws\\.com")),
+    ("lakeformation", re.compile("https?://lakeformation\\.(.+)\\.amazonaws\\.com")),
     ("lambda", re.compile("https?://lambda\\.(.+)\\.amazonaws\\.com")),
     ("logs", re.compile("https?://logs\\.(.+)\\.amazonaws\\.com")),
     (

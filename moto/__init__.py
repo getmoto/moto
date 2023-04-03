@@ -102,6 +102,7 @@ mock_kinesisvideoarchivedmedia = lazy_load(
     boto3_name="kinesis-video-archived-media",
 )
 mock_kms = lazy_load(".kms", "mock_kms")
+mock_lakeformation = lazy_load(".lakeformation", "mock_lakeformation")
 mock_logs = lazy_load(".logs", "mock_logs")
 mock_managedblockchain = lazy_load(".managedblockchain", "mock_managedblockchain")
 mock_mediaconnect = lazy_load(".mediaconnect", "mock_mediaconnect")
