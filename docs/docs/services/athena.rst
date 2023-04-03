@@ -85,7 +85,7 @@ athena
             }
             resp = requests.post(
                 "http://motoapi.amazonaws.com:5000/moto-api/static/athena/query-results",
-                json=athena_result,
+                json=expected_results,
             )
             resp.status_code.should.equal(201)
 
