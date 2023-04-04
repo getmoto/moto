@@ -156,6 +156,17 @@ class LogStream(BaseModel):
                 log_stream_name,
                 formatted_log_events,  # type: ignore
             )
+        elif service == "kinesis":
+            from moto.kinesis import kinesis_backends
+
+            kinesis = kinesis_backends[self.account_id][self.region]
+            kinesis.send_log_event(
+                self.destination_arn,
+                self.filter_name,
+                log_group_name,
+                log_stream_name,
+                formatted_log_events,  # type: ignore
+            )
 
         return f"{self.upload_sequence_token:056d}"
 
@@ -985,6 +996,16 @@ class LogsBackend(BaseBackend):
                     "Could not deliver test message to specified Firehose "
                     "stream. Check if the given Firehose stream is in ACTIVE "
                     "state."
+                )
+        elif service == "kinesis":
+            from moto.kinesis import kinesis_backends
+
+            kinesis = kinesis_backends[self.account_id][self.region_name]
+            try:
+                kinesis.describe_stream(stream_arn=destination_arn, stream_name=None)
+            except Exception:
+                raise InvalidParameterException(
+                    "Could not deliver test message to specified Kinesis stream. Verify the stream exists "
                 )
         else:
             # TODO: support Kinesis stream destinations
