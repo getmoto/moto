@@ -1,64 +1,65 @@
 import json
+from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
-from .models import organizations_backends
+from .models import organizations_backends, OrganizationsBackend
 
 
 class OrganizationsResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="organizations")
 
     @property
-    def organizations_backend(self):
+    def organizations_backend(self) -> OrganizationsBackend:
         return organizations_backends[self.current_account]["global"]
 
     @property
-    def request_params(self):
+    def request_params(self) -> Dict[str, Any]:  # type: ignore[misc]
         try:
             return json.loads(self.body)
         except ValueError:
             return {}
 
-    def _get_param(self, param_name, if_none=None):
+    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         return self.request_params.get(param_name, if_none)
 
-    def create_organization(self):
+    def create_organization(self) -> str:
         return json.dumps(
             self.organizations_backend.create_organization(**self.request_params)
         )
 
-    def describe_organization(self):
+    def describe_organization(self) -> str:
         return json.dumps(self.organizations_backend.describe_organization())
 
-    def delete_organization(self):
-        return json.dumps(self.organizations_backend.delete_organization())
+    def delete_organization(self) -> str:
+        self.organizations_backend.delete_organization()
+        return "{}"
 
-    def list_roots(self):
+    def list_roots(self) -> str:
         return json.dumps(self.organizations_backend.list_roots())
 
-    def create_organizational_unit(self):
+    def create_organizational_unit(self) -> str:
         return json.dumps(
             self.organizations_backend.create_organizational_unit(**self.request_params)
         )
 
-    def delete_organizational_unit(self):
-        return json.dumps(
-            self.organizations_backend.delete_organizational_unit(**self.request_params)
-        )
+    def delete_organizational_unit(self) -> str:
+        self.organizations_backend.delete_organizational_unit(**self.request_params)
+        return "{}"
 
-    def update_organizational_unit(self):
+    def update_organizational_unit(self) -> str:
         return json.dumps(
             self.organizations_backend.update_organizational_unit(**self.request_params)
         )
 
-    def describe_organizational_unit(self):
+    def describe_organizational_unit(self) -> str:
         return json.dumps(
             self.organizations_backend.describe_organizational_unit(
                 **self.request_params
             )
         )
 
-    def list_organizational_units_for_parent(self):
+    def list_organizational_units_for_parent(self) -> str:
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
         parent_id = self._get_param("ParentId")
@@ -73,39 +74,38 @@ class OrganizationsResponse(BaseResponse):
             response["NextToken"] = next_token
         return json.dumps(response)
 
-    def list_parents(self):
+    def list_parents(self) -> str:
         return json.dumps(
             self.organizations_backend.list_parents(**self.request_params)
         )
 
-    def create_account(self):
+    def create_account(self) -> str:
         return json.dumps(
             self.organizations_backend.create_account(**self.request_params)
         )
 
-    def close_account(self):
-        return json.dumps(
-            self.organizations_backend.close_account(**self.request_params)
-        )
+    def close_account(self) -> str:
+        self.organizations_backend.close_account(**self.request_params)
+        return "{}"
 
-    def describe_account(self):
+    def describe_account(self) -> str:
         return json.dumps(
             self.organizations_backend.describe_account(**self.request_params)
         )
 
-    def describe_create_account_status(self):
+    def describe_create_account_status(self) -> str:
         return json.dumps(
             self.organizations_backend.describe_create_account_status(
                 **self.request_params
             )
         )
 
-    def list_create_account_status(self):
+    def list_create_account_status(self) -> str:
         return json.dumps(
             self.organizations_backend.list_create_account_status(**self.request_params)
         )
 
-    def list_accounts(self):
+    def list_accounts(self) -> str:
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
         accounts, next_token = self.organizations_backend.list_accounts(
@@ -116,7 +116,7 @@ class OrganizationsResponse(BaseResponse):
             response["NextToken"] = next_token
         return json.dumps(response)
 
-    def list_accounts_for_parent(self):
+    def list_accounts_for_parent(self) -> str:
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
         parent_id = self._get_param("ParentId")
@@ -128,129 +128,119 @@ class OrganizationsResponse(BaseResponse):
             response["NextToken"] = next_token
         return json.dumps(response)
 
-    def move_account(self):
-        return json.dumps(
-            self.organizations_backend.move_account(**self.request_params)
-        )
+    def move_account(self) -> str:
+        self.organizations_backend.move_account(**self.request_params)
+        return "{}"
 
-    def list_children(self):
+    def list_children(self) -> str:
         return json.dumps(
             self.organizations_backend.list_children(**self.request_params)
         )
 
-    def create_policy(self):
+    def create_policy(self) -> str:
         return json.dumps(
             self.organizations_backend.create_policy(**self.request_params)
         )
 
-    def describe_policy(self):
+    def describe_policy(self) -> str:
         return json.dumps(
             self.organizations_backend.describe_policy(**self.request_params)
         )
 
-    def update_policy(self):
+    def update_policy(self) -> str:
         return json.dumps(
             self.organizations_backend.update_policy(**self.request_params)
         )
 
-    def attach_policy(self):
-        return json.dumps(
-            self.organizations_backend.attach_policy(**self.request_params)
-        )
+    def attach_policy(self) -> str:
+        self.organizations_backend.attach_policy(**self.request_params)
+        return "{}"
 
-    def list_policies(self):
+    def list_policies(self) -> str:
         return json.dumps(self.organizations_backend.list_policies())
 
-    def delete_policy(self):
+    def delete_policy(self) -> str:
         self.organizations_backend.delete_policy(**self.request_params)
         return json.dumps({})
 
-    def list_policies_for_target(self):
+    def list_policies_for_target(self) -> str:
         return json.dumps(
             self.organizations_backend.list_policies_for_target(**self.request_params)
         )
 
-    def list_targets_for_policy(self):
+    def list_targets_for_policy(self) -> str:
         return json.dumps(
             self.organizations_backend.list_targets_for_policy(**self.request_params)
         )
 
-    def tag_resource(self):
-        return json.dumps(
-            self.organizations_backend.tag_resource(**self.request_params)
-        )
+    def tag_resource(self) -> str:
+        self.organizations_backend.tag_resource(**self.request_params)
+        return "{}"
 
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> str:
         return json.dumps(
             self.organizations_backend.list_tags_for_resource(**self.request_params)
         )
 
-    def untag_resource(self):
-        return json.dumps(
-            self.organizations_backend.untag_resource(**self.request_params)
-        )
+    def untag_resource(self) -> str:
+        self.organizations_backend.untag_resource(**self.request_params)
+        return "{}"
 
-    def enable_aws_service_access(self):
-        return json.dumps(
-            self.organizations_backend.enable_aws_service_access(**self.request_params)
-        )
+    def enable_aws_service_access(self) -> str:
+        self.organizations_backend.enable_aws_service_access(**self.request_params)
+        return "{}"
 
-    def list_aws_service_access_for_organization(self):
+    def list_aws_service_access_for_organization(self) -> str:
         return json.dumps(
             self.organizations_backend.list_aws_service_access_for_organization()
         )
 
-    def disable_aws_service_access(self):
-        return json.dumps(
-            self.organizations_backend.disable_aws_service_access(**self.request_params)
-        )
+    def disable_aws_service_access(self) -> str:
+        self.organizations_backend.disable_aws_service_access(**self.request_params)
+        return "{}"
 
-    def register_delegated_administrator(self):
-        return json.dumps(
-            self.organizations_backend.register_delegated_administrator(
-                **self.request_params
-            )
+    def register_delegated_administrator(self) -> str:
+        self.organizations_backend.register_delegated_administrator(
+            **self.request_params
         )
+        return "{}"
 
-    def list_delegated_administrators(self):
+    def list_delegated_administrators(self) -> str:
         return json.dumps(
             self.organizations_backend.list_delegated_administrators(
                 **self.request_params
             )
         )
 
-    def list_delegated_services_for_account(self):
+    def list_delegated_services_for_account(self) -> str:
         return json.dumps(
             self.organizations_backend.list_delegated_services_for_account(
                 **self.request_params
             )
         )
 
-    def deregister_delegated_administrator(self):
-        return json.dumps(
-            self.organizations_backend.deregister_delegated_administrator(
-                **self.request_params
-            )
+    def deregister_delegated_administrator(self) -> str:
+        self.organizations_backend.deregister_delegated_administrator(
+            **self.request_params
         )
+        return "{}"
 
-    def enable_policy_type(self):
+    def enable_policy_type(self) -> str:
         return json.dumps(
             self.organizations_backend.enable_policy_type(**self.request_params)
         )
 
-    def disable_policy_type(self):
+    def disable_policy_type(self) -> str:
         return json.dumps(
             self.organizations_backend.disable_policy_type(**self.request_params)
         )
 
-    def detach_policy(self):
-        return json.dumps(
-            self.organizations_backend.detach_policy(**self.request_params)
-        )
+    def detach_policy(self) -> str:
+        self.organizations_backend.detach_policy(**self.request_params)
+        return "{}"
 
-    def remove_account_from_organization(self):
-        return json.dumps(
-            self.organizations_backend.remove_account_from_organization(
-                **self.request_params
-            )
+    def remove_account_from_organization(self) -> str:
+        self.organizations_backend.remove_account_from_organization(
+            **self.request_params
         )
+        return "{}"

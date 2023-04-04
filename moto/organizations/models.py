@@ -1,6 +1,7 @@
 import datetime
 import re
 import json
+from typing import Any, Dict, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.exceptions import RESTError
@@ -25,7 +26,7 @@ from .utils import PAGINATION_MODEL
 
 
 class FakeOrganization(BaseModel):
-    def __init__(self, account_id, feature_set):
+    def __init__(self, account_id: str, feature_set: str):
         self.id = utils.make_random_org_id()
         self.root_id = utils.make_random_root_id()
         self.feature_set = feature_set
@@ -39,14 +40,14 @@ class FakeOrganization(BaseModel):
         ]
 
     @property
-    def arn(self):
+    def arn(self) -> str:
         return utils.ORGANIZATION_ARN_FORMAT.format(self.master_account_id, self.id)
 
     @property
-    def master_account_arn(self):
+    def master_account_arn(self) -> str:
         return utils.MASTER_ACCOUNT_ARN_FORMAT.format(self.master_account_id, self.id)
 
-    def describe(self):
+    def describe(self) -> Dict[str, Any]:
         return {
             "Organization": {
                 "Id": self.id,
@@ -61,7 +62,7 @@ class FakeOrganization(BaseModel):
 
 
 class FakeAccount(BaseModel):
-    def __init__(self, organization, **kwargs):
+    def __init__(self, organization: FakeOrganization, **kwargs: Any):
         self.type = "ACCOUNT"
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
@@ -73,17 +74,17 @@ class FakeAccount(BaseModel):
         self.status = "ACTIVE"
         self.joined_method = "CREATED"
         self.parent_id = organization.root_id
-        self.attached_policies = []
+        self.attached_policies: List[FakePolicy] = []
         self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
     @property
-    def arn(self):
+    def arn(self) -> str:
         return utils.ACCOUNT_ARN_FORMAT.format(
             self.master_account_id, self.organization_id, self.id
         )
 
     @property
-    def create_account_status(self):
+    def create_account_status(self) -> Dict[str, Any]:  # type: ignore[misc]
         return {
             "CreateAccountStatus": {
                 "Id": self.create_account_status_id,
@@ -95,7 +96,7 @@ class FakeAccount(BaseModel):
             }
         }
 
-    def describe(self):
+    def describe(self) -> Dict[str, Any]:
         return {
             "Id": self.id,
             "Arn": self.arn,
@@ -106,14 +107,14 @@ class FakeAccount(BaseModel):
             "JoinedTimestamp": unix_time(self.create_time),
         }
 
-    def close(self):
+    def close(self) -> None:
         # TODO: The CloseAccount spec allows the account to pass through a
-        # "PENDING_CLOSURE" state before reaching the SUSPNEDED state.
+        # "PENDING_CLOSURE" state before reaching the SUSPENDED state.
         self.status = "SUSPENDED"
 
 
 class FakeOrganizationalUnit(BaseModel):
-    def __init__(self, organization, **kwargs):
+    def __init__(self, organization: FakeOrganization, **kwargs: Any):
         self.type = "ORGANIZATIONAL_UNIT"
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
@@ -121,16 +122,16 @@ class FakeOrganizationalUnit(BaseModel):
         self.name = kwargs.get("Name")
         self.parent_id = kwargs.get("ParentId")
         self._arn_format = utils.OU_ARN_FORMAT
-        self.attached_policies = []
+        self.attached_policies: List[FakePolicy] = []
         self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
     @property
-    def arn(self):
+    def arn(self) -> str:
         return self._arn_format.format(
             self.master_account_id, self.organization_id, self.id
         )
 
-    def describe(self):
+    def describe(self) -> Dict[str, Dict[str, Any]]:
         return {
             "OrganizationalUnit": {"Id": self.id, "Arn": self.arn, "Name": self.name}
         }
@@ -144,17 +145,17 @@ class FakeRoot(FakeOrganizationalUnit):
         "TAG_POLICY",
     ]
 
-    def __init__(self, organization, **kwargs):
+    def __init__(self, organization: FakeOrganization, **kwargs: Any):
         super().__init__(organization, **kwargs)
         self.type = "ROOT"
         self.id = organization.root_id
         self.name = "Root"
-        self.policy_types = []
+        self.policy_types: List[Dict[str, str]] = []
         self._arn_format = utils.ROOT_ARN_FORMAT
         self.attached_policies = []
         self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
-    def describe(self):
+    def describe(self) -> Dict[str, Any]:
         return {
             "Id": self.id,
             "Arn": self.arn,
@@ -162,7 +163,7 @@ class FakeRoot(FakeOrganizationalUnit):
             "PolicyTypes": self.policy_types,
         }
 
-    def add_policy_type(self, policy_type):
+    def add_policy_type(self, policy_type: str) -> None:
         if policy_type not in self.SUPPORTED_POLICY_TYPES:
             raise InvalidInputException("You specified an invalid value.")
 
@@ -171,7 +172,7 @@ class FakeRoot(FakeOrganizationalUnit):
 
         self.policy_types.append({"Type": policy_type, "Status": "ENABLED"})
 
-    def remove_policy_type(self, policy_type):
+    def remove_policy_type(self, policy_type: str) -> None:
         if not FakePolicy.supported_policy_type(policy_type):
             raise InvalidInputException("You specified an invalid value.")
 
@@ -189,16 +190,16 @@ class FakePolicy(BaseModel):
         "TAG_POLICY",
     ]
 
-    def __init__(self, organization, **kwargs):
+    def __init__(self, organization: FakeOrganization, **kwargs: Any):
         self.content = kwargs.get("Content")
         self.description = kwargs.get("Description")
         self.name = kwargs.get("Name")
-        self.type = kwargs.get("Type")
+        self.type = kwargs.get("Type", "")
         self.id = utils.make_random_policy_id()
         self.aws_managed = False
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
-        self.attachments = []
+        self.attachments: List[Any] = []
 
         if not FakePolicy.supported_policy_type(self.type):
             raise InvalidInputException("You specified an invalid value.")
@@ -212,12 +213,12 @@ class FakePolicy(BaseModel):
             )
 
     @property
-    def arn(self):
+    def arn(self) -> str:
         return self._arn_format.format(
             self.master_account_id, self.organization_id, self.id
         )
 
-    def describe(self):
+    def describe(self) -> Dict[str, Any]:
         return {
             "Policy": {
                 "PolicySummary": {
@@ -233,7 +234,7 @@ class FakePolicy(BaseModel):
         }
 
     @staticmethod
-    def supported_policy_type(policy_type):
+    def supported_policy_type(policy_type: str) -> bool:
         return policy_type in FakePolicy.SUPPORTED_POLICY_TYPES
 
 
@@ -264,7 +265,7 @@ class FakeServiceAccess(BaseModel):
         "tagpolicies.tag.amazonaws.com",
     ]
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         if not self.trusted_service(kwargs["ServicePrincipal"]):
             raise InvalidInputException(
                 "You specified an unrecognized service principal."
@@ -273,14 +274,14 @@ class FakeServiceAccess(BaseModel):
         self.service_principal = kwargs["ServicePrincipal"]
         self.date_enabled = datetime.datetime.utcnow()
 
-    def describe(self):
+    def describe(self) -> Dict[str, Any]:
         return {
             "ServicePrincipal": self.service_principal,
             "DateEnabled": unix_time(self.date_enabled),
         }
 
     @staticmethod
-    def trusted_service(service_principal):
+    def trusted_service(service_principal: str) -> bool:
         return service_principal in FakeServiceAccess.TRUSTED_SERVICES
 
 
@@ -296,12 +297,12 @@ class FakeDelegatedAdministrator(BaseModel):
         "ssm.amazonaws.com",
     ]
 
-    def __init__(self, account):
+    def __init__(self, account: FakeAccount):
         self.account = account
         self.enabled_date = datetime.datetime.utcnow()
-        self.services = {}
+        self.services: Dict[str, Any] = {}
 
-    def add_service_principal(self, service_principal):
+    def add_service_principal(self, service_principal: str) -> None:
         if service_principal in self.services:
             raise AccountAlreadyRegisteredException
 
@@ -315,7 +316,7 @@ class FakeDelegatedAdministrator(BaseModel):
             "DelegationEnabledDate": unix_time(datetime.datetime.utcnow()),
         }
 
-    def remove_service_principal(self, service_principal):
+    def remove_service_principal(self, service_principal: str) -> None:
         if service_principal not in self.services:
             raise InvalidInputException(
                 "You specified an unrecognized service principal."
@@ -323,38 +324,38 @@ class FakeDelegatedAdministrator(BaseModel):
 
         self.services.pop(service_principal)
 
-    def describe(self):
+    def describe(self) -> Dict[str, Any]:
         admin = self.account.describe()
         admin["DelegationEnabledDate"] = unix_time(self.enabled_date)
 
         return admin
 
     @staticmethod
-    def supported_service(service_principal):
+    def supported_service(service_principal: str) -> bool:
         return service_principal in FakeDelegatedAdministrator.SUPPORTED_SERVICES
 
 
 class OrganizationsBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self._reset()
 
-    def _reset(self):
-        self.org = None
-        self.accounts = []
-        self.ou = []
-        self.policies = []
-        self.services = []
-        self.admins = []
+    def _reset(self) -> None:
+        self.org: Optional[FakeOrganization] = None
+        self.accounts: List[FakeAccount] = []
+        self.ou: List[FakeOrganizationalUnit] = []
+        self.policies: List[FakePolicy] = []
+        self.services: List[Dict[str, Any]] = []
+        self.admins: List[FakeDelegatedAdministrator] = []
 
-    def _get_root_by_id(self, root_id):
+    def _get_root_by_id(self, root_id: str) -> FakeRoot:
         root = next((ou for ou in self.ou if ou.id == root_id), None)
         if not root:
             raise RootNotFoundException
 
-        return root
+        return root  # type: ignore[return-value]
 
-    def create_organization(self, **kwargs):
+    def create_organization(self, **kwargs: Any) -> Dict[str, Any]:
         self.org = FakeOrganization(self.account_id, kwargs.get("FeatureSet") or "ALL")
         root_ou = FakeRoot(self.org)
         self.ou.append(root_ou)
@@ -382,37 +383,35 @@ class OrganizationsBackend(BaseBackend):
         self.attach_policy(PolicyId=default_policy.id, TargetId=master_account.id)
         return self.org.describe()
 
-    def describe_organization(self):
+    def describe_organization(self) -> Dict[str, Any]:
         if not self.org:
             raise AWSOrganizationsNotInUseException
         return self.org.describe()
 
-    def delete_organization(self):
+    def delete_organization(self) -> None:
         if [account for account in self.accounts if account.name != "master"]:
             raise RESTError(
                 "OrganizationNotEmptyException",
                 "To delete an organization you must first remove all member accounts (except the master).",
             )
         self._reset()
-        return {}
 
-    def list_roots(self):
+    def list_roots(self) -> Dict[str, Any]:
         return dict(Roots=[ou.describe() for ou in self.ou if isinstance(ou, FakeRoot)])
 
-    def create_organizational_unit(self, **kwargs):
-        new_ou = FakeOrganizationalUnit(self.org, **kwargs)
+    def create_organizational_unit(self, **kwargs: Any) -> Dict[str, Any]:
+        new_ou = FakeOrganizationalUnit(self.org, **kwargs)  # type: ignore
         self.ou.append(new_ou)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_ou.id)
         return new_ou.describe()
 
-    def delete_organizational_unit(self, **kwargs):
+    def delete_organizational_unit(self, **kwargs: Any) -> None:
         ou_to_delete = self.get_organizational_unit_by_id(
             kwargs["OrganizationalUnitId"]
         )
         self.ou.remove(ou_to_delete)
-        return {}
 
-    def update_organizational_unit(self, **kwargs):
+    def update_organizational_unit(self, **kwargs: Any) -> Dict[str, Any]:
         for ou in self.ou:
             if ou.name == kwargs["Name"]:
                 raise DuplicateOrganizationalUnitException
@@ -420,7 +419,7 @@ class OrganizationsBackend(BaseBackend):
         ou.name = kwargs["Name"]
         return ou.describe()
 
-    def get_organizational_unit_by_id(self, ou_id):
+    def get_organizational_unit_by_id(self, ou_id: str) -> FakeOrganizationalUnit:
         ou = next((ou for ou in self.ou if ou.id == ou_id), None)
         if ou is None:
             raise RESTError(
@@ -429,7 +428,7 @@ class OrganizationsBackend(BaseBackend):
             )
         return ou
 
-    def validate_parent_id(self, parent_id):
+    def validate_parent_id(self, parent_id: str) -> str:
         try:
             self.get_organizational_unit_by_id(parent_id)
         except RESTError:
@@ -438,12 +437,12 @@ class OrganizationsBackend(BaseBackend):
             )
         return parent_id
 
-    def describe_organizational_unit(self, **kwargs):
+    def describe_organizational_unit(self, **kwargs: Any) -> Dict[str, Any]:
         ou = self.get_organizational_unit_by_id(kwargs["OrganizationalUnitId"])
         return ou.describe()
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_organizational_units_for_parent(self, **kwargs):
+    def list_organizational_units_for_parent(self, **kwargs: Any) -> List[Dict[str, Any]]:  # type: ignore
         parent_id = self.validate_parent_id(kwargs["parent_id"])
         return [
             {"Id": ou.id, "Arn": ou.arn, "Name": ou.name}
@@ -451,20 +450,20 @@ class OrganizationsBackend(BaseBackend):
             if ou.parent_id == parent_id
         ]
 
-    def create_account(self, **kwargs):
-        new_account = FakeAccount(self.org, **kwargs)
+    def create_account(self, **kwargs: Any) -> Dict[str, Any]:
+        new_account = FakeAccount(self.org, **kwargs)  # type: ignore
         self.accounts.append(new_account)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_account.id)
         return new_account.create_account_status
 
-    def close_account(self, **kwargs):
+    def close_account(self, **kwargs: Any) -> None:
         for account in self.accounts:
             if account.id == kwargs["AccountId"]:
                 account.close()
                 return
         raise AccountNotFoundException
 
-    def get_account_by_id(self, account_id):
+    def get_account_by_id(self, account_id: str) -> FakeAccount:
         account = next(
             (account for account in self.accounts if account.id == account_id), None
         )
@@ -472,7 +471,7 @@ class OrganizationsBackend(BaseBackend):
             raise AccountNotFoundException
         return account
 
-    def get_account_by_attr(self, attr, value):
+    def get_account_by_attr(self, attr: str, value: Any) -> FakeAccount:
         account = next(
             (
                 account
@@ -485,17 +484,17 @@ class OrganizationsBackend(BaseBackend):
             raise AccountNotFoundException
         return account
 
-    def describe_account(self, **kwargs):
+    def describe_account(self, **kwargs: Any) -> Dict[str, Any]:
         account = self.get_account_by_id(kwargs["AccountId"])
         return dict(Account=account.describe())
 
-    def describe_create_account_status(self, **kwargs):
+    def describe_create_account_status(self, **kwargs: Any) -> Dict[str, Any]:
         account = self.get_account_by_attr(
             "create_account_status_id", kwargs["CreateAccountRequestId"]
         )
         return account.create_account_status
 
-    def list_create_account_status(self, **kwargs):
+    def list_create_account_status(self, **kwargs: Any) -> Dict[str, Any]:
         requested_states = kwargs.get("States")
         if not requested_states:
             requested_states = ["IN_PROGRESS", "SUCCEEDED", "FAILED"]
@@ -517,32 +516,30 @@ class OrganizationsBackend(BaseBackend):
         return dict(CreateAccountStatuses=accounts_resp, NextToken=next_token)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_accounts(self):
+    def list_accounts(self) -> List[FakeAccount]:  # type: ignore
         accounts = [account.describe() for account in self.accounts]
-        accounts = sorted(accounts, key=lambda x: x["JoinedTimestamp"])
-        return accounts
+        return sorted(accounts, key=lambda x: x["JoinedTimestamp"])  # type: ignore
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_accounts_for_parent(self, **kwargs):
+    def list_accounts_for_parent(self, **kwargs: Any) -> Any:  # type: ignore
         parent_id = self.validate_parent_id(kwargs["parent_id"])
         accounts = [
             account.describe()
             for account in self.accounts
             if account.parent_id == parent_id
         ]
-        accounts = sorted(accounts, key=lambda x: x["JoinedTimestamp"])
-        return accounts
+        return sorted(accounts, key=lambda x: x["JoinedTimestamp"])
 
-    def move_account(self, **kwargs):
+    def move_account(self, **kwargs: Any) -> None:
         new_parent_id = self.validate_parent_id(kwargs["DestinationParentId"])
         self.validate_parent_id(kwargs["SourceParentId"])
         account = self.get_account_by_id(kwargs["AccountId"])
         index = self.accounts.index(account)
         self.accounts[index].parent_id = new_parent_id
 
-    def list_parents(self, **kwargs):
+    def list_parents(self, **kwargs: Any) -> Dict[str, Any]:
         if re.compile(r"[0-9]{12}").match(kwargs["ChildId"]):
-            child_object = self.get_account_by_id(kwargs["ChildId"])
+            child_object: Any = self.get_account_by_id(kwargs["ChildId"])
         else:
             child_object = self.get_organizational_unit_by_id(kwargs["ChildId"])
         return dict(
@@ -553,10 +550,10 @@ class OrganizationsBackend(BaseBackend):
             ]
         )
 
-    def list_children(self, **kwargs):
+    def list_children(self, **kwargs: Any) -> Dict[str, Any]:
         parent_id = self.validate_parent_id(kwargs["ParentId"])
         if kwargs["ChildType"] == "ACCOUNT":
-            obj_list = self.accounts
+            obj_list: List[Any] = self.accounts
         elif kwargs["ChildType"] == "ORGANIZATIONAL_UNIT":
             obj_list = self.ou
         else:
@@ -569,15 +566,15 @@ class OrganizationsBackend(BaseBackend):
             ]
         )
 
-    def create_policy(self, **kwargs):
-        new_policy = FakePolicy(self.org, **kwargs)
+    def create_policy(self, **kwargs: Any) -> Dict[str, Any]:
+        new_policy = FakePolicy(self.org, **kwargs)  # type: ignore
         for policy in self.policies:
             if kwargs["Name"] == policy.name:
                 raise DuplicatePolicyException
         self.policies.append(new_policy)
         return new_policy.describe()
 
-    def describe_policy(self, **kwargs):
+    def describe_policy(self, **kwargs: Any) -> Dict[str, Any]:
         if re.compile(utils.POLICY_ID_REGEX).match(kwargs["PolicyId"]):
             policy = next(
                 (p for p in self.policies if p.id == kwargs["PolicyId"]), None
@@ -591,7 +588,7 @@ class OrganizationsBackend(BaseBackend):
             raise InvalidInputException("You specified an invalid value.")
         return policy.describe()
 
-    def get_policy_by_id(self, policy_id):
+    def get_policy_by_id(self, policy_id: str) -> FakePolicy:
         policy = next(
             (policy for policy in self.policies if policy.id == policy_id), None
         )
@@ -602,14 +599,14 @@ class OrganizationsBackend(BaseBackend):
             )
         return policy
 
-    def update_policy(self, **kwargs):
+    def update_policy(self, **kwargs: Any) -> Dict[str, Any]:
         policy = self.get_policy_by_id(kwargs["PolicyId"])
         policy.name = kwargs.get("Name", policy.name)
         policy.description = kwargs.get("Description", policy.description)
         policy.content = kwargs.get("Content", policy.content)
         return policy.describe()
 
-    def attach_policy(self, **kwargs):
+    def attach_policy(self, **kwargs: Any) -> None:
         policy = self.get_policy_by_id(kwargs["PolicyId"])
         if re.compile(utils.ROOT_ID_REGEX).match(kwargs["TargetId"]) or re.compile(
             utils.OU_ID_REGEX
@@ -637,12 +634,12 @@ class OrganizationsBackend(BaseBackend):
         else:
             raise InvalidInputException("You specified an invalid value.")
 
-    def list_policies(self):
+    def list_policies(self) -> Dict[str, Any]:
         return dict(
             Policies=[p.describe()["Policy"]["PolicySummary"] for p in self.policies]
         )
 
-    def delete_policy(self, **kwargs):
+    def delete_policy(self, **kwargs: Any) -> None:
         for idx, policy in enumerate(self.policies):
             if policy.id == kwargs["PolicyId"]:
                 if self.list_targets_for_policy(PolicyId=policy.id)["Targets"]:
@@ -657,11 +654,11 @@ class OrganizationsBackend(BaseBackend):
             "We can't find a policy with the PolicyId that you specified.",
         )
 
-    def list_policies_for_target(self, **kwargs):
+    def list_policies_for_target(self, **kwargs: Any) -> Dict[str, Any]:
         _filter = kwargs["Filter"]
 
         if re.match(utils.ROOT_ID_REGEX, kwargs["TargetId"]):
-            obj = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
+            obj: Any = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
             if obj is None:
                 raise TargetNotFoundException
         elif re.compile(utils.OU_ID_REGEX).match(kwargs["TargetId"]):
@@ -694,11 +691,11 @@ class OrganizationsBackend(BaseBackend):
             ]
         )
 
-    def _get_resource_for_tagging(self, resource_id):
+    def _get_resource_for_tagging(self, resource_id: str) -> Any:
         if utils.fullmatch(
             re.compile(utils.OU_ID_REGEX), resource_id
         ) or utils.fullmatch(utils.ROOT_ID_REGEX, resource_id):
-            resource = next((a for a in self.ou if a.id == resource_id), None)
+            resource: Any = next((a for a in self.ou if a.id == resource_id), None)
         elif utils.fullmatch(re.compile(utils.ACCOUNT_ID_REGEX), resource_id):
             resource = next((a for a in self.accounts if a.id == resource_id), None)
         elif utils.fullmatch(re.compile(utils.POLICY_ID_REGEX), resource_id):
@@ -713,7 +710,7 @@ class OrganizationsBackend(BaseBackend):
 
         return resource
 
-    def list_targets_for_policy(self, **kwargs):
+    def list_targets_for_policy(self, **kwargs: Any) -> Dict[str, Any]:
         if re.compile(utils.POLICY_ID_REGEX).match(kwargs["PolicyId"]):
             policy = next(
                 (p for p in self.policies if p.id == kwargs["PolicyId"]), None
@@ -731,22 +728,22 @@ class OrganizationsBackend(BaseBackend):
         ]
         return dict(Targets=objects)
 
-    def tag_resource(self, **kwargs):
+    def tag_resource(self, **kwargs: Any) -> None:
         resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
         resource.tags.update(new_tags)
 
-    def list_tags_for_resource(self, **kwargs):
+    def list_tags_for_resource(self, **kwargs: str) -> Dict[str, Any]:
         resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         tags = [{"Key": key, "Value": value} for key, value in resource.tags.items()]
         return dict(Tags=tags)
 
-    def untag_resource(self, **kwargs):
+    def untag_resource(self, **kwargs: Any) -> None:
         resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         for key in kwargs["TagKeys"]:
             resource.tags.pop(key, None)
 
-    def enable_aws_service_access(self, **kwargs):
+    def enable_aws_service_access(self, **kwargs: str) -> None:
         service = FakeServiceAccess(**kwargs)
 
         # enabling an existing service results in no changes
@@ -758,10 +755,10 @@ class OrganizationsBackend(BaseBackend):
 
         self.services.append(service.describe())
 
-    def list_aws_service_access_for_organization(self):
+    def list_aws_service_access_for_organization(self) -> Dict[str, Any]:
         return dict(EnabledServicePrincipals=self.services)
 
-    def disable_aws_service_access(self, **kwargs):
+    def disable_aws_service_access(self, **kwargs: str) -> None:
         if not FakeServiceAccess.trusted_service(kwargs["ServicePrincipal"]):
             raise InvalidInputException(
                 "You specified an unrecognized service principal."
@@ -779,7 +776,7 @@ class OrganizationsBackend(BaseBackend):
         if service_principal:
             self.services.remove(service_principal)
 
-    def register_delegated_administrator(self, **kwargs):
+    def register_delegated_administrator(self, **kwargs: str) -> None:
         account_id = kwargs["AccountId"]
 
         if account_id == self.account_id:
@@ -798,7 +795,7 @@ class OrganizationsBackend(BaseBackend):
 
         admin.add_service_principal(kwargs["ServicePrincipal"])
 
-    def list_delegated_administrators(self, **kwargs):
+    def list_delegated_administrators(self, **kwargs: str) -> Dict[str, Any]:
         admins = self.admins
         service = kwargs.get("ServicePrincipal")
 
@@ -814,7 +811,7 @@ class OrganizationsBackend(BaseBackend):
 
         return dict(DelegatedAdministrators=delegated_admins)
 
-    def list_delegated_services_for_account(self, **kwargs):
+    def list_delegated_services_for_account(self, **kwargs: str) -> Dict[str, Any]:
         admin = next(
             (admin for admin in self.admins if admin.account.id == kwargs["AccountId"]),
             None,
@@ -837,7 +834,7 @@ class OrganizationsBackend(BaseBackend):
 
         return dict(DelegatedServices=services)
 
-    def deregister_delegated_administrator(self, **kwargs):
+    def deregister_delegated_administrator(self, **kwargs: str) -> None:
         account_id = kwargs["AccountId"]
         service = kwargs["ServicePrincipal"]
 
@@ -869,21 +866,21 @@ class OrganizationsBackend(BaseBackend):
         if not admin.services:
             self.admins.remove(admin)
 
-    def enable_policy_type(self, **kwargs):
+    def enable_policy_type(self, **kwargs: str) -> Dict[str, Any]:
         root = self._get_root_by_id(kwargs["RootId"])
 
         root.add_policy_type(kwargs["PolicyType"])
 
         return dict(Root=root.describe())
 
-    def disable_policy_type(self, **kwargs):
+    def disable_policy_type(self, **kwargs: str) -> Dict[str, Any]:
         root = self._get_root_by_id(kwargs["RootId"])
 
         root.remove_policy_type(kwargs["PolicyType"])
 
         return dict(Root=root.describe())
 
-    def detach_policy(self, **kwargs):
+    def detach_policy(self, **kwargs: str) -> None:
         policy = self.get_policy_by_id(kwargs["PolicyId"])
         root_id_regex = utils.ROOT_ID_REGEX
         ou_id_regex = utils.OU_ID_REGEX
@@ -914,7 +911,7 @@ class OrganizationsBackend(BaseBackend):
         else:
             raise InvalidInputException("You specified an invalid value.")
 
-    def remove_account_from_organization(self, **kwargs):
+    def remove_account_from_organization(self, **kwargs: str) -> None:
         account = self.get_account_by_id(kwargs["AccountId"])
         for policy in account.attached_policies:
             policy.attachments.remove(account)
