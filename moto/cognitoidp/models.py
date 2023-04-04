@@ -1999,7 +1999,7 @@ class CognitoIdpBackend(BaseBackend):
         # If we require symbols, we assume False - and check a symbol is present
         # If we don't require symbols, we assume True - and we could technically skip the for-loop
         flag_sc = not require_symbols
-        sc = "^ $ * . [ ] { } ( ) ? ! @ # % & / \\ , > < ' : ; | _ ~ ` = + -"
+        sc = "^ $ * . [ ] { } ( ) ? \" ! @ # % & / \\ , > < ' : ; | _ ~ ` = + -"
         for i in password:
             if i in sc:
                 flag_sc = True
