@@ -1818,6 +1818,7 @@ class IAMBackend(BaseBackend):
         # Maybe we can enable this (and roles for other services) as part of a major release
         # self.create_service_linked_role(
         #    service_name="opensearchservice.amazonaws.com", suffix="", description=""
+        #    service_name="lakeformation.amazonaws.com"
         # )
 
     def attach_role_policy(self, policy_arn: str, role_name: str) -> None:

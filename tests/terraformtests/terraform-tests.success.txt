@@ -342,6 +342,8 @@ kms:
   - TestAccKMSKey_Policy_iamServiceLinkedRole
   - TestAccKMSSecretDataSource
   - TestAccKMSSecretsDataSource
+lakeformation:
+  - TestAccLakeFormationResource
 lambda:
   - TestAccLambdaAlias_
   - TestAccLambdaLayerVersion_basic
