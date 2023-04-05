@@ -132,7 +132,7 @@ def test_admin_create_user_without_authentication():
     data = {
         "UserPoolId": user_pool_id,
         "Username": "test@gmail.com",
-        "TemporaryPassword": "A!12345678",
+        "TemporaryPassword": "A!112345678",
     }
     res = test_client.post(
         "/",
@@ -148,7 +148,7 @@ def test_admin_create_user_without_authentication():
     data = {
         "ClientId": client_id,
         "AuthFlow": "USER_PASSWORD_AUTH",
-        "AuthParameters": {"USERNAME": "test@gmail.com", "PASSWORD": "A!12345678"},
+        "AuthParameters": {"USERNAME": "test@gmail.com", "PASSWORD": "A!112345678"},
     }
     res = test_client.post(
         "/",
@@ -163,7 +163,7 @@ def test_admin_create_user_without_authentication():
         "ChallengeName": "NEW_PASSWORD_REQUIRED",
         "ChallengeResponses": {
             "USERNAME": "test@gmail.com",
-            "NEW_PASSWORD": "A!abcdefgh",
+            "NEW_PASSWORD": "A!1abcdefgh",
         },
         "Session": session,
     }
