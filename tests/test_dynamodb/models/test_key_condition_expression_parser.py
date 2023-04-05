@@ -179,6 +179,24 @@ class TestHashAndRangeKey:
         )
         desired_hash_key.should.equal("pk")
 
+    @pytest.mark.parametrize(
+        "expr",
+        [
+            "(job_id = :id) and start_date = :sk",
+            "job_id = :id and (start_date = :sk)",
+            "(job_id = :id) and (start_date = :sk)",
+        ],
+    )
+    def test_brackets(self, expr):
+        eav = {":id": "pk", ":sk1": "19", ":sk2": "21"}
+        desired_hash_key, comparison, range_values = parse_expression(
+            expression_attribute_values=eav,
+            key_condition_expression=expr,
+            schema=self.schema,
+            expression_attribute_names=dict(),
+        )
+        desired_hash_key.should.equal("pk")
+
 
 class TestNamesAndValues:
     schema = [{"AttributeName": "job_id", "KeyType": "HASH"}]
