@@ -1,5 +1,9 @@
+from base64 import b64encode
 from collections import OrderedDict
+from gzip import GzipFile
 import datetime
+import io
+import json
 import re
 import itertools
 
@@ -8,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple, Iterable
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import md5_hash
 from .exceptions import (
@@ -957,6 +962,38 @@ class KinesisBackend(BaseBackend):
     def update_stream_mode(self, stream_arn: str, stream_mode: Dict[str, str]) -> None:
         stream = self._find_stream_by_arn(stream_arn)
         stream.stream_mode = stream_mode
+
+    """Send log events to a Stream after encoding and gzipping it."""
+
+    def send_log_event(
+        self,
+        delivery_stream_arn: str,
+        filter_name: str,
+        log_group_name: str,
+        log_stream_name: str,
+        log_events: List[Dict[str, Any]],
+    ) -> None:
+        data = {
+            "logEvents": log_events,
+            "logGroup": log_group_name,
+            "logStream": log_stream_name,
+            "messageType": "DATA_MESSAGE",
+            "owner": self.account_id,
+            "subscriptionFilters": [filter_name],
+        }
+
+        output = io.BytesIO()
+        with GzipFile(fileobj=output, mode="w") as fhandle:
+            fhandle.write(json.dumps(data, separators=(",", ":")).encode("utf-8"))
+        gzipped_payload = b64encode(output.getvalue()).decode("UTF-8")
+
+        stream = self.describe_stream(stream_arn=delivery_stream_arn, stream_name=None)
+        random_partition_key = random.get_random_string(length=32, lower_case=True)
+        stream.put_record(
+            partition_key=random_partition_key,
+            data=gzipped_payload,
+            explicit_hash_key="",
+        )
 
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")

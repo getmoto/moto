@@ -10,6 +10,7 @@ import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime
 from moto import mock_logs, mock_lambda, mock_iam, mock_firehose, mock_s3
+from moto import mock_kinesis
 from moto.core.utils import unix_time_millis
 import pytest
 
@@ -347,6 +348,62 @@ def test_put_subscription_filter_with_firehose():
     log_events[1]["timestamp"].should.equal(ts_1)
 
 
+@mock_iam
+@mock_logs
+@mock_kinesis
+def test_put_subscription_filter_with_kinesis():
+    logs = boto3.client("logs", "ap-southeast-2")
+    logs.create_log_group(logGroupName="lg1")
+    logs.create_log_stream(logGroupName="lg1", logStreamName="ls1")
+
+    # Create a DataStream
+    kinesis = boto3.client("kinesis", "ap-southeast-2")
+    kinesis.create_stream(
+        StreamName="test-stream",
+        ShardCount=1,
+        StreamModeDetails={"StreamMode": "ON_DEMAND"},
+    )
+    kinesis_datastream = kinesis.describe_stream(StreamName="test-stream")[
+        "StreamDescription"
+    ]
+    kinesis_datastream_arn = kinesis_datastream["StreamARN"]
+
+    # Subscribe to new log events
+    logs.put_subscription_filter(
+        logGroupName="lg1",
+        filterName="kinesis_erica_core_components_v2",
+        filterPattern='- "cwlogs.push.publisher"',
+        destinationArn=kinesis_datastream_arn,
+        distribution="ByLogStream",
+    )
+
+    # Create new log events
+    ts_0 = int(unix_time_millis(datetime.utcnow()))
+    ts_1 = int(unix_time_millis(datetime.utcnow()))
+    logs.put_log_events(
+        logGroupName="lg1",
+        logStreamName="ls1",
+        logEvents=[
+            {"timestamp": ts_0, "message": "test"},
+            {"timestamp": ts_1, "message": "test 2"},
+        ],
+    )
+
+    # Verify that Kinesis Stream has this data
+    nr_of_records = 0
+    # We don't know to which shard it was send, so check all of them
+    for shard in kinesis_datastream["Shards"]:
+        shard_id = shard["ShardId"]
+
+        shard_iterator = kinesis.get_shard_iterator(
+            StreamName="test-stream", ShardId=shard_id, ShardIteratorType="TRIM_HORIZON"
+        )["ShardIterator"]
+
+        resp = kinesis.get_records(ShardIterator=shard_iterator)
+        nr_of_records = nr_of_records + len(resp["Records"])
+    assert nr_of_records == 1
+
+
 @mock_lambda
 @mock_logs
 def test_delete_subscription_filter():
@@ -511,6 +568,19 @@ def test_put_subscription_filter_errors():
         "Could not execute the lambda function. "
         "Make sure you have given CloudWatch Logs permission to execute your function."
     )
+
+    # when we pass an unknown kinesis ARN
+    with pytest.raises(ClientError) as e:
+        client.put_subscription_filter(
+            logGroupName="/test",
+            filterName="test",
+            filterPattern="",
+            destinationArn="arn:aws:kinesis:us-east-1:123456789012:stream/unknown-stream",
+        )
+
+    # then
+    err = e.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
 
 
 def _get_role_name(region_name):
