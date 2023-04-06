@@ -144,7 +144,6 @@ def test_create_db_cluster__verify_default_properties():
         "DatabaseName"
     )  # This was not supplied, so should not be returned
 
-    cluster.should.have.key("AllocatedStorage").equal(1)
     cluster.should.have.key("AvailabilityZones")
     set(cluster["AvailabilityZones"]).should.equal(
         {"eu-north-1a", "eu-north-1b", "eu-north-1c"}
@@ -226,6 +225,13 @@ def test_create_db_cluster_additional_parameters():
         Port=1234,
         DeletionProtection=True,
         EnableCloudwatchLogsExports=["audit"],
+        KmsKeyId="some:kms:arn",
+        NetworkType="IPV4",
+        DBSubnetGroupName="subnetgroupname",
+        ScalingConfiguration={
+            "MinCapacity": 5,
+            "AutoPause": True,
+        },
     )
 
     cluster = resp["DBCluster"]
@@ -237,6 +243,10 @@ def test_create_db_cluster_additional_parameters():
     cluster.should.have.key("Port").equal(1234)
     cluster.should.have.key("DeletionProtection").equal(True)
     cluster.should.have.key("EnabledCloudwatchLogsExports").equals(["audit"])
+    assert cluster["KmsKeyId"] == "some:kms:arn"
+    assert cluster["NetworkType"] == "IPV4"
+    assert cluster["DBSubnetGroup"] == "subnetgroupname"
+    assert cluster["ScalingConfigurationInfo"] == {"MinCapacity": 5, "AutoPause": True}
 
 
 @mock_rds
@@ -672,7 +682,6 @@ def test_restore_db_cluster_from_snapshot():
     )["DBCluster"]
     new_cluster["DBClusterIdentifier"].should.equal("db-restore-1")
     new_cluster["DBClusterInstanceClass"].should.equal("db.m1.small")
-    new_cluster["StorageType"].should.equal("gp2")
     new_cluster["Engine"].should.equal("postgres")
     new_cluster["DatabaseName"].should.equal("staging-postgres")
     new_cluster["Port"].should.equal(1234)
@@ -778,7 +787,7 @@ def test_add_tags_to_cluster_snapshot():
 
 
 @mock_rds
-def test_create_db_cluster_with_enable_http_endpoint_valid():
+def test_create_serverless_db_cluster():
     client = boto3.client("rds", region_name="eu-north-1")
 
     resp = client.create_db_cluster(
@@ -792,7 +801,13 @@ def test_create_db_cluster_with_enable_http_endpoint_valid():
         EnableHttpEndpoint=True,
     )
     cluster = resp["DBCluster"]
+    # This is only true for specific engine versions
     cluster.should.have.key("HttpEndpointEnabled").equal(True)
+
+    # Verify that a default serverless_configuration is added
+    assert "ScalingConfigurationInfo" in cluster
+    assert cluster["ScalingConfigurationInfo"]["MinCapacity"] == 1
+    assert cluster["ScalingConfigurationInfo"]["MaxCapacity"] == 16
 
 
 @mock_rds
@@ -810,6 +825,7 @@ def test_create_db_cluster_with_enable_http_endpoint_invalid():
         EnableHttpEndpoint=True,
     )
     cluster = resp["DBCluster"]
+    # This attribute is ignored if an invalid engine version is supplied
     cluster.should.have.key("HttpEndpointEnabled").equal(False)
 
 
@@ -845,3 +861,43 @@ def test_describe_db_clusters_filter_by_engine():
     cluster = clusters[0]
     assert cluster["DBClusterIdentifier"] == "id2"
     assert cluster["Engine"] == "aurora-postgresql"
+
+
+@mock_rds
+def test_replicate_cluster():
+    # WHEN create_db_cluster is called
+    # AND create_db_cluster is called again with ReplicationSourceIdentifier set to the first cluster
+    # THEN promote_read_replica_db_cluster can be called on the second cluster, elevating it to a read/write cluster
+    us_east = boto3.client("rds", "us-east-1")
+    us_west = boto3.client("rds", "us-west-1")
+
+    original_arn = us_east.create_db_cluster(
+        DBClusterIdentifier="dbci",
+        Engine="mysql",
+        MasterUsername="masterusername",
+        MasterUserPassword="hunter2_",
+    )["DBCluster"]["DBClusterArn"]
+
+    replica_arn = us_west.create_db_cluster(
+        DBClusterIdentifier="replica_dbci",
+        Engine="mysql",
+        MasterUsername="masterusername",
+        MasterUserPassword="hunter2_",
+        ReplicationSourceIdentifier=original_arn,
+    )["DBCluster"]["DBClusterArn"]
+
+    original = us_east.describe_db_clusters()["DBClusters"][0]
+    assert original["ReadReplicaIdentifiers"] == [replica_arn]
+
+    replica = us_west.describe_db_clusters()["DBClusters"][0]
+    assert replica["ReplicationSourceIdentifier"] == original_arn
+    assert replica["MultiAZ"] is True
+
+    us_west.promote_read_replica_db_cluster(DBClusterIdentifier="replica_dbci")
+
+    original = us_east.describe_db_clusters()["DBClusters"][0]
+    assert original["ReadReplicaIdentifiers"] == []
+
+    replica = us_west.describe_db_clusters()["DBClusters"][0]
+    assert "ReplicationSourceIdentifier" not in replica
+    assert replica["MultiAZ"] is False

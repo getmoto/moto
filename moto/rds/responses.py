@@ -5,6 +5,12 @@ from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from moto.neptune.responses import NeptuneResponse
+from moto.neptune.responses import (
+    CREATE_GLOBAL_CLUSTER_TEMPLATE,
+    DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE,
+    DELETE_GLOBAL_CLUSTER_TEMPLATE,
+    REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE,
+)
 from .models import rds_backends, RDSBackend
 from .exceptions import DBParameterGroupNotFoundError
 
@@ -26,7 +32,7 @@ class RDSResponse(BaseResponse):
         return super()._dispatch(request, full_url, headers)
 
     def __getattribute__(self, name: str):
-        if name in ["create_db_cluster"]:
+        if name in ["create_db_cluster", "create_global_cluster"]:
             if self._get_param("Engine") == "neptune":
                 return object.__getattribute__(self.neptune, name)
         return object.__getattribute__(self, name)
@@ -105,11 +111,12 @@ class RDSResponse(BaseResponse):
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
             "enable_cloudwatch_logs_exports": self._get_params().get(
-                "EnableCloudwatchLogsExports"
+                "CloudwatchLogsExportConfiguration"
             ),
             "enable_iam_database_authentication": self._get_bool_param(
                 "EnableIAMDatabaseAuthentication"
             ),
+            "enable_http_endpoint": self._get_param("EnableHttpEndpoint"),
             "license_model": self._get_param("LicenseModel"),
             "iops": self._get_int_param("Iops"),
             "kms_key_id": self._get_param("KmsKeyId"),
@@ -180,22 +187,30 @@ class RDSResponse(BaseResponse):
             ),
             "db_name": self._get_param("DatabaseName"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
+            "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
             "deletion_protection": self._get_bool_param("DeletionProtection"),
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
             "engine_mode": self._get_param("EngineMode"),
             "allocated_storage": self._get_param("AllocatedStorage"),
+            "global_cluster_identifier": self._get_param("GlobalClusterIdentifier"),
             "iops": self._get_param("Iops"),
             "storage_type": self._get_param("StorageType"),
+            "kms_key_id": self._get_param("KmsKeyId"),
             "master_username": self._get_param("MasterUsername"),
             "master_user_password": self._get_param("MasterUserPassword"),
+            "network_type": self._get_param("NetworkType"),
             "port": self._get_param("Port"),
-            "parameter_group": self._get_param("DBClusterParameterGroup"),
+            "parameter_group": self._get_param("DBClusterParameterGroupName"),
             "region": self.region,
             "db_cluster_instance_class": self._get_param("DBClusterInstanceClass"),
             "enable_http_endpoint": self._get_param("EnableHttpEndpoint"),
             "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
             "tags": self.unpack_list_params("Tags", "Tag"),
+            "scaling_configuration": self._get_dict_param("ScalingConfiguration."),
+            "replication_source_identifier": self._get_param(
+                "ReplicationSourceIdentifier"
+            ),
         }
 
     def _get_export_task_kwargs(self):
@@ -427,7 +442,7 @@ class RDSResponse(BaseResponse):
 
     def describe_db_subnet_groups(self):
         subnet_name = self._get_param("DBSubnetGroupName")
-        subnet_groups = self.backend.describe_subnet_groups(subnet_name)
+        subnet_groups = self.backend.describe_db_subnet_groups(subnet_name)
         template = self.response_template(DESCRIBE_SUBNET_GROUPS_TEMPLATE)
         return template.render(subnet_groups=subnet_groups)
 
@@ -569,6 +584,15 @@ class RDSResponse(BaseResponse):
         template = self.response_template(DELETE_DB_PARAMETER_GROUP_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_group)
 
+    def describe_db_cluster_parameters(self):
+        db_parameter_group_name = self._get_param("DBParameterGroupName")
+        db_parameter_groups = self.backend.describe_db_cluster_parameters()
+        if db_parameter_groups is None:
+            raise DBParameterGroupNotFoundError(db_parameter_group_name)
+
+        template = self.response_template(DESCRIBE_DB_CLUSTER_PARAMETERS_TEMPLATE)
+        return template.render(db_parameter_group=db_parameter_groups)
+
     def create_db_cluster(self):
         kwargs = self._get_db_cluster_kwargs()
         cluster = self.backend.create_db_cluster(kwargs)
@@ -708,13 +732,73 @@ class RDSResponse(BaseResponse):
         return template.render(options=options, marker=None)
 
     def describe_global_clusters(self):
-        return self.neptune.describe_global_clusters()
+        clusters = self.backend.describe_global_clusters()
+        template = self.response_template(DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE)
+        return template.render(clusters=clusters)
 
     def create_global_cluster(self):
-        return self.neptune.create_global_cluster()
+        params = self._get_params()
+        cluster = self.backend.create_global_cluster(
+            global_cluster_identifier=params["GlobalClusterIdentifier"],
+            source_db_cluster_identifier=params.get("SourceDBClusterIdentifier"),
+            engine=params.get("Engine"),
+            engine_version=params.get("EngineVersion"),
+            storage_encrypted=params.get("StorageEncrypted"),
+            deletion_protection=params.get("DeletionProtection"),
+        )
+        template = self.response_template(CREATE_GLOBAL_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
 
     def delete_global_cluster(self):
-        return self.neptune.delete_global_cluster()
+        params = self._get_params()
+        cluster = self.backend.delete_global_cluster(
+            global_cluster_identifier=params["GlobalClusterIdentifier"],
+        )
+        template = self.response_template(DELETE_GLOBAL_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
+
+    def remove_from_global_cluster(self):
+        params = self._get_params()
+        global_cluster = self.backend.remove_from_global_cluster(
+            global_cluster_identifier=params["GlobalClusterIdentifier"],
+            db_cluster_identifier=params["DbClusterIdentifier"],
+        )
+        template = self.response_template(REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE)
+        return template.render(cluster=global_cluster)
+
+    def create_db_cluster_parameter_group(self):
+        group_name = self._get_param("DBClusterParameterGroupName")
+        family = self._get_param("DBParameterGroupFamily")
+        desc = self._get_param("Description")
+        db_cluster_parameter_group = self.backend.create_db_cluster_parameter_group(
+            group_name=group_name,
+            family=family,
+            description=desc,
+        )
+        template = self.response_template(CREATE_DB_CLUSTER_PARAMETER_GROUP_TEMPLATE)
+        return template.render(db_cluster_parameter_group=db_cluster_parameter_group)
+
+    def describe_db_cluster_parameter_groups(self):
+        group_name = self._get_param("DBClusterParameterGroupName")
+        db_parameter_groups = self.backend.describe_db_cluster_parameter_groups(
+            group_name=group_name,
+        )
+        template = self.response_template(DESCRIBE_DB_CLUSTER_PARAMETER_GROUPS_TEMPLATE)
+        return template.render(db_parameter_groups=db_parameter_groups)
+
+    def delete_db_cluster_parameter_group(self):
+        group_name = self._get_param("DBClusterParameterGroupName")
+        self.backend.delete_db_cluster_parameter_group(
+            group_name=group_name,
+        )
+        template = self.response_template(DELETE_DB_CLUSTER_PARAMETER_GROUP_TEMPLATE)
+        return template.render()
+
+    def promote_read_replica_db_cluster(self):
+        db_cluster_identifier = self._get_param("DBClusterIdentifier")
+        cluster = self.backend.promote_read_replica_db_cluster(db_cluster_identifier)
+        template = self.response_template(PROMOTE_READ_REPLICA_DB_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
 
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
@@ -1048,6 +1132,24 @@ DESCRIBE_DB_PARAMETERS_TEMPLATE = """<DescribeDBParametersResponse xmlns="http:/
 </DescribeDBParametersResponse>
 """
 
+DESCRIBE_DB_CLUSTER_PARAMETERS_TEMPLATE = """<DescribeDBClusterParametersResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DescribeDBClusterParametersResult>
+    <Parameters>
+      {%- for param in db_parameter_group -%}
+      <Parameter>
+        {%- for parameter_name, parameter_value in db_parameter.items() -%}
+        <{{ parameter_name }}>{{ parameter_value }}</{{ parameter_name }}>
+        {%- endfor -%}
+      </Parameter>
+      {%- endfor -%}
+    </Parameters>
+  </DescribeDBClusterParametersResult>
+  <ResponseMetadata>
+    <RequestId>8c40488f-b9ff-11d3-a15e-7ac49293f4fa</RequestId>
+  </ResponseMetadata>
+</DescribeDBClusterParametersResponse>
+"""
+
 LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
   <ListTagsForResourceResult>
     <TagList>
@@ -1261,7 +1363,7 @@ DESCRIBE_ORDERABLE_CLUSTER_OPTIONS = """<DescribeOrderableDBInstanceOptionsRespo
     <OrderableDBInstanceOptions>
     {% for option in options %}
       <OrderableDBInstanceOption>
-        <OutpostCapable>option["OutpostCapable"]</OutpostCapable>
+        <OutpostCapable>false</OutpostCapable>
         <AvailabilityZones>
           {% for zone in option["AvailabilityZones"] %}
           <AvailabilityZone>
@@ -1306,3 +1408,41 @@ DESCRIBE_ORDERABLE_CLUSTER_OPTIONS = """<DescribeOrderableDBInstanceOptionsRespo
     <RequestId>54212dc5-16c4-4eb8-a88e-448691e877ab</RequestId>
   </ResponseMetadata>
 </DescribeOrderableDBInstanceOptionsResponse>"""
+
+CREATE_DB_CLUSTER_PARAMETER_GROUP_TEMPLATE = """<CreateDBClusterParameterGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CreateDBClusterParameterGroupResult>
+    {{ db_cluster_parameter_group.to_xml() }}
+  </CreateDBClusterParameterGroupResult>
+  <ResponseMetadata>
+    <RequestId>7805c127-af22-11c3-96ac-6999cc5f7e72</RequestId>
+  </ResponseMetadata>
+</CreateDBClusterParameterGroupResponse>"""
+
+
+DESCRIBE_DB_CLUSTER_PARAMETER_GROUPS_TEMPLATE = """<DescribeDBClusterParameterGroupsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DescribeDBClusterParameterGroupsResult>
+    <DBClusterParameterGroups>
+    {%- for db_parameter_group in db_parameter_groups -%}
+      {{ db_parameter_group.to_xml() }}
+    {%- endfor -%}
+    </DBClusterParameterGroups>
+  </DescribeDBClusterParameterGroupsResult>
+  <ResponseMetadata>
+    <RequestId>b75d527a-b98c-11d3-f272-7cd6cce12cc5</RequestId>
+  </ResponseMetadata>
+</DescribeDBClusterParameterGroupsResponse>"""
+
+DELETE_DB_CLUSTER_PARAMETER_GROUP_TEMPLATE = """<DeleteDBClusterParameterGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <ResponseMetadata>
+    <RequestId>cad6c267-ba25-11d3-fe11-33d33a9bb7e3</RequestId>
+  </ResponseMetadata>
+</DeleteDBClusterParameterGroupResponse>"""
+
+PROMOTE_READ_REPLICA_DB_CLUSTER_TEMPLATE = """<PromoteReadReplicaDBClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <PromoteReadReplicaDBClusterResult>
+    {{ cluster.to_xml() }}
+  </PromoteReadReplicaDBClusterResult>
+  <ResponseMetadata>
+    <RequestId>7369556f-b70d-11c3-faca-6ba18376ea1b</RequestId>
+  </ResponseMetadata>
+</PromoteReadReplicaDBClusterResponse>"""

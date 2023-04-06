@@ -178,3 +178,16 @@ DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE = """<DescribeGlobalClustersResponse xmlns="ht
     </GlobalClusters>
   </DescribeGlobalClustersResult>
 </DescribeGlobalClustersResponse>"""
+
+REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE = """<RemoveFromGlobalClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <RemoveFromGlobalClusterResult>
+  {% if cluster %}
+  <GlobalCluster>
+    {{ cluster.to_xml() }}
+  </GlobalCluster>
+  {% endif %}
+  </RemoveFromGlobalClusterResult>
+</RemoveFromGlobalClusterResponse>"""

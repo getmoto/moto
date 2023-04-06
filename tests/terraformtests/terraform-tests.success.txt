@@ -389,6 +389,18 @@ opensearch:
 quicksight:
   - TestAccQuickSightUser
   - TestAccQuickSightGroup_
+rds:
+  - TestAccRDSCluster_basic
+  - TestAccRDSCluster_disappears
+  - TestAccRDSCluster_EnabledCloudWatchLogsExports_
+  - TestAccRDSCluster_enableHTTPEndpoint
+  - TestAccRDSCluster_engineMode
+  - TestAccRDSCluster_EngineMode
+  - TestAccRDSCluster_GlobalClusterIdentifierEngineMode_
+  - TestAccRDSCluster_identifier
+  - TestAccRDSCluster_tags
+  - TestAccRDSGlobalCluster_basic
+  - TestAccRDSGlobalCluster_storageEncrypted
 redshift:
   - TestAccRedshiftServiceAccountDataSource
 route53|1:

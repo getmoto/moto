@@ -12,7 +12,9 @@ def test_describe():
 @mock_neptune
 def test_create_global_cluster():
     client = boto3.client("neptune", "us-east-1")
-    resp = client.create_global_cluster(GlobalClusterIdentifier="g-id")["GlobalCluster"]
+    resp = client.create_global_cluster(
+        GlobalClusterIdentifier="g-id", Engine="neptune"
+    )["GlobalCluster"]
     resp.should.have.key("GlobalClusterIdentifier").equals("g-id")
     resp.should.have.key("GlobalClusterResourceId")
     resp.should.have.key("GlobalClusterArn")
@@ -33,6 +35,7 @@ def test_create_global_cluster_with_additional_params():
     client = boto3.client("neptune", "us-east-1")
     resp = client.create_global_cluster(
         GlobalClusterIdentifier="g-id",
+        Engine="neptune",
         EngineVersion="1.0",
         DeletionProtection=True,
         StorageEncrypted=True,
@@ -45,8 +48,8 @@ def test_create_global_cluster_with_additional_params():
 
 @mock_neptune
 def test_delete_global_cluster():
-    client = boto3.client("neptune", "us-east-1")
-    client.create_global_cluster(GlobalClusterIdentifier="g-id2")
+    client = boto3.client("neptune", "us-east-2")
+    client.create_global_cluster(GlobalClusterIdentifier="g-id2", Engine="neptune")
 
     client.delete_global_cluster(GlobalClusterIdentifier="g-id2")
 
