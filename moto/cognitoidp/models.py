@@ -1474,6 +1474,9 @@ class CognitoIdpBackend(BaseBackend):
         if challenge_name == "NEW_PASSWORD_REQUIRED":
             username: str = challenge_responses.get("USERNAME")  # type: ignore[assignment]
             new_password = challenge_responses.get("NEW_PASSWORD")
+            if not new_password:
+                raise InvalidPasswordException()
+            self._validate_password(user_pool.id, new_password)
             user = self.admin_get_user(user_pool.id, username)
 
             user.password = new_password
