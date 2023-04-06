@@ -1820,3 +1820,52 @@ def test_filter_group_name():
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_name == sg1.group_name
+
+
+@mock_ec2
+def test_revoke_security_group_ingress():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    sg = ec2.create_security_group(
+        Description="Test SG", GroupName=str(uuid4()), VpcId=vpc["Vpc"]["VpcId"]
+    )
+    sg_id = sg["GroupId"]
+
+    ec2.authorize_security_group_ingress(
+        GroupId=sg_id,
+        IpPermissions=[
+            {
+                "FromPort": 3000,
+                "ToPort": 3300,
+                "IpProtocol": "TCP",
+                "IpRanges": [{"CidrIp": "10.0.0.1/32"}],
+            },
+            {
+                "FromPort": 8080,
+                "ToPort": 8080,
+                "IpProtocol": "TCP",
+                "IpRanges": [{"CidrIp": "10.0.0.1/32"}],
+            },
+        ],
+    )
+
+    response = ec2.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sg_id]}]
+    )
+
+    ingress_rules = [r for r in response["SecurityGroupRules"] if not r["IsEgress"]]
+    assert len(ingress_rules) == 2
+
+    # revoke 1 of the 2 ingress rules
+    ec2.revoke_security_group_ingress(
+        GroupId=sg_id, SecurityGroupRuleIds=[ingress_rules[0]["SecurityGroupRuleId"]]
+    )
+
+    response = ec2.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sg_id]}]
+    )
+
+    ingress_rules = [r for r in response["SecurityGroupRules"] if not r["IsEgress"]]
+    assert len(ingress_rules) == 1

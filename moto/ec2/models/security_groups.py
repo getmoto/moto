@@ -733,7 +733,7 @@ class SecurityGroupBackend:
 
         if security_rule_ids:
             group.ingress_rules = [
-                rule for rule in group.egress_rules if rule.id not in security_rule_ids
+                rule for rule in group.ingress_rules if rule.id not in security_rule_ids
             ]
             return
 
