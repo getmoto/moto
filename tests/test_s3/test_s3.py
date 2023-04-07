@@ -1622,27 +1622,65 @@ def test_delete_versioned_bucket():
 
 
 @mock_s3
-def test_delete_versioned_bucket_returns_meta():
+def test_delete_versioned_bucket_returns_metadata():
+    # Verified against AWS
+    name = str(uuid4())
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    client.create_bucket(Bucket="blah")
+    client.create_bucket(Bucket=name)
     client.put_bucket_versioning(
-        Bucket="blah", VersioningConfiguration={"Status": "Enabled"}
+        Bucket=name, VersioningConfiguration={"Status": "Enabled"}
     )
 
-    client.put_object(Bucket="blah", Key="test1", Body=b"test1")
+    client.put_object(Bucket=name, Key="test1", Body=b"test1")
+
+    # We now have zero delete markers
+    assert "DeleteMarkers" not in client.list_object_versions(Bucket=name)
 
     # Delete the object
-    del_resp = client.delete_object(Bucket="blah", Key="test1")
-    assert "DeleteMarker" not in del_resp
-    assert del_resp["VersionId"] is not None
+    del_file = client.delete_object(Bucket=name, Key="test1")
+    assert del_file["DeleteMarker"] is True
+    assert del_file["VersionId"] is not None
+
+    # We now have one DeleteMarker
+    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
+
+    # Delete the same object gives a new version id
+    del_mrk1 = client.delete_object(Bucket=name, Key="test1")
+    assert del_mrk1["DeleteMarker"] is True
+    assert del_mrk1["VersionId"] != del_file["VersionId"]
+
+    # We now have two DeleteMarkers
+    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 2
 
     # Delete the delete marker
-    del_resp2 = client.delete_object(
-        Bucket="blah", Key="test1", VersionId=del_resp["VersionId"]
+    del_mrk2 = client.delete_object(
+        Bucket=name, Key="test1", VersionId=del_mrk1["VersionId"]
     )
-    assert del_resp2["DeleteMarker"] is True
-    assert "VersionId" not in del_resp2
+    assert del_mrk2["DeleteMarker"] is True
+    assert del_mrk2["VersionId"] == del_mrk1["VersionId"]
+
+    # We now have only one DeleteMarker
+    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
+
+    # Delete the actual file
+    actual_version = client.list_object_versions(Bucket=name)["Versions"][0]
+    del_mrk3 = client.delete_object(
+        Bucket=name, Key="test1", VersionId=actual_version["VersionId"]
+    )
+    assert "DeleteMarker" not in del_mrk3
+    assert del_mrk3["VersionId"] == actual_version["VersionId"]
+
+    # We still have one DeleteMarker, but zero objects
+    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
+    assert "Versions" not in client.list_object_versions(Bucket=name)
+
+    # Delete the last marker
+    del_mrk4 = client.delete_object(
+        Bucket=name, Key="test1", VersionId=del_mrk2["VersionId"]
+    )
+    assert "DeleteMarker" not in del_mrk4
+    assert del_mrk4["VersionId"] == del_mrk2["VersionId"]
 
 
 @mock_s3

@@ -2182,11 +2182,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 if version_id is None:
                     delete_marker = self._set_delete_marker(bucket_name, key_name)
                     response_meta["version-id"] = delete_marker.version_id
+                    response_meta["delete-marker"] = "true"
                 else:
                     if key_name not in bucket.keys:
                         raise KeyError
 
-                    response_meta["delete-marker"] = "false"
+                    response_meta["version-id"] = version_id
+
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
 
@@ -2198,7 +2200,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                                 raise AccessDeniedByLock
 
                             if type(key) is FakeDeleteMarker:
-                                response_meta["delete-marker"] = "true"
+                                if type(key.key) is FakeDeleteMarker:
+                                    # Our key is a DeleteMarker, that usually contains a link to the actual FakeKey
+                                    # But: If we have deleted the FakeKey multiple times,
+                                    # We have a DeleteMarker linking to a DeleteMarker (etc..) linking to a FakeKey
+                                    response_meta["delete-marker"] = "true"
+                                # The alternative is that we're deleting the DeleteMarker that points directly to a FakeKey
+                                # In this scenario, AWS does not return the `delete-marker` header
+
                             break
 
                     bucket.keys.setlist(
