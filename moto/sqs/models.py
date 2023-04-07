@@ -525,17 +525,19 @@ class Queue(CloudFormationModel):
         ]
 
     def add_message(self, message):
-        if (
-            self.fifo_queue
-            and self.attributes.get("ContentBasedDeduplication") == "true"
-        ):
-            for m in self._messages:
-                if m.deduplication_id == message.deduplication_id:
-                    diff = message.sent_timestamp - m.sent_timestamp
-                    # if a duplicate message is received within the deduplication time then it should
-                    # not be added to the queue
-                    if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
-                        return
+        if self.fifo_queue:
+
+            # the cases in which we dedupe fifo messages
+            # from https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html
+            if self.attributes.get("ContentBasedDeduplication") == "true" or \
+                    message.deduplication_id:
+                for m in self._messages:
+                    if m.deduplication_id == message.deduplication_id and m.body_md5 == message.body_md5 :
+                        diff = message.sent_timestamp - m.sent_timestamp
+                        # if a duplicate message is received within the deduplication time then it should
+                        # not be added to the queue
+                        if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
+                            return
 
         with self._messages_lock:
             self._messages.append(message)

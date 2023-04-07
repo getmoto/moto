@@ -3197,3 +3197,22 @@ def test_receive_message_that_becomes_visible_while_long_polling():
     assert len(messages) == 1
     assert messages[0].body == msg_body
     assert end - begin < time_to_wait
+
+
+@mock_sqs
+def test_dedupe_fifo():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(
+        QueueName='my-queue.fifo',
+        Attributes={
+            'FifoQueue': 'true',
+        },
+    )
+
+    for _ in range(5):
+        queue.send_message(
+            MessageBody="test",
+            MessageDeduplicationId="1",
+            MessageGroupId="2",
+        )
+    assert int(queue.attributes['ApproximateNumberOfMessages']) == 1
