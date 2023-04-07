@@ -21,7 +21,7 @@ from moto.sqs.models import (
     Queue,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
-    MAXIMUM_MESSAGE_LENGTH,
+    MAXIMUM_MESSAGE_LENGTH
 )
 from uuid import uuid4
 
@@ -2090,7 +2090,7 @@ def test_batch_change_message_visibility():
     with freeze_time("2015-01-01 12:00:00"):
         sqs = boto3.client("sqs", region_name="us-east-1")
         resp = sqs.create_queue(
-            QueueName="test-dlr-queue.fifo", Attributes={"FifoQueue": "true"}
+            QueueName="test-dlr-queue.fifo", Attributes={"FifoQueue": "true","ContentBasedDeduplication": "true"}
         )
         queue_url = resp["QueueUrl"]
 
@@ -2524,7 +2524,7 @@ def test_queue_with_dlq():
 
     with freeze_time("2015-01-01 12:00:00"):
         resp = sqs.create_queue(
-            QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
+            QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"}
         )
         queue_url1 = resp["QueueUrl"]
         queue_arn1 = sqs.get_queue_attributes(
@@ -2535,6 +2535,7 @@ def test_queue_with_dlq():
             QueueName=f"{str(uuid4())[0:6]}.fifo",
             Attributes={
                 "FifoQueue": "true",
+                "ContentBasedDeduplication": "true",
                 "RedrivePolicy": json.dumps(
                     {"deadLetterTargetArn": queue_arn1, "maxReceiveCount": 2}
                 ),
@@ -2681,7 +2682,7 @@ def test_redrive_policy_set_attributes_with_string_value():
 def test_receive_messages_with_message_group_id():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
-        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true","ContentBasedDeduplication": "true"}
     )
     queue.set_attributes(Attributes={"VisibilityTimeout": "3600"})
     queue.send_message(MessageBody="message-1", MessageGroupId="group")
@@ -2712,7 +2713,7 @@ def test_receive_messages_with_message_group_id():
 def test_receive_messages_with_message_group_id_on_requeue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
-        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true","ContentBasedDeduplication": "true"}
     )
     queue.set_attributes(Attributes={"VisibilityTimeout": "3600"})
     queue.send_message(MessageBody="message-1", MessageGroupId="group")
@@ -2742,7 +2743,7 @@ def test_receive_messages_with_message_group_id_on_visibility_timeout():
     with freeze_time("2015-01-01 12:00:00"):
         sqs = boto3.resource("sqs", region_name="us-east-1")
         queue = sqs.create_queue(
-            QueueName="test-queue.fifo", Attributes={"FifoQueue": "true"}
+            QueueName="test-queue.fifo", Attributes={"FifoQueue": "true","ContentBasedDeduplication": "true"}
         )
         queue.set_attributes(Attributes={"VisibilityTimeout": "3600"})
         queue.send_message(MessageBody="message-1", MessageGroupId="group")
@@ -2989,7 +2990,7 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
     q_name = f"{str(uuid4())[0:6]}-dlq.fifo"
-    dlq = sqs.create_queue(QueueName=q_name, Attributes={"FifoQueue": "true"})
+    dlq = sqs.create_queue(QueueName=q_name, Attributes={"FifoQueue": "true","ContentBasedDeduplication": "true"})
 
     queue = sqs.get_queue_by_name(QueueName=q_name)
     dead_letter_queue_arn = queue.attributes.get("QueueArn")
@@ -2998,6 +2999,7 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
         QueueName=f"{str(uuid4())[0:6]}.fifo",
         Attributes={
             "FifoQueue": "true",
+            "ContentBasedDeduplication": "true",
             "RedrivePolicy": json.dumps(
                 {"deadLetterTargetArn": dead_letter_queue_arn, "maxReceiveCount": 1}
             ),
@@ -3216,3 +3218,44 @@ def test_dedupe_fifo():
             MessageGroupId="2",
         )
     assert int(queue.attributes['ApproximateNumberOfMessages']) == 1
+
+
+@mock_sqs
+def test_fifo_dedupe_error_no_message_group_id():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(
+        QueueName='my-queue.fifo',
+        Attributes={
+            'FifoQueue': 'true'
+        },
+    )
+    with pytest.raises(ClientError) as exc:
+        queue.send_message(
+                MessageBody="test",
+                MessageDeduplicationId="1",
+            )
+
+    exc.value.response["Error"]["Code"].should.equal("MissingParameter")
+    exc.value.response["Error"]["Message"].should.equal(
+            "The request must contain the parameter MessageGroupId."
+        )
+
+@mock_sqs
+def test_fifo_dedupe_error_no_message_dedupe_id():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(
+        QueueName='my-queue.fifo',
+        Attributes={
+            'FifoQueue': 'true'
+        },
+    )
+    with pytest.raises(ClientError) as exc:
+        queue.send_message(
+                MessageBody="test",
+                MessageGroupId="1",
+            )
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    exc.value.response["Error"]["Message"].should.equal(
+        "The queue should either have ContentBasedDeduplication enabled or MessageDeduplicationId provided explicitly"
+    )

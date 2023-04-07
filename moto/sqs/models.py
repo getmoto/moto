@@ -529,10 +529,11 @@ class Queue(CloudFormationModel):
 
             # the cases in which we dedupe fifo messages
             # from https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html
+            # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
             if self.attributes.get("ContentBasedDeduplication") == "true" or \
                     message.deduplication_id:
                 for m in self._messages:
-                    if m.deduplication_id == message.deduplication_id and m.body_md5 == message.body_md5 :
+                    if m.deduplication_id == message.deduplication_id:
                         diff = message.sent_timestamp - m.sent_timestamp
                         # if a duplicate message is received within the deduplication time then it should
                         # not be added to the queue
@@ -759,6 +760,15 @@ class SQSBackend(BaseBackend):
     ):
 
         queue = self.get_queue(queue_name)
+
+        if queue.attributes.get("ContentBasedDeduplication") == "false" and not group_id:
+            msg = "MessageGroupId"
+            raise MissingParameter(msg)
+
+        if queue.attributes.get("ContentBasedDeduplication") == "false" and group_id and not deduplication_id:
+            msg = "The queue should either have ContentBasedDeduplication enabled or " \
+                  "MessageDeduplicationId provided explicitly"
+            raise InvalidParameterValue(msg)
 
         if len(message_body) > queue.maximum_message_size:
             msg = f"One or more parameters are invalid. Reason: Message must be shorter than {queue.maximum_message_size} bytes."
