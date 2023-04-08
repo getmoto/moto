@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MIT-0
 
 from __future__ import print_function
+from typing import Any
 import urllib3
 import json
 
@@ -15,14 +16,14 @@ http = urllib3.PoolManager()
 
 
 def send(
-    event,
-    context,
-    responseStatus,
-    responseData,
-    physicalResourceId=None,
-    noEcho=False,
-    reason=None,
-):
+    event: Any,
+    context: Any,
+    responseStatus: Any,
+    responseData: Any,
+    physicalResourceId: Any = None,
+    noEcho: bool = False,
+    reason: Any = None,
+) -> None:
     responseUrl = event["ResponseURL"]
 
     print(responseUrl)
@@ -49,7 +50,7 @@ def send(
     headers = {"content-type": "", "content-length": str(len(json_responseBody))}
 
     try:
-        response = http.request(
+        response = http.request(  # type: ignore
             "PUT", responseUrl, headers=headers, body=json_responseBody
         )
         print("Status code:", response.status)

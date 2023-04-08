@@ -21,7 +21,7 @@
 # IN THE SOFTWARE.
 
 
-class TagSet(dict):
+class TagSet(dict):  # type: ignore
     """
     A TagSet is used to collect the tags associated with a particular
     EC2 resource.  Not all resources can be tagged but for those that
@@ -29,7 +29,7 @@ class TagSet(dict):
     :class:`boto.ec2.ec2object.TaggedEC2Object` for more details.
     """
 
-    def __init__(self, connection=None):
+    def __init__(self, connection=None):  # type: ignore
         self.connection = connection
         self._current_key = None
         self._current_value = None

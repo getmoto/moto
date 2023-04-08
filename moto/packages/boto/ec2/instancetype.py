@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+# type: ignore
 
 from moto.packages.boto.ec2.ec2object import EC2Object
 
