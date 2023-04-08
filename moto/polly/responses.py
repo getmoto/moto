@@ -1,33 +1,33 @@
 import json
 import re
-
+from typing import Any, Dict, Tuple, Union
 from urllib.parse import urlsplit
 
 from moto.core.responses import BaseResponse
-from .models import polly_backends
+from .models import polly_backends, PollyBackend
 from .resources import LANGUAGE_CODES, VOICE_IDS
 
 LEXICON_NAME_REGEX = re.compile(r"^[0-9A-Za-z]{1,20}$")
 
 
 class PollyResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="polly")
 
     @property
-    def polly_backend(self):
+    def polly_backend(self) -> PollyBackend:
         return polly_backends[self.current_account][self.region]
 
     @property
-    def json(self):
+    def json(self) -> Dict[str, Any]:  # type: ignore[misc]
         if not hasattr(self, "_json"):
             self._json = json.loads(self.body)
         return self._json
 
-    def _error(self, code, message):
+    def _error(self, code: str, message: str) -> Tuple[str, Dict[str, int]]:
         return json.dumps({"__type": code, "message": message}), dict(status=400)
 
-    def _get_action(self):
+    def _get_action(self) -> str:
         # Amazon is now naming things /v1/api_name
         url_parts = urlsplit(self.uri).path.lstrip("/").split("/")
         # [0] = 'v1'
@@ -35,11 +35,11 @@ class PollyResponse(BaseResponse):
         return url_parts[1]
 
     # DescribeVoices
-    def voices(self):
+    def voices(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         language_code = self._get_param("LanguageCode")
 
         if language_code is not None and language_code not in LANGUAGE_CODES:
-            all_codes = ", ".join(LANGUAGE_CODES)
+            all_codes = ", ".join(LANGUAGE_CODES)  # type: ignore
             msg = (
                 f"1 validation error detected: Value '{language_code}' at 'languageCode' failed to satisfy constraint: "
                 f"Member must satisfy enum value set: [{all_codes}]"
@@ -50,7 +50,7 @@ class PollyResponse(BaseResponse):
 
         return json.dumps({"Voices": voices})
 
-    def lexicons(self):
+    def lexicons(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         # Dish out requests based on methods
 
         # anything after the /v1/lexicons/
@@ -69,7 +69,9 @@ class PollyResponse(BaseResponse):
         return self._error("InvalidAction", "Bad route")
 
     # PutLexicon
-    def _put_lexicons(self, lexicon_name):
+    def _put_lexicons(
+        self, lexicon_name: str
+    ) -> Union[str, Tuple[str, Dict[str, int]]]:
         if LEXICON_NAME_REGEX.match(lexicon_name) is None:
             return self._error(
                 "InvalidParameterValue", "Lexicon name must match [0-9A-Za-z]{1,20}"
@@ -83,13 +85,13 @@ class PollyResponse(BaseResponse):
         return ""
 
     # ListLexicons
-    def _get_lexicons_list(self):
+    def _get_lexicons_list(self) -> str:
         result = {"Lexicons": self.polly_backend.list_lexicons()}
 
         return json.dumps(result)
 
     # GetLexicon
-    def _get_lexicon(self, lexicon_name):
+    def _get_lexicon(self, lexicon_name: str) -> Union[str, Tuple[str, Dict[str, int]]]:
         try:
             lexicon = self.polly_backend.get_lexicon(lexicon_name)
         except KeyError:
@@ -103,7 +105,9 @@ class PollyResponse(BaseResponse):
         return json.dumps(result)
 
     # DeleteLexicon
-    def _delete_lexicon(self, lexicon_name):
+    def _delete_lexicon(
+        self, lexicon_name: str
+    ) -> Union[str, Tuple[str, Dict[str, int]]]:
         try:
             self.polly_backend.delete_lexicon(lexicon_name)
         except KeyError:
@@ -112,7 +116,7 @@ class PollyResponse(BaseResponse):
         return ""
 
     # SynthesizeSpeech
-    def speech(self):
+    def speech(self) -> Tuple[str, Dict[str, Any]]:
         # Sanity check params
         args = {
             "lexicon_names": None,
@@ -169,12 +173,12 @@ class PollyResponse(BaseResponse):
         if "VoiceId" not in self.json:
             return self._error("MissingParameter", "Missing parameter VoiceId")
         if self.json["VoiceId"] not in VOICE_IDS:
-            all_voices = ", ".join(VOICE_IDS)
+            all_voices = ", ".join(VOICE_IDS)  # type: ignore
             return self._error("InvalidParameterValue", f"Not one of {all_voices}")
         args["voice_id"] = self.json["VoiceId"]
 
         # More validation
-        if len(args["text"]) > 3000:
+        if len(args["text"]) > 3000:  # type: ignore
             return self._error("TextLengthExceededException", "Text too long")
 
         if args["speech_marks"] is not None and args["output_format"] != "json":

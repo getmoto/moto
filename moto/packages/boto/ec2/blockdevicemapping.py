@@ -63,7 +63,7 @@ class BlockDeviceType(object):
 EBSBlockDeviceType = BlockDeviceType
 
 
-class BlockDeviceMapping(dict):
+class BlockDeviceMapping(Dict[Any, Any]):
     """
     Represents a collection of BlockDeviceTypes when creating ec2 instances.
 

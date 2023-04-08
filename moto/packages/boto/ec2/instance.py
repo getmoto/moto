@@ -41,12 +41,12 @@ class InstancePlacement:
         runs on single-tenant hardware.
     """
 
-    def __init__(self, zone=None, group_name=None, tenancy=None):
+    def __init__(self, zone: Any = None, group_name: Any = None, tenancy: Any = None):
         self.zone = zone
         self.group_name = group_name
         self.tenancy = tenancy
 
-    def __repr__(self):
+    def __repr__(self) -> Any:
         return self.zone
 
 
@@ -62,12 +62,12 @@ class Reservation(EC2Object):
                      Reservation.
     """
 
-    def __init__(self, reservation_id) -> None:
+    def __init__(self, reservation_id: Any) -> None:
         super().__init__(connection=None)
         self.id = reservation_id
         self.owner_id = None
-        self.groups = []
-        self.instances = []
+        self.groups: Any = []
+        self.instances: Any = []
 
     def __repr__(self) -> str:
         return "Reservation:%s" % self.id
@@ -153,9 +153,9 @@ class Instance(TaggedEC2Object):
         self.group_name = None
         self.client_token = None
         self.eventsSet = None
-        self.groups = []
+        self.groups: Any = []
         self.platform = None
-        self.interfaces = []
+        self.interfaces: Any = []
         self.hypervisor = None
         self.virtualization_type = None
         self.architecture = None
@@ -164,15 +164,15 @@ class Instance(TaggedEC2Object):
         self._placement = InstancePlacement()
 
     def __repr__(self) -> str:
-        return "Instance:%s" % self.id
+        return "Instance:%s" % self.id  # type: ignore
 
     @property
     def state(self) -> str:
-        return self._state.name
+        return self._state.name  # type: ignore
 
     @property
     def state_code(self) -> str:
-        return self._state.code
+        return self._state.code  # type: ignore
 
     @property
     def placement(self) -> str:
