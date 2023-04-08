@@ -1,0 +1,95 @@
+From 41f23fcd61cd6d9112f730d54b767e0185997103 Mon Sep 17 00:00:00 2001
+From: Bert Blommers <info@bertblommers.nl>
+Date: Wed, 5 Apr 2023 12:27:39 +0000
+Subject: [PATCH] Patch: RDS improvements
+
+---
+ internal/service/rds/cluster.go  | 12 ++++++------
+ internal/service/rds/consts.go   |  2 +-
+ internal/service/rds/instance.go |  6 +++---
+ 3 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/internal/service/rds/cluster.go b/internal/service/rds/cluster.go
+index e5aeaa106d..c9fc8ffe09 100644
+--- a/internal/service/rds/cluster.go
++++ b/internal/service/rds/cluster.go
+@@ -1510,8 +1510,8 @@ func waitDBClusterCreated(ctx context.Context, conn *rds.RDS, id string, timeout
+ 		Target:     []string{ClusterStatusAvailable},
+ 		Refresh:    statusDBCluster(ctx, conn, id),
+ 		Timeout:    timeout,
+-		MinTimeout: 10 * time.Second,
+-		Delay:      30 * time.Second,
++		MinTimeout: 3 * time.Second,
++		Delay:      3 * time.Second,
+ 	}
+ 
+ 	outputRaw, err := stateConf.WaitForStateContext(ctx)
+@@ -1536,8 +1536,8 @@ func waitDBClusterUpdated(ctx context.Context, conn *rds.RDS, id string, timeout
+ 		Target:     []string{ClusterStatusAvailable},
+ 		Refresh:    statusDBCluster(ctx, conn, id),
+ 		Timeout:    timeout,
+-		MinTimeout: 10 * time.Second,
+-		Delay:      30 * time.Second,
++		MinTimeout: 3 * time.Second,
++		Delay:      3 * time.Second,
+ 	}
+ 
+ 	outputRaw, err := stateConf.WaitForStateContext(ctx)
+@@ -1560,8 +1560,8 @@ func waitDBClusterDeleted(ctx context.Context, conn *rds.RDS, id string, timeout
+ 		Target:     []string{},
+ 		Refresh:    statusDBCluster(ctx, conn, id),
+ 		Timeout:    timeout,
+-		MinTimeout: 10 * time.Second,
+-		Delay:      30 * time.Second,
++		MinTimeout: 3 * time.Second,
++		Delay:      3 * time.Second,
+ 	}
+ 
+ 	outputRaw, err := stateConf.WaitForStateContext(ctx)
+diff --git a/internal/service/rds/consts.go b/internal/service/rds/consts.go
+index dc00aaf5dd..5cc6883a49 100644
+--- a/internal/service/rds/consts.go
++++ b/internal/service/rds/consts.go
+@@ -215,7 +215,7 @@ func TimeoutAction_Values() []string {
+ }
+ 
+ const (
+-	propagationTimeout = 2 * time.Minute
++	propagationTimeout = 2 * time.Second
+ )
+ 
+ const (
+diff --git a/internal/service/rds/instance.go b/internal/service/rds/instance.go
+index 6a329b4dd2..a2dcf89ade 100644
+--- a/internal/service/rds/instance.go
++++ b/internal/service/rds/instance.go
+@@ -2294,7 +2294,7 @@ func findDBInstanceByIDSDKv2(ctx context.Context, conn *rds_sdkv2.Client, id str
+ func waitDBInstanceAvailableSDKv1(ctx context.Context, conn *rds.RDS, id string, timeout time.Duration, optFns ...tfresource.OptionsFunc) (*rds.DBInstance, error) { //nolint:unparam
+ 	options := tfresource.Options{
+ 		PollInterval:              10 * time.Second,
+-		Delay:                     1 * time.Minute,
++		Delay:                     1 * time.Second,
+ 		ContinuousTargetOccurence: 3,
+ 	}
+ 	for _, fn := range optFns {
+@@ -2337,7 +2337,7 @@ func waitDBInstanceAvailableSDKv1(ctx context.Context, conn *rds.RDS, id string,
+ func waitDBInstanceAvailableSDKv2(ctx context.Context, conn *rds_sdkv2.Client, id string, timeout time.Duration, optFns ...tfresource.OptionsFunc) (*rds.DBInstance, error) { //nolint:unparam
+ 	options := tfresource.Options{
+ 		PollInterval:              10 * time.Second,
+-		Delay:                     1 * time.Minute,
++		Delay:                     1 * time.Second,
+ 		ContinuousTargetOccurence: 3,
+ 	}
+ 	for _, fn := range optFns {
+@@ -2380,7 +2380,7 @@ func waitDBInstanceAvailableSDKv2(ctx context.Context, conn *rds_sdkv2.Client, i
+ func waitDBInstanceDeleted(ctx context.Context, conn *rds.RDS, id string, timeout time.Duration, optFns ...tfresource.OptionsFunc) (*rds.DBInstance, error) { //nolint:unparam
+ 	options := tfresource.Options{
+ 		PollInterval:              10 * time.Second,
+-		Delay:                     1 * time.Minute,
++		Delay:                     1 * time.Second,
+ 		ContinuousTargetOccurence: 3,
+ 	}
+ 	for _, fn := range optFns {
+-- 
+2.25.1
+

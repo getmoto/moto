@@ -42,9 +42,11 @@ class DBSecurityGroupNotFoundError(RDSClientError):
 
 
 class DBSubnetGroupNotFoundError(RDSClientError):
+    code = 404
+
     def __init__(self, subnet_group_name):
         super().__init__(
-            "DBSubnetGroupNotFound", f"Subnet Group {subnet_group_name} not found."
+            "DBSubnetGroupNotFoundFault", f"Subnet Group {subnet_group_name} not found."
         )
 
 
@@ -53,6 +55,14 @@ class DBParameterGroupNotFoundError(RDSClientError):
         super().__init__(
             "DBParameterGroupNotFound",
             f"DB Parameter Group {db_parameter_group_name} not found.",
+        )
+
+
+class DBClusterParameterGroupNotFoundError(RDSClientError):
+    def __init__(self, group_name):
+        super().__init__(
+            "DBParameterGroupNotFound",
+            f"DBClusterParameterGroup not found: {group_name}",
         )
 
 
@@ -174,4 +184,11 @@ class SubscriptionNotFoundError(RDSClientError):
     def __init__(self, subscription_name):
         super().__init__(
             "SubscriptionNotFoundFault", f"Subscription {subscription_name} not found."
+        )
+
+
+class InvalidGlobalClusterStateFault(RDSClientError):
+    def __init__(self, arn: str):
+        super().__init__(
+            "InvalidGlobalClusterStateFault", f"Global Cluster {arn} is not empty"
         )

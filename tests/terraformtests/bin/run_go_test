@@ -5,13 +5,15 @@ pwd=$PWD
 (
 cd terraform-provider-aws || exit
 echo "Patching the terraform-provider-aws directory..."
+echo "Patches may fail if the patch was already applied, or if the patch is outdated"
 PATCH="etc/0001-Patch-Hardcode-endpoints-to-local-server.patch"
-(git apply $pwd/etc/0001-Patch-Hardcode-endpoints-to-local-server.patch > /dev/null 2>&1 && echo "Patched endpoints") || echo "Not patching endpoints - Directory was probably already patched."
-(git apply $pwd/etc/0002-EC2-reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched EC2") || echo "Not patching EC2 - Directory was probably already patched."
-(git apply $pwd/etc/0003-Patch-IAM-wait-times.patch > /dev/null 2>&1 && echo "Patched IAM") || echo "Not patching IAM - Directory was probably already patched."
-(git apply $pwd/etc/0005-Route53-Reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched Route53") || echo "Not patching Route53 - Directory was probably already patched."
-(git apply $pwd/etc/0006-CF-Reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched CF") || echo "Not patching CF - Directory was probably already patched."
-(git apply $pwd/etc/0007-Comprehend-Reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched Comprehend") || echo "Not patching Comprehend - Directory was probably already patched."
+(git apply $pwd/etc/0001-Patch-Hardcode-endpoints-to-local-server.patch > /dev/null 2>&1 && echo "Patched endpoints") || echo "!! Not able to patch endpoints"
+(git apply $pwd/etc/0002-EC2-reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched EC2") || echo "!! Not able to EC2"
+(git apply $pwd/etc/0003-Patch-IAM-wait-times.patch > /dev/null 2>&1 && echo "Patched IAM") || echo "!! Not able to patch IAM"
+(git apply $pwd/etc/0005-Route53-Reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched Route53") || echo "!! Not able to patch Route53"
+(git apply $pwd/etc/0006-CF-Reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched CF") || echo "!! Not able to patch CF"
+(git apply $pwd/etc/0007-Comprehend-Reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched Comprehend") || echo "!! Not able to patch Comprehend"
+(git apply $pwd/etc/0008-Patch-RDS-improvements.patch > /dev/null 2>&1 && echo "Patched RDS") || echo "!! Not able to patch RDS"
 )
 
 (

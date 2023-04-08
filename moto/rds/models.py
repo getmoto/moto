@@ -7,11 +7,13 @@ from collections import defaultdict
 from jinja2 import Template
 from re import compile as re_compile
 from collections import OrderedDict
+from typing import Dict, List, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random as random
 from moto.neptune.models import neptune_backends, NeptuneBackend
+from moto.utilities.utils import load_resource
 from .exceptions import (
     RDSClientError,
     DBClusterNotFoundError,
@@ -22,6 +24,7 @@ from .exceptions import (
     DBSecurityGroupNotFoundError,
     DBSubnetGroupNotFoundError,
     DBParameterGroupNotFoundError,
+    DBClusterParameterGroupNotFoundError,
     OptionGroupNotFoundFaultError,
     InvalidDBClusterStateFaultError,
     InvalidDBInstanceStateError,
@@ -30,6 +33,7 @@ from .exceptions import (
     InvalidParameterValue,
     InvalidParameterCombination,
     InvalidDBClusterStateFault,
+    InvalidGlobalClusterStateFault,
     ExportTaskNotFoundError,
     ExportTaskAlreadyExistsError,
     InvalidExportSourceStateError,
@@ -43,6 +47,61 @@ from .utils import (
     validate_filters,
     valid_preferred_maintenance_window,
 )
+
+
+def find_cluster(cluster_arn):
+    arn_parts = cluster_arn.split(":")
+    region, account = arn_parts[3], arn_parts[4]
+    return rds_backends[account][region].describe_db_clusters(cluster_arn)[0]
+
+
+class GlobalCluster(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        global_cluster_identifier: str,
+        engine: str,
+        engine_version,
+        storage_encrypted,
+        deletion_protection,
+    ):
+        self.global_cluster_identifier = global_cluster_identifier
+        self.global_cluster_resource_id = "cluster-" + random.get_random_hex(8)
+        self.global_cluster_arn = (
+            f"arn:aws:rds::{account_id}:global-cluster:{global_cluster_identifier}"
+        )
+        self.engine = engine
+        self.engine_version = engine_version or "5.7.mysql_aurora.2.11.2"
+        self.storage_encrypted = (
+            storage_encrypted and storage_encrypted.lower() == "true"
+        )
+        self.deletion_protection = (
+            deletion_protection and deletion_protection.lower() == "true"
+        )
+        self.members = []
+
+    def to_xml(self) -> str:
+        template = Template(
+            """
+          <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
+          <GlobalClusterResourceId>{{ cluster.global_cluster_resource_id }}</GlobalClusterResourceId>
+          <GlobalClusterArn>{{ cluster.global_cluster_arn }}</GlobalClusterArn>
+          <Engine>{{ cluster.engine }}</Engine>
+          <Status>available</Status>
+          <EngineVersion>{{ cluster.engine_version }}</EngineVersion>
+          <StorageEncrypted>{{ 'true' if cluster.storage_encrypted else 'false' }}</StorageEncrypted>
+          <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
+          <GlobalClusterMembers>
+          {% for cluster_arn in cluster.members %}
+          <GlobalClusterMember>
+            <DBClusterArn>{{ cluster_arn }}</DBClusterArn>
+            <IsWriter>true</IsWriter>
+          </GlobalClusterMember>
+          {% endfor %}
+          </GlobalClusterMembers>
+          """
+        )
+        return template.render(cluster=self)
 
 
 class Cluster:
@@ -64,6 +123,8 @@ class Cluster:
             self.engine_version = Cluster.default_engine_version(self.engine)
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
         self.iops = kwargs.get("iops")
+        self.kms_key_id = kwargs.get("kms_key_id")
+        self.network_type = kwargs.get("network_type") or "IPV4"
         self.status = "active"
         self.account_id = kwargs.get("account_id")
         self.region_name = kwargs.get("region")
@@ -96,7 +157,7 @@ class Cluster:
                 f"{self.region_name}c",
             ]
         self.parameter_group = kwargs.get("parameter_group") or "default.aurora8.0"
-        self.subnet_group = "default"
+        self.subnet_group = kwargs.get("db_subnet_group_name") or "default"
         self.status = "creating"
         self.url_identifier = "".join(
             random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
@@ -123,6 +184,28 @@ class Cluster:
         self.enable_http_endpoint = kwargs.get("enable_http_endpoint")
         self.earliest_restorable_time = iso_8601_datetime_with_milliseconds(
             datetime.datetime.utcnow()
+        )
+        self.scaling_configuration = kwargs.get("scaling_configuration")
+        if not self.scaling_configuration and self.engine_mode == "serverless":
+            # In AWS, this default configuration only shows up when the Cluster is in a ready state, so a few minutes after creation
+            self.scaling_configuration = {
+                "min_capacity": 1,
+                "max_capacity": 16,
+                "auto_pause": True,
+                "seconds_until_auto_pause": 300,
+                "timeout_action": "RollbackCapacityChange",
+                "seconds_before_timeout": 300,
+            }
+        self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
+        self.cluster_members = list()
+        self.replication_source_identifier = kwargs.get("replication_source_identifier")
+        self.read_replica_identifiers = list()
+
+    @property
+    def is_multi_az(self):
+        return (
+            len(self.read_replica_identifiers) > 0
+            or self.replication_source_identifier is not None
         )
 
     @property
@@ -172,6 +255,10 @@ class Cluster:
                     "11.13",
                 ]:
                     self._enable_http_endpoint = val
+                elif self.engine == "aurora" and self.engine_version in [
+                    "5.6.mysql_aurora.1.22.5"
+                ]:
+                    self._enable_http_endpoint = val
 
     def get_cfg(self):
         cfg = self.__dict__
@@ -182,15 +269,18 @@ class Cluster:
     def to_xml(self):
         template = Template(
             """<DBCluster>
-              <AllocatedStorage>1</AllocatedStorage>
+              <AllocatedStorage>{{ cluster.allocated_storage }}</AllocatedStorage>
               <AvailabilityZones>
               {% for zone in cluster.availability_zones %}
                   <AvailabilityZone>{{ zone }}</AvailabilityZone>
               {% endfor %}
               </AvailabilityZones>
               <BackupRetentionPeriod>1</BackupRetentionPeriod>
+              <BacktrackWindow>0</BacktrackWindow>
               <DBInstanceStatus>{{ cluster.status }}</DBInstanceStatus>
               {% if cluster.db_name %}<DatabaseName>{{ cluster.db_name }}</DatabaseName>{% endif %}
+              {% if cluster.kms_key_id %}<KmsKeyId>{{ cluster.kms_key_id }}</KmsKeyId>{% endif %}
+              {% if cluster.network_type %}<NetworkType>{{ cluster.network_type }}</NetworkType>{% endif %}
               <DBClusterIdentifier>{{ cluster.db_cluster_identifier }}</DBClusterIdentifier>
               <DBClusterParameterGroup>{{ cluster.parameter_group }}</DBClusterParameterGroup>
               <DBSubnetGroup>{{ cluster.subnet_group }}</DBSubnetGroup>
@@ -200,21 +290,32 @@ class Cluster:
               <Status>{{ cluster.status }}</Status>
               <Endpoint>{{ cluster.endpoint }}</Endpoint>
               <ReaderEndpoint>{{ cluster.reader_endpoint }}</ReaderEndpoint>
-              <MultiAZ>false</MultiAZ>
+              <MultiAZ>{{ 'true' if cluster.is_multi_az else 'false' }}</MultiAZ>
               <EngineVersion>{{ cluster.engine_version }}</EngineVersion>
               <Port>{{ cluster.port }}</Port>
               {% if cluster.iops %}
                 <Iops>{{ cluster.iops }}</Iops>
                 <StorageType>io1</StorageType>
-              {% else %}
-                <StorageType>{{ cluster.storage_type }}</StorageType>
               {% endif %}
-              <DBClusterInstanceClass>{{ cluster.db_cluster_instance_class }}</DBClusterInstanceClass>
+              {% if cluster.db_cluster_instance_class %}<DBClusterInstanceClass>{{ cluster.db_cluster_instance_class }}</DBClusterInstanceClass>{% endif %}
               <MasterUsername>{{ cluster.master_username }}</MasterUsername>
               <PreferredBackupWindow>{{ cluster.preferred_backup_window }}</PreferredBackupWindow>
               <PreferredMaintenanceWindow>{{ cluster.preferred_maintenance_window }}</PreferredMaintenanceWindow>
-              <ReadReplicaIdentifiers></ReadReplicaIdentifiers>
-              <DBClusterMembers></DBClusterMembers>
+              <ReadReplicaIdentifiers>
+              {% for replica_id in cluster.read_replica_identifiers %}
+                <ReadReplicaIdentifier>{{ replica_id }}</ReadReplicaIdentifier>
+              {% endfor %}
+              </ReadReplicaIdentifiers>
+              <DBClusterMembers>
+              {% for member in cluster.cluster_members %}
+              <DBClusterMember>
+                <DBInstanceIdentifier>{{ member }}</DBInstanceIdentifier>
+                <IsClusterWriter>true</IsClusterWriter>
+                <DBClusterParameterGroupStatus>in-sync</DBClusterParameterGroupStatus>
+                <PromotionTier>1</PromotionTier>
+              </DBClusterMember>
+              {% endfor %}
+              </DBClusterMembers>
               <VpcSecurityGroups>
               {% for id in cluster.vpc_security_groups %}
                   <VpcSecurityGroup>
@@ -248,6 +349,20 @@ class Cluster:
                 </Tag>
               {%- endfor -%}
               </TagList>
+              {% if cluster.scaling_configuration %}
+              <ScalingConfigurationInfo>
+                {% if "min_capacity" in cluster.scaling_configuration %}<MinCapacity>{{ cluster.scaling_configuration["min_capacity"] }}</MinCapacity>{% endif %}
+                {% if "max_capacity" in cluster.scaling_configuration %}<MaxCapacity>{{ cluster.scaling_configuration["max_capacity"] }}</MaxCapacity>{% endif %}
+                {% if "auto_pause" in cluster.scaling_configuration %}<AutoPause>{{ cluster.scaling_configuration["auto_pause"] }}</AutoPause>{% endif %}
+                {% if "seconds_until_auto_pause" in cluster.scaling_configuration %}<SecondsUntilAutoPause>{{ cluster.scaling_configuration["seconds_until_auto_pause"] }}</SecondsUntilAutoPause>{% endif %}
+                {% if "timeout_action" in cluster.scaling_configuration %}<TimeoutAction>{{ cluster.scaling_configuration["timeout_action"] }}</TimeoutAction>{% endif %}
+                {% if "seconds_before_timeout" in cluster.scaling_configuration %}<SecondsBeforeTimeout>{{ cluster.scaling_configuration["seconds_before_timeout"] }}</SecondsBeforeTimeout>{% endif %}
+              </ScalingConfigurationInfo>
+              {% endif %}
+              {%- if cluster.global_cluster_identifier -%}
+              <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
+              {%- endif -%}
+              {%- if cluster.replication_source_identifier -%}<ReplicationSourceIdentifier>{{ cluster.replication_source_identifier }}</ReplicationSourceIdentifier>{%- endif -%}
             </DBCluster>"""
         )
         return template.render(cluster=self)
@@ -428,7 +543,9 @@ class Database(CloudFormationModel):
             )
         self.db_cluster_identifier = kwargs.get("db_cluster_identifier")
         self.db_instance_identifier = kwargs.get("db_instance_identifier")
-        self.source_db_identifier = kwargs.get("source_db_identifier")
+        self.source_db_identifier = kwargs.get(
+            "source_db_ide.db_cluster_identifierntifier"
+        )
         self.db_instance_class = kwargs.get("db_instance_class")
         self.port = kwargs.get("port")
         if self.port is None:
@@ -455,7 +572,7 @@ class Database(CloudFormationModel):
         if self.db_subnet_group_name:
             self.db_subnet_group = rds_backends[self.account_id][
                 self.region_name
-            ].describe_subnet_groups(self.db_subnet_group_name)[0]
+            ].describe_db_subnet_groups(self.db_subnet_group_name)[0]
         else:
             self.db_subnet_group = None
         self.security_groups = kwargs.get("security_groups", [])
@@ -1337,16 +1454,19 @@ class RDSBackend(BaseBackend):
         self.arn_regex = re_compile(
             r"^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp):.*$"
         )
-        self.clusters = OrderedDict()
+        self.clusters: Dict[str, Cluster] = OrderedDict()
+        self.global_clusters = OrderedDict()
         self.databases = OrderedDict()
         self.database_snapshots = OrderedDict()
         self.cluster_snapshots = OrderedDict()
         self.export_tasks = OrderedDict()
         self.event_subscriptions = OrderedDict()
         self.db_parameter_groups = {}
+        self.db_cluster_parameter_groups = {}
         self.option_groups = {}
         self.security_groups = {}
         self.subnet_groups = {}
+        self._db_cluster_options = None
 
     def reset(self):
         self.neptune.reset()
@@ -1355,6 +1475,19 @@ class RDSBackend(BaseBackend):
     @property
     def neptune(self) -> NeptuneBackend:
         return neptune_backends[self.account_id][self.region_name]
+
+    @property
+    def db_cluster_options(self):
+        if self._db_cluster_options is None:
+            from moto.rds.utils import decode_orderable_db_instance
+
+            decoded_options = load_resource(
+                __name__, "resources/cluster_options/aurora-postgresql.json"
+            )
+            self._db_cluster_options = [
+                decode_orderable_db_instance(option) for option in decoded_options
+            ]
+        return self._db_cluster_options
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1368,6 +1501,16 @@ class RDSBackend(BaseBackend):
     def create_db_instance(self, db_kwargs):
         database_id = db_kwargs["db_instance_identifier"]
         database = Database(**db_kwargs)
+
+        cluster_id = database.db_cluster_identifier
+        if cluster_id is not None:
+            cluster = self.clusters.get(cluster_id)
+            if cluster is not None:
+                if cluster.engine == "aurora" and cluster.engine_mode == "serverless":
+                    raise InvalidParameterValue(
+                        "Instances cannot be added to Aurora Serverless clusters."
+                    )
+                cluster.cluster_members.append(database_id)
         self.databases[database_id] = database
         return database
 
@@ -1563,6 +1706,10 @@ class RDSBackend(BaseBackend):
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_identifier)
                 primary.remove_replica(database)
+            if database.db_cluster_identifier in self.clusters:
+                self.clusters[database.db_cluster_identifier].cluster_members.remove(
+                    db_instance_identifier
+                )
             database.status = "deleting"
             return database
         else:
@@ -1611,7 +1758,7 @@ class RDSBackend(BaseBackend):
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
 
-    def describe_subnet_groups(self, subnet_group_name):
+    def describe_db_subnet_groups(self, subnet_group_name):
         if subnet_group_name:
             if subnet_group_name in self.subnet_groups:
                 return [self.subnet_groups[subnet_group_name]]
@@ -1877,11 +2024,24 @@ class RDSBackend(BaseBackend):
 
         return db_parameter_group
 
+    def describe_db_cluster_parameters(self):
+        return []
+
     def create_db_cluster(self, kwargs):
         cluster_id = kwargs["db_cluster_identifier"]
         kwargs["account_id"] = self.account_id
         cluster = Cluster(**kwargs)
         self.clusters[cluster_id] = cluster
+
+        if (cluster.global_cluster_identifier or "") in self.global_clusters:
+            global_cluster = self.global_clusters[cluster.global_cluster_identifier]
+            global_cluster.members.append(cluster.db_cluster_arn)
+
+        if cluster.replication_source_identifier:
+            cluster_identifier = cluster.replication_source_identifier
+            original_cluster = find_cluster(cluster_identifier)
+            original_cluster.read_replica_identifiers.append(cluster.db_cluster_arn)
+
         initial_state = copy.deepcopy(cluster)  # Return status=creating
         cluster.status = "available"  # Already set the final status in the background
         return initial_state
@@ -1900,12 +2060,26 @@ class RDSBackend(BaseBackend):
             if v is not None:
                 setattr(cluster, k, v)
 
+        cwl_exports = kwargs.get("enable_cloudwatch_logs_exports") or {}
+        for exp in cwl_exports.get("DisableLogTypes", []):
+            cluster.enabled_cloudwatch_logs_exports.remove(exp)
+        cluster.enabled_cloudwatch_logs_exports.extend(
+            cwl_exports.get("EnableLogTypes", [])
+        )
+
         cluster_id = kwargs.get("new_db_cluster_identifier", cluster_id)
         self.clusters[cluster_id] = cluster
 
         initial_state = copy.deepcopy(cluster)  # Return status=creating
         cluster.status = "available"  # Already set the final status in the background
         return initial_state
+
+    def promote_read_replica_db_cluster(self, db_cluster_identifier: str) -> Cluster:
+        cluster = self.clusters[db_cluster_identifier]
+        source_cluster = find_cluster(cluster.replication_source_identifier)
+        source_cluster.read_replica_identifiers.remove(cluster.db_cluster_arn)
+        cluster.replication_source_identifier = None
+        return cluster
 
     def create_db_cluster_snapshot(
         self, db_cluster_identifier, db_snapshot_identifier, tags=None
@@ -1955,7 +2129,9 @@ class RDSBackend(BaseBackend):
 
         return self.cluster_snapshots.pop(db_snapshot_identifier)
 
-    def describe_db_clusters(self, cluster_identifier=None, filters=None):
+    def describe_db_clusters(
+        self, cluster_identifier=None, filters=None
+    ) -> List[Cluster]:
         clusters = self.clusters
         clusters_neptune = self.neptune.clusters
         if cluster_identifier:
@@ -1987,10 +2163,16 @@ class RDSBackend(BaseBackend):
 
     def delete_db_cluster(self, cluster_identifier, snapshot_name=None):
         if cluster_identifier in self.clusters:
-            if self.clusters[cluster_identifier].deletion_protection:
+            cluster = self.clusters[cluster_identifier]
+            if cluster.deletion_protection:
                 raise InvalidParameterValue(
                     "Can't delete Cluster with protection enabled"
                 )
+
+            global_id = cluster.global_cluster_identifier or ""
+            if global_id in self.global_clusters:
+                self.remove_from_global_cluster(global_id, cluster_identifier)
+
             if snapshot_name:
                 self.create_db_cluster_snapshot(cluster_identifier, snapshot_name)
             return self.clusters.pop(cluster_identifier)
@@ -2253,11 +2435,117 @@ class RDSBackend(BaseBackend):
 
     def describe_orderable_db_instance_options(self, engine, engine_version):
         """
-        Only the Neptune-engine is currently implemented
+        Only the Aurora-Postgresql and Neptune-engine is currently implemented
         """
         if engine == "neptune":
             return self.neptune.describe_orderable_db_instance_options(engine_version)
+        if engine == "aurora-postgresql":
+            if engine_version:
+                return [
+                    option
+                    for option in self.db_cluster_options
+                    if option["EngineVersion"] == engine_version
+                ]
+            return self.db_cluster_options
         return []
+
+    def create_db_cluster_parameter_group(
+        self,
+        group_name,
+        family,
+        description,
+    ):
+        group = DBClusterParameterGroup(
+            account_id=self.account_id,
+            region=self.region_name,
+            name=group_name,
+            family=family,
+            description=description,
+        )
+        self.db_cluster_parameter_groups[group_name] = group
+        return group
+
+    def describe_db_cluster_parameter_groups(self, group_name):
+        if group_name is not None:
+            if group_name not in self.db_cluster_parameter_groups:
+                raise DBClusterParameterGroupNotFoundError(group_name)
+            return [self.db_cluster_parameter_groups[group_name]]
+        return list(self.db_cluster_parameter_groups.values())
+
+    def delete_db_cluster_parameter_group(self, group_name):
+        self.db_cluster_parameter_groups.pop(group_name)
+
+    def create_global_cluster(
+        self,
+        global_cluster_identifier: str,
+        source_db_cluster_identifier: Optional[str],
+        engine: Optional[str],
+        engine_version: Optional[str],
+        storage_encrypted: Optional[bool],
+        deletion_protection: Optional[bool],
+    ) -> GlobalCluster:
+        source_cluster = None
+        if source_db_cluster_identifier is not None:
+            # validate our source cluster exists
+            if not source_db_cluster_identifier.startswith("arn:aws:rds"):
+                raise InvalidParameterValue("Malformed db cluster arn dbci")
+            source_cluster = self.describe_db_clusters(
+                cluster_identifier=source_db_cluster_identifier
+            )[0]
+            # We should not specify an engine at the same time, as we'll take it from the source cluster
+            if engine is not None:
+                raise InvalidParameterCombination(
+                    "When creating global cluster from existing db cluster, value for engineName should not be specified since it will be inherited from source cluster"
+                )
+            engine = source_cluster.engine
+            engine_version = source_cluster.engine_version
+        elif engine is None:
+            raise InvalidParameterValue(
+                "When creating standalone global cluster, value for engineName should be specified"
+            )
+        global_cluster = GlobalCluster(
+            account_id=self.account_id,
+            global_cluster_identifier=global_cluster_identifier,
+            engine=engine,
+            engine_version=engine_version,
+            storage_encrypted=storage_encrypted,
+            deletion_protection=deletion_protection,
+        )
+        self.global_clusters[global_cluster_identifier] = global_cluster
+        if source_cluster is not None:
+            source_cluster.global_cluster_identifier = global_cluster.global_cluster_arn
+            global_cluster.members.append(source_cluster.db_cluster_arn)
+        return global_cluster
+
+    def describe_global_clusters(self):
+        return (
+            list(self.global_clusters.values())
+            + self.neptune.describe_global_clusters()
+        )
+
+    def delete_global_cluster(self, global_cluster_identifier: str) -> GlobalCluster:
+        try:
+            return self.neptune.delete_global_cluster(global_cluster_identifier)
+        except:  # noqa: E722 Do not use bare except
+            pass  # It's not a Neptune Global Cluster - assume it's an RDS cluster instead
+        global_cluster = self.global_clusters[global_cluster_identifier]
+        if global_cluster.members:
+            raise InvalidGlobalClusterStateFault(global_cluster.global_cluster_arn)
+        return self.global_clusters.pop(global_cluster_identifier)
+
+    def remove_from_global_cluster(
+        self, global_cluster_identifier: str, db_cluster_identifier: str
+    ) -> GlobalCluster:
+        try:
+            global_cluster = self.global_clusters[global_cluster_identifier]
+            cluster = self.describe_db_clusters(
+                cluster_identifier=db_cluster_identifier
+            )[0]
+            global_cluster.members.remove(cluster.db_cluster_arn)
+            return global_cluster
+        except:  # noqa: E722 Do not use bare except
+            pass
+        return None
 
 
 class OptionGroup(object):
@@ -2408,6 +2696,26 @@ class DBParameterGroup(CloudFormationModel):
         )
         db_parameter_group.update_parameters(db_parameter_group_parameters)
         return db_parameter_group
+
+
+class DBClusterParameterGroup(CloudFormationModel):
+    def __init__(self, account_id, region, name, description, family):
+        self.name = name
+        self.description = description
+        self.family = family
+        self.parameters = defaultdict(dict)
+        self.arn = f"arn:aws:rds:{region}:{account_id}:cpg:{name}"
+
+    def to_xml(self):
+        template = Template(
+            """<DBClusterParameterGroup>
+          <DBClusterParameterGroupName>{{ param_group.name }}</DBClusterParameterGroupName>
+          <DBParameterGroupFamily>{{ param_group.family }}</DBParameterGroupFamily>
+          <Description>{{ param_group.description }}</Description>
+          <DBClusterParameterGroupArn>{{ param_group.arn }}</DBClusterParameterGroupArn>
+        </DBClusterParameterGroup>"""
+        )
+        return template.render(param_group=self)
 
 
 rds_backends = BackendDict(RDSBackend, "rds")
