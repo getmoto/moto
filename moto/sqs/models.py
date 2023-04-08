@@ -763,23 +763,24 @@ class SQSBackend(BaseBackend):
 
         queue = self.get_queue(queue_name)
 
-        if (
-            queue.attributes.get("ContentBasedDeduplication") == "false"
-            and not group_id
-        ):
-            msg = "MessageGroupId"
-            raise MissingParameter(msg)
+        if queue.fifo_queue:
+            if (
+                queue.attributes.get("ContentBasedDeduplication") == "false"
+                and not group_id
+            ):
+                msg = "MessageGroupId"
+                raise MissingParameter(msg)
 
-        if (
-            queue.attributes.get("ContentBasedDeduplication") == "false"
-            and group_id
-            and not deduplication_id
-        ):
-            msg = (
-                "The queue should either have ContentBasedDeduplication enabled or "
-                "MessageDeduplicationId provided explicitly"
-            )
-            raise InvalidParameterValue(msg)
+            if (
+                queue.attributes.get("ContentBasedDeduplication") == "false"
+                and group_id
+                and not deduplication_id
+            ):
+                msg = (
+                    "The queue should either have ContentBasedDeduplication enabled or "
+                    "MessageDeduplicationId provided explicitly"
+                )
+                raise InvalidParameterValue(msg)
 
         if len(message_body) > queue.maximum_message_size:
             msg = f"One or more parameters are invalid. Reason: Message must be shorter than {queue.maximum_message_size} bytes."
