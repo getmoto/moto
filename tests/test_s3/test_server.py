@@ -158,11 +158,30 @@ def test_s3_server_post_to_bucket_redirect():
 def test_s3_server_post_without_content_length():
     test_client = authenticated_client()
 
+    # You can create a bucket without specifying Content-Length
     res = test_client.put(
         "/", "http://tester.localhost:5000/", environ_overrides={"CONTENT_LENGTH": ""}
     )
-    res.status_code.should.equal(411)
+    res.status_code.should.equal(200)
 
+    # You can specify a bucket in another region without specifying Content-Length
+    # (The body is just ignored..)
+    res = test_client.put(
+        "/",
+        "http://tester.localhost:5000/",
+        environ_overrides={"CONTENT_LENGTH": ""},
+        data="<CreateBucketConfiguration><LocationConstraint>us-west-2</LocationConstraint></CreateBucketConfiguration>",
+    )
+    res.status_code.should.equal(200)
+
+    # You cannot make any other bucket-related requests without specifying Content-Length
+    for path in ["/?versioning", "/?policy"]:
+        res = test_client.put(
+            path, "http://t.localhost:5000", environ_overrides={"CONTENT_LENGTH": ""}
+        )
+        res.status_code.should.equal(411)
+
+    # You cannot make any POST-request
     res = test_client.post(
         "/", "https://tester.localhost:5000/", environ_overrides={"CONTENT_LENGTH": ""}
     )
