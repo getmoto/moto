@@ -596,6 +596,42 @@
   "Location": "mes1-az1"
  },
  {
+  "InstanceType": "r6g.12xlarge",
+  "Location": "mes1-az1"
+ },
+ {
+  "InstanceType": "r6g.16xlarge",
+  "Location": "mes1-az1"
+ },
+ {
+  "InstanceType": "r6g.2xlarge",
+  "Location": "mes1-az1"
+ },
+ {
+  "InstanceType": "r6g.4xlarge",
+  "Location": "mes1-az1"
+ },
+ {
+  "InstanceType": "r6g.8xlarge",
+  "Location": "mes1-az1"
+ },
+ {
+  "InstanceType": "r6g.large",
+  "Location": "mes1-az1"
+ },
+ {
+  "InstanceType": "r6g.medium",
+  "Location": "mes1-az1"
+ },
+ {
+  "InstanceType": "r6g.metal",
+  "Location": "mes1-az1"
+ },
+ {
+  "InstanceType": "r6g.xlarge",
+  "Location": "mes1-az1"
+ },
+ {
   "InstanceType": "r6i.12xlarge",
   "Location": "mes1-az1"
  },
@@ -1304,6 +1340,42 @@
   "Location": "mes1-az2"
  },
  {
+  "InstanceType": "r6g.12xlarge",
+  "Location": "mes1-az2"
+ },
+ {
+  "InstanceType": "r6g.16xlarge",
+  "Location": "mes1-az2"
+ },
+ {
+  "InstanceType": "r6g.2xlarge",
+  "Location": "mes1-az2"
+ },
+ {
+  "InstanceType": "r6g.4xlarge",
+  "Location": "mes1-az2"
+ },
+ {
+  "InstanceType": "r6g.8xlarge",
+  "Location": "mes1-az2"
+ },
+ {
+  "InstanceType": "r6g.large",
+  "Location": "mes1-az2"
+ },
+ {
+  "InstanceType": "r6g.medium",
+  "Location": "mes1-az2"
+ },
+ {
+  "InstanceType": "r6g.metal",
+  "Location": "mes1-az2"
+ },
+ {
+  "InstanceType": "r6g.xlarge",
+  "Location": "mes1-az2"
+ },
+ {
   "InstanceType": "r6i.12xlarge",
   "Location": "mes1-az2"
  },
@@ -2009,6 +2081,42 @@
  },
  {
   "InstanceType": "r5d.xlarge",
+  "Location": "mes1-az3"
+ },
+ {
+  "InstanceType": "r6g.12xlarge",
+  "Location": "mes1-az3"
+ },
+ {
+  "InstanceType": "r6g.16xlarge",
+  "Location": "mes1-az3"
+ },
+ {
+  "InstanceType": "r6g.2xlarge",
+  "Location": "mes1-az3"
+ },
+ {
+  "InstanceType": "r6g.4xlarge",
+  "Location": "mes1-az3"
+ },
+ {
+  "InstanceType": "r6g.8xlarge",
+  "Location": "mes1-az3"
+ },
+ {
+  "InstanceType": "r6g.large",
+  "Location": "mes1-az3"
+ },
+ {
+  "InstanceType": "r6g.medium",
+  "Location": "mes1-az3"
+ },
+ {
+  "InstanceType": "r6g.metal",
+  "Location": "mes1-az3"
+ },
+ {
+  "InstanceType": "r6g.xlarge",
   "Location": "mes1-az3"
  },
  {
