@@ -85,7 +85,10 @@ def test_invoke_function_from_sqs_fifo_queue():
     logs_conn = boto3.client("logs", region_name="us-east-1")
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue_name = str(uuid.uuid4())[0:6] + ".fifo"
-    queue = sqs.create_queue(QueueName=queue_name, Attributes={"FifoQueue": "true"})
+    queue = sqs.create_queue(
+        QueueName=queue_name,
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+    )
 
     fn_name = str(uuid.uuid4())[0:6]
     conn = boto3.client("lambda", region_name="us-east-1")
