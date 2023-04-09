@@ -18,6 +18,7 @@ from moto.config.exceptions import (
     InvalidDeliveryChannelNameException,
     NoSuchBucketException,
     InvalidS3KeyPrefixException,
+    InvalidS3KmsKeyArnException,
     InvalidSNSTopicARNException,
     MaxNumberOfDeliveryChannelsExceededException,
     NoAvailableDeliveryChannelException,
@@ -44,6 +45,7 @@ from moto.config.exceptions import (
     MaxNumberOfConfigRulesExceededException,
     InsufficientPermissionsException,
     NoSuchConfigRuleException,
+    NoSuchRetentionConfigurationException,
     ResourceInUseException,
     MissingRequiredConfigRuleParameterException,
 )
@@ -259,6 +261,7 @@ class ConfigDeliveryChannel(ConfigEmptyDictable):
         s3_bucket_name: str,
         prefix: Optional[str] = None,
         sns_arn: Optional[str] = None,
+        s3_kms_key_arn: Optional[str] = None,
         snapshot_properties: Optional[ConfigDeliverySnapshotProperties] = None,
     ):
         super().__init__()
@@ -266,8 +269,20 @@ class ConfigDeliveryChannel(ConfigEmptyDictable):
         self.name = name
         self.s3_bucket_name = s3_bucket_name
         self.s3_key_prefix = prefix
+        self.s3_kms_key_arn = s3_kms_key_arn
         self.sns_topic_arn = sns_arn
         self.config_snapshot_delivery_properties = snapshot_properties
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Need to override this function because the KMS Key ARN is written as `Arn` vs. SNS which is `ARN`."""
+        data = super().to_dict()
+
+        # Fix the KMS ARN if it's here:
+        kms_arn = data.pop("s3KmsKeyARN", None)
+        if kms_arn:
+            data["s3KmsKeyArn"] = kms_arn
+
+        return data
 
 
 class RecordingGroup(ConfigEmptyDictable):
@@ -883,6 +898,14 @@ class ConfigRule(ConfigEmptyDictable):
         # Verify the rule is allowed for this region -- not yet implemented.
 
 
+class RetentionConfiguration(ConfigEmptyDictable):
+    def __init__(self, retention_period_in_days: int, name: Optional[str] = None):
+        super().__init__(capitalize_start=True, capitalize_arn=False)
+
+        self.name = name or "default"
+        self.retention_period_in_days = retention_period_in_days
+
+
 class ConfigBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -893,6 +916,7 @@ class ConfigBackend(BaseBackend):
         self.organization_conformance_packs: Dict[str, OrganizationConformancePack] = {}
         self.config_rules: Dict[str, ConfigRule] = {}
         self.config_schema: Optional[AWSServiceSpec] = None
+        self.retention_configuration: Optional[RetentionConfiguration] = None
 
     @staticmethod
     def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
@@ -1264,8 +1288,14 @@ class ConfigBackend(BaseBackend):
 
         # Ditto for SNS -- Only going to assume that the ARN provided is not
         # an empty string:
+        # NOTE: SNS "ARN" is all caps, but KMS "Arn" is UpperCamelCase!
         if delivery_channel.get("snsTopicARN", None) == "":
             raise InvalidSNSTopicARNException()
+
+        # Ditto for S3 KMS Key ARN -- Only going to assume that the ARN provided is not
+        # an empty string:
+        if delivery_channel.get("s3KmsKeyArn", None) == "":
+            raise InvalidS3KmsKeyArnException()
 
         # Config currently only allows 1 delivery channel for an account:
         if len(self.delivery_channels) == 1 and not self.delivery_channels.get(
@@ -1292,6 +1322,7 @@ class ConfigBackend(BaseBackend):
             delivery_channel["name"],
             delivery_channel["s3BucketName"],
             prefix=delivery_channel.get("s3KeyPrefix", None),
+            s3_kms_key_arn=delivery_channel.get("s3KmsKeyArn", None),
             sns_arn=delivery_channel.get("snsTopicARN", None),
             snapshot_properties=dprop,
         )
@@ -2011,6 +2042,67 @@ class ConfigBackend(BaseBackend):
         #     )
         rule.config_rule_state = "DELETING"
         self.config_rules.pop(rule_name)
+
+    def put_retention_configuration(
+        self, retention_period_in_days: int
+    ) -> Dict[str, Any]:
+        """Creates a Retention Configuration."""
+        if retention_period_in_days < 30:
+            raise ValidationException(
+                f"Value '{retention_period_in_days}' at 'retentionPeriodInDays' failed to satisfy constraint: Member must have value greater than or equal to 30"
+            )
+
+        if retention_period_in_days > 2557:
+            raise ValidationException(
+                f"Value '{retention_period_in_days}' at 'retentionPeriodInDays' failed to satisfy constraint: Member must have value less than or equal to 2557"
+            )
+
+        self.retention_configuration = RetentionConfiguration(retention_period_in_days)
+        return {"RetentionConfiguration": self.retention_configuration.to_dict()}
+
+    def describe_retention_configurations(
+        self, retention_configuration_names: Optional[List[str]]
+    ) -> List[Dict[str, Any]]:
+        """
+        This will return the retention configuration if one is present.
+
+        This should only receive at most 1 name in. It will raise a ValidationException if more than 1 is supplied.
+        """
+        # Handle the cases where we get a retention name to search for:
+        if retention_configuration_names:
+            if len(retention_configuration_names) > 1:
+                raise ValidationException(
+                    f"Value '{retention_configuration_names}' at 'retentionConfigurationNames' failed to satisfy constraint: Member must have length less than or equal to 1"
+                )
+
+            # If we get a retention name to search for, and we don't have it, then we need to raise an exception:
+            if (
+                not self.retention_configuration
+                or not self.retention_configuration.name
+                == retention_configuration_names[0]
+            ):
+                raise NoSuchRetentionConfigurationException(
+                    retention_configuration_names[0]
+                )
+
+            # If we found it, then return it:
+            return [self.retention_configuration.to_dict()]
+
+        # If no name was supplied:
+        if self.retention_configuration:
+            return [self.retention_configuration.to_dict()]
+
+        return []
+
+    def delete_retention_configuration(self, retention_configuration_name: str) -> None:
+        """This will delete the retention configuration if one is present with the provided name."""
+        if (
+            not self.retention_configuration
+            or not self.retention_configuration.name == retention_configuration_name
+        ):
+            raise NoSuchRetentionConfigurationException(retention_configuration_name)
+
+        self.retention_configuration = None
 
 
 config_backends = BackendDict(ConfigBackend, "config")

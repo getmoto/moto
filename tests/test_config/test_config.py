@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timedelta
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from unittest import SkipTest
 import pytest
@@ -879,6 +880,21 @@ def test_delivery_channels():
     assert ce.value.response["Error"]["Code"] == "InvalidSNSTopicARNException"
     assert "The sns topic arn" in ce.value.response["Error"]["Message"]
 
+    # With an empty string for the S3 KMS Key ARN:
+    with pytest.raises(ClientError) as ce:
+        client.put_delivery_channel(
+            DeliveryChannel={
+                "name": "testchannel",
+                "s3BucketName": "somebucket",
+                "s3KmsKeyArn": "",
+            }
+        )
+    assert ce.value.response["Error"]["Code"] == "InvalidS3KmsKeyArnException"
+    assert (
+        ce.value.response["Error"]["Message"]
+        == "The arn '' is not a valid kms key or alias arn."
+    )
+
     # With an invalid delivery frequency:
     with pytest.raises(ClientError) as ce:
         client.put_delivery_channel(
@@ -973,6 +989,7 @@ def test_describe_delivery_channels():
             "name": "testchannel",
             "s3BucketName": "somebucket",
             "snsTopicARN": "sometopicarn",
+            "s3KmsKeyArn": "somekmsarn",
             "configSnapshotDeliveryProperties": {
                 "deliveryFrequency": "TwentyFour_Hours"
             },
@@ -980,10 +997,11 @@ def test_describe_delivery_channels():
     )
     result = client.describe_delivery_channels()["DeliveryChannels"]
     assert len(result) == 1
-    assert len(result[0].keys()) == 4
+    assert len(result[0].keys()) == 5
     assert result[0]["name"] == "testchannel"
     assert result[0]["s3BucketName"] == "somebucket"
     assert result[0]["snsTopicARN"] == "sometopicarn"
+    assert result[0]["s3KmsKeyArn"] == "somekmsarn"
     assert (
         result[0]["configSnapshotDeliveryProperties"]["deliveryFrequency"]
         == "TwentyFour_Hours"
@@ -2147,4 +2165,110 @@ def test_delete_organization_conformance_pack_errors():
     )
     ex.response["Error"]["Message"].should.equal(
         "Could not find an OrganizationConformancePack for given request with resourceName not-existing"
+    )
+
+
+@mock_config
+def test_put_retention_configuration():
+    # Test with parameter validation being False to test the retention days check:
+    client = boto3.client(
+        "config",
+        region_name="us-west-2",
+        config=Config(parameter_validation=False, user_agent_extra="moto"),
+    )
+
+    # Less than 30 days:
+    with pytest.raises(ClientError) as ce:
+        client.put_retention_configuration(RetentionPeriodInDays=29)
+    assert (
+        ce.value.response["Error"]["Message"]
+        == "Value '29' at 'retentionPeriodInDays' failed to satisfy constraint: Member must have value greater than or equal to 30"
+    )
+
+    # More than 2557 days:
+    with pytest.raises(ClientError) as ce:
+        client.put_retention_configuration(RetentionPeriodInDays=2558)
+    assert (
+        ce.value.response["Error"]["Message"]
+        == "Value '2558' at 'retentionPeriodInDays' failed to satisfy constraint: Member must have value less than or equal to 2557"
+    )
+
+    # No errors:
+    result = client.put_retention_configuration(RetentionPeriodInDays=2557)
+    assert result["RetentionConfiguration"] == {
+        "Name": "default",
+        "RetentionPeriodInDays": 2557,
+    }
+
+
+@mock_config
+def test_describe_retention_configurations():
+    client = boto3.client("config", region_name="us-west-2")
+
+    # Without any recorder configurations:
+    result = client.describe_retention_configurations()
+    assert not result["RetentionConfigurations"]
+
+    # Create one and then describe:
+    client.put_retention_configuration(RetentionPeriodInDays=2557)
+    result = client.describe_retention_configurations()
+    assert result["RetentionConfigurations"] == [
+        {"Name": "default", "RetentionPeriodInDays": 2557}
+    ]
+
+    # Describe with the correct name:
+    result = client.describe_retention_configurations(
+        RetentionConfigurationNames=["default"]
+    )
+    assert result["RetentionConfigurations"] == [
+        {"Name": "default", "RetentionPeriodInDays": 2557}
+    ]
+
+    # Describe with more than 1 configuration name provided:
+    with pytest.raises(ClientError) as ce:
+        client.describe_retention_configurations(
+            RetentionConfigurationNames=["bad", "entry"]
+        )
+    assert (
+        ce.value.response["Error"]["Message"]
+        == "Value '['bad', 'entry']' at 'retentionConfigurationNames' failed to satisfy constraint: "
+        "Member must have length less than or equal to 1"
+    )
+
+    # Describe with a name that's not default:
+    with pytest.raises(ClientError) as ce:
+        client.describe_retention_configurations(
+            RetentionConfigurationNames=["notfound"]
+        )
+    assert (
+        ce.value.response["Error"]["Message"]
+        == "Cannot find retention configuration with the specified name 'notfound'."
+    )
+
+
+@mock_config
+def test_delete_retention_configuration():
+    client = boto3.client("config", region_name="us-west-2")
+
+    # Create one first:
+    client.put_retention_configuration(RetentionPeriodInDays=2557)
+
+    # Delete with a name that's not default:
+    with pytest.raises(ClientError) as ce:
+        client.delete_retention_configuration(RetentionConfigurationName="notfound")
+    assert (
+        ce.value.response["Error"]["Message"]
+        == "Cannot find retention configuration with the specified name 'notfound'."
+    )
+
+    # Delete it properly:
+    client.delete_retention_configuration(RetentionConfigurationName="default")
+    assert not client.describe_retention_configurations()["RetentionConfigurations"]
+
+    # And again...
+    with pytest.raises(ClientError) as ce:
+        client.delete_retention_configuration(RetentionConfigurationName="default")
+    assert (
+        ce.value.response["Error"]["Message"]
+        == "Cannot find retention configuration with the specified name 'default'."
     )
