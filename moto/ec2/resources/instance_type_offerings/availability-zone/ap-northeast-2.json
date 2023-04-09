@@ -728,6 +728,42 @@
   "Location": "ap-northeast-2a"
  },
  {
+  "InstanceType": "m6gd.12xlarge",
+  "Location": "ap-northeast-2a"
+ },
+ {
+  "InstanceType": "m6gd.16xlarge",
+  "Location": "ap-northeast-2a"
+ },
+ {
+  "InstanceType": "m6gd.2xlarge",
+  "Location": "ap-northeast-2a"
+ },
+ {
+  "InstanceType": "m6gd.4xlarge",
+  "Location": "ap-northeast-2a"
+ },
+ {
+  "InstanceType": "m6gd.8xlarge",
+  "Location": "ap-northeast-2a"
+ },
+ {
+  "InstanceType": "m6gd.large",
+  "Location": "ap-northeast-2a"
+ },
+ {
+  "InstanceType": "m6gd.medium",
+  "Location": "ap-northeast-2a"
+ },
+ {
+  "InstanceType": "m6gd.metal",
+  "Location": "ap-northeast-2a"
+ },
+ {
+  "InstanceType": "m6gd.xlarge",
+  "Location": "ap-northeast-2a"
+ },
+ {
   "InstanceType": "m6i.12xlarge",
   "Location": "ap-northeast-2a"
  },
@@ -1941,6 +1977,42 @@
  },
  {
   "InstanceType": "m6g.xlarge",
+  "Location": "ap-northeast-2b"
+ },
+ {
+  "InstanceType": "m6gd.12xlarge",
+  "Location": "ap-northeast-2b"
+ },
+ {
+  "InstanceType": "m6gd.16xlarge",
+  "Location": "ap-northeast-2b"
+ },
+ {
+  "InstanceType": "m6gd.2xlarge",
+  "Location": "ap-northeast-2b"
+ },
+ {
+  "InstanceType": "m6gd.4xlarge",
+  "Location": "ap-northeast-2b"
+ },
+ {
+  "InstanceType": "m6gd.8xlarge",
+  "Location": "ap-northeast-2b"
+ },
+ {
+  "InstanceType": "m6gd.large",
+  "Location": "ap-northeast-2b"
+ },
+ {
+  "InstanceType": "m6gd.medium",
+  "Location": "ap-northeast-2b"
+ },
+ {
+  "InstanceType": "m6gd.metal",
+  "Location": "ap-northeast-2b"
+ },
+ {
+  "InstanceType": "m6gd.xlarge",
   "Location": "ap-northeast-2b"
  },
  {
@@ -4049,6 +4121,42 @@
  },
  {
   "InstanceType": "m6g.xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6gd.12xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6gd.16xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6gd.2xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6gd.4xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6gd.8xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6gd.large",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6gd.medium",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6gd.metal",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6gd.xlarge",
   "Location": "ap-northeast-2d"
  },
  {
