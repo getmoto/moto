@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-import importlib
-import json
-import mock
+from unittest.mock import patch
 import requests
+import os
 
 import moto
 
@@ -10,11 +9,18 @@ import moto
 moto.mock_all()
 
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+
 def check(condition):
     if bool(condition):
         return "x"
     else:
         return " "
+
+
+def utf_checkbox(condition):
+    return "☑" if bool(condition) else " "
 
 
 def is_implemented(model, method_name):
@@ -73,7 +79,7 @@ class CloudFormationChecklist:
         for attr in self.expected_attrs:
             try:
                 # TODO: Change the actual abstract method to return False
-                with mock.patch(
+                with patch(
                     "moto.core.common_models.CloudFormationModel.has_cfn_attr",
                     return_value=False,
                 ):
@@ -96,16 +102,86 @@ class CloudFormationChecklist:
         return is_implemented(self.moto_model, "delete_from_cloudformation_json")
 
 
+def write_main_document(supported):
+    implementation_coverage_file = "{}/../CLOUDFORMATION_COVERAGE.md".format(script_dir)
+    try:
+        os.remove(implementation_coverage_file)
+    except OSError:
+        pass
+
+    print("Writing to {}".format(implementation_coverage_file))
+    with open(implementation_coverage_file, "w+") as file:
+        file.write("## Supported CloudFormation resources")
+        file.write("\n\n")
+        file.write("A list of all resources that can be created via CloudFormation. \n")
+        file.write("Please let us know if you'd like support for a resource not yet listed here.")
+        file.write("\n\n")
+
+        for checklist in supported:
+            file.write(str(checklist))
+            file.write("\n")
+
+
+def write_documentation(supported):
+    docs_file = "{}/../docs/docs/services/cf.rst".format(script_dir)
+    try:
+        os.remove(docs_file)
+    except OSError:
+        pass
+
+    print("Writing to {}".format(docs_file))
+    with open(docs_file, "w+") as file:
+        file.write(f".. _cloudformation_resources:\n")
+        file.write("\n")
+        file.write("==================================\n")
+        file.write("Supported CloudFormation resources\n")
+        file.write("==================================\n")
+        file.write("\n\n")
+        file.write("A list of all resources that can be created via CloudFormation. \n")
+        file.write("Please let us know if you'd like support for a resource not yet listed here.")
+        file.write("\n\n")
+
+        max_resource_name_length = max([len(cf.resource_name) for cf in supported]) + 2
+        max_fn_att_length = 35
+
+        file.write(".. table:: \n\n")
+        file.write(f"  +{('-'*max_resource_name_length)}+--------+--------+--------+{('-' * max_fn_att_length)}+\n")
+        file.write(f"  |{(' '*max_resource_name_length)}| Create | Update | Delete | {('Fn::GetAtt'.ljust(max_fn_att_length-2))} |\n")
+        file.write(f"  +{('='*max_resource_name_length)}+========+========+========+{('=' * max_fn_att_length)}+\n")
+
+        for checklist in supported:
+            attrs = [f" - [{check(att not in checklist.missing_attrs)}] {att}" for att in checklist.expected_attrs]
+            first_attr = attrs[0] if attrs else ""
+            file.write("  |")
+            file.write(checklist.resource_name.ljust(max_resource_name_length))
+            file.write("|")
+            file.write(f"    {check(checklist.creatable)}   ")
+            file.write("|")
+            file.write(f"    {check(checklist.updatable)}   ")
+            file.write("|")
+            file.write(f"    {check(checklist.deletable)}   ")
+            file.write(f"|{first_attr.ljust(max_fn_att_length)}|")
+            file.write("\n")
+            for index, attr in enumerate(attrs[1:]):
+                if index % 2 == 0:
+                    file.write(
+                        f"  +{('-' * max_resource_name_length)}+--------+--------+--------+{attr.ljust(max_fn_att_length)}|\n")
+                else:
+                    file.write(
+                        f"  |{(' ' * max_resource_name_length)}|        |        |        |{attr.ljust(max_fn_att_length)}|\n")
+            if len(attrs) > 1 and len(attrs) % 2 == 0:
+                file.write(f"  |{(' ' * max_resource_name_length)}|        |        |        |{(' ' * max_fn_att_length)}|\n")
+            file.write(f"  +{('-'*max_resource_name_length)}+--------+--------+--------+{('-' * max_fn_att_length)}+\n")
+
+
 if __name__ == "__main__":
     # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-resource-specification.html
     cfn_spec = requests.get(
         "https://dnwj8swjjbsbt.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json"
     ).json()
-    for resource_name, schema in sorted(cfn_spec["ResourceTypes"].items()):
-        checklist = CloudFormationChecklist(resource_name, schema)
-        # Only print checklists for models that implement CloudFormationModel;
-        # otherwise the checklist is very long and mostly empty because there
-        # are so many niche AWS services and resources that moto doesn't
-        # implement yet.
-        if checklist.moto_model:
-            print(checklist)
+    # Only collect checklists for models that implement CloudFormationModel;
+    # otherwise the checklist is very long and mostly empty because there
+    # are so many niche AWS services and resources that moto doesn't implement yet.
+    supported = [CloudFormationChecklist(resource_name, schema) for resource_name, schema in sorted(cfn_spec["ResourceTypes"].items()) if CloudFormationChecklist(resource_name, schema).moto_model]
+    #write_main_document(supported)
+    write_documentation(supported)

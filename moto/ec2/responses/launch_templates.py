@@ -266,7 +266,7 @@ class LaunchTemplates(EC2BaseResponse):
         return template.render(i=instance)
 
 
-GET_LAUNCH_TEMPLATE_DATA_RESPONSE = """<GetLaunchTemplateDataReInstancesponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+GET_LAUNCH_TEMPLATE_DATA_RESPONSE = """<GetLaunchTemplateDataResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>801986a5-0ee2-46bd-be02-abcde1234567</requestId>
     <launchTemplateData>
         <blockDeviceMappingSet>
