@@ -6,18 +6,18 @@ from moto.core.utils import underscores_to_camelcase, camelcase_to_pascal
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 from urllib.parse import urlparse
 
+from .constants import (
+    DEFAULT_RECEIVED_MESSAGES,
+    MAXIMUM_MESSAGE_LENGTH,
+    MAXIMUM_VISIBILITY_TIMEOUT,
+)
 from .exceptions import (
     EmptyBatchRequest,
     InvalidAttributeName,
-    ReceiptHandleIsInvalid,
     BatchEntryIdsNotDistinct,
 )
-from .models import sqs_backends
+from .models import sqs_backends, SQSBackend
 from .utils import parse_message_attributes, extract_input_message_attributes
-
-MAXIMUM_VISIBILTY_TIMEOUT = 43200
-MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
-DEFAULT_RECEIVED_MESSAGES = 1
 
 
 class SQSResponse(BaseResponse):
@@ -28,7 +28,7 @@ class SQSResponse(BaseResponse):
         super().__init__(service_name="sqs")
 
     @property
-    def sqs_backend(self):
+    def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.current_account][self.region]
 
     @property
@@ -59,7 +59,7 @@ class SQSResponse(BaseResponse):
 
     def _get_validated_visibility_timeout(self, timeout=None):
         """
-        :raises ValueError: If specified visibility timeout exceeds MAXIMUM_VISIBILTY_TIMEOUT
+        :raises ValueError: If specified visibility timeout exceeds MAXIMUM_VISIBILITY_TIMEOUT
         :raises TypeError: If visibility timeout was not specified
         """
         if timeout is not None:
@@ -67,7 +67,7 @@ class SQSResponse(BaseResponse):
         else:
             visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])
 
-        if visibility_timeout > MAXIMUM_VISIBILTY_TIMEOUT:
+        if visibility_timeout > MAXIMUM_VISIBILITY_TIMEOUT:
             raise ValueError
 
         return visibility_timeout
@@ -134,40 +134,9 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         entries = self._get_list_prefix("ChangeMessageVisibilityBatchRequestEntry")
 
-        success = []
-        error = []
-        for entry in entries:
-            try:
-                visibility_timeout = self._get_validated_visibility_timeout(
-                    entry["visibility_timeout"]
-                )
-            except ValueError:
-                error.append(
-                    {
-                        "Id": entry["id"],
-                        "SenderFault": "true",
-                        "Code": "InvalidParameterValue",
-                        "Message": "Visibility timeout invalid",
-                    }
-                )
-                continue
-
-            try:
-                self.sqs_backend.change_message_visibility(
-                    queue_name=queue_name,
-                    receipt_handle=entry["receipt_handle"],
-                    visibility_timeout=visibility_timeout,
-                )
-                success.append(entry["id"])
-            except ReceiptHandleIsInvalid as e:
-                error.append(
-                    {
-                        "Id": entry["id"],
-                        "SenderFault": "true",
-                        "Code": "ReceiptHandleIsInvalid",
-                        "Message": e.description,
-                    }
-                )
+        success, error = self.sqs_backend.change_message_visibility_batch(
+            queue_name, entries
+        )
 
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE)
         return template.render(success=success, errors=error)
@@ -359,23 +328,7 @@ class SQSResponse(BaseResponse):
                 raise BatchEntryIdsNotDistinct(receipt_and_id["msg_user_id"])
             receipt_seen.add(receipt)
 
-        success = []
-        errors = []
-        for receipt_and_id in receipts:
-            try:
-                self.sqs_backend.delete_message(
-                    queue_name, receipt_and_id["receipt_handle"]
-                )
-                success.append(receipt_and_id["msg_user_id"])
-            except ReceiptHandleIsInvalid:
-                errors.append(
-                    {
-                        "Id": receipt_and_id["msg_user_id"],
-                        "SenderFault": "true",
-                        "Code": "ReceiptHandleIsInvalid",
-                        "Message": f'The input receipt handle "{receipt_and_id["receipt_handle"]}" is not a valid receipt handle.',
-                    }
-                )
+        success, errors = self.sqs_backend.delete_message_batch(queue_name, receipts)
 
         template = self.response_template(DELETE_MESSAGE_BATCH_RESPONSE)
         return template.render(success=success, errors=errors)
@@ -811,7 +764,7 @@ ERROR_TOO_LONG_RESPONSE = """<ErrorResponse xmlns="http://queue.amazonaws.com/do
 </ErrorResponse>"""
 
 ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = (
-    f"Invalid request, maximum visibility timeout is {MAXIMUM_VISIBILTY_TIMEOUT}"
+    f"Invalid request, maximum visibility timeout is {MAXIMUM_VISIBILITY_TIMEOUT}"
 )
 
 ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">

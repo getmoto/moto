@@ -83,6 +83,7 @@ lambda
         
 
 - [ ] invoke_async
+- [ ] invoke_with_response_stream
 - [ ] list_aliases
 - [ ] list_code_signing_configs
 - [X] list_event_source_mappings

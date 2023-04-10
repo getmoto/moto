@@ -27,10 +27,10 @@ sqs
 
 - [X] add_permission
 - [X] change_message_visibility
-- [ ] change_message_visibility_batch
+- [X] change_message_visibility_batch
 - [X] create_queue
 - [X] delete_message
-- [ ] delete_message_batch
+- [X] delete_message_batch
 - [X] delete_queue
 - [X] get_queue_attributes
 - [X] get_queue_url

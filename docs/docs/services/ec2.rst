@@ -488,7 +488,7 @@ ec2
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
 - [ ] get_ipam_resource_cidrs
-- [ ] get_launch_template_data
+- [X] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
 - [X] get_managed_prefix_list_entries
 - [ ] get_network_insights_access_scope_analysis_findings
@@ -509,6 +509,7 @@ ec2
 - [ ] get_verified_access_group_policy
 - [ ] get_vpn_connection_device_sample_configuration
 - [ ] get_vpn_connection_device_types
+- [ ] get_vpn_tunnel_replacement_status
 - [ ] import_client_vpn_client_certificate_revocation_list
 - [ ] import_image
 - [ ] import_instance
@@ -613,6 +614,7 @@ ec2
 - [X] replace_route
 - [X] replace_route_table_association
 - [ ] replace_transit_gateway_route
+- [ ] replace_vpn_tunnel
 - [ ] report_instance_status
 - [X] request_spot_fleet
 - [X] request_spot_instances

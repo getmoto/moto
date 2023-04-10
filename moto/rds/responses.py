@@ -330,7 +330,7 @@ class RDSResponse(BaseResponse):
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
         filters = self._get_multi_param("Filters.Filter.")
         filters = {f["Name"]: f["Values"] for f in filters}
-        snapshots = self.backend.describe_database_snapshots(
+        snapshots = self.backend.describe_db_snapshots(
             db_instance_identifier, db_snapshot_identifier, filters
         )
         template = self.response_template(DESCRIBE_SNAPSHOTS_TEMPLATE)

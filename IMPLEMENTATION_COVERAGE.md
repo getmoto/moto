@@ -1280,7 +1280,7 @@
 
 ## config
 <details>
-<summary>34% implemented</summary>
+<summary>38% implemented</summary>
 
 - [X] batch_get_aggregate_resource_config
 - [X] batch_get_resource_config
@@ -1297,7 +1297,7 @@
 - [ ] delete_remediation_configuration
 - [ ] delete_remediation_exceptions
 - [ ] delete_resource_config
-- [ ] delete_retention_configuration
+- [X] delete_retention_configuration
 - [ ] delete_stored_query
 - [ ] deliver_config_snapshot
 - [ ] describe_aggregate_compliance_by_config_rules
@@ -1324,7 +1324,7 @@
 - [ ] describe_remediation_configurations
 - [ ] describe_remediation_exceptions
 - [ ] describe_remediation_execution_status
-- [ ] describe_retention_configurations
+- [X] describe_retention_configurations
 - [ ] get_aggregate_compliance_details_by_config_rule
 - [ ] get_aggregate_config_rule_compliance_summary
 - [ ] get_aggregate_conformance_pack_compliance_summary
@@ -1363,7 +1363,7 @@
 - [ ] put_remediation_configurations
 - [ ] put_remediation_exceptions
 - [ ] put_resource_config
-- [ ] put_retention_configuration
+- [X] put_retention_configuration
 - [ ] put_stored_query
 - [ ] select_aggregate_resource_config
 - [ ] select_resource_config
@@ -2191,7 +2191,7 @@
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
 - [ ] get_ipam_resource_cidrs
-- [x] get_launch_template_data
+- [X] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
 - [X] get_managed_prefix_list_entries
 - [ ] get_network_insights_access_scope_analysis_findings
@@ -2212,6 +2212,7 @@
 - [ ] get_verified_access_group_policy
 - [ ] get_vpn_connection_device_sample_configuration
 - [ ] get_vpn_connection_device_types
+- [ ] get_vpn_tunnel_replacement_status
 - [ ] import_client_vpn_client_certificate_revocation_list
 - [ ] import_image
 - [ ] import_instance
@@ -2312,6 +2313,7 @@
 - [X] replace_route
 - [X] replace_route_table_association
 - [ ] replace_transit_gateway_route
+- [ ] replace_vpn_tunnel
 - [ ] report_instance_status
 - [X] request_spot_fleet
 - [X] request_spot_instances
@@ -3454,6 +3456,7 @@
 - [ ] disassociate_members
 - [X] enable_organization_admin_account
 - [ ] get_administrator_account
+- [ ] get_coverage_statistics
 - [X] get_detector
 - [X] get_filter
 - [ ] get_findings
@@ -3468,6 +3471,7 @@
 - [ ] get_threat_intel_set
 - [ ] get_usage_statistics
 - [ ] invite_members
+- [ ] list_coverage
 - [X] list_detectors
 - [ ] list_filters
 - [ ] list_findings
@@ -4169,6 +4173,7 @@
 - [ ] get_runtime_management_config
 - [X] invoke
 - [ ] invoke_async
+- [ ] invoke_with_response_stream
 - [ ] list_aliases
 - [ ] list_code_signing_configs
 - [X] list_event_source_mappings
@@ -4978,7 +4983,7 @@
 
 ## quicksight
 <details>
-<summary>11% implemented</summary>
+<summary>10% implemented</summary>
 
 - [ ] cancel_ingestion
 - [ ] create_account_customization
@@ -4994,6 +4999,7 @@
 - [ ] create_iam_policy_assignment
 - [X] create_ingestion
 - [ ] create_namespace
+- [ ] create_refresh_schedule
 - [ ] create_template
 - [ ] create_template_alias
 - [ ] create_theme
@@ -5003,6 +5009,7 @@
 - [ ] delete_analysis
 - [ ] delete_dashboard
 - [ ] delete_data_set
+- [ ] delete_data_set_refresh_properties
 - [ ] delete_data_source
 - [ ] delete_folder
 - [ ] delete_folder_membership
@@ -5010,6 +5017,7 @@
 - [ ] delete_group_membership
 - [ ] delete_iam_policy_assignment
 - [ ] delete_namespace
+- [ ] delete_refresh_schedule
 - [ ] delete_template
 - [ ] delete_template_alias
 - [ ] delete_theme
@@ -5027,6 +5035,7 @@
 - [ ] describe_dashboard_permissions
 - [ ] describe_data_set
 - [ ] describe_data_set_permissions
+- [ ] describe_data_set_refresh_properties
 - [ ] describe_data_source
 - [ ] describe_data_source_permissions
 - [ ] describe_folder
@@ -5038,6 +5047,7 @@
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
 - [ ] describe_namespace
+- [ ] describe_refresh_schedule
 - [ ] describe_template
 - [ ] describe_template_alias
 - [ ] describe_template_definition
@@ -5063,6 +5073,7 @@
 - [ ] list_iam_policy_assignments_for_user
 - [ ] list_ingestions
 - [ ] list_namespaces
+- [ ] list_refresh_schedules
 - [ ] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
@@ -5072,6 +5083,7 @@
 - [ ] list_themes
 - [ ] list_user_groups
 - [X] list_users
+- [ ] put_data_set_refresh_properties
 - [X] register_user
 - [ ] restore_analysis
 - [ ] search_analyses
@@ -5099,6 +5111,7 @@
 - [ ] update_iam_policy_assignment
 - [ ] update_ip_restriction
 - [ ] update_public_sharing_settings
+- [ ] update_refresh_schedule
 - [ ] update_template
 - [ ] update_template_alias
 - [ ] update_template_permissions
@@ -5141,7 +5154,7 @@
 
 ## rds
 <details>
-<summary>37% implemented</summary>
+<summary>38% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -5213,7 +5226,7 @@
 - [ ] describe_db_proxy_targets
 - [ ] describe_db_security_groups
 - [ ] describe_db_snapshot_attributes
-- [ ] describe_db_snapshots
+- [X] describe_db_snapshots
 - [X] describe_db_subnet_groups
 - [ ] describe_engine_default_cluster_parameters
 - [ ] describe_engine_default_parameters
@@ -5447,6 +5460,7 @@
 - [ ] copy_project_version
 - [ ] create_collection
 - [ ] create_dataset
+- [ ] create_face_liveness_session
 - [ ] create_project
 - [ ] create_project_version
 - [ ] create_stream_processor
@@ -5473,6 +5487,7 @@
 - [ ] get_celebrity_recognition
 - [ ] get_content_moderation
 - [ ] get_face_detection
+- [ ] get_face_liveness_session_results
 - [X] get_face_search
 - [ ] get_label_detection
 - [ ] get_person_tracking
@@ -6441,14 +6456,14 @@
 
 ## sqs
 <details>
-<summary>90% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] add_permission
 - [X] change_message_visibility
-- [ ] change_message_visibility_batch
+- [X] change_message_visibility_batch
 - [X] create_queue
 - [X] delete_message
-- [ ] delete_message_batch
+- [X] delete_message_batch
 - [X] delete_queue
 - [X] get_queue_attributes
 - [X] get_queue_url

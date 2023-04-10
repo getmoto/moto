@@ -20,6 +20,7 @@ from moto.core.utils import (
 )
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
+from .constants import MAXIMUM_VISIBILITY_TIMEOUT
 from .utils import generate_receipt_handle
 from .exceptions import (
     MessageAttributesInvalid,
@@ -985,6 +986,24 @@ class SQSBackend(BaseBackend):
 
         queue.delete_message(receipt_handle)
 
+    def delete_message_batch(self, queue_name, receipts):
+        success = []
+        errors = []
+        for receipt_and_id in receipts:
+            try:
+                self.delete_message(queue_name, receipt_and_id["receipt_handle"])
+                success.append(receipt_and_id["msg_user_id"])
+            except ReceiptHandleIsInvalid:
+                errors.append(
+                    {
+                        "Id": receipt_and_id["msg_user_id"],
+                        "SenderFault": "true",
+                        "Code": "ReceiptHandleIsInvalid",
+                        "Message": f'The input receipt handle "{receipt_and_id["receipt_handle"]}" is not a valid receipt handle.',
+                    }
+                )
+        return success, errors
+
     def change_message_visibility(self, queue_name, receipt_handle, visibility_timeout):
         queue = self.get_queue(queue_name)
         for message in queue._messages:
@@ -1005,6 +1024,42 @@ class SQSBackend(BaseBackend):
                     queue.pending_messages.remove(message)
                 return
         raise ReceiptHandleIsInvalid
+
+    def change_message_visibility_batch(self, queue_name: str, entries):
+        success = []
+        error = []
+        for entry in entries:
+            try:
+                visibility_timeout = int(entry["visibility_timeout"])
+                assert visibility_timeout <= MAXIMUM_VISIBILITY_TIMEOUT
+            except:  # noqa: E722 Do not use bare except
+                error.append(
+                    {
+                        "Id": entry["id"],
+                        "SenderFault": "true",
+                        "Code": "InvalidParameterValue",
+                        "Message": "Visibility timeout invalid",
+                    }
+                )
+                continue
+
+            try:
+                self.change_message_visibility(
+                    queue_name=queue_name,
+                    receipt_handle=entry["receipt_handle"],
+                    visibility_timeout=visibility_timeout,
+                )
+                success.append(entry["id"])
+            except ReceiptHandleIsInvalid as e:
+                error.append(
+                    {
+                        "Id": entry["id"],
+                        "SenderFault": "true",
+                        "Code": "ReceiptHandleIsInvalid",
+                        "Message": e.description,
+                    }
+                )
+        return success, error
 
     def purge_queue(self, queue_name):
         queue = self.get_queue(queue_name)
