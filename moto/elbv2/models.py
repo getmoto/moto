@@ -152,7 +152,17 @@ class FakeTargetGroup(CloudFormationModel):
     def health_for(self, target: Dict[str, Any], ec2_backend: Any) -> FakeHealthStatus:
         t = self.targets.get(target["id"])
         if t is None:
-            raise InvalidTargetError()
+            port = self.port
+            if 'port' in target:
+                port = target["port"]
+            return FakeHealthStatus(
+                target["id"],
+                port,
+                self.healthcheck_port,
+                "unavailable",
+                "Target.NotRegistered",
+                "Target is not registered",
+            )
         if t["id"].startswith("i-"):  # EC2 instance ID
             instance = ec2_backend.get_instance_by_id(t["id"])
             if instance.state == "stopped":
