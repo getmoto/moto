@@ -596,6 +596,7 @@ class FakeLoadBalancer(CloudFormationModel):
             "access_logs.s3.prefix": None,
             "deletion_protection.enabled": "false",
             # "idle_timeout.timeout_seconds": "60",  # commented out for TF compatibility
+            "load_balancing.cross_zone.enabled": "false",
         }
 
     @property
