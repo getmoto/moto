@@ -6172,6 +6172,24 @@
 - [ ] update_workteam
 </details>
 
+## scheduler
+<details>
+<summary>100% implemented</summary>
+
+- [X] create_schedule
+- [X] create_schedule_group
+- [X] delete_schedule
+- [X] delete_schedule_group
+- [X] get_schedule
+- [X] get_schedule_group
+- [X] list_schedule_groups
+- [X] list_schedules
+- [X] list_tags_for_resource
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_schedule
+</details>
+
 ## sdb
 <details>
 <summary>50% implemented</summary>
@@ -7081,7 +7099,6 @@
 - sagemaker-metrics
 - sagemaker-runtime
 - savingsplans
-- scheduler
 - schemas
 - securityhub
 - securitylake
