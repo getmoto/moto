@@ -494,6 +494,9 @@ s3:
   - TestAccS3ObjectsDataSource_fetchOwner
 sagemaker:
   - TestAccSageMakerPrebuiltECRImageDataSource
+scheduler:
+  - TestAccSchedulerSchedule_
+  - TestAccSchedulerScheduleGroup_
 secretsmanager:
   - TestAccSecretsManagerSecretDataSource_basic
   - TestAccSecretsManagerSecretPolicy_

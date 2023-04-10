@@ -143,6 +143,7 @@ mock_route53resolver = lazy_load(
 mock_s3 = lazy_load(".s3", "mock_s3")
 mock_s3control = lazy_load(".s3control", "mock_s3control")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker")
+mock_scheduler = lazy_load(".scheduler", "mock_scheduler")
 mock_sdb = lazy_load(".sdb", "mock_sdb")
 mock_secretsmanager = lazy_load(".secretsmanager", "mock_secretsmanager")
 mock_servicequotas = lazy_load(
