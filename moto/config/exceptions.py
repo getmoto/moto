@@ -114,6 +114,14 @@ class InvalidS3KeyPrefixException(JsonRESTError):
         super().__init__("InvalidS3KeyPrefixException", message)
 
 
+class InvalidS3KmsKeyArnException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        message = "The arn '' is not a valid kms key or alias arn."
+        super().__init__("InvalidS3KmsKeyArnException", message)
+
+
 class InvalidSNSTopicARNException(JsonRESTError):
     """We are *only* validating that there is value that is not '' here."""
 
@@ -373,3 +381,13 @@ class MissingRequiredConfigRuleParameterException(JsonRESTError):
 
     def __init__(self, message: str):
         super().__init__("ParamValidationError", message)
+
+
+class NoSuchRetentionConfigurationException(JsonRESTError):
+    code = 400
+
+    def __init__(self, name: str):
+        message = (
+            f"Cannot find retention configuration with the specified name '{name}'."
+        )
+        super().__init__("NoSuchRetentionConfigurationException", message)
