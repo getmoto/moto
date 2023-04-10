@@ -245,6 +245,10 @@ class NeptuneBackend(BaseBackend):
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
 
     @property
+    def global_backend(self) -> "NeptuneBackend":
+        return neptune_backends[self.account_id]["us-east-1"]
+
+    @property
     def db_cluster_options(self) -> List[Dict[str, Any]]:  # type: ignore[misc]
         if self._db_cluster_options is None:
             from moto.rds.utils import decode_orderable_db_instance
@@ -297,14 +301,14 @@ class NeptuneBackend(BaseBackend):
             storage_encrypted=storage_encrypted,
             deletion_protection=deletion_protection,
         )
-        self.global_clusters[global_cluster_identifier] = cluster
+        self.global_backend.global_clusters[global_cluster_identifier] = cluster
         return cluster
 
     def delete_global_cluster(self, global_cluster_identifier: str) -> GlobalCluster:
-        return self.global_clusters.pop(global_cluster_identifier)
+        return self.global_backend.global_clusters.pop(global_cluster_identifier)
 
     def describe_global_clusters(self) -> List[GlobalCluster]:
-        return list(self.global_clusters.values())
+        return list(self.global_backend.global_clusters.values())
 
     def describe_db_clusters(self, db_cluster_identifier: str) -> List[DBCluster]:
         """

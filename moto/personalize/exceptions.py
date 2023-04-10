@@ -7,7 +7,7 @@ class PersonalizeException(JsonRESTError):
 
 
 class ResourceNotFoundException(PersonalizeException):
-    def __init__(self, arn):
+    def __init__(self, arn: str):
         super().__init__(
             "ResourceNotFoundException", f"Resource Arn {arn} does not exist."
         )

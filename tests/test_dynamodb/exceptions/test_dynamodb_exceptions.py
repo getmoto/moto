@@ -933,11 +933,20 @@ def test_put_item__string_as_integer_value():
     err["Code"].should.equal("SerializationException")
     err["Message"].should.equal("NUMBER_VALUE cannot be converted to String")
 
+    # A primary key cannot be of type S, but then point to a dictionary
     with pytest.raises(ClientError) as exc:
         client.put_item(TableName="without_sk", Item={"pk": {"S": {"S": "asdf"}}})
     err = exc.value.response["Error"]
     err["Code"].should.equal("SerializationException")
     err["Message"].should.equal("Start of structure or map found where not expected")
+
+    # Note that a normal attribute name can be an 'S', which follows the same pattern
+    # Nested 'S'-s like this are allowed for non-key attributes
+    client.put_item(
+        TableName="without_sk", Item={"pk": {"S": "val"}, "S": {"S": "asdf"}}
+    )
+    item = client.get_item(TableName="without_sk", Key={"pk": {"S": "val"}})["Item"]
+    assert item == {"pk": {"S": "val"}, "S": {"S": "asdf"}}
 
 
 @mock_dynamodb

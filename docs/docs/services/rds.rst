@@ -42,7 +42,7 @@ rds
 - [ ] create_custom_db_engine_version
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
-- [ ] create_db_cluster_parameter_group
+- [X] create_db_cluster_parameter_group
 - [X] create_db_cluster_snapshot
 - [X] create_db_instance
 - [X] create_db_instance_read_replica
@@ -53,13 +53,13 @@ rds
 - [X] create_db_snapshot
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
-- [ ] create_global_cluster
+- [X] create_global_cluster
 - [X] create_option_group
 - [ ] delete_blue_green_deployment
 - [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_endpoint
-- [ ] delete_db_cluster_parameter_group
+- [X] delete_db_cluster_parameter_group
 - [X] delete_db_cluster_snapshot
 - [X] delete_db_instance
 - [ ] delete_db_instance_automated_backup
@@ -70,7 +70,7 @@ rds
 - [X] delete_db_snapshot
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
-- [ ] delete_global_cluster
+- [X] delete_global_cluster
 - [X] delete_option_group
 - [ ] deregister_db_proxy_targets
 - [ ] describe_account_attributes
@@ -78,8 +78,8 @@ rds
 - [ ] describe_certificates
 - [ ] describe_db_cluster_backtracks
 - [ ] describe_db_cluster_endpoints
-- [ ] describe_db_cluster_parameter_groups
-- [ ] describe_db_cluster_parameters
+- [X] describe_db_cluster_parameter_groups
+- [X] describe_db_cluster_parameters
 - [ ] describe_db_cluster_snapshot_attributes
 - [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
@@ -96,19 +96,19 @@ rds
 - [ ] describe_db_security_groups
 - [ ] describe_db_snapshot_attributes
 - [ ] describe_db_snapshots
-- [ ] describe_db_subnet_groups
+- [X] describe_db_subnet_groups
 - [ ] describe_engine_default_cluster_parameters
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
 - [X] describe_event_subscriptions
 - [ ] describe_events
 - [X] describe_export_tasks
-- [ ] describe_global_clusters
+- [X] describe_global_clusters
 - [X] describe_option_group_options
 - [X] describe_option_groups
 - [X] describe_orderable_db_instance_options
   
-        Only the Neptune-engine is currently implemented
+        Only the Aurora-Postgresql and Neptune-engine is currently implemented
         
 
 - [ ] describe_pending_maintenance_actions
@@ -140,12 +140,12 @@ rds
 - [ ] modify_global_cluster
 - [X] modify_option_group
 - [X] promote_read_replica
-- [ ] promote_read_replica_db_cluster
+- [X] promote_read_replica_db_cluster
 - [ ] purchase_reserved_db_instances_offering
 - [ ] reboot_db_cluster
 - [X] reboot_db_instance
 - [ ] register_db_proxy_targets
-- [ ] remove_from_global_cluster
+- [X] remove_from_global_cluster
 - [ ] remove_role_from_db_cluster
 - [ ] remove_role_from_db_instance
 - [ ] remove_source_identifier_from_subscription

@@ -235,3 +235,24 @@ class ConfigResponse(BaseResponse):
     def delete_config_rule(self) -> str:
         self.config_backend.delete_config_rule(self._get_param("ConfigRuleName"))
         return ""
+
+    def put_retention_configuration(self) -> str:
+        retention_configuration = self.config_backend.put_retention_configuration(
+            self._get_param("RetentionPeriodInDays")
+        )
+        return json.dumps(retention_configuration)
+
+    def describe_retention_configurations(self) -> str:
+        retention_configurations = (
+            self.config_backend.describe_retention_configurations(
+                self._get_param("RetentionConfigurationNames")
+            )
+        )
+        schema = {"RetentionConfigurations": retention_configurations}
+        return json.dumps(schema)
+
+    def delete_retention_configuration(self) -> str:
+        self.config_backend.delete_retention_configuration(
+            self._get_param("RetentionConfigurationName")
+        )
+        return ""

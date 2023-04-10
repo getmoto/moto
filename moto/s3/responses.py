@@ -740,7 +740,7 @@ class S3Response(BaseResponse):
         return parsed_xml
 
     def _bucket_response_put(self, request, region_name, bucket_name, querystring):
-        if not request.headers.get("Content-Length"):
+        if querystring and not request.headers.get("Content-Length"):
             return 411, {}, "Content-Length required"
 
         self._set_action("BUCKET", "PUT", querystring)

@@ -62,7 +62,7 @@ config
 - [ ] delete_remediation_configuration
 - [ ] delete_remediation_exceptions
 - [ ] delete_resource_config
-- [ ] delete_retention_configuration
+- [X] delete_retention_configuration
 - [ ] delete_stored_query
 - [ ] deliver_config_snapshot
 - [ ] describe_aggregate_compliance_by_config_rules
@@ -91,7 +91,7 @@ config
 - [ ] describe_remediation_configurations
 - [ ] describe_remediation_exceptions
 - [ ] describe_remediation_execution_status
-- [ ] describe_retention_configurations
+- [X] describe_retention_configurations
 - [ ] get_aggregate_compliance_details_by_config_rule
 - [ ] get_aggregate_config_rule_compliance_summary
 - [ ] get_aggregate_conformance_pack_compliance_summary
@@ -179,7 +179,7 @@ config
 - [ ] put_remediation_configurations
 - [ ] put_remediation_exceptions
 - [ ] put_resource_config
-- [ ] put_retention_configuration
+- [X] put_retention_configuration
 - [ ] put_stored_query
 - [ ] select_aggregate_resource_config
 - [ ] select_resource_config

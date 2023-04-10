@@ -23,11 +23,12 @@
 """
 Represents an EC2 Object
 """
+from typing import Any
 from moto.packages.boto.ec2.tag import TagSet
 
 
-class EC2Object(object):
-    def __init__(self, connection=None):
+class EC2Object:
+    def __init__(self, connection: Any = None):
         self.connection = connection
         self.region = None
 
@@ -43,6 +44,6 @@ class TaggedEC2Object(EC2Object):
     object.
     """
 
-    def __init__(self, connection=None):
+    def __init__(self, connection: Any = None):
         super(TaggedEC2Object, self).__init__(connection)
-        self.tags = TagSet()
+        self.tags = TagSet()  # type: ignore

@@ -21,5 +21,5 @@
 # IN THE SOFTWARE.
 
 
-class ProductCodes(list):
+class ProductCodes(list):  # type: ignore
     pass

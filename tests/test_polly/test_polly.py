@@ -258,3 +258,10 @@ def test_synthesize_speech_bad_speech_marks2():
         )
     else:
         raise RuntimeError("Should have raised ")
+
+
+@mock_polly
+def test_update_lexicon():
+    client = boto3.client("polly", region_name=DEFAULT_REGION)
+    client.put_lexicon(Name="test", Content=LEXICON_XML)
+    client.put_lexicon(Name="test", Content=LEXICON_XML)
