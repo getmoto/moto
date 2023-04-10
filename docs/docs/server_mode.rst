@@ -101,6 +101,19 @@ This is stored in two different repositories:
     docker run motoserver/moto:latest
     docker run ghcr.io/getmoto/motoserver:latest
 
+Example docker-compose.yaml 
+ Look at `server.py <https://github.com/getmoto/moto/blob/master/moto/server.py>`_ to find more environment variables.
+
+.. code-block:: yaml
+
+  motoserver:
+    image: motoserver/moto:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - MOTO_PORT=3000 # set moto listener port with env var
+   
+
 Example Usage
 --------------
 
