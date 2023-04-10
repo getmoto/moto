@@ -7,6 +7,6 @@ WORKDIR /moto/
 RUN  pip3 --no-cache-dir install --upgrade pip setuptools && \
      pip3 --no-cache-dir install ".[server]"
 
-ENTRYPOINT ["/usr/local/bin/moto_server", "-H"]
+ENTRYPOINT ["/usr/local/bin/moto_server", "-H", "0.0.0.0"]
 
 EXPOSE 5000
