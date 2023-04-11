@@ -1,11 +1,12 @@
 import re
 import string
 from datetime import datetime
+from typing import Any, Dict, List
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random as random
-from moto.organizations import organizations_backends
+from moto.organizations.models import organizations_backends, OrganizationsBackend
 from moto.ram.exceptions import (
     MalformedArnException,
     InvalidParameterException,
@@ -14,7 +15,7 @@ from moto.ram.exceptions import (
 )
 
 
-def random_resource_id(size):
+def random_resource_id(size: int) -> str:
     return "".join(random.choice(string.digits + "abcdef") for _ in range(size))
 
 
@@ -37,7 +38,7 @@ class ResourceShare(BaseModel):
         "transit-gateway",  # Amazon EC2 transit gateway
     ]
 
-    def __init__(self, account_id, region, **kwargs):
+    def __init__(self, account_id: str, region: str, **kwargs: Any):
         self.account_id = account_id
         self.region = region
 
@@ -50,15 +51,15 @@ class ResourceShare(BaseModel):
         self.last_updated_time = datetime.utcnow()
         self.name = kwargs["name"]
         self.owning_account_id = account_id
-        self.principals = []
-        self.resource_arns = []
+        self.principals: List[str] = []
+        self.resource_arns: List[str] = []
         self.status = "ACTIVE"
 
     @property
-    def organizations_backend(self):
+    def organizations_backend(self) -> OrganizationsBackend:
         return organizations_backends[self.account_id]["global"]
 
-    def add_principals(self, principals):
+    def add_principals(self, principals: List[str]) -> None:
         for principal in principals:
             match = re.search(
                 r"^arn:aws:organizations::\d{12}:organization/(o-\w+)$", principal
@@ -108,7 +109,7 @@ class ResourceShare(BaseModel):
         for principal in principals:
             self.principals.append(principal)
 
-    def add_resources(self, resource_arns):
+    def add_resources(self, resource_arns: List[str]) -> None:
         for resource in resource_arns:
             match = re.search(
                 r"^arn:aws:[a-z0-9-]+:[a-z0-9-]*:[0-9]{12}:([a-z-]+)[/:].*$", resource
@@ -126,11 +127,11 @@ class ResourceShare(BaseModel):
         for resource in resource_arns:
             self.resource_arns.append(resource)
 
-    def delete(self):
+    def delete(self) -> None:
         self.last_updated_time = datetime.utcnow()
         self.status = "DELETED"
 
-    def describe(self):
+    def describe(self) -> Dict[str, Any]:
         return {
             "allowExternalPrincipals": self.allow_external_principals,
             "creationTime": unix_time(self.creation_time),
@@ -142,7 +143,7 @@ class ResourceShare(BaseModel):
             "status": self.status,
         }
 
-    def update(self, **kwargs):
+    def update(self, **kwargs: Any) -> None:
         self.allow_external_principals = kwargs.get(
             "allowExternalPrincipals", self.allow_external_principals
         )
@@ -151,15 +152,15 @@ class ResourceShare(BaseModel):
 
 
 class ResourceAccessManagerBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.resource_shares = []
+        self.resource_shares: List[ResourceShare] = []
 
     @property
-    def organizations_backend(self):
+    def organizations_backend(self) -> OrganizationsBackend:
         return organizations_backends[self.account_id]["global"]
 
-    def create_resource_share(self, **kwargs):
+    def create_resource_share(self, **kwargs: Any) -> Dict[str, Any]:
         resource = ResourceShare(self.account_id, self.region_name, **kwargs)
         resource.add_principals(kwargs.get("principals", []))
         resource.add_resources(kwargs.get("resourceArns", []))
@@ -171,7 +172,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return dict(resourceShare=response)
 
-    def get_resource_shares(self, **kwargs):
+    def get_resource_shares(self, **kwargs: Any) -> Dict[str, Any]:
         owner = kwargs["resourceOwner"]
 
         if owner not in ["SELF", "OTHER-ACCOUNTS"]:
@@ -189,7 +190,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return dict(resourceShares=resouces)
 
-    def update_resource_share(self, **kwargs):
+    def update_resource_share(self, **kwargs: Any) -> Dict[str, Any]:
         arn = kwargs["resourceShareArn"]
 
         resource = next(
@@ -205,7 +206,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return dict(resourceShare=response)
 
-    def delete_resource_share(self, arn):
+    def delete_resource_share(self, arn: str) -> Dict[str, Any]:
         resource = next(
             (resource for resource in self.resource_shares if arn == resource.arn), None
         )
@@ -217,7 +218,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return dict(returnValue=True)
 
-    def enable_sharing_with_aws_organization(self):
+    def enable_sharing_with_aws_organization(self) -> Dict[str, Any]:
         if not self.organizations_backend.org:
             raise OperationNotPermittedException
 
