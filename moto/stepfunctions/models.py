@@ -230,7 +230,11 @@ class Execution:
         self.start_date = iso_8601_datetime_with_milliseconds(datetime.now())
         self.state_machine_arn = state_machine_arn
         self.execution_input = execution_input
-        self.status = "RUNNING"
+        self.status = (
+            "RUNNING"
+            if settings.get_sf_execution_history_type() == "SUCCESS"
+            else "FAILED"
+        )
         self.stop_date = None
 
     def get_execution_history(self, roleArn):
@@ -510,6 +514,14 @@ class StepFunctionBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_executions(self, state_machine_arn, status_filter=None):
+        """
+        The status of every execution is set to 'RUNNING' by default.
+        Set the following environment variable if you want to get a FAILED status back:
+
+        .. sourcecode:: bash
+
+            SF_EXECUTION_HISTORY_TYPE=FAILURE
+        """
         executions = self.describe_state_machine(state_machine_arn).executions
 
         if status_filter:
@@ -519,6 +531,14 @@ class StepFunctionBackend(BaseBackend):
         return executions
 
     def describe_execution(self, execution_arn):
+        """
+        The status of every execution is set to 'RUNNING' by default.
+        Set the following environment variable if you want to get a FAILED status back:
+
+        .. sourcecode:: bash
+
+            SF_EXECUTION_HISTORY_TYPE=FAILURE
+        """
         self._validate_execution_arn(execution_arn)
         state_machine = self._get_state_machine_for_execution(execution_arn)
         exctn = next(
@@ -532,6 +552,14 @@ class StepFunctionBackend(BaseBackend):
         return exctn
 
     def get_execution_history(self, execution_arn):
+        """
+        A static list of successful events is returned by default.
+        Set the following environment variable if you want to get a static list of events for a failed execution:
+
+        .. sourcecode:: bash
+
+            SF_EXECUTION_HISTORY_TYPE=FAILURE
+        """
         self._validate_execution_arn(execution_arn)
         state_machine = self._get_state_machine_for_execution(execution_arn)
         execution = next(
