@@ -3,7 +3,7 @@ Moto Changelog
 
 4.1.7
 -----
-Docker Digest for 4.1.7: <autopopulateddigest>
+Docker Digest for 4.1.7: _sha256:6b877d5efe86562d27f296638d6b163c7987913c203874578d00fa1f83eea000_
 
     New Services:
         * LakeFormation:
