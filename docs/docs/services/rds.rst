@@ -95,7 +95,7 @@ rds
 - [ ] describe_db_proxy_targets
 - [ ] describe_db_security_groups
 - [ ] describe_db_snapshot_attributes
-- [ ] describe_db_snapshots
+- [X] describe_db_snapshots
 - [X] describe_db_subnet_groups
 - [ ] describe_engine_default_cluster_parameters
 - [ ] describe_engine_default_parameters

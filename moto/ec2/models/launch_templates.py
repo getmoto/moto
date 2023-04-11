@@ -255,3 +255,6 @@ class LaunchTemplateBackend:
             templates = list(self.launch_templates.values())
 
         return generic_filter(filters, templates)
+
+    def get_launch_template_data(self, instance_id: str) -> Any:
+        return self.get_instance(instance_id)  # type: ignore[attr-defined]

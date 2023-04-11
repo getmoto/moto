@@ -1,6 +1,76 @@
 Moto Changelog
 ==============
 
+4.1.7
+-----
+Docker Digest for 4.1.7: <autopopulateddigest>
+
+    New Services:
+        * LakeFormation:
+            * batch_grant_permissions()
+            * batch_revoke_permissions()
+            * create_lf_tag()
+            * delete_lf_tag()
+            * deregister_resource()
+            * describe_resource()
+            * get_data_lake_settings()
+            * get_lf_tag()
+            * grant_permissions()
+            * list_data_cells_filter()
+            * list_lf_tags()
+            * list_permissions()
+            * list_resources()
+            * put_data_lake_settings()
+            * register_resource()
+            * revoke_permissions()
+        * RDS Data:
+            * execute_statement()
+        * Scheduler:
+            * create_schedule()
+            * create_schedule_group()
+            * delete_schedule()
+            * delete_schedule_group()
+            * get_schedule()
+            * get_schedule_group()
+            * list_schedule_groups()
+            * list_schedules()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_schedule()
+
+    New Methods:
+        * Config: 
+            * delete_retention_configuration()
+            * describe_retention_configurations()
+            * put_retention_configuration()
+        * EC2: 
+            * get_launch_template_data()
+        * RDS:
+            * create_db_cluster_parameter_group()
+            * create_global_cluster()
+            * delete_db_cluster_parameter_group()
+            * delete_global_cluster()
+            * describe_db_cluster_parameter_groups()
+            * describe_db_cluster_parameters()
+            * describe_db_subnet_groups()
+            * describe_global_clusters()
+            * promote_read_replica_db_cluster()
+            * remove_from_global_cluster()
+
+    Miscellaneous:
+        * APIGateway now allows semicolons in paths
+        * CloudFormation now supports Fn::ToJsonString
+        * DynamoDB: update_item() now supports number-sets in the AttributeUpdates-parameter
+        * DynamoDB: query() - The KeyConditionExpression now allows enclosing the sort key condition in brackets
+        * EC2: assign_private_ip_addresses() now supports the PrivateIpAddresses-argument
+        * ECR: put_image() now supports the imageManifestMediaType parameter
+        * ECS: run_task() now validates the provided launch-type
+        * Logs: put_subscription_filter() now supports KinesisStream destinations
+        * RDS: describe_db_clusters() now supports filtering by db-cluster-id and engine
+        * RDS: describe_db_clusters() now returns the parameters KmsKeyId, NetworkType, DBSubnetGroupName, ScalingConfiguration
+        * S3: head_object() now returns the AcceptRanges header
+        * SQS: Improvements in the deduplication-logic
 
 4.1.6
 -----

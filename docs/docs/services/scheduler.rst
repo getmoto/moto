@@ -46,7 +46,11 @@ scheduler
         The MaxResults-parameter and pagination options are not yet implemented
         
 
-- [ ] list_schedules
+- [X] list_schedules
+  
+        The following parameters are not yet implemented: MaxResults, NamePrefix, NextToken
+        
+
 - [X] list_tags_for_resource
 - [X] tag_resource
 - [X] untag_resource

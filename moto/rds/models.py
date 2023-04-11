@@ -1601,7 +1601,7 @@ class RDSBackend(BaseBackend):
             raise DBInstanceNotFoundError(db_instance_identifier)
         return list(databases.values())
 
-    def describe_database_snapshots(
+    def describe_db_snapshots(
         self, db_instance_identifier, db_snapshot_identifier, filters=None
     ):
         snapshots = self.database_snapshots
@@ -1642,7 +1642,7 @@ class RDSBackend(BaseBackend):
         return database
 
     def restore_db_instance_from_db_snapshot(self, from_snapshot_id, overrides):
-        snapshot = self.describe_database_snapshots(
+        snapshot = self.describe_db_snapshots(
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database

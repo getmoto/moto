@@ -261,7 +261,7 @@ class LaunchTemplates(EC2BaseResponse):
 
     def get_launch_template_data(self) -> str:
         instance_id = self._get_param("InstanceId")
-        instance = self.ec2_backend.get_instance(instance_id)
+        instance = self.ec2_backend.get_launch_template_data(instance_id)
         template = self.response_template(GET_LAUNCH_TEMPLATE_DATA_RESPONSE)
         return template.render(i=instance)
 

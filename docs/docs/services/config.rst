@@ -63,6 +63,8 @@ config
 - [ ] delete_remediation_exceptions
 - [ ] delete_resource_config
 - [X] delete_retention_configuration
+  This will delete the retention configuration if one is present with the provided name.
+
 - [ ] delete_stored_query
 - [ ] deliver_config_snapshot
 - [ ] describe_aggregate_compliance_by_config_rules
@@ -92,6 +94,12 @@ config
 - [ ] describe_remediation_exceptions
 - [ ] describe_remediation_execution_status
 - [X] describe_retention_configurations
+  
+        This will return the retention configuration if one is present.
+
+        This should only receive at most 1 name in. It will raise a ValidationException if more than 1 is supplied.
+        
+
 - [ ] get_aggregate_compliance_details_by_config_rule
 - [ ] get_aggregate_config_rule_compliance_summary
 - [ ] get_aggregate_conformance_pack_compliance_summary
@@ -180,6 +188,8 @@ config
 - [ ] put_remediation_exceptions
 - [ ] put_resource_config
 - [X] put_retention_configuration
+  Creates a Retention Configuration.
+
 - [ ] put_stored_query
 - [ ] select_aggregate_resource_config
 - [ ] select_resource_config

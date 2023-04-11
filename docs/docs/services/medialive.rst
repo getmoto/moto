@@ -66,10 +66,18 @@ medialive
 - [ ] describe_reservation
 - [ ] describe_schedule
 - [X] list_channels
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_input_device_transfers
 - [ ] list_input_devices
 - [ ] list_input_security_groups
 - [X] list_inputs
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_multiplex_programs
 - [ ] list_multiplexes
 - [ ] list_offerings

@@ -49,6 +49,7 @@ Additional Resources
   :caption: Implemented Services
 
   docs/services/index
+  docs/services/cf
   docs/services/patching_other_services
 
 .. toctree::

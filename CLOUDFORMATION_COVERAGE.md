@@ -1,3 +1,8 @@
+## Supported CloudFormation resources
+
+A list of all resources that can be created via CloudFormation. 
+Please let us know if you'd like support for a resource not yet listed here.
+
 - AWS::ApiGateway::Deployment:
    - [x] create implemented
    - [ ] update implemented
