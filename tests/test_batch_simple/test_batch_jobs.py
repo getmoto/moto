@@ -17,42 +17,10 @@ from unittest import SkipTest
 @mock_iam
 @mock_batch_simple
 def test_submit_job_by_name():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("No point in testing batch_simple in ServerMode")
-
-    ec2_client, iam_client, _, _, batch_client = _get_clients()
-    _, _, _, iam_arn = _setup(ec2_client, iam_client)
-
-    compute_name = str(uuid4())
-    resp = batch_client.create_compute_environment(
-        computeEnvironmentName=compute_name,
-        type="UNMANAGED",
-        state="ENABLED",
-        serviceRole=iam_arn,
-    )
-    arn = resp["computeEnvironmentArn"]
-
-    resp = batch_client.create_job_queue(
-        jobQueueName=str(uuid4()),
-        state="ENABLED",
-        priority=123,
-        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
-    )
-    queue_arn = resp["jobQueueArn"]
-
     job_definition_name = f"sleep10_{str(uuid4())[0:6]}"
-
-    resp = batch_client.register_job_definition(
-        jobDefinitionName=job_definition_name,
-        type="container",
-        containerProperties={
-            "image": "busybox",
-            "vcpus": 1,
-            "memory": 512,
-            "command": ["sleep", "10"],
-        },
+    batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
+        job_definition_name
     )
-    job_definition_arn = resp["jobDefinitionArn"]
 
     resp = batch_client.submit_job(
         jobName="test1", jobQueue=queue_arn, jobDefinition=job_definition_name
@@ -117,3 +85,79 @@ def test_update_job_definition():
 
     job_defs[1]["containerProperties"]["memory"].should.equal(2048)
     job_defs[1]["tags"].should.equal(tags[1])
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch_simple
+def test_submit_job_faild():
+    job_definition_name = "test_job_moto_fail"
+    batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
+        job_definition_name
+    )
+
+    resp = batch_client.submit_job(
+        jobName=job_definition_name,
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name,
+    )
+    job_id = resp["jobId"]
+
+    resp_jobs = batch_client.describe_jobs(jobs=[job_id])
+    assert len(resp_jobs["jobs"]) == 1
+
+    job = resp_jobs["jobs"][0]
+
+    assert job["jobId"] == job_id
+    assert job["jobQueue"] == queue_arn
+    assert job["jobDefinition"] == job_definition_arn
+    assert job["status"] == "FAILED"
+    assert "container" in job
+    assert "command" in job["container"]
+    assert "logStreamName" in job["container"]
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch_simple
+def setup_common_batch_simple(job_definition_name):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("No point in testing batch_simple in ServerMode")
+
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = str(uuid4())
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName=str(uuid4()),
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+
+    resp = batch_client.register_job_definition(
+        jobDefinitionName=job_definition_name,
+        type="container",
+        containerProperties={
+            "image": "busybox",
+            "vcpus": 1,
+            "memory": 512,
+            "command": ["sleep", "10"],
+        },
+    )
+    job_definition_arn = resp["jobDefinitionArn"]
+
+    return batch_client, job_definition_arn, queue_arn

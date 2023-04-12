@@ -13,7 +13,9 @@ from typing import Any, Dict, List, Tuple, Optional
 
 class BatchSimpleBackend(BaseBackend):
     """
-    Implements a Batch-Backend that does not use Docker containers. Submitted Jobs are simply marked as Success
+    Implements a Batch-Backend that does not use Docker containers. Submitted Jobs are marked as Success or Fail,
+    depending on their name: jobs with names ending with "moto_fail" will fail
+
     Annotate your tests with `@mock_batch_simple`-decorator to use this Batch-implementation.
     """
 
@@ -77,11 +79,16 @@ class BatchSimpleBackend(BaseBackend):
         )
         self.backend._jobs[job.job_id] = job
 
-        # We don't want to actually run the job - just mark it as succeeded
         job.job_started_at = datetime.datetime.now()
         job.log_stream_name = job._stream_name
         job._start_attempt()
-        job._mark_stopped(success=True)
+
+        # We don't want to actually run the job - just mark it as succeeded or failed
+        # depending on job's suffix
+        if job_name.lower().endswith("moto_fail"):
+            job._mark_stopped(success=False)
+        else:
+            job._mark_stopped(success=True)
 
         return job_name, job.job_id
 
