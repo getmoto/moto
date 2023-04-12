@@ -1,6 +1,6 @@
 import copy
 from collections import namedtuple
-from typing import Any, Dict
+from typing import Any, Dict, Tuple, Optional
 
 from botocore.utils import merge_dicts
 
@@ -22,7 +22,7 @@ FilterDef = namedtuple(
 )
 
 
-def get_object_value(obj, attr):
+def get_object_value(obj: Any, attr: str) -> Any:
     """Retrieves an arbitrary attribute value from an object.
 
     Nested attributes can be specified using dot notation,
@@ -47,7 +47,9 @@ def get_object_value(obj, attr):
     return val
 
 
-def merge_filters(filters_to_update, filters_to_merge):
+def merge_filters(
+    filters_to_update: Optional[Dict[str, Any]], filters_to_merge: Dict[str, Any]
+) -> Dict[str, Any]:
     """Given two groups of filters, merge the second into the first.
 
     List values are appended instead of overwritten:
@@ -76,7 +78,9 @@ def merge_filters(filters_to_update, filters_to_merge):
     return filters_to_update
 
 
-def validate_filters(filters, filter_defs):
+def validate_filters(
+    filters: Dict[str, Any], filter_defs: Dict[str, FilterDef]
+) -> None:
     """Validates filters against a set of filter definitions.
 
     Raises standard Python exceptions which should be caught
@@ -108,7 +112,7 @@ def validate_filters(filters, filter_defs):
             )
 
 
-def apply_filter(resources, filters, filter_defs):
+def apply_filter(resources: Any, filters: Any, filter_defs: Any) -> Any:
     """Apply an arbitrary filter to a group of resources.
 
     :param dict[str, object] resources:
@@ -140,7 +144,9 @@ def apply_filter(resources, filters, filter_defs):
     return resources_filtered
 
 
-def get_start_date_end_date(base_date, window):
+def get_start_date_end_date(
+    base_date: str, window: str
+) -> Tuple[datetime.datetime, datetime.datetime]:
     """Gets the start date and end date given DDD:HH24:MM-DDD:HH24:MM.
 
     :param base_date:
@@ -162,11 +168,11 @@ def get_start_date_end_date(base_date, window):
     return start, end
 
 
-def get_start_date_end_date_from_time(base_date, window):
+def get_start_date_end_date_from_time(
+    base_date: str, window: str
+) -> Tuple[datetime.datetime, datetime.datetime, bool]:
     """Gets the start date and end date given HH24:MM-HH24:MM.
 
-    :param base_date:
-        type datetime
     :param window:
         HH24:MM-HH24:MM
     :returns:
@@ -187,31 +193,23 @@ def get_start_date_end_date_from_time(base_date, window):
 
 
 def get_overlap_between_two_date_ranges(
-    start_time_1, end_time_1, start_time_2, end_time_2
-):
-    """Determines overlap between 2 date ranges.
-
-    :param start_time_1:
-        type datetime
-    :param start_time_2:
-        type datetime
-    :param end_time_1:
-        type datetime
-    :param end_time_2:
-        type datetime
-    :returns:
-        overlap in seconds
-    :rtype:
-        int
+    start_time_1: datetime.datetime,
+    end_time_1: datetime.datetime,
+    start_time_2: datetime.datetime,
+    end_time_2: datetime.datetime,
+) -> int:
+    """
+    Determines overlap between 2 date ranges. Returns the overlap in seconds.
     """
     latest_start = max(start_time_1, start_time_2)
     earliest_end = min(end_time_1, end_time_2)
     delta = earliest_end - latest_start
-    overlap = (delta.days * SECONDS_IN_ONE_DAY) + delta.seconds
-    return overlap
+    return (delta.days * SECONDS_IN_ONE_DAY) + delta.seconds
 
 
-def valid_preferred_maintenance_window(maintenance_window, backup_window):
+def valid_preferred_maintenance_window(
+    maintenance_window: Any, backup_window: Any
+) -> Optional[str]:
     """Determines validity of preferred_maintenance_window
 
     :param maintenance_windown:
@@ -283,7 +281,7 @@ def valid_preferred_maintenance_window(maintenance_window, backup_window):
         delta = maintenance_window_end - maintenance_window_start
         delta_seconds = delta.seconds + (delta.days * SECONDS_IN_ONE_DAY)
         if delta_seconds >= MINUTES_30 and delta_seconds <= HOURS_24:
-            return
+            return None
         elif delta_seconds >= 0 and delta_seconds <= MINUTES_30:
             return "The maintenance window must be at least 30 minutes."
         else:
