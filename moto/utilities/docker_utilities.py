@@ -36,6 +36,13 @@ class DockerModel:
                 self.docker_client.api.get_adapter = replace_adapter_send
         return self.__docker_client
 
+    def ensure_image_exists(self, name: str) -> None:
+        full_name = ":".join(parse_image_ref(name))
+        try:
+            self.docker_client.images.get(full_name)
+        except:  # noqa: E722 Do not use bare except
+            self.docker_client.images.pull(full_name)
+
 
 def parse_image_ref(image_name: str) -> Tuple[str, str]:
     # podman does not support short container image name out of box - try to make a full name
