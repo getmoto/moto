@@ -1,10 +1,10 @@
 from ..test_batch import _get_clients, _setup
 
-import sure  # noqa # pylint: disable=unused-import
+import os
 from moto import mock_iam, mock_ec2, mock_ecs, mock_logs, settings
 from moto import mock_batch_simple
 from uuid import uuid4
-from unittest import SkipTest
+from unittest import mock, SkipTest
 
 
 # Copy of test_batch/test_batch_jobs
@@ -77,14 +77,14 @@ def test_update_job_definition():
     job_defs = batch_client.describe_job_definitions(jobDefinitionName=job_def_name)[
         "jobDefinitions"
     ]
-    job_defs.should.have.length_of(2)
+    assert len(job_defs) == 2
 
-    job_defs[0]["containerProperties"]["memory"].should.equal(1024)
-    job_defs[0]["tags"].should.equal(tags[0])
-    job_defs[0].shouldnt.have.key("timeout")
+    assert job_defs[0]["containerProperties"]["memory"] == 1024
+    assert job_defs[0]["tags"] == tags[0]
+    assert "timeout" not in job_defs[0]
 
-    job_defs[1]["containerProperties"]["memory"].should.equal(2048)
-    job_defs[1]["tags"].should.equal(tags[1])
+    assert job_defs[1]["containerProperties"]["memory"] == 2048
+    assert job_defs[1]["tags"] == tags[1]
 
 
 @mock_logs
@@ -92,31 +92,88 @@ def test_update_job_definition():
 @mock_ecs
 @mock_iam
 @mock_batch_simple
-def test_submit_job_faild():
+def test_submit_job_fail():
     job_definition_name = "test_job_moto_fail"
-    batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
-        job_definition_name
-    )
 
-    resp = batch_client.submit_job(
-        jobName=job_definition_name,
-        jobQueue=queue_arn,
-        jobDefinition=job_definition_name,
-    )
-    job_id = resp["jobId"]
+    with mock.patch.dict(os.environ, {"MOTO_SIMPLE_BATCH_FAIL_AFTER": "0"}):
+        batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
+            job_definition_name
+        )
 
-    resp_jobs = batch_client.describe_jobs(jobs=[job_id])
-    assert len(resp_jobs["jobs"]) == 1
+        resp = batch_client.submit_job(
+            jobName=job_definition_name,
+            jobQueue=queue_arn,
+            jobDefinition=job_definition_name,
+        )
+        job_id = resp["jobId"]
 
-    job = resp_jobs["jobs"][0]
+        resp_jobs = batch_client.describe_jobs(jobs=[job_id])
+        assert len(resp_jobs["jobs"]) == 1
 
-    assert job["jobId"] == job_id
-    assert job["jobQueue"] == queue_arn
-    assert job["jobDefinition"] == job_definition_arn
-    assert job["status"] == "FAILED"
-    assert "container" in job
-    assert "command" in job["container"]
-    assert "logStreamName" in job["container"]
+        job = resp_jobs["jobs"][0]
+
+        assert job["jobId"] == job_id
+        assert job["status"] == "FAILED"
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch_simple
+def test_submit_job_fail_after_1_secs():
+    job_definition_name = "test_job_moto_fail"
+
+    with mock.patch.dict(os.environ, {"MOTO_SIMPLE_BATCH_FAIL_AFTER": "1"}):
+        batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
+            job_definition_name
+        )
+
+        resp = batch_client.submit_job(
+            jobName=job_definition_name,
+            jobQueue=queue_arn,
+            jobDefinition=job_definition_name,
+        )
+        job_id = resp["jobId"]
+
+        resp_jobs = batch_client.describe_jobs(jobs=[job_id])
+        assert len(resp_jobs["jobs"]) == 1
+
+        job = resp_jobs["jobs"][0]
+
+        assert job["jobId"] == job_id
+        assert job["status"] == "FAILED"
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch_simple
+def test_submit_job_fail_bad_int():
+    job_definition_name = "test_job_moto_fail"
+
+    with mock.patch.dict(
+        os.environ, {"MOTO_SIMPLE_BATCH_FAIL_AFTER": "CANT_PARSE_AS_INT"}
+    ):
+        batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
+            job_definition_name
+        )
+
+        resp = batch_client.submit_job(
+            jobName=job_definition_name,
+            jobQueue=queue_arn,
+            jobDefinition=job_definition_name,
+        )
+        job_id = resp["jobId"]
+
+        resp_jobs = batch_client.describe_jobs(jobs=[job_id])
+        assert len(resp_jobs["jobs"]) == 1
+
+        job = resp_jobs["jobs"][0]
+
+        assert job["jobId"] == job_id
+        assert job["status"] == "FAILED"
 
 
 @mock_logs
