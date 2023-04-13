@@ -23,7 +23,6 @@ from .utilities import (
 from ..markers import requires_docker
 
 _lambda_region = "us-west-2"
-boto3.setup_default_session(region_name=_lambda_region)
 
 
 @pytest.mark.network
@@ -34,7 +33,7 @@ def test_invoke_function_that_throws_error():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file_error()},
@@ -54,7 +53,7 @@ def test_invoke_function_that_throws_error():
 
     logs = base64.b64decode(failure_response["LogResult"]).decode("utf-8")
     logs.should.contain("START RequestId:")
-    logs.should.contain("I failed!: Exception")
+    logs.should.contain("I failed!")
     logs.should.contain("Traceback (most recent call last):")
     logs.should.contain("END RequestId:")
 
@@ -69,7 +68,7 @@ def test_invoke_requestresponse_function(invocation_type, key):
     function_name = str(uuid4())[0:6]
     fxn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -248,7 +247,7 @@ def test_invoke_dryrun_function():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -321,7 +320,7 @@ def lambda_handler(event, context):
     client = boto3.client("lambda", region_name="us-east-1")
     client.create_function(
         FunctionName="test-lambda-fx",
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Description="test lambda function",
@@ -348,7 +347,7 @@ def test_invoke_async_function(key):
     function_name = str(uuid4())[0:6]
     fxn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},

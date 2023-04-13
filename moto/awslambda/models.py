@@ -54,7 +54,7 @@ from .utils import (
 from moto.sqs import sqs_backends
 from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
-from moto.utilities.docker_utilities import DockerModel, parse_image_ref
+from moto.utilities.docker_utilities import DockerModel
 from tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
@@ -127,11 +127,9 @@ class _DockerDataVolumeContext:
             )
             volumes = {self.name: {"bind": settings.LAMBDA_DATA_DIR, "mode": "rw"}}
 
-            self._lambda_func.docker_client.images.pull(
-                ":".join(parse_image_ref("alpine"))
-            )
+            self._lambda_func.ensure_image_exists("busybox")
             container = self._lambda_func.docker_client.containers.run(
-                "alpine", "sleep 100", volumes=volumes, detach=True
+                "busybox", "sleep 100", volumes=volumes, detach=True
             )
             try:
                 tar_bytes = zip2tar(self._lambda_func.code_bytes)
@@ -775,9 +773,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     )
                     for image_repo in image_repos:
                         image_ref = f"{image_repo}:{self.run_time}"
-                        full_ref = ":".join(parse_image_ref(image_ref))
                         try:
-                            self.docker_client.images.pull(full_ref)
+                            self.ensure_image_exists(image_ref)
                             break
                         except docker.errors.NotFound:
                             pass

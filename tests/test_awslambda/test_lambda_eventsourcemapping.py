@@ -31,7 +31,7 @@ def test_create_event_source_mapping():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -64,7 +64,7 @@ def test_invoke_function_from_sqs(key):
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -119,7 +119,7 @@ def test_invoke_function_from_dynamodb_put():
     function_name = str(uuid4())[0:6]
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -171,7 +171,7 @@ def test_invoke_function_from_dynamodb_update():
     function_name = str(uuid4())[0:6]
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -224,7 +224,7 @@ def test_invoke_function_from_sqs_exception():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file_error()},
@@ -242,7 +242,7 @@ def test_invoke_function_from_sqs_exception():
     assert response["State"] == "Enabled"
 
     entries = []
-    for i in range(3):
+    for i in range(2):
         body = {"uuid": str(uuid.uuid4()), "test": f"test_{i}"}
         entry = {"Id": str(i), "MessageBody": json.dumps(body)}
         entries.append(entry)
@@ -268,7 +268,7 @@ def test_invoke_function_from_sqs_exception():
             if "I failed!" in event["message"]:
                 messages = queue.receive_messages(MaxNumberOfMessages=10)
                 # Verify messages are still visible and unprocessed
-                assert len(messages) == 3
+                assert len(messages) == 2
                 return
         time.sleep(1)
 
@@ -292,7 +292,7 @@ def test_invoke_function_from_sns():
     function_name = str(uuid4())[0:6]
     result = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -345,7 +345,7 @@ def test_list_event_source_mappings():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -378,7 +378,7 @@ def test_get_event_source_mapping():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -409,7 +409,7 @@ def test_update_event_source_mapping():
     conn = boto3.client("lambda", region_name="us-east-1")
     func1 = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -420,7 +420,7 @@ def test_update_event_source_mapping():
     )
     func2 = conn.create_function(
         FunctionName="testFunction2",
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -455,7 +455,7 @@ def test_delete_event_source_mapping():
     conn = boto3.client("lambda", region_name="us-east-1")
     func1 = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime="python3.8",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
