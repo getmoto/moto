@@ -96,9 +96,7 @@ def test_submit_job_fail():
     job_definition_name = "test_job_moto_fail"
 
     with mock.patch.dict(os.environ, {"MOTO_SIMPLE_BATCH_FAIL_AFTER": "0"}):
-        batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
-            job_definition_name
-        )
+        batch_client, _, queue_arn = setup_common_batch_simple(job_definition_name)
 
         resp = batch_client.submit_job(
             jobName=job_definition_name,
@@ -125,9 +123,7 @@ def test_submit_job_fail_after_1_secs():
     job_definition_name = "test_job_moto_fail"
 
     with mock.patch.dict(os.environ, {"MOTO_SIMPLE_BATCH_FAIL_AFTER": "1"}):
-        batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
-            job_definition_name
-        )
+        batch_client, _, queue_arn = setup_common_batch_simple(job_definition_name)
 
         resp = batch_client.submit_job(
             jobName=job_definition_name,
@@ -156,9 +152,7 @@ def test_submit_job_fail_bad_int():
     with mock.patch.dict(
         os.environ, {"MOTO_SIMPLE_BATCH_FAIL_AFTER": "CANT_PARSE_AS_INT"}
     ):
-        batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
-            job_definition_name
-        )
+        batch_client, _, queue_arn = setup_common_batch_simple(job_definition_name)
 
         resp = batch_client.submit_job(
             jobName=job_definition_name,
