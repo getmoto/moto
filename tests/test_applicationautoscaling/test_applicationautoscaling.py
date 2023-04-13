@@ -379,7 +379,7 @@ def test_put_scaling_policy(policy_type, policy_body_kwargs):
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     response["PolicyARN"].should.match(
-        rf"arn:aws:autoscaling:.*1:scalingPolicy:.*:resource/{namespace}/{resource_id}:policyName/{policy_name}"
+        rf"arn:aws:autoscaling:.*1:{ACCOUNT_ID}:scalingPolicy:.*:resource/{namespace}/{resource_id}:policyName/{policy_name}"
     )
 
 
@@ -432,7 +432,7 @@ def test_describe_scaling_policies():
     policy["PolicyType"].should.equal(policy_type)
     policy["TargetTrackingScalingPolicyConfiguration"].should.equal(policy_body)
     policy["PolicyARN"].should.match(
-        rf"arn:aws:autoscaling:.*1:scalingPolicy:.*:resource/{namespace}/{resource_id}:policyName/{policy_name}"
+        rf"arn:aws:autoscaling:.*1:{ACCOUNT_ID}:scalingPolicy:.*:resource/{namespace}/{resource_id}:policyName/{policy_name}"
     )
     policy.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
 
