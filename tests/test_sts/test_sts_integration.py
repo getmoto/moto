@@ -24,6 +24,17 @@ class TestStsAssumeRole(unittest.TestCase):
         )
 
         # Assume the new role
+        sts_account_b = boto3.client(
+            "sts",
+            aws_access_key_id=response["Credentials"]["AccessKeyId"],
+            aws_secret_access_key=response["Credentials"]["SecretAccessKey"],
+            aws_session_token=response["Credentials"]["SessionToken"],
+            region_name="us-east-1",
+        )
+        assumed_arn = sts_account_b.get_caller_identity()["Arn"]
+        assumed_arn.should.equal(
+            f"arn:aws:sts::{self.account_b}:assumed-role/my-role/test-session-name"
+        )
         iam_account_b = boto3.client(
             "iam",
             aws_access_key_id=response["Credentials"]["AccessKeyId"],
