@@ -180,6 +180,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         if policy_key in self.policies:
             old_policy = self.policies[policy_key]
             policy = FakeApplicationAutoscalingPolicy(
+                account_id=self.account_id,
                 region_name=self.region_name,
                 policy_name=policy_name,
                 service_namespace=service_namespace,
@@ -190,6 +191,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             )
         else:
             policy = FakeApplicationAutoscalingPolicy(
+                account_id=self.account_id,
                 region_name=self.region_name,
                 policy_name=policy_name,
                 service_namespace=service_namespace,
@@ -435,6 +437,7 @@ class FakeScalableTarget(BaseModel):
 class FakeApplicationAutoscalingPolicy(BaseModel):
     def __init__(
         self,
+        account_id: str,
         region_name: str,
         policy_name: str,
         service_namespace: str,
@@ -464,7 +467,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self.policy_name = policy_name
         self.policy_type = policy_type
         self._guid = mock_random.uuid4()
-        self.policy_arn = f"arn:aws:autoscaling:{region_name}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
+        self.policy_arn = f"arn:aws:autoscaling:{region_name}:{account_id}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
         self.creation_time = time.time()
 
     @staticmethod
