@@ -10,7 +10,8 @@ def parse_template(template, template_data, tokenizer=None, until=None):
     for char in tokenizer:
         if until is not None and (char + tokenizer.peek(len(until) - 1)) == until:
             return parsed
-        if char == "{":
+        if char == "{" and tokenizer.peek() == "{":
+            # Two braces next to each other indicate a variable/language construct such as for-each
             tokenizer.skip_characters("{")
             tokenizer.skip_white_space()
             if tokenizer.peek() == "#":

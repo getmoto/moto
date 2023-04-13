@@ -24,3 +24,10 @@ def test_template_with_multiple_foreach():
         "l2": [{"o1": "ob1", "o2": "ob2"}, {"o1": "oc1", "o2": "oc2"}],
     }
     parse_template(t, kwargs).should.equal(" - it1 - it2 and list 2  ob1 ob2  oc1 oc2 ")
+
+
+def test_template_with_single_curly_brace():
+    t = "Dear {{name}} my {brace} is fine."
+    parse_template(t, template_data={"name": "John"}).should.equal(
+        "Dear John my {brace} is fine."
+    )
