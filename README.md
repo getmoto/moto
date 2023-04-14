@@ -68,3 +68,10 @@ For a full list of which services and features are covered, please see our [impl
 The full documentation can be found here:
 
 [http://docs.getmoto.org/en/latest/](http://docs.getmoto.org/en/latest/)
+
+
+### Security contact information
+
+To report a security vulnerability, please use the
+[Tidelift security contact](https://tidelift.com/security).
+Tidelift will coordinate the fix and disclosure.
