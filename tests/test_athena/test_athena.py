@@ -12,7 +12,7 @@ from moto.core import DEFAULT_ACCOUNT_ID
 def test_create_work_group():
     client = boto3.client("athena", region_name="us-east-1")
 
-    response = client.create_work_group(
+    client.create_work_group(
         Name="athena_workgroup",
         Description="Test work group",
         Configuration={
@@ -24,12 +24,11 @@ def test_create_work_group():
                 },
             }
         },
-        Tags=[],
     )
 
     try:
         # The second time should throw an error
-        response = client.create_work_group(
+        client.create_work_group(
             Name="athena_workgroup",
             Description="duplicate",
             Configuration={
@@ -59,6 +58,16 @@ def test_create_work_group():
     work_group["Name"].should.equal("athena_workgroup")
     work_group["Description"].should.equal("Test work group")
     work_group["State"].should.equal("ENABLED")
+
+
+@mock_athena
+def test_get_primary_workgroup():
+    client = boto3.client("athena", region_name="us-east-1")
+    assert len(client.list_work_groups()["WorkGroups"]) == 1
+
+    primary = client.get_work_group(WorkGroup="primary")["WorkGroup"]
+    assert primary["Name"] == "primary"
+    assert primary["Configuration"] == {}
 
 
 @mock_athena
