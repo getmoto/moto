@@ -501,6 +501,36 @@ def test_register_targets():
     )
     response.get("TargetHealthDescriptions").should.have.length_of(1)
 
+    def get_target_by_instance_id(instance_id):
+        for target in response.get("TargetHealthDescriptions"):
+            if target.get("Target").get("Id") == instance_id:
+                return target
+        return None
+
+    def assert_target_not_registered(target):
+        assert target.get("TargetHealth").get("State") == "unavailable"
+        assert target.get("TargetHealth").get("Reason") == "Target.NotRegistered"
+
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get("TargetGroupArn"),
+        Targets=[{"Id": instance_id2}],
+    )
+    response.get("TargetHealthDescriptions").should.have.length_of(1)
+    target_default_port = get_target_by_instance_id(instance_id2)
+    assert target_default_port is not None
+    assert target_default_port.get("Target").get("Port") == 8080
+    assert_target_not_registered(target_default_port)
+
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get("TargetGroupArn"),
+        Targets=[{"Id": instance_id2, "Port": 4030}],
+    )
+    response.get("TargetHealthDescriptions").should.have.length_of(1)
+    target_custom_port = get_target_by_instance_id(instance_id2)
+    assert target_custom_port is not None
+    assert target_custom_port.get("Target").get("Port") == 4030
+    assert_target_not_registered(target_custom_port)
+
 
 @mock_ec2
 @mock_elbv2
