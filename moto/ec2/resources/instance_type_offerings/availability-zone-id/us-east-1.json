@@ -10328,6 +10328,22 @@
   "Location": "use1-az6"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "use1-az6"
+ },
+ {
   "InstanceType": "is4gen.2xlarge",
   "Location": "use1-az6"
  },
@@ -11729,6 +11745,10 @@
  },
  {
   "InstanceType": "trn1.32xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "trn1n.32xlarge",
   "Location": "use1-az6"
  },
  {

@@ -2308,6 +2308,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "trn1n.32xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "us-west-2"
  },
