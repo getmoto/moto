@@ -8784,6 +8784,10 @@
   "Location": "usw2-az4"
  },
  {
+  "InstanceType": "trn1n.32xlarge",
+  "Location": "usw2-az4"
+ },
+ {
   "InstanceType": "u-18tb1.112xlarge",
   "Location": "usw2-az4"
  },

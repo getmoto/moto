@@ -376,6 +376,38 @@
   "Location": "me-south-1a"
  },
  {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
+  "Location": "me-south-1a"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "me-south-1a"
  },
@@ -1101,6 +1133,38 @@
  },
  {
   "InstanceType": "i3en.xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
   "Location": "me-south-1b"
  },
  {
@@ -1845,6 +1909,38 @@
  },
  {
   "InstanceType": "i3en.xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
   "Location": "me-south-1c"
  },
  {

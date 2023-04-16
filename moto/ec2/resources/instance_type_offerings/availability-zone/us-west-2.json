@@ -8784,6 +8784,10 @@
   "Location": "us-west-2d"
  },
  {
+  "InstanceType": "trn1n.32xlarge",
+  "Location": "us-west-2d"
+ },
+ {
   "InstanceType": "u-18tb1.112xlarge",
   "Location": "us-west-2d"
  },

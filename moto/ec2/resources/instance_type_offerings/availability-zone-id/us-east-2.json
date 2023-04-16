@@ -772,6 +772,22 @@
   "Location": "use2-az1"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "use2-az1"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "use2-az1"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "use2-az1"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "use2-az1"
+ },
+ {
   "InstanceType": "is4gen.2xlarge",
   "Location": "use2-az1"
  },
@@ -3041,6 +3057,22 @@
  },
  {
   "InstanceType": "inf1.xlarge",
+  "Location": "use2-az2"
+ },
+ {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "use2-az2"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "use2-az2"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "use2-az2"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
   "Location": "use2-az2"
  },
  {
