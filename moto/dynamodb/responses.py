@@ -1095,3 +1095,21 @@ class DynamoHandler(BaseResponse):
             target_table_name, source_table_name
         )
         return dynamo_json_dump(restored_table.describe())
+
+    def execute_statement(self) -> str:
+        stmt = self.body.get("Statement", "")
+        parameters = self.body.get("Parameters", [])
+        items = self.dynamodb_backend.execute_statement(
+            statement=stmt, parameters=parameters
+        )
+        return dynamo_json_dump({"Items": items})
+
+    def execute_transaction(self) -> str:
+        stmts = self.body.get("TransactStatements", [])
+        items = self.dynamodb_backend.execute_transaction(stmts)
+        return dynamo_json_dump({"Responses": items})
+
+    def batch_execute_statement(self) -> str:
+        stmts = self.body.get("Statements", [])
+        items = self.dynamodb_backend.batch_execute_statement(stmts)
+        return dynamo_json_dump({"Responses": items})

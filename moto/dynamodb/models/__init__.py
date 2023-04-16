@@ -1,4 +1,5 @@
 import copy
+import json
 import re
 
 from collections import OrderedDict
@@ -25,6 +26,7 @@ from moto.dynamodb.exceptions import (
     TransactWriteSingleOpException,
 )
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
+from moto.dynamodb.models.dynamo_type import serializer, deserializer
 from moto.dynamodb.models.table import (
     Table,
     RestoredTable,
@@ -35,6 +37,7 @@ from moto.dynamodb.models.table import (
 from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator
+from moto.dynamodb.parsing import partiql
 
 
 class DynamoDBBackend(BaseBackend):
@@ -769,6 +772,90 @@ class DynamoDBBackend(BaseBackend):
 
     def transact_get_items(self) -> None:
         pass
+
+    def execute_statement(
+        self, statement: str, parameters: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Only SELECT-statements are supported for now.
+
+        Pagination is not yet implemented.
+
+        Parsing is highly experimental - please raise an issue if you find any bugs.
+        """
+        # We need to execute a statement - but we don't know which table
+        # Just pass all tables to PartiQL
+        source_data: Dict[str, str] = dict()
+        for table in self.tables.values():
+            source_data[table.name] = "\n".join(
+                [json.dumps(item.to_regular_json()) for item in table.all_items()]
+            )
+
+        # Parameters are in DynamoDB JSON form ({"S": "value"}) - we only want the value itself
+        parameters = [deserializer.deserialize(param) for param in parameters]
+
+        regular_json = partiql.query(statement, source_data, parameters)
+        return [
+            {key: serializer.serialize(value) for key, value in item.items()}
+            for item in regular_json
+        ]
+
+    def execute_transaction(
+        self, statements: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Please see the documentation for `execute_statement` to see the limitations of what is supported.
+        """
+        responses = []
+        for stmt in statements:
+            items = self.execute_statement(
+                statement=stmt["Statement"], parameters=stmt.get("Parameters", [])
+            )
+            responses.extend([{"Item": item} for item in items])
+        return responses
+
+    def batch_execute_statement(
+        self, statements: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Please see the documentation for `execute_statement` to see the limitations of what is supported.
+        """
+        responses = []
+        # Validation
+        for stmt in statements:
+            metadata = partiql.get_query_metadata(stmt["Statement"])
+            table_name = metadata.get_table_names()[0]
+            response = {}
+            filter_keys = metadata.get_filter_names()
+            if table_name not in self.tables:
+                response["Error"] = {
+                    "Code": "ResourceNotFound",
+                    "Message": "Requested resource not found",
+                }
+            else:
+                response["TableName"] = table_name
+                table = self.tables[table_name]
+                for required_attr in table.table_key_attrs:
+                    if required_attr not in filter_keys:
+                        response["Error"] = {
+                            "Code": "ValidationError",
+                            "Message": "Select statements within BatchExecuteStatement must specify the primary key in the where clause.",
+                        }
+            responses.append(response)
+
+        # Execution
+        for idx, stmt in enumerate(statements):
+            if "Error" in responses[idx]:
+                continue
+            items = self.execute_statement(
+                statement=stmt["Statement"], parameters=stmt.get("Parameters", [])
+            )
+            # Statements should always contain a HashKey and SortKey
+            # An item with those keys may not exist
+            if items:
+                # But if it does, it will always only contain one item at most
+                responses[idx]["Item"] = items[0]
+        return responses
 
 
 dynamodb_backends = BackendDict(DynamoDBBackend, "dynamodb")

@@ -1678,9 +1678,9 @@
 
 ## dynamodb
 <details>
-<summary>54% implemented</summary>
+<summary>60% implemented</summary>
 
-- [ ] batch_execute_statement
+- [X] batch_execute_statement
 - [X] batch_get_item
 - [X] batch_write_item
 - [X] create_backup
@@ -1704,8 +1704,8 @@
 - [X] describe_time_to_live
 - [ ] disable_kinesis_streaming_destination
 - [ ] enable_kinesis_streaming_destination
-- [ ] execute_statement
-- [ ] execute_transaction
+- [X] execute_statement
+- [X] execute_transaction
 - [ ] export_table_to_point_in_time
 - [X] get_item
 - [ ] import_table
