@@ -1,4 +1,5 @@
 import decimal
+from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 from typing import Any, Dict, List, Union, Optional
 
 from moto.core import BaseModel
@@ -8,6 +9,9 @@ from moto.dynamodb.exceptions import (
     ItemSizeTooLarge,
 )
 from moto.dynamodb.models.utilities import bytesize
+
+deserializer = TypeDeserializer()
+serializer = TypeSerializer()
 
 
 class DDBType:
@@ -303,8 +307,14 @@ class Item(BaseModel):
 
         return {"Attributes": attributes}
 
+    def to_regular_json(self) -> Dict[str, Any]:
+        attributes = {}
+        for key, attribute in self.attrs.items():
+            attributes[key] = deserializer.deserialize(attribute.to_json())
+        return attributes
+
     def describe_attrs(
-        self, attributes: Optional[Dict[str, Any]]
+        self, attributes: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Dict[str, Any]]:
         if attributes:
             included = {}

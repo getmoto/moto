@@ -4,9 +4,9 @@ from typing import List
 
 
 def parse_query(text_input, query):
-    from py_partiql_parser import Parser
+    from py_partiql_parser import S3SelectParser
 
-    return Parser(source_data={"s3object": text_input}).parse(query)
+    return S3SelectParser(source_data={"s3object": text_input}).parse(query)
 
 
 def _create_header(key: bytes, value: bytes):

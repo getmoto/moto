@@ -25,7 +25,11 @@ dynamodb
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] batch_execute_statement
+- [X] batch_execute_statement
+  
+        Please see the documentation for `execute_statement` to see the limitations of what is supported.
+        
+
 - [X] batch_get_item
 - [X] batch_write_item
 - [X] create_backup
@@ -49,8 +53,20 @@ dynamodb
 - [X] describe_time_to_live
 - [ ] disable_kinesis_streaming_destination
 - [ ] enable_kinesis_streaming_destination
-- [ ] execute_statement
-- [ ] execute_transaction
+- [X] execute_statement
+  
+        Only SELECT-statements are supported for now.
+
+        Pagination is not yet implemented.
+
+        Parsing of the statement is highly experimental - please raise an issue if you find any bugs.
+        
+
+- [X] execute_transaction
+  
+        Please see the documentation for `execute_statement` to see the limitations of what is supported.
+        
+
 - [ ] export_table_to_point_in_time
 - [X] get_item
 - [ ] import_table
