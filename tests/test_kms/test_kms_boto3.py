@@ -1335,6 +1335,20 @@ def test_verify_empty_signature():
     )
 
 
+@mock_kms
+def test_get_public_key():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048")
+    key_id = key["KeyMetadata"]["KeyId"]
+    public_key_response = client.get_public_key(KeyId=key_id)
+
+    public_key_response.should.contain("PublicKey")
+    public_key_response["SigningAlgorithms"].should.equal(
+        key["KeyMetadata"]["SigningAlgorithms"]
+    )
+    public_key_response.shouldnt.contain("EncryptionAlgorithms")
+
+
 def create_simple_key(client, id_or_arn="KeyId", description=None, policy=None):
     with mock.patch.object(rsa, "generate_private_key", return_value=""):
         params = {}

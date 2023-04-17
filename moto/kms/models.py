@@ -4,7 +4,7 @@ from collections import defaultdict
 from copy import copy
 from datetime import datetime, timedelta
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from typing import Any, Dict, List, Tuple, Optional, Iterable, Set
 
@@ -681,6 +681,15 @@ class KmsBackend(BaseBackend):
             return key.arn, True, signing_algorithm
         except InvalidSignature:
             return key.arn, False, signing_algorithm
+
+    def get_public_key(self, key_id: str) -> Tuple[Key, bytes]:
+        key = self.describe_key(key_id)
+        public_key = key.private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+        return key, public_key
 
 
 kms_backends = BackendDict(KmsBackend, "kms")

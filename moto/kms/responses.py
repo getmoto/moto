@@ -721,6 +721,23 @@ class KmsResponse(BaseResponse):
             }
         )
 
+    def get_public_key(self) -> str:
+        key_id = self._get_param("KeyId")
+
+        self._validate_key_id(key_id)
+        self._validate_cmk_id(key_id)
+        key, public_key = self.kms_backend.get_public_key(key_id)
+        return json.dumps(
+            {
+                "CustomerMasterKeySpec": key.key_spec,
+                "EncryptionAlgorithms": key.encryption_algorithms,
+                "KeyId": key.id,
+                "KeyUsage": key.key_usage,
+                "PublicKey": base64.b64encode(public_key).decode("UTF-8"),
+                "SigningAlgorithms": key.signing_algorithms,
+            }
+        )
+
 
 def _assert_default_policy(policy_name: str) -> None:
     if policy_name != "default":
