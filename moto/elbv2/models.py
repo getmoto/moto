@@ -152,7 +152,17 @@ class FakeTargetGroup(CloudFormationModel):
     def health_for(self, target: Dict[str, Any], ec2_backend: Any) -> FakeHealthStatus:
         t = self.targets.get(target["id"])
         if t is None:
-            raise InvalidTargetError()
+            port = self.port
+            if "port" in target:
+                port = target["port"]
+            return FakeHealthStatus(
+                target["id"],
+                port,
+                self.healthcheck_port,
+                "unavailable",
+                "Target.NotRegistered",
+                "Target is not registered",
+            )
         if t["id"].startswith("i-"):  # EC2 instance ID
             instance = ec2_backend.get_instance_by_id(t["id"])
             if instance.state == "stopped":
@@ -385,7 +395,6 @@ class FakeListenerRule(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> "FakeListenerRule":
-
         properties = cloudformation_json["Properties"]
 
         elbv2_backend = elbv2_backends[account_id][region_name]
@@ -765,7 +774,6 @@ class ELBv2Backend(BaseBackend):
     def convert_and_validate_action_properties(
         self, properties: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-
         # transform Actions to confirm with the rest of the code and XML templates
         default_actions = []
         for i, action in enumerate(properties["Actions"]):
@@ -1094,7 +1102,6 @@ Member must satisfy regular expression pattern: {expression}"
     def convert_and_validate_certificates(
         self, certificates: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-
         # transform default certificate to conform with the rest of the code and XML templates
         for cert in certificates or []:
             cert["certificate_arn"] = cert["CertificateArn"]
@@ -1104,7 +1111,6 @@ Member must satisfy regular expression pattern: {expression}"
     def convert_and_validate_properties(
         self, properties: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-
         # transform default actions to confirm with the rest of the code and XML templates
         # Caller: CF create/update for type "AWS::ElasticLoadBalancingV2::Listener"
         default_actions = []
