@@ -4056,7 +4056,7 @@
 - [X] get_key_policy
 - [X] get_key_rotation_status
 - [ ] get_parameters_for_import
-- [ ] get_public_key
+- [X] get_public_key
 - [ ] import_key_material
 - [ ] list_aliases
 - [X] list_grants
