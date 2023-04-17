@@ -1,19 +1,20 @@
+from typing import Any, Dict, List, Iterator, Optional, Tuple
 from moto.core import BaseBackend, BackendDict
 from moto.core.exceptions import RESTError
 from moto.moto_api._internal import mock_random
 
-from moto.s3 import s3_backends
+from moto.s3.models import s3_backends, S3Backend
 from moto.ec2 import ec2_backends
-from moto.elb import elb_backends
-from moto.elbv2 import elbv2_backends
-from moto.kinesis import kinesis_backends
-from moto.kms import kms_backends
-from moto.rds import rds_backends
-from moto.glacier import glacier_backends
-from moto.redshift import redshift_backends
-from moto.emr import emr_backends
-from moto.awslambda import lambda_backends
-from moto.ecs import ecs_backends
+from moto.elb.models import elb_backends, ELBBackend
+from moto.elbv2.models import elbv2_backends, ELBv2Backend
+from moto.kinesis.models import kinesis_backends, KinesisBackend
+from moto.kms.models import kms_backends, KmsBackend
+from moto.rds.models import rds_backends, RDSBackend
+from moto.glacier.models import glacier_backends, GlacierBackend
+from moto.redshift.models import redshift_backends, RedshiftBackend
+from moto.emr.models import emr_backends, ElasticMapReduceBackend
+from moto.awslambda.models import lambda_backends, LambdaBackend
+from moto.ecs.models import ecs_backends, EC2ContainerServiceBackend
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
@@ -21,106 +22,74 @@ from moto.ecs import ecs_backends
 
 
 class ResourceGroupsTaggingAPIBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
 
-        self._pages = {}
+        self._pages: Dict[str, Any] = {}
         # Like 'someuuid': {'gen': <generator>, 'misc': None}
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # theres not really any point to clean up
 
     @property
-    def s3_backend(self):
-        """
-        :rtype: moto.s3.models.S3Backend
-        """
+    def s3_backend(self) -> S3Backend:
         return s3_backends[self.account_id]["global"]
 
     @property
-    def ec2_backend(self):
-        """
-        :rtype: moto.ec2.models.EC2Backend
-        """
+    def ec2_backend(self) -> Any:  # type: ignore[misc]
         return ec2_backends[self.account_id][self.region_name]
 
     @property
-    def elb_backend(self):
-        """
-        :rtype: moto.elb.models.ELBBackend
-        """
+    def elb_backend(self) -> ELBBackend:
         return elb_backends[self.account_id][self.region_name]
 
     @property
-    def elbv2_backend(self):
-        """
-        :rtype: moto.elbv2.models.ELBv2Backend
-        """
+    def elbv2_backend(self) -> ELBv2Backend:
         return elbv2_backends[self.account_id][self.region_name]
 
     @property
-    def kinesis_backend(self):
-        """
-        :rtype: moto.kinesis.models.KinesisBackend
-        """
+    def kinesis_backend(self) -> KinesisBackend:
         return kinesis_backends[self.account_id][self.region_name]
 
     @property
-    def kms_backend(self):
-        """
-        :rtype: moto.kms.models.KmsBackend
-        """
+    def kms_backend(self) -> KmsBackend:
         return kms_backends[self.account_id][self.region_name]
 
     @property
-    def rds_backend(self):
-        """
-        :rtype: moto.rds.models.RDSBackend
-        """
+    def rds_backend(self) -> RDSBackend:
         return rds_backends[self.account_id][self.region_name]
 
     @property
-    def glacier_backend(self):
-        """
-        :rtype: moto.glacier.models.GlacierBackend
-        """
+    def glacier_backend(self) -> GlacierBackend:
         return glacier_backends[self.account_id][self.region_name]
 
     @property
-    def emr_backend(self):
-        """
-        :rtype: moto.emr.models.ElasticMapReduceBackend
-        """
+    def emr_backend(self) -> ElasticMapReduceBackend:
         return emr_backends[self.account_id][self.region_name]
 
     @property
-    def redshift_backend(self):
-        """
-        :rtype: moto.redshift.models.RedshiftBackend
-        """
+    def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.account_id][self.region_name]
 
     @property
-    def lambda_backend(self):
-        """
-        :rtype: moto.awslambda.models.LambdaBackend
-        """
+    def lambda_backend(self) -> LambdaBackend:
         return lambda_backends[self.account_id][self.region_name]
 
     @property
-    def ecs_backend(self):
-        """
-        :rtype: moto.ecs.models.EcsnBackend
-        """
+    def ecs_backend(self) -> EC2ContainerServiceBackend:
         return ecs_backends[self.account_id][self.region_name]
 
-    def _get_resources_generator(self, tag_filters=None, resource_type_filters=None):
+    def _get_resources_generator(
+        self,
+        tag_filters: Optional[List[Dict[str, Any]]] = None,
+        resource_type_filters: Optional[List[str]] = None,
+    ) -> Iterator[Dict[str, Any]]:
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
         # TODO move these to their respective backends
         filters = []
-        for tag_filter_dict in tag_filters:
+        for tag_filter_dict in tag_filters:  # type: ignore
             values = tag_filter_dict.get("Values", [])
             if len(values) == 0:
                 # Check key matches
@@ -128,36 +97,38 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             elif len(values) == 1:
                 # Check its exactly the same as key, value
                 filters.append(
-                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key
+                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key  # type: ignore
                     and v == value
                 )
             else:
                 # Check key matches and value is one of the provided values
                 filters.append(
-                    lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key
+                    lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key  # type: ignore
                     and v in vl
                 )
 
-        def tag_filter(tag_list):
+        def tag_filter(tag_list: List[Dict[str, str]]) -> bool:
             result = []
             if tag_filters:
                 for f in filters:
                     temp_result = []
                     for tag in tag_list:
-                        f_result = f(tag["Key"], tag["Value"])
+                        f_result = f(tag["Key"], tag["Value"])  # type: ignore
                         temp_result.append(f_result)
                     result.append(any(temp_result))
                 return all(result)
             else:
                 return True
 
-        def format_tags(tags):
+        def format_tags(tags: Dict[str, str]) -> List[Dict[str, str]]:
             result = []
             for key, value in tags.items():
                 result.append({"Key": key, "Value": value})
             return result
 
-        def format_tag_keys(tags, keys):
+        def format_tag_keys(
+            tags: List[Dict[str, str]], keys: List[str]
+        ) -> List[Dict[str, str]]:
             result = []
             for tag in tags:
                 result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
@@ -200,7 +171,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         if not resource_type_filters or "ecs:cluster" in resource_type_filters:
             for cluster in self.ecs_backend.clusters.values():
-                tags = format_tag_keys(cluster.tags, ["key", "value"])
+                tags = format_tag_keys(cluster.tags, ["key", "value"])  # type: ignore[arg-type]
                 if not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{cluster.arn}", "Tags": tags}
@@ -222,9 +193,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             for ami in self.ec2_backend.amis.values():
                 tags = format_tags(self.ec2_backend.tags.get(ami.id, {}))
 
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
+                if not tags or not tag_filter(tags):
+                    # Skip if no tags, or invalid filter
                     continue
                 yield {
                     "ResourceARN": f"arn:aws:ec2:{self.region_name}::image/{ami.id}",
@@ -241,9 +211,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 for instance in reservation.instances:
                     tags = format_tags(self.ec2_backend.tags.get(instance.id, {}))
 
-                    if not tags or not tag_filter(
-                        tags
-                    ):  # Skip if no tags, or invalid filter
+                    if not tags or not tag_filter(tags):
+                        # Skip if no tags, or invalid filter
                         continue
                     yield {
                         "ResourceARN": f"arn:aws:ec2:{self.region_name}::instance/{instance.id}",
@@ -259,9 +228,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             for eni in self.ec2_backend.enis.values():
                 tags = format_tags(self.ec2_backend.tags.get(eni.id, {}))
 
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
+                if not tags or not tag_filter(tags):
+                    # Skip if no tags, or invalid filter
                     continue
                 yield {
                     "ResourceARN": f"arn:aws:ec2:{self.region_name}::network-interface/{eni.id}",
@@ -280,9 +248,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 for sg in vpc.values():
                     tags = format_tags(self.ec2_backend.tags.get(sg.id, {}))
 
-                    if not tags or not tag_filter(
-                        tags
-                    ):  # Skip if no tags, or invalid filter
+                    if not tags or not tag_filter(tags):
+                        # Skip if no tags, or invalid filter
                         continue
                     yield {
                         "ResourceARN": f"arn:aws:ec2:{self.region_name}::security-group/{sg.id}",
@@ -298,9 +265,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             for snapshot in self.ec2_backend.snapshots.values():
                 tags = format_tags(self.ec2_backend.tags.get(snapshot.id, {}))
 
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
+                if not tags or not tag_filter(tags):
+                    # Skip if no tags, or invalid filter
                     continue
                 yield {
                     "ResourceARN": f"arn:aws:ec2:{self.region_name}::snapshot/{snapshot.id}",
@@ -382,12 +348,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "rds" in resource_type_filters
             or "rds:cluster" in resource_type_filters
         ):
-            for cluster in self.rds_backend.clusters.values():
-                tags = cluster.get_tags()
+            for rds_cluster in self.rds_backend.clusters.values():
+                tags = rds_cluster.get_tags()
                 if not tags or not tag_filter(tags):
                     continue
                 yield {
-                    "ResourceARN": cluster.db_cluster_arn,
+                    "ResourceARN": rds_cluster.db_cluster_arn,
                     "Tags": tags,
                 }
 
@@ -487,7 +453,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
-    def _get_tag_keys_generator(self):
+    def _get_tag_keys_generator(self) -> Iterator[str]:
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
@@ -498,7 +464,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield key
 
         # EC2 tags
-        def get_ec2_keys(res_id):
+        def get_ec2_keys(res_id: str) -> List[Dict[str, str]]:
             result = []
             for key in self.ec2_backend.tags.get(res_id, {}):
                 result.append(key)
@@ -506,18 +472,18 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # EC2 AMI, resource type ec2:image
         for ami in self.ec2_backend.amis.values():
-            for key in get_ec2_keys(ami.id):
+            for key in get_ec2_keys(ami.id):  # type: ignore[assignment]
                 yield key
 
         # EC2 Instance, resource type ec2:instance
         for reservation in self.ec2_backend.reservations.values():
             for instance in reservation.instances:
-                for key in get_ec2_keys(instance.id):
+                for key in get_ec2_keys(instance.id):  # type: ignore[assignment]
                     yield key
 
         # EC2 NetworkInterface, resource type ec2:network-interface
         for eni in self.ec2_backend.enis.values():
-            for key in get_ec2_keys(eni.id):
+            for key in get_ec2_keys(eni.id):  # type: ignore[assignment]
                 yield key
 
         # TODO EC2 ReservedInstance
@@ -525,22 +491,22 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # EC2 SecurityGroup, resource type ec2:security-group
         for vpc in self.ec2_backend.groups.values():
             for sg in vpc.values():
-                for key in get_ec2_keys(sg.id):
+                for key in get_ec2_keys(sg.id):  # type: ignore[assignment]
                     yield key
 
         # EC2 Snapshot, resource type ec2:snapshot
         for snapshot in self.ec2_backend.snapshots.values():
-            for key in get_ec2_keys(snapshot.id):
+            for key in get_ec2_keys(snapshot.id):  # type: ignore[assignment]
                 yield key
 
         # TODO EC2 SpotInstanceRequest
 
         # EC2 Volume, resource type ec2:volume
         for volume in self.ec2_backend.volumes.values():
-            for key in get_ec2_keys(volume.id):
+            for key in get_ec2_keys(volume.id):  # type: ignore[assignment]
                 yield key
 
-    def _get_tag_values_generator(self, tag_key):
+    def _get_tag_values_generator(self, tag_key: str) -> Iterator[str]:
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
@@ -552,7 +518,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     yield value
 
         # EC2 tags
-        def get_ec2_values(res_id):
+        def get_ec2_values(res_id: str) -> List[Dict[str, str]]:
             result = []
             for key, value in self.ec2_backend.tags.get(res_id, {}).items():
                 if key == tag_key:
@@ -561,18 +527,18 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # EC2 AMI, resource type ec2:image
         for ami in self.ec2_backend.amis.values():
-            for value in get_ec2_values(ami.id):
+            for value in get_ec2_values(ami.id):  # type: ignore[assignment]
                 yield value
 
         # EC2 Instance, resource type ec2:instance
         for reservation in self.ec2_backend.reservations.values():
             for instance in reservation.instances:
-                for value in get_ec2_values(instance.id):
+                for value in get_ec2_values(instance.id):  # type: ignore[assignment]
                     yield value
 
         # EC2 NetworkInterface, resource type ec2:network-interface
         for eni in self.ec2_backend.enis.values():
-            for value in get_ec2_values(eni.id):
+            for value in get_ec2_values(eni.id):  # type: ignore[assignment]
                 yield value
 
         # TODO EC2 ReservedInstance
@@ -580,29 +546,29 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # EC2 SecurityGroup, resource type ec2:security-group
         for vpc in self.ec2_backend.groups.values():
             for sg in vpc.values():
-                for value in get_ec2_values(sg.id):
+                for value in get_ec2_values(sg.id):  # type: ignore[assignment]
                     yield value
 
         # EC2 Snapshot, resource type ec2:snapshot
         for snapshot in self.ec2_backend.snapshots.values():
-            for value in get_ec2_values(snapshot.id):
+            for value in get_ec2_values(snapshot.id):  # type: ignore[assignment]
                 yield value
 
         # TODO EC2 SpotInstanceRequest
 
         # EC2 Volume, resource type ec2:volume
         for volume in self.ec2_backend.volumes.values():
-            for value in get_ec2_values(volume.id):
+            for value in get_ec2_values(volume.id):  # type: ignore[assignment]
                 yield value
 
     def get_resources(
         self,
-        pagination_token=None,
-        resources_per_page=50,
-        tags_per_page=100,
-        tag_filters=None,
-        resource_type_filters=None,
-    ):
+        pagination_token: Optional[str] = None,
+        resources_per_page: int = 50,
+        tags_per_page: int = 100,
+        tag_filters: Optional[List[Dict[str, Any]]] = None,
+        resource_type_filters: Optional[List[str]] = None,
+    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
         # Simple range checking
         if 100 >= tags_per_page >= 500:
             raise RESTError(
@@ -666,7 +632,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         return new_token, result
 
-    def get_tag_keys(self, pagination_token=None):
+    def get_tag_keys(
+        self, pagination_token: Optional[str] = None
+    ) -> Tuple[Optional[str], List[str]]:
 
         if pagination_token:
             if pagination_token not in self._pages:
@@ -712,7 +680,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         return new_token, result
 
-    def get_tag_values(self, pagination_token, key):
+    def get_tag_values(
+        self, pagination_token: Optional[str], key: str
+    ) -> Tuple[Optional[str], List[str]]:
 
         if pagination_token:
             if pagination_token not in self._pages:

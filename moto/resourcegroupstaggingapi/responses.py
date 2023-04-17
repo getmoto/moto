@@ -1,22 +1,17 @@
 from moto.core.responses import BaseResponse
-from .models import resourcegroupstaggingapi_backends
+from .models import resourcegroupstaggingapi_backends, ResourceGroupsTaggingAPIBackend
 import json
 
 
 class ResourceGroupsTaggingAPIResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="resourcegroupstaggingapi")
 
     @property
-    def backend(self):
-        """
-        Backend
-        :returns: Resource tagging api backend
-        :rtype: moto.resourcegroupstaggingapi.models.ResourceGroupsTaggingAPIBackend
-        """
+    def backend(self) -> ResourceGroupsTaggingAPIBackend:
         return resourcegroupstaggingapi_backends[self.current_account][self.region]
 
-    def get_resources(self):
+    def get_resources(self) -> str:
         pagination_token = self._get_param("PaginationToken")
         tag_filters = self._get_param("TagFilters", [])
         resources_per_page = self._get_int_param("ResourcesPerPage", 50)
@@ -38,7 +33,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def get_tag_keys(self):
+    def get_tag_keys(self) -> str:
         pagination_token = self._get_param("PaginationToken")
         pagination_token, tag_keys = self.backend.get_tag_keys(
             pagination_token=pagination_token
@@ -50,7 +45,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def get_tag_values(self):
+    def get_tag_values(self) -> str:
         pagination_token = self._get_param("PaginationToken")
         key = self._get_param("Key")
         pagination_token, tag_values = self.backend.get_tag_values(
