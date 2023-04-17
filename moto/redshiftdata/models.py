@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from typing import Any, Dict, Iterable, Iterator, List, Tuple, Optional
 
 from moto.core import BaseBackend, BackendDict
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -7,15 +8,15 @@ from moto.moto_api._internal import mock_random as random
 from moto.redshiftdata.exceptions import ValidationException, ResourceNotFoundException
 
 
-class Statement:
+class Statement(Iterable[Tuple[str, Any]]):
     def __init__(
         self,
-        cluster_identifier,
-        database,
-        db_user,
-        query_parameters,
-        query_string,
-        secret_arn,
+        cluster_identifier: str,
+        database: str,
+        db_user: str,
+        query_parameters: List[Dict[str, str]],
+        query_string: str,
+        secret_arn: str,
     ):
         now = iso_8601_datetime_without_milliseconds(datetime.now())
 
@@ -34,10 +35,10 @@ class Statement:
         self.result_size = -1
         self.secret_arn = secret_arn
         self.status = "STARTED"
-        self.sub_statements = []
+        self.sub_statements: List[str] = []
         self.updated_at = now
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
         yield "Id", self.id
         yield "ClusterIdentifier", self.cluster_identifier
         yield "CreatedAt", self.created_at
@@ -57,29 +58,42 @@ class Statement:
         yield "UpdatedAt", self.updated_at
 
 
-class StatementResult:
-    def __init__(self, column_metadata, records, total_number_rows, next_token=None):
+class StatementResult(Iterable[Tuple[str, Any]]):
+    def __init__(
+        self,
+        column_metadata: List[Dict[str, Any]],
+        records: List[List[Dict[str, Any]]],
+        total_number_rows: int,
+        next_token: Optional[str] = None,
+    ):
         self.column_metadata = column_metadata
         self.records = records
         self.total_number_rows = total_number_rows
         self.next_token = next_token
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
         yield "ColumnMetadata", self.column_metadata
         yield "Records", self.records
         yield "TotalNumberRows", self.total_number_rows
         yield "NextToken", self.next_token
 
 
-class ColumnMetadata:
-    def __init__(self, column_default, is_case_sensitive, is_signed, name, nullable):
+class ColumnMetadata(Iterable[Tuple[str, Any]]):
+    def __init__(
+        self,
+        column_default: Optional[str],
+        is_case_sensitive: bool,
+        is_signed: bool,
+        name: str,
+        nullable: int,
+    ):
         self.column_default = column_default
         self.is_case_sensitive = is_case_sensitive
         self.is_signed = is_signed
         self.name = name
         self.nullable = nullable
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
         yield "columnDefault", self.column_default
         yield "isCaseSensitive", self.is_case_sensitive
         yield "isSigned", self.is_signed
@@ -87,11 +101,11 @@ class ColumnMetadata:
         yield "nullable", self.nullable
 
 
-class Record:
-    def __init__(self, **kwargs):
+class Record(Iterable[Tuple[str, Any]]):
+    def __init__(self, **kwargs: Any):
         self.kwargs = kwargs
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
         if "long_value" in self.kwargs:
             yield "longValue", self.kwargs["long_value"]
         elif "string_value" in self.kwargs:
@@ -99,11 +113,11 @@ class Record:
 
 
 class RedshiftDataAPIServiceBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.statements = {}
+        self.statements: Dict[str, Statement] = {}
 
-    def cancel_statement(self, statement_id):
+    def cancel_statement(self, statement_id: str) -> None:
         _validate_uuid(statement_id)
 
         try:
@@ -122,9 +136,7 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
             # Statement does not exist.
             raise ResourceNotFoundException()
 
-        return True
-
-    def describe_statement(self, statement_id):
+    def describe_statement(self, statement_id: str) -> Statement:
         _validate_uuid(statement_id)
 
         try:
@@ -135,8 +147,14 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
             raise ResourceNotFoundException()
 
     def execute_statement(
-        self, cluster_identifier, database, db_user, parameters, secret_arn, sql
-    ):
+        self,
+        cluster_identifier: str,
+        database: str,
+        db_user: str,
+        parameters: List[Dict[str, str]],
+        secret_arn: str,
+        sql: str,
+    ) -> Statement:
         """
         Runs an SQL statement
         Validation of parameters is very limited because there is no redshift integration
@@ -152,7 +170,7 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
         self.statements[statement.id] = statement
         return statement
 
-    def get_statement_result(self, statement_id):
+    def get_statement_result(self, statement_id: str) -> StatementResult:
         """
         Return static statement result
         StatementResult is the result of the SQL query "sql" passed as parameter when calling "execute_statement"
@@ -190,7 +208,7 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
         )
 
 
-def _validate_uuid(uuid):
+def _validate_uuid(uuid: str) -> None:
     match = re.search(r"^[a-z0-9]{8}(-[a-z0-9]{4}){3}-[a-z0-9]{12}(:\d+)?$", uuid)
     if not match:
         raise ValidationException(
