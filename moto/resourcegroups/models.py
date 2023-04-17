@@ -1,4 +1,4 @@
-from builtins import str
+from typing import Any, Dict, List, Optional
 
 import json
 import re
@@ -10,14 +10,14 @@ from .exceptions import BadRequestException
 class FakeResourceGroup(BaseModel):
     def __init__(
         self,
-        account_id,
-        name,
-        resource_query,
-        description=None,
-        tags=None,
-        configuration=None,
+        account_id: str,
+        name: str,
+        resource_query: Dict[str, str],
+        description: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+        configuration: Optional[List[Dict[str, Any]]] = None,
     ):
-        self.errors = []
+        self.errors: List[str] = []
         description = description or ""
         tags = tags or {}
         if self._validate_description(value=description):
@@ -33,10 +33,10 @@ class FakeResourceGroup(BaseModel):
         self.configuration = configuration
 
     @staticmethod
-    def _format_error(key, value, constraint):
+    def _format_error(key: str, value: Any, constraint: str) -> str:  # type: ignore[misc]
         return f"Value '{value}' at '{key}' failed to satisfy constraint: {constraint}"
 
-    def _raise_errors(self):
+    def _raise_errors(self) -> None:
         if self.errors:
             errors_len = len(self.errors)
             plural = "s" if len(self.errors) > 1 else ""
@@ -45,7 +45,7 @@ class FakeResourceGroup(BaseModel):
                 f"{errors_len} validation error{plural} detected: {errors}"
             )
 
-    def _validate_description(self, value):
+    def _validate_description(self, value: str) -> bool:
         errors = []
         if len(value) > 511:
             errors.append(
@@ -68,7 +68,7 @@ class FakeResourceGroup(BaseModel):
             return False
         return True
 
-    def _validate_name(self, value):
+    def _validate_name(self, value: str) -> bool:
         errors = []
         if len(value) > 128:
             errors.append(
@@ -92,7 +92,7 @@ class FakeResourceGroup(BaseModel):
             return False
         return True
 
-    def _validate_resource_query(self, value):
+    def _validate_resource_query(self, value: Dict[str, str]) -> bool:
         if not value:
             return True
         errors = []
@@ -117,7 +117,7 @@ class FakeResourceGroup(BaseModel):
             return False
         return True
 
-    def _validate_tags(self, value):
+    def _validate_tags(self, value: Dict[str, str]) -> bool:
         errors = []
         # AWS only outputs one error for all keys and one for all values.
         error_keys = None
@@ -160,59 +160,59 @@ class FakeResourceGroup(BaseModel):
         return True
 
     @property
-    def description(self):
+    def description(self) -> str:
         return self._description
 
     @description.setter
-    def description(self, value):
+    def description(self, value: str) -> None:
         if not self._validate_description(value=value):
             self._raise_errors()
         self._description = value
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: str) -> None:
         if not self._validate_name(value=value):
             self._raise_errors()
         self._name = value
 
     @property
-    def resource_query(self):
+    def resource_query(self) -> Dict[str, str]:
         return self._resource_query
 
     @resource_query.setter
-    def resource_query(self, value):
+    def resource_query(self, value: Dict[str, str]) -> None:
         if not self._validate_resource_query(value=value):
             self._raise_errors()
         self._resource_query = value
 
     @property
-    def tags(self):
+    def tags(self) -> Dict[str, str]:
         return self._tags
 
     @tags.setter
-    def tags(self, value):
+    def tags(self, value: Dict[str, str]) -> None:
         if not self._validate_tags(value=value):
             self._raise_errors()
         self._tags = value
 
 
 class ResourceGroups:
-    def __init__(self):
-        self.by_name = {}
-        self.by_arn = {}
+    def __init__(self) -> None:
+        self.by_name: Dict[str, FakeResourceGroup] = {}
+        self.by_arn: Dict[str, FakeResourceGroup] = {}
 
-    def __contains__(self, item):
+    def __contains__(self, item: str) -> bool:
         return item in self.by_name
 
-    def append(self, resource_group):
+    def append(self, resource_group: FakeResourceGroup) -> None:
         self.by_name[resource_group.name] = resource_group
         self.by_arn[resource_group.arn] = resource_group
 
-    def delete(self, name):
+    def delete(self, name: str) -> FakeResourceGroup:
         group = self.by_name[name]
         del self.by_name[name]
         del self.by_arn[group.arn]
@@ -220,12 +220,12 @@ class ResourceGroups:
 
 
 class ResourceGroupsBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.groups = ResourceGroups()
 
     @staticmethod
-    def _validate_resource_query(resource_query):
+    def _validate_resource_query(resource_query: Dict[str, str]) -> None:
         if not resource_query:
             return
         query_type = resource_query["Type"]
@@ -294,14 +294,19 @@ class ResourceGroupsBackend(BaseBackend):
                         )
 
     @staticmethod
-    def _validate_tags(tags):
+    def _validate_tags(tags: Dict[str, str]) -> None:
         for tag in tags:
             if tag.lower().startswith("aws:"):
                 raise BadRequestException("Tag keys must not start with 'aws:'")
 
     def create_group(
-        self, name, resource_query, description=None, tags=None, configuration=None
-    ):
+        self,
+        name: str,
+        resource_query: Dict[str, str],
+        description: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+        configuration: Optional[List[Dict[str, Any]]] = None,
+    ) -> FakeResourceGroup:
         tags = tags or {}
         group = FakeResourceGroup(
             account_id=self.account_id,
@@ -320,48 +325,55 @@ class ResourceGroupsBackend(BaseBackend):
         self.groups.append(group)
         return group
 
-    def delete_group(self, group_name):
+    def delete_group(self, group_name: str) -> FakeResourceGroup:
         return self.groups.delete(name=group_name)
 
-    def get_group(self, group_name):
+    def get_group(self, group_name: str) -> FakeResourceGroup:
         return self.groups.by_name[group_name]
 
-    def get_tags(self, arn):
+    def get_tags(self, arn: str) -> Dict[str, str]:
         return self.groups.by_arn[arn].tags
 
-    def list_groups(self):
+    def list_groups(self) -> Dict[str, FakeResourceGroup]:
         """
         Pagination or the Filters-parameter is not yet implemented
         """
         return self.groups.by_name
 
-    def tag(self, arn, tags):
+    def tag(self, arn: str, tags: Dict[str, str]) -> None:
         all_tags = self.groups.by_arn[arn].tags
         all_tags.update(tags)
         self._validate_tags(all_tags)
         self.groups.by_arn[arn].tags = all_tags
 
-    def untag(self, arn, keys):
+    def untag(self, arn: str, keys: List[str]) -> None:
         group = self.groups.by_arn[arn]
         for key in keys:
             del group.tags[key]
 
-    def update_group(self, group_name, description=None):
+    def update_group(
+        self, group_name: str, description: Optional[str] = None
+    ) -> FakeResourceGroup:
         if description:
             self.groups.by_name[group_name].description = description
         return self.groups.by_name[group_name]
 
-    def update_group_query(self, group_name, resource_query):
+    def update_group_query(
+        self, group_name: str, resource_query: Dict[str, str]
+    ) -> FakeResourceGroup:
         self._validate_resource_query(resource_query)
         self.groups.by_name[group_name].resource_query = resource_query
         return self.groups.by_name[group_name]
 
-    def get_group_configuration(self, group_name):
-        group = self.groups.by_name.get(group_name)
-        configuration = group.configuration
-        return configuration
+    def get_group_configuration(
+        self, group_name: str
+    ) -> Optional[List[Dict[str, Any]]]:
+        group = self.groups.by_name[group_name]
+        return group.configuration
 
-    def put_group_configuration(self, group_name, configuration):
+    def put_group_configuration(
+        self, group_name: str, configuration: List[Dict[str, Any]]
+    ) -> FakeResourceGroup:
         self.groups.by_name[group_name].configuration = configuration
         return self.groups.by_name[group_name]
 
