@@ -7,7 +7,8 @@ from .responses import TYPE_RESPONSE
 
 
 class MockRawResponse(BytesIO):
-    def __init__(self, response_input: Union[str, bytes]):
+    def __init__(self, response_input: Union[str, bytes], headers: Dict[Any, Any]):
+        self.headers = headers
         if isinstance(response_input, str):
             response_input = response_input.encode("utf-8")
         super().__init__(response_input)
@@ -17,6 +18,17 @@ class MockRawResponse(BytesIO):
         while contents:
             yield contents
             contents = self.read()
+
+    @property
+    def raw_headers(self) -> List[Tuple[bytes, bytes]]:
+        encoded_headers = [
+            (
+                str(header).encode(encoding="utf-8"),
+                str(value).encode(encoding="utf-8"),
+            )
+            for header, value in self.headers.items()
+        ]
+        return encoded_headers
 
 
 class BotocoreStubber:
@@ -66,7 +78,8 @@ class BotocoreStubber:
                 status = e.code  # type: ignore[assignment]
                 headers = e.get_headers()  # type: ignore[assignment]
                 body = e.get_body()
-            raw_response = MockRawResponse(body)
+
+            raw_response = MockRawResponse(response_input=body, headers=dict(headers))
             response = AWSResponse(request.url, status, headers, raw_response)
 
         return response
