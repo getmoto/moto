@@ -230,7 +230,7 @@ class FakeKey(BaseModel, ManagedState):
     def response_dict(self):
         res = {
             "ETag": self.etag,
-            "last-modified": self.last_modified_RFC1123,
+            "last-modified": self.last_modified_ISO8601,
             "content-length": str(self.size),
         }
         if self.encryption is not None:

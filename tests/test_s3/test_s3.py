@@ -226,7 +226,7 @@ def test_last_modified():
     as_header = resp["ResponseMetadata"]["HTTPHeaders"]["last-modified"]
     as_header.should.be.a(str)
     if not settings.TEST_SERVER_MODE:
-        as_header.should.equal("Sun, 01 Jan 2012 12:00:00 GMT")
+        as_header.should.equal("2012-01-01T12:00:00.000Z")
 
 
 @mock_s3
