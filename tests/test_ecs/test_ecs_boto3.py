@@ -115,7 +115,16 @@ def test_list_clusters():
 def test_create_cluster_with_tags():
     client = boto3.client("ecs", region_name="us-east-1")
     tag_list = [{"key": "tagName", "value": "TagValue"}]
-    cluster = client.create_cluster(clusterName="c_with_tags", tags=tag_list)["cluster"]
+    cluster = client.create_cluster(clusterName="c1")["cluster"]
+
+    resp = client.list_tags_for_resource(resourceArn=cluster["clusterArn"])
+    assert "tags" not in resp
+
+    client.tag_resource(resourceArn=cluster["clusterArn"], tags=tag_list)
+    tags = client.list_tags_for_resource(resourceArn=cluster["clusterArn"])["tags"]
+    tags.should.equal([{"key": "tagName", "value": "TagValue"}])
+
+    cluster = client.create_cluster(clusterName="c2", tags=tag_list)["cluster"]
 
     tags = client.list_tags_for_resource(resourceArn=cluster["clusterArn"])["tags"]
     tags.should.equal([{"key": "tagName", "value": "TagValue"}])
