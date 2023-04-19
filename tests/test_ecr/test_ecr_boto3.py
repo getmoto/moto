@@ -1066,6 +1066,37 @@ def test_batch_get_image_that_doesnt_exist():
 
 
 @mock_ecr
+def test_batch_get_image_with_multiple_tags():
+    client = boto3.client("ecr", region_name="us-east-1")
+    _ = client.create_repository(repositoryName="test_repository")
+
+    manifest = json.dumps(_create_image_manifest())
+    _ = client.put_image(
+        repositoryName="test_repository",
+        imageManifest=manifest,
+        imageTag="latest",
+    )
+
+    _ = client.put_image(
+        repositoryName="test_repository",
+        imageManifest=manifest,
+        imageTag="v1",
+    )
+
+    latest_response = client.batch_get_image(
+        repositoryName="test_repository", imageIds=[{"imageTag": "latest"}]
+    )
+
+    v1_response = client.batch_get_image(
+        repositoryName="test_repository", imageIds=[{"imageTag": "v1"}]
+    )
+
+    latest_response["images"][0]["imageManifest"].should.equal(
+        v1_response["images"][0]["imageManifest"]
+    )
+
+
+@mock_ecr
 def test_batch_delete_image_by_tag():
     client = boto3.client("ecr", region_name="us-east-1")
     client.create_repository(repositoryName="test_repository")

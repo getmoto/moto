@@ -624,7 +624,7 @@ class ECRBackend(BaseBackend):
                     "imageDigest" in image_id
                     and image.get_image_digest() == image_id["imageDigest"]
                 ) or (
-                    "imageTag" in image_id and image.image_tag == image_id["imageTag"]
+                    "imageTag" in image_id and image_id["imageTag"] in image.image_tags
                 ):
                     found = True
                     response["images"].append(image.response_batch_get_image)
