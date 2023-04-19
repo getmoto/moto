@@ -5,6 +5,7 @@ import re
 import string
 from collections import defaultdict
 from jinja2 import Template
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.route53.exceptions import (
     HostedZoneNotEmpty,
@@ -30,13 +31,18 @@ from .utils import PAGINATION_MODEL
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 
 
-def create_route53_zone_id():
+def create_route53_zone_id() -> str:
     # New ID's look like this Z1RWWTK7Y8UDDQ
     return "".join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 15)])
 
 
 class DelegationSet(BaseModel):
-    def __init__(self, caller_reference, name_servers, delegation_set_id):
+    def __init__(
+        self,
+        caller_reference: str,
+        name_servers: Optional[List[str]],
+        delegation_set_id: Optional[str],
+    ):
         self.caller_reference = caller_reference
         self.name_servers = name_servers or [
             "ns-2048.awsdns-64.com",
@@ -51,7 +57,12 @@ class DelegationSet(BaseModel):
 
 
 class HealthCheck(CloudFormationModel):
-    def __init__(self, health_check_id, caller_reference, health_check_args):
+    def __init__(
+        self,
+        health_check_id: str,
+        caller_reference: str,
+        health_check_args: Dict[str, Any],
+    ):
         self.id = health_check_id
         self.ip_address = health_check_args.get("ip_address")
         self.port = health_check_args.get("port") or 80
@@ -70,35 +81,40 @@ class HealthCheck(CloudFormationModel):
         self.children = None
         self.regions = None
 
-    def set_children(self, children):
+    def set_children(self, children: Any) -> None:
         if children and isinstance(children, list):
-            self.children = children
+            self.children = children  # type: ignore
         elif children and isinstance(children, str):
-            self.children = [children]
+            self.children = [children]  # type: ignore
 
-    def set_regions(self, regions):
+    def set_regions(self, regions: Any) -> None:
         if regions and isinstance(regions, list):
-            self.regions = regions
+            self.regions = regions  # type: ignore
         elif regions and isinstance(regions, str):
-            self.regions = [regions]
+            self.regions = [regions]  # type: ignore
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.id
 
     @staticmethod
-    def cloudformation_name_type():
-        return None
+    def cloudformation_name_type() -> str:
+        return ""
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-route53-healthcheck.html
         return "AWS::Route53::HealthCheck"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "HealthCheck":
         properties = cloudformation_json["Properties"]["HealthCheckConfig"]
         health_check_args = {
             "ip_address": properties.get("IPAddress"),
@@ -116,7 +132,7 @@ class HealthCheck(CloudFormationModel):
         )
         return health_check
 
-    def to_xml(self):
+    def to_xml(self) -> str:
         template = Template(
             """<HealthCheck>
             <Id>{{ health_check.id }}</Id>
@@ -169,8 +185,8 @@ class HealthCheck(CloudFormationModel):
 
 
 class RecordSet(CloudFormationModel):
-    def __init__(self, kwargs):
-        self.name = kwargs.get("Name")
+    def __init__(self, kwargs: Dict[str, Any]):
+        self.name = kwargs.get("Name", "")
         self.type_ = kwargs.get("Type")
         self.ttl = kwargs.get("TTL", 0)
         self.records = kwargs.get("ResourceRecords", [])
@@ -185,18 +201,23 @@ class RecordSet(CloudFormationModel):
         self.geo_location = kwargs.get("GeoLocation", [])
 
     @staticmethod
-    def cloudformation_name_type():
+    def cloudformation_name_type() -> str:
         return "Name"
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-route53-recordset.html
         return "AWS::Route53::RecordSet"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "RecordSet":
         properties = cloudformation_json["Properties"]
 
         zone_name = properties.get("HostedZoneName")
@@ -209,14 +230,14 @@ class RecordSet(CloudFormationModel):
         return record_set
 
     @classmethod
-    def update_from_cloudformation_json(
+    def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource,
-        new_resource_name,
-        cloudformation_json,
-        account_id,
-        region_name,
-    ):
+        original_resource: Any,
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "RecordSet":
         cls.delete_from_cloudformation_json(
             original_resource.name, cloudformation_json, account_id, region_name
         )
@@ -225,9 +246,13 @@ class RecordSet(CloudFormationModel):
         )
 
     @classmethod
-    def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name
-    ):
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
         # this will break if you changed the zone the record is in,
         # unfortunately
         properties = cloudformation_json["Properties"]
@@ -245,10 +270,12 @@ class RecordSet(CloudFormationModel):
             pass
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.name
 
-    def delete(self, account_id, region):  # pylint: disable=unused-argument
+    def delete(
+        self, account_id: str, region: str  # pylint: disable=unused-argument
+    ) -> None:
         """Not exposed as part of the Route 53 API - used for CloudFormation"""
         backend = route53_backends[account_id]["global"]
         hosted_zone = backend.get_hosted_zone_by_name(self.hosted_zone_name)
@@ -257,22 +284,22 @@ class RecordSet(CloudFormationModel):
         hosted_zone.delete_rrset({"Name": self.name, "Type": self.type_})
 
 
-def reverse_domain_name(domain_name):
+def reverse_domain_name(domain_name: str) -> str:
     if domain_name.endswith("."):  # normalize without trailing dot
         domain_name = domain_name[:-1]
     return ".".join(reversed(domain_name.split(".")))
 
 
-class ChangeList(list):
+class ChangeList(List[Dict[str, Any]]):
     """
     Contains a 'clean' list of ResourceRecordChangeSets
     """
 
-    def append(self, item) -> None:
+    def append(self, item: Any) -> None:
         item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
         super().append(item)
 
-    def __contains__(self, item):
+    def __contains__(self, item: Any) -> bool:
         item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
         return super().__contains__(item)
 
@@ -280,28 +307,28 @@ class ChangeList(list):
 class FakeZone(CloudFormationModel):
     def __init__(
         self,
-        name,
-        id_,
-        private_zone,
-        comment=None,
-        delegation_set=None,
+        name: str,
+        id_: str,
+        private_zone: bool,
+        comment: Optional[str] = None,
+        delegation_set: Optional[DelegationSet] = None,
     ):
         self.name = name
         self.id = id_
-        self.vpcs = []
+        self.vpcs: List[Dict[str, Any]] = []
         if comment is not None:
             self.comment = comment
         self.private_zone = private_zone
-        self.rrsets = []
+        self.rrsets: List[RecordSet] = []
         self.delegation_set = delegation_set
         self.rr_changes = ChangeList()
 
-    def add_rrset(self, record_set):
-        record_set = RecordSet(record_set)
-        self.rrsets.append(record_set)
-        return record_set
+    def add_rrset(self, record_set: Dict[str, Any]) -> RecordSet:
+        record_set_obj = RecordSet(record_set)
+        self.rrsets.append(record_set_obj)
+        return record_set_obj
 
-    def upsert_rrset(self, record_set):
+    def upsert_rrset(self, record_set: Dict[str, Any]) -> RecordSet:
         new_rrset = RecordSet(record_set)
         for i, rrset in enumerate(self.rrsets):
             if (
@@ -315,7 +342,7 @@ class FakeZone(CloudFormationModel):
             self.rrsets.append(new_rrset)
         return new_rrset
 
-    def delete_rrset(self, rrset):
+    def delete_rrset(self, rrset: Dict[str, Any]) -> None:
         self.rrsets = [
             record_set
             for record_set in self.rrsets
@@ -323,14 +350,16 @@ class FakeZone(CloudFormationModel):
             or (rrset.get("Type") is not None and record_set.type_ != rrset["Type"])
         ]
 
-    def delete_rrset_by_id(self, set_identifier):
+    def delete_rrset_by_id(self, set_identifier: str) -> None:
         self.rrsets = [
             record_set
             for record_set in self.rrsets
             if record_set.set_identifier != set_identifier
         ]
 
-    def add_vpc(self, vpc_id, vpc_region):
+    def add_vpc(
+        self, vpc_id: Optional[str], vpc_region: Optional[str]
+    ) -> Dict[str, Any]:
         vpc = {}
         if vpc_id is not None:
             vpc["vpc_id"] = vpc_id
@@ -340,15 +369,15 @@ class FakeZone(CloudFormationModel):
             self.vpcs.append(vpc)
         return vpc
 
-    def delete_vpc(self, vpc_id):
+    def delete_vpc(self, vpc_id: str) -> None:
         self.vpcs = [vpc for vpc in self.vpcs if vpc["vpc_id"] != vpc_id]
 
-    def get_record_sets(self, start_type, start_name):
-        def predicate(rrset):
+    def get_record_sets(self, start_type: str, start_name: str) -> List[RecordSet]:
+        def predicate(rrset: RecordSet) -> bool:
             rrset_name_reversed = reverse_domain_name(rrset.name)
             start_name_reversed = reverse_domain_name(start_name)
             return rrset_name_reversed < start_name_reversed or (
-                rrset_name_reversed == start_name_reversed and rrset.type_ < start_type
+                rrset_name_reversed == start_name_reversed and rrset.type_ < start_type  # type: ignore
             )
 
         record_sets = sorted(
@@ -358,27 +387,32 @@ class FakeZone(CloudFormationModel):
 
         if start_name:
             start_type = start_type or ""
-            record_sets = itertools.dropwhile(predicate, record_sets)
+            record_sets = itertools.dropwhile(predicate, record_sets)  # type: ignore
 
         return record_sets
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.id
 
     @staticmethod
-    def cloudformation_name_type():
+    def cloudformation_name_type() -> str:
         return "Name"
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-route53-hostedzone.html
         return "AWS::Route53::HostedZone"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeZone":
         hosted_zone = route53_backends[account_id]["global"].create_hosted_zone(
             resource_name, private_zone=False
         )
@@ -386,27 +420,32 @@ class FakeZone(CloudFormationModel):
 
 
 class RecordSetGroup(CloudFormationModel):
-    def __init__(self, hosted_zone_id, record_sets):
+    def __init__(self, hosted_zone_id: str, record_sets: List[str]):
         self.hosted_zone_id = hosted_zone_id
         self.record_sets = record_sets
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return f"arn:aws:route53:::hostedzone/{self.hosted_zone_id}"
 
     @staticmethod
-    def cloudformation_name_type():
-        return None
+    def cloudformation_name_type() -> str:
+        return ""
 
     @staticmethod
-    def cloudformation_type():
+    def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-route53-recordsetgroup.html
         return "AWS::Route53::RecordSetGroup"
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
-    ):
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "RecordSetGroup":
         properties = cloudformation_json["Properties"]
 
         zone_name = properties.get("HostedZoneName")
@@ -428,14 +467,17 @@ class QueryLoggingConfig(BaseModel):
     """QueryLoggingConfig class; this object isn't part of Cloudformation."""
 
     def __init__(
-        self, query_logging_config_id, hosted_zone_id, cloudwatch_logs_log_group_arn
+        self,
+        query_logging_config_id: str,
+        hosted_zone_id: str,
+        cloudwatch_logs_log_group_arn: str,
     ):
         self.hosted_zone_id = hosted_zone_id
         self.cloudwatch_logs_log_group_arn = cloudwatch_logs_log_group_arn
         self.query_logging_config_id = query_logging_config_id
         self.location = f"https://route53.amazonaws.com/2013-04-01/queryloggingconfig/{self.query_logging_config_id}"
 
-    def to_xml(self):
+    def to_xml(self) -> str:
         template = Template(
             """<QueryLoggingConfig>
                 <CloudWatchLogsLogGroupArn>{{ query_logging_config.cloudwatch_logs_log_group_arn }}</CloudWatchLogsLogGroupArn>
@@ -449,23 +491,23 @@ class QueryLoggingConfig(BaseModel):
 
 
 class Route53Backend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.zones = {}
-        self.health_checks = {}
-        self.resource_tags = defaultdict(dict)
-        self.query_logging_configs = {}
-        self.delegation_sets = dict()
+        self.zones: Dict[str, FakeZone] = {}
+        self.health_checks: Dict[str, HealthCheck] = {}
+        self.resource_tags: Dict[str, Any] = defaultdict(dict)
+        self.query_logging_configs: Dict[str, QueryLoggingConfig] = {}
+        self.delegation_sets: Dict[str, DelegationSet] = dict()
 
     def create_hosted_zone(
         self,
-        name,
-        private_zone,
-        vpcid=None,
-        vpcregion=None,
-        comment=None,
-        delegation_set_id=None,
-    ):
+        name: str,
+        private_zone: bool,
+        vpcid: Optional[str] = None,
+        vpcregion: Optional[str] = None,
+        comment: Optional[str] = None,
+        delegation_set_id: Optional[str] = None,
+    ) -> FakeZone:
         new_id = create_route53_zone_id()
         delegation_set = self.create_reusable_delegation_set(
             caller_reference=f"DelSet_{name}", delegation_set_id=delegation_set_id
@@ -506,25 +548,27 @@ class Route53Backend(BaseBackend):
         self.zones[new_id] = new_zone
         return new_zone
 
-    def get_dnssec(self, zone_id):
+    def get_dnssec(self, zone_id: str) -> None:
         # check if hosted zone exists
         self.get_hosted_zone(zone_id)
 
-    def associate_vpc_with_hosted_zone(self, zone_id, vpcid, vpcregion):
+    def associate_vpc_with_hosted_zone(
+        self, zone_id: str, vpcid: str, vpcregion: str
+    ) -> FakeZone:
         zone = self.get_hosted_zone(zone_id)
         if not zone.private_zone:
             raise PublicZoneVPCAssociation()
         zone.add_vpc(vpcid, vpcregion)
         return zone
 
-    def disassociate_vpc_from_hosted_zone(self, zone_id, vpcid):
+    def disassociate_vpc_from_hosted_zone(self, zone_id: str, vpcid: str) -> FakeZone:
         zone = self.get_hosted_zone(zone_id)
         if len(zone.vpcs) <= 1:
             raise LastVPCAssociation()
         zone.delete_vpc(vpcid)
         return zone
 
-    def change_tags_for_resource(self, resource_id, tags):
+    def change_tags_for_resource(self, resource_id: str, tags: Any) -> None:
         if "Tag" in tags:
             if isinstance(tags["Tag"], list):
                 for tag in tags["Tag"]:
@@ -540,12 +584,14 @@ class Route53Backend(BaseBackend):
                 else:
                     del self.resource_tags[resource_id][tags["Key"]]
 
-    def list_tags_for_resource(self, resource_id):
+    def list_tags_for_resource(self, resource_id: str) -> Dict[str, str]:
         if resource_id in self.resource_tags:
             return self.resource_tags[resource_id]
         return {}
 
-    def list_resource_record_sets(self, zone_id, start_type, start_name, max_items):
+    def list_resource_record_sets(
+        self, zone_id: str, start_type: str, start_name: str, max_items: int
+    ) -> Tuple[List[RecordSet], Optional[str], Optional[str], bool]:
         """
         The StartRecordIdentifier-parameter is not yet implemented
         """
@@ -558,7 +604,9 @@ class Route53Backend(BaseBackend):
         is_truncated = next_record is not None
         return records, next_start_name, next_start_type, is_truncated
 
-    def change_resource_record_sets(self, zoneid, change_list) -> None:
+    def change_resource_record_sets(
+        self, zoneid: str, change_list: List[Dict[str, Any]]
+    ) -> None:
         the_zone = self.get_hosted_zone(zoneid)
 
         for value in change_list:
@@ -622,20 +670,23 @@ class Route53Backend(BaseBackend):
                     the_zone.delete_rrset(record_set)
             the_zone.rr_changes.append(original_change)
 
-    def list_hosted_zones(self):
-        return self.zones.values()
+    def list_hosted_zones(self) -> List[FakeZone]:
+        return list(self.zones.values())
 
-    def list_hosted_zones_by_name(self, dnsname):
-        if dnsname:
-            dnsname = dnsname[0]
+    def list_hosted_zones_by_name(
+        self, dnsnames: Optional[List[str]]
+    ) -> Tuple[Optional[str], List[FakeZone]]:
+        if dnsnames:
+            dnsname = dnsnames[0]  # type: ignore
             if dnsname[-1] != ".":
                 dnsname += "."
-            zones = [zone for zone in self.list_hosted_zones() if zone.name == dnsname]
+            zones = [zone for zone in self.list_hosted_zones() if zone.name == dnsname]  # type: ignore
         else:
+            dnsname = None
             # sort by names, but with domain components reversed
             # see http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones_by_name
 
-            def sort_key(zone):
+            def sort_key(zone: FakeZone) -> str:
                 domains = zone.name.split(".")
                 if domains[-1] == "":
                     domains = domains[-1:] + domains[:-1]
@@ -643,9 +694,9 @@ class Route53Backend(BaseBackend):
 
             zones = self.list_hosted_zones()
             zones = sorted(zones, key=sort_key)
-        return dnsname, zones
+        return dnsname, zones  # type: ignore
 
-    def list_hosted_zones_by_vpc(self, vpc_id):
+    def list_hosted_zones_by_vpc(self, vpc_id: str) -> List[Dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
@@ -665,22 +716,22 @@ class Route53Backend(BaseBackend):
 
         return zone_list
 
-    def get_hosted_zone(self, id_) -> FakeZone:
+    def get_hosted_zone(self, id_: str) -> FakeZone:
         the_zone = self.zones.get(id_.replace("/hostedzone/", ""))
         if not the_zone:
             raise NoSuchHostedZone(id_)
         return the_zone
 
-    def get_hosted_zone_count(self):
+    def get_hosted_zone_count(self) -> int:
         return len(self.list_hosted_zones())
 
-    def get_hosted_zone_by_name(self, name):
+    def get_hosted_zone_by_name(self, name: str) -> Optional[FakeZone]:
         for zone in self.list_hosted_zones():
             if zone.name == name:
                 return zone
         return None
 
-    def delete_hosted_zone(self, id_):
+    def delete_hosted_zone(self, id_: str) -> Optional[FakeZone]:
         # Verify it exists
         zone = self.get_hosted_zone(id_)
         if len(zone.rrsets) > 0:
@@ -689,12 +740,14 @@ class Route53Backend(BaseBackend):
                     raise HostedZoneNotEmpty()
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
 
-    def update_hosted_zone_comment(self, id_, comment):
+    def update_hosted_zone_comment(self, id_: str, comment: str) -> FakeZone:
         zone = self.get_hosted_zone(id_)
         zone.comment = comment
         return zone
 
-    def create_health_check(self, caller_reference, health_check_args):
+    def create_health_check(
+        self, caller_reference: str, health_check_args: Dict[str, Any]
+    ) -> HealthCheck:
         health_check_id = str(random.uuid4())
         health_check = HealthCheck(health_check_id, caller_reference, health_check_args)
         health_check.set_children(health_check_args.get("children"))
@@ -702,10 +755,12 @@ class Route53Backend(BaseBackend):
         self.health_checks[health_check_id] = health_check
         return health_check
 
-    def update_health_check(self, health_check_id, health_check_args):
+    def update_health_check(
+        self, health_check_id: str, health_check_args: Dict[str, Any]
+    ) -> HealthCheck:
         health_check = self.health_checks.get(health_check_id)
         if not health_check:
-            raise NoSuchHealthCheck()
+            raise NoSuchHealthCheck(health_check_id)
 
         if health_check_args.get("ip_address"):
             health_check.ip_address = health_check_args.get("ip_address")
@@ -736,30 +791,32 @@ class Route53Backend(BaseBackend):
 
         return health_check
 
-    def list_health_checks(self):
-        return self.health_checks.values()
+    def list_health_checks(self) -> List[HealthCheck]:
+        return list(self.health_checks.values())
 
-    def delete_health_check(self, health_check_id):
-        return self.health_checks.pop(health_check_id, None)
+    def delete_health_check(self, health_check_id: str) -> None:
+        self.health_checks.pop(health_check_id, None)
 
-    def get_health_check(self, health_check_id):
+    def get_health_check(self, health_check_id: str) -> HealthCheck:
         health_check = self.health_checks.get(health_check_id)
         if not health_check:
             raise NoSuchHealthCheck(health_check_id)
         return health_check
 
     @staticmethod
-    def _validate_arn(region, arn):
+    def _validate_arn(region: str, arn: str) -> None:
         match = re.match(rf"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
         if not arn or not match:
             raise InvalidCloudWatchArn()
 
         # The CloudWatch Logs log group must be in the "us-east-1" region.
         match = re.match(r"^(?:[^:]+:){3}(?P<region>[^:]+).*", arn)
-        if match.group("region") != "us-east-1":
+        if not match or match.group("region") != "us-east-1":
             raise InvalidCloudWatchArn()
 
-    def create_query_logging_config(self, region, hosted_zone_id, log_group_arn):
+    def create_query_logging_config(
+        self, region: str, hosted_zone_id: str, log_group_arn: str
+    ) -> QueryLoggingConfig:
         """Process the create_query_logging_config request."""
         # Does the hosted_zone_id exist?
         response = self.list_hosted_zones()
@@ -785,7 +842,7 @@ class Route53Backend(BaseBackend):
 
         response = logs_backends[self.account_id][region].describe_log_groups()
         log_groups = response[0] if response else []
-        for entry in log_groups:
+        for entry in log_groups:  # type: ignore
             if log_group_arn == entry["arn"]:
                 break
         else:
@@ -806,20 +863,22 @@ class Route53Backend(BaseBackend):
         self.query_logging_configs[query_logging_config_id] = query_logging_config
         return query_logging_config
 
-    def delete_query_logging_config(self, query_logging_config_id):
+    def delete_query_logging_config(self, query_logging_config_id: str) -> None:
         """Delete query logging config, if it exists."""
         if query_logging_config_id not in self.query_logging_configs:
             raise NoSuchQueryLoggingConfig()
         self.query_logging_configs.pop(query_logging_config_id)
 
-    def get_query_logging_config(self, query_logging_config_id):
+    def get_query_logging_config(
+        self, query_logging_config_id: str
+    ) -> QueryLoggingConfig:
         """Return query logging config, if it exists."""
         if query_logging_config_id not in self.query_logging_configs:
             raise NoSuchQueryLoggingConfig()
         return self.query_logging_configs[query_logging_config_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_query_logging_configs(self, hosted_zone_id=None):
+    def list_query_logging_configs(self, hosted_zone_id: Optional[str] = None) -> List[QueryLoggingConfig]:  # type: ignore
         """Return a list of query logging configs."""
         if hosted_zone_id:
             # Does the hosted_zone_id exist?
@@ -834,28 +893,31 @@ class Route53Backend(BaseBackend):
         return list(self.query_logging_configs.values())
 
     def create_reusable_delegation_set(
-        self, caller_reference, delegation_set_id=None, hosted_zone_id=None
-    ):
-        name_servers = None
+        self,
+        caller_reference: str,
+        delegation_set_id: Optional[str] = None,
+        hosted_zone_id: Optional[str] = None,
+    ) -> DelegationSet:
+        name_servers: Optional[List[str]] = None
         if hosted_zone_id:
             hosted_zone = self.get_hosted_zone(hosted_zone_id)
-            name_servers = hosted_zone.delegation_set.name_servers
+            name_servers = hosted_zone.delegation_set.name_servers  # type: ignore
         delegation_set = DelegationSet(
             caller_reference, name_servers, delegation_set_id
         )
         self.delegation_sets[delegation_set.id] = delegation_set
         return delegation_set
 
-    def list_reusable_delegation_sets(self):
+    def list_reusable_delegation_sets(self) -> List[DelegationSet]:
         """
         Pagination is not yet implemented
         """
-        return self.delegation_sets.values()
+        return list(self.delegation_sets.values())
 
-    def delete_reusable_delegation_set(self, delegation_set_id):
+    def delete_reusable_delegation_set(self, delegation_set_id: str) -> None:
         self.delegation_sets.pop(delegation_set_id, None)
 
-    def get_reusable_delegation_set(self, delegation_set_id):
+    def get_reusable_delegation_set(self, delegation_set_id: str) -> DelegationSet:
         if delegation_set_id not in self.delegation_sets:
             raise NoSuchDelegationSet(delegation_set_id)
         return self.delegation_sets[delegation_set_id]

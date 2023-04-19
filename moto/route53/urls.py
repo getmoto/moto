@@ -1,15 +1,21 @@
 """Route53 base URL and path."""
+from typing import Any
 from .responses import Route53
+from moto.core.common_types import TYPE_RESPONSE
 
 url_bases = [r"https?://route53(\..+)?\.amazonaws.com"]
 
 
-def tag_response1(*args, **kwargs):
-    return Route53().list_or_change_tags_for_resource_request(*args, **kwargs)
+def tag_response1(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
+    return Route53().list_or_change_tags_for_resource_request(
+        request, full_url, headers
+    )
 
 
-def tag_response2(*args, **kwargs):
-    return Route53().list_or_change_tags_for_resource_request(*args, **kwargs)
+def tag_response2(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
+    return Route53().list_or_change_tags_for_resource_request(
+        request, full_url, headers
+    )
 
 
 url_paths = {
