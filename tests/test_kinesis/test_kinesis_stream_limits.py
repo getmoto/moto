@@ -89,9 +89,23 @@ def test_total_record_data_exceeds_5mb():
 
 
 @mock_kinesis
+def test_total_record_data_exact_5mb():
+    client = boto3.client("kinesis", region_name="us-east-1")
+    client.create_stream(StreamName="my_stream", ShardCount=1)
+    key = "key"
+    key_size = len(key)
+    data_size = ONE_MB - key_size
+    client.put_records(
+        Records=[{"Data": b"a" * (data_size), "PartitionKey": key}] * 5,
+        StreamName="my_stream",
+    )
+
+
+@mock_kinesis
 def test_too_many_records():
     client = boto3.client("kinesis", region_name="us-east-1")
     client.create_stream(StreamName="my_stream", ShardCount=1)
+    
     with pytest.raises(ClientError) as exc:
         client.put_records(
             Records=[{"Data": b"a", "PartitionKey": "key"}] * 501,
