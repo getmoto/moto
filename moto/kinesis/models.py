@@ -1,4 +1,4 @@
-from base64 import b64encode
+from base64 import b64encode, b64decode
 from collections import OrderedDict
 from gzip import GzipFile
 import datetime
@@ -693,11 +693,15 @@ class KinesisBackend(BaseBackend):
 
         if len(records) > 500:
             raise TooManyRecords
-        data_sizes = [len(r.get("Data", "")) for r in records]
-        if sum(data_sizes) >= 5000000:
+
+        data_sizes = [
+            len(b64decode(r.get("Data", ""))) + len(r.get("PartitionKey", ""))
+            for r in records
+        ]
+        if sum(data_sizes) > 5242880:
             raise TotalRecordsSizeExceedsLimit
         idx_over_limit = next(
-            (idx for idx, x in enumerate(data_sizes) if x >= 1048576), None
+            (idx for idx, x in enumerate(data_sizes) if x > 1048576), None
         )
         if idx_over_limit is not None:
             raise RecordSizeExceedsLimit(position=idx_over_limit + 1)
