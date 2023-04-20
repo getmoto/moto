@@ -1,4 +1,4 @@
-"""Exceptions raised by the s3control service."""
+from typing import Any
 from moto.core.exceptions import RESTError
 
 
@@ -13,7 +13,7 @@ ERROR_WITH_ACCESS_POINT_POLICY = """{% extends 'wrapped_single_error' %}
 
 
 class S3ControlError(RESTError):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "single_error")
         super().__init__(*args, **kwargs)
 
@@ -21,7 +21,7 @@ class S3ControlError(RESTError):
 class AccessPointNotFound(S3ControlError):
     code = 404
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name: str, **kwargs: Any):
         kwargs.setdefault("template", "ap_not_found")
         kwargs["name"] = name
         self.templates["ap_not_found"] = ERROR_WITH_ACCESS_POINT_NAME
@@ -33,7 +33,7 @@ class AccessPointNotFound(S3ControlError):
 class AccessPointPolicyNotFound(S3ControlError):
     code = 404
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name: str, **kwargs: Any):
         kwargs.setdefault("template", "apf_not_found")
         kwargs["name"] = name
         self.templates["apf_not_found"] = ERROR_WITH_ACCESS_POINT_POLICY

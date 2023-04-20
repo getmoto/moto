@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from typing import Any, Dict, List
 
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
@@ -7,7 +8,9 @@ S3_OBJECT_CREATE_COPY = "s3:ObjectCreated:Copy"
 S3_OBJECT_CREATE_PUT = "s3:ObjectCreated:Put"
 
 
-def _get_s3_event(event_name, bucket, key, notification_id):
+def _get_s3_event(
+    event_name: str, bucket: Any, key: Any, notification_id: str
+) -> Dict[str, List[Dict[str, Any]]]:
     etag = key.etag.replace('"', "")
     # s3:ObjectCreated:Put --> ObjectCreated:Put
     event_name = event_name[3:]
@@ -34,11 +37,11 @@ def _get_s3_event(event_name, bucket, key, notification_id):
     }
 
 
-def _get_region_from_arn(arn):
+def _get_region_from_arn(arn: str) -> str:
     return arn.split(":")[3]
 
 
-def send_event(account_id, event_name, bucket, key):
+def send_event(account_id: str, event_name: str, bucket: Any, key: Any) -> None:
     if bucket.notification_configuration is None:
         return
 
@@ -58,7 +61,9 @@ def send_event(account_id, event_name, bucket, key):
             _send_sqs_message(account_id, event_body, queue_name, region_name)
 
 
-def _send_sqs_message(account_id, event_body, queue_name, region_name):
+def _send_sqs_message(
+    account_id: str, event_body: Any, queue_name: str, region_name: str
+) -> None:
     try:
         from moto.sqs.models import sqs_backends
 
@@ -74,7 +79,9 @@ def _send_sqs_message(account_id, event_body, queue_name, region_name):
         pass
 
 
-def _invoke_awslambda(account_id, event_body, fn_arn, region_name):
+def _invoke_awslambda(
+    account_id: str, event_body: Any, fn_arn: str, region_name: str
+) -> None:
     try:
         from moto.awslambda.models import lambda_backends
 
@@ -89,7 +96,7 @@ def _invoke_awslambda(account_id, event_body, fn_arn, region_name):
         pass
 
 
-def _get_test_event(bucket_name):
+def _get_test_event(bucket_name: str) -> Dict[str, Any]:
     event_time = datetime.now().strftime(_EVENT_TIME_FORMAT)
     return {
         "Service": "Amazon S3",
@@ -99,7 +106,7 @@ def _get_test_event(bucket_name):
     }
 
 
-def send_test_event(account_id, bucket):
+def send_test_event(account_id: str, bucket: Any) -> None:
     arns = [n.arn for n in bucket.notification_configuration.queue]
     for arn in set(arns):
         region_name = _get_region_from_arn(arn)
