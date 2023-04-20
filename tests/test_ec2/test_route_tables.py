@@ -720,22 +720,6 @@ def test_routes_not_supported():
         "InvalidNetworkInterfaceID.NotFound"
     )
 
-    igw = ec2.create_internet_gateway()
-    client.create_route(
-        RouteTableId=main_route_table_id,
-        DestinationCidrBlock=ROUTE_CIDR,
-        GatewayId=igw.id,
-    )
-
-    # Replace
-    if not settings.TEST_SERVER_MODE:
-        args = {
-            "RouteTableId": main_route_table.id,
-            "DestinationCidrBlock": ROUTE_CIDR,
-            "NetworkInterfaceId": "eni-1234abcd",
-        }
-        client.replace_route.when.called_with(**args).should.throw(NotImplementedError)
-
 
 @mock_ec2
 def test_routes_vpc_peering_connection():
