@@ -2,15 +2,15 @@ import json
 
 from moto.core.responses import BaseResponse
 from .exceptions import ValidationException
-from .models import ssm_backends
+from .models import ssm_backends, SimpleSystemManagerBackend
 
 
 class SimpleSystemManagerResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="ssm")
 
     @property
-    def ssm_backend(self):
+    def ssm_backend(self) -> SimpleSystemManagerBackend:
         return ssm_backends[self.current_account][self.region]
 
     @property

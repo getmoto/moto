@@ -1039,14 +1039,17 @@ def test_describe_parameters_tags():
         Tags=[{"Key": "spam", "Value": "eggs"}],
     )
 
-    response = client.describe_parameters(
+    parameters = client.describe_parameters(
         ParameterFilters=[{"Key": "tag:spam", "Values": ["eggs"]}]
-    )
+    )["Parameters"]
+    assert len(parameters) == 1
+    assert parameters[0]["Name"] == "/spam/eggs"
 
-    parameters = response["Parameters"]
-    parameters.should.have.length_of(1)
-
-    parameters[0]["Name"].should.equal("/spam/eggs")
+    # Verify we can filter by the existence of a tag
+    filters = [{"Key": "tag:spam"}]
+    response = client.describe_parameters(ParameterFilters=filters)
+    assert len(response["Parameters"]) == 1
+    assert {p["Name"] for p in response["Parameters"]} == set(["/spam/eggs"])
 
 
 @mock_ssm
