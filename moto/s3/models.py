@@ -95,7 +95,7 @@ class FakeKey(BaseModel, ManagedState):
         storage: Optional[str] = "STANDARD",
         etag: Optional[str] = None,
         is_versioned: bool = False,
-        version_id: int = 0,
+        version_id: str = "null",
         max_buffer_size: Optional[int] = None,
         multipart: Optional["FakeMultipart"] = None,
         bucket_name: Optional[str] = None,
@@ -156,7 +156,7 @@ class FakeKey(BaseModel, ManagedState):
         return self.name
 
     @property
-    def version_id(self) -> int:
+    def version_id(self) -> str:
         return self._version_id
 
     @property
@@ -1856,6 +1856,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,
+            # AWS uses VersionId=null in both requests and responses
             version_id=str(random.uuid4()) if bucket.is_versioned else "null",  # type: ignore
             multipart=multipart,
             encryption=encryption,
