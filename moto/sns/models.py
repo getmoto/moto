@@ -365,7 +365,7 @@ class Subscription(BaseModel):
                             msg_value = float(message_attributes[field]["Value"])
                             matches = []
                             for operator, test_value in numeric_ranges:
-                                test_value = int(test_value)
+                                test_value = test_value
                                 if operator == ">":
                                     matches.append((msg_value > test_value))
                                 if operator == ">=":
@@ -377,7 +377,6 @@ class Subscription(BaseModel):
                                 if operator == "<=":
                                     matches.append((msg_value <= test_value))
                             return all(matches)
-                        attr = message_attributes[field]
             return False
 
         return all(
@@ -833,6 +832,72 @@ class SNSBackend(BaseBackend):
                             )
                         continue
                     elif keyword == "numeric":
+                        # TODO: All of the exceptions listed below contain column pointing where the error is (in AWS response)
+                        # Example: 'Value of < must be numeric\n at [Source: (String)"{"price":[{"numeric":["<","100"]}]}"; line: 1, column: 28]'
+                        # While it probably can be implemented, it doesn't feel as important as the general parameter checking
+
+                        from xml.sax.saxutils import escape
+
+                        attributes_copy = attributes[:]
+                        if not attributes_copy:
+                            raise SNSInvalidParameter(
+                                "Invalid parameter: Attributes Reason: FilterPolicy: Invalid member in numeric match: ]\n at ..."
+                            )
+
+                        operator = attributes_copy.pop(0)
+
+                        if not isinstance(operator, str):
+                            raise SNSInvalidParameter(
+                                f"Invalid parameter: Attributes Reason: FilterPolicy: Invalid member in numeric match: {escape(str(operator))}\n at ..."
+                            )
+
+                        if operator not in ("<", "<=", "=", ">", ">="):
+                            raise SNSInvalidParameter(
+                                f"Invalid parameter: Attributes Reason: FilterPolicy: Unrecognized numeric range operator: {escape(str(operator))}\n at ..."
+                            )
+
+                        try:
+                            value = attributes_copy.pop(0)
+                        except IndexError:
+                            value = None
+
+                        if value is None or not isinstance(value, (int, float)):
+                            raise SNSInvalidParameter(
+                                f"Invalid parameter: Attributes Reason: FilterPolicy: Value of {escape(str(operator))} must be numeric\n at ..."
+                            )
+
+                        if not attributes_copy:
+                            continue
+
+                        if operator not in (">", ">="):
+                            raise SNSInvalidParameter(
+                                "Invalid parameter: Attributes Reason: FilterPolicy: Too many elements in numeric expression\n at ..."
+                            )
+
+                        second_operator = attributes_copy.pop(0)
+
+                        if second_operator not in ("<", "<="):
+                            raise SNSInvalidParameter(
+                                f"Invalid parameter: Attributes Reason: FilterPolicy: Bad numeric range operator: {escape(str(second_operator))}\n at ..."
+                            )
+
+                        try:
+                            second_value = attributes_copy.pop(0)
+                        except IndexError:
+                            second_value = None
+
+                        if second_value is None or not isinstance(
+                            second_value, (int, float)
+                        ):
+                            raise SNSInvalidParameter(
+                                f"Invalid parameter: Attributes Reason: FilterPolicy: Value of {escape(str(second_operator))} must be numeric\n at ..."
+                            )
+
+                        if second_value <= value:
+                            raise SNSInvalidParameter(
+                                "Invalid parameter: Attributes Reason: FilterPolicy: Bottom must be less than top\n at ..."
+                            )
+
                         continue
                     elif keyword == "prefix":
                         continue

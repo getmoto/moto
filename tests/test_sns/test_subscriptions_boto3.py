@@ -425,6 +425,7 @@ def test_subscribe_invalid_filter_policy():
                 "FilterPolicy": json.dumps({"store": [str(i) for i in range(151)]})
             },
         )
+        assert False
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameter")
         err.response["Error"]["Message"].should.equal(
@@ -438,6 +439,7 @@ def test_subscribe_invalid_filter_policy():
             Endpoint="http://example.com/",
             Attributes={"FilterPolicy": json.dumps({"store": [["example_corp"]]})},
         )
+        assert False
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameter")
         err.response["Error"]["Message"].should.equal(
@@ -451,6 +453,7 @@ def test_subscribe_invalid_filter_policy():
             Endpoint="http://example.com/",
             Attributes={"FilterPolicy": json.dumps({"store": [{"exists": None}]})},
         )
+        assert False
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameter")
         err.response["Error"]["Message"].should.equal(
@@ -464,6 +467,7 @@ def test_subscribe_invalid_filter_policy():
             Endpoint="http://example.com/",
             Attributes={"FilterPolicy": json.dumps({"store": [{"error": True}]})},
         )
+        assert False
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameter")
         err.response["Error"]["Message"].should.equal(
@@ -477,8 +481,135 @@ def test_subscribe_invalid_filter_policy():
             Endpoint="http://example.com/",
             Attributes={"FilterPolicy": json.dumps({"store": [1000000001]})},
         )
+        assert False
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InternalFailure")
+
+    try:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={
+                "FilterPolicy": json.dumps({"price": [{"numeric": ["<", "100"]}]})
+            },
+        )
+        assert False
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: Attributes Reason: FilterPolicy: Value of < must be numeric\n at ..."
+        )
+
+    try:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={
+                "FilterPolicy": json.dumps(
+                    {"price": [{"numeric": [">", 50, "<=", "100"]}]}
+                )
+            },
+        )
+        assert False
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: Attributes Reason: FilterPolicy: Value of <= must be numeric\n at ..."
+        )
+
+    try:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={
+                "FilterPolicy": json.dumps({"price": [{"numeric": [50, "<=", "100"]}]})
+            },
+        )
+        assert False
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: Attributes Reason: FilterPolicy: Invalid member in numeric match: 50\n at ..."
+        )
+
+    try:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={"FilterPolicy": json.dumps({"price": [{"numeric": ["<"]}]})},
+        )
+        assert False
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: Attributes Reason: FilterPolicy: Value of < must be numeric\n at ..."
+        )
+
+    try:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={"FilterPolicy": json.dumps({"price": [{"numeric": ["0"]}]})},
+        )
+        assert False
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: Attributes Reason: FilterPolicy: Unrecognized numeric range operator: 0\n at ..."
+        )
+
+    try:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={
+                "FilterPolicy": json.dumps({"price": [{"numeric": ["<", 20, ">", 1]}]})
+            },
+        )
+        assert False
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: Attributes Reason: FilterPolicy: Too many elements in numeric expression\n at ..."
+        )
+
+    try:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={
+                "FilterPolicy": json.dumps({"price": [{"numeric": [">", 20, ">", 1]}]})
+            },
+        )
+        assert False
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: Attributes Reason: FilterPolicy: Bad numeric range operator: >\n at ..."
+        )
+
+    try:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={
+                "FilterPolicy": json.dumps({"price": [{"numeric": [">", 20, "<", 1]}]})
+            },
+        )
+        assert False
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: Attributes Reason: FilterPolicy: Bottom must be less than top\n at ..."
+        )
 
 
 @mock_sns
