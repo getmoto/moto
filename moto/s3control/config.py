@@ -2,6 +2,7 @@ import datetime
 import json
 
 from boto3 import Session
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.common_models import ConfigQueryModel
@@ -12,15 +13,15 @@ from moto.s3control import s3control_backends
 class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
     def list_config_service_resources(
         self,
-        account_id,
-        resource_ids,
-        resource_name,
-        limit,
-        next_token,
-        backend_region=None,
-        resource_region=None,
-        aggregator=None,
-    ):
+        account_id: str,
+        resource_ids: Optional[List[str]],
+        resource_name: Optional[str],
+        limit: int,
+        next_token: Optional[str],
+        backend_region: Optional[str] = None,
+        resource_region: Optional[str] = None,
+        aggregator: Any = None,
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         # For the Account Public Access Block, they are the same for all regions. The resource ID is the AWS account ID
         # There is no resource name -- it should be a blank string "" if provided.
 
@@ -95,12 +96,12 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
 
     def get_config_resource(
         self,
-        account_id,
-        resource_id,
-        resource_name=None,
-        backend_region=None,
-        resource_region=None,
-    ):
+        account_id: str,
+        resource_id: str,
+        resource_name: Optional[str] = None,
+        backend_region: Optional[str] = None,
+        resource_region: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
 
         # Do we even have this defined?
         backend = self.backends[account_id]["global"]
@@ -116,7 +117,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
         # Is the resource ID correct?:
         if account_id == resource_id:
             if backend_region:
-                pab_region = backend_region
+                pab_region: Optional[str] = backend_region
 
             # Invalid region?
             elif resource_region not in regions:

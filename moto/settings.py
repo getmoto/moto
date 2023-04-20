@@ -3,7 +3,7 @@ import os
 import pathlib
 
 from functools import lru_cache
-from typing import Optional
+from typing import List, Optional
 
 
 TEST_SERVER_MODE = os.environ.get("TEST_SERVER_MODE", "0").lower() == "true"
@@ -47,7 +47,7 @@ def get_sf_execution_history_type():
     return os.environ.get("SF_EXECUTION_HISTORY_TYPE", "SUCCESS")
 
 
-def get_s3_custom_endpoints():
+def get_s3_custom_endpoints() -> List[str]:
     endpoints = os.environ.get("MOTO_S3_CUSTOM_ENDPOINTS")
     if endpoints:
         return endpoints.split(",")
@@ -57,7 +57,7 @@ def get_s3_custom_endpoints():
 S3_UPLOAD_PART_MIN_SIZE = 5242880
 
 
-def get_s3_default_key_buffer_size():
+def get_s3_default_key_buffer_size() -> int:
     return int(
         os.environ.get(
             "MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", S3_UPLOAD_PART_MIN_SIZE - 1024

@@ -77,7 +77,7 @@ def md5_hash(data: Any = None) -> Any:
 class LowercaseDict(MutableMapping):
     """A dictionary that lowercases all keys"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         self.store = dict()
         self.update(dict(*args, **kwargs))  # use the free update to set keys
 

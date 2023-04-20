@@ -59,7 +59,7 @@ class RESTError(HTTPException):
 
         if template in self.templates.keys():
             env = Environment(loader=DictLoader(self.templates))
-            self.description = env.get_template(template).render(
+            self.description: str = env.get_template(template).render(  # type: ignore
                 error_type=error_type,
                 message=message,
                 request_id_tag=self.request_id_tag_name,

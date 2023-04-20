@@ -1,23 +1,25 @@
 import json
 import xmltodict
+from typing import Any, Dict, Tuple
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.s3.exceptions import S3ClientError
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
 from moto.utilities.aws_headers import amzn_request_id
-from .models import s3control_backends
+from .models import s3control_backends, S3ControlBackend
 
 
 class S3ControlResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="s3control")
 
     @property
-    def backend(self):
+    def backend(self) -> S3ControlBackend:
         return s3control_backends[self.current_account]["global"]
 
     @amzn_request_id
-    def public_access_block(self, request, full_url, headers):
+    def public_access_block(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         self.setup_class(request, full_url, headers)
         try:
             if request.method == "GET":
@@ -29,7 +31,7 @@ class S3ControlResponse(BaseResponse):
         except S3ClientError as err:
             return err.code, {}, err.description
 
-    def get_public_access_block(self, request):
+    def get_public_access_block(self, request: Any) -> TYPE_RESPONSE:
         account_id = request.headers.get("x-amz-account-id")
         public_block_config = self.backend.get_public_access_block(
             account_id=account_id
@@ -37,7 +39,7 @@ class S3ControlResponse(BaseResponse):
         template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
         return 200, {}, template.render(public_block_config=public_block_config)
 
-    def put_public_access_block(self, request):
+    def put_public_access_block(self, request: Any) -> TYPE_RESPONSE:
         account_id = request.headers.get("x-amz-account-id")
         data = request.body if hasattr(request, "body") else request.data
         pab_config = self._parse_pab_config(data)
@@ -46,18 +48,18 @@ class S3ControlResponse(BaseResponse):
         )
         return 201, {}, json.dumps({})
 
-    def delete_public_access_block(self, request):
+    def delete_public_access_block(self, request: Any) -> TYPE_RESPONSE:
         account_id = request.headers.get("x-amz-account-id")
         self.backend.delete_public_access_block(account_id=account_id)
         return 204, {}, json.dumps({})
 
-    def _parse_pab_config(self, body):
+    def _parse_pab_config(self, body: str) -> Dict[str, Any]:
         parsed_xml = xmltodict.parse(body)
         parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
 
         return parsed_xml
 
-    def access_point(self, request, full_url, headers):
+    def access_point(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
             return self.create_access_point(full_url)
@@ -66,7 +68,7 @@ class S3ControlResponse(BaseResponse):
         if request.method == "DELETE":
             return self.delete_access_point(full_url)
 
-    def access_point_policy(self, request, full_url, headers):
+    def access_point_policy(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
             return self.create_access_point_policy(full_url)
@@ -75,14 +77,14 @@ class S3ControlResponse(BaseResponse):
         if request.method == "DELETE":
             return self.delete_access_point_policy(full_url)
 
-    def access_point_policy_status(self, request, full_url, headers):
+    def access_point_policy_status(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
             return self.create_access_point(full_url)
         if request.method == "GET":
             return self.get_access_point_policy_status(full_url)
 
-    def create_access_point(self, full_url):
+    def create_access_point(self, full_url: str) -> TYPE_RESPONSE:
         account_id, name = self._get_accountid_and_name_from_accesspoint(full_url)
         params = xmltodict.parse(self.body)["CreateAccessPointRequest"]
         bucket = params["Bucket"]
@@ -98,43 +100,45 @@ class S3ControlResponse(BaseResponse):
         template = self.response_template(CREATE_ACCESS_POINT_TEMPLATE)
         return 200, {}, template.render(access_point=access_point)
 
-    def get_access_point(self, full_url):
+    def get_access_point(self, full_url: str) -> TYPE_RESPONSE:
         account_id, name = self._get_accountid_and_name_from_accesspoint(full_url)
 
         access_point = self.backend.get_access_point(account_id=account_id, name=name)
         template = self.response_template(GET_ACCESS_POINT_TEMPLATE)
         return 200, {}, template.render(access_point=access_point)
 
-    def delete_access_point(self, full_url):
+    def delete_access_point(self, full_url: str) -> TYPE_RESPONSE:
         account_id, name = self._get_accountid_and_name_from_accesspoint(full_url)
         self.backend.delete_access_point(account_id=account_id, name=name)
         return 204, {}, ""
 
-    def create_access_point_policy(self, full_url):
+    def create_access_point_policy(self, full_url: str) -> TYPE_RESPONSE:
         account_id, name = self._get_accountid_and_name_from_policy(full_url)
         params = xmltodict.parse(self.body)
         policy = params["PutAccessPointPolicyRequest"]["Policy"]
         self.backend.create_access_point_policy(account_id, name, policy)
         return 200, {}, ""
 
-    def get_access_point_policy(self, full_url):
+    def get_access_point_policy(self, full_url: str) -> TYPE_RESPONSE:
         account_id, name = self._get_accountid_and_name_from_policy(full_url)
         policy = self.backend.get_access_point_policy(account_id, name)
         template = self.response_template(GET_ACCESS_POINT_POLICY_TEMPLATE)
         return 200, {}, template.render(policy=policy)
 
-    def delete_access_point_policy(self, full_url):
+    def delete_access_point_policy(self, full_url: str) -> TYPE_RESPONSE:
         account_id, name = self._get_accountid_and_name_from_policy(full_url)
         self.backend.delete_access_point_policy(account_id=account_id, name=name)
         return 204, {}, ""
 
-    def get_access_point_policy_status(self, full_url):
+    def get_access_point_policy_status(self, full_url: str) -> TYPE_RESPONSE:
         account_id, name = self._get_accountid_and_name_from_policy(full_url)
         self.backend.get_access_point_policy_status(account_id, name)
         template = self.response_template(GET_ACCESS_POINT_POLICY_STATUS_TEMPLATE)
         return 200, {}, template.render()
 
-    def _get_accountid_and_name_from_accesspoint(self, full_url):
+    def _get_accountid_and_name_from_accesspoint(
+        self, full_url: str
+    ) -> Tuple[str, str]:
         url = full_url
         if full_url.startswith("http"):
             url = full_url.split("://")[1]
@@ -142,7 +146,7 @@ class S3ControlResponse(BaseResponse):
         name = url.split("v20180820/accesspoint/")[-1]
         return account_id, name
 
-    def _get_accountid_and_name_from_policy(self, full_url):
+    def _get_accountid_and_name_from_policy(self, full_url: str) -> Tuple[str, str]:
         url = full_url
         if full_url.startswith("http"):
             url = full_url.split("://")[1]

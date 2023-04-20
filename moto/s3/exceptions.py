@@ -1,3 +1,4 @@
+from typing import Any, Optional, Union
 from moto.core.exceptions import RESTError
 
 ERROR_WITH_BUCKET_NAME = """{% extends 'single_error' %}
@@ -35,7 +36,7 @@ class S3ClientError(RESTError):
     # S3 API uses <RequestID> as the XML tag in response messages
     request_id_tag_name = "RequestID"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "single_error")
         self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super().__init__(*args, **kwargs)
@@ -44,7 +45,7 @@ class S3ClientError(RESTError):
 class InvalidArgumentError(S3ClientError):
     code = 400
 
-    def __init__(self, message, name, value, *args, **kwargs):
+    def __init__(self, message: str, name: str, value: str, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "argument_error")
         kwargs["name"] = name
         kwargs["value"] = value
@@ -60,7 +61,7 @@ class AccessForbidden(S3ClientError):
 
 
 class BucketError(S3ClientError):
-    def __init__(self, *args: str, **kwargs: str):
+    def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "bucket_error")
         self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super().__init__(*args, **kwargs)
@@ -69,7 +70,7 @@ class BucketError(S3ClientError):
 class BucketAlreadyExists(BucketError):
     code = 409
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "bucket_error")
         self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super().__init__(
@@ -87,16 +88,16 @@ class BucketAlreadyExists(BucketError):
 class MissingBucket(BucketError):
     code = 404
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, bucket: str):
         super().__init__(
-            "NoSuchBucket", "The specified bucket does not exist", *args, **kwargs
+            "NoSuchBucket", "The specified bucket does not exist", bucket=bucket
         )
 
 
 class MissingKey(S3ClientError):
     code = 404
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         kwargs.setdefault("template", "key_error")
         self.templates["key_error"] = ERROR_WITH_KEY_NAME
         super().__init__("NoSuchKey", "The specified key does not exist.", **kwargs)
@@ -105,16 +106,14 @@ class MissingKey(S3ClientError):
 class MissingVersion(S3ClientError):
     code = 404
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(
-            "NoSuchVersion", "The specified version does not exist.", *args, **kwargs
-        )
+    def __init__(self) -> None:
+        super().__init__("NoSuchVersion", "The specified version does not exist.")
 
 
 class InvalidVersion(S3ClientError):
     code = 400
 
-    def __init__(self, version_id, *args, **kwargs):
+    def __init__(self, version_id: str, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "argument_error")
         kwargs["name"] = "versionId"
         kwargs["value"] = version_id
@@ -127,7 +126,7 @@ class InvalidVersion(S3ClientError):
 class ObjectNotInActiveTierError(S3ClientError):
     code = 403
 
-    def __init__(self, key_name):
+    def __init__(self, key_name: Any):
         super().__init__(
             "ObjectNotInActiveTierError",
             "The source object of the COPY operation is not in the active tier and is only stored in Amazon Glacier.",
@@ -138,105 +137,84 @@ class ObjectNotInActiveTierError(S3ClientError):
 class InvalidPartOrder(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidPartOrder",
-            (
-                "The list of parts was not in ascending order. The parts "
-                "list must be specified in order by part number."
-            ),
-            *args,
-            **kwargs,
+            "The list of parts was not in ascending order. The parts list must be specified in order by part number.",
         )
 
 
 class InvalidPart(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidPart",
-            (
-                "One or more of the specified parts could not be found. "
-                "The part might not have been uploaded, or the specified "
-                "entity tag might not have matched the part's entity tag."
-            ),
-            *args,
-            **kwargs,
+            "One or more of the specified parts could not be found. The part might not have been uploaded, or the specified entity tag might not have matched the part's entity tag.",
         )
 
 
 class EntityTooSmall(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "EntityTooSmall",
             "Your proposed upload is smaller than the minimum allowed object size.",
-            *args,
-            **kwargs,
         )
 
 
 class InvalidRequest(S3ClientError):
     code = 400
 
-    def __init__(self, method, *args, **kwargs):
+    def __init__(self, method: str):
         super().__init__(
             "InvalidRequest",
             f"Found unsupported HTTP method in CORS config. Unsupported method is {method}",
-            *args,
-            **kwargs,
         )
 
 
 class IllegalLocationConstraintException(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "IllegalLocationConstraintException",
             "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to.",
-            *args,
-            **kwargs,
         )
 
 
 class MalformedXML(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "MalformedXML",
             "The XML you provided was not well-formed or did not validate against our published schema",
-            *args,
-            **kwargs,
         )
 
 
 class MalformedACLError(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "MalformedACLError",
             "The XML you provided was not well-formed or did not validate against our published schema",
-            *args,
-            **kwargs,
         )
 
 
 class InvalidTargetBucketForLogging(S3ClientError):
     code = 400
 
-    def __init__(self, msg):
+    def __init__(self, msg: str):
         super().__init__("InvalidTargetBucketForLogging", msg)
 
 
 class CrossLocationLoggingProhibitted(S3ClientError):
     code = 403
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "CrossLocationLoggingProhibitted", "Cross S3 location logging not allowed."
         )
@@ -245,7 +223,7 @@ class CrossLocationLoggingProhibitted(S3ClientError):
 class InvalidMaxPartArgument(S3ClientError):
     code = 400
 
-    def __init__(self, arg, min_val, max_val):
+    def __init__(self, arg: str, min_val: int, max_val: int):
         error = f"Argument {arg} must be an integer between {min_val} and {max_val}"
         super().__init__("InvalidArgument", error)
 
@@ -253,97 +231,83 @@ class InvalidMaxPartArgument(S3ClientError):
 class InvalidMaxPartNumberArgument(InvalidArgumentError):
     code = 400
 
-    def __init__(self, value, *args, **kwargs):
+    def __init__(self, value: int):
         error = "Part number must be an integer between 1 and 10000, inclusive"
-        super().__init__(message=error, name="partNumber", value=value, *args, **kwargs)
+        super().__init__(message=error, name="partNumber", value=value)  # type: ignore
 
 
 class NotAnIntegerException(InvalidArgumentError):
     code = 400
 
-    def __init__(self, name, value, *args, **kwargs):
+    def __init__(self, name: str, value: int):
         error = f"Provided {name} not an integer or within integer range"
-        super().__init__(message=error, name=name, value=value, *args, **kwargs)
+        super().__init__(message=error, name=name, value=value)  # type: ignore
 
 
 class InvalidNotificationARN(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(
-            "InvalidArgument", "The ARN is not well formed", *args, **kwargs
-        )
+    def __init__(self) -> None:
+        super().__init__("InvalidArgument", "The ARN is not well formed")
 
 
 class InvalidNotificationDestination(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidArgument",
             "The notification destination service region is not valid for the bucket location constraint",
-            *args,
-            **kwargs,
         )
 
 
 class InvalidNotificationEvent(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidArgument",
             "The event is not supported for notifications",
-            *args,
-            **kwargs,
         )
 
 
 class InvalidStorageClass(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, storage: Optional[str]):
         super().__init__(
             "InvalidStorageClass",
             "The storage class you specified is not valid",
-            *args,
-            **kwargs,
+            storage=storage,
         )
 
 
 class InvalidBucketName(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(
-            "InvalidBucketName", "The specified bucket is not valid.", *args, **kwargs
-        )
+    def __init__(self) -> None:
+        super().__init__("InvalidBucketName", "The specified bucket is not valid.")
 
 
 class DuplicateTagKeys(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(
-            "InvalidTag",
-            "Cannot provide multiple Tags with the same key",
-            *args,
-            **kwargs,
-        )
+    def __init__(self) -> None:
+        super().__init__("InvalidTag", "Cannot provide multiple Tags with the same key")
 
 
 class S3AccessDeniedError(S3ClientError):
     code = 403
 
-    def __init__(self, *args: str, **kwargs: str):
-        super().__init__("AccessDenied", "Access Denied", *args, **kwargs)
+    def __init__(self) -> None:
+        super().__init__("AccessDenied", "Access Denied")
 
 
 class BucketAccessDeniedError(BucketError):
     code = 403
 
-    def __init__(self, *args: str, **kwargs: str):
-        super().__init__("AccessDenied", "Access Denied", *args, **kwargs)
+    def __init__(self, bucket: str):
+        super().__init__("AccessDenied", "Access Denied", bucket=bucket)
 
 
 class S3InvalidTokenError(S3ClientError):
@@ -368,12 +332,11 @@ class S3AclAndGrantError(S3ClientError):
 class BucketInvalidTokenError(BucketError):
     code = 400
 
-    def __init__(self, *args: str, **kwargs: str):
+    def __init__(self, bucket: str):
         super().__init__(
             "InvalidToken",
             "The provided token is malformed or otherwise invalid.",
-            *args,
-            **kwargs,
+            bucket=bucket,
         )
 
 
@@ -390,12 +353,11 @@ class S3InvalidAccessKeyIdError(S3ClientError):
 class BucketInvalidAccessKeyIdError(S3ClientError):
     code = 403
 
-    def __init__(self, *args: str, **kwargs: str):
+    def __init__(self, bucket: str):
         super().__init__(
             "InvalidAccessKeyId",
             "The AWS Access Key Id you provided does not exist in our records.",
-            *args,
-            **kwargs,
+            bucket=bucket,
         )
 
 
@@ -412,50 +374,45 @@ class S3SignatureDoesNotMatchError(S3ClientError):
 class BucketSignatureDoesNotMatchError(S3ClientError):
     code = 403
 
-    def __init__(self, *args: str, **kwargs: str):
+    def __init__(self, bucket: str):
         super().__init__(
             "SignatureDoesNotMatch",
             "The request signature we calculated does not match the signature you provided. Check your key and signing method.",
-            *args,
-            **kwargs,
+            bucket=bucket,
         )
 
 
 class NoSuchPublicAccessBlockConfiguration(S3ClientError):
     code = 404
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "NoSuchPublicAccessBlockConfiguration",
             "The public access block configuration was not found",
-            *args,
-            **kwargs,
         )
 
 
 class InvalidPublicAccessBlockConfiguration(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidRequest",
             "Must specify at least one configuration.",
-            *args,
-            **kwargs,
         )
 
 
 class WrongPublicAccessBlockAccountIdError(S3ClientError):
     code = 403
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("AccessDenied", "Access Denied")
 
 
 class NoSystemTags(S3ClientError):
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidTag", "System tags cannot be added/updated by requester"
         )
@@ -464,7 +421,7 @@ class NoSystemTags(S3ClientError):
 class NoSuchUpload(S3ClientError):
     code = 404
 
-    def __init__(self, upload_id, *args, **kwargs):
+    def __init__(self, upload_id: Union[int, str], *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "error_uploadid")
         kwargs["upload_id"] = upload_id
         self.templates["error_uploadid"] = ERROR_WITH_UPLOADID
@@ -479,7 +436,7 @@ class NoSuchUpload(S3ClientError):
 class PreconditionFailed(S3ClientError):
     code = 412
 
-    def __init__(self, failed_condition, **kwargs):
+    def __init__(self, failed_condition: str, **kwargs: Any):
         kwargs.setdefault("template", "condition_error")
         self.templates["condition_error"] = ERROR_WITH_CONDITION_NAME
         super().__init__(
@@ -493,7 +450,7 @@ class PreconditionFailed(S3ClientError):
 class InvalidRange(S3ClientError):
     code = 416
 
-    def __init__(self, range_requested, actual_size, **kwargs):
+    def __init__(self, range_requested: str, actual_size: str, **kwargs: Any):
         kwargs.setdefault("template", "range_error")
         self.templates["range_error"] = ERROR_WITH_RANGE
         super().__init__(
@@ -508,19 +465,16 @@ class InvalidRange(S3ClientError):
 class InvalidContinuationToken(S3ClientError):
     code = 400
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:
         super().__init__(
-            "InvalidArgument",
-            "The continuation token provided is incorrect",
-            *args,
-            **kwargs,
+            "InvalidArgument", "The continuation token provided is incorrect"
         )
 
 
 class InvalidObjectState(BucketError):
     code = 403
 
-    def __init__(self, storage_class, **kwargs):
+    def __init__(self, storage_class: Optional[str], **kwargs: Any):
         kwargs.setdefault("template", "storage_error")
         self.templates["storage_error"] = ERROR_WITH_STORAGE_CLASS
         super().__init__(
@@ -534,35 +488,35 @@ class InvalidObjectState(BucketError):
 class LockNotEnabled(S3ClientError):
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("InvalidRequest", "Bucket is missing ObjectLockConfiguration")
 
 
 class AccessDeniedByLock(S3ClientError):
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("AccessDenied", "Access Denied")
 
 
 class InvalidContentMD5(S3ClientError):
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("InvalidContentMD5", "Content MD5 header is invalid")
 
 
 class BucketNeedsToBeNew(S3ClientError):
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("InvalidBucket", "Bucket needs to be empty")
 
 
 class BucketMustHaveLockeEnabled(S3ClientError):
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidBucketState",
             "Object Lock configuration cannot be enabled on existing buckets",
@@ -572,7 +526,7 @@ class BucketMustHaveLockeEnabled(S3ClientError):
 class CopyObjectMustChangeSomething(S3ClientError):
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "InvalidRequest",
             "This copy request is illegal because it is trying to copy an object to itself without changing the object's metadata, storage class, website redirect location or encryption attributes.",
@@ -582,27 +536,25 @@ class CopyObjectMustChangeSomething(S3ClientError):
 class InvalidFilterRuleName(InvalidArgumentError):
     code = 400
 
-    def __init__(self, value, *args, **kwargs):
+    def __init__(self, value: str):
         super().__init__(
             "filter rule name must be either prefix or suffix",
             "FilterRule.Name",
             value,
-            *args,
-            **kwargs,
         )
 
 
 class InvalidTagError(S3ClientError):
     code = 400
 
-    def __init__(self, value, *args, **kwargs):
-        super().__init__("InvalidTag", value, *args, **kwargs)
+    def __init__(self, value: str):
+        super().__init__("InvalidTag", value)
 
 
 class ObjectLockConfigurationNotFoundError(S3ClientError):
     code = 404
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "ObjectLockConfigurationNotFoundError",
             "Object Lock configuration does not exist for this bucket",

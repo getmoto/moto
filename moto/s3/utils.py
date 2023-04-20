@@ -5,7 +5,7 @@ import re
 import hashlib
 from urllib.parse import urlparse, unquote, quote
 from requests.structures import CaseInsensitiveDict
-from typing import List, Union, Tuple
+from typing import Any, Dict, List, Iterator, Union, Tuple, Optional
 import sys
 from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
@@ -38,7 +38,7 @@ STORAGE_CLASS = [
 ] + ARCHIVE_STORAGE_CLASSES
 
 
-def bucket_name_from_url(url):
+def bucket_name_from_url(url: str) -> Optional[str]:  # type: ignore
     if S3_IGNORE_SUBDOMAIN_BUCKETNAME:
         return None
     domain = urlparse(url).netloc
@@ -75,7 +75,7 @@ REGION_URL_REGEX = re.compile(
 )
 
 
-def parse_region_from_url(url, use_default_region=True):
+def parse_region_from_url(url: str, use_default_region: bool = True) -> str:
     match = REGION_URL_REGEX.search(url)
     if match:
         region = match.group("region1") or match.group("region2")
@@ -84,8 +84,8 @@ def parse_region_from_url(url, use_default_region=True):
     return region
 
 
-def metadata_from_headers(headers):
-    metadata = CaseInsensitiveDict()
+def metadata_from_headers(headers: Dict[str, Any]) -> CaseInsensitiveDict:  # type: ignore
+    metadata = CaseInsensitiveDict()  # type: ignore
     meta_regex = re.compile(r"^x-amz-meta-([a-zA-Z0-9\-_.]+)$", flags=re.IGNORECASE)
     for header in headers.keys():
         if isinstance(header, str):
@@ -106,32 +106,32 @@ def metadata_from_headers(headers):
     return metadata
 
 
-def clean_key_name(key_name):
+def clean_key_name(key_name: str) -> str:
     return unquote(key_name)
 
 
-def undo_clean_key_name(key_name):
+def undo_clean_key_name(key_name: str) -> str:
     return quote(key_name)
 
 
-class _VersionedKeyStore(dict):
+class _VersionedKeyStore(dict):  # type: ignore
 
     """A simplified/modified version of Django's `MultiValueDict` taken from:
     https://github.com/django/django/blob/70576740b0bb5289873f5a9a9a4e1a26b2c330e5/django/utils/datastructures.py#L282
     """
 
-    def __sgetitem__(self, key):
+    def __sgetitem__(self, key: str) -> List[Any]:
         return super().__getitem__(key)
 
-    def pop(self, key):
+    def pop(self, key: str) -> None:  # type: ignore
         for version in self.getlist(key, []):
             version.dispose()
         super().pop(key)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return self.__sgetitem__(key)[-1]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> Any:
         try:
             current = self.__sgetitem__(key)
             current.append(value)
@@ -140,21 +140,21 @@ class _VersionedKeyStore(dict):
 
         super().__setitem__(key, current)
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         try:
             return self[key]
         except (KeyError, IndexError):
             pass
         return default
 
-    def getlist(self, key, default=None):
+    def getlist(self, key: str, default: Any = None) -> Any:
         try:
             return self.__sgetitem__(key)
         except (KeyError, IndexError):
             pass
         return default
 
-    def setlist(self, key, list_):
+    def setlist(self, key: Any, list_: Any) -> Any:
         if isinstance(list_, tuple):
             list_ = list(list_)
         elif not isinstance(list_, list):
@@ -168,35 +168,35 @@ class _VersionedKeyStore(dict):
 
         super().__setitem__(key, list_)
 
-    def _iteritems(self):
+    def _iteritems(self) -> Iterator[Tuple[str, Any]]:
         for key in self._self_iterable():
             yield key, self[key]
 
-    def _itervalues(self):
+    def _itervalues(self) -> Iterator[Any]:
         for key in self._self_iterable():
             yield self[key]
 
-    def _iterlists(self):
+    def _iterlists(self) -> Iterator[Tuple[str, List[Any]]]:
         for key in self._self_iterable():
             yield key, self.getlist(key)
 
-    def item_size(self):
+    def item_size(self) -> int:
         size = 0
         for val in self._self_iterable().values():
             size += sys.getsizeof(val)
         return size
 
-    def _self_iterable(self):
+    def _self_iterable(self) -> Dict[str, Any]:
         # to enable concurrency, return a copy, to avoid "dictionary changed size during iteration"
         # TODO: look into replacing with a locking mechanism, potentially
         return dict(self)
 
-    items = iteritems = _iteritems
+    items = iteritems = _iteritems  # type: ignore
     lists = iterlists = _iterlists
-    values = itervalues = _itervalues
+    values = itervalues = _itervalues  # type: ignore
 
 
-def compute_checksum(body, algorithm):
+def compute_checksum(body: bytes, algorithm: str) -> bytes:
     if algorithm == "SHA1":
         hashed_body = _hash(hashlib.sha1, (body,))
     elif algorithm == "CRC32" or algorithm == "CRC32C":
@@ -206,7 +206,7 @@ def compute_checksum(body, algorithm):
     return base64.b64encode(hashed_body)
 
 
-def _hash(fn, args) -> bytes:
+def _hash(fn: Any, args: Any) -> bytes:
     try:
         return fn(*args, usedforsecurity=False).hexdigest().encode("utf-8")
     except TypeError:
