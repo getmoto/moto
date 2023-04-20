@@ -1434,7 +1434,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                     f"The following filter key is not valid: {key}. Valid filter keys include: [Type, KeyId]."
                 )
 
-            if not values:
+            if key in ["Name", "Type", "Path", "Tier", "Keyid"] and not values:
                 raise InvalidFilterValue(
                     "The following filter values are missing : null for filter key Name."
                 )
@@ -1636,7 +1636,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             elif key.startswith("tag:"):
                 what = [tag["Value"] for tag in parameter.tags if tag["Key"] == key[4:]]
 
-            if what is None:
+            if what is None or what == []:
                 return False
             # 'what' can be a list (of multiple tag-values, for instance)
             is_list = isinstance(what, list)
@@ -1650,6 +1650,9 @@ class SimpleSystemManagerBackend(BaseBackend):
             elif option == "Contains" and not any(value in what for value in values):
                 return False
             elif option == "Equals":
+                if is_list and len(values) == 0:
+                    # User hasn't provided possible tag-values - they just want to know whether the tag exists
+                    return True
                 if is_list and not any(val in what for val in values):
                     return False
                 elif not is_list and not any(what == val for val in values):
