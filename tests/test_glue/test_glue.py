@@ -233,6 +233,18 @@ def test_list_jobs_next_token_logic_does_not_create_infinite_loop():
     assert not next_token
 
 
+@mock_glue
+def test_batch_get_jobs():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+
+    response = client.batch_get_jobs(
+        JobNames=[job_name, "job-not-found"]
+    )
+
+    assert len(response["Jobs"]) == 1
+    assert len(response["JobsNotFound"]) == 1
+
 def create_glue_client():
     return boto3.client("glue", region_name="us-east-1")
 

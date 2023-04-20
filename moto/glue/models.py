@@ -863,6 +863,13 @@ class GlueBackend(BaseBackend):
                 crawlers.append(crawler.as_dict())
         return crawlers
 
+    def batch_get_jobs(self, job_names: List[str]) -> List[Dict[str, Any]]:
+        jobs = []
+        for job_name in job_names:
+            if job_name in self.jobs:
+                jobs.append(self.jobs[job_name].as_dict())
+        return jobs
+
 
 class FakeDatabase(BaseModel):
     def __init__(self, database_name: str, database_input: Dict[str, Any]):

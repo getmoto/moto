@@ -524,5 +524,18 @@ class GlueResponse(BaseResponse):
             }
         )
 
+    def batch_get_jobs(self) -> str:
+        job_names = self._get_param("JobNames")
+        jobs = self.glue_backend.batch_get_jobs(job_names)
+        jobs_not_found = list(
+            set(job_names) - set(map(lambda job: job["Name"], jobs))
+        )
+        return json.dumps(
+            {
+                "Jobs": jobs,
+                "JobsNotFound": jobs_not_found,
+            }
+        )
+
     def get_partition_indexes(self) -> str:
         return json.dumps({"PartitionIndexDescriptorList": []})
