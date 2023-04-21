@@ -2476,6 +2476,7 @@ def test_list_object_versions_with_versioning_disabled():
 
     # Test latest object version is returned
     response = s3.get_object(Bucket=bucket_name, Key=key)
+    assert "VersionId" not in response["ResponseMetadata"]["HTTPHeaders"]
     response["Body"].read().should.equal(items[-1])
 
 

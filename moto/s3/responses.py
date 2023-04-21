@@ -1348,7 +1348,7 @@ class S3Response(BaseResponse):
         elif key is None:
             raise MissingVersion()
 
-        if key.version_id:
+        if key.version_id != "null":
             response_headers["x-amz-version-id"] = key.version_id
 
         if key.storage_class in ARCHIVE_STORAGE_CLASSES:
@@ -1386,8 +1386,6 @@ class S3Response(BaseResponse):
             attributes_to_get = headers.get("x-amz-object-attributes", "").split(",")
             response_keys = self.backend.get_object_attributes(key, attributes_to_get)
 
-            if key.version_id == "null":  # type: ignore
-                response_headers.pop("x-amz-version-id")
             response_headers["Last-Modified"] = key.last_modified_ISO8601
 
             template = self.response_template(S3_OBJECT_ATTRIBUTES_RESPONSE)
