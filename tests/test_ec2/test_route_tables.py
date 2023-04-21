@@ -699,11 +699,9 @@ def test_routes_already_exist():
 @mock_ec2
 def test_routes_not_supported():
     client = boto3.client("ec2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
     main_route_table_id = client.describe_route_tables()["RouteTables"][0][
         "RouteTableId"
     ]
-    main_route_table = ec2.RouteTable(main_route_table_id)
 
     ROUTE_CIDR = "10.0.0.4/24"
 
