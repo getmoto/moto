@@ -238,9 +238,7 @@ def test_batch_get_jobs():
     client = create_glue_client()
     job_name = create_test_job(client)
 
-    response = client.batch_get_jobs(
-        JobNames=[job_name, "job-not-found"]
-    )
+    response = client.batch_get_jobs(JobNames=[job_name, "job-not-found"])
 
     assert len(response["Jobs"]) == 1
     assert len(response["JobsNotFound"]) == 1
