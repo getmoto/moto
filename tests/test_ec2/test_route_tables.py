@@ -560,6 +560,7 @@ def test_routes_replace():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/24")
 
     main_route_table_id = client.describe_route_tables(
         Filters=[
@@ -574,6 +575,8 @@ def test_routes_replace():
     igw = ec2.create_internet_gateway()
 
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+
+    eni = ec2.create_network_interface(SubnetId=subnet.id)
 
     # Create initial route
     main_route_table.create_route(DestinationCidrBlock=ROUTE_CIDR, GatewayId=igw.id)
@@ -600,6 +603,7 @@ def test_routes_replace():
     target_route = get_target_route()
     target_route.shouldnt.have.key("GatewayId")
     target_route["InstanceId"].should.equal(instance.id)
+    target_route.shouldnt.have.key("NetworkInterfaceId")
     target_route["State"].should.equal("active")
     target_route["DestinationCidrBlock"].should.equal(ROUTE_CIDR)
 
@@ -612,6 +616,20 @@ def test_routes_replace():
     target_route = get_target_route()
     target_route["GatewayId"].should.equal(igw.id)
     target_route.shouldnt.have.key("InstanceId")
+    target_route.shouldnt.have.key("NetworkInterfaceId")
+    target_route["State"].should.equal("active")
+    target_route["DestinationCidrBlock"].should.equal(ROUTE_CIDR)
+
+    client.replace_route(
+        RouteTableId=main_route_table.id,
+        DestinationCidrBlock=ROUTE_CIDR,
+        NetworkInterfaceId=eni.id,
+    )
+
+    target_route = get_target_route()
+    target_route.shouldnt.have.key("GatewayId")
+    target_route.shouldnt.have.key("InstanceId")
+    target_route["NetworkInterfaceId"].should.equal(eni.id)
     target_route["State"].should.equal("active")
     target_route["DestinationCidrBlock"].should.equal(ROUTE_CIDR)
 
@@ -681,11 +699,9 @@ def test_routes_already_exist():
 @mock_ec2
 def test_routes_not_supported():
     client = boto3.client("ec2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
     main_route_table_id = client.describe_route_tables()["RouteTables"][0][
         "RouteTableId"
     ]
-    main_route_table = ec2.RouteTable(main_route_table_id)
 
     ROUTE_CIDR = "10.0.0.4/24"
 
@@ -701,22 +717,6 @@ def test_routes_not_supported():
     ex.value.response["Error"]["Code"].should.equal(
         "InvalidNetworkInterfaceID.NotFound"
     )
-
-    igw = ec2.create_internet_gateway()
-    client.create_route(
-        RouteTableId=main_route_table_id,
-        DestinationCidrBlock=ROUTE_CIDR,
-        GatewayId=igw.id,
-    )
-
-    # Replace
-    if not settings.TEST_SERVER_MODE:
-        args = {
-            "RouteTableId": main_route_table.id,
-            "DestinationCidrBlock": ROUTE_CIDR,
-            "NetworkInterfaceId": "eni-1234abcd",
-        }
-        client.replace_route.when.called_with(**args).should.throw(NotImplementedError)
 
 
 @mock_ec2
