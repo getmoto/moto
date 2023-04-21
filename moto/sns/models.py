@@ -301,11 +301,11 @@ class Subscription(BaseModel):
                     else:
                         return False
 
-                    for attribute_values in attribute_values:
-                        attribute_values = float(attribute_values)
+                    for attribute_value in attribute_values:
+                        attribute_value = float(attribute_value)
                         # Even the official documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
                         # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
-                        if int(attribute_values * 1000000) == int(rule * 1000000):
+                        if int(attribute_value * 1000000) == int(rule * 1000000):
                             return True
                 if isinstance(rule, dict):
                     keyword = list(rule.keys())[0]
