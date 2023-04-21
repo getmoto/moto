@@ -245,6 +245,7 @@ def test_batch_get_jobs():
     assert len(response["Jobs"]) == 1
     assert len(response["JobsNotFound"]) == 1
 
+
 def create_glue_client():
     return boto3.client("glue", region_name="us-east-1")
 
