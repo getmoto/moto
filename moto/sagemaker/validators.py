@@ -1,4 +1,9 @@
-def is_integer_between(x, mn=None, mx=None, optional=False):
+from typing import Any, Optional
+
+
+def is_integer_between(
+    x: int, mn: Optional[int] = None, mx: Optional[int] = None, optional: bool = False
+) -> bool:
     if optional and x is None:
         return True
     try:
@@ -14,7 +19,7 @@ def is_integer_between(x, mn=None, mx=None, optional=False):
         return False
 
 
-def is_one_of(x, choices, optional=False):
+def is_one_of(x: Any, choices: Any, optional: bool = False) -> bool:
     if optional and x is None:
         return True
     return x in choices
