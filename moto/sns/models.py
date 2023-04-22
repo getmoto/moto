@@ -836,7 +836,6 @@ class SNSBackend(BaseBackend):
                         # Example: 'Value of < must be numeric\n at [Source: (String)"{"price":[{"numeric":["<","100"]}]}"; line: 1, column: 28]'
                         # While it probably can be implemented, it doesn't feel as important as the general parameter checking
 
-
                         attributes_copy = attributes[:]
                         if not attributes_copy:
                             raise SNSInvalidParameter(
