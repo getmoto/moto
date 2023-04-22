@@ -37,6 +37,37 @@ def test_copy_key_boto3(key_name):
 
 
 @mock_s3
+def test_copy_key_boto3_with_sha256_checksum():
+    # Setup
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    key_name = "key"
+    new_key = "new_key"
+    bucket = "foobar"
+    expected_hash = "YWIzZDA3ZjMxNjljY2JkMGVkNmM0YjQ1ZGUyMTUxOWY5ZjkzOGM3MmQyNDEyNDk5OGFhYjk0OWNlODNiYjUxYg=="
+
+    s3.create_bucket(Bucket=bucket)
+    key = s3.Object("foobar", key_name)
+    key.put(Body=b"some value")
+
+    # Execute
+    key2 = s3.Object(bucket, new_key)
+    key2.copy(
+        CopySource={"Bucket": bucket, "Key": key_name},
+        ExtraArgs={"ChecksumAlgorithm": "SHA256"},
+    )
+
+    # Verify
+    resp = client.get_object_attributes(
+        Bucket="foobar", Key="new-key", ObjectAttributes=["Checksum"]
+    )
+
+    assert "Checksum" in resp
+    assert "ChecksumSHA256" in resp["Checksum"]
+    assert resp["Checksum"]["ChecksumSHA256"] == expected_hash
+
+
+@mock_s3
 def test_copy_key_with_version_boto3():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
