@@ -791,7 +791,7 @@ def test_update_secret_version_stage(pass_arn):
     assert stages[initial_version] == ["AWSCURRENT"]
     assert stages[new_version] == [custom_stage]
 
-    test_client.post(
+    resp = test_client.post(
         "/",
         data={
             "SecretId": secret_id,
@@ -801,6 +801,9 @@ def test_update_secret_version_stage(pass_arn):
         },
         headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
     )
+    resp = json.loads(resp.data.decode("utf-8"))
+    assert resp.get("ARN") == create_secret["ARN"]
+    assert resp.get("Name") == DEFAULT_SECRET_NAME
 
     describe_secret = test_client.post(
         "/",
