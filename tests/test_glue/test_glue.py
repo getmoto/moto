@@ -22,6 +22,21 @@ def test_create_job():
 
 
 @mock_glue
+def test_delete_job():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+
+    client.get_job(JobName=job_name)
+
+    client.delete_job(JobName=job_name)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_job(JobName=job_name)
+
+    assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
+
+
+@mock_glue
 def test_create_job_default_argument_not_provided():
     client = create_glue_client()
     with pytest.raises(ParamValidationError) as exc:
