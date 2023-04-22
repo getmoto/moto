@@ -54,7 +54,7 @@ def get_s3_custom_endpoints() -> List[str]:
     return []
 
 
-S3_UPLOAD_PART_MIN_SIZE = 5242880
+S3_UPLOAD_PART_MIN_SIZE = int(os.environ.get("S3_UPLOAD_PART_MIN_SIZE", "5242880"))
 
 
 def get_s3_default_key_buffer_size() -> int:
