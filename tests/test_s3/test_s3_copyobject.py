@@ -59,7 +59,7 @@ def test_copy_key_boto3_with_sha256_checksum():
 
     # Verify
     resp = client.get_object_attributes(
-        Bucket="foobar", Key="new-key", ObjectAttributes=["Checksum"]
+        Bucket=bucket, Key=new_key, ObjectAttributes=["Checksum"]
     )
 
     assert "Checksum" in resp
