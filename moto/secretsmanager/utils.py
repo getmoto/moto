@@ -4,15 +4,15 @@ from moto.moto_api._internal import mock_random as random
 
 
 def random_password(
-    password_length,
-    exclude_characters,
-    exclude_numbers,
-    exclude_punctuation,
-    exclude_uppercase,
-    exclude_lowercase,
-    include_space,
-    require_each_included_type,
-):
+    password_length: int,
+    exclude_characters: str,
+    exclude_numbers: bool,
+    exclude_punctuation: bool,
+    exclude_uppercase: bool,
+    exclude_lowercase: bool,
+    include_space: bool,
+    require_each_included_type: bool,
+) -> str:
 
     password = ""
     required_characters = ""
@@ -61,7 +61,7 @@ def random_password(
     return password
 
 
-def secret_arn(account_id, region, secret_id):
+def secret_arn(account_id: str, region: str, secret_id: str) -> str:
     id_string = "".join(random.choice(string.ascii_letters) for _ in range(6))
     return (
         f"arn:aws:secretsmanager:{region}:{account_id}:secret:{secret_id}-{id_string}"
@@ -84,7 +84,7 @@ def get_secret_name_from_partial_arn(partial_arn: str) -> str:
     return partial_arn
 
 
-def _exclude_characters(password, exclude_characters):
+def _exclude_characters(password: str, exclude_characters: str) -> str:
     for c in exclude_characters:
         if c in string.punctuation:
             # Escape punctuation regex usage
@@ -93,7 +93,9 @@ def _exclude_characters(password, exclude_characters):
     return password
 
 
-def _add_password_require_each_included_type(password, required_characters):
+def _add_password_require_each_included_type(
+    password: str, required_characters: str
+) -> str:
     password_with_required_char = password[: -len(required_characters)]
     password_with_required_char += required_characters
 
