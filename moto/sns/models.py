@@ -836,7 +836,6 @@ class SNSBackend(BaseBackend):
                         # Example: 'Value of < must be numeric\n at [Source: (String)"{"price":[{"numeric":["<","100"]}]}"; line: 1, column: 28]'
                         # While it probably can be implemented, it doesn't feel as important as the general parameter checking
 
-                        from xml.sax.saxutils import escape
 
                         attributes_copy = attributes[:]
                         if not attributes_copy:
@@ -848,12 +847,12 @@ class SNSBackend(BaseBackend):
 
                         if not isinstance(operator, str):
                             raise SNSInvalidParameter(
-                                f"Invalid parameter: Attributes Reason: FilterPolicy: Invalid member in numeric match: {escape(str(operator))}\n at ..."
+                                f"Invalid parameter: Attributes Reason: FilterPolicy: Invalid member in numeric match: {(str(operator))}\n at ..."
                             )
 
                         if operator not in ("<", "<=", "=", ">", ">="):
                             raise SNSInvalidParameter(
-                                f"Invalid parameter: Attributes Reason: FilterPolicy: Unrecognized numeric range operator: {escape(str(operator))}\n at ..."
+                                f"Invalid parameter: Attributes Reason: FilterPolicy: Unrecognized numeric range operator: {(str(operator))}\n at ..."
                             )
 
                         try:
@@ -863,7 +862,7 @@ class SNSBackend(BaseBackend):
 
                         if value is None or not isinstance(value, (int, float)):
                             raise SNSInvalidParameter(
-                                f"Invalid parameter: Attributes Reason: FilterPolicy: Value of {escape(str(operator))} must be numeric\n at ..."
+                                f"Invalid parameter: Attributes Reason: FilterPolicy: Value of {(str(operator))} must be numeric\n at ..."
                             )
 
                         if not attributes_copy:
@@ -878,7 +877,7 @@ class SNSBackend(BaseBackend):
 
                         if second_operator not in ("<", "<="):
                             raise SNSInvalidParameter(
-                                f"Invalid parameter: Attributes Reason: FilterPolicy: Bad numeric range operator: {escape(str(second_operator))}\n at ..."
+                                f"Invalid parameter: Attributes Reason: FilterPolicy: Bad numeric range operator: {(str(second_operator))}\n at ..."
                             )
 
                         try:
@@ -890,7 +889,7 @@ class SNSBackend(BaseBackend):
                             second_value, (int, float)
                         ):
                             raise SNSInvalidParameter(
-                                f"Invalid parameter: Attributes Reason: FilterPolicy: Value of {escape(str(second_operator))} must be numeric\n at ..."
+                                f"Invalid parameter: Attributes Reason: FilterPolicy: Value of {(str(second_operator))} must be numeric\n at ..."
                             )
 
                         if second_value <= value:

@@ -2,6 +2,7 @@ from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
 from typing import Any, List, Tuple, Optional
 import json
+from xml.sax.saxutils import escape as xml_escape
 
 # TODO: add "<Type>Sender</Type>" to error responses below?
 
@@ -55,6 +56,8 @@ class RESTError(HTTPException):
     ):
         super().__init__()
         self.error_type = error_type
+
+        message = xml_escape(message)
         self.message = message
 
         if template in self.templates.keys():
