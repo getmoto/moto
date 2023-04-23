@@ -1617,6 +1617,19 @@ class S3Response(BaseResponse):
             if tdirective == "REPLACE":
                 tagging = self._tagging_from_headers(request.headers)
                 self.backend.set_key_tags(new_key, tagging)
+
+            # checksum stuff, do we need to compute hash of the copied object
+            checksum_algorithm = request.headers.get("x-amz-checksum-algorithm")
+            if checksum_algorithm:
+                checksum_value = compute_checksum(
+                    key_to_copy.value, algorithm=checksum_algorithm
+                ).decode("utf-8")
+                response_headers.update(
+                    {"Checksum": {f"Checksum{checksum_algorithm}": checksum_value}}
+                )
+                new_key.checksum_algorithm = checksum_algorithm
+                new_key.checksum_value = checksum_value
+
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
             response_headers.update(new_key.response_dict)
             return 200, response_headers, template.render(key=new_key)
@@ -2598,10 +2611,17 @@ S3_BUCKET_CORS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   </CORSConfiguration>
 """
 
+# https://docs.aws.amazon.com/AmazonS3/latest/API/API_CopyObject.html
 S3_OBJECT_COPY_RESPONSE = """\
 <CopyObjectResult xmlns="http://doc.s3.amazonaws.com/2006-03-01">
     <ETag>{{ key.etag }}</ETag>
     <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
+    {% if key.checksum_value  %}
+      {% if "CRC32" in key.checksum_algorithm %}<ChecksumCRC32>{{ key.checksum_value }}</ChecksumCRC32>{% endif %}
+      {% if "CRC32C" in key.checksum_algorithm %}<ChecksumCRC32C>{{ key.checksum_value }}</ChecksumCRC32C>{% endif %}
+      {% if "SHA1" in key.checksum_algorithm %}<ChecksumSHA1>{{ key.checksum_value }}</ChecksumSHA1>{% endif %}
+      {% if "SHA256" in key.checksum_algorithm %}<ChecksumSHA256>{{ key.checksum_value }}</ChecksumSHA256>{% endif %}
+    {% endif %}
 </CopyObjectResult>"""
 
 S3_MULTIPART_INITIATE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
