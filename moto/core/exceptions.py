@@ -2,7 +2,6 @@ from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
 from typing import Any, List, Tuple, Optional
 import json
-from xml.sax.saxutils import escape as xml_escape
 
 # TODO: add "<Type>Sender</Type>" to error responses below?
 
@@ -10,7 +9,7 @@ from xml.sax.saxutils import escape as xml_escape
 SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>
     <Code>{{error_type}}</Code>
-    <Message>{{message}}</Message>
+    <Message><![CDATA[{{message}}]]></Message>
     {% block extra %}{% endblock %}
     <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
 </Error>
@@ -20,7 +19,7 @@ WRAPPED_SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ErrorResponse{% if xmlns is defined %} xmlns="{{xmlns}}"{% endif %}>
     <Error>
         <Code>{{error_type}}</Code>
-        <Message>{{message}}</Message>
+        <Message><![CDATA[{{message}}]]></Message>
         {% block extra %}{% endblock %}
         <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
     </Error>
@@ -62,7 +61,7 @@ class RESTError(HTTPException):
             env = Environment(loader=DictLoader(self.templates))
             self.description: str = env.get_template(template).render(  # type: ignore
                 error_type=error_type,
-                message=xml_escape(message),
+                message=message,
                 request_id_tag=self.request_id_tag_name,
                 **kwargs,
             )
