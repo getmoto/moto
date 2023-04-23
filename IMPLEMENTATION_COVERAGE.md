@@ -3121,7 +3121,7 @@
 
 ## glue
 <details>
-<summary>25% implemented</summary>
+<summary>26% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3133,7 +3133,7 @@
 - [ ] batch_get_custom_entity_types
 - [ ] batch_get_data_quality_result
 - [ ] batch_get_dev_endpoints
-- [ ] batch_get_jobs
+- [X] batch_get_jobs
 - [X] batch_get_partition
 - [ ] batch_get_triggers
 - [ ] batch_get_workflows
@@ -3175,7 +3175,7 @@
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
 - [ ] delete_dev_endpoint
-- [ ] delete_job
+- [X] delete_job
 - [ ] delete_ml_transform
 - [X] delete_partition
 - [ ] delete_partition_index
@@ -4027,7 +4027,7 @@
 
 ## kms
 <details>
-<summary>58% implemented</summary>
+<summary>60% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
@@ -4295,24 +4295,39 @@
 
 ## mediaconnect
 <details>
-<summary>60% implemented</summary>
+<summary>36% implemented</summary>
 
+- [ ] add_bridge_outputs
+- [ ] add_bridge_sources
 - [ ] add_flow_media_streams
 - [X] add_flow_outputs
 - [X] add_flow_sources
 - [X] add_flow_vpc_interfaces
+- [ ] create_bridge
 - [X] create_flow
+- [ ] create_gateway
+- [ ] delete_bridge
 - [X] delete_flow
+- [ ] delete_gateway
+- [ ] deregister_gateway_instance
+- [ ] describe_bridge
 - [X] describe_flow
+- [ ] describe_gateway
+- [ ] describe_gateway_instance
 - [ ] describe_offering
 - [ ] describe_reservation
 - [X] grant_flow_entitlements
+- [ ] list_bridges
 - [ ] list_entitlements
 - [X] list_flows
+- [ ] list_gateway_instances
+- [ ] list_gateways
 - [ ] list_offerings
 - [ ] list_reservations
 - [X] list_tags_for_resource
 - [ ] purchase_offering
+- [ ] remove_bridge_output
+- [ ] remove_bridge_source
 - [ ] remove_flow_media_stream
 - [X] remove_flow_output
 - [ ] remove_flow_source
@@ -4322,11 +4337,16 @@
 - [X] stop_flow
 - [X] tag_resource
 - [ ] untag_resource
+- [ ] update_bridge
+- [ ] update_bridge_output
+- [ ] update_bridge_source
+- [ ] update_bridge_state
 - [ ] update_flow
 - [X] update_flow_entitlement
 - [ ] update_flow_media_stream
 - [X] update_flow_output
 - [X] update_flow_source
+- [ ] update_gateway_instance
 </details>
 
 ## medialive
@@ -5123,12 +5143,16 @@
 
 ## ram
 <details>
-<summary>20% implemented</summary>
+<summary>14% implemented</summary>
 
 - [ ] accept_resource_share_invitation
 - [ ] associate_resource_share
 - [ ] associate_resource_share_permission
+- [ ] create_permission
+- [ ] create_permission_version
 - [X] create_resource_share
+- [ ] delete_permission
+- [ ] delete_permission_version
 - [X] delete_resource_share
 - [ ] disassociate_resource_share
 - [ ] disassociate_resource_share_permission
@@ -5139,14 +5163,19 @@
 - [ ] get_resource_share_invitations
 - [X] get_resource_shares
 - [ ] list_pending_invitation_resources
+- [ ] list_permission_associations
 - [ ] list_permission_versions
 - [ ] list_permissions
 - [ ] list_principals
+- [ ] list_replace_permission_associations_work
 - [ ] list_resource_share_permissions
 - [ ] list_resource_types
 - [ ] list_resources
+- [ ] promote_permission_created_from_policy
 - [ ] promote_resource_share_created_from_policy
 - [ ] reject_resource_share_invitation
+- [ ] replace_permission_associations
+- [ ] set_default_permission_version
 - [ ] tag_resource
 - [ ] untag_resource
 - [X] update_resource_share
@@ -6867,10 +6896,11 @@
 
 ## wafv2
 <details>
-<summary>25% implemented</summary>
+<summary>23% implemented</summary>
 
 - [X] associate_web_acl
 - [ ] check_capacity
+- [ ] create_api_key
 - [ ] create_ip_set
 - [ ] create_regex_pattern_set
 - [ ] create_rule_group
@@ -6885,6 +6915,7 @@
 - [ ] describe_managed_rule_group
 - [X] disassociate_web_acl
 - [ ] generate_mobile_sdk_release_url
+- [ ] get_decrypted_api_key
 - [ ] get_ip_set
 - [ ] get_logging_configuration
 - [ ] get_managed_rule_set
@@ -6896,6 +6927,7 @@
 - [ ] get_sampled_requests
 - [X] get_web_acl
 - [X] get_web_acl_for_resource
+- [ ] list_api_keys
 - [ ] list_available_managed_rule_group_versions
 - [ ] list_available_managed_rule_groups
 - [ ] list_ip_sets

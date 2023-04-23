@@ -1,6 +1,39 @@
 Moto Changelog
 ==============
 
+
+4.1.8
+-----
+Docker Digest for 4.1.8: <autopopulateddigest>
+
+    New Methods:
+        * DynamoDB:
+            * batch_execute_statement()
+            * execute_statement()
+            * execute_transaction()
+
+        * Glue:
+            * batch_get_jobs()
+            * delete_job()
+
+        * KMS:
+            * get_public_key()
+
+    Miscellaneous:
+        * Athena: Fixed a bug causing every call to `get_workgroup(WorkGroup="primary")` to fail
+        * AWSLambda: Performance improvement: Docker images are no longer re-downloaded if they already exist
+        * BatchSimple now uses the environment variable MOTO_SIMPLE_BATCH_FAIL_AFTER=0 to determine whether the job should fail, and after how many seconds
+        * EC2: replace_route() now supports the NetworkInterfaceId-parameter
+        * ECR: batch_get_image() now correctly returns images when requested using an older tag
+        * ELBv2: describe_target_health() now returns the correct error message for unregistered targets
+        * S3: copy_object() now adds a checksum to a copied object if requested
+        * S3: get_object() no longer returns a VersionId for non-versioned buckets
+        * SES: Templates now allow a single curly brace, and no longer assume it's part of a variable
+        * SSM: describe_parameters() now allows filtering by existence of tag-name
+        * StepFunctions: The SF_EXECUTION_HISTORY_TYPE=FAILURE environment variable can now be used to generate failure responses for all operations
+        * STS: assume_role() now stores the AccessKey in the requesting account
+
+
 4.1.7
 -----
 Docker Digest for 4.1.7: _sha256:6b877d5efe86562d27f296638d6b163c7987913c203874578d00fa1f83eea000_

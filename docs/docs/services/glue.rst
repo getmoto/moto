@@ -35,7 +35,7 @@ glue
 - [ ] batch_get_custom_entity_types
 - [ ] batch_get_data_quality_result
 - [ ] batch_get_dev_endpoints
-- [ ] batch_get_jobs
+- [X] batch_get_jobs
 - [X] batch_get_partition
 - [ ] batch_get_triggers
 - [ ] batch_get_workflows
@@ -81,7 +81,7 @@ glue
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
 - [ ] delete_dev_endpoint
-- [ ] delete_job
+- [X] delete_job
 - [ ] delete_ml_transform
 - [X] delete_partition
 - [ ] delete_partition_index

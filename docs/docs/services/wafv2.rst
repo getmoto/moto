@@ -33,6 +33,7 @@ wafv2
         
 
 - [ ] check_capacity
+- [ ] create_api_key
 - [ ] create_ip_set
 - [ ] create_regex_pattern_set
 - [ ] create_rule_group
@@ -55,6 +56,7 @@ wafv2
 - [ ] describe_managed_rule_group
 - [X] disassociate_web_acl
 - [ ] generate_mobile_sdk_release_url
+- [ ] get_decrypted_api_key
 - [ ] get_ip_set
 - [ ] get_logging_configuration
 - [ ] get_managed_rule_set
@@ -66,6 +68,7 @@ wafv2
 - [ ] get_sampled_requests
 - [X] get_web_acl
 - [X] get_web_acl_for_resource
+- [ ] list_api_keys
 - [ ] list_available_managed_rule_group_versions
 - [ ] list_available_managed_rule_groups
 - [ ] list_ip_sets
