@@ -56,15 +56,13 @@ class RESTError(HTTPException):
     ):
         super().__init__()
         self.error_type = error_type
-
-        message = xml_escape(message)
         self.message = message
 
         if template in self.templates.keys():
             env = Environment(loader=DictLoader(self.templates))
             self.description: str = env.get_template(template).render(  # type: ignore
                 error_type=error_type,
-                message=message,
+                message=xml_escape(message),
                 request_id_tag=self.request_id_tag_name,
                 **kwargs,
             )
