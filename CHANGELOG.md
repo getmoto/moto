@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.8
 -----
-Docker Digest for 4.1.8: <autopopulateddigest>
+Docker Digest for 4.1.8: _sha256:e83d868df71b193d625d9fb031282f6632c6c80d0314cfca6780f9a3f37d1f61_
 
     New Methods:
         * DynamoDB:
