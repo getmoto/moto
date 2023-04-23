@@ -373,6 +373,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "customer-profiles": {
                 "Value": "customer-profiles",
                 "endpoint": {
@@ -1830,6 +1839,15 @@
                 "Value": "config",
                 "endpoint": {
                   "Value": "config.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.ap-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -7011,6 +7029,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migration-hub-refactor-spaces": {
+                "Value": "migration-hub-refactor-spaces",
+                "endpoint": {
+                  "Value": "refactor-spaces.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -8082,6 +8109,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "datasync": {
                 "Value": "datasync",
                 "endpoint": {
@@ -8512,6 +8548,15 @@
                 "Value": "mgn",
                 "endpoint": {
                   "Value": "mgn.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "migration-hub-refactor-spaces": {
+                "Value": "migration-hub-refactor-spaces",
+                "endpoint": {
+                  "Value": "refactor-spaces.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -10390,6 +10435,15 @@
                 "Value": "mgn",
                 "endpoint": {
                   "Value": "mgn.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "migration-hub-refactor-spaces": {
+                "Value": "migration-hub-refactor-spaces",
+                "endpoint": {
+                  "Value": "refactor-spaces.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -17330,6 +17384,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "datasync": {
                 "Value": "datasync",
                 "endpoint": {
@@ -18258,6 +18321,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "arc-zonal-shift": {
+                "Value": "arc-zonal-shift",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "artifact": {
                 "Value": "artifact"
               },
@@ -18277,6 +18349,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "backup": {
+                "Value": "backup",
+                "endpoint": {
+                  "Value": "backup.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "cloudcontrolapi": {
@@ -18510,6 +18591,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "guardduty": {
+                "Value": "guardduty",
+                "endpoint": {
+                  "Value": "guardduty.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iam": {
                 "Value": "iam",
                 "endpoint": {
@@ -18694,6 +18784,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "scheduler": {
@@ -20213,6 +20312,15 @@
                 "Value": "mgn",
                 "endpoint": {
                   "Value": "mgn.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "migration-hub-refactor-spaces": {
+                "Value": "migration-hub-refactor-spaces",
+                "endpoint": {
+                  "Value": "refactor-spaces.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26174,6 +26282,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "arc-zonal-shift": {
+                "Value": "arc-zonal-shift",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "artifact": {
                 "Value": "artifact"
               },
@@ -29258,6 +29375,15 @@
                 "Value": "config",
                 "endpoint": {
                   "Value": "config.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.eu-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -37285,6 +37411,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migration-hub-refactor-spaces": {
+                "Value": "migration-hub-refactor-spaces",
+                "endpoint": {
+                  "Value": "refactor-spaces.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -38483,10 +38618,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "iotdevicedefender": {
+                "Value": "iotdevicedefender",
+                "endpoint": {
+                  "Value": "iot.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iotdevicemanagement": {
                 "Value": "iotdevicemanagement",
                 "endpoint": {
                   "Value": "iot.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iotsecuretunneling": {
+                "Value": "iotsecuretunneling",
+                "endpoint": {
+                  "Value": "api.tunneling.iot.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -39367,6 +39520,15 @@
                 "Value": "config",
                 "endpoint": {
                   "Value": "config.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.me-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -41669,6 +41831,15 @@
                 "Value": "mgn",
                 "endpoint": {
                   "Value": "mgn.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "migration-hub-refactor-spaces": {
+                "Value": "migration-hub-refactor-spaces",
+                "endpoint": {
+                  "Value": "refactor-spaces.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -50998,6 +51169,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "databrew": {
                 "Value": "databrew",
                 "endpoint": {
@@ -51689,6 +51869,15 @@
                 "Value": "mgn",
                 "endpoint": {
                   "Value": "mgn.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "migration-hub-refactor-spaces": {
+                "Value": "migration-hub-refactor-spaces",
+                "endpoint": {
+                  "Value": "refactor-spaces.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
