@@ -84,6 +84,7 @@ class GlueBackend(BaseBackend):
         self.jobs: Dict[str, FakeJob] = OrderedDict()
         self.job_runs: Dict[str, FakeJobRun] = OrderedDict()
         self.tagger = TaggingService()
+        self.triggers: Dict[str, FakeTrigger] = OrderedDict()
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
@@ -757,6 +758,39 @@ class GlueBackend(BaseBackend):
 
         return schema.as_dict()
 
+    def create_trigger(
+        self,
+        name: str,
+        workflow_name: str,
+        _type: str,
+        schedule: str,
+        predicate: str,
+        actions: List[Dict[str, Any]],
+        description: str,
+        start_on_creation: bool,
+        tags: Dict[str, str],
+        event_batching_condition: Dict[str, Any],
+    ):
+        self.triggers[name] = FakeTrigger(
+            name=name,
+            workflow_name=workflow_name,
+            _type=_type,
+            schedule=schedule,
+            predicate=predicate,
+            actions=actions,
+            description=description,
+            start_on_creation=start_on_creation,
+            tags=tags,
+            event_batching_condition=event_batching_condition,
+            backend=self,
+        )
+
+    def get_trigger(self, name: str) -> "FakeTrigger":
+        try:
+            return self.triggers[name]
+        except KeyError:
+            raise TriggerNotFoundException(name)
+
     def batch_delete_table(
         self, database_name: str, tables: List[str]
     ) -> List[Dict[str, Any]]:
@@ -1422,5 +1456,31 @@ class FakeSchemaVersion(BaseModel):
             "CreatedTime": str(self.created_time),
         }
 
+class FakeTrigger(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        workflow_name: str,
+        _type: str,
+        schedule: str,
+        predicate: Dict[str, Any],
+        actions: List[Dict[str, Any]],
+        description: str,
+        start_on_creation: bool,
+        tags: Dict[str, str],
+        event_batching_condition: Dict[str, Any],
+    ):
+        self.name = name
+        self._type = _type
+        self.actions = actions
+        self.backend = backend
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Type": self._type,
+            "Actions": self.actions,
+        }
 
 glue_backends = BackendDict(GlueBackend, "glue")

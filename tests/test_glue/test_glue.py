@@ -493,3 +493,35 @@ def test_batch_get_crawlers():
 
     response["Crawlers"].should.have.length_of(1)
     response["CrawlersNotFound"].should.have.length_of(1)
+
+
+@mock_glue
+def test_create_trigger():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+
+    response = client.create_trigger(
+        Name=trigger_name,
+        Type="ON_DEMAND",
+        Actions=[{
+            "JobName": job_name,
+        }]
+    )
+    assert response["Name"] == trigger_name
+
+
+@mock_glue
+def test_get_trigger_exists():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "ON_DEMAND",
+        "Actions": [{
+            "JobName": job_name,
+        }]
+    }
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+    assert trigger["Name"] == trigger_name

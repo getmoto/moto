@@ -542,3 +542,33 @@ class GlueResponse(BaseResponse):
 
     def get_partition_indexes(self) -> str:
         return json.dumps({"PartitionIndexDescriptorList": []})
+
+    def create_trigger(self) -> str:
+        name = self._get_param("Name")
+        workflow_name = self._get_param("WorkflowName")
+        _type = self._get_param("Type")
+        schedule = self._get_param("Schedule")
+        predicate = self._get_param("Predicate")
+        actions = self._get_param("Actions")
+        description = self._get_param("Description")
+        start_on_creation = self._get_param("StartOnCreation")
+        tags = self._get_param("Tags")
+        event_batching_condition = self._get_param("EventBatchingCondition")
+        self.glue_backend.create_trigger(
+            name,
+            workflow_name,
+            _type,
+            schedule,
+            predicate,
+            actions,
+            description,
+            start_on_creation,
+            tags,
+            event_batching_condition,
+        )
+        return json.dumps({"Name": name})
+
+    def get_trigger(self) -> str:
+        name = self.parameters.get("Name")
+        trigger = self.glue_backend.get_trigger(name)
+        return json.dumps({"Trigger": trigger.as_dict()})

@@ -114,6 +114,11 @@ class RegistryNotFoundException(EntityNotFoundException):
         )
 
 
+class TriggerNotFoundException(EntityNotFoundException):
+    def __init__(self, trigger: str):
+        super().__init__(f"Trigger {trigger} not found.")
+
+
 class CrawlerRunningException(GlueClientError):
     def __init__(self, msg: str):
         super().__init__("CrawlerRunningException", msg)
