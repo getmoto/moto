@@ -59,7 +59,7 @@ dynamodb
 
         Pagination is not yet implemented.
 
-        Parsing of the statement is highly experimental - please raise an issue if you find any bugs.
+        Parsing is highly experimental - please raise an issue if you find any bugs.
         
 
 - [X] execute_transaction

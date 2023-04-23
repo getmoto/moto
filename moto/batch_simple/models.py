@@ -15,8 +15,9 @@ from typing import Any, Dict, List, Tuple, Optional
 
 class BatchSimpleBackend(BaseBackend):
     """
-    Implements a Batch-Backend that does not use Docker containers. Submitted Jobs are marked as Success or Fail,
-    depending on the presence and value of MOTO_SIMPLE_BATCH_FAIL_AFTER env var
+    Implements a Batch-Backend that does not use Docker containers. Submitted Jobs are marked as Success by default.
+
+    Set the environment variable MOTO_SIMPLE_BATCH_FAIL_AFTER=0 to fail jobs immediately, or set this variable to a positive integer to control after how many seconds the job fails.
 
     Annotate your tests with `@mock_batch_simple`-decorator to use this Batch-implementation.
     """
