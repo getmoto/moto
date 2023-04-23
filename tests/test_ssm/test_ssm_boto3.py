@@ -1739,8 +1739,12 @@ def test_send_command():
     before = datetime.datetime.now()
 
     response = client.send_command(
+        Comment="some comment",
         InstanceIds=["i-123456"],
         DocumentName=ssm_document,
+        TimeoutSeconds=42,
+        MaxConcurrency="360",
+        MaxErrors="2",
         Parameters=params,
         OutputS3Region="us-east-2",
         OutputS3BucketName="the-bucket",
@@ -1749,6 +1753,7 @@ def test_send_command():
     cmd = response["Command"]
 
     cmd["CommandId"].should_not.be(None)
+    assert cmd["Comment"] == "some comment"
     cmd["DocumentName"].should.equal(ssm_document)
     cmd["Parameters"].should.equal(params)
 
@@ -1758,6 +1763,10 @@ def test_send_command():
 
     cmd["ExpiresAfter"].should.be.greater_than(before)
     cmd["DeliveryTimedOutCount"].should.equal(0)
+
+    assert cmd["TimeoutSeconds"] == 42
+    assert cmd["MaxConcurrency"] == "360"
+    assert cmd["MaxErrors"] == "2"
 
     # test sending a command without any optional parameters
     response = client.send_command(DocumentName=ssm_document)
