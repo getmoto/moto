@@ -524,6 +524,20 @@ def test_subscribe_invalid_filter_policy():
             TopicArn=topic_arn,
             Protocol="http",
             Endpoint="http://example.com/",
+            Attributes={"FilterPolicy": json.dumps({"price": [{"numeric": []}]})},
+        )
+
+    err = err_info.value
+    err.response["Error"]["Code"].should.equal("InvalidParameter")
+    err.response["Error"]["Message"].should.equal(
+        "Invalid parameter: Attributes Reason: FilterPolicy: Invalid member in numeric match: ]\n at ..."
+    )
+
+    with pytest.raises(ClientError) as err_info:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
             Attributes={
                 "FilterPolicy": json.dumps({"price": [{"numeric": [50, "<=", "100"]}]})
             },
@@ -609,6 +623,22 @@ def test_subscribe_invalid_filter_policy():
     err.response["Error"]["Code"].should.equal("InvalidParameter")
     err.response["Error"]["Message"].should.equal(
         "Invalid parameter: Attributes Reason: FilterPolicy: Bottom must be less than top\n at ..."
+    )
+
+    with pytest.raises(ClientError) as err_info:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={
+                "FilterPolicy": json.dumps({"price": [{"numeric": [">", 20, "<"]}]})
+            },
+        )
+
+    err = err_info.value
+    err.response["Error"]["Code"].should.equal("InvalidParameter")
+    err.response["Error"]["Message"].should.equal(
+        "Invalid parameter: Attributes Reason: FilterPolicy: Value of < must be numeric\n at ..."
     )
 
 
