@@ -397,6 +397,10 @@ class GlueBackend(BaseBackend):
     def list_jobs(self) -> List["FakeJob"]:  # type: ignore
         return [job for _, job in self.jobs.items()]
 
+    def delete_job(self, name: str) -> None:
+        if name in self.jobs:
+            del self.jobs[name]
+
     def get_tags(self, resource_id: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_id)
 

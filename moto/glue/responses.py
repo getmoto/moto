@@ -386,6 +386,11 @@ class GlueResponse(BaseResponse):
             )
         )
 
+    def delete_job(self) -> str:
+        name = self.parameters.get("JobName")
+        self.glue_backend.delete_job(name)  # type: ignore[arg-type]
+        return json.dumps({"JobName": name})
+
     def get_tags(self) -> TYPE_RESPONSE:
         resource_arn = self.parameters.get("ResourceArn")
         tags = self.glue_backend.get_tags(resource_arn)  # type: ignore[arg-type]
