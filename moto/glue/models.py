@@ -398,10 +398,8 @@ class GlueBackend(BaseBackend):
         return [job for _, job in self.jobs.items()]
 
     def delete_job(self, name: str) -> None:
-        try:
+        if name in self.jobs:
             del self.jobs[name]
-        except KeyError:
-            raise JobNotFoundException(name)
 
     def get_tags(self, resource_id: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_id)
