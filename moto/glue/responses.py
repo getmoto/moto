@@ -546,7 +546,7 @@ class GlueResponse(BaseResponse):
     def create_trigger(self) -> str:
         name = self._get_param("Name")
         workflow_name = self._get_param("WorkflowName")
-        _type = self._get_param("Type")
+        trigger_type = self._get_param("Type")
         schedule = self._get_param("Schedule")
         predicate = self._get_param("Predicate")
         actions = self._get_param("Actions")
@@ -555,16 +555,16 @@ class GlueResponse(BaseResponse):
         tags = self._get_param("Tags")
         event_batching_condition = self._get_param("EventBatchingCondition")
         self.glue_backend.create_trigger(
-            name,
-            workflow_name,
-            _type,
-            schedule,
-            predicate,
-            actions,
-            description,
-            start_on_creation,
-            tags,
-            event_batching_condition,
+            name=name,
+            workflow_name=workflow_name,
+            trigger_type=trigger_type,
+            schedule=schedule,
+            predicate=predicate,
+            actions=actions,
+            description=description,
+            start_on_creation=start_on_creation,
+            tags=tags,
+            event_batching_condition=event_batching_condition,
         )
         return json.dumps({"Name": name})
 
@@ -572,6 +572,22 @@ class GlueResponse(BaseResponse):
         name = self.parameters.get("Name")
         trigger = self.glue_backend.get_trigger(name)  # type: ignore[arg-type]
         return json.dumps({"Trigger": trigger.as_dict()})
+
+    def get_triggers(self) -> str:
+        next_token = self._get_param("NextToken")
+        dependent_job_name = self._get_param("DependentJobName")
+        max_results = self._get_int_param("MaxResults")
+        triggers, next_token = self.glue_backend.get_triggers(
+            next_token=next_token,
+            dependent_job_name=dependent_job_name,
+            max_results=max_results,
+        )
+        return json.dumps(
+            dict(
+                Triggers=[trigger.as_dict() for trigger in triggers],
+                NextToken=next_token,
+            )
+        )
 
     def batch_get_triggers(self) -> str:
         trigger_names = self._get_param("TriggerNames")
@@ -586,7 +602,7 @@ class GlueResponse(BaseResponse):
             }
         )
 
-    def delete_trigger(self):
+    def delete_trigger(self) -> str:
         name = self.parameters.get("Name")
         self.glue_backend.delete_trigger(name)  # type: ignore[arg-type]
         return json.dumps({"Name": name})

@@ -76,6 +76,12 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
+        "get_triggers": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -763,19 +769,19 @@ class GlueBackend(BaseBackend):
         self,
         name: str,
         workflow_name: str,
-        _type: str,
+        trigger_type: str,
         schedule: str,
-        predicate: str,
+        predicate: Dict[str, Any],
         actions: List[Dict[str, Any]],
         description: str,
         start_on_creation: bool,
         tags: Dict[str, str],
         event_batching_condition: Dict[str, Any],
-    ):
+    ) -> None:
         self.triggers[name] = FakeTrigger(
             name=name,
             workflow_name=workflow_name,
-            trigger_type=_type,
+            trigger_type=trigger_type,
             schedule=schedule,
             predicate=predicate,
             actions=actions,
@@ -791,6 +797,20 @@ class GlueBackend(BaseBackend):
             return self.triggers[name]
         except KeyError:
             raise TriggerNotFoundException(name)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:  # type: ignore
+        if dependent_job_name:
+            triggers = []
+            for trigger in self.triggers.values():
+                for action in trigger.actions:
+                    if ("JobName" in action) and (
+                        action["JobName"] == dependent_job_name
+                    ):
+                        triggers.append(trigger)
+            return triggers
+
+        return list(self.triggers.values())
 
     def delete_trigger(self, name: str) -> None:
         if name in self.triggers:
@@ -919,6 +939,7 @@ class GlueBackend(BaseBackend):
             if trigger_name in self.triggers:
                 triggers.append(self.triggers[trigger_name].as_dict())
         return triggers
+
 
 class FakeDatabase(BaseModel):
     def __init__(self, database_name: str, database_input: Dict[str, Any]):
@@ -1467,13 +1488,14 @@ class FakeSchemaVersion(BaseModel):
             "CreatedTime": str(self.created_time),
         }
 
+
 class FakeTrigger(BaseModel):
     def __init__(
         self,
         backend: GlueBackend,
         name: str,
         workflow_name: str,
-        trigger_type: str, # to avoid any issues with built-in function type()
+        trigger_type: str,  # to avoid any issues with built-in function type()
         schedule: str,
         predicate: Dict[str, Any],
         actions: List[Dict[str, Any]],
@@ -1499,7 +1521,7 @@ class FakeTrigger(BaseModel):
         self.backend.tag_resource(self.arn, tags)
 
     def as_dict(self) -> Dict[str, Any]:
-        data = {
+        data: Dict[str, Any] = {
             "Name": self.name,
             "Type": self.trigger_type,
             "Actions": self.actions,
@@ -1512,9 +1534,6 @@ class FakeTrigger(BaseModel):
         if self.trigger_type == "SCHEDULED":
             data["Schedule"] = self.schedule
 
-        if self.description:
-            data["Description"] = self.description
-
         if self.predicate:
             data["Predicate"] = self.predicate
 
@@ -1525,5 +1544,6 @@ class FakeTrigger(BaseModel):
             data["EventBatchingCondition"] = self.event_batching_condition
 
         return data
+
 
 glue_backends = BackendDict(GlueBackend, "glue")

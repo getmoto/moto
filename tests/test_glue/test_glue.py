@@ -504,9 +504,11 @@ def test_create_trigger():
     response = client.create_trigger(
         Name=trigger_name,
         Type="ON_DEMAND",
-        Actions=[{
-            "JobName": job_name,
-        }]
+        Actions=[
+            {
+                "JobName": job_name,
+            }
+        ],
     )
     assert response["Name"] == trigger_name
 
@@ -518,9 +520,11 @@ def test_get_trigger_on_demand():
     trigger_name = str(uuid4())
     trigger_attributes = {
         "Type": "ON_DEMAND",
-        "Actions": [{
-            "JobName": job_name,
-        }]
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
     }
     client.create_trigger(Name=trigger_name, **trigger_attributes)
 
@@ -540,9 +544,11 @@ def test_get_trigger_scheduled():
     trigger_attributes = {
         "Type": "SCHEDULED",
         "Schedule": "cron(5 3 * * ? *)",
-        "Actions": [{
-            "JobName": job_name,
-        }],
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
         "StartOnCreation": True,
     }
     client.create_trigger(Name=trigger_name, **trigger_attributes)
@@ -563,9 +569,11 @@ def test_get_trigger_conditional():
     trigger_name = str(uuid4())
     trigger_attributes = {
         "Type": "CONDITIONAL",
-        "Actions": [{
-            "JobName": job_name,
-        }],
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
         "StartOnCreation": True,
         "Predicate": {
             "Logical": "ANY",
@@ -573,10 +581,10 @@ def test_get_trigger_conditional():
                 {
                     "LogicalOperator": "EQUALS",
                     "CrawlerName": crawler_name,
-                    "CrawlState": "SUCCEEDED"
+                    "CrawlState": "SUCCEEDED",
                 }
-            ]
-        }
+            ],
+        },
     }
     client.create_trigger(Name=trigger_name, **trigger_attributes)
 
@@ -595,12 +603,45 @@ def create_test_trigger(client, tags=None):
     client.create_trigger(
         Name=trigger_name,
         Type="ON_DEMAND",
-        Actions=[{
-            "JobName": job_name,
-        }],
+        Actions=[
+            {
+                "JobName": job_name,
+            }
+        ],
         Tags=tags or {},
     )
     return trigger_name
+
+
+@mock_glue
+def test_get_triggers_trigger_name_exists():
+    client = create_glue_client()
+    trigger_name = create_test_trigger(client)
+    response = client.get_triggers()
+    assert len(response["Triggers"]) == 1
+    assert response["Triggers"][0]["Name"] == trigger_name
+
+
+@mock_glue
+def test_get_triggers_dependent_job_name():
+    client = create_glue_client()
+
+    create_test_trigger(client)
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    response = client.create_trigger(
+        Name=trigger_name,
+        Type="ON_DEMAND",
+        Actions=[
+            {
+                "JobName": job_name,
+            }
+        ],
+    )
+
+    response = client.get_triggers(DependentJobName=job_name)
+    assert len(response["Triggers"]) == 1
+    assert response["Triggers"][0]["Name"] == trigger_name
 
 
 @mock_glue
