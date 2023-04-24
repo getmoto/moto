@@ -631,6 +631,16 @@ class GlueResponse(BaseResponse):
             }
         )
 
+    def start_trigger(self) -> str:
+        name = self.parameters.get("Name")
+        self.glue_backend.start_trigger(name)  # type: ignore[arg-type]
+        return json.dumps({"Name": name})
+
+    def stop_trigger(self) -> str:
+        name = self.parameters.get("Name")
+        self.glue_backend.stop_trigger(name)  # type: ignore[arg-type]
+        return json.dumps({"Name": name})
+
     def delete_trigger(self) -> str:
         name = self.parameters.get("Name")
         self.glue_backend.delete_trigger(name)  # type: ignore[arg-type]

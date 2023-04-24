@@ -645,6 +645,61 @@ def test_get_triggers_dependent_job_name():
 
 
 @mock_glue
+def test_start_trigger():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "SCHEDULED",
+        "Schedule": "cron(5 3 * * ? *)",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+    }
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["State"] == "CREATED"
+
+    client.start_trigger(Name=trigger_name)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["State"] == "ACTIVATED"
+
+
+@mock_glue
+def test_stop_trigger():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "SCHEDULED",
+        "Schedule": "cron(5 3 * * ? *)",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+        "StartOnCreation": True,
+    }
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["State"] == "ACTIVATED"
+
+    client.stop_trigger(Name=trigger_name)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["State"] == "DEACTIVATED"
+
+
+@mock_glue
 def test_list_triggers():
     client = create_glue_client()
     trigger_name = create_test_trigger(client)

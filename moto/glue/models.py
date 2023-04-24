@@ -804,6 +804,14 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise TriggerNotFoundException(name)
 
+    def start_trigger(self, name: str) -> None:
+        trigger = self.get_trigger(name)
+        trigger.start_trigger()
+
+    def stop_trigger(self, name: str) -> None:
+        trigger = self.get_trigger(name)
+        trigger.stop_trigger()
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:  # type: ignore
         if dependent_job_name:
@@ -1542,6 +1550,12 @@ class FakeTrigger(BaseModel):
 
     def get_name(self) -> str:
         return self.name
+
+    def start_trigger(self) -> None:
+        self.state = "ACTIVATED"
+
+    def stop_trigger(self) -> None:
+        self.state = "DEACTIVATED"
 
     def as_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {
