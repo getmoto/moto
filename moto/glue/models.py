@@ -30,6 +30,7 @@ from .exceptions import (
     SchemaVersionNotFoundFromSchemaIdException,
     SchemaNotFoundException,
     SchemaVersionMetadataAlreadyExistsException,
+    TriggerNotFoundException,
 )
 from .utils import PartitionFilter
 from .glue_schema_registry_utils import (
@@ -790,6 +791,10 @@ class GlueBackend(BaseBackend):
             return self.triggers[name]
         except KeyError:
             raise TriggerNotFoundException(name)
+
+    def delete_trigger(self, name: str) -> None:
+        if name in self.triggers:
+            del self.triggers[name]
 
     def batch_delete_table(
         self, database_name: str, tables: List[str]

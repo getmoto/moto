@@ -587,3 +587,32 @@ def test_get_trigger_conditional():
     assert trigger["State"] == "ACTIVATED"
     assert trigger["Actions"] == [{"JobName": job_name}]
     assert "Predicate" in trigger
+
+
+def create_test_trigger(client, tags=None):
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    client.create_trigger(
+        Name=trigger_name,
+        Type="ON_DEMAND",
+        Actions=[{
+            "JobName": job_name,
+        }],
+        Tags=tags or {},
+    )
+    return trigger_name
+
+
+@mock_glue
+def test_delete_trigger():
+    client = create_glue_client()
+    trigger_name = create_test_trigger(client)
+
+    client.get_trigger(Name=trigger_name)
+
+    client.delete_trigger(Name=trigger_name)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_trigger(Name=trigger_name)
+
+    assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
