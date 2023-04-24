@@ -1,15 +1,17 @@
 import string
+from typing import Any, Dict, List
+
 from moto.moto_api._internal import mock_random as random
 from .exceptions import MessageAttributesInvalid
 
 
-def generate_receipt_handle():
+def generate_receipt_handle() -> str:
     # http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ImportantIdentifiers.html#ImportantIdentifiers-receipt-handles
     length = 185
     return "".join(random.choice(string.ascii_lowercase) for x in range(length))
 
 
-def extract_input_message_attributes(querystring):
+def extract_input_message_attributes(querystring: Dict[str, Any]) -> List[str]:
     message_attributes = []
     index = 1
     while True:
@@ -25,8 +27,11 @@ def extract_input_message_attributes(querystring):
 
 
 def parse_message_attributes(
-    querystring, key="MessageAttribute", base="", value_namespace="Value."
-):
+    querystring: Dict[str, Any],
+    key: str = "MessageAttribute",
+    base: str = "",
+    value_namespace: str = "Value.",
+) -> Dict[str, Any]:
     message_attributes = {}
     index = 1
     while True:
