@@ -1,5 +1,7 @@
 import re
+from typing import Any, Dict, Optional, Tuple, Union
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.exceptions import RESTError
 from moto.core.responses import BaseResponse
 from moto.core.utils import underscores_to_camelcase, camelcase_to_pascal
@@ -24,7 +26,7 @@ class SQSResponse(BaseResponse):
 
     region_regex = re.compile(r"://(.+?)\.queue\.amazonaws\.com")
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="sqs")
 
     @property
@@ -32,7 +34,7 @@ class SQSResponse(BaseResponse):
         return sqs_backends[self.current_account][self.region]
 
     @property
-    def attribute(self):
+    def attribute(self) -> Any:  # type: ignore[misc]
         if not hasattr(self, "_attribute"):
             self._attribute = self._get_map_prefix(
                 "Attribute", key_end=".Name", value_end=".Value"
@@ -40,14 +42,14 @@ class SQSResponse(BaseResponse):
         return self._attribute
 
     @property
-    def tags(self):
+    def tags(self) -> Dict[str, str]:
         if not hasattr(self, "_tags"):
             self._tags = self._get_map_prefix("Tag", key_end=".Key", value_end=".Value")
         return self._tags
 
-    def _get_queue_name(self):
+    def _get_queue_name(self) -> str:
         try:
-            queue_url = self.querystring.get("QueueUrl")[0]
+            queue_url = self.querystring.get("QueueUrl")[0]  # type: ignore
             if queue_url.startswith("http://") or queue_url.startswith("https://"):
                 return queue_url.split("/")[-1]
             else:
@@ -57,7 +59,7 @@ class SQSResponse(BaseResponse):
             # Fallback to reading from the URL for botocore
             return self.path.split("/")[-1]
 
-    def _get_validated_visibility_timeout(self, timeout=None):
+    def _get_validated_visibility_timeout(self, timeout: Optional[str] = None) -> int:
         """
         :raises ValueError: If specified visibility timeout exceeds MAXIMUM_VISIBILITY_TIMEOUT
         :raises TypeError: If visibility timeout was not specified
@@ -65,7 +67,7 @@ class SQSResponse(BaseResponse):
         if timeout is not None:
             visibility_timeout = int(timeout)
         else:
-            visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])
+            visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])  # type: ignore
 
         if visibility_timeout > MAXIMUM_VISIBILITY_TIMEOUT:
             raise ValueError
@@ -74,7 +76,7 @@ class SQSResponse(BaseResponse):
 
     @amz_crc32  # crc last as request_id can edit XML
     @amzn_request_id
-    def call_action(self):
+    def call_action(self) -> TYPE_RESPONSE:
         status_code, headers, body = super().call_action()
         if status_code == 404:
             queue_name = self.querystring.get("QueueName", [""])[0]
@@ -83,11 +85,13 @@ class SQSResponse(BaseResponse):
             return 404, headers, response
         return status_code, headers, body
 
-    def _error(self, code, message, status=400):
+    def _error(
+        self, code: str, message: str, status: int = 400
+    ) -> Tuple[str, Dict[str, int]]:
         template = self.response_template(ERROR_TEMPLATE)
         return template.render(code=code, message=message), dict(status=status)
 
-    def create_queue(self):
+    def create_queue(self) -> str:
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
@@ -96,7 +100,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
 
-    def get_queue_url(self):
+    def get_queue_url(self) -> str:
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
@@ -105,14 +109,14 @@ class SQSResponse(BaseResponse):
         template = self.response_template(GET_QUEUE_URL_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
 
-    def list_queues(self):
+    def list_queues(self) -> str:
         request_url = urlparse(self.uri)
         queue_name_prefix = self._get_param("QueueNamePrefix")
         queues = self.sqs_backend.list_queues(queue_name_prefix)
         template = self.response_template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues, request_url=request_url)
 
-    def change_message_visibility(self):
+    def change_message_visibility(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         queue_name = self._get_queue_name()
         receipt_handle = self._get_param("ReceiptHandle")
 
@@ -130,7 +134,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
         return template.render()
 
-    def change_message_visibility_batch(self):
+    def change_message_visibility_batch(self) -> str:
         queue_name = self._get_queue_name()
         entries = self._get_list_prefix("ChangeMessageVisibilityBatchRequestEntry")
 
@@ -141,24 +145,23 @@ class SQSResponse(BaseResponse):
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE)
         return template.render(success=success, errors=error)
 
-    def get_queue_attributes(self):
+    def get_queue_attributes(self) -> str:
         queue_name = self._get_queue_name()
 
         if self.querystring.get("AttributeNames"):
             raise InvalidAttributeName("")
 
-        attribute_names = self._get_multi_param("AttributeName")
-
         # if connecting to AWS via boto, then 'AttributeName' is just a normal parameter
-        if not attribute_names:
-            attribute_names = self.querystring.get("AttributeName")
+        attribute_names = self._get_multi_param(
+            "AttributeName"
+        ) or self.querystring.get("AttributeName")
 
-        attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
+        attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)  # type: ignore
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(attributes=attributes)
 
-    def set_queue_attributes(self):
+    def set_queue_attributes(self) -> str:
         # TODO validate self.get_param('QueueUrl')
         attribute = self.attribute
 
@@ -174,7 +177,7 @@ class SQSResponse(BaseResponse):
 
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
-    def delete_queue(self):
+    def delete_queue(self) -> str:
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
 
@@ -183,7 +186,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(DELETE_QUEUE_RESPONSE)
         return template.render()
 
-    def send_message(self):
+    def send_message(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         message = self._get_param("MessageBody")
         delay_seconds = int(self._get_param("DelaySeconds", 0))
         message_group_id = self._get_param("MessageGroupId")
@@ -215,7 +218,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
 
-    def send_message_batch(self):
+    def send_message_batch(self) -> str:
         """
         The querystring comes like this
 
@@ -247,7 +250,7 @@ class SQSResponse(BaseResponse):
 
                 entries[index] = {
                     "Id": value[0],
-                    "MessageBody": self.querystring.get(
+                    "MessageBody": self.querystring.get(  # type: ignore
                         f"SendMessageBatchRequestEntry.{index}.MessageBody"
                     )[0],
                     "DelaySeconds": self.querystring.get(
@@ -286,14 +289,14 @@ class SQSResponse(BaseResponse):
         template = self.response_template(SEND_MESSAGE_BATCH_RESPONSE)
         return template.render(messages=messages, errors=errors)
 
-    def delete_message(self):
+    def delete_message(self) -> str:
         queue_name = self._get_queue_name()
-        receipt_handle = self.querystring.get("ReceiptHandle")[0]
+        receipt_handle = self.querystring.get("ReceiptHandle")[0]  # type: ignore
         self.sqs_backend.delete_message(queue_name, receipt_handle)
         template = self.response_template(DELETE_MESSAGE_RESPONSE)
         return template.render()
 
-    def delete_message_batch(self):
+    def delete_message_batch(self) -> str:
         """
         The querystring comes like this
 
@@ -316,7 +319,7 @@ class SQSResponse(BaseResponse):
                 break
 
             message_user_id_key = f"DeleteMessageBatchRequestEntry.{index}.Id"
-            message_user_id = self.querystring.get(message_user_id_key)[0]
+            message_user_id = self.querystring.get(message_user_id_key)[0]  # type: ignore
             receipts.append(
                 {"receipt_handle": receipt_handle[0], "msg_user_id": message_user_id}
             )
@@ -333,13 +336,13 @@ class SQSResponse(BaseResponse):
         template = self.response_template(DELETE_MESSAGE_BATCH_RESPONSE)
         return template.render(success=success, errors=errors)
 
-    def purge_queue(self):
+    def purge_queue(self) -> str:
         queue_name = self._get_queue_name()
         self.sqs_backend.purge_queue(queue_name)
         template = self.response_template(PURGE_QUEUE_RESPONSE)
         return template.render()
 
-    def receive_message(self):
+    def receive_message(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         queue_name = self._get_queue_name()
         message_attributes = self._get_multi_param("message_attributes")
         if not message_attributes:
@@ -350,7 +353,7 @@ class SQSResponse(BaseResponse):
         queue = self.sqs_backend.get_queue(queue_name)
 
         try:
-            message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
+            message_count = int(self.querystring.get("MaxNumberOfMessages")[0])  # type: ignore
         except TypeError:
             message_count = DEFAULT_RECEIVED_MESSAGES
 
@@ -364,9 +367,9 @@ class SQSResponse(BaseResponse):
             )
 
         try:
-            wait_time = int(self.querystring.get("WaitTimeSeconds")[0])
+            wait_time = int(self.querystring.get("WaitTimeSeconds")[0])  # type: ignore
         except TypeError:
-            wait_time = int(queue.receive_message_wait_time_seconds)
+            wait_time = int(queue.receive_message_wait_time_seconds)  # type: ignore
 
         if wait_time < 0 or wait_time > 20:
             return self._error(
@@ -380,7 +383,7 @@ class SQSResponse(BaseResponse):
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
         except TypeError:
-            visibility_timeout = queue.visibility_timeout
+            visibility_timeout = queue.visibility_timeout  # type: ignore
         except ValueError:
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
@@ -406,7 +409,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         return template.render(messages=messages, attributes=attributes)
 
-    def list_dead_letter_source_queues(self):
+    def list_dead_letter_source_queues(self) -> str:
         request_url = urlparse(self.uri)
         queue_name = self._get_queue_name()
 
@@ -415,7 +418,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(LIST_DEAD_LETTER_SOURCE_QUEUES_RESPONSE)
         return template.render(queues=source_queue_urls, request_url=request_url)
 
-    def add_permission(self):
+    def add_permission(self) -> str:
         queue_name = self._get_queue_name()
         actions = self._get_multi_param("ActionName")
         account_ids = self._get_multi_param("AWSAccountId")
@@ -426,7 +429,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(ADD_PERMISSION_RESPONSE)
         return template.render()
 
-    def remove_permission(self):
+    def remove_permission(self) -> str:
         queue_name = self._get_queue_name()
         label = self._get_param("Label")
 
@@ -435,7 +438,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(REMOVE_PERMISSION_RESPONSE)
         return template.render()
 
-    def tag_queue(self):
+    def tag_queue(self) -> str:
         queue_name = self._get_queue_name()
         tags = self._get_map_prefix("Tag", key_end=".Key", value_end=".Value")
 
@@ -444,7 +447,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(TAG_QUEUE_RESPONSE)
         return template.render()
 
-    def untag_queue(self):
+    def untag_queue(self) -> str:
         queue_name = self._get_queue_name()
         tag_keys = self._get_multi_param("TagKey")
 
@@ -453,7 +456,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(UNTAG_QUEUE_RESPONSE)
         return template.render()
 
-    def list_queue_tags(self):
+    def list_queue_tags(self) -> str:
         queue_name = self._get_queue_name()
 
         queue = self.sqs_backend.list_queue_tags(queue_name)
