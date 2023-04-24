@@ -230,7 +230,7 @@ def test_publish_to_sqs_msg_attr_number_type():
     message = json.loads(queue.receive_messages()[0].body)
     message["Message"].should.equal("test message")
     message["MessageAttributes"].should.equal(
-        {"retries": {"Type": "Number", "Value": 0}}
+        {"retries": {"Type": "Number", "Value": "0"}}
     )
 
     message = queue_raw.receive_messages()[0]
@@ -731,7 +731,7 @@ def test_filtering_exact_number_int():
     message_bodies = [json.loads(m.body)["Message"] for m in messages]
     message_bodies.should.equal(["match"])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
-    message_attributes.should.equal([{"price": {"Type": "Number", "Value": 100}}])
+    message_attributes.should.equal([{"price": {"Type": "Number", "Value": "100"}}])
 
 
 @mock_sqs
@@ -748,7 +748,7 @@ def test_filtering_exact_number_float():
     message_bodies = [json.loads(m.body)["Message"] for m in messages]
     message_bodies.should.equal(["match"])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
-    message_attributes.should.equal([{"price": {"Type": "Number", "Value": 100.1}}])
+    message_attributes.should.equal([{"price": {"Type": "Number", "Value": "100.1"}}])
 
 
 @mock_sqs
@@ -759,7 +759,7 @@ def test_filtering_exact_number_float_accuracy():
     topic.publish(
         Message="match",
         MessageAttributes={
-            "price": {"DataType": "Number", "StringValue": "100.1234561"}
+            "price": {"DataType": "Number", "StringValue": "100.1234567"}
         },
     )
 
@@ -768,7 +768,7 @@ def test_filtering_exact_number_float_accuracy():
     message_bodies.should.equal(["match"])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
     message_attributes.should.equal(
-        [{"price": {"Type": "Number", "Value": 100.1234561}}]
+        [{"price": {"Type": "Number", "Value": "100.1234567"}}]
     )
 
 
@@ -892,7 +892,7 @@ def test_filtering_string_array_with_number_float_accuracy_match():
         MessageAttributes={
             "price": {
                 "DataType": "String.Array",
-                "StringValue": json.dumps([100.1234561, 50]),
+                "StringValue": json.dumps([100.1234567, 50]),
             }
         },
     )
@@ -902,7 +902,7 @@ def test_filtering_string_array_with_number_float_accuracy_match():
     message_bodies.should.equal(["match"])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
     message_attributes.should.equal(
-        [{"price": {"Type": "String.Array", "Value": json.dumps([100.1234561, 50])}}]
+        [{"price": {"Type": "String.Array", "Value": json.dumps([100.1234567, 50])}}]
     )
 
 
@@ -1083,7 +1083,7 @@ def test_filtering_all_AND_matching_match():
                     "Type": "String.Array",
                     "Value": json.dumps(["basketball", "rugby"]),
                 },
-                "price": {"Type": "Number", "Value": 100},
+                "price": {"Type": "Number", "Value": "100"},
             }
         ]
     )
@@ -1228,7 +1228,7 @@ def test_filtering_anything_but_unknown():
 @mock_sns
 def test_filtering_anything_but_numeric():
     topic, queue = _setup_filter_policy_test(
-        {"customer_interests": [{"anything-but": ["100"]}]}
+        {"customer_interests": [{"anything-but": [100]}]}
     )
 
     for nr, idx in [("50", "1"), ("100", "2"), ("150", "3")]:
@@ -1248,7 +1248,7 @@ def test_filtering_anything_but_numeric():
 @mock_sns
 def test_filtering_numeric_match():
     topic, queue = _setup_filter_policy_test(
-        {"customer_interests": [{"numeric": ["=", "100"]}]}
+        {"customer_interests": [{"numeric": ["=", 100]}]}
     )
 
     for nr, idx in [("50", "1"), ("100", "2"), ("150", "3")]:
@@ -1268,7 +1268,7 @@ def test_filtering_numeric_match():
 @mock_sns
 def test_filtering_numeric_range():
     topic, queue = _setup_filter_policy_test(
-        {"customer_interests": [{"numeric": [">", "49", "<=", "100"]}]}
+        {"customer_interests": [{"numeric": [">", 49, "<=", 100]}]}
     )
 
     for nr, idx in [("50", "1"), ("100", "2"), ("150", "3")]:

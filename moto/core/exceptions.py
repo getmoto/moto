@@ -9,7 +9,7 @@ import json
 SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>
     <Code>{{error_type}}</Code>
-    <Message>{{message}}</Message>
+    <Message><![CDATA[{{message}}]]></Message>
     {% block extra %}{% endblock %}
     <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
 </Error>
@@ -19,7 +19,7 @@ WRAPPED_SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ErrorResponse{% if xmlns is defined %} xmlns="{{xmlns}}"{% endif %}>
     <Error>
         <Code>{{error_type}}</Code>
-        <Message>{{message}}</Message>
+        <Message><![CDATA[{{message}}]]></Message>
         {% block extra %}{% endblock %}
         <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
     </Error>
