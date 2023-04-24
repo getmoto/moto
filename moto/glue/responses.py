@@ -415,6 +415,17 @@ class GlueResponse(BaseResponse):
             return [job.get_name() for job in jobs]
         return [job.get_name() for job in jobs if self.is_tags_match(job.arn, tags)]
 
+    def filter_triggers_by_tags(
+        self, triggers: List[FakeJob], tags: Dict[str, str]
+    ) -> List[str]:
+        if not tags:
+            return [trigger.get_name() for trigger in triggers]
+        return [
+            trigger.get_name()
+            for trigger in triggers
+            if self.is_tags_match(trigger.arn, tags)
+        ]
+
     def is_tags_match(self, resource_arn: str, tags: Dict[str, str]) -> bool:
         glue_resource_tags = self.glue_backend.get_tags(resource_arn)
         mutual_keys = set(glue_resource_tags).intersection(tags)
@@ -585,6 +596,24 @@ class GlueResponse(BaseResponse):
         return json.dumps(
             dict(
                 Triggers=[trigger.as_dict() for trigger in triggers],
+                NextToken=next_token,
+            )
+        )
+
+    def list_triggers(self) -> str:
+        next_token = self._get_param("NextToken")
+        dependent_job_name = self._get_param("DependentJobName")
+        max_results = self._get_int_param("MaxResults")
+        tags = self._get_param("Tags")
+        triggers, next_token = self.glue_backend.list_triggers(
+            next_token=next_token,
+            dependent_job_name=dependent_job_name,
+            max_results=max_results,
+        )
+        filtered_job_names = self.filter_jobs_by_tags(triggers, tags)
+        return json.dumps(
+            dict(
+                TriggerNames=[job_name for job_name in filtered_job_names],
                 NextToken=next_token,
             )
         )

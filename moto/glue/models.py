@@ -58,6 +58,18 @@ from ..utilities.tagging_service import TaggingService
 
 class GlueBackend(BaseBackend):
     PAGINATION_MODEL = {
+        "get_jobs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "get_triggers": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
         "list_crawlers": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -70,13 +82,7 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
-        "get_jobs": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "name",
-        },
-        "get_triggers": {
+        "list_triggers": {
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
@@ -812,6 +818,20 @@ class GlueBackend(BaseBackend):
 
         return list(self.triggers.values())
 
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:  # type: ignore
+        if dependent_job_name:
+            triggers = []
+            for trigger in self.triggers.values():
+                for action in trigger.actions:
+                    if ("JobName" in action) and (
+                        action["JobName"] == dependent_job_name
+                    ):
+                        triggers.append(trigger)
+            return triggers
+
+        return list(self.triggers.values())
+
     def delete_trigger(self, name: str) -> None:
         if name in self.triggers:
             del self.triggers[name]
@@ -1519,6 +1539,9 @@ class FakeTrigger(BaseModel):
         self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:trigger/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
+
+    def get_name(self) -> str:
+        return self.name
 
     def as_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {

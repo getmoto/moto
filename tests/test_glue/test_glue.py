@@ -645,6 +645,15 @@ def test_get_triggers_dependent_job_name():
 
 
 @mock_glue
+def test_list_triggers():
+    client = create_glue_client()
+    trigger_name = create_test_trigger(client)
+    response = client.list_triggers()
+    assert response["TriggerNames"] == [trigger_name]
+    assert "NextToken" not in response
+
+
+@mock_glue
 def test_batch_get_triggers():
     client = create_glue_client()
     trigger_name = create_test_trigger(client)
