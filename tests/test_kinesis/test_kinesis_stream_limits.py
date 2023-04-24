@@ -105,7 +105,7 @@ def test_total_record_data_exact_5mb():
 def test_too_many_records():
     client = boto3.client("kinesis", region_name="us-east-1")
     client.create_stream(StreamName="my_stream", ShardCount=1)
-    
+
     with pytest.raises(ClientError) as exc:
         client.put_records(
             Records=[{"Data": b"a", "PartitionKey": "key"}] * 501,
