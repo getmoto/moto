@@ -913,6 +913,12 @@ class GlueBackend(BaseBackend):
                 jobs.append(self.jobs[job_name].as_dict())
         return jobs
 
+    def batch_get_triggers(self, trigger_names: List[str]) -> List[Dict[str, Any]]:
+        triggers = []
+        for trigger_name in trigger_names:
+            if trigger_name in self.triggers:
+                triggers.append(self.triggers[trigger_name].as_dict())
+        return triggers
 
 class FakeDatabase(BaseModel):
     def __init__(self, database_name: str, database_input: Dict[str, Any]):

@@ -604,6 +604,19 @@ def create_test_trigger(client, tags=None):
 
 
 @mock_glue
+def test_batch_get_triggers():
+    client = create_glue_client()
+    trigger_name = create_test_trigger(client)
+
+    response = client.batch_get_triggers(
+        TriggerNames=[trigger_name, "trigger-not-found"]
+    )
+
+    assert len(response["Triggers"]) == 1
+    assert len(response["TriggersNotFound"]) == 1
+
+
+@mock_glue
 def test_delete_trigger():
     client = create_glue_client()
     trigger_name = create_test_trigger(client)

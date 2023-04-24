@@ -573,6 +573,19 @@ class GlueResponse(BaseResponse):
         trigger = self.glue_backend.get_trigger(name)  # type: ignore[arg-type]
         return json.dumps({"Trigger": trigger.as_dict()})
 
+    def batch_get_triggers(self) -> str:
+        trigger_names = self._get_param("TriggerNames")
+        triggers = self.glue_backend.batch_get_triggers(trigger_names)
+        triggers_not_found = list(
+            set(trigger_names) - set(map(lambda trigger: trigger["Name"], triggers))
+        )
+        return json.dumps(
+            {
+                "Triggers": triggers,
+                "TriggersNotFound": triggers_not_found,
+            }
+        )
+
     def delete_trigger(self):
         name = self.parameters.get("Name")
         self.glue_backend.delete_trigger(name)  # type: ignore[arg-type]
