@@ -1,8 +1,15 @@
+from typing import Any, Dict, Optional
+
 from .exceptions import MissingRenderingAttributeException
 from moto.utilities.tokenizer import GenericTokenizer
 
 
-def parse_template(template, template_data, tokenizer=None, until=None):
+def parse_template(
+    template: str,
+    template_data: Dict[str, Any],
+    tokenizer: Optional[GenericTokenizer] = None,
+    until: Optional[str] = None,
+) -> str:
     tokenizer = tokenizer or GenericTokenizer(template)
     state = ""
     parsed = ""
@@ -27,7 +34,7 @@ def parse_template(template, template_data, tokenizer=None, until=None):
                 if state == "VAR":
                     if template_data.get(var_name) is None:
                         raise MissingRenderingAttributeException(var_name)
-                    parsed += template_data.get(var_name)
+                    parsed += template_data.get(var_name)  # type: ignore
                 else:
                     current_position = tokenizer.token_pos
                     for item in template_data.get(var_name, []):
