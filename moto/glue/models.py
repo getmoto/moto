@@ -774,7 +774,7 @@ class GlueBackend(BaseBackend):
         self.triggers[name] = FakeTrigger(
             name=name,
             workflow_name=workflow_name,
-            _type=_type,
+            trigger_type=_type,
             schedule=schedule,
             predicate=predicate,
             actions=actions,
@@ -1462,7 +1462,7 @@ class FakeTrigger(BaseModel):
         backend: GlueBackend,
         name: str,
         workflow_name: str,
-        _type: str,
+        trigger_type: str, # to avoid any issues with built-in function type()
         schedule: str,
         predicate: Dict[str, Any],
         actions: List[Dict[str, Any]],
@@ -1472,15 +1472,47 @@ class FakeTrigger(BaseModel):
         event_batching_condition: Dict[str, Any],
     ):
         self.name = name
-        self._type = _type
+        self.workflow_name = workflow_name
+        self.trigger_type = trigger_type
+        self.schedule = schedule
+        self.predicate = predicate
         self.actions = actions
+        self.description = description
+        if start_on_creation:
+            self.state = "ACTIVATED"
+        else:
+            self.state = "CREATED"
+        self.event_batching_condition = event_batching_condition
+        self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:trigger/{self.name}"
         self.backend = backend
+        self.backend.tag_resource(self.arn, tags)
 
     def as_dict(self) -> Dict[str, Any]:
-        return {
+        data = {
             "Name": self.name,
-            "Type": self._type,
+            "Type": self.trigger_type,
             "Actions": self.actions,
+            "State": self.state,
         }
+
+        if self.workflow_name:
+            data["WorkflowName"] = self.workflow_name
+
+        if self.trigger_type == "SCHEDULED":
+            data["Schedule"] = self.schedule
+
+        if self.description:
+            data["Description"] = self.description
+
+        if self.predicate:
+            data["Predicate"] = self.predicate
+
+        if self.description:
+            data["Description"] = self.description
+
+        if self.event_batching_condition:
+            data["EventBatchingCondition"] = self.event_batching_condition
+
+        return data
 
 glue_backends = BackendDict(GlueBackend, "glue")

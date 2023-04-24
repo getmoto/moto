@@ -512,7 +512,7 @@ def test_create_trigger():
 
 
 @mock_glue
-def test_get_trigger_exists():
+def test_get_trigger_on_demand():
     client = create_glue_client()
     job_name = create_test_job(client)
     trigger_name = str(uuid4())
@@ -523,5 +523,67 @@ def test_get_trigger_exists():
         }]
     }
     client.create_trigger(Name=trigger_name, **trigger_attributes)
+
     trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
     assert trigger["Name"] == trigger_name
+    assert trigger["Type"] == "ON_DEMAND"
+    assert trigger["State"] == "CREATED"
+    assert trigger["Actions"] == [{"JobName": job_name}]
+
+
+@mock_glue
+def test_get_trigger_scheduled():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "SCHEDULED",
+        "Schedule": "cron(5 3 * * ? *)",
+        "Actions": [{
+            "JobName": job_name,
+        }],
+        "StartOnCreation": True,
+    }
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["Name"] == trigger_name
+    assert trigger["Type"] == "SCHEDULED"
+    assert trigger["State"] == "ACTIVATED"
+    assert trigger["Actions"] == [{"JobName": job_name}]
+
+
+@mock_glue
+def test_get_trigger_conditional():
+    client = create_glue_client()
+    crawler_name = create_test_crawler(client)
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "CONDITIONAL",
+        "Actions": [{
+            "JobName": job_name,
+        }],
+        "StartOnCreation": True,
+        "Predicate": {
+            "Logical": "ANY",
+            "Conditions": [
+                {
+                    "LogicalOperator": "EQUALS",
+                    "CrawlerName": crawler_name,
+                    "CrawlState": "SUCCEEDED"
+                }
+            ]
+        }
+    }
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["Name"] == trigger_name
+    assert trigger["Type"] == "CONDITIONAL"
+    assert trigger["State"] == "ACTIVATED"
+    assert trigger["Actions"] == [{"JobName": job_name}]
+    assert "Predicate" in trigger
