@@ -36,8 +36,12 @@ def test_s3_server_get():
     res.data.should.contain(b"ListAllMyBucketsResult")
 
 
-@pytest.mark.parametrize("key_name", ["bar_baz", "bar+baz", "baz bar"])
+@pytest.mark.parametrize("key_name", ["bar_baz", "baz bar"])
 def test_s3_server_bucket_create(key_name):
+    # Very similar test in test_s3.py::test_get_object_versions_with_prefix
+    # That test also includes a key containing a +, such as 'baz+bar'
+    # We cannot test that example here, because Werkzeug (as of 2.3.0) will helpfully normalize that to `baz bar`
+    # TODO: re-enable this key-name if/when we ever replace Werkzeug
     test_client = authenticated_client()
 
     res = test_client.put("/", "http://foobaz.localhost:5000/")
