@@ -1,74 +1,75 @@
 import json
+from typing import Any, List
 
 from moto.core.responses import BaseResponse
 
 from .exceptions import SWFSerializationException, SWFValidationException
-from .models import swf_backends
+from .models import swf_backends, SWFBackend, GenericType
 
 
 class SWFResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="swf")
 
     @property
-    def swf_backend(self):
+    def swf_backend(self) -> SWFBackend:
         return swf_backends[self.current_account][self.region]
 
     # SWF parameters are passed through a JSON body, so let's ease retrieval
     @property
-    def _params(self):
+    def _params(self) -> Any:  # type: ignore[misc]
         return json.loads(self.body)
 
-    def _check_int(self, parameter):
+    def _check_int(self, parameter: Any) -> None:
         if not isinstance(parameter, int):
             raise SWFSerializationException(parameter)
 
-    def _check_float_or_int(self, parameter):
+    def _check_float_or_int(self, parameter: Any) -> None:
         if not isinstance(parameter, float):
             if not isinstance(parameter, int):
                 raise SWFSerializationException(parameter)
 
-    def _check_none_or_string(self, parameter):
+    def _check_none_or_string(self, parameter: Any) -> None:
         if parameter is not None:
             self._check_string(parameter)
 
-    def _check_string(self, parameter):
+    def _check_string(self, parameter: Any) -> None:
         if not isinstance(parameter, str):
             raise SWFSerializationException(parameter)
 
-    def _check_none_or_list_of_strings(self, parameter):
+    def _check_none_or_list_of_strings(self, parameter: Any) -> None:
         if parameter is not None:
             self._check_list_of_strings(parameter)
 
-    def _check_list_of_strings(self, parameter):
+    def _check_list_of_strings(self, parameter: Any) -> None:
         if not isinstance(parameter, list):
             raise SWFSerializationException(parameter)
         for i in parameter:
             if not isinstance(i, str):
                 raise SWFSerializationException(parameter)
 
-    def _check_exclusivity(self, **kwargs):
+    def _check_exclusivity(self, **kwargs: Any) -> None:
         if list(kwargs.values()).count(None) >= len(kwargs) - 1:
             return
         keys = kwargs.keys()
         if len(keys) == 2:
-            message = f"Cannot specify both a {keys[0]} and a {keys[1]}"
+            message = f"Cannot specify both a {keys[0]} and a {keys[1]}"  # type: ignore
         else:
             message = f"Cannot specify more than one exclusive filters in the same query: {keys}"
-            raise SWFValidationException(message)
+        raise SWFValidationException(message)
 
-    def _list_types(self, kind):
+    def _list_types(self, kind: str) -> str:
         domain_name = self._params["domain"]
         status = self._params["registrationStatus"]
         reverse_order = self._params.get("reverseOrder", None)
         self._check_string(domain_name)
         self._check_string(status)
-        types = self.swf_backend.list_types(
+        types: List[GenericType] = self.swf_backend.list_types(
             kind, domain_name, status, reverse_order=reverse_order
         )
         return json.dumps({"typeInfos": [_type.to_medium_dict() for _type in types]})
 
-    def _describe_type(self, kind):
+    def _describe_type(self, kind: str) -> str:
         domain = self._params["domain"]
         _type_args = self._params[f"{kind}Type"]
         name = _type_args["name"]
@@ -80,7 +81,7 @@ class SWFResponse(BaseResponse):
 
         return json.dumps(_type.to_full_dict())
 
-    def _deprecate_type(self, kind):
+    def _deprecate_type(self, kind: str) -> str:
         domain = self._params["domain"]
         _type_args = self._params[f"{kind}Type"]
         name = _type_args["name"]
@@ -91,7 +92,7 @@ class SWFResponse(BaseResponse):
         self.swf_backend.deprecate_type(kind, domain, name, version)
         return ""
 
-    def _undeprecate_type(self, kind):
+    def _undeprecate_type(self, kind: str) -> str:
         domain = self._params["domain"]
         _type_args = self._params[f"{kind}Type"]
         name = _type_args["name"]
@@ -103,7 +104,7 @@ class SWFResponse(BaseResponse):
         return ""
 
     # TODO: implement pagination
-    def list_domains(self):
+    def list_domains(self) -> str:
         status = self._params["registrationStatus"]
         self._check_string(status)
         reverse_order = self._params.get("reverseOrder", None)
@@ -112,7 +113,7 @@ class SWFResponse(BaseResponse):
             {"domainInfos": [domain.to_short_dict() for domain in domains]}
         )
 
-    def list_closed_workflow_executions(self):
+    def list_closed_workflow_executions(self) -> str:
         domain = self._params["domain"]
         start_time_filter = self._params.get("startTimeFilter", None)
         close_time_filter = self._params.get("closeTimeFilter", None)
@@ -166,7 +167,7 @@ class SWFResponse(BaseResponse):
             {"executionInfos": [wfe.to_list_dict() for wfe in workflow_executions]}
         )
 
-    def list_open_workflow_executions(self):
+    def list_open_workflow_executions(self) -> str:
         domain = self._params["domain"]
         start_time_filter = self._params["startTimeFilter"]
         execution_filter = self._params.get("executionFilter", None)
@@ -204,7 +205,7 @@ class SWFResponse(BaseResponse):
             {"executionInfos": [wfe.to_list_dict() for wfe in workflow_executions]}
         )
 
-    def register_domain(self):
+    def register_domain(self) -> str:
         name = self._params["name"]
         retention = self._params["workflowExecutionRetentionPeriodInDays"]
         description = self._params.get("description")
@@ -214,29 +215,29 @@ class SWFResponse(BaseResponse):
         self.swf_backend.register_domain(name, retention, description=description)
         return ""
 
-    def deprecate_domain(self):
+    def deprecate_domain(self) -> str:
         name = self._params["name"]
         self._check_string(name)
         self.swf_backend.deprecate_domain(name)
         return ""
 
-    def undeprecate_domain(self):
+    def undeprecate_domain(self) -> str:
         name = self._params["name"]
         self._check_string(name)
         self.swf_backend.undeprecate_domain(name)
         return ""
 
-    def describe_domain(self):
+    def describe_domain(self) -> str:
         name = self._params["name"]
         self._check_string(name)
         domain = self.swf_backend.describe_domain(name)
-        return json.dumps(domain.to_full_dict())
+        return json.dumps(domain.to_full_dict())  # type: ignore[union-attr]
 
     # TODO: implement pagination
-    def list_activity_types(self):
+    def list_activity_types(self) -> str:
         return self._list_types("activity")
 
-    def register_activity_type(self):
+    def register_activity_type(self) -> str:
         domain = self._params["domain"]
         name = self._params["name"]
         version = self._params["version"]
@@ -282,19 +283,19 @@ class SWFResponse(BaseResponse):
         )
         return ""
 
-    def deprecate_activity_type(self):
+    def deprecate_activity_type(self) -> str:
         return self._deprecate_type("activity")
 
-    def undeprecate_activity_type(self):
+    def undeprecate_activity_type(self) -> str:
         return self._undeprecate_type("activity")
 
-    def describe_activity_type(self):
+    def describe_activity_type(self) -> str:
         return self._describe_type("activity")
 
-    def list_workflow_types(self):
+    def list_workflow_types(self) -> str:
         return self._list_types("workflow")
 
-    def register_workflow_type(self):
+    def register_workflow_type(self) -> str:
         domain = self._params["domain"]
         name = self._params["name"]
         version = self._params["version"]
@@ -340,16 +341,16 @@ class SWFResponse(BaseResponse):
         )
         return ""
 
-    def deprecate_workflow_type(self):
+    def deprecate_workflow_type(self) -> str:
         return self._deprecate_type("workflow")
 
-    def undeprecate_workflow_type(self):
+    def undeprecate_workflow_type(self) -> str:
         return self._undeprecate_type("workflow")
 
-    def describe_workflow_type(self):
+    def describe_workflow_type(self) -> str:
         return self._describe_type("workflow")
 
-    def start_workflow_execution(self):
+    def start_workflow_execution(self) -> str:
         domain = self._params["domain"]
         workflow_id = self._params["workflowId"]
         _workflow_type = self._params["workflowType"]
@@ -394,7 +395,7 @@ class SWFResponse(BaseResponse):
 
         return json.dumps({"runId": wfe.run_id})
 
-    def describe_workflow_execution(self):
+    def describe_workflow_execution(self) -> str:
         domain_name = self._params["domain"]
         _workflow_execution = self._params["execution"]
         run_id = _workflow_execution["runId"]
@@ -407,9 +408,9 @@ class SWFResponse(BaseResponse):
         wfe = self.swf_backend.describe_workflow_execution(
             domain_name, run_id, workflow_id
         )
-        return json.dumps(wfe.to_full_dict())
+        return json.dumps(wfe.to_full_dict())  # type: ignore[union-attr]
 
-    def get_workflow_execution_history(self):
+    def get_workflow_execution_history(self) -> str:
         domain_name = self._params["domain"]
         _workflow_execution = self._params["execution"]
         run_id = _workflow_execution["runId"]
@@ -418,10 +419,10 @@ class SWFResponse(BaseResponse):
         wfe = self.swf_backend.describe_workflow_execution(
             domain_name, run_id, workflow_id
         )
-        events = wfe.events(reverse_order=reverse_order)
+        events = wfe.events(reverse_order=reverse_order)  # type: ignore[union-attr]
         return json.dumps({"events": [evt.to_dict() for evt in events]})
 
-    def poll_for_decision_task(self):
+    def poll_for_decision_task(self) -> str:
         domain_name = self._params["domain"]
         task_list = self._params["taskList"]["name"]
         identity = self._params.get("identity")
@@ -438,7 +439,7 @@ class SWFResponse(BaseResponse):
         else:
             return json.dumps({"previousStartedEventId": 0, "startedEventId": 0})
 
-    def count_pending_decision_tasks(self):
+    def count_pending_decision_tasks(self) -> str:
         domain_name = self._params["domain"]
         task_list = self._params["taskList"]["name"]
         self._check_string(domain_name)
@@ -446,7 +447,7 @@ class SWFResponse(BaseResponse):
         count = self.swf_backend.count_pending_decision_tasks(domain_name, task_list)
         return json.dumps({"count": count, "truncated": False})
 
-    def respond_decision_task_completed(self):
+    def respond_decision_task_completed(self) -> str:
         task_token = self._params["taskToken"]
         execution_context = self._params.get("executionContext")
         decisions = self._params.get("decisions")
@@ -457,7 +458,7 @@ class SWFResponse(BaseResponse):
         )
         return ""
 
-    def poll_for_activity_task(self):
+    def poll_for_activity_task(self) -> str:
         domain_name = self._params["domain"]
         task_list = self._params["taskList"]["name"]
         identity = self._params.get("identity")
@@ -472,7 +473,7 @@ class SWFResponse(BaseResponse):
         else:
             return json.dumps({"startedEventId": 0})
 
-    def count_pending_activity_tasks(self):
+    def count_pending_activity_tasks(self) -> str:
         domain_name = self._params["domain"]
         task_list = self._params["taskList"]["name"]
         self._check_string(domain_name)
@@ -480,7 +481,7 @@ class SWFResponse(BaseResponse):
         count = self.swf_backend.count_pending_activity_tasks(domain_name, task_list)
         return json.dumps({"count": count, "truncated": False})
 
-    def respond_activity_task_completed(self):
+    def respond_activity_task_completed(self) -> str:
         task_token = self._params["taskToken"]
         result = self._params.get("result")
         self._check_string(task_token)
@@ -488,7 +489,7 @@ class SWFResponse(BaseResponse):
         self.swf_backend.respond_activity_task_completed(task_token, result=result)
         return ""
 
-    def respond_activity_task_failed(self):
+    def respond_activity_task_failed(self) -> str:
         task_token = self._params["taskToken"]
         reason = self._params.get("reason")
         details = self._params.get("details")
@@ -502,7 +503,7 @@ class SWFResponse(BaseResponse):
         )
         return ""
 
-    def terminate_workflow_execution(self):
+    def terminate_workflow_execution(self) -> str:
         domain_name = self._params["domain"]
         workflow_id = self._params["workflowId"]
         child_policy = self._params.get("childPolicy")
@@ -525,7 +526,7 @@ class SWFResponse(BaseResponse):
         )
         return ""
 
-    def record_activity_task_heartbeat(self):
+    def record_activity_task_heartbeat(self) -> str:
         task_token = self._params["taskToken"]
         details = self._params.get("details")
         self._check_string(task_token)
@@ -534,7 +535,7 @@ class SWFResponse(BaseResponse):
         # TODO: make it dynamic when we implement activity tasks cancellation
         return json.dumps({"cancelRequested": False})
 
-    def signal_workflow_execution(self):
+    def signal_workflow_execution(self) -> str:
         domain_name = self._params["domain"]
         signal_name = self._params["signalName"]
         workflow_id = self._params["workflowId"]

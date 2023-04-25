@@ -1,3 +1,4 @@
+from typing import Any, Dict, Optional
 from moto.core import BaseModel
 from moto.core.utils import underscores_to_camelcase, unix_time
 
@@ -36,7 +37,13 @@ SUPPORTED_HISTORY_EVENT_TYPES = (
 
 
 class HistoryEvent(BaseModel):
-    def __init__(self, event_id, event_type, event_timestamp=None, **kwargs):
+    def __init__(
+        self,
+        event_id: int,
+        event_type: str,
+        event_timestamp: Optional[float] = None,
+        **kwargs: Any,
+    ):
         if event_type not in SUPPORTED_HISTORY_EVENT_TYPES:
             raise NotImplementedError(
                 f"HistoryEvent does not implement attributes for type '{event_type}'"
@@ -60,7 +67,7 @@ class HistoryEvent(BaseModel):
                     value = value.to_short_dict()
                 self.event_attributes[camel_key] = value
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "eventId": self.event_id,
             "eventType": self.event_type,
@@ -68,6 +75,6 @@ class HistoryEvent(BaseModel):
             self._attributes_key(): self.event_attributes,
         }
 
-    def _attributes_key(self):
+    def _attributes_key(self) -> str:
         key = f"{self.event_type}EventAttributes"
         return decapitalize(key)

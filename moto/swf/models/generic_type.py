@@ -1,9 +1,10 @@
+from typing import Any, Dict, List, TypeVar
 from moto.core import BaseModel
 from moto.core.utils import camelcase_to_underscores
 
 
 class GenericType(BaseModel):
-    def __init__(self, name, version, **kwargs):
+    def __init__(self, name: str, version: str, **kwargs: Any):
         self.name = name
         self.version = version
         self.status = "REGISTERED"
@@ -19,24 +20,24 @@ class GenericType(BaseModel):
         if not hasattr(self, "task_list"):
             self.task_list = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         cls = self.__class__.__name__
         attrs = f"name: {self.name}, version: {self.version}, status: {self.status}"
         return f"{cls}({attrs})"
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         raise NotImplementedError()
 
     @property
-    def _configuration_keys(self):
+    def _configuration_keys(self) -> List[str]:
         raise NotImplementedError()
 
-    def to_short_dict(self):
+    def to_short_dict(self) -> Dict[str, str]:
         return {"name": self.name, "version": self.version}
 
-    def to_medium_dict(self):
-        hsh = {
+    def to_medium_dict(self) -> Dict[str, Any]:
+        hsh: Dict[str, Any] = {
             f"{self.kind}Type": self.to_short_dict(),
             "creationDate": 1420066800,
             "status": self.status,
@@ -47,8 +48,8 @@ class GenericType(BaseModel):
             hsh["description"] = self.description
         return hsh
 
-    def to_full_dict(self):
-        hsh = {"typeInfo": self.to_medium_dict(), "configuration": {}}
+    def to_full_dict(self) -> Dict[str, Any]:
+        hsh: Dict[str, Any] = {"typeInfo": self.to_medium_dict(), "configuration": {}}
         if self.task_list:
             hsh["configuration"]["defaultTaskList"] = {"name": self.task_list}
         for key in self._configuration_keys:
@@ -57,3 +58,6 @@ class GenericType(BaseModel):
                 continue
             hsh["configuration"][key] = getattr(self, attr)
         return hsh
+
+
+TGenericType = TypeVar("TGenericType", bound=GenericType)

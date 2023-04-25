@@ -1,4 +1,8 @@
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from moto.core.exceptions import JsonRESTError
+
+if TYPE_CHECKING:
+    from .models.generic_type import GenericType
 
 
 class SWFClientError(JsonRESTError):
@@ -6,7 +10,7 @@ class SWFClientError(JsonRESTError):
 
 
 class SWFUnknownResourceFault(SWFClientError):
-    def __init__(self, resource_type, resource_name=None):
+    def __init__(self, resource_type: str, resource_name: Optional[str] = None):
         if resource_name:
             message = f"Unknown {resource_type}: {resource_name}"
         else:
@@ -15,21 +19,21 @@ class SWFUnknownResourceFault(SWFClientError):
 
 
 class SWFDomainAlreadyExistsFault(SWFClientError):
-    def __init__(self, domain_name):
+    def __init__(self, domain_name: str):
         super().__init__(
             "com.amazonaws.swf.base.model#DomainAlreadyExistsFault", domain_name
         )
 
 
 class SWFDomainDeprecatedFault(SWFClientError):
-    def __init__(self, domain_name):
+    def __init__(self, domain_name: str):
         super().__init__(
             "com.amazonaws.swf.base.model#DomainDeprecatedFault", domain_name
         )
 
 
 class SWFSerializationException(SWFClientError):
-    def __init__(self, value):
+    def __init__(self, value: Any):
         message = "class java.lang.Foo can not be converted to an String "
         message += f" (not a real SWF exception ; happened on: {value})"
         __type = "com.amazonaws.swf.base.model#SerializationException"
@@ -37,7 +41,7 @@ class SWFSerializationException(SWFClientError):
 
 
 class SWFTypeAlreadyExistsFault(SWFClientError):
-    def __init__(self, _type):
+    def __init__(self, _type: "GenericType"):
         super().__init__(
             "com.amazonaws.swf.base.model#TypeAlreadyExistsFault",
             f"{_type.__class__.__name__}=[name={_type.name}, version={_type.version}]",
@@ -45,7 +49,7 @@ class SWFTypeAlreadyExistsFault(SWFClientError):
 
 
 class SWFTypeDeprecatedFault(SWFClientError):
-    def __init__(self, _type):
+    def __init__(self, _type: "GenericType"):
         super().__init__(
             "com.amazonaws.swf.base.model#TypeDeprecatedFault",
             f"{_type.__class__.__name__}=[name={_type.name}, version={_type.version}]",
@@ -53,7 +57,7 @@ class SWFTypeDeprecatedFault(SWFClientError):
 
 
 class SWFWorkflowExecutionAlreadyStartedFault(SWFClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "com.amazonaws.swf.base.model#WorkflowExecutionAlreadyStartedFault",
             "Already Started",
@@ -61,7 +65,7 @@ class SWFWorkflowExecutionAlreadyStartedFault(SWFClientError):
 
 
 class SWFDefaultUndefinedFault(SWFClientError):
-    def __init__(self, key):
+    def __init__(self, key: str):
         # TODO: move that into moto.core.utils maybe?
         words = key.split("_")
         key_camel_case = words.pop(0)
@@ -73,12 +77,12 @@ class SWFDefaultUndefinedFault(SWFClientError):
 
 
 class SWFValidationException(SWFClientError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__("com.amazon.coral.validate#ValidationException", message)
 
 
 class SWFDecisionValidationException(SWFClientError):
-    def __init__(self, problems):
+    def __init__(self, problems: List[Dict[str, Any]]):
         # messages
         messages = []
         for pb in problems:
@@ -106,5 +110,5 @@ class SWFDecisionValidationException(SWFClientError):
 
 
 class SWFWorkflowExecutionClosedError(Exception):
-    def __str__(self):
+    def __str__(self) -> str:
         return repr("Cannot change this object because the WorkflowExecution is closed")
