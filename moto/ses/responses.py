@@ -1,66 +1,71 @@
 import base64
+from typing import Any, Dict, List
 
 from moto.core.responses import BaseResponse
-from .models import ses_backends
+from .models import ses_backends, SESBackend
 from datetime import datetime
 
 
 class EmailResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="ses")
 
     @property
-    def backend(self):
+    def backend(self) -> SESBackend:
         return ses_backends[self.current_account][self.region]
 
-    def verify_email_identity(self):
-        address = self.querystring.get("EmailAddress")[0]
+    def verify_email_identity(self) -> str:
+        address = self.querystring.get("EmailAddress")[0]  # type: ignore
         self.backend.verify_email_identity(address)
         template = self.response_template(VERIFY_EMAIL_IDENTITY)
         return template.render()
 
-    def verify_email_address(self):
-        address = self.querystring.get("EmailAddress")[0]
+    def verify_email_address(self) -> str:
+        address = self.querystring.get("EmailAddress")[0]  # type: ignore
         self.backend.verify_email_address(address)
         template = self.response_template(VERIFY_EMAIL_ADDRESS)
         return template.render()
 
-    def list_identities(self):
+    def list_identities(self) -> str:
         identities = self.backend.list_identities()
         template = self.response_template(LIST_IDENTITIES_RESPONSE)
         return template.render(identities=identities)
 
-    def list_verified_email_addresses(self):
+    def list_verified_email_addresses(self) -> str:
         email_addresses = self.backend.list_verified_email_addresses()
         template = self.response_template(LIST_VERIFIED_EMAIL_RESPONSE)
         return template.render(email_addresses=email_addresses)
 
-    def verify_domain_dkim(self):
-        domain = self.querystring.get("Domain")[0]
+    def verify_domain_dkim(self) -> str:
+        domain = self.querystring.get("Domain")[0]  # type: ignore
         self.backend.verify_domain(domain)
         template = self.response_template(VERIFY_DOMAIN_DKIM_RESPONSE)
         return template.render()
 
-    def verify_domain_identity(self):
-        domain = self.querystring.get("Domain")[0]
+    def verify_domain_identity(self) -> str:
+        domain = self.querystring.get("Domain")[0]  # type: ignore
         self.backend.verify_domain(domain)
         template = self.response_template(VERIFY_DOMAIN_IDENTITY_RESPONSE)
         return template.render()
 
-    def delete_identity(self):
-        domain = self.querystring.get("Identity")[0]
+    def delete_identity(self) -> str:
+        domain = self.querystring.get("Identity")[0]  # type: ignore
         self.backend.delete_identity(domain)
         template = self.response_template(DELETE_IDENTITY_RESPONSE)
         return template.render()
 
-    def send_email(self):
+    def send_email(self) -> str:
         bodydatakey = "Message.Body.Text.Data"
         if "Message.Body.Html.Data" in self.querystring:
             bodydatakey = "Message.Body.Html.Data"
-        body = self.querystring.get(bodydatakey)[0]
-        source = self.querystring.get("Source")[0]
-        subject = self.querystring.get("Message.Subject.Data")[0]
-        destinations = {"ToAddresses": [], "CcAddresses": [], "BccAddresses": []}
+        body = self.querystring.get(bodydatakey)[0]  # type: ignore
+        source = self.querystring.get("Source")[0]  # type: ignore
+        subject = self.querystring.get("Message.Subject.Data")[0]  # type: ignore
+        destinations: Dict[str, List[str]] = {
+            "ToAddresses": [],
+            "CcAddresses": [],
+            "BccAddresses": [],
+        }
         for dest_type in destinations:
             # consume up to 51 to allow exception
             for i in range(1, 52):
@@ -70,18 +75,20 @@ class EmailResponse(BaseResponse):
                     break
                 destinations[dest_type].append(address[0])
 
-        message = self.backend.send_email(
-            source, subject, body, destinations, self.region
-        )
+        message = self.backend.send_email(source, subject, body, destinations)
         template = self.response_template(SEND_EMAIL_RESPONSE)
         return template.render(message=message)
 
-    def send_templated_email(self):
-        source = self.querystring.get("Source")[0]
-        template = self.querystring.get("Template")
-        template_data = self.querystring.get("TemplateData")
+    def send_templated_email(self) -> str:
+        source = self.querystring.get("Source")[0]  # type: ignore
+        template: List[str] = self.querystring.get("Template")  # type: ignore
+        template_data: List[str] = self.querystring.get("TemplateData")  # type: ignore
 
-        destinations = {"ToAddresses": [], "CcAddresses": [], "BccAddresses": []}
+        destinations: Dict[str, List[str]] = {
+            "ToAddresses": [],
+            "CcAddresses": [],
+            "BccAddresses": [],
+        }
         for dest_type in destinations:
             # consume up to 51 to allow exception
             for i in range(1, 52):
@@ -92,13 +99,14 @@ class EmailResponse(BaseResponse):
                 destinations[dest_type].append(address[0])
 
         message = self.backend.send_templated_email(
-            source, template, template_data, destinations, self.region
+            source, template, template_data, destinations
         )
-        template = self.response_template(SEND_TEMPLATED_EMAIL_RESPONSE)
-        return template.render(message=message)
+        return self.response_template(SEND_TEMPLATED_EMAIL_RESPONSE).render(
+            message=message
+        )
 
-    def send_bulk_templated_email(self):
-        source = self.querystring.get("Source")[0]
+    def send_bulk_templated_email(self) -> str:
+        source = self.querystring.get("Source")[0]  # type: ignore
         template = self.querystring.get("Template")
         template_data = self.querystring.get("DefaultTemplateData")
 
@@ -109,7 +117,11 @@ class EmailResponse(BaseResponse):
             )
             if self.querystring.get(destination_field) is None:
                 break
-            destination = {"ToAddresses": [], "CcAddresses": [], "BccAddresses": []}
+            destination: Dict[str, List[str]] = {
+                "ToAddresses": [],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            }
             for dest_type in destination:
                 # consume up to 51 to allow exception
                 for j in range(1, 52):
@@ -123,18 +135,18 @@ class EmailResponse(BaseResponse):
             destinations.append({"Destination": destination})
 
         message = self.backend.send_bulk_templated_email(
-            source, template, template_data, destinations, self.region
+            source, template, template_data, destinations  # type: ignore
         )
         template = self.response_template(SEND_BULK_TEMPLATED_EMAIL_RESPONSE)
         result = template.render(message=message)
         return result
 
-    def send_raw_email(self):
+    def send_raw_email(self) -> str:
         source = self.querystring.get("Source")
         if source is not None:
             (source,) = source
 
-        raw_data = self.querystring.get("RawMessage.Data")[0]
+        raw_data = self.querystring.get("RawMessage.Data")[0]  # type: ignore
         raw_data = base64.b64decode(raw_data)
         raw_data = raw_data.decode("utf-8")
         destinations = []
@@ -146,35 +158,33 @@ class EmailResponse(BaseResponse):
                 break
             destinations.append(address[0])
 
-        message = self.backend.send_raw_email(
-            source, destinations, raw_data, self.region
-        )
+        message = self.backend.send_raw_email(source, destinations, raw_data)
         template = self.response_template(SEND_RAW_EMAIL_RESPONSE)
         return template.render(message=message)
 
-    def get_send_quota(self):
+    def get_send_quota(self) -> str:
         quota = self.backend.get_send_quota()
         template = self.response_template(GET_SEND_QUOTA_RESPONSE)
         return template.render(quota=quota)
 
-    def get_identity_notification_attributes(self):
+    def get_identity_notification_attributes(self) -> str:
         identities = self._get_params()["Identities"]
         identities = self.backend.get_identity_notification_attributes(identities)
         template = self.response_template(GET_IDENTITY_NOTIFICATION_ATTRIBUTES)
         return template.render(identities=identities)
 
-    def set_identity_feedback_forwarding_enabled(self):
+    def set_identity_feedback_forwarding_enabled(self) -> str:
         identity = self._get_param("Identity")
         enabled = self._get_bool_param("ForwardingEnabled")
         self.backend.set_identity_feedback_forwarding_enabled(identity, enabled)
         template = self.response_template(SET_IDENTITY_FORWARDING_ENABLED_RESPONSE)
         return template.render()
 
-    def set_identity_notification_topic(self):
+    def set_identity_notification_topic(self) -> str:
 
-        identity = self.querystring.get("Identity")[0]
-        not_type = self.querystring.get("NotificationType")[0]
-        sns_topic = self.querystring.get("SnsTopic")
+        identity = self.querystring.get("Identity")[0]  # type: ignore
+        not_type = self.querystring.get("NotificationType")[0]  # type: ignore
+        sns_topic = self.querystring.get("SnsTopic")  # type: ignore
         if sns_topic:
             sns_topic = sns_topic[0]
 
@@ -182,33 +192,35 @@ class EmailResponse(BaseResponse):
         template = self.response_template(SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE)
         return template.render()
 
-    def get_send_statistics(self):
+    def get_send_statistics(self) -> str:
         statistics = self.backend.get_send_statistics()
         template = self.response_template(GET_SEND_STATISTICS)
         return template.render(all_statistics=[statistics])
 
-    def create_configuration_set(self):
-        configuration_set_name = self.querystring.get("ConfigurationSet.Name")[0]
+    def create_configuration_set(self) -> str:
+        configuration_set_name = self.querystring.get("ConfigurationSet.Name")[0]  # type: ignore
         self.backend.create_configuration_set(
             configuration_set_name=configuration_set_name
         )
         template = self.response_template(CREATE_CONFIGURATION_SET)
         return template.render()
 
-    def describe_configuration_set(self):
-        configuration_set_name = self.querystring.get("ConfigurationSetName")[0]
+    def describe_configuration_set(self) -> str:
+        configuration_set_name = self.querystring.get("ConfigurationSetName")[0]  # type: ignore
         self.backend.describe_configuration_set(configuration_set_name)
         template = self.response_template(DESCRIBE_CONFIGURATION_SET)
         return template.render(name=configuration_set_name)
 
-    def create_configuration_set_event_destination(self):
+    def create_configuration_set_event_destination(self) -> str:
 
-        configuration_set_name = self._get_param("ConfigurationSetName")
+        configuration_set_name = self._get_param("ConfigurationSetName")  # type: ignore
         is_configuration_event_enabled = self.querystring.get(
             "EventDestination.Enabled"
-        )[0]
-        configuration_event_name = self.querystring.get("EventDestination.Name")[0]
-        event_topic_arn = self.querystring.get(
+        )[
+            0
+        ]  # type: ignore
+        configuration_event_name = self.querystring.get("EventDestination.Name")[0]  # type: ignore
+        event_topic_arn = self.querystring.get(  # type: ignore
             "EventDestination.SNSDestination.TopicARN"
         )[0]
         event_matching_types = self._get_multi_param(
@@ -230,7 +242,7 @@ class EmailResponse(BaseResponse):
         template = self.response_template(CREATE_CONFIGURATION_SET_EVENT_DESTINATION)
         return template.render()
 
-    def create_template(self):
+    def create_template(self) -> str:
         template_data = self._get_dict_param("Template")
         template_info = {}
         template_info["text_part"] = template_data.get("._text_part", "")
@@ -242,7 +254,7 @@ class EmailResponse(BaseResponse):
         template = self.response_template(CREATE_TEMPLATE)
         return template.render()
 
-    def update_template(self):
+    def update_template(self) -> str:
         template_data = self._get_dict_param("Template")
         template_info = {}
         template_info["text_part"] = template_data.get("._text_part", "")
@@ -254,43 +266,43 @@ class EmailResponse(BaseResponse):
         template = self.response_template(UPDATE_TEMPLATE)
         return template.render()
 
-    def get_template(self):
+    def get_template(self) -> str:
         template_name = self._get_param("TemplateName")
         template_data = self.backend.get_template(template_name)
         template = self.response_template(GET_TEMPLATE)
         return template.render(template_data=template_data)
 
-    def list_templates(self):
+    def list_templates(self) -> str:
         email_templates = self.backend.list_templates()
         template = self.response_template(LIST_TEMPLATES)
         return template.render(templates=email_templates)
 
-    def test_render_template(self):
+    def test_render_template(self) -> str:
         render_info = self._get_dict_param("Template")
         rendered_template = self.backend.render_template(render_info)
         template = self.response_template(RENDER_TEMPLATE)
         return template.render(template=rendered_template)
 
-    def create_receipt_rule_set(self):
+    def create_receipt_rule_set(self) -> str:
         rule_set_name = self._get_param("RuleSetName")
         self.backend.create_receipt_rule_set(rule_set_name)
         template = self.response_template(CREATE_RECEIPT_RULE_SET)
         return template.render()
 
-    def create_receipt_rule(self):
+    def create_receipt_rule(self) -> str:
         rule_set_name = self._get_param("RuleSetName")
         rule = self._get_dict_param("Rule.")
         self.backend.create_receipt_rule(rule_set_name, rule)
         template = self.response_template(CREATE_RECEIPT_RULE)
         return template.render()
 
-    def describe_receipt_rule_set(self):
+    def describe_receipt_rule_set(self) -> str:
         rule_set_name = self._get_param("RuleSetName")
 
         rule_set = self.backend.describe_receipt_rule_set(rule_set_name)
 
         for i, rule in enumerate(rule_set):
-            formatted_rule = {}
+            formatted_rule: Dict[str, Any] = {}
 
             for k, v in rule.items():
                 self._parse_param(k, v, formatted_rule)
@@ -301,13 +313,13 @@ class EmailResponse(BaseResponse):
 
         return template.render(rule_set=rule_set, rule_set_name=rule_set_name)
 
-    def describe_receipt_rule(self):
+    def describe_receipt_rule(self) -> str:
         rule_set_name = self._get_param("RuleSetName")
         rule_name = self._get_param("RuleName")
 
         receipt_rule = self.backend.describe_receipt_rule(rule_set_name, rule_name)
 
-        rule = {}
+        rule: Dict[str, Any] = {}
 
         for k, v in receipt_rule.items():
             self._parse_param(k, v, rule)
@@ -315,7 +327,7 @@ class EmailResponse(BaseResponse):
         template = self.response_template(DESCRIBE_RECEIPT_RULE)
         return template.render(rule=rule)
 
-    def update_receipt_rule(self):
+    def update_receipt_rule(self) -> str:
         rule_set_name = self._get_param("RuleSetName")
         rule = self._get_dict_param("Rule.")
 
@@ -324,7 +336,7 @@ class EmailResponse(BaseResponse):
         template = self.response_template(UPDATE_RECEIPT_RULE)
         return template.render()
 
-    def set_identity_mail_from_domain(self):
+    def set_identity_mail_from_domain(self) -> str:
         identity = self._get_param("Identity")
         mail_from_domain = self._get_param("MailFromDomain")
         behavior_on_mx_failure = self._get_param("BehaviorOnMXFailure")
@@ -336,14 +348,16 @@ class EmailResponse(BaseResponse):
         template = self.response_template(SET_IDENTITY_MAIL_FROM_DOMAIN)
         return template.render()
 
-    def get_identity_mail_from_domain_attributes(self):
+    def get_identity_mail_from_domain_attributes(self) -> str:
         identities = self._get_multi_param("Identities.member.")
-        identities = self.backend.get_identity_mail_from_domain_attributes(identities)
+        attributes_by_identity = self.backend.get_identity_mail_from_domain_attributes(
+            identities
+        )
         template = self.response_template(GET_IDENTITY_MAIL_FROM_DOMAIN_ATTRIBUTES)
 
-        return template.render(identities=identities)
+        return template.render(identities=attributes_by_identity)
 
-    def get_identity_verification_attributes(self):
+    def get_identity_verification_attributes(self) -> str:
         params = self._get_params()
         identities = params.get("Identities")
         verification_attributes = self.backend.get_identity_verification_attributes(
