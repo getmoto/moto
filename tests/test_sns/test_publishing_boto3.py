@@ -528,7 +528,7 @@ def test_publish_group_id_to_non_fifo():
 
     with pytest.raises(
         ClientError,
-        match="The request include parameter that is not valid for this queue type",
+        match="The request includes MessageGroupId parameter that is not valid for this topic type",
     ):
         topic.publish(Message="message", MessageGroupId="message_group_id")
 

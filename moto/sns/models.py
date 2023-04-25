@@ -671,8 +671,8 @@ class SNSBackend(BaseBackend):
             else:
                 if not fifo_topic:
                     msg = (
-                        f"Value {group_id} for parameter MessageGroupId is invalid. "
-                        "Reason: The request include parameter that is not valid for this queue type."
+                        "Invalid parameter: MessageGroupId "
+                        "Reason: The request includes MessageGroupId parameter that is not valid for this topic type"
                     )
                     raise InvalidParameterValue(msg)
             message_id = topic.publish(
@@ -1023,7 +1023,7 @@ class SNSBackend(BaseBackend):
                         {
                             "Id": entry["Id"],
                             "Code": "InvalidParameter",
-                            "Message": f"Invalid parameter: {e.message}",
+                            "Message": e.message,
                             "SenderFault": True,
                         }
                     )

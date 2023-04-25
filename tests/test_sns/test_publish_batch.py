@@ -100,7 +100,7 @@ def test_publish_batch_standard_with_message_group_id():
         {
             "Id": "id_2",
             "Code": "InvalidParameter",
-            "Message": "Invalid parameter: Value mgid for parameter MessageGroupId is invalid. Reason: The request include parameter that is not valid for this queue type.",
+            "Message": "Invalid parameter: MessageGroupId Reason: The request includes MessageGroupId parameter that is not valid for this topic type",
             "SenderFault": True,
         }
     )
