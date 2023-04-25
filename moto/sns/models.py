@@ -58,7 +58,14 @@ class Topic(CloudFormationModel):
         self.fifo_topic = "false"
         self.content_based_deduplication = "false"
 
-    def publish(self, message, subject=None, message_attributes=None, group_id=None):
+    def publish(
+        self,
+        message,
+        subject=None,
+        message_attributes=None,
+        group_id=None,
+        deduplication_id=None,
+    ):
         message_id = str(mock_random.uuid4())
         subscriptions, _ = self.sns_backend.list_subscriptions(self.arn)
         for subscription in subscriptions:
@@ -68,6 +75,7 @@ class Topic(CloudFormationModel):
                 subject=subject,
                 message_attributes=message_attributes,
                 group_id=group_id,
+                deduplication_id=deduplication_id,
             )
         self.sent_notifications.append(
             (message_id, message, subject, message_attributes, group_id)
@@ -189,7 +197,13 @@ class Subscription(BaseModel):
         self.confirmed = False
 
     def publish(
-        self, message, message_id, subject=None, message_attributes=None, group_id=None
+        self,
+        message,
+        message_id,
+        subject=None,
+        message_attributes=None,
+        group_id=None,
+        deduplication_id=None,
     ):
         if not self._matches_filter_policy(message_attributes):
             return
@@ -211,6 +225,7 @@ class Subscription(BaseModel):
                         indent=2,
                         separators=(",", ": "),
                     ),
+                    deduplication_id=deduplication_id,
                     group_id=group_id,
                 )
             else:
@@ -232,6 +247,7 @@ class Subscription(BaseModel):
                     queue_name,
                     message,
                     message_attributes=raw_message_attributes,
+                    deduplication_id=deduplication_id,
                     group_id=group_id,
                 )
         elif self.protocol in ["http", "https"]:
@@ -640,6 +656,7 @@ class SNSBackend(BaseBackend):
         subject=None,
         message_attributes=None,
         group_id=None,
+        deduplication_id=None,
     ):
         if subject is not None and len(subject) > 100:
             # Note that the AWS docs around length are wrong: https://github.com/getmoto/moto/issues/1503
@@ -663,23 +680,29 @@ class SNSBackend(BaseBackend):
             topic = self.get_topic(arn)
 
             fifo_topic = topic.fifo_topic == "true"
-            if group_id is None:
-                # MessageGroupId is a mandatory parameter for all
-                # messages in a fifo queue
-                if fifo_topic:
+            if fifo_topic:
+                if not group_id:
+                    # MessageGroupId is a mandatory parameter for all
+                    # messages in a fifo queue
                     raise MissingParameter("MessageGroupId")
-            else:
-                if not fifo_topic:
-                    msg = (
-                        f"Value {group_id} for parameter MessageGroupId is invalid. "
-                        "Reason: The request include parameter that is not valid for this queue type."
+                deduplication_id_required = topic.content_based_deduplication == "false"
+                if not deduplication_id and deduplication_id_required:
+                    raise InvalidParameterValue(
+                        "The topic should either have ContentBasedDeduplication enabled or MessageDeduplicationId provided explicitly"
                     )
-                    raise InvalidParameterValue(msg)
+            elif group_id or deduplication_id:
+                parameter = "MessageGroupId" if group_id else "MessageDeduplicationId"
+                raise InvalidParameterValue(
+                    f"Invalid parameter: {parameter} "
+                    f"Reason: The request includes {parameter} parameter that is not valid for this topic type"
+                )
+
             message_id = topic.publish(
                 message,
                 subject=subject,
                 message_attributes=message_attributes,
                 group_id=group_id,
+                deduplication_id=deduplication_id,
             )
         except SNSNotFoundError:
             endpoint = self.get_endpoint(arn)
@@ -1023,7 +1046,7 @@ class SNSBackend(BaseBackend):
                         {
                             "Id": entry["Id"],
                             "Code": "InvalidParameter",
-                            "Message": f"Invalid parameter: {e.message}",
+                            "Message": e.message,
                             "SenderFault": True,
                         }
                     )
