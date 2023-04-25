@@ -30,6 +30,7 @@ from .exceptions import (
     SchemaVersionNotFoundFromSchemaIdException,
     SchemaNotFoundException,
     SchemaVersionMetadataAlreadyExistsException,
+    TriggerNotFoundException,
 )
 from .utils import PartitionFilter
 from .glue_schema_registry_utils import (
@@ -57,6 +58,18 @@ from ..utilities.tagging_service import TaggingService
 
 class GlueBackend(BaseBackend):
     PAGINATION_MODEL = {
+        "get_jobs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "get_triggers": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
         "list_crawlers": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -69,7 +82,7 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
-        "get_jobs": {
+        "list_triggers": {
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
@@ -84,6 +97,7 @@ class GlueBackend(BaseBackend):
         self.jobs: Dict[str, FakeJob] = OrderedDict()
         self.job_runs: Dict[str, FakeJobRun] = OrderedDict()
         self.tagger = TaggingService()
+        self.triggers: Dict[str, FakeTrigger] = OrderedDict()
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
@@ -757,6 +771,79 @@ class GlueBackend(BaseBackend):
 
         return schema.as_dict()
 
+    def create_trigger(
+        self,
+        name: str,
+        workflow_name: str,
+        trigger_type: str,
+        schedule: str,
+        predicate: Dict[str, Any],
+        actions: List[Dict[str, Any]],
+        description: str,
+        start_on_creation: bool,
+        tags: Dict[str, str],
+        event_batching_condition: Dict[str, Any],
+    ) -> None:
+        self.triggers[name] = FakeTrigger(
+            name=name,
+            workflow_name=workflow_name,
+            trigger_type=trigger_type,
+            schedule=schedule,
+            predicate=predicate,
+            actions=actions,
+            description=description,
+            start_on_creation=start_on_creation,
+            tags=tags,
+            event_batching_condition=event_batching_condition,
+            backend=self,
+        )
+
+    def get_trigger(self, name: str) -> "FakeTrigger":
+        try:
+            return self.triggers[name]
+        except KeyError:
+            raise TriggerNotFoundException(name)
+
+    def start_trigger(self, name: str) -> None:
+        trigger = self.get_trigger(name)
+        trigger.start_trigger()
+
+    def stop_trigger(self, name: str) -> None:
+        trigger = self.get_trigger(name)
+        trigger.stop_trigger()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:  # type: ignore
+        if dependent_job_name:
+            triggers = []
+            for trigger in self.triggers.values():
+                for action in trigger.actions:
+                    if ("JobName" in action) and (
+                        action["JobName"] == dependent_job_name
+                    ):
+                        triggers.append(trigger)
+            return triggers
+
+        return list(self.triggers.values())
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:  # type: ignore
+        if dependent_job_name:
+            triggers = []
+            for trigger in self.triggers.values():
+                for action in trigger.actions:
+                    if ("JobName" in action) and (
+                        action["JobName"] == dependent_job_name
+                    ):
+                        triggers.append(trigger)
+            return triggers
+
+        return list(self.triggers.values())
+
+    def delete_trigger(self, name: str) -> None:
+        if name in self.triggers:
+            del self.triggers[name]
+
     def batch_delete_table(
         self, database_name: str, tables: List[str]
     ) -> List[Dict[str, Any]]:
@@ -873,6 +960,13 @@ class GlueBackend(BaseBackend):
             if job_name in self.jobs:
                 jobs.append(self.jobs[job_name].as_dict())
         return jobs
+
+    def batch_get_triggers(self, trigger_names: List[str]) -> List[Dict[str, Any]]:
+        triggers = []
+        for trigger_name in trigger_names:
+            if trigger_name in self.triggers:
+                triggers.append(self.triggers[trigger_name].as_dict())
+        return triggers
 
 
 class FakeDatabase(BaseModel):
@@ -1421,6 +1515,72 @@ class FakeSchemaVersion(BaseModel):
             "Status": self.schema_version_status,
             "CreatedTime": str(self.created_time),
         }
+
+
+class FakeTrigger(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        workflow_name: str,
+        trigger_type: str,  # to avoid any issues with built-in function type()
+        schedule: str,
+        predicate: Dict[str, Any],
+        actions: List[Dict[str, Any]],
+        description: str,
+        start_on_creation: bool,
+        tags: Dict[str, str],
+        event_batching_condition: Dict[str, Any],
+    ):
+        self.name = name
+        self.workflow_name = workflow_name
+        self.trigger_type = trigger_type
+        self.schedule = schedule
+        self.predicate = predicate
+        self.actions = actions
+        self.description = description
+        if start_on_creation:
+            self.state = "ACTIVATED"
+        else:
+            self.state = "CREATED"
+        self.event_batching_condition = event_batching_condition
+        self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:trigger/{self.name}"
+        self.backend = backend
+        self.backend.tag_resource(self.arn, tags)
+
+    def get_name(self) -> str:
+        return self.name
+
+    def start_trigger(self) -> None:
+        self.state = "ACTIVATED"
+
+    def stop_trigger(self) -> None:
+        self.state = "DEACTIVATED"
+
+    def as_dict(self) -> Dict[str, Any]:
+        data: Dict[str, Any] = {
+            "Name": self.name,
+            "Type": self.trigger_type,
+            "Actions": self.actions,
+            "State": self.state,
+        }
+
+        if self.workflow_name:
+            data["WorkflowName"] = self.workflow_name
+
+        if self.trigger_type == "SCHEDULED":
+            data["Schedule"] = self.schedule
+
+        if self.predicate:
+            data["Predicate"] = self.predicate
+
+        if self.description:
+            data["Description"] = self.description
+
+        if self.event_batching_condition:
+            data["EventBatchingCondition"] = self.event_batching_condition
+
+        return data
 
 
 glue_backends = BackendDict(GlueBackend, "glue")

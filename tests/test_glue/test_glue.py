@@ -493,3 +493,299 @@ def test_batch_get_crawlers():
 
     response["Crawlers"].should.have.length_of(1)
     response["CrawlersNotFound"].should.have.length_of(1)
+
+
+@mock_glue
+def test_create_trigger():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+
+    response = client.create_trigger(
+        Name=trigger_name,
+        Type="ON_DEMAND",
+        Actions=[
+            {
+                "JobName": job_name,
+            }
+        ],
+    )
+    assert response["Name"] == trigger_name
+
+
+@mock_glue
+def test_get_trigger_on_demand():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "ON_DEMAND",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+    }
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["Name"] == trigger_name
+    assert trigger["Type"] == "ON_DEMAND"
+    assert trigger["State"] == "CREATED"
+    assert trigger["Actions"] == [{"JobName": job_name}]
+
+
+@mock_glue
+def test_get_trigger_scheduled():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "SCHEDULED",
+        "Schedule": "cron(5 3 * * ? *)",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+        "StartOnCreation": True,
+    }
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["Name"] == trigger_name
+    assert trigger["Type"] == "SCHEDULED"
+    assert trigger["State"] == "ACTIVATED"
+    assert trigger["Actions"] == [{"JobName": job_name}]
+
+
+@mock_glue
+def test_get_trigger_conditional():
+    client = create_glue_client()
+    crawler_name = create_test_crawler(client)
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "CONDITIONAL",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+        "StartOnCreation": True,
+        "Predicate": {
+            "Logical": "ANY",
+            "Conditions": [
+                {
+                    "LogicalOperator": "EQUALS",
+                    "CrawlerName": crawler_name,
+                    "CrawlState": "SUCCEEDED",
+                }
+            ],
+        },
+    }
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["Name"] == trigger_name
+    assert trigger["Type"] == "CONDITIONAL"
+    assert trigger["State"] == "ACTIVATED"
+    assert trigger["Actions"] == [{"JobName": job_name}]
+    assert "Predicate" in trigger
+
+
+def create_test_trigger(client, tags=None):
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    client.create_trigger(
+        Name=trigger_name,
+        Type="ON_DEMAND",
+        Actions=[
+            {
+                "JobName": job_name,
+            }
+        ],
+        Tags=tags or {},
+    )
+    return trigger_name
+
+
+@mock_glue
+def test_get_triggers_trigger_name_exists():
+    client = create_glue_client()
+    trigger_name = create_test_trigger(client)
+    response = client.get_triggers()
+    assert len(response["Triggers"]) == 1
+    assert response["Triggers"][0]["Name"] == trigger_name
+
+
+@mock_glue
+def test_get_triggers_dependent_job_name():
+    client = create_glue_client()
+
+    create_test_trigger(client)
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    response = client.create_trigger(
+        Name=trigger_name,
+        Type="ON_DEMAND",
+        Actions=[
+            {
+                "JobName": job_name,
+            }
+        ],
+    )
+
+    response = client.get_triggers(DependentJobName=job_name)
+    assert len(response["Triggers"]) == 1
+    assert response["Triggers"][0]["Name"] == trigger_name
+
+
+@mock_glue
+def test_start_trigger():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "SCHEDULED",
+        "Schedule": "cron(5 3 * * ? *)",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+    }
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["State"] == "CREATED"
+
+    client.start_trigger(Name=trigger_name)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["State"] == "ACTIVATED"
+
+
+@mock_glue
+def test_stop_trigger():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "SCHEDULED",
+        "Schedule": "cron(5 3 * * ? *)",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+        "StartOnCreation": True,
+    }
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["State"] == "ACTIVATED"
+
+    client.stop_trigger(Name=trigger_name)
+
+    trigger = client.get_trigger(Name=trigger_name)["Trigger"]
+
+    assert trigger["State"] == "DEACTIVATED"
+
+
+@mock_glue
+def test_list_triggers():
+    client = create_glue_client()
+    trigger_name = create_test_trigger(client)
+    response = client.list_triggers()
+    assert response["TriggerNames"] == [trigger_name]
+    assert "NextToken" not in response
+
+
+@mock_glue
+def test_list_triggers_dependent_job_name():
+    client = create_glue_client()
+
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "ON_DEMAND",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+    }
+
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+    create_test_trigger(client)
+
+    response = client.list_triggers()
+    assert len(response["TriggerNames"]) == 2
+
+    response = client.list_triggers(DependentJobName=job_name)
+    assert len(response["TriggerNames"]) == 1
+    assert response["TriggerNames"] == [trigger_name]
+
+
+@mock_glue
+def test_list_triggers_tags():
+    client = create_glue_client()
+
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "ON_DEMAND",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+        "Tags": {
+            "CreatedBy": "moto",
+        },
+    }
+
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+    create_test_trigger(client)
+
+    response = client.list_triggers()
+    assert len(response["TriggerNames"]) == 2
+
+    response = client.list_triggers(Tags={"CreatedBy": "moto"})
+    assert len(response["TriggerNames"]) == 1
+    assert response["TriggerNames"] == [trigger_name]
+
+
+@mock_glue
+def test_batch_get_triggers():
+    client = create_glue_client()
+    trigger_name = create_test_trigger(client)
+
+    response = client.batch_get_triggers(
+        TriggerNames=[trigger_name, "trigger-not-found"]
+    )
+
+    assert len(response["Triggers"]) == 1
+    assert len(response["TriggersNotFound"]) == 1
+
+
+@mock_glue
+def test_delete_trigger():
+    client = create_glue_client()
+    trigger_name = create_test_trigger(client)
+
+    client.get_trigger(Name=trigger_name)
+
+    client.delete_trigger(Name=trigger_name)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_trigger(Name=trigger_name)
+
+    assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
