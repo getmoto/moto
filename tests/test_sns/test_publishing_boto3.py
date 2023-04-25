@@ -103,6 +103,87 @@ def test_publish_to_sqs_fifo():
     topic.publish(Message="message", MessageGroupId="message_group_id")
 
 
+@mock_sns
+@mock_sqs
+def test_publish_to_sqs_fifo_with_deduplication_id():
+    sns = boto3.resource("sns", region_name="us-east-1")
+    topic = sns.create_topic(
+        Name="topic.fifo",
+        Attributes={"FifoTopic": "true"},
+    )
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(
+        QueueName="queue.fifo",
+        Attributes={"FifoQueue": "true"},
+    )
+
+    topic.subscribe(
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+        Attributes={"RawMessageDelivery": "true"},
+    )
+
+    message = '{"msg": "hello"}'
+    with freeze_time("2015-01-01 12:00:00"):
+        topic.publish(
+            Message=message,
+            MessageGroupId="message_group_id",
+            MessageDeduplicationId="message_deduplication_id",
+        )
+
+    with freeze_time("2015-01-01 12:00:01"):
+        messages = queue.receive_messages(
+            MaxNumberOfMessages=1,
+            AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
+        )
+    messages[0].attributes["MessageGroupId"].should.equal("message_group_id")
+    messages[0].attributes["MessageDeduplicationId"].should.equal(
+        "message_deduplication_id"
+    )
+
+
+@mock_sns
+@mock_sqs
+def test_publish_to_sqs_fifo_raw_with_deduplication_id():
+    sns = boto3.resource("sns", region_name="us-east-1")
+    topic = sns.create_topic(
+        Name="topic.fifo",
+        Attributes={"FifoTopic": "true"},
+    )
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(
+        QueueName="queue.fifo",
+        Attributes={"FifoQueue": "true"},
+    )
+
+    subscription = topic.subscribe(
+        Protocol="sqs", Endpoint=queue.attributes["QueueArn"]
+    )
+    subscription.set_attributes(
+        AttributeName="RawMessageDelivery", AttributeValue="true"
+    )
+
+    message = "my message"
+    with freeze_time("2015-01-01 12:00:00"):
+        topic.publish(
+            Message=message,
+            MessageGroupId="message_group_id",
+            MessageDeduplicationId="message_deduplication_id",
+        )
+
+    with freeze_time("2015-01-01 12:00:01"):
+        messages = queue.receive_messages(
+            MaxNumberOfMessages=1,
+            AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
+        )
+    messages[0].attributes["MessageGroupId"].should.equal("message_group_id")
+    messages[0].attributes["MessageDeduplicationId"].should.equal(
+        "message_deduplication_id"
+    )
+
+
 @mock_sqs
 @mock_sns
 def test_publish_to_sqs_bad():
@@ -531,6 +612,45 @@ def test_publish_group_id_to_non_fifo():
         match="The request includes MessageGroupId parameter that is not valid for this topic type",
     ):
         topic.publish(Message="message", MessageGroupId="message_group_id")
+
+    # message group not included - OK
+    topic.publish(Message="message")
+
+
+@mock_sns
+def test_publish_fifo_needs_deduplication_id():
+    sns = boto3.resource("sns", region_name="us-east-1")
+    topic = sns.create_topic(
+        Name="topic.fifo",
+        Attributes={"FifoTopic": "true"},
+    )
+
+    with pytest.raises(
+        ClientError,
+        match="The topic should either have ContentBasedDeduplication enabled or MessageDeduplicationId provided explicitly",
+    ):
+        topic.publish(Message="message", MessageGroupId="message_group_id")
+
+    # message deduplication id included - OK
+    topic.publish(
+        Message="message",
+        MessageGroupId="message_group_id",
+        MessageDeduplicationId="message_deduplication_id",
+    )
+
+
+@mock_sns
+def test_publish_deduplication_id_to_non_fifo():
+    sns = boto3.resource("sns", region_name="us-east-1")
+    topic = sns.create_topic(Name="topic")
+
+    with pytest.raises(
+        ClientError,
+        match="The request includes MessageDeduplicationId parameter that is not valid for this topic type",
+    ):
+        topic.publish(
+            Message="message", MessageDeduplicationId="message_deduplication_id"
+        )
 
     # message group not included - OK
     topic.publish(Message="message")
