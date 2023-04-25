@@ -610,10 +610,10 @@ class GlueResponse(BaseResponse):
             dependent_job_name=dependent_job_name,
             max_results=max_results,
         )
-        filtered_job_names = self.filter_jobs_by_tags(triggers, tags)
+        filtered_trigger_names = self.filter_triggers_by_tags(triggers, tags)
         return json.dumps(
             dict(
-                TriggerNames=[job_name for job_name in filtered_job_names],
+                TriggerNames=[trigger_name for trigger_name in filtered_trigger_names],
                 NextToken=next_token,
             )
         )

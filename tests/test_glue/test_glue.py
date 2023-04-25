@@ -709,6 +709,61 @@ def test_list_triggers():
 
 
 @mock_glue
+def test_list_triggers_dependent_job_name():
+    client = create_glue_client()
+
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "ON_DEMAND",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+    }
+
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+    create_test_trigger(client)
+
+    response = client.list_triggers()
+    assert len(response["TriggerNames"]) == 2
+
+    response = client.list_triggers(DependentJobName=job_name)
+    assert len(response["TriggerNames"]) == 1
+    assert response["TriggerNames"] == [trigger_name]
+
+
+@mock_glue
+def test_list_triggers_tags():
+    client = create_glue_client()
+
+    job_name = create_test_job(client)
+    trigger_name = str(uuid4())
+    trigger_attributes = {
+        "Type": "ON_DEMAND",
+        "Actions": [
+            {
+                "JobName": job_name,
+            }
+        ],
+        "Tags": {
+            "CreatedBy": "moto",
+        },
+    }
+
+    client.create_trigger(Name=trigger_name, **trigger_attributes)
+    create_test_trigger(client)
+
+    response = client.list_triggers()
+    assert len(response["TriggerNames"]) == 2
+
+    response = client.list_triggers(Tags={"CreatedBy": "moto"})
+    assert len(response["TriggerNames"]) == 1
+    assert response["TriggerNames"] == [trigger_name]
+
+
+@mock_glue
 def test_batch_get_triggers():
     client = create_glue_client()
     trigger_name = create_test_trigger(client)
