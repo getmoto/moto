@@ -1,10 +1,11 @@
 import json
 import re
 from collections import defaultdict
+from typing import Any, Dict, Tuple, Union
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from .models import sns_backends
+from .models import sns_backends, SNSBackend
 from .exceptions import InvalidParameterValue, SNSNotFoundError
 from .utils import is_e164
 
@@ -15,32 +16,34 @@ class SNSResponse(BaseResponse):
     )
     OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r"^\+?\d+$")
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="sns")
 
     @property
-    def backend(self):
+    def backend(self) -> SNSBackend:
         return sns_backends[self.current_account][self.region]
 
-    def _error(self, code, message, sender="Sender"):
+    def _error(self, code: str, message: str, sender: str = "Sender") -> str:
         template = self.response_template(ERROR_RESPONSE)
         return template.render(code=code, message=message, sender=sender)
 
-    def _get_attributes(self):
+    def _get_attributes(self) -> Dict[str, str]:
         attributes = self._get_list_prefix("Attributes.entry")
         return dict((attribute["key"], attribute["value"]) for attribute in attributes)
 
-    def _get_tags(self):
+    def _get_tags(self) -> Dict[str, str]:
         tags = self._get_list_prefix("Tags.member")
         return {tag["key"]: tag["value"] for tag in tags}
 
-    def _parse_message_attributes(self):
+    def _parse_message_attributes(self) -> Dict[str, Any]:
         message_attributes = self._get_object_map(
             "MessageAttributes.entry", name="Name", value="Value"
         )
         return self._transform_message_attributes(message_attributes)
 
-    def _transform_message_attributes(self, message_attributes):
+    def _transform_message_attributes(
+        self, message_attributes: Dict[str, Any]
+    ) -> Dict[str, Any]:
         # SNS converts some key names before forwarding messages
         # DataType -> Type, StringValue -> Value, BinaryValue -> Value
         transformed_message_attributes = {}
@@ -96,7 +99,7 @@ class SNSResponse(BaseResponse):
 
         return transformed_message_attributes
 
-    def create_topic(self):
+    def create_topic(self) -> str:
         name = self._get_param("Name")
         attributes = self._get_attributes()
         tags = self._get_tags()
@@ -117,7 +120,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(CREATE_TOPIC_TEMPLATE)
         return template.render(topic=topic)
 
-    def list_topics(self):
+    def list_topics(self) -> str:
         next_token = self._get_param("NextToken")
         topics, next_token = self.backend.list_topics(next_token=next_token)
 
@@ -139,7 +142,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(LIST_TOPICS_TEMPLATE)
         return template.render(topics=topics, next_token=next_token)
 
-    def delete_topic(self):
+    def delete_topic(self) -> str:
         topic_arn = self._get_param("TopicArn")
         self.backend.delete_topic(topic_arn)
 
@@ -157,7 +160,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(DELETE_TOPIC_TEMPLATE)
         return template.render()
 
-    def get_topic_attributes(self):
+    def get_topic_attributes(self) -> str:
         topic_arn = self._get_param("TopicArn")
         topic = self.backend.get_topic(topic_arn)
 
@@ -193,7 +196,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(GET_TOPIC_ATTRIBUTES_TEMPLATE)
         return template.render(topic=topic)
 
-    def set_topic_attributes(self):
+    def set_topic_attributes(self) -> str:
         topic_arn = self._get_param("TopicArn")
         attribute_name = self._get_param("AttributeName")
         attribute_name = camelcase_to_underscores(attribute_name)
@@ -214,7 +217,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(SET_TOPIC_ATTRIBUTES_TEMPLATE)
         return template.render()
 
-    def subscribe(self):
+    def subscribe(self) -> str:
         topic_arn = self._get_param("TopicArn")
         endpoint = self._get_param("Endpoint")
         protocol = self._get_param("Protocol")
@@ -243,7 +246,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(SUBSCRIBE_TEMPLATE)
         return template.render(subscription=subscription)
 
-    def unsubscribe(self):
+    def unsubscribe(self) -> str:
         subscription_arn = self._get_param("SubscriptionArn")
         self.backend.unsubscribe(subscription_arn)
 
@@ -261,7 +264,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(UNSUBSCRIBE_TEMPLATE)
         return template.render()
 
-    def list_subscriptions(self):
+    def list_subscriptions(self) -> str:
         next_token = self._get_param("NextToken")
         subscriptions, next_token = self.backend.list_subscriptions(
             next_token=next_token
@@ -294,7 +297,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(LIST_SUBSCRIPTIONS_TEMPLATE)
         return template.render(subscriptions=subscriptions, next_token=next_token)
 
-    def list_subscriptions_by_topic(self):
+    def list_subscriptions_by_topic(self) -> str:
         topic_arn = self._get_param("TopicArn")
         next_token = self._get_param("NextToken")
         subscriptions, next_token = self.backend.list_subscriptions(
@@ -328,7 +331,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(LIST_SUBSCRIPTIONS_BY_TOPIC_TEMPLATE)
         return template.render(subscriptions=subscriptions, next_token=next_token)
 
-    def publish(self):
+    def publish(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         target_arn = self._get_param("TargetArn")
         topic_arn = self._get_param("TopicArn")
         phone_number = self._get_param("PhoneNumber")
@@ -384,7 +387,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(PUBLISH_TEMPLATE)
         return template.render(message_id=message_id)
 
-    def publish_batch(self):
+    def publish_batch(self) -> str:
         topic_arn = self._get_param("TopicArn")
         publish_batch_request_entries = self._get_multi_param(
             "PublishBatchRequestEntries.member"
@@ -406,7 +409,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(PUBLISH_BATCH_TEMPLATE)
         return template.render(successful=successful, failed=failed)
 
-    def create_platform_application(self):
+    def create_platform_application(self) -> str:
         name = self._get_param("Name")
         platform = self._get_param("Platform")
         attributes = self._get_attributes()
@@ -431,7 +434,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(CREATE_PLATFORM_APPLICATION_TEMPLATE)
         return template.render(platform_application=platform_application)
 
-    def get_platform_application_attributes(self):
+    def get_platform_application_attributes(self) -> str:
         arn = self._get_param("PlatformApplicationArn")
         application = self.backend.get_application(arn)
 
@@ -452,7 +455,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
         return template.render(application=application)
 
-    def set_platform_application_attributes(self):
+    def set_platform_application_attributes(self) -> str:
         arn = self._get_param("PlatformApplicationArn")
         attributes = self._get_attributes()
 
@@ -472,7 +475,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(SET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
         return template.render()
 
-    def list_platform_applications(self):
+    def list_platform_applications(self) -> str:
         applications = self.backend.list_platform_applications()
 
         if self.request_json:
@@ -499,7 +502,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(LIST_PLATFORM_APPLICATIONS_TEMPLATE)
         return template.render(applications=applications)
 
-    def delete_platform_application(self):
+    def delete_platform_application(self) -> str:
         platform_arn = self._get_param("PlatformApplicationArn")
         self.backend.delete_platform_application(platform_arn)
 
@@ -517,7 +520,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(DELETE_PLATFORM_APPLICATION_TEMPLATE)
         return template.render()
 
-    def create_platform_endpoint(self):
+    def create_platform_endpoint(self) -> str:
         application_arn = self._get_param("PlatformApplicationArn")
         application = self.backend.get_application(application_arn)
 
@@ -546,7 +549,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(CREATE_PLATFORM_ENDPOINT_TEMPLATE)
         return template.render(platform_endpoint=platform_endpoint)
 
-    def list_endpoints_by_platform_application(self):
+    def list_endpoints_by_platform_application(self) -> str:
         application_arn = self._get_param("PlatformApplicationArn")
         endpoints = self.backend.list_endpoints_by_platform_application(application_arn)
 
@@ -576,7 +579,7 @@ class SNSResponse(BaseResponse):
         )
         return template.render(endpoints=endpoints)
 
-    def get_endpoint_attributes(self):
+    def get_endpoint_attributes(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         arn = self._get_param("EndpointArn")
         try:
             endpoint = self.backend.get_endpoint(arn)
@@ -601,7 +604,7 @@ class SNSResponse(BaseResponse):
             error_response = self._error("NotFound", "Endpoint does not exist")
             return error_response, dict(status=404)
 
-    def set_endpoint_attributes(self):
+    def set_endpoint_attributes(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         arn = self._get_param("EndpointArn")
         attributes = self._get_attributes()
 
@@ -621,7 +624,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(SET_ENDPOINT_ATTRIBUTES_TEMPLATE)
         return template.render()
 
-    def delete_endpoint(self):
+    def delete_endpoint(self) -> str:
         arn = self._get_param("EndpointArn")
         self.backend.delete_endpoint(arn)
 
@@ -639,13 +642,13 @@ class SNSResponse(BaseResponse):
         template = self.response_template(DELETE_ENDPOINT_TEMPLATE)
         return template.render()
 
-    def get_subscription_attributes(self):
+    def get_subscription_attributes(self) -> str:
         arn = self._get_param("SubscriptionArn")
         attributes = self.backend.get_subscription_attributes(arn)
         template = self.response_template(GET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=attributes)
 
-    def set_subscription_attributes(self):
+    def set_subscription_attributes(self) -> str:
         arn = self._get_param("SubscriptionArn")
         attr_name = self._get_param("AttributeName")
         attr_value = self._get_param("AttributeValue")
@@ -653,12 +656,12 @@ class SNSResponse(BaseResponse):
         template = self.response_template(SET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE)
         return template.render()
 
-    def set_sms_attributes(self):
+    def set_sms_attributes(self) -> str:
         # attributes.entry.1.key
         # attributes.entry.1.value
         # to
         # 1: {key:X, value:Y}
-        temp_dict = defaultdict(dict)
+        temp_dict: Dict[str, Any] = defaultdict(dict)
         for key, value in self.querystring.items():
             match = self.SMS_ATTR_REGEX.match(key)
             if match is not None:
@@ -678,7 +681,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(SET_SMS_ATTRIBUTES_TEMPLATE)
         return template.render()
 
-    def get_sms_attributes(self):
+    def get_sms_attributes(self) -> str:
         filter_list = set()
         for key, value in self.querystring.items():
             if key.startswith("attributes.member.1"):
@@ -694,7 +697,9 @@ class SNSResponse(BaseResponse):
         template = self.response_template(GET_SMS_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=result)
 
-    def check_if_phone_number_is_opted_out(self):
+    def check_if_phone_number_is_opted_out(
+        self,
+    ) -> Union[str, Tuple[str, Dict[str, int]]]:
         number = self._get_param("phoneNumber")
         if self.OPT_OUT_PHONE_NUMBER_REGEX.match(number) is None:
             error_response = self._error(
@@ -707,11 +712,11 @@ class SNSResponse(BaseResponse):
         template = self.response_template(CHECK_IF_OPTED_OUT_TEMPLATE)
         return template.render(opt_out=str(number.endswith("99")).lower())
 
-    def list_phone_numbers_opted_out(self):
+    def list_phone_numbers_opted_out(self) -> str:
         template = self.response_template(LIST_OPTOUT_TEMPLATE)
         return template.render(opt_outs=self.backend.opt_out_numbers)
 
-    def opt_in_phone_number(self):
+    def opt_in_phone_number(self) -> str:
         number = self._get_param("phoneNumber")
 
         try:
@@ -722,7 +727,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(OPT_IN_NUMBER_TEMPLATE)
         return template.render()
 
-    def add_permission(self):
+    def add_permission(self) -> str:
         topic_arn = self._get_param("TopicArn")
         label = self._get_param("Label")
         aws_account_ids = self._get_multi_param("AWSAccountId.member.")
@@ -733,7 +738,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(ADD_PERMISSION_TEMPLATE)
         return template.render()
 
-    def remove_permission(self):
+    def remove_permission(self) -> str:
         topic_arn = self._get_param("TopicArn")
         label = self._get_param("Label")
 
@@ -742,7 +747,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(DEL_PERMISSION_TEMPLATE)
         return template.render()
 
-    def confirm_subscription(self):
+    def confirm_subscription(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         arn = self._get_param("TopicArn")
 
         if arn not in self.backend.topics:
@@ -767,7 +772,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(CONFIRM_SUBSCRIPTION_TEMPLATE)
         return template.render(sub_arn=f"{arn}:68762e72-e9b1-410a-8b3b-903da69ee1d5")
 
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> str:
         arn = self._get_param("ResourceArn")
 
         result = self.backend.list_tags_for_resource(arn)
@@ -775,7 +780,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
         return template.render(tags=result)
 
-    def tag_resource(self):
+    def tag_resource(self) -> str:
         arn = self._get_param("ResourceArn")
         tags = self._get_tags()
 
@@ -783,7 +788,7 @@ class SNSResponse(BaseResponse):
 
         return self.response_template(TAG_RESOURCE_TEMPLATE).render()
 
-    def untag_resource(self):
+    def untag_resource(self) -> str:
         arn = self._get_param("ResourceArn")
         tag_keys = self._get_multi_param("TagKeys.member")
 
