@@ -1,21 +1,22 @@
-from .exceptions import ResourceNotFound
+from typing import Any, Dict, List
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
+from .exceptions import ResourceNotFound
 from .utils import PAGINATION_MODEL
 
 
 class AccountAssignment(BaseModel):
     def __init__(
         self,
-        instance_arn,
-        target_id,
-        target_type,
-        permission_set_arn,
-        principal_type,
-        principal_id,
+        instance_arn: str,
+        target_id: str,
+        target_type: str,
+        permission_set_arn: str,
+        principal_type: str,
+        principal_id: str,
     ):
         self.request_id = str(random.uuid4())
         self.instance_arn = instance_arn
@@ -26,8 +27,8 @@ class AccountAssignment(BaseModel):
         self.principal_id = principal_id
         self.created_date = unix_time()
 
-    def to_json(self, include_creation_date=False):
-        summary = {
+    def to_json(self, include_creation_date: bool = False) -> Dict[str, Any]:
+        summary: Dict[str, Any] = {
             "TargetId": self.target_id,
             "TargetType": self.target_type,
             "PermissionSetArn": self.permission_set_arn,
@@ -42,12 +43,12 @@ class AccountAssignment(BaseModel):
 class PermissionSet(BaseModel):
     def __init__(
         self,
-        name,
-        description,
-        instance_arn,
-        session_duration,
-        relay_state,
-        tags,
+        name: str,
+        description: str,
+        instance_arn: str,
+        session_duration: str,
+        relay_state: str,
+        tags: List[Dict[str, str]],
     ):
         self.name = name
         self.description = description
@@ -58,8 +59,8 @@ class PermissionSet(BaseModel):
         self.tags = tags
         self.created_date = unix_time()
 
-    def to_json(self, include_creation_date=False):
-        summary = {
+    def to_json(self, include_creation_date: bool = False) -> Dict[str, Any]:
+        summary: Dict[str, Any] = {
             "Name": self.name,
             "Description": self.description,
             "PermissionSetArn": self.permission_set_arn,
@@ -71,7 +72,7 @@ class PermissionSet(BaseModel):
         return summary
 
     @staticmethod
-    def generate_id(instance_arn):
+    def generate_id(instance_arn: str) -> str:
         chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
         return (
             instance_arn
@@ -83,20 +84,20 @@ class PermissionSet(BaseModel):
 class SSOAdminBackend(BaseBackend):
     """Implementation of SSOAdmin APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.account_assignments = list()
-        self.permission_sets = list()
+        self.account_assignments: List[AccountAssignment] = list()
+        self.permission_sets: List[PermissionSet] = list()
 
     def create_account_assignment(
         self,
-        instance_arn,
-        target_id,
-        target_type,
-        permission_set_arn,
-        principal_type,
-        principal_id,
-    ):
+        instance_arn: str,
+        target_id: str,
+        target_type: str,
+        permission_set_arn: str,
+        principal_type: str,
+        principal_id: str,
+    ) -> Dict[str, Any]:
         assignment = AccountAssignment(
             instance_arn,
             target_id,
@@ -110,13 +111,13 @@ class SSOAdminBackend(BaseBackend):
 
     def delete_account_assignment(
         self,
-        instance_arn,
-        target_id,
-        target_type,
-        permission_set_arn,
-        principal_type,
-        principal_id,
-    ):
+        instance_arn: str,
+        target_id: str,
+        target_type: str,
+        permission_set_arn: str,
+        principal_type: str,
+        principal_id: str,
+    ) -> Dict[str, Any]:
         account = self._find_account(
             instance_arn,
             target_id,
@@ -130,13 +131,13 @@ class SSOAdminBackend(BaseBackend):
 
     def _find_account(
         self,
-        instance_arn,
-        target_id,
-        target_type,
-        permission_set_arn,
-        principal_type,
-        principal_id,
-    ):
+        instance_arn: str,
+        target_id: str,
+        target_type: str,
+        permission_set_arn: str,
+        principal_type: str,
+        principal_id: str,
+    ) -> AccountAssignment:
         for account in self.account_assignments:
             instance_arn_match = account.instance_arn == instance_arn
             target_id_match = account.target_id == target_id
@@ -155,7 +156,9 @@ class SSOAdminBackend(BaseBackend):
                 return account
         raise ResourceNotFound
 
-    def list_account_assignments(self, instance_arn, account_id, permission_set_arn):
+    def list_account_assignments(
+        self, instance_arn: str, account_id: str, permission_set_arn: str
+    ) -> List[Dict[str, Any]]:
         """
         Pagination has not yet been implemented
         """
@@ -178,13 +181,13 @@ class SSOAdminBackend(BaseBackend):
 
     def create_permission_set(
         self,
-        name,
-        description,
-        instance_arn,
-        session_duration,
-        relay_state,
-        tags,
-    ):
+        name: str,
+        description: str,
+        instance_arn: str,
+        session_duration: str,
+        relay_state: str,
+        tags: List[Dict[str, str]],
+    ) -> Dict[str, Any]:
         permission_set = PermissionSet(
             name,
             description,
@@ -198,12 +201,12 @@ class SSOAdminBackend(BaseBackend):
 
     def update_permission_set(
         self,
-        instance_arn,
-        permission_set_arn,
-        description,
-        session_duration,
-        relay_state,
-    ):
+        instance_arn: str,
+        permission_set_arn: str,
+        description: str,
+        session_duration: str,
+        relay_state: str,
+    ) -> Dict[str, Any]:
         permission_set = self._find_permission_set(
             instance_arn,
             permission_set_arn,
@@ -216,10 +219,8 @@ class SSOAdminBackend(BaseBackend):
         return permission_set.to_json(True)
 
     def describe_permission_set(
-        self,
-        instance_arn,
-        permission_set_arn,
-    ):
+        self, instance_arn: str, permission_set_arn: str
+    ) -> Dict[str, Any]:
         permission_set = self._find_permission_set(
             instance_arn,
             permission_set_arn,
@@ -227,10 +228,8 @@ class SSOAdminBackend(BaseBackend):
         return permission_set.to_json(True)
 
     def delete_permission_set(
-        self,
-        instance_arn,
-        permission_set_arn,
-    ):
+        self, instance_arn: str, permission_set_arn: str
+    ) -> Dict[str, Any]:
         permission_set = self._find_permission_set(
             instance_arn,
             permission_set_arn,
@@ -239,10 +238,8 @@ class SSOAdminBackend(BaseBackend):
         return permission_set.to_json(include_creation_date=True)
 
     def _find_permission_set(
-        self,
-        instance_arn,
-        permission_set_arn,
-    ):
+        self, instance_arn: str, permission_set_arn: str
+    ) -> PermissionSet:
         for permission_set in self.permission_sets:
             instance_arn_match = permission_set.instance_arn == instance_arn
             permission_set_match = (
@@ -253,7 +250,7 @@ class SSOAdminBackend(BaseBackend):
         raise ResourceNotFound
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_permission_sets(self, instance_arn):
+    def list_permission_sets(self, instance_arn: str) -> List[PermissionSet]:  # type: ignore[misc]
         permission_sets = []
         for permission_set in self.permission_sets:
             if permission_set.instance_arn == instance_arn:

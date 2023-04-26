@@ -16,13 +16,13 @@ def random_session_token() -> str:
     )
 
 
-def random_assumed_role_id():
+def random_assumed_role_id() -> str:
     return (
         ACCOUNT_SPECIFIC_ASSUMED_ROLE_ID_PREFIX + _random_uppercase_or_digit_sequence(9)
     )
 
 
-def _random_uppercase_or_digit_sequence(length):
+def _random_uppercase_or_digit_sequence(length: int) -> str:
     return "".join(
         str(random.choice(string.ascii_uppercase + string.digits))
         for _ in range(length)

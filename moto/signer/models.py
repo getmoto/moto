@@ -1,10 +1,18 @@
+from typing import Any, Dict, List, Optional
+
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api._internal import mock_random
 
 
 class SigningProfile(BaseModel):
     def __init__(
-        self, account_id, region, name, platform_id, signature_validity_period, tags
+        self,
+        account_id: str,
+        region: str,
+        name: str,
+        platform_id: str,
+        signature_validity_period: Optional[Dict[str, Any]],
+        tags: Dict[str, str],
     ):
         self.name = name
         self.platform_id = platform_id
@@ -19,11 +27,11 @@ class SigningProfile(BaseModel):
         self.profile_version = mock_random.get_random_hex(10)
         self.profile_version_arn = f"{self.arn}/{self.profile_version}"
 
-    def cancel(self):
+    def cancel(self) -> None:
         self.status = "Canceled"
 
-    def to_dict(self, full=True):
-        small = {
+    def to_dict(self, full: bool = True) -> Dict[str, Any]:
+        small: Dict[str, Any] = {
             "arn": self.arn,
             "profileVersion": self.profile_version,
             "profileVersionArn": self.profile_version_arn,
@@ -149,22 +157,22 @@ class SignerBackend(BaseBackend):
         },
     ]
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.signing_profiles: [str, SigningProfile] = dict()
+        self.signing_profiles: Dict[str, SigningProfile] = dict()
 
-    def cancel_signing_profile(self, profile_name) -> None:
+    def cancel_signing_profile(self, profile_name: str) -> None:
         self.signing_profiles[profile_name].cancel()
 
-    def get_signing_profile(self, profile_name) -> SigningProfile:
+    def get_signing_profile(self, profile_name: str) -> SigningProfile:
         return self.signing_profiles[profile_name]
 
     def put_signing_profile(
         self,
-        profile_name,
-        signature_validity_period,
-        platform_id,
-        tags,
+        profile_name: str,
+        signature_validity_period: Optional[Dict[str, Any]],
+        platform_id: str,
+        tags: Dict[str, str],
     ) -> SigningProfile:
         """
         The following parameters are not yet implemented: SigningMaterial, Overrides, SigningParamaters
@@ -180,7 +188,7 @@ class SignerBackend(BaseBackend):
         self.signing_profiles[profile_name] = profile
         return profile
 
-    def list_signing_platforms(self):
+    def list_signing_platforms(self) -> List[Dict[str, Any]]:
         """
         Pagination is not yet implemented. The parameters category, partner, target are not yet implemented
         """
@@ -189,4 +197,4 @@ class SignerBackend(BaseBackend):
 
 # Using the lambda-regions
 # boto3.Session().get_available_regions("signer") still returns an empty list
-signer_backends: [str, [str, SignerBackend]] = BackendDict(SignerBackend, "lambda")
+signer_backends = BackendDict(SignerBackend, "lambda")

@@ -1,25 +1,25 @@
 from moto.core.responses import BaseResponse
 from .exceptions import STSValidationError
-from .models import sts_backends
+from .models import sts_backends, STSBackend
 
 MAX_FEDERATION_TOKEN_POLICY_LENGTH = 2048
 
 
 class TokenResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="sts")
 
     @property
-    def backend(self):
+    def backend(self) -> STSBackend:
         return sts_backends[self.current_account]["global"]
 
-    def get_session_token(self):
+    def get_session_token(self) -> str:
         duration = int(self.querystring.get("DurationSeconds", [43200])[0])
         token = self.backend.get_session_token(duration=duration)
         template = self.response_template(GET_SESSION_TOKEN_RESPONSE)
         return template.render(token=token)
 
-    def get_federation_token(self):
+    def get_federation_token(self) -> str:
         duration = int(self.querystring.get("DurationSeconds", [43200])[0])
         policy = self.querystring.get("Policy", [None])[0]
 
@@ -31,14 +31,14 @@ class TokenResponse(BaseResponse):
                 f" equal to {MAX_FEDERATION_TOKEN_POLICY_LENGTH}"
             )
 
-        name = self.querystring.get("Name")[0]
+        name = self.querystring.get("Name")[0]  # type: ignore
         token = self.backend.get_federation_token(duration=duration, name=name)
         template = self.response_template(GET_FEDERATION_TOKEN_RESPONSE)
         return template.render(token=token, account_id=self.current_account)
 
-    def assume_role(self):
-        role_session_name = self.querystring.get("RoleSessionName")[0]
-        role_arn = self.querystring.get("RoleArn")[0]
+    def assume_role(self) -> str:
+        role_session_name = self.querystring.get("RoleSessionName")[0]  # type: ignore
+        role_arn = self.querystring.get("RoleArn")[0]  # type: ignore
 
         policy = self.querystring.get("Policy", [None])[0]
         duration = int(self.querystring.get("DurationSeconds", [3600])[0])
@@ -54,9 +54,9 @@ class TokenResponse(BaseResponse):
         template = self.response_template(ASSUME_ROLE_RESPONSE)
         return template.render(role=role)
 
-    def assume_role_with_web_identity(self):
-        role_session_name = self.querystring.get("RoleSessionName")[0]
-        role_arn = self.querystring.get("RoleArn")[0]
+    def assume_role_with_web_identity(self) -> str:
+        role_session_name = self.querystring.get("RoleSessionName")[0]  # type: ignore
+        role_arn = self.querystring.get("RoleArn")[0]  # type: ignore
 
         policy = self.querystring.get("Policy", [None])[0]
         duration = int(self.querystring.get("DurationSeconds", [3600])[0])
@@ -72,10 +72,10 @@ class TokenResponse(BaseResponse):
         template = self.response_template(ASSUME_ROLE_WITH_WEB_IDENTITY_RESPONSE)
         return template.render(role=role)
 
-    def assume_role_with_saml(self):
-        role_arn = self.querystring.get("RoleArn")[0]
-        principal_arn = self.querystring.get("PrincipalArn")[0]
-        saml_assertion = self.querystring.get("SAMLAssertion")[0]
+    def assume_role_with_saml(self) -> str:
+        role_arn = self.querystring.get("RoleArn")[0]  # type: ignore
+        principal_arn = self.querystring.get("PrincipalArn")[0]  # type: ignore
+        saml_assertion = self.querystring.get("SAMLAssertion")[0]  # type: ignore
 
         role = self.backend.assume_role_with_saml(
             role_arn=role_arn,
@@ -85,7 +85,7 @@ class TokenResponse(BaseResponse):
         template = self.response_template(ASSUME_ROLE_WITH_SAML_RESPONSE)
         return template.render(role=role)
 
-    def get_caller_identity(self):
+    def get_caller_identity(self) -> str:
         template = self.response_template(GET_CALLER_IDENTITY_RESPONSE)
 
         access_key_id = self.get_access_key()

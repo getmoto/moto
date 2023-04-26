@@ -4,6 +4,7 @@ from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import load_resource
 import datetime
+from typing import Any, Dict, List, Optional
 
 
 checks_json = "resources/describe_trusted_advisor_checks.json"
@@ -11,7 +12,7 @@ ADVISOR_CHECKS = load_resource(__name__, checks_json)
 
 
 class SupportCase(ManagedState):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         # Configure ManagedState
         super().__init__(
             "support::case",
@@ -56,21 +57,21 @@ class SupportCase(ManagedState):
             }
         }
 
-    def get_datetime(self):
+    def get_datetime(self) -> str:
         return str(datetime.datetime.now().isoformat())
 
 
 class SupportBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.check_status = {}
-        self.cases = {}
+        self.check_status: Dict[str, str] = {}
+        self.cases: Dict[str, SupportCase] = {}
 
         state_manager.register_default_transition(
             model_name="support::case", transition={"progression": "manual", "times": 1}
         )
 
-    def describe_trusted_advisor_checks(self):
+    def describe_trusted_advisor_checks(self) -> List[Dict[str, Any]]:
         """
         The Language-parameter is not yet implemented
         """
@@ -78,18 +79,17 @@ class SupportBackend(BaseBackend):
         checks = ADVISOR_CHECKS["checks"]
         return checks
 
-    def refresh_trusted_advisor_check(self, check_id):
+    def refresh_trusted_advisor_check(self, check_id: str) -> Dict[str, Any]:
         self.advance_check_status(check_id)
-        status = {
+        return {
             "status": {
                 "checkId": check_id,
                 "status": self.check_status[check_id],
                 "millisUntilNextRefreshable": 123,
             }
         }
-        return status
 
-    def advance_check_status(self, check_id):
+    def advance_check_status(self, check_id: str) -> None:
         """
         Fake an advancement through statuses on refreshing TA checks
         """
@@ -111,14 +111,13 @@ class SupportBackend(BaseBackend):
         elif self.check_status[check_id] == "abandoned":
             self.check_status[check_id] = "none"
 
-    def advance_case_status(self, case_id):
+    def advance_case_status(self, case_id: str) -> None:
         """
         Fake an advancement through case statuses
         """
-
         self.cases[case_id].advance()
 
-    def advance_case_severity_codes(self, case_id):
+    def advance_case_severity_codes(self, case_id: str) -> None:
         """
         Fake an advancement through case status severities
         """
@@ -137,28 +136,26 @@ class SupportBackend(BaseBackend):
         elif self.cases[case_id].severity_code == "critical":
             self.cases[case_id].severity_code = "low"
 
-    def resolve_case(self, case_id):
+    def resolve_case(self, case_id: str) -> Dict[str, Optional[str]]:
         self.advance_case_status(case_id)
 
-        resolved_case = {
+        return {
             "initialCaseStatus": self.cases[case_id].status,
             "finalCaseStatus": "resolved",
         }
 
-        return resolved_case
-
     # persist case details to self.cases
     def create_case(
         self,
-        subject,
-        service_code,
-        severity_code,
-        category_code,
-        communication_body,
-        cc_email_addresses,
-        language,
-        attachment_set_id,
-    ):
+        subject: str,
+        service_code: str,
+        severity_code: str,
+        category_code: str,
+        communication_body: str,
+        cc_email_addresses: List[str],
+        language: str,
+        attachment_set_id: str,
+    ) -> Dict[str, str]:
         """
         The IssueType-parameter is not yet implemented
         """
@@ -184,11 +181,11 @@ class SupportBackend(BaseBackend):
 
     def describe_cases(
         self,
-        case_id_list,
-        include_resolved_cases,
-        next_token,
-        include_communications,
-    ):
+        case_id_list: List[str],
+        include_resolved_cases: bool,
+        next_token: Optional[str],
+        include_communications: bool,
+    ) -> Dict[str, Any]:
         """
         The following parameters have not yet been implemented:
         DisplayID, AfterTime, BeforeTime, MaxResults, Language
@@ -223,10 +220,7 @@ class SupportBackend(BaseBackend):
                 continue
 
             cases.append(formatted_case)
-        case_values = {"cases": cases}
-        case_values.update({"nextToken": next_token})
-
-        return case_values
+        return {"cases": cases, "nextToken": next_token}
 
 
 support_backends = BackendDict(
