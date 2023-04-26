@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from moto.core import BaseModel
 from moto.core.utils import unix_time
@@ -7,16 +8,21 @@ from ..exceptions import SWFWorkflowExecutionClosedError
 
 from .timeout import Timeout
 
+if TYPE_CHECKING:
+    from .workflow_execution import WorkflowExecution
+
 
 class DecisionTask(BaseModel):
-    def __init__(self, workflow_execution, scheduled_event_id):
+    def __init__(
+        self, workflow_execution: "WorkflowExecution", scheduled_event_id: int
+    ):
         self.workflow_execution = workflow_execution
         self.workflow_type = workflow_execution.workflow_type
         self.task_token = str(mock_random.uuid4())
         self.scheduled_event_id = scheduled_event_id
-        self.previous_started_event_id = None
-        self.started_event_id = None
-        self.started_timestamp = None
+        self.previous_started_event_id: Optional[int] = None
+        self.started_event_id: Optional[int] = None
+        self.started_timestamp: Optional[float] = None
         self.start_to_close_timeout = (
             self.workflow_execution.task_start_to_close_timeout
         )
@@ -24,19 +30,19 @@ class DecisionTask(BaseModel):
         # this is *not* necessarily coherent with workflow execution history,
         # but that shouldn't be a problem for tests
         self.scheduled_at = datetime.utcnow()
-        self.timeout_type = None
+        self.timeout_type: Optional[str] = None
 
     @property
-    def started(self):
+    def started(self) -> bool:
         return self.state == "STARTED"
 
-    def _check_workflow_execution_open(self):
+    def _check_workflow_execution_open(self) -> None:
         if not self.workflow_execution.open:
             raise SWFWorkflowExecutionClosedError()
 
-    def to_full_dict(self, reverse_order=False):
+    def to_full_dict(self, reverse_order: bool = False) -> Dict[str, Any]:
         events = self.workflow_execution.events(reverse_order=reverse_order)
-        hsh = {
+        hsh: Dict[str, Any] = {
             "events": [evt.to_dict() for evt in events],
             "taskToken": self.task_token,
             "workflowExecution": self.workflow_execution.to_short_dict(),
@@ -48,31 +54,34 @@ class DecisionTask(BaseModel):
             hsh["startedEventId"] = self.started_event_id
         return hsh
 
-    def start(self, started_event_id, previous_started_event_id=None):
+    def start(
+        self, started_event_id: int, previous_started_event_id: Optional[int] = None
+    ) -> None:
         self.state = "STARTED"
         self.started_timestamp = unix_time()
         self.started_event_id = started_event_id
         self.previous_started_event_id = previous_started_event_id
 
-    def complete(self):
+    def complete(self) -> None:
         self._check_workflow_execution_open()
         self.state = "COMPLETED"
 
-    def first_timeout(self):
+    def first_timeout(self) -> Optional[Timeout]:
         if not self.started or not self.workflow_execution.open:
             return None
         # TODO: handle the "NONE" case
-        start_to_close_at = self.started_timestamp + int(self.start_to_close_timeout)
+        start_to_close_at = self.started_timestamp + int(self.start_to_close_timeout)  # type: ignore
         _timeout = Timeout(self, start_to_close_at, "START_TO_CLOSE")
         if _timeout.reached:
             return _timeout
+        return None
 
-    def process_timeouts(self):
+    def process_timeouts(self) -> None:
         _timeout = self.first_timeout()
         if _timeout:
             self.timeout(_timeout)
 
-    def timeout(self, _timeout):
+    def timeout(self, _timeout: Timeout) -> None:
         self._check_workflow_execution_open()
         self.state = "TIMED_OUT"
         self.timeout_type = _timeout.kind
