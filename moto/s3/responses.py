@@ -1610,7 +1610,7 @@ class S3Response(BaseResponse):
             else:
                 raise MissingKey(key=src_key)
 
-            new_key = self.backend.get_object(bucket_name, key_name)
+            new_key: FakeKey = self.backend.get_object(bucket_name, key_name)
 
             if acl is not None:
                 new_key.set_acl(acl)
