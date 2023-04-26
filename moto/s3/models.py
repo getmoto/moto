@@ -2359,42 +2359,51 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         dest_bucket_name: str,
         dest_key_name: str,
         storage: Optional[str] = None,
-        acl: Optional[FakeAcl] = None,
         encryption: Optional[str] = None,
         kms_key_id: Optional[str] = None,
-        bucket_key_enabled: bool = False,
+        bucket_key_enabled: Any = None,
         mdirective: Optional[str] = None,
+        metadata:Optional[Any] = None,
+        website_redirect_location: Optional[str] = None,
+        lock_mode: Optional[str] = None,
+        lock_legal_status: Optional[str] = None,
+        lock_until: Optional[str] = None,
     ) -> None:
         if (
-            src_key.name == dest_key_name
-            and src_key.bucket_name == dest_bucket_name
-            and storage == src_key.storage_class
-            and acl == src_key.acl
-            and encryption == src_key.encryption
-            and kms_key_id == src_key.kms_key_id
-            and bucket_key_enabled == (src_key.bucket_key_enabled or False)
-            and mdirective != "REPLACE"
+                src_key.name == dest_key_name
+                and src_key.bucket_name == dest_bucket_name
         ):
-            raise CopyObjectMustChangeSomething
+            if src_key.encryption and src_key.encryption != "AES256" and not encryption:
+                # this a special case, as now S3 default to AES256 when not provided
+                # if the source key had encryption, and we did not specify it for the destination, S3 will accept a
+                # copy in place even without any required attributes
+                encryption = "AES256"
+
+            if not any((storage, encryption, mdirective == "REPLACE", website_redirect_location)):
+                raise CopyObjectMustChangeSomething
 
         new_key = self.put_object(
             bucket_name=dest_bucket_name,
             key_name=dest_key_name,
             value=src_key.value,
-            storage=storage or src_key.storage_class,
+            storage=storage,
             multipart=src_key.multipart,
-            encryption=encryption or src_key.encryption,
-            kms_key_id=kms_key_id or src_key.kms_key_id,
-            bucket_key_enabled=bucket_key_enabled or src_key.bucket_key_enabled,
-            lock_mode=src_key.lock_mode,
-            lock_legal_status=src_key.lock_legal_status,
-            lock_until=src_key.lock_until,
+            encryption=encryption,
+            kms_key_id=kms_key_id,  # TODO: use aws managed key if not provided
+            bucket_key_enabled=bucket_key_enabled,
+            lock_mode=lock_mode,
+            lock_legal_status=lock_legal_status,
+            lock_until=lock_until,
         )
         self.tagger.copy_tags(src_key.arn, new_key.arn)
-        new_key.set_metadata(src_key.metadata)
+        if mdirective != "REPLACE":
+            new_key.set_metadata(src_key.metadata)
+        else:
+            new_key.set_metadata(metadata)
 
-        if acl is not None:
-            new_key.set_acl(acl)
+        if website_redirect_location:
+            new_key.website_redirect_location = website_redirect_location
+
         if src_key.storage_class in ARCHIVE_STORAGE_CLASSES:
             # Object copied from Glacier object should not have expiry
             new_key.set_expiry(None)

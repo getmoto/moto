@@ -1586,37 +1586,41 @@ class S3Response(BaseResponse):
                     ):
                         raise ObjectNotInActiveTierError(key_to_copy)
 
-                bucket_key_enabled = (
-                    request.headers.get(
-                        "x-amz-server-side-encryption-bucket-key-enabled", ""
-                    ).lower()
-                    == "true"
+                website_redirect_location = request.headers.get(
+                    "x-amz-website-redirect-location"
                 )
 
                 mdirective = request.headers.get("x-amz-metadata-directive")
-
+                metadata = metadata_from_headers(request.headers)
                 self.backend.copy_object(
                     key_to_copy,
                     bucket_name,
                     key_name,
-                    storage=storage_class,
-                    acl=acl,
+                    storage=request.headers.get("x-amz-storage-class"),
                     kms_key_id=kms_key_id,
                     encryption=encryption,
                     bucket_key_enabled=bucket_key_enabled,
                     mdirective=mdirective,
+                    metadata=metadata,
+                    website_redirect_location=website_redirect_location,
+                    lock_mode=lock_mode,
+                    lock_legal_status=legal_hold,
+                    lock_until=lock_until,
                 )
             else:
                 raise MissingKey(key=src_key)
 
-            new_key: FakeKey = self.backend.get_object(bucket_name, key_name)  # type: ignore
-            if mdirective is not None and mdirective == "REPLACE":
-                metadata = metadata_from_headers(request.headers)
-                new_key.set_metadata(metadata, replace=True)
+            new_key = self.backend.get_object(bucket_name, key_name)
+
+            if acl is not None:
+                new_key.set_acl(acl)
+
             tdirective = request.headers.get("x-amz-tagging-directive")
             if tdirective == "REPLACE":
                 tagging = self._tagging_from_headers(request.headers)
                 self.backend.set_key_tags(new_key, tagging)
+            if key_to_copy.version_id != "null":
+                response_headers["x-amz-copy-source-version-id"] = key_to_copy.version_id
 
             # checksum stuff, do we need to compute hash of the copied object
             checksum_algorithm = request.headers.get("x-amz-checksum-algorithm")
