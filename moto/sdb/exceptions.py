@@ -1,4 +1,5 @@
 """Exceptions raised by the sdb service."""
+from typing import Any
 from moto.core.exceptions import RESTError
 
 
@@ -18,7 +19,7 @@ SDB_ERROR = """<?xml version="1.0"?>
 class InvalidParameterError(RESTError):
     code = 400
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         kwargs.setdefault("template", "sdb_error")
         self.templates["sdb_error"] = SDB_ERROR
         kwargs["error_type"] = "InvalidParameterValue"
@@ -28,7 +29,7 @@ class InvalidParameterError(RESTError):
 class InvalidDomainName(InvalidParameterError):
     code = 400
 
-    def __init__(self, domain_name):
+    def __init__(self, domain_name: str):
         super().__init__(
             message=f"Value ({domain_name}) for parameter DomainName is invalid. "
         )
@@ -37,7 +38,7 @@ class InvalidDomainName(InvalidParameterError):
 class UnknownDomainName(RESTError):
     code = 400
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         kwargs.setdefault("template", "sdb_error")
         self.templates["sdb_error"] = SDB_ERROR
         kwargs["error_type"] = "NoSuchDomain"

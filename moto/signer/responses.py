@@ -6,7 +6,7 @@ from .models import signer_backends, SignerBackend
 
 
 class signerResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="signer")
 
     @property
@@ -14,17 +14,17 @@ class signerResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return signer_backends[self.current_account][self.region]
 
-    def cancel_signing_profile(self):
+    def cancel_signing_profile(self) -> str:
         profile_name = self.path.split("/")[-1]
         self.signer_backend.cancel_signing_profile(profile_name=profile_name)
         return "{}"
 
-    def get_signing_profile(self):
+    def get_signing_profile(self) -> str:
         profile_name = self.path.split("/")[-1]
         profile = self.signer_backend.get_signing_profile(profile_name=profile_name)
         return json.dumps(profile.to_dict())
 
-    def put_signing_profile(self):
+    def put_signing_profile(self) -> str:
         params = json.loads(self.body)
         profile_name = self.path.split("/")[-1]
         signature_validity_period = params.get("signatureValidityPeriod")
@@ -38,6 +38,6 @@ class signerResponse(BaseResponse):
         )
         return json.dumps(profile.to_dict(full=False))
 
-    def list_signing_platforms(self):
+    def list_signing_platforms(self) -> str:
         platforms = self.signer_backend.list_signing_platforms()
         return json.dumps(dict(platforms=platforms))

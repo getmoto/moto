@@ -1,33 +1,33 @@
 from moto.core.responses import BaseResponse
-from .models import sdb_backends
+from .models import sdb_backends, SimpleDBBackend
 
 
 class SimpleDBResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="sdb")
 
     @property
-    def sdb_backend(self):
+    def sdb_backend(self) -> SimpleDBBackend:
         return sdb_backends[self.current_account][self.region]
 
-    def create_domain(self):
+    def create_domain(self) -> str:
         domain_name = self._get_param("DomainName")
         self.sdb_backend.create_domain(domain_name=domain_name)
         template = self.response_template(CREATE_DOMAIN_TEMPLATE)
         return template.render()
 
-    def delete_domain(self):
+    def delete_domain(self) -> str:
         domain_name = self._get_param("DomainName")
         self.sdb_backend.delete_domain(domain_name=domain_name)
         template = self.response_template(DELETE_DOMAIN_TEMPLATE)
         return template.render()
 
-    def list_domains(self):
+    def list_domains(self) -> str:
         domain_names = self.sdb_backend.list_domains()
         template = self.response_template(LIST_DOMAINS_TEMPLATE)
         return template.render(domain_names=domain_names, next_token=None)
 
-    def get_attributes(self):
+    def get_attributes(self) -> str:
         domain_name = self._get_param("DomainName")
         item_name = self._get_param("ItemName")
         attribute_names = self._get_multi_param("AttributeName.")
@@ -39,7 +39,7 @@ class SimpleDBResponse(BaseResponse):
         template = self.response_template(GET_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=attributes)
 
-    def put_attributes(self):
+    def put_attributes(self) -> str:
         domain_name = self._get_param("DomainName")
         item_name = self._get_param("ItemName")
         attributes = self._get_list_prefix("Attribute")

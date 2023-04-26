@@ -1,24 +1,25 @@
 """Handles incoming servicediscovery requests, invokes methods, returns responses."""
 import json
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import servicediscovery_backends
+from .models import servicediscovery_backends, ServiceDiscoveryBackend
 
 
 class ServiceDiscoveryResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="servicediscovery")
 
     @property
-    def servicediscovery_backend(self):
+    def servicediscovery_backend(self) -> ServiceDiscoveryBackend:
         """Return backend instance specific for this region."""
         return servicediscovery_backends[self.current_account][self.region]
 
-    def list_namespaces(self):
+    def list_namespaces(self) -> TYPE_RESPONSE:
         namespaces = self.servicediscovery_backend.list_namespaces()
         return 200, {}, json.dumps({"Namespaces": [ns.to_json() for ns in namespaces]})
 
-    def create_http_namespace(self):
+    def create_http_namespace(self) -> str:
         params = json.loads(self.body)
         name = params.get("Name")
         creator_request_id = params.get("CreatorRequestId")
@@ -32,7 +33,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return json.dumps(dict(OperationId=operation_id))
 
-    def delete_namespace(self):
+    def delete_namespace(self) -> str:
         params = json.loads(self.body)
         namespace_id = params.get("Id")
         operation_id = self.servicediscovery_backend.delete_namespace(
@@ -40,7 +41,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return json.dumps(dict(OperationId=operation_id))
 
-    def list_operations(self):
+    def list_operations(self) -> TYPE_RESPONSE:
         operations = self.servicediscovery_backend.list_operations()
         return (
             200,
@@ -48,7 +49,7 @@ class ServiceDiscoveryResponse(BaseResponse):
             json.dumps({"Operations": [o.to_json(short=True) for o in operations]}),
         )
 
-    def get_operation(self):
+    def get_operation(self) -> str:
         params = json.loads(self.body)
         operation_id = params.get("OperationId")
         operation = self.servicediscovery_backend.get_operation(
@@ -56,7 +57,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return json.dumps(dict(Operation=operation.to_json()))
 
-    def get_namespace(self):
+    def get_namespace(self) -> str:
         params = json.loads(self.body)
         namespace_id = params.get("Id")
         namespace = self.servicediscovery_backend.get_namespace(
@@ -64,23 +65,23 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return json.dumps(dict(Namespace=namespace.to_json()))
 
-    def tag_resource(self):
+    def tag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
         tags = params.get("Tags")
         self.servicediscovery_backend.tag_resource(resource_arn=resource_arn, tags=tags)
-        return json.dumps(dict())
+        return "{}"
 
-    def untag_resource(self):
+    def untag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
         tag_keys = params.get("TagKeys")
         self.servicediscovery_backend.untag_resource(
             resource_arn=resource_arn, tag_keys=tag_keys
         )
-        return json.dumps(dict())
+        return "{}"
 
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
         tags = self.servicediscovery_backend.list_tags_for_resource(
@@ -88,7 +89,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return 200, {}, json.dumps(tags)
 
-    def create_private_dns_namespace(self):
+    def create_private_dns_namespace(self) -> str:
         params = json.loads(self.body)
         name = params.get("Name")
         creator_request_id = params.get("CreatorRequestId")
@@ -106,7 +107,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return json.dumps(dict(OperationId=operation_id))
 
-    def create_public_dns_namespace(self):
+    def create_public_dns_namespace(self) -> str:
         params = json.loads(self.body)
         name = params.get("Name")
         creator_request_id = params.get("CreatorRequestId")
@@ -122,7 +123,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return json.dumps(dict(OperationId=operation_id))
 
-    def create_service(self):
+    def create_service(self) -> str:
         params = json.loads(self.body)
         name = params.get("Name")
         namespace_id = params.get("NamespaceId")
@@ -146,23 +147,23 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return json.dumps(dict(Service=service.to_json()))
 
-    def get_service(self):
+    def get_service(self) -> str:
         params = json.loads(self.body)
         service_id = params.get("Id")
         service = self.servicediscovery_backend.get_service(service_id=service_id)
         return json.dumps(dict(Service=service.to_json()))
 
-    def delete_service(self):
+    def delete_service(self) -> str:
         params = json.loads(self.body)
         service_id = params.get("Id")
         self.servicediscovery_backend.delete_service(service_id=service_id)
-        return json.dumps(dict())
+        return "{}"
 
-    def list_services(self):
+    def list_services(self) -> str:
         services = self.servicediscovery_backend.list_services()
         return json.dumps(dict(Services=[s.to_json() for s in services]))
 
-    def update_service(self):
+    def update_service(self) -> str:
         params = json.loads(self.body)
         service_id = params.get("Id")
         details = params.get("Service")

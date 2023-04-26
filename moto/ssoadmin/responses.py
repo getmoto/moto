@@ -3,21 +3,21 @@ import json
 from moto.core.responses import BaseResponse
 from moto.moto_api._internal import mock_random
 
-from .models import ssoadmin_backends
+from .models import ssoadmin_backends, SSOAdminBackend
 
 
 class SSOAdminResponse(BaseResponse):
     """Handler for SSOAdmin requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="sso-admin")
 
     @property
-    def ssoadmin_backend(self):
+    def ssoadmin_backend(self) -> SSOAdminBackend:
         """Return backend instance specific for this region."""
         return ssoadmin_backends[self.current_account][self.region]
 
-    def create_account_assignment(self):
+    def create_account_assignment(self) -> str:
         params = json.loads(self.body)
         instance_arn = params.get("InstanceArn")
         target_id = params.get("TargetId")
@@ -37,7 +37,7 @@ class SSOAdminResponse(BaseResponse):
         summary["RequestId"] = str(mock_random.uuid4())
         return json.dumps({"AccountAssignmentCreationStatus": summary})
 
-    def delete_account_assignment(self):
+    def delete_account_assignment(self) -> str:
         params = json.loads(self.body)
         instance_arn = params.get("InstanceArn")
         target_id = params.get("TargetId")
@@ -57,7 +57,7 @@ class SSOAdminResponse(BaseResponse):
         summary["RequestId"] = str(mock_random.uuid4())
         return json.dumps({"AccountAssignmentDeletionStatus": summary})
 
-    def list_account_assignments(self):
+    def list_account_assignments(self) -> str:
         params = json.loads(self.body)
         instance_arn = params.get("InstanceArn")
         account_id = params.get("AccountId")
@@ -69,7 +69,7 @@ class SSOAdminResponse(BaseResponse):
         )
         return json.dumps({"AccountAssignments": assignments})
 
-    def create_permission_set(self):
+    def create_permission_set(self) -> str:
         name = self._get_param("Name")
         description = self._get_param("Description")
         instance_arn = self._get_param("InstanceArn")
@@ -88,7 +88,7 @@ class SSOAdminResponse(BaseResponse):
 
         return json.dumps({"PermissionSet": permission_set})
 
-    def delete_permission_set(self):
+    def delete_permission_set(self) -> str:
         params = json.loads(self.body)
         instance_arn = params.get("InstanceArn")
         permission_set_arn = params.get("PermissionSetArn")
@@ -96,8 +96,9 @@ class SSOAdminResponse(BaseResponse):
             instance_arn=instance_arn,
             permission_set_arn=permission_set_arn,
         )
+        return "{}"
 
-    def update_permission_set(self):
+    def update_permission_set(self) -> str:
         instance_arn = self._get_param("InstanceArn")
         permission_set_arn = self._get_param("PermissionSetArn")
         description = self._get_param("Description")
@@ -111,8 +112,9 @@ class SSOAdminResponse(BaseResponse):
             session_duration=session_duration,
             relay_state=relay_state,
         )
+        return "{}"
 
-    def describe_permission_set(self):
+    def describe_permission_set(self) -> str:
         instance_arn = self._get_param("InstanceArn")
         permission_set_arn = self._get_param("PermissionSetArn")
 
@@ -122,7 +124,7 @@ class SSOAdminResponse(BaseResponse):
         )
         return json.dumps({"PermissionSet": permission_set})
 
-    def list_permission_sets(self):
+    def list_permission_sets(self) -> str:
         instance_arn = self._get_param("InstanceArn")
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")

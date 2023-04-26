@@ -38,7 +38,7 @@ SKIP_REQUIRES_DOCKER = bool(os.environ.get("TESTS_SKIP_REQUIRES_DOCKER", False))
 LAMBDA_DATA_DIR = os.environ.get("MOTO_LAMBDA_DATA_DIR", "/tmp/data")
 
 
-def get_sf_execution_history_type():
+def get_sf_execution_history_type() -> str:
     """
     Determines which execution history events `get_execution_history` returns
     :returns: str representing the type of Step Function Execution Type events should be
@@ -97,11 +97,11 @@ def moto_lambda_image() -> str:
     return os.environ.get("MOTO_DOCKER_LAMBDA_IMAGE", "mlupin/docker-lambda")
 
 
-def moto_network_name() -> str:
+def moto_network_name() -> Optional[str]:
     return os.environ.get("MOTO_DOCKER_NETWORK_NAME")
 
 
-def moto_network_mode() -> str:
+def moto_network_mode() -> Optional[str]:
     return os.environ.get("MOTO_DOCKER_NETWORK_MODE")
 
 

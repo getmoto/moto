@@ -35,7 +35,7 @@ class InvalidToken(AWSError):
     TYPE = "InvalidToken"
     STATUS = 400
 
-    def __init__(self, message="Invalid token"):
+    def __init__(self, message: str = "Invalid token"):
         super().__init__(f"Invalid Token: {message}")
 
 
@@ -43,5 +43,5 @@ class ResourceNotFound(AWSError):
     TYPE = "ResourceNotFound"
     STATUS = 400
 
-    def __init__(self, arn):
+    def __init__(self, arn: str):
         super().__init__(f"Resource not found: '{arn}'")

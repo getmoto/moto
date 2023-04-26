@@ -1,4 +1,5 @@
 import string
+from typing import Any, Dict, Iterable, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import unix_time
@@ -13,7 +14,7 @@ from .exceptions import (
 )
 
 
-def random_id(size):
+def random_id(size: int) -> str:
     return "".join(
         [random.choice(string.ascii_lowercase + string.digits) for _ in range(size)]
     )
@@ -22,17 +23,16 @@ def random_id(size):
 class Namespace(BaseModel):
     def __init__(
         self,
-        account_id,
-        region,
-        name,
-        ns_type,
-        creator_request_id,
-        description,
-        dns_properties,
-        http_properties,
-        vpc=None,
+        account_id: str,
+        region: str,
+        name: str,
+        ns_type: str,
+        creator_request_id: str,
+        description: str,
+        dns_properties: Dict[str, Any],
+        http_properties: Dict[str, Any],
+        vpc: Optional[str] = None,
     ):
-        super().__init__()
         self.id = f"ns-{random_id(20)}"
         self.arn = f"arn:aws:servicediscovery:{region}:{account_id}:namespace/{self.id}"
         self.name = name
@@ -45,7 +45,7 @@ class Namespace(BaseModel):
         self.created = unix_time()
         self.updated = unix_time()
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         return {
             "Arn": self.arn,
             "Id": self.id,
@@ -65,31 +65,30 @@ class Namespace(BaseModel):
 class Service(BaseModel):
     def __init__(
         self,
-        account_id,
-        region,
-        name,
-        namespace_id,
-        description,
-        creator_request_id,
-        dns_config,
-        health_check_config,
-        health_check_custom_config,
-        service_type,
+        account_id: str,
+        region: str,
+        name: str,
+        namespace_id: str,
+        description: str,
+        creator_request_id: str,
+        dns_config: Dict[str, Any],
+        health_check_config: Dict[str, Any],
+        health_check_custom_config: Dict[str, int],
+        service_type: str,
     ):
-        super().__init__()
         self.id = f"srv-{random_id(8)}"
         self.arn = f"arn:aws:servicediscovery:{region}:{account_id}:service/{self.id}"
         self.name = name
         self.namespace_id = namespace_id
         self.description = description
         self.creator_request_id = creator_request_id
-        self.dns_config = dns_config
+        self.dns_config: Optional[Dict[str, Any]] = dns_config
         self.health_check_config = health_check_config
         self.health_check_custom_config = health_check_custom_config
         self.service_type = service_type
         self.created = unix_time()
 
-    def update(self, details):
+    def update(self, details: Dict[str, Any]) -> None:
         if "Description" in details:
             self.description = details["Description"]
         if "DnsConfig" in details:
@@ -104,7 +103,7 @@ class Service(BaseModel):
         if "HealthCheckConfig" in details:
             self.health_check_config = details["HealthCheckConfig"]
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         return {
             "Arn": self.arn,
             "Id": self.id,
@@ -121,7 +120,7 @@ class Service(BaseModel):
 
 
 class Operation(BaseModel):
-    def __init__(self, operation_type, targets):
+    def __init__(self, operation_type: str, targets: Dict[str, str]):
         super().__init__()
         self.id = f"{random_id(32)}-{random_id(8)}"
         self.status = "SUCCESS"
@@ -130,7 +129,7 @@ class Operation(BaseModel):
         self.updated = unix_time()
         self.targets = targets
 
-    def to_json(self, short=False):
+    def to_json(self, short: bool = False) -> Dict[str, Any]:
         if short:
             return {"Id": self.id, "Status": self.status}
         else:
@@ -147,20 +146,26 @@ class Operation(BaseModel):
 class ServiceDiscoveryBackend(BaseBackend):
     """Implementation of ServiceDiscovery APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.operations = dict()
-        self.namespaces = dict()
-        self.services = dict()
+        self.operations: Dict[str, Operation] = dict()
+        self.namespaces: Dict[str, Namespace] = dict()
+        self.services: Dict[str, Service] = dict()
         self.tagger = TaggingService()
 
-    def list_namespaces(self):
+    def list_namespaces(self) -> Iterable[Namespace]:
         """
         Pagination or the Filters-parameter is not yet implemented
         """
         return self.namespaces.values()
 
-    def create_http_namespace(self, name, creator_request_id, description, tags):
+    def create_http_namespace(
+        self,
+        name: str,
+        creator_request_id: str,
+        description: str,
+        tags: List[Dict[str, str]],
+    ) -> str:
         namespace = Namespace(
             account_id=self.account_id,
             region=self.region_name,
@@ -179,13 +184,12 @@ class ServiceDiscoveryBackend(BaseBackend):
         )
         return operation_id
 
-    def _create_operation(self, op_type, targets):
+    def _create_operation(self, op_type: str, targets: Dict[str, str]) -> str:
         operation = Operation(operation_type=op_type, targets=targets)
         self.operations[operation.id] = operation
-        operation_id = operation.id
-        return operation_id
+        return operation.id
 
-    def delete_namespace(self, namespace_id):
+    def delete_namespace(self, namespace_id: str) -> str:
         if namespace_id not in self.namespaces:
             raise NamespaceNotFound(namespace_id)
         del self.namespaces[namespace_id]
@@ -194,12 +198,12 @@ class ServiceDiscoveryBackend(BaseBackend):
         )
         return operation_id
 
-    def get_namespace(self, namespace_id):
+    def get_namespace(self, namespace_id: str) -> Namespace:
         if namespace_id not in self.namespaces:
             raise NamespaceNotFound(namespace_id)
         return self.namespaces[namespace_id]
 
-    def list_operations(self):
+    def list_operations(self) -> Iterable[Operation]:
         """
         Pagination or the Filters-argument is not yet implemented
         """
@@ -211,23 +215,31 @@ class ServiceDiscoveryBackend(BaseBackend):
         }
         return self.operations.values()
 
-    def get_operation(self, operation_id):
+    def get_operation(self, operation_id: str) -> Operation:
         if operation_id not in self.operations:
             raise OperationNotFound()
         return self.operations[operation_id]
 
-    def tag_resource(self, resource_arn, tags):
+    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def untag_resource(self, resource_arn, tag_keys):
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def list_tags_for_resource(self, resource_arn):
+    def list_tags_for_resource(
+        self, resource_arn: str
+    ) -> Dict[str, List[Dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource_arn)
 
     def create_private_dns_namespace(
-        self, name, creator_request_id, description, vpc, tags, properties
-    ):
+        self,
+        name: str,
+        creator_request_id: str,
+        description: str,
+        vpc: str,
+        tags: List[Dict[str, str]],
+        properties: Dict[str, Any],
+    ) -> str:
         for namespace in self.namespaces.values():
             if namespace.vpc == vpc:
                 raise ConflictingDomainExists(vpc)
@@ -253,8 +265,13 @@ class ServiceDiscoveryBackend(BaseBackend):
         return operation_id
 
     def create_public_dns_namespace(
-        self, name, creator_request_id, description, tags, properties
-    ):
+        self,
+        name: str,
+        creator_request_id: str,
+        description: str,
+        tags: List[Dict[str, str]],
+        properties: Dict[str, Any],
+    ) -> str:
         dns_properties = (properties or {}).get("DnsProperties", {})
         dns_properties["HostedZoneId"] = "hzi"
         namespace = Namespace(
@@ -277,16 +294,16 @@ class ServiceDiscoveryBackend(BaseBackend):
 
     def create_service(
         self,
-        name,
-        namespace_id,
-        creator_request_id,
-        description,
-        dns_config,
-        health_check_config,
-        health_check_custom_config,
-        tags,
-        service_type,
-    ):
+        name: str,
+        namespace_id: str,
+        creator_request_id: str,
+        description: str,
+        dns_config: Dict[str, Any],
+        health_check_config: Dict[str, Any],
+        health_check_custom_config: Dict[str, Any],
+        tags: List[Dict[str, str]],
+        service_type: str,
+    ) -> Service:
         service = Service(
             account_id=self.account_id,
             region=self.region_name,
@@ -304,21 +321,21 @@ class ServiceDiscoveryBackend(BaseBackend):
             self.tagger.tag_resource(service.arn, tags)
         return service
 
-    def get_service(self, service_id):
+    def get_service(self, service_id: str) -> Service:
         if service_id not in self.services:
             raise ServiceNotFound(service_id)
         return self.services[service_id]
 
-    def delete_service(self, service_id):
+    def delete_service(self, service_id: str) -> None:
         self.services.pop(service_id, None)
 
-    def list_services(self):
+    def list_services(self) -> Iterable[Service]:
         """
         Pagination or the Filters-argument is not yet implemented
         """
         return self.services.values()
 
-    def update_service(self, service_id, details):
+    def update_service(self, service_id: str, details: Dict[str, Any]) -> str:
         service = self.get_service(service_id)
         service.update(details=details)
         operation_id = self._create_operation(
