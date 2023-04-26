@@ -1,0 +1,44 @@
+import boto3
+from botocore.exceptions import ClientError
+import pytest
+from moto import mock_sesv2, mock_ses
+
+
+@pytest.fixture(scope="function")
+def ses_v1():
+    """Use this for API calls which exist in v1 but not in v2"""
+    with mock_ses():
+        yield boto3.client("ses", region_name="us-east-1")
+
+
+@mock_sesv2
+def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    kwargs = dict(
+        FromEmailAddress="test@example.com",
+        Destination={
+            "ToAddresses": ["test_to@example.com"],
+            "CcAddresses": ["test_cc@example.com"],
+            "BccAddresses": ["test_bcc@example.com"],
+        },
+        Content={
+            "Simple": {
+                "Subject": {"Data": "test subject"},
+                "Body": {"Text": {"Data": "test body"}},
+            },
+        },
+    )
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.send_email(**kwargs)
+        assert e
+
+    ses_v1.verify_domain_identity(Domain="example.com")
+    conn.send_email(**kwargs)
+    send_quota = ses_v1.get_send_quota()
+
+    # Verify
+    sent_count = int(send_quota["SentLast24Hours"])
+    assert sent_count == 3

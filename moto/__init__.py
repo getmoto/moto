@@ -150,6 +150,7 @@ mock_servicequotas = lazy_load(
     ".servicequotas", "mock_servicequotas", boto3_name="service-quotas"
 )
 mock_ses = lazy_load(".ses", "mock_ses")
+mock_sesv2 = lazy_load(".sesv2", "mock_sesv2")
 mock_servicediscovery = lazy_load(".servicediscovery", "mock_servicediscovery")
 mock_signer = lazy_load(".signer", "mock_signer")
 mock_sns = lazy_load(".sns", "mock_sns")
@@ -171,6 +172,7 @@ mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_textract = lazy_load(".textract", "mock_textract")
+mock_sesv2 = lazy_load(".sesv2", "mock_sesv2", boto3_name="sesv2")
 
 
 class MockAll(ContextDecorator):

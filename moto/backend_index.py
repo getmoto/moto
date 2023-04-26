@@ -158,6 +158,8 @@ backend_url_patterns = [
     ("service-quotas", re.compile("https?://servicequotas\\.(.+)\\.amazonaws\\.com")),
     ("ses", re.compile("https?://email\\.(.+)\\.amazonaws\\.com")),
     ("ses", re.compile("https?://ses\\.(.+)\\.amazonaws\\.com")),
+    ("sesv2", re.compile("https?://ses\\.(.+)\\.amazonaws\\.com")),
+    ("sesv2", re.compile("https?://email\\.(.+)\\.amazonaws\\.com")),
     ("signer", re.compile("https?://signer\\.(.+)\\.amazonaws\\.com")),
     ("sns", re.compile("https?://sns\\.(.+)\\.amazonaws\\.com")),
     ("sqs", re.compile("https?://(.*\\.)?(queue|sqs)\\.(.*\\.)?amazonaws\\.com")),
