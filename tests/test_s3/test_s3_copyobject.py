@@ -561,7 +561,7 @@ def test_copy_object_in_place_with_metadata():
             Bucket=bucket_name,
             CopySource=f"{bucket_name}/{key_name}",
             Key=key_name,
-            Metadata={"key": "value"}
+            Metadata={"key": "value"},
         )
         e.value.response["Error"]["Message"].should.equal(
             "This copy request is illegal because it is trying to copy an object to itself without changing the object's metadata, storage class, website redirect location or encryption attributes."
@@ -572,7 +572,7 @@ def test_copy_object_in_place_with_metadata():
         Bucket=bucket_name,
         CopySource=f"{bucket_name}/{key_name}",
         Key=key_name,
-        MetadataDirective="REPLACE"
+        MetadataDirective="REPLACE",
     )
 
     result = client.head_object(Bucket=bucket_name, Key=key_name)
@@ -585,9 +585,7 @@ def test_copy_objet_legal_hold():
     bucket_name = "testbucket"
     source_key = "source-key"
     dest_key = "dest-key"
-    client.create_bucket(
-        Bucket=bucket_name, ObjectLockEnabledForBucket=True
-    )
+    client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
     client.put_object(
         Bucket=bucket_name,
         Key=source_key,
@@ -619,11 +617,11 @@ def test_s3_copy_object_lock():
     bucket_name = "testbucket"
     source_key = "source-key"
     dest_key = "dest-key"
-    client.create_bucket(
-        Bucket=bucket_name, ObjectLockEnabledForBucket=True
-    )
+    client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
     # manipulate a bit the datetime object for an easier comparison
-    retain_until = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(minutes=1)
+    retain_until = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(
+        minutes=1
+    )
     retain_until = retain_until.replace(microsecond=0)
 
     client.put_object(

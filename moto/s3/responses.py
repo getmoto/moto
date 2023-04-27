@@ -1620,7 +1620,9 @@ class S3Response(BaseResponse):
                 tagging = self._tagging_from_headers(request.headers)
                 self.backend.set_key_tags(new_key, tagging)
             if key_to_copy.version_id != "null":
-                response_headers["x-amz-copy-source-version-id"] = key_to_copy.version_id
+                response_headers[
+                    "x-amz-copy-source-version-id"
+                ] = key_to_copy.version_id
 
             # checksum stuff, do we need to compute hash of the copied object
             checksum_algorithm = request.headers.get("x-amz-checksum-algorithm")

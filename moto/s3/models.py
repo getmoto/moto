@@ -2363,23 +2363,27 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         kms_key_id: Optional[str] = None,
         bucket_key_enabled: Any = None,
         mdirective: Optional[str] = None,
-        metadata:Optional[Any] = None,
+        metadata: Optional[Any] = None,
         website_redirect_location: Optional[str] = None,
         lock_mode: Optional[str] = None,
         lock_legal_status: Optional[str] = None,
         lock_until: Optional[str] = None,
     ) -> None:
-        if (
-                src_key.name == dest_key_name
-                and src_key.bucket_name == dest_bucket_name
-        ):
+        if src_key.name == dest_key_name and src_key.bucket_name == dest_bucket_name:
             if src_key.encryption and src_key.encryption != "AES256" and not encryption:
                 # this a special case, as now S3 default to AES256 when not provided
                 # if the source key had encryption, and we did not specify it for the destination, S3 will accept a
                 # copy in place even without any required attributes
                 encryption = "AES256"
 
-            if not any((storage, encryption, mdirective == "REPLACE", website_redirect_location)):
+            if not any(
+                (
+                    storage,
+                    encryption,
+                    mdirective == "REPLACE",
+                    website_redirect_location,
+                )
+            ):
                 raise CopyObjectMustChangeSomething
 
         new_key = self.put_object(
