@@ -201,7 +201,7 @@ class DomainDispatcherApplication:
         finally:
             if body:
                 # We've consumed the body = need to reset it
-                environ["wsgi.input"] = io.StringIO(body)
+                environ["wsgi.input"] = io.BytesIO(body.encode("utf-8"))
         return body
 
     def get_service_from_body(

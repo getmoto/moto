@@ -57,6 +57,7 @@ class TestAccountIdResolution:
         headers = {
             "Authorization": "AWS4-HMAC-SHA256 Credential=abcd/20010101/us-east-2/sts/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=...",
             "Content-Length": f"{len(data)}",
+            "Content-Type": "application/x-www-form-urlencoded",
         }
         headers.update(extra_headers or {})
         return requests.post(f"{BASE_URL}", headers=headers, data=data)

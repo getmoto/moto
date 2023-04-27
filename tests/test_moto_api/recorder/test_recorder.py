@@ -1,3 +1,4 @@
+import base64
 import boto3
 import json
 import requests
@@ -81,8 +82,13 @@ class TestRecorder(TestCase):
 
         content = json.loads(self._download_recording())
 
-        content.should.have.key("body").should.contain("Action=RunInstances")
-        content.should.have.key("body").should.contain(f"ImageId={EXAMPLE_AMI_ID}")
+        if content.get("body_encoded"):
+            body = base64.b64decode(content.get("body")).decode("ascii")
+        else:
+            body = content["body"]
+
+        body.should.contain("Action=RunInstances")
+        body.should.contain(f"ImageId={EXAMPLE_AMI_ID}")
 
     def test_multiple_services(self):
         self._start_recording()
