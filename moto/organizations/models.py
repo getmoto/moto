@@ -441,7 +441,7 @@ class OrganizationsBackend(BaseBackend):
         ou = self.get_organizational_unit_by_id(kwargs["OrganizationalUnitId"])
         return ou.describe()
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_organizational_units_for_parent(self, **kwargs: Any) -> List[Dict[str, Any]]:  # type: ignore
         parent_id = self.validate_parent_id(kwargs["parent_id"])
         return [
@@ -515,12 +515,12 @@ class OrganizationsBackend(BaseBackend):
             next_token = str(len(accounts_resp))
         return dict(CreateAccountStatuses=accounts_resp, NextToken=next_token)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_accounts(self) -> List[FakeAccount]:  # type: ignore
         accounts = [account.describe() for account in self.accounts]
         return sorted(accounts, key=lambda x: x["JoinedTimestamp"])  # type: ignore
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_accounts_for_parent(self, **kwargs: Any) -> Any:  # type: ignore
         parent_id = self.validate_parent_id(kwargs["parent_id"])
         accounts = [

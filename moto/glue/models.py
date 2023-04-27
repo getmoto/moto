@@ -320,7 +320,7 @@ class GlueBackend(BaseBackend):
     def get_crawlers(self) -> List["FakeCrawler"]:
         return [self.crawlers[key] for key in self.crawlers] if self.crawlers else []
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_crawlers(self) -> List["FakeCrawler"]:  # type: ignore[misc]
         return [crawler for _, crawler in self.crawlers.items()]
 
@@ -395,7 +395,7 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise JobNotFoundException(name)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def get_jobs(self) -> List["FakeJob"]:  # type: ignore
         return [job for _, job in self.jobs.items()]
 
@@ -407,7 +407,7 @@ class GlueBackend(BaseBackend):
         job = self.get_job(name)
         return job.get_job_run(run_id)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_jobs(self) -> List["FakeJob"]:  # type: ignore
         return [job for _, job in self.jobs.items()]
 
@@ -812,7 +812,7 @@ class GlueBackend(BaseBackend):
         trigger = self.get_trigger(name)
         trigger.stop_trigger()
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def get_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:  # type: ignore
         if dependent_job_name:
             triggers = []
@@ -826,7 +826,7 @@ class GlueBackend(BaseBackend):
 
         return list(self.triggers.values())
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:  # type: ignore
         if dependent_job_name:
             triggers = []

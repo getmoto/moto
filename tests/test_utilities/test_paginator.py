@@ -163,41 +163,41 @@ class TestDecorator(unittest.TestCase):
         "method_with_list_as_kwarg": {"limit_default": 1, "unique_attribute": "name"},
     }
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def method_returning_dict(self):
         return results
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def method_returning_instances(self):
         return model_results
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def method_without_configuration(self):
         return results
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def method_returning_args(self, *args, **kwargs):
         return [*args] + [(k, v) for k, v in kwargs.items()]
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def method_expecting_token_as_kwarg(self, custom_token=None):
         self.custom_token = custom_token
         return [{"name": "item1"}, {"name": "item2"}]
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def method_expecting_limit_as_kwarg(self, custom_limit):
         self.custom_limit = custom_limit
         return [{"name": "item1"}, {"name": "item2"}]
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def method_with_list_as_kwarg(self, resources=[]):
         return resources or results
 
-    @paginate(PAGINATION_MODEL)
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def method_specifying_invalidtoken_exception(self):
         return results
 
-    @paginate(PAGINATION_MODEL)
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def method_specifying_generic_invalidtoken_exception(self):
         return results
 

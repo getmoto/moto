@@ -30,7 +30,7 @@ Every version number class implements the following interface:
 """
 
 import re
-from typing import Optional
+from typing import Any, Optional
 
 
 class Version:
@@ -40,39 +40,39 @@ class Version:
     rich comparisons to _cmp.
     """
 
-    def __init__(self, vstring=None):
+    def __init__(self, vstring: Optional[str] = None):
         if vstring:
-            self.parse(vstring)
+            self.parse(vstring)  # type: ignore[attr-defined]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__} ('{self}')"
 
-    def __eq__(self, other):
-        c = self._cmp(other)
+    def __eq__(self, other: Any) -> bool:
+        c = self._cmp(other)  # type: ignore[attr-defined]
         if c is NotImplemented:
             return c
         return c == 0
 
-    def __lt__(self, other):
-        c = self._cmp(other)
+    def __lt__(self, other: Any) -> bool:
+        c = self._cmp(other)  # type: ignore[attr-defined]
         if c is NotImplemented:
             return c
         return c < 0
 
-    def __le__(self, other):
-        c = self._cmp(other)
+    def __le__(self, other: Any) -> bool:
+        c = self._cmp(other)  # type: ignore[attr-defined]
         if c is NotImplemented:
             return c
         return c <= 0
 
-    def __gt__(self, other):
-        c = self._cmp(other)
+    def __gt__(self, other: Any) -> bool:
+        c = self._cmp(other)  # type: ignore[attr-defined]
         if c is NotImplemented:
             return c
         return c > 0
 
-    def __ge__(self, other):
-        c = self._cmp(other)
+    def __ge__(self, other: Any) -> bool:
+        c = self._cmp(other)  # type: ignore[attr-defined]
         if c is NotImplemented:
             return c
         return c >= 0
@@ -199,7 +199,7 @@ class LooseVersion(Version):
         if vstring:
             self.parse(vstring)
 
-    def parse(self, vstring):
+    def parse(self, vstring: str) -> None:
         # I've given up on thinking I can reconstruct the version string
         # from the parsed tuple -- so I just store the string here for
         # use by __str__
@@ -213,13 +213,13 @@ class LooseVersion(Version):
 
         self.version = components
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.vstring
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"LooseVersion ('{self}')"
 
-    def _cmp(self, other):
+    def _cmp(self, other: Any) -> int:  # type: ignore[return]
         if isinstance(other, str):
             other = LooseVersion(other)
 
