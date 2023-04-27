@@ -515,6 +515,37 @@ def test_copy_object_does_not_copy_storage_class():
 
 
 @mock_s3
+def test_copy_object_does_not_copy_acl():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "testbucket"
+    bucket = s3.Bucket(bucket_name)
+    bucket.create()
+    source_key = "source-key"
+    dest_key = "dest-key"
+    control_key = "control-key"
+    # do not set ACL for the control key to get default ACL
+    bucket.put_object(Key=control_key, Body=b"somedata")
+    # set ACL for the source key to check if it will get copied
+    bucket.put_object(Key=source_key, Body=b"somedata", ACL="public-read")
+    # copy object without specifying ACL, so it should get default ACL
+    client.copy_object(
+        Bucket=bucket_name,
+        CopySource=f"{bucket_name}/{source_key}",
+        Key=dest_key,
+    )
+
+    # Get the ACL from the all the keys
+    source_acl = client.get_object_acl(Bucket=bucket_name, Key=source_key)
+    dest_acl = client.get_object_acl(Bucket=bucket_name, Key=dest_key)
+    default_acl = client.get_object_acl(Bucket=bucket_name, Key=control_key)
+    # assert that the source key ACL are different from the destination key ACL
+    assert source_acl["Grants"] != dest_acl["Grants"]
+    # assert that the copied key got the default ACL like the control key
+    assert default_acl["Grants"] == dest_acl["Grants"]
+
+
+@mock_s3
 def test_copy_object_in_place_with_metadata():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
