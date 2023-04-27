@@ -10,5 +10,5 @@ response = SESV2Response()
 
 
 url_paths = {
-    "{0}/.*$": response.dispatch,
+    "{0}/v2/.*$": response.dispatch,
 }
