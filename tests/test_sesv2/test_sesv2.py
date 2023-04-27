@@ -67,3 +67,17 @@ def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
     send_quota = ses_v1.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
     assert sent_count == 2
+
+
+@mock_sesv2
+def test_list_contacts():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+
+    # Execute
+
+    result = conn.list_contacts(ContactListName="test")
+
+    # Verify
+
+    assert result["Contacts"] == []

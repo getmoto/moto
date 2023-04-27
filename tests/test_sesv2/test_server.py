@@ -7,7 +7,6 @@ def test_sesv2_list():
     backend = server.create_backend_app("sesv2")
     test_client = backend.test_client()
 
-    resp = test_client.get("/")
+    resp = test_client.post("/v2/email/contact-lists/test/contacts")
 
     assert resp.status_code == 200
-    assert "?" in str(resp.data)
