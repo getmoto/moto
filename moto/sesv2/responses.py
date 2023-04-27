@@ -26,13 +26,28 @@ class SESV2Response(BaseResponse):
         from_email_address = params.get("FromEmailAddress")
         destination = params.get("Destination")
         content = params.get("Content")
-
-        message = self.sesv2_backend.send_email(
-            source=from_email_address,
-            destinations=destination,
-            subject=content["Simple"]["Subject"]["Data"],
-            body=content["Simple"]["Subject"]["Data"],
-        )
+        if "Raw" in content:
+            all_destinations = []
+            if "ToAddresses" in destination:
+                all_destinations = all_destinations + destination["ToAddresses"]
+            if "CcAddresses" in destination:
+                all_destinations = all_destinations + destination["CcAddresses"]
+            if "BccAddresses" in destination:
+                all_destinations = all_destinations + destination["BccAddresses"]
+            message = self.sesv2_backend.send_raw_email(
+                source=from_email_address,
+                destinations=all_destinations,
+                raw_data=content["Raw"]["Data"],
+            )
+        elif "Simple" in content:
+            message = self.sesv2_backend.send_email(
+                source=from_email_address,
+                destinations=destination,
+                subject=content["Simple"]["Subject"]["Data"],
+                body=content["Simple"]["Subject"]["Data"],
+            )
+        elif "Template" in content:
+            raise NotImplementedError("Template functionality not ready")
 
         # use v1 templates as response same in v1 and v2
         template = self.response_template(SEND_EMAIL_RESPONSE)
