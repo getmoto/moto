@@ -3,7 +3,6 @@ import json
 
 from moto.core.responses import BaseResponse
 from .models import sesv2_backends
-from ..ses.models import ses_backends
 from ..ses.responses import SEND_EMAIL_RESPONSE
 
 
@@ -18,11 +17,6 @@ class SESV2Response(BaseResponse):
         """Return backend instance specific for this region."""
         return sesv2_backends[self.current_account][self.region]
 
-    @property
-    def sesv1_backend(self):
-        """Return backend instance specific for this region."""
-        return ses_backends[self.current_account][self.region]
-
     def send_email(self):
         """Piggy back on functionality from v1 mostly"""
 
@@ -32,7 +26,7 @@ class SESV2Response(BaseResponse):
         destination = params.get("Destination")
         content = params.get("Content")
 
-        message = self.sesv1_backend.send_email(
+        message = self.sesv2_backend.send_email(
             source=from_email_address,
             destinations=destination,
             subject=content["Simple"]["Subject"]["Data"],
