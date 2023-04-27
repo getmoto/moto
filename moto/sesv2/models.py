@@ -11,7 +11,9 @@ class SESV2Backend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
 
-    def send_email(self, source: str, destinations: Dict[str, List[str]], subject: str, body: str) -> Message:
+    def send_email(
+        self, source: str, destinations: Dict[str, List[str]], subject: str, body: str
+    ) -> Message:
         v1_backend = ses_backends[self.account_id][self.region_name]
         message = v1_backend.send_email(
             source=source,
