@@ -98,3 +98,15 @@ def test_create_contact():
     # Verify
     assert len(result["Contacts"]) == 1
     assert result["Contacts"][0]["EmailAddress"] == email
+
+
+@mock_sesv2
+def test_list_contact_lists():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+
+    # Execute
+    result = conn.list_contact_lists()
+
+    # Verify
+    assert result["ContactLists"] == []

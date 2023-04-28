@@ -2,6 +2,7 @@
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from ..ses.models import ses_backends, Message, RawMessage
+from moto.core.utils import unix_time
 from typing import Dict, List, Any
 
 
@@ -30,12 +31,33 @@ class Contact(BaseModel):
         }
 
 
+class ContactList(BaseModel):
+    def __init__(
+        self,
+        contact_list_name: str,
+        description: str,
+        topics: List[Dict[str, str]],
+    ) -> None:
+        self.contact_list_name = contact_list_name
+        self.description = description
+        self.topics = topics
+        self.last_updated = unix_time()
+
+    @property
+    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return {
+            "ContactListName": self.contact_list_name,
+            "LastUpdatedTimestamp": self.last_updated,
+        }
+
+
 class SESV2Backend(BaseBackend):
     """Implementation of SESV2 APIs, piggy back on v1 SES"""
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.contacs: List[Contact] = []
+        self.contacts: List[Contact] = []
+        self.contacts_lists: List[ContactList] = []
 
     def send_email(
         self, source: str, destinations: Dict[str, List[str]], subject: str, body: str
@@ -58,8 +80,11 @@ class SESV2Backend(BaseBackend):
         )
         return message
 
+    def list_contact_lists(self) -> List[ContactList]:
+        return self.contacts_lists
+
     def list_contacts(self, name: str) -> List[Contact]:
-        return [x for x in self.contacs if x.contact_list_name == name]
+        return [x for x in self.contacts if x.contact_list_name == name]
 
     def create_contact(self, contact_list_name: str, params: Dict[str, Any]) -> None:
         email_address = params["EmailAddress"]
@@ -72,7 +97,7 @@ class SESV2Backend(BaseBackend):
         new_contact = Contact(
             contact_list_name, email_address, topic_preferences, unsubscribe_all
         )
-        self.contacs.append(new_contact)
+        self.contacts.append(new_contact)
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

@@ -53,6 +53,10 @@ class SESV2Response(BaseResponse):
         template = self.response_template(SEND_EMAIL_RESPONSE)
         return template.render(message=message)
 
+    def list_contact_lists(self) -> str:
+        contact_lists = self.sesv2_backend.list_contact_lists()
+        return json.dumps(dict(ContactLists=[c.response_object for c in contact_lists]))
+
     def list_contacts(self) -> str:
         name = self._get_param("ContactListName")
         contacts = self.sesv2_backend.list_contacts(name)
