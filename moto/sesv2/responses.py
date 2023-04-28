@@ -22,7 +22,7 @@ class SESV2Response(BaseResponse):
     def send_email(self) -> str:
         """Piggy back on functionality from v1 mostly"""
 
-        params = get_params_dict(self.querystring.items())
+        params = get_params_dict(self.querystring)
         from_email_address = params.get("FromEmailAddress")
         destination = params.get("Destination")
         content = params.get("Content")
