@@ -2,7 +2,7 @@
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from ..ses.models import ses_backends, Message, RawMessage
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 
 
 class Contact(BaseModel):
@@ -10,12 +10,12 @@ class Contact(BaseModel):
         self,
         contact_list_name: str,
         email_address: str,
-        topic_preferences: Optional[Any],
-        unsubscribe_all: Optional[bool],
+        topic_preferences: List[Dict[str, str]],
+        unsubscribe_all: bool,
     ) -> None:
         self.contact_list_name = contact_list_name
         self.email_address = email_address
-        self.topic_default_preferences = [Dict[str, str]]
+        self.topic_default_preferences: List[Dict[str, str]] = []
         self.topic_preferences = topic_preferences
         self.unsubscribe_all = unsubscribe_all
 
@@ -58,10 +58,10 @@ class SESV2Backend(BaseBackend):
         )
         return message
 
-    def list_contacts(self, name: str) -> List[Dict[str, Dict]]:
-        return [x.response_object for x in self.contacs if x.contact_list_name == name]
+    def list_contacts(self, name: str) -> List[Contact]:
+        return [x for x in self.contacs if x.contact_list_name == name]
 
-    def create_contact(self, contact_list_name: str, params: dict) -> dict:
+    def create_contact(self, contact_list_name: str, params: Dict[str, Any]) -> None:
         email_address = params["EmailAddress"]
         topic_preferences = (
             [] if "TopicPreferences" not in params else params["TopicPreferences"]
@@ -73,7 +73,6 @@ class SESV2Backend(BaseBackend):
             contact_list_name, email_address, topic_preferences, unsubscribe_all
         )
         self.contacs.append(new_contact)
-        return {}
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

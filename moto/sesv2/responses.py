@@ -5,7 +5,7 @@ from moto.core.responses import BaseResponse
 from .models import sesv2_backends
 from ..ses.responses import SEND_EMAIL_RESPONSE
 from .models import SESV2Backend
-from typing import List, OrderedDict
+from typing import List, Dict, Any
 
 
 class SESV2Response(BaseResponse):
@@ -56,17 +56,16 @@ class SESV2Response(BaseResponse):
     def list_contacts(self) -> str:
         name = self._get_param("ContactListName")
         contacts = self.sesv2_backend.list_contacts(name)
-
-        return json.dumps(dict(Contacts=contacts))
+        return json.dumps(dict(Contacts=[c.response_object for c in contacts]))
 
     def create_contact(self) -> str:
         # parsing of these params is nasty, hopefully there is a tidier way
         name = self._get_param("ContactListName")
         params = get_params_dict(self.data)
-        result = self.sesv2_backend.create_contact(name, params)
-        return json.dumps(result)
+        self.sesv2_backend.create_contact(name, params)
+        return json.dumps({})
 
 
-def get_params_dict(odict: OrderedDict) -> dict:
+def get_params_dict(odict: Dict[str, Any]) -> Any:
     # parsing of these params is nasty, hopefully there is a tidier way
     return json.loads(list(dict(odict.items()).keys())[0])
