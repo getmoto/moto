@@ -5,7 +5,7 @@ from moto.core.responses import BaseResponse
 from .models import sesv2_backends
 from ..ses.responses import SEND_EMAIL_RESPONSE
 from .models import SESV2Backend
-from typing import Dict, List
+from typing import List
 
 
 class SESV2Response(BaseResponse):
