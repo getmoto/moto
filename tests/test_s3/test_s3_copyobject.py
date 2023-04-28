@@ -476,7 +476,8 @@ def test_copy_object_in_place_with_storage_class():
     # this test will validate that setting StorageClass (even the same as source) allows a copy in place
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3.Bucket("test_bucket")
+    bucket_name = "test-bucket"
+    bucket = s3.Bucket(bucket_name)
     bucket.create()
     key = "source-key"
     bucket.put_object(Key=key, Body=b"somedata", StorageClass="STANDARD")
@@ -488,7 +489,7 @@ def test_copy_object_in_place_with_storage_class():
     )
     # verify that the copy worked
     resp = client.get_object_attributes(
-        Bucket=bucket, Key=key, ObjectAttributes=["StorageClass"]
+        Bucket=bucket_name, Key=key, ObjectAttributes=["StorageClass"]
     )
     assert resp["StorageClass"] == "STANDARD"
 
