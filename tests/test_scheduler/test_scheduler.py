@@ -81,11 +81,22 @@ def test_create_get_delete__in_different_group():
     assert err["Code"] == "ResourceNotFoundException"
 
 
+@pytest.mark.parametrize(
+    "extra_kwargs",
+    [
+        ({}),
+        ({"GroupName": "some-group"}),
+    ],
+    ids=["without_group", "with_group"],
+)
 @mock_scheduler
-def test_update_schedule():
+def test_update_schedule(extra_kwargs):
     client = boto3.client("scheduler", region_name="eu-west-1")
 
+    client.create_schedule_group(Name="some-group")
+
     client.create_schedule(
+        **extra_kwargs,
         Name="my-schedule",
         ScheduleExpression="some cron",
         FlexibleTimeWindow={
@@ -99,6 +110,7 @@ def test_update_schedule():
     )
 
     client.update_schedule(
+        **extra_kwargs,
         Name="my-schedule",
         Description="new desc",
         ScheduleExpression="new cron",
@@ -113,7 +125,7 @@ def test_update_schedule():
         },
     )
 
-    schedule = client.get_schedule(Name="my-schedule")
+    schedule = client.get_schedule(**extra_kwargs, Name="my-schedule")
     assert schedule["Description"] == "new desc"
     assert schedule["ScheduleExpression"] == "new cron"
     assert schedule["State"] == "DISABLED"

@@ -60,7 +60,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
         return "{}"
 
     def update_schedule(self) -> str:
-        group_name = self._get_param("groupName")
+        group_name = self._get_param("GroupName")
         name = self.uri.split("?")[0].split("/")[-1]
         description = self._get_param("Description")
         end_date = self._get_param("EndDate")
