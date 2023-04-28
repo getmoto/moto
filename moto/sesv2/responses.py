@@ -5,7 +5,7 @@ from moto.core.responses import BaseResponse
 from .models import sesv2_backends
 from ..ses.responses import SEND_EMAIL_RESPONSE
 from .models import SESV2Backend
-from typing import List
+from typing import List, OrderedDict
 
 
 class SESV2Response(BaseResponse):
@@ -22,8 +22,7 @@ class SESV2Response(BaseResponse):
     def send_email(self) -> str:
         """Piggy back on functionality from v1 mostly"""
 
-        # parsing of these params is nasty, hopefully there is a tidier way
-        params = json.loads(list(dict(self.querystring.items()).keys())[0])
+        params = self.get_params_dict(self.querystring.items())
         from_email_address = params.get("FromEmailAddress")
         destination = params.get("Destination")
         content = params.get("Content")
@@ -55,7 +54,19 @@ class SESV2Response(BaseResponse):
         return template.render(message=message)
 
     def list_contacts(self) -> str:
-        # parsing of these params is nasty, hopefully there is a tidier way
         name = self._get_param("ContactListName")
         contacts = self.sesv2_backend.list_contacts(name)
-        return json.dumps({"Contacts": contacts})
+
+        return json.dumps(dict(Contacts=contacts))
+
+    def create_contact(self) -> str:
+        # parsing of these params is nasty, hopefully there is a tidier way
+        name = self._get_param("ContactListName")
+        params = self.get_params_dict(self.data)
+        result = self.sesv2_backend.create_contact(name, params)
+        return json.dumps(result)
+
+    @staticmethod
+    def get_params_dict(odict: OrderedDict) -> dict:
+        # parsing of these params is nasty, hopefully there is a tidier way
+        return json.loads(list(dict(odict.items()).keys())[0])

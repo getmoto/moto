@@ -75,9 +75,30 @@ def test_list_contacts():
     conn = boto3.client("sesv2", region_name="us-east-1")
 
     # Execute
-
     result = conn.list_contacts(ContactListName="test")
 
     # Verify
-
     assert result["Contacts"] == []
+
+
+@mock_sesv2
+def test_create_contact():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+
+    # Execute
+    conn.create_contact(
+        ContactListName=contact_list_name,
+        EmailAddress=email,
+        TopicPreferences=[
+            {"TopicName": "mytopic", "SubscriptionStatus": "OPT_IN"},
+        ],
+        UnsubscribeAll=False,
+    )
+    result = conn.list_contacts(ContactListName=contact_list_name)
+
+    # Verify
+    assert len(result["Contacts"]) == 1
+    assert result["Contacts"][0]["EmailAddress"] == email

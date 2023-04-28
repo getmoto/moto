@@ -5,20 +5,20 @@ from ..ses.models import ses_backends, Message, RawMessage
 from typing import Dict, List
 
 
-class ContactList(BaseModel):
+class Contact(BaseModel):
     def __init__(
         self,
-        name: str,
-        email_address: str,
-        topic_default_preferences: List[Dict[str, str]],
-        topic_preferences: List[Dict[str, str]],
-        unsubscribe_all: bool,
-    ):
-        self.name = name
-        self.email_address = email_address
-        self.topic_default_preferences = topic_default_preferences
-        self.topic_preferences = topic_preferences
-        self.unsubscribe_all = unsubscribe_all
+        ContactListName: str,
+        EmailAddress: str,
+        TopicPreferences: List[Dict[str, str]],
+        TopicDefaultPreferences: List[Dict[str, str]],
+        UnsubscribeAll: bool,
+    ) -> None:
+        self.ContactListName = ContactListName
+        self.EmailAddress = EmailAddress
+        self.TopicDefaultPreferences = TopicDefaultPreferences
+        self.TopicPreferences = TopicPreferences
+        self.UnsubscribeAll = UnsubscribeAll
 
 
 class SESV2Backend(BaseBackend):
@@ -26,7 +26,7 @@ class SESV2Backend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.contacs: List[ContactList] = []
+        self.contacs: List[Contact] = []
 
     def send_email(
         self, source: str, destinations: Dict[str, List[str]], subject: str, body: str
@@ -49,8 +49,13 @@ class SESV2Backend(BaseBackend):
         )
         return message
 
-    def list_contacts(self, name: str) -> List[ContactList]:
-        return [x for x in self.contacs if x.name == name]
+    def list_contacts(self, name: str) -> List[Dict[str, Dict]]:
+        return [x.__dict__ for x in self.contacs if x.ContactListName == name]
+
+    def create_contact(self, name: str, params: dict) -> dict:
+        new_contact = Contact(ContactListName=name, **params)
+        self.contacs.append(new_contact)
+        return {}
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")
