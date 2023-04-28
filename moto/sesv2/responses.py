@@ -22,7 +22,7 @@ class SESV2Response(BaseResponse):
     def send_email(self) -> str:
         """Piggy back on functionality from v1 mostly"""
 
-        params = self.get_params_dict(self.querystring.items())
+        params = get_params_dict(self.querystring.items())
         from_email_address = params.get("FromEmailAddress")
         destination = params.get("Destination")
         content = params.get("Content")
@@ -62,11 +62,11 @@ class SESV2Response(BaseResponse):
     def create_contact(self) -> str:
         # parsing of these params is nasty, hopefully there is a tidier way
         name = self._get_param("ContactListName")
-        params = self.get_params_dict(self.data)
+        params = get_params_dict(self.data)
         result = self.sesv2_backend.create_contact(name, params)
         return json.dumps(result)
 
-    @staticmethod
-    def get_params_dict(odict: OrderedDict) -> dict:
-        # parsing of these params is nasty, hopefully there is a tidier way
-        return json.loads(list(dict(odict.items()).keys())[0])
+
+def get_params_dict(odict: OrderedDict) -> dict:
+    # parsing of these params is nasty, hopefully there is a tidier way
+    return json.loads(list(dict(odict.items()).keys())[0])

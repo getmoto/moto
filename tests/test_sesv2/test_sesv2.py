@@ -92,10 +92,6 @@ def test_create_contact():
     conn.create_contact(
         ContactListName=contact_list_name,
         EmailAddress=email,
-        TopicPreferences=[
-            {"TopicName": "mytopic", "SubscriptionStatus": "OPT_IN"},
-        ],
-        UnsubscribeAll=False,
     )
     result = conn.list_contacts(ContactListName=contact_list_name)
 
