@@ -119,7 +119,7 @@ class FakeKey(BaseModel, ManagedState):
         self.account_id = account_id
         self.last_modified = datetime.datetime.utcnow()
         self.acl: Optional[FakeAcl] = get_canned_acl("private")
-        self.website_redirect_location = None
+        self.website_redirect_location: Optional[str] = None
         self.checksum_algorithm = None
         self._storage_class: Optional[str] = storage if storage else "STANDARD"
         self._metadata = LowercaseDict()
