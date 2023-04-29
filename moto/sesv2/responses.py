@@ -6,7 +6,7 @@ from .models import sesv2_backends
 from ..ses.responses import SEND_EMAIL_RESPONSE
 from .models import SESV2Backend
 from typing import List, Dict, Any
-
+from urllib.parse import unquote
 
 class SESV2Response(BaseResponse):
     """Handler for SESV2 requests and responses."""
@@ -62,11 +62,25 @@ class SESV2Response(BaseResponse):
         contacts = self.sesv2_backend.list_contacts(name)
         return json.dumps(dict(Contacts=[c.response_object for c in contacts]))
 
+    def delete_contact_list(self) -> str:
+        name = self._get_param("ContactListName")
+        self.sesv2_backend.delete_contact_list(name)
+        return json.dumps({})
+
+    def delete_contact(self) -> str:
+        email = self._get_param("EmailAddress")
+        self.sesv2_backend.delete_contact(unquote(email))
+        return json.dumps({})
+
     def create_contact(self) -> str:
-        # parsing of these params is nasty, hopefully there is a tidier way
         name = self._get_param("ContactListName")
         params = get_params_dict(self.data)
         self.sesv2_backend.create_contact(name, params)
+        return json.dumps({})
+
+    def create_contact_list(self) -> str:
+        params = get_params_dict(self.data)
+        self.sesv2_backend.create_contact_list(params)
         return json.dumps({})
 
 

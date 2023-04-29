@@ -100,6 +100,25 @@ def test_create_contact():
     assert result["Contacts"][0]["EmailAddress"] == email
 
 
+
+@mock_sesv2
+def test_create_contact_list():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+
+    # Execute
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
+    result = conn.list_contact_lists()
+
+    # Verify
+    assert len(result["ContactLists"]) == 1
+    assert result["ContactLists"][0]["ContactListName"] == contact_list_name
+
+
 @mock_sesv2
 def test_list_contact_lists():
     # Setup
@@ -110,3 +129,47 @@ def test_list_contact_lists():
 
     # Verify
     assert result["ContactLists"] == []
+
+@mock_sesv2
+def test_delete_contact_list():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.delete_contact_list(ContactListName=contact_list_name)
+    assert e.value.response["Error"]["Code"] == "NotFoundException"
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
+    result = conn.list_contact_lists()
+    assert len(result["ContactLists"]) == 1
+    conn.delete_contact_list(ContactListName=contact_list_name,)
+    result = conn.list_contact_lists()
+
+    # Verify
+    assert len(result["ContactLists"]) == 0
+
+
+@mock_sesv2
+def test_delete_contact():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.delete_contact(ContactListName=contact_list_name, EmailAddress=email)
+    assert e.value.response["Error"]["Code"] == "NotFoundException"
+    conn.create_contact(
+        ContactListName=contact_list_name, EmailAddress=email
+    )
+    result = conn.list_contacts(ContactListName=contact_list_name)
+    assert len(result["Contacts"]) == 1
+    conn.delete_contact(ContactListName=contact_list_name, EmailAddress=email)
+    result = conn.list_contacts(ContactListName=contact_list_name)
+
+    # Verify
+    assert len(result["Contacts"]) == 0
