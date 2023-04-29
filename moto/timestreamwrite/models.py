@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Iterable
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import ResourceNotFound
@@ -6,12 +7,12 @@ from .exceptions import ResourceNotFound
 class TimestreamTable(BaseModel):
     def __init__(
         self,
-        account_id,
-        region_name,
-        table_name,
-        db_name,
-        retention_properties,
-        magnetic_store_write_properties,
+        account_id: str,
+        region_name: str,
+        table_name: str,
+        db_name: str,
+        retention_properties: Dict[str, int],
+        magnetic_store_write_properties: Dict[str, Any],
     ):
         self.region_name = region_name
         self.name = table_name
@@ -21,18 +22,22 @@ class TimestreamTable(BaseModel):
             "MagneticStoreRetentionPeriodInDays": 123,
         }
         self.magnetic_store_write_properties = magnetic_store_write_properties or {}
-        self.records = []
+        self.records: List[Dict[str, Any]] = []
         self.arn = f"arn:aws:timestream:{self.region_name}:{account_id}:database/{self.db_name}/table/{self.name}"
 
-    def update(self, retention_properties, magnetic_store_write_properties):
+    def update(
+        self,
+        retention_properties: Dict[str, int],
+        magnetic_store_write_properties: Dict[str, Any],
+    ) -> None:
         self.retention_properties = retention_properties
         if magnetic_store_write_properties is not None:
             self.magnetic_store_write_properties = magnetic_store_write_properties
 
-    def write_records(self, records):
+    def write_records(self, records: List[Dict[str, Any]]) -> None:
         self.records.extend(records)
 
-    def description(self):
+    def description(self) -> Dict[str, Any]:
         return {
             "Arn": self.arn,
             "TableName": self.name,
@@ -44,7 +49,9 @@ class TimestreamTable(BaseModel):
 
 
 class TimestreamDatabase(BaseModel):
-    def __init__(self, account_id, region_name, database_name, kms_key_id):
+    def __init__(
+        self, account_id: str, region_name: str, database_name: str, kms_key_id: str
+    ):
         self.account_id = account_id
         self.region_name = region_name
         self.name = database_name
@@ -54,14 +61,17 @@ class TimestreamDatabase(BaseModel):
         self.arn = (
             f"arn:aws:timestream:{self.region_name}:{account_id}:database/{self.name}"
         )
-        self.tables = dict()
+        self.tables: Dict[str, TimestreamTable] = dict()
 
-    def update(self, kms_key_id):
+    def update(self, kms_key_id: str) -> None:
         self.kms_key_id = kms_key_id
 
     def create_table(
-        self, table_name, retention_properties, magnetic_store_write_properties
-    ):
+        self,
+        table_name: str,
+        retention_properties: Dict[str, int],
+        magnetic_store_write_properties: Dict[str, Any],
+    ) -> TimestreamTable:
         table = TimestreamTable(
             account_id=self.account_id,
             region_name=self.region_name,
@@ -74,8 +84,11 @@ class TimestreamDatabase(BaseModel):
         return table
 
     def update_table(
-        self, table_name, retention_properties, magnetic_store_write_properties
-    ):
+        self,
+        table_name: str,
+        retention_properties: Dict[str, int],
+        magnetic_store_write_properties: Dict[str, Any],
+    ) -> TimestreamTable:
         table = self.tables[table_name]
         table.update(
             retention_properties=retention_properties,
@@ -83,18 +96,18 @@ class TimestreamDatabase(BaseModel):
         )
         return table
 
-    def delete_table(self, table_name):
+    def delete_table(self, table_name: str) -> None:
         self.tables.pop(table_name, None)
 
-    def describe_table(self, table_name):
+    def describe_table(self, table_name: str) -> TimestreamTable:
         if table_name not in self.tables:
             raise ResourceNotFound(f"The table {table_name} does not exist.")
         return self.tables[table_name]
 
-    def list_tables(self):
+    def list_tables(self) -> Iterable[TimestreamTable]:
         return self.tables.values()
 
-    def description(self):
+    def description(self) -> Dict[str, Any]:
         return {
             "Arn": self.arn,
             "DatabaseName": self.name,
@@ -117,12 +130,14 @@ class TimestreamWriteBackend(BaseBackend):
 
     """
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.databases = dict()
+        self.databases: Dict[str, TimestreamDatabase] = dict()
         self.tagging_service = TaggingService()
 
-    def create_database(self, database_name, kms_key_id, tags):
+    def create_database(
+        self, database_name: str, kms_key_id: str, tags: List[Dict[str, str]]
+    ) -> TimestreamDatabase:
         database = TimestreamDatabase(
             self.account_id, self.region_name, database_name, kms_key_id
         )
@@ -130,30 +145,32 @@ class TimestreamWriteBackend(BaseBackend):
         self.tagging_service.tag_resource(database.arn, tags)
         return database
 
-    def delete_database(self, database_name):
+    def delete_database(self, database_name: str) -> None:
         del self.databases[database_name]
 
-    def describe_database(self, database_name):
+    def describe_database(self, database_name: str) -> TimestreamDatabase:
         if database_name not in self.databases:
             raise ResourceNotFound(f"The database {database_name} does not exist.")
         return self.databases[database_name]
 
-    def list_databases(self):
+    def list_databases(self) -> Iterable[TimestreamDatabase]:
         return self.databases.values()
 
-    def update_database(self, database_name, kms_key_id):
+    def update_database(
+        self, database_name: str, kms_key_id: str
+    ) -> TimestreamDatabase:
         database = self.databases[database_name]
         database.update(kms_key_id=kms_key_id)
         return database
 
     def create_table(
         self,
-        database_name,
-        table_name,
-        retention_properties,
-        tags,
-        magnetic_store_write_properties,
-    ):
+        database_name: str,
+        table_name: str,
+        retention_properties: Dict[str, int],
+        tags: List[Dict[str, str]],
+        magnetic_store_write_properties: Dict[str, Any],
+    ) -> TimestreamTable:
         database = self.describe_database(database_name)
         table = database.create_table(
             table_name, retention_properties, magnetic_store_write_properties
@@ -161,39 +178,38 @@ class TimestreamWriteBackend(BaseBackend):
         self.tagging_service.tag_resource(table.arn, tags)
         return table
 
-    def delete_table(self, database_name, table_name):
+    def delete_table(self, database_name: str, table_name: str) -> None:
         database = self.describe_database(database_name)
         database.delete_table(table_name)
 
-    def describe_table(self, database_name, table_name):
+    def describe_table(self, database_name: str, table_name: str) -> TimestreamTable:
         database = self.describe_database(database_name)
-        table = database.describe_table(table_name)
-        return table
+        return database.describe_table(table_name)
 
-    def list_tables(self, database_name):
+    def list_tables(self, database_name: str) -> Iterable[TimestreamTable]:
         database = self.describe_database(database_name)
-        tables = database.list_tables()
-        return tables
+        return database.list_tables()
 
     def update_table(
         self,
-        database_name,
-        table_name,
-        retention_properties,
-        magnetic_store_write_properties,
-    ):
+        database_name: str,
+        table_name: str,
+        retention_properties: Dict[str, int],
+        magnetic_store_write_properties: Dict[str, Any],
+    ) -> TimestreamTable:
         database = self.describe_database(database_name)
-        table = database.update_table(
+        return database.update_table(
             table_name, retention_properties, magnetic_store_write_properties
         )
-        return table
 
-    def write_records(self, database_name, table_name, records):
+    def write_records(
+        self, database_name: str, table_name: str, records: List[Dict[str, Any]]
+    ) -> None:
         database = self.describe_database(database_name)
         table = database.describe_table(table_name)
         table.write_records(records)
 
-    def describe_endpoints(self):
+    def describe_endpoints(self) -> Dict[str, List[Dict[str, Any]]]:
         # https://docs.aws.amazon.com/timestream/latest/developerguide/Using-API.endpoint-discovery.how-it-works.html
         # Usually, the address look like this:
         # ingest-cell1.timestream.us-east-1.amazonaws.com
@@ -208,13 +224,15 @@ class TimestreamWriteBackend(BaseBackend):
             ]
         }
 
-    def list_tags_for_resource(self, resource_arn):
+    def list_tags_for_resource(
+        self, resource_arn: str
+    ) -> Dict[str, List[Dict[str, str]]]:
         return self.tagging_service.list_tags_for_resource(resource_arn)
 
-    def tag_resource(self, resource_arn, tags):
+    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         self.tagging_service.tag_resource(resource_arn, tags)
 
-    def untag_resource(self, resource_arn, tag_keys):
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagging_service.untag_resource_using_names(resource_arn, tag_keys)
 
 
