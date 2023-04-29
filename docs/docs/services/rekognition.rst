@@ -31,7 +31,6 @@ rekognition
 - [ ] copy_project_version
 - [ ] create_collection
 - [ ] create_dataset
-- [ ] create_face_liveness_session
 - [ ] create_project
 - [ ] create_project_version
 - [ ] create_stream_processor
@@ -58,7 +57,6 @@ rekognition
 - [ ] get_celebrity_recognition
 - [ ] get_content_moderation
 - [ ] get_face_detection
-- [ ] get_face_liveness_session_results
 - [X] get_face_search
   
         This returns hardcoded values and none of the parameters are taken into account.

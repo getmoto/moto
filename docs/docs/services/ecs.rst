@@ -36,7 +36,6 @@ ecs
 - [X] delete_capacity_provider
 - [X] delete_cluster
 - [X] delete_service
-- [ ] delete_task_definitions
 - [X] delete_task_set
   
         The Force-parameter is not yet implemented
@@ -61,7 +60,6 @@ ecs
 
 - [ ] discover_poll_endpoint
 - [ ] execute_command
-- [ ] get_task_protection
 - [X] list_account_settings
 - [X] list_attributes
   
@@ -75,7 +73,6 @@ ecs
 
 - [X] list_container_instances
 - [X] list_services
-- [ ] list_services_by_namespace
 - [X] list_tags_for_resource
   Currently implemented only for task definitions and services
 
@@ -113,6 +110,5 @@ ecs
 - [X] update_service_primary_task_set
   Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets
 
-- [ ] update_task_protection
 - [X] update_task_set
 

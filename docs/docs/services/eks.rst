@@ -37,7 +37,6 @@ eks
 - [X] delete_nodegroup
 - [ ] deregister_cluster
 - [ ] describe_addon
-- [ ] describe_addon_configuration
 - [ ] describe_addon_versions
 - [X] describe_cluster
 - [X] describe_fargate_profile

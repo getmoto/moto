@@ -41,17 +41,14 @@ quicksight
 - [ ] create_iam_policy_assignment
 - [X] create_ingestion
 - [ ] create_namespace
-- [ ] create_refresh_schedule
 - [ ] create_template
 - [ ] create_template_alias
 - [ ] create_theme
 - [ ] create_theme_alias
 - [ ] delete_account_customization
-- [ ] delete_account_subscription
 - [ ] delete_analysis
 - [ ] delete_dashboard
 - [ ] delete_data_set
-- [ ] delete_data_set_refresh_properties
 - [ ] delete_data_source
 - [ ] delete_folder
 - [ ] delete_folder_membership
@@ -59,7 +56,6 @@ quicksight
 - [ ] delete_group_membership
 - [ ] delete_iam_policy_assignment
 - [ ] delete_namespace
-- [ ] delete_refresh_schedule
 - [ ] delete_template
 - [ ] delete_template_alias
 - [ ] delete_theme
@@ -70,14 +66,11 @@ quicksight
 - [ ] describe_account_settings
 - [ ] describe_account_subscription
 - [ ] describe_analysis
-- [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
 - [ ] describe_dashboard
-- [ ] describe_dashboard_definition
 - [ ] describe_dashboard_permissions
 - [ ] describe_data_set
 - [ ] describe_data_set_permissions
-- [ ] describe_data_set_refresh_properties
 - [ ] describe_data_source
 - [ ] describe_data_source_permissions
 - [ ] describe_folder
@@ -89,10 +82,8 @@ quicksight
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
 - [ ] describe_namespace
-- [ ] describe_refresh_schedule
 - [ ] describe_template
 - [ ] describe_template_alias
-- [ ] describe_template_definition
 - [ ] describe_template_permissions
 - [ ] describe_theme
 - [ ] describe_theme_alias
@@ -123,7 +114,6 @@ quicksight
 - [ ] list_iam_policy_assignments_for_user
 - [ ] list_ingestions
 - [ ] list_namespaces
-- [ ] list_refresh_schedules
 - [ ] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
@@ -137,7 +127,6 @@ quicksight
         The NextToken and MaxResults parameters are not yet implemented
         
 
-- [ ] put_data_set_refresh_properties
 - [X] register_user
   
         The following parameters are not yet implemented:
@@ -147,8 +136,6 @@ quicksight
 - [ ] restore_analysis
 - [ ] search_analyses
 - [ ] search_dashboards
-- [ ] search_data_sets
-- [ ] search_data_sources
 - [ ] search_folders
 - [ ] search_groups
 - [ ] tag_resource
@@ -170,7 +157,6 @@ quicksight
 - [ ] update_iam_policy_assignment
 - [ ] update_ip_restriction
 - [ ] update_public_sharing_settings
-- [ ] update_refresh_schedule
 - [ ] update_template
 - [ ] update_template_alias
 - [ ] update_template_permissions

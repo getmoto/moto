@@ -38,8 +38,6 @@ textract
         
 
 - [ ] get_expense_analysis
-- [ ] get_lending_analysis
-- [ ] get_lending_analysis_summary
 - [ ] start_document_analysis
 - [X] start_document_text_detection
   
@@ -47,5 +45,4 @@ textract
         
 
 - [ ] start_expense_analysis
-- [ ] start_lending_analysis
 

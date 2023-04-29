@@ -37,7 +37,6 @@ s3control
 - [ ] delete_bucket
 - [ ] delete_bucket_lifecycle_configuration
 - [ ] delete_bucket_policy
-- [ ] delete_bucket_replication
 - [ ] delete_bucket_tagging
 - [ ] delete_job_tagging
 - [ ] delete_multi_region_access_point
@@ -60,14 +59,12 @@ s3control
 - [ ] get_bucket
 - [ ] get_bucket_lifecycle_configuration
 - [ ] get_bucket_policy
-- [ ] get_bucket_replication
 - [ ] get_bucket_tagging
 - [ ] get_bucket_versioning
 - [ ] get_job_tagging
 - [ ] get_multi_region_access_point
 - [ ] get_multi_region_access_point_policy
 - [ ] get_multi_region_access_point_policy_status
-- [ ] get_multi_region_access_point_routes
 - [X] get_public_access_block
 - [ ] get_storage_lens_configuration
 - [ ] get_storage_lens_configuration_tagging
@@ -82,7 +79,6 @@ s3control
 - [ ] put_access_point_policy_for_object_lambda
 - [ ] put_bucket_lifecycle_configuration
 - [ ] put_bucket_policy
-- [ ] put_bucket_replication
 - [ ] put_bucket_tagging
 - [ ] put_bucket_versioning
 - [ ] put_job_tagging
@@ -90,7 +86,6 @@ s3control
 - [X] put_public_access_block
 - [ ] put_storage_lens_configuration
 - [ ] put_storage_lens_configuration_tagging
-- [ ] submit_multi_region_access_point_routes
 - [ ] update_job_priority
 - [ ] update_job_status
 

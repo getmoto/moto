@@ -58,7 +58,6 @@ ssm
 - [X] delete_parameters
 - [ ] delete_patch_baseline
 - [ ] delete_resource_data_sync
-- [ ] delete_resource_policy
 - [ ] deregister_managed_instance
 - [ ] deregister_patch_baseline_for_patch_group
 - [ ] deregister_target_from_maintenance_window
@@ -109,10 +108,6 @@ ssm
 - [ ] get_automation_execution
 - [ ] get_calendar_state
 - [X] get_command_invocation
-  
-        https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_GetCommandInvocation.html
-        
-
 - [ ] get_connection_status
 - [ ] get_default_patch_baseline
 - [ ] get_deployable_patch_snapshot_for_instance
@@ -140,7 +135,6 @@ ssm
 
 - [ ] get_patch_baseline
 - [ ] get_patch_baseline_for_patch_group
-- [ ] get_resource_policies
 - [ ] get_service_setting
 - [X] label_parameter_version
 - [ ] list_association_versions
@@ -148,7 +142,7 @@ ssm
 - [ ] list_command_invocations
 - [X] list_commands
   
-        https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_ListCommands.html
+        Pagination and the Filters-parameter is not yet implemented
         
 
 - [ ] list_compliance_items
@@ -167,7 +161,6 @@ ssm
 - [ ] put_compliance_items
 - [ ] put_inventory
 - [X] put_parameter
-- [ ] put_resource_policy
 - [ ] register_default_patch_baseline
 - [ ] register_patch_baseline_for_patch_group
 - [ ] register_target_with_maintenance_window

@@ -40,7 +40,6 @@ lakeformation
 - [X] describe_resource
 - [ ] describe_transaction
 - [ ] extend_transaction
-- [ ] get_data_cells_filter
 - [X] get_data_lake_settings
 - [ ] get_effective_permissions_for_path
 - [X] get_lf_tag
@@ -75,7 +74,6 @@ lakeformation
 - [ ] search_tables_by_lf_tags
 - [ ] start_query_planning
 - [ ] start_transaction
-- [ ] update_data_cells_filter
 - [ ] update_lf_tag
 - [ ] update_resource
 - [ ] update_table_objects

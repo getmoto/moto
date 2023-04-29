@@ -27,7 +27,6 @@ resource-groups
 
 - [X] create_group
 - [X] delete_group
-- [ ] get_account_settings
 - [X] get_group
 - [X] get_group_configuration
 - [ ] get_group_query
@@ -44,7 +43,6 @@ resource-groups
 - [X] tag
 - [ ] ungroup_resources
 - [X] untag
-- [ ] update_account_settings
 - [X] update_group
 - [X] update_group_query
 

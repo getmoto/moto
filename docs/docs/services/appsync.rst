@@ -45,7 +45,6 @@ appsync
 - [ ] delete_resolver
 - [ ] delete_type
 - [ ] disassociate_api
-- [ ] evaluate_code
 - [ ] evaluate_mapping_template
 - [ ] flush_api_cache
 - [ ] get_api_association

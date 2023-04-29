@@ -33,16 +33,13 @@ glue
 - [ ] batch_get_blueprints
 - [X] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
-- [ ] batch_get_data_quality_result
 - [ ] batch_get_dev_endpoints
 - [X] batch_get_jobs
 - [X] batch_get_partition
-- [ ] batch_get_triggers
+- [X] batch_get_triggers
 - [ ] batch_get_workflows
 - [ ] batch_stop_job_run
 - [X] batch_update_partition
-- [ ] cancel_data_quality_rule_recommendation_run
-- [ ] cancel_data_quality_ruleset_evaluation_run
 - [ ] cancel_ml_task_run
 - [ ] cancel_statement
 - [ ] check_schema_version_validity
@@ -51,7 +48,6 @@ glue
 - [ ] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
-- [ ] create_data_quality_ruleset
 - [X] create_database
 - [ ] create_dev_endpoint
 - [X] create_job
@@ -68,7 +64,7 @@ glue
 - [ ] create_security_configuration
 - [ ] create_session
 - [X] create_table
-- [ ] create_trigger
+- [X] create_trigger
 - [ ] create_user_defined_function
 - [ ] create_workflow
 - [ ] delete_blueprint
@@ -78,7 +74,6 @@ glue
 - [ ] delete_connection
 - [X] delete_crawler
 - [ ] delete_custom_entity_type
-- [ ] delete_data_quality_ruleset
 - [X] delete_database
 - [ ] delete_dev_endpoint
 - [X] delete_job
@@ -93,7 +88,7 @@ glue
 - [ ] delete_session
 - [X] delete_table
 - [X] delete_table_version
-- [ ] delete_trigger
+- [X] delete_trigger
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
 - [ ] get_blueprint
@@ -111,10 +106,6 @@ glue
 - [X] get_crawlers
 - [ ] get_custom_entity_type
 - [ ] get_data_catalog_encryption_settings
-- [ ] get_data_quality_result
-- [ ] get_data_quality_rule_recommendation_run
-- [ ] get_data_quality_ruleset
-- [ ] get_data_quality_ruleset_evaluation_run
 - [X] get_database
 - [X] get_databases
 - [ ] get_dataflow_graph
@@ -162,8 +153,8 @@ glue
 - [X] get_table_versions
 - [X] get_tables
 - [X] get_tags
-- [ ] get_trigger
-- [ ] get_triggers
+- [X] get_trigger
+- [X] get_triggers
 - [ ] get_unfiltered_partition_metadata
 - [ ] get_unfiltered_partitions_metadata
 - [ ] get_unfiltered_table_metadata
@@ -178,10 +169,6 @@ glue
 - [X] list_crawlers
 - [ ] list_crawls
 - [ ] list_custom_entity_types
-- [ ] list_data_quality_results
-- [ ] list_data_quality_rule_recommendation_runs
-- [ ] list_data_quality_ruleset_evaluation_runs
-- [ ] list_data_quality_rulesets
 - [ ] list_dev_endpoints
 - [X] list_jobs
 - [ ] list_ml_transforms
@@ -190,7 +177,7 @@ glue
 - [ ] list_schemas
 - [ ] list_sessions
 - [ ] list_statements
-- [ ] list_triggers
+- [X] list_triggers
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
 - [ ] put_resource_policy
@@ -206,19 +193,17 @@ glue
 - [ ] start_blueprint_run
 - [X] start_crawler
 - [ ] start_crawler_schedule
-- [ ] start_data_quality_rule_recommendation_run
-- [ ] start_data_quality_ruleset_evaluation_run
 - [ ] start_export_labels_task_run
 - [ ] start_import_labels_task_run
 - [X] start_job_run
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
-- [ ] start_trigger
+- [X] start_trigger
 - [ ] start_workflow_run
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [ ] stop_session
-- [ ] stop_trigger
+- [X] stop_trigger
 - [ ] stop_workflow_run
 - [X] tag_resource
 - [X] untag_resource
@@ -229,11 +214,9 @@ glue
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule
-- [ ] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint
 - [ ] update_job
-- [ ] update_job_from_source_control
 - [ ] update_ml_transform
 - [X] update_partition
 - [ ] update_registry
@@ -242,7 +225,6 @@ glue
         The SchemaVersionNumber-argument is not yet implemented
         
 
-- [ ] update_source_control_from_job
 - [X] update_table
 - [ ] update_trigger
 - [ ] update_user_defined_function
