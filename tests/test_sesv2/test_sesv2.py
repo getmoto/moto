@@ -296,10 +296,7 @@ def test_delete_contact_no_contact():
 
     # Verify
     assert e.value.response["Error"]["Code"] == "NotFoundException"
-    assert (
-        e.value.response["Error"]["Message"]
-        == f"{email} doesn't exist in List."
-    )
+    assert e.value.response["Error"]["Message"] == f"{email} doesn't exist in List."
 
 
 @mock_sesv2
