@@ -96,7 +96,8 @@ class SESV2Response(BaseResponse):
 
     def delete_contact(self) -> str:
         email = self._get_param("EmailAddress")
-        self.sesv2_backend.delete_contact(unquote(email))
+        contact_list_name = self._get_param("ContactListName")
+        self.sesv2_backend.delete_contact(contact_list_name, unquote(email))
         return json.dumps({})
 
 

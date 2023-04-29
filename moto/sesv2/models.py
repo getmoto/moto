@@ -83,7 +83,9 @@ class SESV2Backend(BaseBackend):
         else:
             raise NotFoundException(f"List with name: {name} doesn't exist")
 
-    def delete_contact(self, email: str) -> None:
+    def delete_contact(self, contact_list_name: str, email: str) -> None:
+        # verify contact list exists
+        self.get_contact_list(contact_list_name)
         to_delete = next(
             (contact for contact in self.contacts if contact.email_address == email),
             None,
@@ -91,7 +93,7 @@ class SESV2Backend(BaseBackend):
         if to_delete:
             self.contacts.remove(to_delete)
         else:
-            raise NotFoundException(f"Contact with name: {email} doesn't exist")
+            raise NotFoundException(f"{email} doesn't exist in List.")
 
     def list_contact_lists(self) -> List[ContactList]:
         return self.contacts_lists
@@ -100,6 +102,8 @@ class SESV2Backend(BaseBackend):
         return [x for x in self.contacts if x.contact_list_name == name]
 
     def get_contact(self, contact_list_name: str, email: str) -> Contact:
+        # verify contact list exists
+        self.get_contact_list(contact_list_name)
         contact = [
             x
             for x in self.contacts

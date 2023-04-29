@@ -1,7 +1,7 @@
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import JsonRESTError
 
 
-class NotFoundException(RESTError):
+class NotFoundException(JsonRESTError):
     code = 404
 
     def __init__(self, message: str):
