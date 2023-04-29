@@ -1,10 +1,11 @@
 """SESV2Backend class with methods for supported APIs."""
 
+from datetime import datetime as dt
 from moto.core import BackendDict, BaseBackend, BaseModel
 from ..ses.models import ses_backends, Message, RawMessage
-from moto.core.utils import unix_time
 from typing import Dict, List, Any
 from .exceptions import NotFoundException
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 
 class Contact(BaseModel):
@@ -20,6 +21,8 @@ class Contact(BaseModel):
         self.topic_default_preferences: List[Dict[str, str]] = []
         self.topic_preferences = topic_preferences
         self.unsubscribe_all = unsubscribe_all
+        self.created_timestamp = iso_8601_datetime_with_milliseconds(dt.utcnow())
+        self.last_updated_timestamp = iso_8601_datetime_with_milliseconds(dt.utcnow())
 
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -29,6 +32,8 @@ class Contact(BaseModel):
             "TopicDefaultPreferences": self.topic_default_preferences,
             "TopicPreferences": self.topic_preferences,
             "UnsubscribeAll": self.unsubscribe_all,
+            "CreatedTimestamp": self.created_timestamp,
+            "LastUpdatedTimestamp": self.last_updated_timestamp,
         }
 
 
@@ -42,13 +47,17 @@ class ContactList(BaseModel):
         self.contact_list_name = contact_list_name
         self.description = description
         self.topics = topics
-        self.last_updated = unix_time()
+        self.created_timestamp = iso_8601_datetime_with_milliseconds(dt.utcnow())
+        self.last_updated_timestamp = iso_8601_datetime_with_milliseconds(dt.utcnow())
 
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         return {
             "ContactListName": self.contact_list_name,
-            "LastUpdatedTimestamp": self.last_updated,
+            "Description": self.description,
+            "Topics": self.topics,
+            "CreatedTimestamp": self.created_timestamp,
+            "LastUpdatedTimestamp": self.last_updated_timestamp,
         }
 
 
@@ -90,7 +99,32 @@ class SESV2Backend(BaseBackend):
     def list_contacts(self, name: str) -> List[Contact]:
         return [x for x in self.contacts if x.contact_list_name == name]
 
+    def get_contact(self, contact_list_name: str, email: str) -> Contact:
+        contact = [
+            x
+            for x in self.contacts
+            if x.contact_list_name == contact_list_name and x.email_address == email
+        ]
+        if contact:
+            return contact[0]
+        else:
+            raise NotFoundException(f"{email} doesn't exist in List.")
+
+    def get_contact_list(self, contact_list_name: str) -> ContactList:
+        contact_list = [
+            x for x in self.contacts_lists if x.contact_list_name == contact_list_name
+        ]
+        if contact_list:
+            return contact_list[0]
+        else:
+            raise NotFoundException(
+                f"List with name: {contact_list_name} doesn't exist."
+            )
+
     def create_contact(self, contact_list_name: str, params: Dict[str, Any]) -> None:
+        # verify contact list exists
+        self.get_contact_list(contact_list_name)
+
         email_address = params["EmailAddress"]
         topic_preferences = (
             [] if "TopicPreferences" not in params else params["TopicPreferences"]

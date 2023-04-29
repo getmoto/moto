@@ -70,37 +70,6 @@ def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
 
 
 @mock_sesv2
-def test_list_contacts():
-    # Setup
-    conn = boto3.client("sesv2", region_name="us-east-1")
-
-    # Execute
-    result = conn.list_contacts(ContactListName="test")
-
-    # Verify
-    assert result["Contacts"] == []
-
-
-@mock_sesv2
-def test_create_contact():
-    # Setup
-    conn = boto3.client("sesv2", region_name="us-east-1")
-    contact_list_name = "test2"
-    email = "test@example.com"
-
-    # Execute
-    conn.create_contact(
-        ContactListName=contact_list_name,
-        EmailAddress=email,
-    )
-    result = conn.list_contacts(ContactListName=contact_list_name)
-
-    # Verify
-    assert len(result["Contacts"]) == 1
-    assert result["Contacts"][0]["EmailAddress"] == email
-
-
-@mock_sesv2
 def test_create_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -130,6 +99,26 @@ def test_list_contact_lists():
 
 
 @mock_sesv2
+def test_get_contact_list():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.get_contact_list(ContactListName=contact_list_name)
+    assert e.value.response["Error"]["Code"] == "NotFoundException"
+
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
+    result = conn.get_contact_list(ContactListName=contact_list_name)
+
+    # Verify
+    assert result["ContactListName"] == contact_list_name
+
+
+@mock_sesv2
 def test_delete_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -154,7 +143,101 @@ def test_delete_contact_list():
 
 
 @mock_sesv2
-def test_delete_contact():
+def test_list_contacts():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+
+    # Execute
+    result = conn.list_contacts(ContactListName="test")
+
+    # Verify
+    assert result["Contacts"] == []
+
+
+@mock_sesv2
+def test_create_contact_no_contact_list():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.create_contact(
+            ContactListName=contact_list_name,
+            EmailAddress=email,
+        )
+
+    # Verify
+    assert e.value.response["Error"]["Code"] == "NotFoundException"
+    # assert (
+    #     e.value.response["Error"]["Message"]
+    #     == f"List with name: {contact_list_name} doesn't exist"
+    # )
+
+
+@mock_sesv2
+def test_create_contact():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
+
+    # Execute
+    conn.create_contact(
+        ContactListName=contact_list_name,
+        EmailAddress=email,
+    )
+
+    result = conn.list_contacts(ContactListName=contact_list_name)
+
+    # Verify
+    assert len(result["Contacts"]) == 1
+    assert result["Contacts"][0]["EmailAddress"] == email
+
+
+@mock_sesv2
+def test_get_contact_no_contact_list():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.get_contact(ContactListName=contact_list_name, EmailAddress=email)
+
+    # Verify
+    assert e.value.response["Error"]["Code"] == "NotFoundException"
+
+
+@mock_sesv2
+def test_get_contact():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
+    # Execute
+
+    conn.create_contact(
+        ContactListName=contact_list_name,
+        EmailAddress=email,
+    )
+    result = conn.get_contact(ContactListName=contact_list_name, EmailAddress=email)
+
+    # Verify
+    assert result["ContactListName"] == contact_list_name
+    assert result["EmailAddress"] == email
+
+
+@mock_sesv2
+def test_delete_contact_no_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     contact_list_name = "test2"
@@ -163,8 +246,20 @@ def test_delete_contact():
     # Execute
     with pytest.raises(ClientError) as e:
         conn.delete_contact(ContactListName=contact_list_name, EmailAddress=email)
+
+    # Verify
     assert e.value.response["Error"]["Code"] == "NotFoundException"
 
+
+@mock_sesv2
+def test_delete_contact():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+
+    # Execute
+    conn.create_contact_list(ContactListName=contact_list_name)
     conn.create_contact(ContactListName=contact_list_name, EmailAddress=email)
     result = conn.list_contacts(ContactListName=contact_list_name)
     assert len(result["Contacts"]) == 1
