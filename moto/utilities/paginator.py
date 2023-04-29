@@ -2,19 +2,23 @@ import inspect
 
 from copy import deepcopy
 from functools import wraps
-from typing import Dict, Any, Callable
+from typing import Any, Dict, List, Tuple, Optional
 
 from botocore.paginate import TokenDecoder, TokenEncoder
 
 from moto.core.exceptions import InvalidToken
 
 
-def paginate(
-    pagination_model: Dict[str, Any], original_function: Callable = None
-) -> Callable:
-    def pagination_decorator(func):
+# This should be typed using ParamSpec
+# https://stackoverflow.com/a/70591060/13245310
+# This currently does not work for our usecase
+# I believe this could be fixed after https://github.com/python/mypy/pull/14903 is accepted
+
+
+def paginate(pagination_model: Dict[str, Any]) -> Any:
+    def pagination_decorator(func: Any) -> Any:
         @wraps(func)
-        def pagination_wrapper(*args, **kwargs):
+        def pagination_wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore
 
             method = func.__name__
             model = pagination_model
@@ -59,27 +63,26 @@ def paginate(
 
         return pagination_wrapper
 
-    if original_function:
-        return pagination_decorator(original_function)
-
     return pagination_decorator
 
 
-class Paginator(object):
+class Paginator:
     def __init__(
         self,
-        max_results=None,
-        max_results_default=None,
-        starting_token=None,
-        unique_attribute=None,
-        param_values_to_check=None,
-        fail_on_invalid_token=True,
+        max_results: Any = None,
+        max_results_default: Any = None,
+        starting_token: Any = None,
+        unique_attribute: Any = None,
+        param_values_to_check: Any = None,
+        fail_on_invalid_token: bool = True,
     ):
         self._max_results = max_results if max_results else max_results_default
         self._starting_token = starting_token
-        self._unique_attributes = unique_attribute
-        if not isinstance(unique_attribute, list):
-            self._unique_attributes = [unique_attribute]
+        self._unique_attributes = (
+            unique_attribute
+            if isinstance(unique_attribute, list)
+            else [unique_attribute]
+        )
         self._param_values_to_check = param_values_to_check
         self._fail_on_invalid_token = fail_on_invalid_token
         self._token_encoder = TokenEncoder()
@@ -87,7 +90,7 @@ class Paginator(object):
         self._param_checksum = self._calculate_parameter_checksum()
         self._parsed_token = self._parse_starting_token()
 
-    def _parse_starting_token(self):
+    def _parse_starting_token(self) -> Optional[Dict[str, Any]]:
         if self._starting_token is None:
             return None
         # The starting token is a dict passed as a base64 encoded string.
@@ -101,7 +104,7 @@ class Paginator(object):
             raise InvalidToken(f"Input inconsistent with page token: {str(next_token)}")
         return next_token
 
-    def _raise_exception_if_required(self, token):
+    def _raise_exception_if_required(self, token: Optional[str]) -> None:
         if self._fail_on_invalid_token:
             if isinstance(self._fail_on_invalid_token, type):
                 # we need to raise a custom exception
@@ -115,8 +118,8 @@ class Paginator(object):
                     raise self._fail_on_invalid_token()
             raise InvalidToken("Invalid token")
 
-    def _calculate_parameter_checksum(self):
-        def freeze(o):
+    def _calculate_parameter_checksum(self) -> int:
+        def freeze(o: Any) -> Any:
             if not o:
                 return None
             if isinstance(o, dict):
@@ -129,7 +132,7 @@ class Paginator(object):
 
         return hash(freeze(self._param_values_to_check))
 
-    def _check_predicate(self, item):
+    def _check_predicate(self, item: Any) -> bool:
         if self._parsed_token is None:
             return False
         unique_attributes = self._parsed_token["uniqueAttributes"]
@@ -140,8 +143,8 @@ class Paginator(object):
                 return False
         return True
 
-    def _build_next_token(self, next_item):
-        token_dict = {}
+    def _build_next_token(self, next_item: Any) -> str:
+        token_dict: Dict[str, Any] = {}
         if self._param_checksum:
             token_dict["parameterChecksum"] = self._param_checksum
         range_keys = []
@@ -153,7 +156,7 @@ class Paginator(object):
         token_dict["uniqueAttributes"] = "|".join(range_keys)
         return self._token_encoder.encode(token_dict)
 
-    def paginate(self, results):
+    def paginate(self, results: List[Any]) -> Tuple[List[Any], Optional[str]]:
         index_start = 0
         if self._starting_token:
             try:

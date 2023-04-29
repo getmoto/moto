@@ -1343,7 +1343,7 @@ class SageMakerModelBackend(BaseBackend):
         resource.tags.extend(tags)
         return resource.tags
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_tags(self, arn: str) -> List[Dict[str, str]]:  # type: ignore[misc]
         resource = self._get_resource_from_arn(arn)
         return resource.tags
@@ -1352,7 +1352,7 @@ class SageMakerModelBackend(BaseBackend):
         resource = self._get_resource_from_arn(arn)
         resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_experiments(self) -> List["FakeExperiment"]:  # type: ignore[misc]
         return list(self.experiments.values())
 
@@ -1522,7 +1522,7 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find trial configuration '{arn}'."
             )
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_trials(self, experiment_name: Optional[str] = None, trial_component_name: Optional[str] = None) -> List["FakeTrial"]:  # type: ignore[misc]
         trials_fetched = list(self.trials.values())
 
@@ -1581,7 +1581,7 @@ class SageMakerModelBackend(BaseBackend):
     ) -> None:
         self.trial_components[trial_component_name].update(details_json)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_trial_components(self, trial_name: Optional[str] = None) -> List["FakeTrialComponent"]:  # type: ignore[misc]
         trial_components_fetched = list(self.trial_components.values())
 

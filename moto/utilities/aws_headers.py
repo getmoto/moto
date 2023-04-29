@@ -1,5 +1,10 @@
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Dict, TypeVar, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing_extensions import Protocol
+else:
+    Protocol = object
 
 import binascii
 import re
@@ -9,7 +14,12 @@ from moto.moto_api._internal import mock_random as random
 TypeDec = TypeVar("TypeDec", bound=Callable[..., Any])
 
 
-def gen_amz_crc32(response, headerdict=None):
+class GenericFunction(Protocol):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        ...
+
+
+def gen_amz_crc32(response: Any, headerdict: Optional[Dict[str, Any]] = None) -> int:
     if not isinstance(response, bytes):
         response = response.encode("utf-8")
 
@@ -21,7 +31,7 @@ def gen_amz_crc32(response, headerdict=None):
     return crc
 
 
-def gen_amzn_requestid_long(headerdict=None):
+def gen_amzn_requestid_long(headerdict: Optional[Dict[str, Any]] = None) -> str:
     req_id = random.get_random_string(length=52)
 
     if headerdict is not None and isinstance(headerdict, dict):
@@ -30,9 +40,9 @@ def gen_amzn_requestid_long(headerdict=None):
     return req_id
 
 
-def amz_crc32(f: TypeDec) -> TypeDec:
+def amz_crc32(f: TypeDec) -> GenericFunction:
     @wraps(f)
-    def _wrapper(*args: Any, **kwargs: Any) -> Any:
+    def _wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
         response = f(*args, **kwargs)
 
         headers = {}
@@ -58,9 +68,9 @@ def amz_crc32(f: TypeDec) -> TypeDec:
     return _wrapper
 
 
-def amzn_request_id(f: TypeDec) -> TypeDec:
+def amzn_request_id(f: TypeDec) -> GenericFunction:
     @wraps(f)
-    def _wrapper(*args: Any, **kwargs: Any) -> Any:
+    def _wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
         response = f(*args, **kwargs)
 
         headers = {}

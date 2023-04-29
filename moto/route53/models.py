@@ -877,7 +877,7 @@ class Route53Backend(BaseBackend):
             raise NoSuchQueryLoggingConfig()
         return self.query_logging_configs[query_logging_config_id]
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_query_logging_configs(self, hosted_zone_id: Optional[str] = None) -> List[QueryLoggingConfig]:  # type: ignore
         """Return a list of query logging configs."""
         if hosted_zone_id:

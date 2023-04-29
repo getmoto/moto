@@ -12,7 +12,7 @@ class TaggingService:
         self.tag_name = tag_name
         self.key_name = key_name
         self.value_name = value_name
-        self.tags: Dict[str, str] = {}
+        self.tags: Dict[str, Dict[str, Optional[str]]] = {}
 
     def get_tag_dict_for_resource(self, arn: str) -> Dict[str, str]:
         """Return dict of key/value pairs vs. list of key/values dicts."""
@@ -20,7 +20,7 @@ class TaggingService:
         if self.has_tags(arn):
             for key, val in self.tags[arn].items():
                 result[key] = val
-        return result
+        return result  # type: ignore
 
     def list_tags_for_resource(self, arn: str) -> Dict[str, List[Dict[str, str]]]:
         """Return list of tags inside dict with key of "tag_name".
@@ -32,7 +32,7 @@ class TaggingService:
         if self.has_tags(arn):
             for key, val in self.tags[arn].items():
                 result.append({self.key_name: key, self.value_name: val})
-        return {self.tag_name: result}
+        return {self.tag_name: result}  # type: ignore
 
     def delete_all_tags_for_resource(self, arn: str) -> None:
         """Delete all tags associated with given ARN."""
@@ -88,7 +88,7 @@ class TaggingService:
 
     def extract_tag_names(self, tags: List[Dict[str, str]]) -> List[str]:
         """Return list of key names in list of 'tags' key/value dicts."""
-        results = []
+        results: List[str] = []
         if len(tags) == 0:
             return results
         for tag in tags:
@@ -96,9 +96,9 @@ class TaggingService:
                 results.append(tag[self.key_name])
         return results
 
-    def flatten_tag_list(self, tags: List[Dict[str, str]]) -> Dict[str, str]:
+    def flatten_tag_list(self, tags: List[Dict[str, str]]) -> Dict[str, Optional[str]]:
         """Return dict of key/value pairs with 'tag_name', 'value_name'."""
-        result = {}
+        result: Dict[str, Optional[str]] = {}
         for tag in tags:
             if self.value_name in tag:
                 result[tag[self.key_name]] = tag[self.value_name]
