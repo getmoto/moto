@@ -500,7 +500,7 @@ class StepFunctionBackend(BaseBackend):
             self.state_machines.append(state_machine)
             return state_machine
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_state_machines(self) -> Iterable[StateMachine]:  # type: ignore[misc]
         return sorted(self.state_machines, key=lambda x: x.creation_date)
 
@@ -546,7 +546,7 @@ class StepFunctionBackend(BaseBackend):
         state_machine = self._get_state_machine_for_execution(execution_arn)
         return state_machine.stop_execution(execution_arn)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_executions(self, state_machine_arn: str, status_filter: Optional[str] = None) -> Iterable[Execution]:  # type: ignore[misc]
         """
         The status of every execution is set to 'RUNNING' by default.

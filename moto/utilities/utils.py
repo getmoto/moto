@@ -2,8 +2,7 @@ import json
 import hashlib
 import pkgutil
 
-from collections.abc import MutableMapping
-from typing import Any, Dict, List, TypeVar, Tuple, Optional
+from typing import Any, Dict, Iterator, List, TypeVar, Tuple, Optional, MutableMapping
 
 
 def str2bool(v: Any) -> Optional[bool]:
@@ -20,16 +19,14 @@ def load_resource(package: str, resource: str) -> Any:
     Usage:
     load_resource(__name__, "resources/file.json")
     """
-    resource = pkgutil.get_data(package, resource)
-    return json.loads(resource)
+    return json.loads(pkgutil.get_data(package, resource))  # type: ignore
 
 
 def load_resource_as_str(package: str, resource: str) -> str:
-    resource = pkgutil.get_data(package, resource)
-    return resource.decode("utf-8")
+    return pkgutil.get_data(package, resource).decode("utf-8")  # type: ignore
 
 
-def merge_multiple_dicts(*args: Any) -> Dict[str, any]:
+def merge_multiple_dicts(*args: Any) -> Dict[str, Any]:
     result = {}
     for d in args:
         result.update(d)
@@ -68,36 +65,36 @@ def md5_hash(data: Any = None) -> Any:
     """
     args = (data,) if data else ()
     try:
-        return hashlib.md5(*args, usedforsecurity=False)
+        return hashlib.md5(*args, usedforsecurity=False)  # type: ignore
     except TypeError:
         # The usedforsecurity-parameter is only available as of Python 3.9
         return hashlib.md5(*args)
 
 
-class LowercaseDict(MutableMapping):
+class LowercaseDict(MutableMapping[str, Any]):
     """A dictionary that lowercases all keys"""
 
     def __init__(self, *args: Any, **kwargs: Any):
-        self.store = dict()
+        self.store: Dict[str, Any] = dict()
         self.update(dict(*args, **kwargs))  # use the free update to set keys
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return self.store[self._keytransform(key)]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         self.store[self._keytransform(key)] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         del self.store[self._keytransform(key)]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         return iter(self.store)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.store)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.store)
 
-    def _keytransform(self, key):
+    def _keytransform(self, key: str) -> str:
         return key.lower()

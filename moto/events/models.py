@@ -1164,7 +1164,7 @@ class EventsBackend(BaseBackend):
 
         return False
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_rule_names_by_target(self, target_arn: str, event_bus_arn: Optional[str]) -> List[Rule]:  # type: ignore[misc]
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
@@ -1177,7 +1177,7 @@ class EventsBackend(BaseBackend):
 
         return matching_rules
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_rules(self, prefix: Optional[str] = None, event_bus_arn: Optional[str] = None) -> List[Rule]:  # type: ignore[misc]
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)

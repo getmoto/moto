@@ -1,8 +1,11 @@
 import functools
 import requests.adapters
-from typing import Tuple
+from typing import Any, Tuple, TYPE_CHECKING
 
 from moto import settings
+
+if TYPE_CHECKING:
+    from docker import DockerClient
 
 
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
@@ -13,7 +16,7 @@ class DockerModel:
         self.__docker_client = None
 
     @property
-    def docker_client(self):
+    def docker_client(self) -> "DockerClient":  # type: ignore
         if self.__docker_client is None:
             # We should only initiate the Docker Client at runtime.
             # The docker.from_env() call will fall if Docker is not running
@@ -26,11 +29,11 @@ class DockerModel:
             if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
                 _orig_get_adapter = self.docker_client.api.get_adapter
 
-                def replace_adapter_send(*args, **kwargs):
+                def replace_adapter_send(*args: Any, **kwargs: Any) -> Any:
                     adapter = _orig_get_adapter(*args, **kwargs)
 
                     if isinstance(adapter, requests.adapters.HTTPAdapter):
-                        adapter.send = functools.partial(_orig_adapter_send, adapter)
+                        adapter.send = functools.partial(_orig_adapter_send, adapter)  # type: ignore
                     return adapter
 
                 self.docker_client.api.get_adapter = replace_adapter_send

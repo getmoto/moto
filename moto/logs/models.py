@@ -695,7 +695,7 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         del self.groups[log_group_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def describe_log_groups(self, log_group_name_prefix: Optional[str] = None) -> List[Dict[str, Any]]:  # type: ignore[misc]
         groups = [
             group.to_describe_dict()

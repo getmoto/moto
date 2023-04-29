@@ -1719,7 +1719,7 @@ class IoTBackend(BaseBackend):
 
         return job_executions, next_token
 
-    @paginate(PAGINATION_MODEL)
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_job_executions_for_thing(self, thing_name: str, status: Optional[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
         job_executions = [
             self.job_executions[je].to_dict()

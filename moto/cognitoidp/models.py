@@ -961,7 +961,7 @@ class CognitoIdpBackend(BaseBackend):
             "MfaConfiguration": user_pool.mfa_config,
         }
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_user_pools(self) -> List[CognitoIdpUserPool]:  # type: ignore[misc]
         return list(self.user_pools.values())
 
@@ -1034,7 +1034,7 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.clients[user_pool_client.id] = user_pool_client
         return user_pool_client
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_user_pool_clients(self, user_pool_id: str) -> List[CognitoIdpUserPoolClient]:  # type: ignore[misc]
         user_pool = self.describe_user_pool(user_pool_id)
 
@@ -1081,7 +1081,7 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.identity_providers[name] = identity_provider
         return identity_provider
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_identity_providers(self, user_pool_id: str) -> List[CognitoIdpIdentityProvider]:  # type: ignore[misc]
         user_pool = self.describe_user_pool(user_pool_id)
 
@@ -1147,7 +1147,7 @@ class CognitoIdpBackend(BaseBackend):
 
         return user_pool.groups[group_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_groups(self, user_pool_id: str) -> List[CognitoIdpGroup]:  # type: ignore[misc]
         user_pool = self.describe_user_pool(user_pool_id)
 
@@ -1188,7 +1188,7 @@ class CognitoIdpBackend(BaseBackend):
         group.users.add(user)
         user.groups.add(group)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_users_in_group(self, user_pool_id: str, group_name: str) -> List[CognitoIdpUser]:  # type: ignore[misc]
         user_pool = self.describe_user_pool(user_pool_id)
         group = self.get_group(user_pool_id, group_name)
@@ -1324,7 +1324,7 @@ class CognitoIdpBackend(BaseBackend):
                 return user
         raise NotAuthorizedError("Invalid token")
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_users(self, user_pool_id: str) -> List[CognitoIdpUser]:  # type: ignore[misc]
         user_pool = self.describe_user_pool(user_pool_id)
 

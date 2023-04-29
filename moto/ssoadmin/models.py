@@ -249,7 +249,7 @@ class SSOAdminBackend(BaseBackend):
                 return permission_set
         raise ResourceNotFound
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_permission_sets(self, instance_arn: str) -> List[PermissionSet]:  # type: ignore[misc]
         permission_sets = []
         for permission_set in self.permission_sets:
