@@ -6,6 +6,7 @@ from moto.core.utils import unix_time
 from typing import Dict, List, Any
 from .exceptions import NotFoundException
 
+
 class Contact(BaseModel):
     def __init__(
         self,
@@ -60,14 +61,24 @@ class SESV2Backend(BaseBackend):
         self.contacts_lists: List[ContactList] = []
 
     def delete_contact_list(self, name: str) -> None:
-        to_delete = next((contact_list for contact_list in self.contacts_lists if contact_list.contact_list_name == name), None)
+        to_delete = next(
+            (
+                contact_list
+                for contact_list in self.contacts_lists
+                if contact_list.contact_list_name == name
+            ),
+            None,
+        )
         if to_delete:
             self.contacts_lists.remove(to_delete)
         else:
             raise NotFoundException(f"List with name: {name} doesn't exist")
 
     def delete_contact(self, email: str) -> None:
-        to_delete = next((contact for contact in self.contacts if contact.email_address == email), None)
+        to_delete = next(
+            (contact for contact in self.contacts if contact.email_address == email),
+            None,
+        )
         if to_delete:
             self.contacts.remove(to_delete)
         else:
@@ -95,13 +106,10 @@ class SESV2Backend(BaseBackend):
     def create_contact_list(self, params: Dict[str, Any]) -> None:
         name = params["ContactListName"]
         description = params.get("Description")
-        topics = (
-            [] if "Topics" not in params else params["Topics"]
-        )
-        new_list = ContactList(
-            name, description, topics
-        )
+        topics = [] if "Topics" not in params else params["Topics"]
+        new_list = ContactList(name, str(description), topics)
         self.contacts_lists.append(new_list)
+
     def send_email(
         self, source: str, destinations: Dict[str, List[str]], subject: str, body: str
     ) -> Message:

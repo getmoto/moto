@@ -8,6 +8,7 @@ from .models import SESV2Backend
 from typing import List, Dict, Any
 from urllib.parse import unquote
 
+
 class SESV2Response(BaseResponse):
     """Handler for SESV2 requests and responses."""
 

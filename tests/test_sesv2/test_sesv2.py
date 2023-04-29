@@ -100,13 +100,11 @@ def test_create_contact():
     assert result["Contacts"][0]["EmailAddress"] == email
 
 
-
 @mock_sesv2
 def test_create_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     contact_list_name = "test2"
-    email = "test@example.com"
 
     # Execute
     conn.create_contact_list(
@@ -130,6 +128,7 @@ def test_list_contact_lists():
     # Verify
     assert result["ContactLists"] == []
 
+
 @mock_sesv2
 def test_delete_contact_list():
     # Setup
@@ -145,7 +144,9 @@ def test_delete_contact_list():
     )
     result = conn.list_contact_lists()
     assert len(result["ContactLists"]) == 1
-    conn.delete_contact_list(ContactListName=contact_list_name,)
+    conn.delete_contact_list(
+        ContactListName=contact_list_name,
+    )
     result = conn.list_contact_lists()
 
     # Verify
@@ -163,9 +164,7 @@ def test_delete_contact():
     with pytest.raises(ClientError) as e:
         conn.delete_contact(ContactListName=contact_list_name, EmailAddress=email)
     assert e.value.response["Error"]["Code"] == "NotFoundException"
-    conn.create_contact(
-        ContactListName=contact_list_name, EmailAddress=email
-    )
+    conn.create_contact(ContactListName=contact_list_name, EmailAddress=email)
     result = conn.list_contacts(ContactListName=contact_list_name)
     assert len(result["Contacts"]) == 1
     conn.delete_contact(ContactListName=contact_list_name, EmailAddress=email)
