@@ -13,6 +13,7 @@ url_paths = {
     "{0}/v2/email/outbound-emails$": response.dispatch,
     "{0}/v2/email/contact-lists/(?P<name>[^/]+)$": response.dispatch,
     "{0}/v2/email/contact-lists/(?P<name>[^/]+)/contacts$": response.dispatch,
+    "{0}/v2/email/contact-lists/(?P<name>[^/]+)/contacts/(?P<email>[^/]+)$": response.dispatch,
     "{0}/v2/email/contact-lists$": response.dispatch,
     "{0}/v2/.*$": response.dispatch,
 }

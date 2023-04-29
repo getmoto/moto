@@ -164,9 +164,11 @@ def test_delete_contact():
     with pytest.raises(ClientError) as e:
         conn.delete_contact(ContactListName=contact_list_name, EmailAddress=email)
     assert e.value.response["Error"]["Code"] == "NotFoundException"
+
     conn.create_contact(ContactListName=contact_list_name, EmailAddress=email)
     result = conn.list_contacts(ContactListName=contact_list_name)
     assert len(result["Contacts"]) == 1
+
     conn.delete_contact(ContactListName=contact_list_name, EmailAddress=email)
     result = conn.list_contacts(ContactListName=contact_list_name)
 
