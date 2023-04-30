@@ -444,6 +444,14 @@
   "Location": "eu-central-2"
  },
  {
+  "InstanceType": "u-6tb1.112xlarge",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "u-6tb1.56xlarge",
+  "Location": "eu-central-2"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "eu-central-2"
  },
