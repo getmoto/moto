@@ -66,60 +66,40 @@ class SESV2Backend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.contacts: List[Contact] = []
-        self.contacts_lists: List[ContactList] = []
+        self.contacts: Dict[str, Contact] = {}
+        self.contacts_lists: Dict[str, ContactList] = {}
 
     def delete_contact_list(self, name: str) -> None:
-        to_delete = next(
-            (
-                contact_list
-                for contact_list in self.contacts_lists
-                if contact_list.contact_list_name == name
-            ),
-            None,
-        )
-        if to_delete:
-            self.contacts_lists.remove(to_delete)
+        if name in self.contacts_lists:
+            del self.contacts_lists[name]
         else:
             raise NotFoundException(f"List with name: {name} doesn't exist")
 
     def delete_contact(self, contact_list_name: str, email: str) -> None:
         # verify contact list exists
         self.get_contact_list(contact_list_name)
-        to_delete = next(
-            (contact for contact in self.contacts if contact.email_address == email),
-            None,
-        )
-        if to_delete:
-            self.contacts.remove(to_delete)
+        if email in self.contacts:
+            del self.contacts[email]
         else:
             raise NotFoundException(f"{email} doesn't exist in List.")
 
     def list_contact_lists(self) -> List[ContactList]:
-        return self.contacts_lists
+        return self.contacts_lists.values()  # type: ignore[return-value]
 
     def list_contacts(self, name: str) -> List[Contact]:
-        return [x for x in self.contacts if x.contact_list_name == name]
+        return [x for x in self.contacts.values() if x.contact_list_name == name]
 
     def get_contact(self, contact_list_name: str, email: str) -> Contact:
         # verify contact list exists
         self.get_contact_list(contact_list_name)
-        contact = [
-            x
-            for x in self.contacts
-            if x.contact_list_name == contact_list_name and x.email_address == email
-        ]
-        if contact:
-            return contact[0]
+        if email in self.contacts:
+            return self.contacts[email]
         else:
             raise NotFoundException(f"{email} doesn't exist in List.")
 
     def get_contact_list(self, contact_list_name: str) -> ContactList:
-        contact_list = [
-            x for x in self.contacts_lists if x.contact_list_name == contact_list_name
-        ]
-        if contact_list:
-            return contact_list[0]
+        if contact_list_name in self.contacts_lists:
+            return self.contacts_lists[contact_list_name]
         else:
             raise NotFoundException(
                 f"List with name: {contact_list_name} doesn't exist."
@@ -139,14 +119,14 @@ class SESV2Backend(BaseBackend):
         new_contact = Contact(
             contact_list_name, email_address, topic_preferences, unsubscribe_all
         )
-        self.contacts.append(new_contact)
+        self.contacts[email_address] = new_contact
 
     def create_contact_list(self, params: Dict[str, Any]) -> None:
         name = params["ContactListName"]
         description = params.get("Description")
         topics = [] if "Topics" not in params else params["Topics"]
         new_list = ContactList(name, str(description), topics)
-        self.contacts_lists.append(new_list)
+        self.contacts_lists[name] = new_list
 
     def send_email(
         self, source: str, destinations: Dict[str, List[str]], subject: str, body: str
