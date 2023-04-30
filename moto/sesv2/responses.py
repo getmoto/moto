@@ -7,7 +7,6 @@ from ..ses.responses import SEND_EMAIL_RESPONSE
 from .models import SESV2Backend
 from typing import List, Dict, Any
 from urllib.parse import unquote
-from .exceptions import NotFoundException
 
 
 class SESV2Response(BaseResponse):
@@ -75,29 +74,30 @@ class SESV2Response(BaseResponse):
         return json.dumps({})
 
     def create_contact(self) -> str:
-        name = self._get_param("ContactListName")
+        contact_list_name = self._get_param("ContactListName")
         params = get_params_dict(self.data)
-        self.sesv2_backend.create_contact(name, params)
+        contact_list = self.sesv2_backend.get_contact_list(contact_list_name)
+        contact_list.create_contact(contact_list_name, params)
         return json.dumps({})
 
     def get_contact(self) -> str:
         email = unquote(self._get_param("EmailAddress"))
         contact_list_name = self._get_param("ContactListName")
-        contact = self.sesv2_backend.get_contact(contact_list_name, email)
-        if contact:
-            return json.dumps(contact.response_object)
-        else:
-            raise NotFoundException(f"{email} doesn't exist in List.")
+        contact_list = self.sesv2_backend.get_contact_list(contact_list_name)
+        contact = contact_list.get_contact(email)
+        return json.dumps(contact.response_object)
 
     def list_contacts(self) -> str:
-        name = self._get_param("ContactListName")
-        contacts = self.sesv2_backend.list_contacts(name)
+        contact_list_name = self._get_param("ContactListName")
+        contact_list = self.sesv2_backend.get_contact_list(contact_list_name)
+        contacts = contact_list.list_contacts()
         return json.dumps(dict(Contacts=[c.response_object for c in contacts]))
 
     def delete_contact(self) -> str:
         email = self._get_param("EmailAddress")
         contact_list_name = self._get_param("ContactListName")
-        self.sesv2_backend.delete_contact(contact_list_name, unquote(email))
+        contact_list = self.sesv2_backend.get_contact_list(contact_list_name)
+        contact_list.delete_contact(unquote(email))
         return json.dumps({})
 
 

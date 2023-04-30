@@ -150,9 +150,13 @@ def test_delete_contact_list():
 def test_list_contacts():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
 
     # Execute
-    result = conn.list_contacts(ContactListName="test")
+    result = conn.list_contacts(ContactListName=contact_list_name)
 
     # Verify
     assert result["Contacts"] == []
