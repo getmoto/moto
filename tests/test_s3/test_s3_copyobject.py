@@ -482,8 +482,8 @@ def test_copy_object_in_place_with_storage_class():
     key = "source-key"
     bucket.put_object(Key=key, Body=b"somedata", StorageClass="STANDARD")
     client.copy_object(
-        Bucket="test_bucket",
-        CopySource=f"test_bucket/{key}",
+        Bucket=bucket_name,
+        CopySource=f"{bucket_name}/{key}",
         Key=key,
         StorageClass="STANDARD",
     )
