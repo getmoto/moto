@@ -76,28 +76,24 @@ class SESV2Response(BaseResponse):
     def create_contact(self) -> str:
         contact_list_name = self._get_param("ContactListName")
         params = get_params_dict(self.data)
-        contact_list = self.sesv2_backend.get_contact_list(contact_list_name)
-        contact_list.create_contact(contact_list_name, params)
+        self.sesv2_backend.create_contact(contact_list_name, params)
         return json.dumps({})
 
     def get_contact(self) -> str:
         email = unquote(self._get_param("EmailAddress"))
         contact_list_name = self._get_param("ContactListName")
-        contact_list = self.sesv2_backend.get_contact_list(contact_list_name)
-        contact = contact_list.get_contact(email)
+        contact = self.sesv2_backend.get_contact(email, contact_list_name)
         return json.dumps(contact.response_object)
 
     def list_contacts(self) -> str:
         contact_list_name = self._get_param("ContactListName")
-        contact_list = self.sesv2_backend.get_contact_list(contact_list_name)
-        contacts = contact_list.list_contacts()
+        contacts = self.sesv2_backend.list_contacts(contact_list_name)
         return json.dumps(dict(Contacts=[c.response_object for c in contacts]))
 
     def delete_contact(self) -> str:
         email = self._get_param("EmailAddress")
         contact_list_name = self._get_param("ContactListName")
-        contact_list = self.sesv2_backend.get_contact_list(contact_list_name)
-        contact_list.delete_contact(unquote(email))
+        self.sesv2_backend.delete_contact(unquote(email), contact_list_name)
         return json.dumps({})
 
 

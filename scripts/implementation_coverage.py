@@ -61,6 +61,7 @@ def calculate_extended_implementation_coverage():
         operation_names = [
             xform_name(op) for op in real_client.meta.service_model.operation_names
         ]
+
         for op in operation_names:
             if moto_client and op in dir(moto_client):
                 implemented[op] = getattr(moto_client, op)

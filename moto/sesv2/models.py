@@ -97,14 +97,12 @@ class SESV2Backend(BaseBackend):
         self.contacts: Dict[str, Contact] = {}
         self.contacts_lists: Dict[str, ContactList] = {}
 
-    def delete_contact_list(self, name: str) -> None:
-        if name in self.contacts_lists:
-            del self.contacts_lists[name]
-        else:
-            raise NotFoundException(f"List with name: {name} doesn't exist")
-
-    def list_contact_lists(self) -> List[ContactList]:
-        return self.contacts_lists.values()  # type: ignore[return-value]
+    def create_contact_list(self, params: Dict[str, Any]) -> None:
+        name = params["ContactListName"]
+        description = params.get("Description")
+        topics = [] if "Topics" not in params else params["Topics"]
+        new_list = ContactList(name, str(description), topics)
+        self.contacts_lists[name] = new_list
 
     def get_contact_list(self, contact_list_name: str) -> ContactList:
         if contact_list_name in self.contacts_lists:
@@ -114,12 +112,34 @@ class SESV2Backend(BaseBackend):
                 f"List with name: {contact_list_name} doesn't exist."
             )
 
-    def create_contact_list(self, params: Dict[str, Any]) -> None:
-        name = params["ContactListName"]
-        description = params.get("Description")
-        topics = [] if "Topics" not in params else params["Topics"]
-        new_list = ContactList(name, str(description), topics)
-        self.contacts_lists[name] = new_list
+    def list_contact_lists(self) -> List[ContactList]:
+        return self.contacts_lists.values()  # type: ignore[return-value]
+
+    def delete_contact_list(self, name: str) -> None:
+        if name in self.contacts_lists:
+            del self.contacts_lists[name]
+        else:
+            raise NotFoundException(f"List with name: {name} doesn't exist")
+
+    def create_contact(self, contact_list_name: str, params: Dict[str, Any]) -> None:
+        contact_list = self.get_contact_list(contact_list_name)
+        contact_list.create_contact(contact_list_name, params)
+        return
+
+    def get_contact(self, email: str, contact_list_name: str) -> Contact:
+        contact_list = self.get_contact_list(contact_list_name)
+        contact = contact_list.get_contact(email)
+        return contact
+
+    def list_contacts(self, contact_list_name: str) -> List[Contact]:
+        contact_list = self.get_contact_list(contact_list_name)
+        contacts = contact_list.list_contacts()
+        return contacts
+
+    def delete_contact(self, email: str, contact_list_name: str) -> None:
+        contact_list = self.get_contact_list(contact_list_name)
+        contact_list.delete_contact(email)
+        return
 
     def send_email(
         self, source: str, destinations: Dict[str, List[str]], subject: str, body: str

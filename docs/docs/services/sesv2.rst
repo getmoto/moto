@@ -30,7 +30,7 @@ sesv2
 - [ ] batch_get_metric_data
 - [ ] create_configuration_set
 - [ ] create_configuration_set_event_destination
-- [ ] create_contact
+- [X] create_contact
 - [X] create_contact_list
 - [ ] create_custom_verification_email_template
 - [ ] create_dedicated_ip_pool
@@ -41,7 +41,7 @@ sesv2
 - [ ] create_import_job
 - [ ] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
-- [ ] delete_contact
+- [X] delete_contact
 - [X] delete_contact_list
 - [ ] delete_custom_verification_email_template
 - [ ] delete_dedicated_ip_pool
@@ -53,7 +53,7 @@ sesv2
 - [ ] get_blacklist_reports
 - [ ] get_configuration_set
 - [ ] get_configuration_set_event_destinations
-- [ ] get_contact
+- [X] get_contact
 - [X] get_contact_list
 - [ ] get_custom_verification_email_template
 - [ ] get_dedicated_ip
@@ -70,7 +70,7 @@ sesv2
 - [ ] get_suppressed_destination
 - [ ] list_configuration_sets
 - [X] list_contact_lists
-- [ ] list_contacts
+- [X] list_contacts
 - [ ] list_custom_verification_email_templates
 - [ ] list_dedicated_ip_pools
 - [ ] list_deliverability_test_reports
