@@ -86,6 +86,7 @@ guardduty
 - [ ] list_publishing_destinations
 - [ ] list_tags_for_resource
 - [ ] list_threat_intel_sets
+- [ ] start_malware_scan
 - [ ] start_monitoring_members
 - [ ] stop_monitoring_members
 - [ ] tag_resource

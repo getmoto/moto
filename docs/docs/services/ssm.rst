@@ -109,10 +109,6 @@ ssm
 - [ ] get_automation_execution
 - [ ] get_calendar_state
 - [X] get_command_invocation
-  
-        https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_GetCommandInvocation.html
-        
-
 - [ ] get_connection_status
 - [ ] get_default_patch_baseline
 - [ ] get_deployable_patch_snapshot_for_instance
@@ -148,7 +144,7 @@ ssm
 - [ ] list_command_invocations
 - [X] list_commands
   
-        https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_ListCommands.html
+        Pagination and the Filters-parameter is not yet implemented
         
 
 - [ ] list_compliance_items

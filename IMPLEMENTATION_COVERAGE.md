@@ -358,11 +358,13 @@
 
 ## athena
 <details>
-<summary>26% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_prepared_statement
 - [ ] batch_get_query_execution
+- [ ] cancel_capacity_reservation
+- [ ] create_capacity_reservation
 - [X] create_data_catalog
 - [X] create_named_query
 - [ ] create_notebook
@@ -378,6 +380,8 @@
 - [ ] get_calculation_execution
 - [ ] get_calculation_execution_code
 - [ ] get_calculation_execution_status
+- [ ] get_capacity_assignment_configuration
+- [ ] get_capacity_reservation
 - [X] get_data_catalog
 - [ ] get_database
 - [X] get_named_query
@@ -393,6 +397,7 @@
 - [ ] import_notebook
 - [ ] list_application_dpu_sizes
 - [ ] list_calculation_executions
+- [ ] list_capacity_reservations
 - [X] list_data_catalogs
 - [ ] list_databases
 - [ ] list_engine_versions
@@ -406,6 +411,7 @@
 - [ ] list_table_metadata
 - [ ] list_tags_for_resource
 - [X] list_work_groups
+- [ ] put_capacity_assignment_configuration
 - [ ] start_calculation_execution
 - [X] start_query_execution
 - [ ] start_session
@@ -414,6 +420,7 @@
 - [ ] tag_resource
 - [ ] terminate_session
 - [ ] untag_resource
+- [ ] update_capacity_reservation
 - [ ] update_data_catalog
 - [ ] update_named_query
 - [ ] update_notebook
@@ -1453,8 +1460,9 @@
 
 ## datasync
 <details>
-<summary>13% implemented</summary>
+<summary>10% implemented</summary>
 
+- [ ] add_storage_system
 - [X] cancel_task_execution
 - [ ] create_agent
 - [ ] create_location_efs
@@ -1472,6 +1480,7 @@
 - [X] delete_location
 - [X] delete_task
 - [ ] describe_agent
+- [ ] describe_discovery_job
 - [ ] describe_location_efs
 - [ ] describe_location_fsx_lustre
 - [ ] describe_location_fsx_ontap
@@ -1482,21 +1491,32 @@
 - [ ] describe_location_object_storage
 - [ ] describe_location_s3
 - [ ] describe_location_smb
+- [ ] describe_storage_system
+- [ ] describe_storage_system_resource_metrics
+- [ ] describe_storage_system_resources
 - [ ] describe_task
 - [ ] describe_task_execution
+- [ ] generate_recommendations
 - [ ] list_agents
+- [ ] list_discovery_jobs
 - [ ] list_locations
+- [ ] list_storage_systems
 - [ ] list_tags_for_resource
 - [ ] list_task_executions
 - [ ] list_tasks
+- [ ] remove_storage_system
+- [ ] start_discovery_job
 - [X] start_task_execution
+- [ ] stop_discovery_job
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_agent
+- [ ] update_discovery_job
 - [ ] update_location_hdfs
 - [ ] update_location_nfs
 - [ ] update_location_object_storage
 - [ ] update_location_smb
+- [ ] update_storage_system
 - [X] update_task
 - [ ] update_task_execution
 </details>
@@ -2831,7 +2851,7 @@
 
 ## emr-containers
 <details>
-<summary>42% implemented</summary>
+<summary>40% implemented</summary>
 
 - [X] cancel_job_run
 - [ ] create_job_template
@@ -2844,6 +2864,7 @@
 - [ ] describe_job_template
 - [ ] describe_managed_endpoint
 - [X] describe_virtual_cluster
+- [ ] get_managed_endpoint_session_credentials
 - [X] list_job_runs
 - [ ] list_job_templates
 - [ ] list_managed_endpoints
@@ -3121,7 +3142,7 @@
 
 ## glue
 <details>
-<summary>26% implemented</summary>
+<summary>30% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3135,7 +3156,7 @@
 - [ ] batch_get_dev_endpoints
 - [X] batch_get_jobs
 - [X] batch_get_partition
-- [ ] batch_get_triggers
+- [X] batch_get_triggers
 - [ ] batch_get_workflows
 - [ ] batch_stop_job_run
 - [X] batch_update_partition
@@ -3162,7 +3183,7 @@
 - [ ] create_security_configuration
 - [ ] create_session
 - [X] create_table
-- [ ] create_trigger
+- [X] create_trigger
 - [ ] create_user_defined_function
 - [ ] create_workflow
 - [ ] delete_blueprint
@@ -3187,7 +3208,7 @@
 - [ ] delete_session
 - [X] delete_table
 - [X] delete_table_version
-- [ ] delete_trigger
+- [X] delete_trigger
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
 - [ ] get_blueprint
@@ -3244,8 +3265,8 @@
 - [X] get_table_versions
 - [X] get_tables
 - [X] get_tags
-- [ ] get_trigger
-- [ ] get_triggers
+- [X] get_trigger
+- [X] get_triggers
 - [ ] get_unfiltered_partition_metadata
 - [ ] get_unfiltered_partitions_metadata
 - [ ] get_unfiltered_table_metadata
@@ -3272,7 +3293,7 @@
 - [ ] list_schemas
 - [ ] list_sessions
 - [ ] list_statements
-- [ ] list_triggers
+- [X] list_triggers
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
 - [ ] put_resource_policy
@@ -3295,12 +3316,12 @@
 - [X] start_job_run
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
-- [ ] start_trigger
+- [X] start_trigger
 - [ ] start_workflow_run
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [ ] stop_session
-- [ ] stop_trigger
+- [X] stop_trigger
 - [ ] stop_workflow_run
 - [X] tag_resource
 - [X] untag_resource
@@ -3482,6 +3503,7 @@
 - [ ] list_publishing_destinations
 - [ ] list_tags_for_resource
 - [ ] list_threat_intel_sets
+- [ ] start_malware_scan
 - [ ] start_monitoring_members
 - [ ] stop_monitoring_members
 - [ ] tag_resource
@@ -4863,7 +4885,7 @@
 
 ## pinpoint
 <details>
-<summary>10% implemented</summary>
+<summary>9% implemented</summary>
 
 - [X] create_app
 - [ ] create_campaign
@@ -4932,6 +4954,9 @@
 - [ ] get_journey_date_range_kpi
 - [ ] get_journey_execution_activity_metrics
 - [ ] get_journey_execution_metrics
+- [ ] get_journey_run_execution_activity_metrics
+- [ ] get_journey_run_execution_metrics
+- [ ] get_journey_runs
 - [ ] get_push_template
 - [ ] get_recommender_configuration
 - [ ] get_recommender_configurations
@@ -6412,6 +6437,98 @@
 - [X] verify_email_identity
 </details>
 
+## sesv2
+<details>
+<summary>10% implemented</summary>
+
+- [ ] batch_get_metric_data
+- [ ] create_configuration_set
+- [ ] create_configuration_set_event_destination
+- [X] create_contact
+- [X] create_contact_list
+- [ ] create_custom_verification_email_template
+- [ ] create_dedicated_ip_pool
+- [ ] create_deliverability_test_report
+- [ ] create_email_identity
+- [ ] create_email_identity_policy
+- [ ] create_email_template
+- [ ] create_import_job
+- [ ] delete_configuration_set
+- [ ] delete_configuration_set_event_destination
+- [X] delete_contact
+- [X] delete_contact_list
+- [ ] delete_custom_verification_email_template
+- [ ] delete_dedicated_ip_pool
+- [ ] delete_email_identity
+- [ ] delete_email_identity_policy
+- [ ] delete_email_template
+- [ ] delete_suppressed_destination
+- [ ] get_account
+- [ ] get_blacklist_reports
+- [ ] get_configuration_set
+- [ ] get_configuration_set_event_destinations
+- [X] get_contact
+- [X] get_contact_list
+- [ ] get_custom_verification_email_template
+- [ ] get_dedicated_ip
+- [ ] get_dedicated_ip_pool
+- [ ] get_dedicated_ips
+- [ ] get_deliverability_dashboard_options
+- [ ] get_deliverability_test_report
+- [ ] get_domain_deliverability_campaign
+- [ ] get_domain_statistics_report
+- [ ] get_email_identity
+- [ ] get_email_identity_policies
+- [ ] get_email_template
+- [ ] get_import_job
+- [ ] get_suppressed_destination
+- [ ] list_configuration_sets
+- [X] list_contact_lists
+- [X] list_contacts
+- [ ] list_custom_verification_email_templates
+- [ ] list_dedicated_ip_pools
+- [ ] list_deliverability_test_reports
+- [ ] list_domain_deliverability_campaigns
+- [ ] list_email_identities
+- [ ] list_email_templates
+- [ ] list_import_jobs
+- [ ] list_recommendations
+- [ ] list_suppressed_destinations
+- [ ] list_tags_for_resource
+- [ ] put_account_dedicated_ip_warmup_attributes
+- [ ] put_account_details
+- [ ] put_account_sending_attributes
+- [ ] put_account_suppression_attributes
+- [ ] put_account_vdm_attributes
+- [ ] put_configuration_set_delivery_options
+- [ ] put_configuration_set_reputation_options
+- [ ] put_configuration_set_sending_options
+- [ ] put_configuration_set_suppression_options
+- [ ] put_configuration_set_tracking_options
+- [ ] put_configuration_set_vdm_options
+- [ ] put_dedicated_ip_in_pool
+- [ ] put_dedicated_ip_warmup_attributes
+- [ ] put_deliverability_dashboard_option
+- [ ] put_email_identity_configuration_set_attributes
+- [ ] put_email_identity_dkim_attributes
+- [ ] put_email_identity_dkim_signing_attributes
+- [ ] put_email_identity_feedback_attributes
+- [ ] put_email_identity_mail_from_attributes
+- [ ] put_suppressed_destination
+- [ ] send_bulk_email
+- [ ] send_custom_verification_email
+- [X] send_email
+- [ ] tag_resource
+- [ ] test_render_email_template
+- [ ] untag_resource
+- [ ] update_configuration_set_event_destination
+- [ ] update_contact
+- [ ] update_contact_list
+- [ ] update_custom_verification_email_template
+- [ ] update_email_identity_policy
+- [ ] update_email_template
+</details>
+
 ## signer
 <details>
 <summary>23% implemented</summary>
@@ -7113,6 +7230,7 @@
 - omics
 - opensearchserverless
 - opsworkscm
+- osis
 - outposts
 - panorama
 - personalize-events
@@ -7152,7 +7270,6 @@
 - serverlessrepo
 - servicecatalog
 - servicecatalog-appregistry
-- sesv2
 - shield
 - simspaceweaver
 - sms

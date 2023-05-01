@@ -98,6 +98,9 @@ pinpoint
 - [ ] get_journey_date_range_kpi
 - [ ] get_journey_execution_activity_metrics
 - [ ] get_journey_execution_metrics
+- [ ] get_journey_run_execution_activity_metrics
+- [ ] get_journey_run_execution_metrics
+- [ ] get_journey_runs
 - [ ] get_push_template
 - [ ] get_recommender_configuration
 - [ ] get_recommender_configurations

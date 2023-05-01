@@ -28,6 +28,8 @@ athena
 - [ ] batch_get_named_query
 - [ ] batch_get_prepared_statement
 - [ ] batch_get_query_execution
+- [ ] cancel_capacity_reservation
+- [ ] create_capacity_reservation
 - [X] create_data_catalog
 - [X] create_named_query
 - [ ] create_notebook
@@ -43,6 +45,8 @@ athena
 - [ ] get_calculation_execution
 - [ ] get_calculation_execution_code
 - [ ] get_calculation_execution_status
+- [ ] get_capacity_assignment_configuration
+- [ ] get_capacity_reservation
 - [X] get_data_catalog
 - [ ] get_database
 - [X] get_named_query
@@ -104,6 +108,7 @@ athena
 - [ ] import_notebook
 - [ ] list_application_dpu_sizes
 - [ ] list_calculation_executions
+- [ ] list_capacity_reservations
 - [X] list_data_catalogs
 - [ ] list_databases
 - [ ] list_engine_versions
@@ -117,6 +122,7 @@ athena
 - [ ] list_table_metadata
 - [ ] list_tags_for_resource
 - [X] list_work_groups
+- [ ] put_capacity_assignment_configuration
 - [ ] start_calculation_execution
 - [X] start_query_execution
 - [ ] start_session
@@ -125,6 +131,7 @@ athena
 - [ ] tag_resource
 - [ ] terminate_session
 - [ ] untag_resource
+- [ ] update_capacity_reservation
 - [ ] update_data_catalog
 - [ ] update_named_query
 - [ ] update_notebook

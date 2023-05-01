@@ -150,6 +150,7 @@ mock_servicequotas = lazy_load(
     ".servicequotas", "mock_servicequotas", boto3_name="service-quotas"
 )
 mock_ses = lazy_load(".ses", "mock_ses")
+mock_sesv2 = lazy_load(".sesv2", "mock_sesv2")
 mock_servicediscovery = lazy_load(".servicediscovery", "mock_servicediscovery")
 mock_signer = lazy_load(".signer", "mock_signer")
 mock_sns = lazy_load(".sns", "mock_sns")

@@ -38,6 +38,7 @@ emr-containers
 - [ ] describe_job_template
 - [ ] describe_managed_endpoint
 - [X] describe_virtual_cluster
+- [ ] get_managed_endpoint_session_credentials
 - [X] list_job_runs
 - [ ] list_job_templates
 - [ ] list_managed_endpoints

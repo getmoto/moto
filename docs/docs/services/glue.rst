@@ -37,7 +37,7 @@ glue
 - [ ] batch_get_dev_endpoints
 - [X] batch_get_jobs
 - [X] batch_get_partition
-- [ ] batch_get_triggers
+- [X] batch_get_triggers
 - [ ] batch_get_workflows
 - [ ] batch_stop_job_run
 - [X] batch_update_partition
@@ -68,7 +68,7 @@ glue
 - [ ] create_security_configuration
 - [ ] create_session
 - [X] create_table
-- [ ] create_trigger
+- [X] create_trigger
 - [ ] create_user_defined_function
 - [ ] create_workflow
 - [ ] delete_blueprint
@@ -93,7 +93,7 @@ glue
 - [ ] delete_session
 - [X] delete_table
 - [X] delete_table_version
-- [ ] delete_trigger
+- [X] delete_trigger
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
 - [ ] get_blueprint
@@ -162,8 +162,8 @@ glue
 - [X] get_table_versions
 - [X] get_tables
 - [X] get_tags
-- [ ] get_trigger
-- [ ] get_triggers
+- [X] get_trigger
+- [X] get_triggers
 - [ ] get_unfiltered_partition_metadata
 - [ ] get_unfiltered_partitions_metadata
 - [ ] get_unfiltered_table_metadata
@@ -190,7 +190,7 @@ glue
 - [ ] list_schemas
 - [ ] list_sessions
 - [ ] list_statements
-- [ ] list_triggers
+- [X] list_triggers
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
 - [ ] put_resource_policy
@@ -213,12 +213,12 @@ glue
 - [X] start_job_run
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
-- [ ] start_trigger
+- [X] start_trigger
 - [ ] start_workflow_run
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [ ] stop_session
-- [ ] stop_trigger
+- [X] stop_trigger
 - [ ] stop_workflow_run
 - [X] tag_resource
 - [X] untag_resource

@@ -153,6 +153,8 @@ class DomainDispatcherApplication:
             path.startswith("/v20180820/") or "s3-control" in environ["HTTP_HOST"]
         ):
             host = "s3control"
+        elif service == "ses" and path.startswith("/v2/"):
+            host = "sesv2"
         else:
             host = f"{service}.{region}.amazonaws.com"
 
