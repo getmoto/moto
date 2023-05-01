@@ -5654,6 +5654,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
+   ],
    "SustainedClockSpeedInGhz": 3.6
   },
   "SupportedBootModes": [
@@ -5749,6 +5752,9 @@
   "ProcessorInfo": {
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
@@ -5940,6 +5946,9 @@
   "ProcessorInfo": {
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
@@ -6225,6 +6234,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
+   ],
    "SustainedClockSpeedInGhz": 3.6
   },
   "SupportedBootModes": [
@@ -6318,6 +6330,9 @@
   "ProcessorInfo": {
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
@@ -6413,6 +6428,9 @@
   "ProcessorInfo": {
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
@@ -6581,6 +6599,9 @@
   "ProcessorInfo": {
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
@@ -32233,6 +32254,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
+   ],
    "SustainedClockSpeedInGhz": 3.6
   },
   "SupportedBootModes": [
@@ -32517,6 +32541,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
+   ],
    "SustainedClockSpeedInGhz": 3.6
   },
   "SupportedBootModes": [
@@ -32610,6 +32637,9 @@
   "ProcessorInfo": {
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
@@ -32705,6 +32735,9 @@
   "ProcessorInfo": {
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
@@ -32873,6 +32906,9 @@
   "ProcessorInfo": {
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
@@ -48394,6 +48430,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
+   ],
    "SustainedClockSpeedInGhz": 3.6
   },
   "SupportedBootModes": [
@@ -48678,6 +48717,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
+   ],
    "SustainedClockSpeedInGhz": 3.6
   },
   "SupportedBootModes": [
@@ -48867,6 +48909,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
+   ],
    "SustainedClockSpeedInGhz": 3.6
   },
   "SupportedBootModes": [
@@ -49034,6 +49079,9 @@
   "ProcessorInfo": {
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "amd-sev-snp"
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
