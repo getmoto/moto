@@ -1,3 +1,5 @@
+import datetime
+
 import boto3
 from botocore.client import ClientError
 
@@ -408,3 +410,275 @@ def test_copy_object_with_kms_encryption():
     result = client.head_object(Bucket="blah", Key="test2")
     assert result["SSEKMSKeyId"] == kms_key
     assert result["ServerSideEncryption"] == "aws:kms"
+
+
+@mock_s3
+@mock_kms
+def test_copy_object_in_place_with_encryption():
+    kms_client = boto3.client("kms", region_name=DEFAULT_REGION_NAME)
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    kms_key = kms_client.create_key()["KeyMetadata"]["KeyId"]
+    bucket = s3.Bucket("test_bucket")
+    bucket.create()
+    key = "source-key"
+    resp = client.put_object(
+        Bucket="test_bucket",
+        Key=key,
+        Body=b"somedata",
+        ServerSideEncryption="aws:kms",
+        BucketKeyEnabled=True,
+        SSEKMSKeyId=kms_key,
+    )
+    assert resp["BucketKeyEnabled"] is True
+
+    # assert that you can copy in place with the same Encryption settings
+    client.copy_object(
+        Bucket="test_bucket",
+        CopySource=f"test_bucket/{key}",
+        Key=key,
+        ServerSideEncryption="aws:kms",
+        BucketKeyEnabled=True,
+        SSEKMSKeyId=kms_key,
+    )
+
+    # assert that the BucketKeyEnabled setting is not kept in the destination key
+    resp = client.copy_object(
+        Bucket="test_bucket",
+        CopySource=f"test_bucket/{key}",
+        Key=key,
+        ServerSideEncryption="aws:kms",
+        SSEKMSKeyId=kms_key,
+    )
+    assert "BucketKeyEnabled" not in resp
+
+    # this is an edge case, if the source object SSE was not AES256, AWS allows you to not specify any fields
+    # as it will use AES256 by default and is different from the source key
+    resp = client.copy_object(
+        Bucket="test_bucket",
+        CopySource=f"test_bucket/{key}",
+        Key=key,
+    )
+    assert resp["ServerSideEncryption"] == "AES256"
+
+    # check that it allows copying in the place with the same ServerSideEncryption setting as the source
+    resp = client.copy_object(
+        Bucket="test_bucket",
+        CopySource=f"test_bucket/{key}",
+        Key=key,
+        ServerSideEncryption="AES256",
+    )
+    assert resp["ServerSideEncryption"] == "AES256"
+
+
+@mock_s3
+def test_copy_object_in_place_with_storage_class():
+    # this test will validate that setting StorageClass (even the same as source) allows a copy in place
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "test-bucket"
+    bucket = s3.Bucket(bucket_name)
+    bucket.create()
+    key = "source-key"
+    bucket.put_object(Key=key, Body=b"somedata", StorageClass="STANDARD")
+    client.copy_object(
+        Bucket=bucket_name,
+        CopySource=f"{bucket_name}/{key}",
+        Key=key,
+        StorageClass="STANDARD",
+    )
+    # verify that the copy worked
+    resp = client.get_object_attributes(
+        Bucket=bucket_name, Key=key, ObjectAttributes=["StorageClass"]
+    )
+    assert resp["StorageClass"] == "STANDARD"
+
+
+@mock_s3
+def test_copy_object_does_not_copy_storage_class():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = s3.Bucket("test_bucket")
+    bucket.create()
+    source_key = "source-key"
+    dest_key = "dest-key"
+    bucket.put_object(Key=source_key, Body=b"somedata", StorageClass="STANDARD_IA")
+    client.copy_object(
+        Bucket="test_bucket",
+        CopySource=f"test_bucket/{source_key}",
+        Key=dest_key,
+    )
+
+    # Verify that the destination key does not have STANDARD_IA as StorageClass
+    keys = dict([(k.key, k) for k in bucket.objects.all()])
+    keys[source_key].storage_class.should.equal("STANDARD_IA")
+    keys[dest_key].storage_class.should.equal("STANDARD")
+
+
+@mock_s3
+def test_copy_object_does_not_copy_acl():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "testbucket"
+    bucket = s3.Bucket(bucket_name)
+    bucket.create()
+    source_key = "source-key"
+    dest_key = "dest-key"
+    control_key = "control-key"
+    # do not set ACL for the control key to get default ACL
+    bucket.put_object(Key=control_key, Body=b"somedata")
+    # set ACL for the source key to check if it will get copied
+    bucket.put_object(Key=source_key, Body=b"somedata", ACL="public-read")
+    # copy object without specifying ACL, so it should get default ACL
+    client.copy_object(
+        Bucket=bucket_name,
+        CopySource=f"{bucket_name}/{source_key}",
+        Key=dest_key,
+    )
+
+    # Get the ACL from the all the keys
+    source_acl = client.get_object_acl(Bucket=bucket_name, Key=source_key)
+    dest_acl = client.get_object_acl(Bucket=bucket_name, Key=dest_key)
+    default_acl = client.get_object_acl(Bucket=bucket_name, Key=control_key)
+    # assert that the source key ACL are different from the destination key ACL
+    assert source_acl["Grants"] != dest_acl["Grants"]
+    # assert that the copied key got the default ACL like the control key
+    assert default_acl["Grants"] == dest_acl["Grants"]
+
+
+@mock_s3
+def test_copy_object_in_place_with_metadata():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "testbucket"
+    bucket = s3.Bucket(bucket_name)
+    bucket.create()
+    key_name = "source-key"
+    bucket.put_object(Key=key_name, Body=b"somedata")
+
+    # test that giving metadata is not enough, and should provide MetadataDirective=REPLACE on top
+    with pytest.raises(ClientError) as e:
+        client.copy_object(
+            Bucket=bucket_name,
+            CopySource=f"{bucket_name}/{key_name}",
+            Key=key_name,
+            Metadata={"key": "value"},
+        )
+        e.value.response["Error"]["Message"].should.equal(
+            "This copy request is illegal because it is trying to copy an object to itself without changing the object's metadata, storage class, website redirect location or encryption attributes."
+        )
+
+    # you can only provide MetadataDirective=REPLACE and it will copy without any metadata
+    client.copy_object(
+        Bucket=bucket_name,
+        CopySource=f"{bucket_name}/{key_name}",
+        Key=key_name,
+        MetadataDirective="REPLACE",
+    )
+
+    result = client.head_object(Bucket=bucket_name, Key=key_name)
+    assert result["Metadata"] == {}
+
+
+@mock_s3
+def test_copy_objet_legal_hold():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "testbucket"
+    source_key = "source-key"
+    dest_key = "dest-key"
+    client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
+    client.put_object(
+        Bucket=bucket_name,
+        Key=source_key,
+        Body=b"somedata",
+        ObjectLockLegalHoldStatus="ON",
+    )
+
+    head_object = client.head_object(Bucket=bucket_name, Key=source_key)
+    assert head_object["ObjectLockLegalHoldStatus"] == "ON"
+    assert "VersionId" in head_object
+    version_id = head_object["VersionId"]
+
+    resp = client.copy_object(
+        Bucket=bucket_name,
+        CopySource=f"{bucket_name}/{source_key}",
+        Key=dest_key,
+    )
+    assert resp["CopySourceVersionId"] == version_id
+    assert resp["VersionId"] != version_id
+
+    # the destination key did not keep the legal hold from the source key
+    head_object = client.head_object(Bucket=bucket_name, Key=dest_key)
+    assert "ObjectLockLegalHoldStatus" not in head_object
+
+
+@mock_s3
+def test_s3_copy_object_lock():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "testbucket"
+    source_key = "source-key"
+    dest_key = "dest-key"
+    client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
+    # manipulate a bit the datetime object for an easier comparison
+    retain_until = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(
+        minutes=1
+    )
+    retain_until = retain_until.replace(microsecond=0)
+
+    client.put_object(
+        Bucket=bucket_name,
+        Key=source_key,
+        Body="test",
+        ObjectLockMode="GOVERNANCE",
+        ObjectLockRetainUntilDate=retain_until,
+    )
+
+    head_object = client.head_object(Bucket=bucket_name, Key=source_key)
+
+    assert head_object["ObjectLockMode"] == "GOVERNANCE"
+    assert head_object["ObjectLockRetainUntilDate"] == retain_until
+    assert "VersionId" in head_object
+    version_id = head_object["VersionId"]
+
+    resp = client.copy_object(
+        Bucket=bucket_name,
+        CopySource=f"{bucket_name}/{source_key}",
+        Key=dest_key,
+    )
+    assert resp["CopySourceVersionId"] == version_id
+    assert resp["VersionId"] != version_id
+
+    # the destination key did not keep the lock mode nor the lock until from the source key
+    head_object = client.head_object(Bucket=bucket_name, Key=dest_key)
+    assert "ObjectLockMode" not in head_object
+    assert "ObjectLockRetainUntilDate" not in head_object
+
+
+@mock_s3
+def test_copy_object_in_place_website_redirect_location():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "testbucket"
+    key = "source-key"
+    client.create_bucket(Bucket=bucket_name)
+    # this test will validate that setting WebsiteRedirectLocation (even the same as source) allows a copy in place
+
+    client.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body="test",
+        WebsiteRedirectLocation="/test/direct",
+    )
+
+    head_object = client.head_object(Bucket=bucket_name, Key=key)
+    assert head_object["WebsiteRedirectLocation"] == "/test/direct"
+
+    # copy the object with the same WebsiteRedirectLocation as the source object
+    client.copy_object(
+        Bucket=bucket_name,
+        CopySource=f"{bucket_name}/{key}",
+        Key=key,
+        WebsiteRedirectLocation="/test/direct",
+    )
+
+    head_object = client.head_object(Bucket=bucket_name, Key=key)
+    assert head_object["WebsiteRedirectLocation"] == "/test/direct"
