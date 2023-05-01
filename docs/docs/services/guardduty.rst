@@ -52,6 +52,7 @@ guardduty
 - [ ] disassociate_members
 - [X] enable_organization_admin_account
 - [ ] get_administrator_account
+- [ ] get_coverage_statistics
 - [X] get_detector
 - [X] get_filter
 - [ ] get_findings
@@ -66,6 +67,7 @@ guardduty
 - [ ] get_threat_intel_set
 - [ ] get_usage_statistics
 - [ ] invite_members
+- [ ] list_coverage
 - [X] list_detectors
   
         The MaxResults and NextToken-parameter have not yet been implemented.
@@ -84,6 +86,7 @@ guardduty
 - [ ] list_publishing_destinations
 - [ ] list_tags_for_resource
 - [ ] list_threat_intel_sets
+- [ ] start_malware_scan
 - [ ] start_monitoring_members
 - [ ] stop_monitoring_members
 - [ ] tag_resource

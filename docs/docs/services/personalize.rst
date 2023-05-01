@@ -36,6 +36,7 @@ personalize
 - [ ] create_dataset_import_job
 - [ ] create_event_tracker
 - [ ] create_filter
+- [ ] create_metric_attribution
 - [ ] create_recommender
 - [X] create_schema
 - [ ] create_solution
@@ -45,6 +46,7 @@ personalize
 - [ ] delete_dataset_group
 - [ ] delete_event_tracker
 - [ ] delete_filter
+- [ ] delete_metric_attribution
 - [ ] delete_recommender
 - [X] delete_schema
 - [ ] delete_solution
@@ -59,6 +61,7 @@ personalize
 - [ ] describe_event_tracker
 - [ ] describe_feature_transformation
 - [ ] describe_filter
+- [ ] describe_metric_attribution
 - [ ] describe_recipe
 - [ ] describe_recommender
 - [X] describe_schema
@@ -74,6 +77,8 @@ personalize
 - [ ] list_datasets
 - [ ] list_event_trackers
 - [ ] list_filters
+- [ ] list_metric_attribution_metrics
+- [ ] list_metric_attributions
 - [ ] list_recipes
 - [ ] list_recommenders
 - [X] list_schemas
@@ -90,5 +95,6 @@ personalize
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_campaign
+- [ ] update_metric_attribution
 - [ ] update_recommender
 

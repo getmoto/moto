@@ -33,7 +33,10 @@ kinesisvideo
         The CurrentVersion-parameter is not yet implemented
         
 
+- [ ] describe_edge_configuration
 - [ ] describe_image_generation_configuration
+- [ ] describe_mapped_resource_configuration
+- [ ] describe_media_storage_configuration
 - [ ] describe_notification_configuration
 - [ ] describe_signaling_channel
 - [X] describe_stream
@@ -47,12 +50,14 @@ kinesisvideo
 
 - [ ] list_tags_for_resource
 - [ ] list_tags_for_stream
+- [ ] start_edge_configuration_update
 - [ ] tag_resource
 - [ ] tag_stream
 - [ ] untag_resource
 - [ ] untag_stream
 - [ ] update_data_retention
 - [ ] update_image_generation_configuration
+- [ ] update_media_storage_configuration
 - [ ] update_notification_configuration
 - [ ] update_signaling_channel
 - [ ] update_stream

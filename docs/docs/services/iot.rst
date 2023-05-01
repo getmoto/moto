@@ -219,6 +219,7 @@ iot
 - [X] list_principal_things
 - [ ] list_provisioning_template_versions
 - [ ] list_provisioning_templates
+- [ ] list_related_resources_for_audit_finding
 - [ ] list_role_aliases
 - [ ] list_scheduled_audits
 - [ ] list_security_profiles

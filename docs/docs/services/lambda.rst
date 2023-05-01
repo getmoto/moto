@@ -76,12 +76,14 @@ lambda
 - [ ] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
+- [ ] get_runtime_management_config
 - [X] invoke
   
         Invoking a Function with PackageType=Image is not yet supported.
         
 
 - [ ] invoke_async
+- [ ] invoke_with_response_stream
 - [ ] list_aliases
 - [ ] list_code_signing_configs
 - [X] list_event_source_mappings
@@ -100,6 +102,7 @@ lambda
 - [X] put_function_concurrency
 - [ ] put_function_event_invoke_config
 - [ ] put_provisioned_concurrency_config
+- [ ] put_runtime_management_config
 - [ ] remove_layer_version_permission
 - [X] remove_permission
 - [X] tag_resource

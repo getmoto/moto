@@ -40,9 +40,12 @@ application-autoscaling
         Pagination is not yet implemented
         
 
+- [ ] list_tags_for_resource
 - [X] put_scaling_policy
 - [X] put_scheduled_action
 - [X] register_scalable_target
   Registers or updates a scalable target.
 
+- [ ] tag_resource
+- [ ] untag_resource
 

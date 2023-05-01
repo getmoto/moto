@@ -66,8 +66,10 @@ ce
 - [ ] get_usage_forecast
 - [ ] list_cost_allocation_tags
 - [ ] list_cost_category_definitions
+- [ ] list_savings_plans_purchase_recommendation_generation
 - [X] list_tags_for_resource
 - [ ] provide_anomaly_feedback
+- [ ] start_savings_plans_purchase_recommendation_generation
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_anomaly_monitor

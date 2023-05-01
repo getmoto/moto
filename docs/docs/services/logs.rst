@@ -30,6 +30,7 @@ logs
 - [X] create_export_task
 - [X] create_log_group
 - [X] create_log_stream
+- [ ] delete_data_protection_policy
 - [ ] delete_destination
 - [X] delete_log_group
 - [X] delete_log_stream
@@ -63,11 +64,14 @@ logs
         If the pattern is not supported, all events are returned.
         
 
+- [ ] get_data_protection_policy
 - [X] get_log_events
 - [ ] get_log_group_fields
 - [ ] get_log_record
 - [ ] get_query_results
+- [ ] list_tags_for_resource
 - [X] list_tags_log_group
+- [ ] put_data_protection_policy
 - [ ] put_destination
 - [ ] put_destination_policy
 - [X] put_log_events
@@ -85,6 +89,8 @@ logs
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
+- [ ] tag_resource
 - [ ] test_metric_filter
 - [X] untag_log_group
+- [ ] untag_resource
 
