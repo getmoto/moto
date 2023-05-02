@@ -5,7 +5,7 @@ Multi-Account support
 =====================
 
 
-By default, Moto processes all requests in a default account: `12345678910`. The exact credentials provided are usually ignored to make the process of mocking requests as hassle-free as possible.
+By default, Moto processes all requests in a default account: `123456789012`. The exact credentials provided are usually ignored to make the process of mocking requests as hassle-free as possible.
 
 If you want to mock resources in multiple accounts, or you want to change the default account ID, there are multiple ways to achieve this.
 
