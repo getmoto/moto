@@ -90,10 +90,10 @@ class AmisResponse(EC2BaseResponse):
         attribute_value = None
         if attribute_name == "launchPermission":
             groups = self.ec2_backend.describe_image_attribute(
-                ami_id, valid_atrributes_list[attribute_name]["groups"]
+                ami_id, valid_atrributes_list[attribute_name]["groups"]  # type: ignore[index]
             )
             users = self.ec2_backend.describe_image_attribute(
-                ami_id, valid_atrributes_list[attribute_name]["users"]
+                ami_id, valid_atrributes_list[attribute_name]["users"]  # type: ignore[index]
             )
         else:
             attribute_value = self.ec2_backend.describe_image_attribute(
