@@ -739,6 +739,7 @@ class UnknownVpcEndpointService(EC2ClientError):
 
 class AuthFailureRestricted(RESTError):
     """Replicate real world issue https://github.com/aws/aws-cli/issues/1083"""
+
     code = 401
 
     def __init__(self) -> None:
