@@ -1,4 +1,5 @@
 from ._base_response import EC2BaseResponse
+from ..exceptions import AuthFailureRestricted, InvalidRequest
 
 
 class AmisResponse(EC2BaseResponse):
@@ -57,15 +58,46 @@ class AmisResponse(EC2BaseResponse):
     def describe_image_attribute(self) -> str:
         ami_id = self._get_param("ImageId")
         attribute_name = self._get_param("Attribute")
+
+        # only valid attributes as per
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_image_attribute.html
+        valid_atrributes_list = {
+            "description": "description",
+            "kernel": "kernel_id",
+            "ramdisk": "ramdisk",
+            "launchPermission": {
+                "groups": "launch_permission_groups",
+                "users": "launch_permission_users",
+            },
+            "productCodes": "product_codes",
+            "blockDeviceMapping": "bdm",
+            "sriovNetSupport": "sriov",
+            "bootMode": "boot_mode",
+            "tpmSupport": "tmp",
+            "uefiData": "uefi",
+            "lastLaunchedTime": "lld",
+            "imdsSupport": "imds",
+        }
+        if attribute_name not in valid_atrributes_list:
+            raise InvalidRequest
+        elif attribute_name == "blockDeviceMapping":
+            # replicate real aws behaviour and throw and error
+            # https://github.com/aws/aws-cli/issues/1083
+            raise AuthFailureRestricted
+
         groups = None
         users = None
         attribute_value = None
         if attribute_name == "launchPermission":
-            groups = self.ec2_backend.get_launch_permission_groups(ami_id)
-            users = self.ec2_backend.get_launch_permission_users(ami_id)
+            groups = self.ec2_backend.describe_image_attribute(
+                ami_id, valid_atrributes_list[attribute_name]["groups"]
+            )
+            users = self.ec2_backend.describe_image_attribute(
+                ami_id, valid_atrributes_list[attribute_name]["users"]
+            )
         else:
             attribute_value = self.ec2_backend.describe_image_attribute(
-                ami_id, attribute_name
+                ami_id, valid_atrributes_list[attribute_name]
             )
         template = self.response_template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
         return template.render(
@@ -192,7 +224,7 @@ DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE = """
    <imageId>{{ ami_id }}</imageId>
     <{{ attribute_name }}>
     {% if attribute_name == 'productCodes' %}
-        {% for value in product_codes %}
+        {% for value in attribute_value %}
         <item>
             <productCode>{{ value }}</productCode>
             <type>marketplace</type>

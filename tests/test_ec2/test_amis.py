@@ -1233,43 +1233,67 @@ def test_delete_snapshot_from_create_image():
 
 
 @mock_ec2
+def test_ami_describe_image_attribute_product_codes():
+    # Setup
+    conn = boto3.client("ec2", region_name="us-east-1")
+
+    # test ami loaded from moto/ec2/resources/ami.json
+    test_image = conn.describe_images(
+        Filters=[{"Name": "name", "Values": ["product_codes_test"]}]
+    )
+    image_id = test_image["Images"][0]["ImageId"]
+    expected_codes = [
+        {"ProductCodeId": "code123", "ProductCodeType": "marketplace"},
+        {"ProductCodeId": "code456", "ProductCodeType": "marketplace"},
+    ]
+    # Execute
+    attributes = conn.describe_image_attribute(
+        ImageId=image_id, Attribute="productCodes", DryRun=False
+    )
+
+    # Verify
+    assert "ProductCodes" in attributes
+    assert len(attributes["ProductCodes"]) == 2
+    assert attributes["ProductCodes"] == expected_codes
+
+
+@mock_ec2
 def test_ami_describe_image_attribute():
     # Setup
     conn = boto3.client("ec2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", "us-east-1")
-    ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
-    response = conn.describe_instances(
-        Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
+
+    # test ami loaded from moto/ec2/resources/ami.json
+    test_image = conn.describe_images(
+        Filters=[{"Name": "name", "Values": ["product_codes_test"]}]
     )
-    instance_id = response["Reservations"][0]["Instances"][0]["InstanceId"]
-    image_id = conn.create_image(InstanceId=instance_id, Name="TestImage")["ImageId"]
+    image_id = test_image["Images"][0]["ImageId"]
 
     # Execute
-    attributes1 = conn.describe_image_attribute(
-        ImageId=image_id, Attribute="productCodes", DryRun=False
+    description = conn.describe_image_attribute(
+        ImageId=image_id, Attribute="description", DryRun=False
     )
-    attributes2 = conn.describe_image_attribute(
+    boot_mode = conn.describe_image_attribute(
+        ImageId=image_id, Attribute="bootMode", DryRun=False
+    )
+    sriov = conn.describe_image_attribute(
         ImageId=image_id, Attribute="sriovNetSupport", DryRun=False
     )
 
     # Verify
-    assert "ProductCodes" in attributes1
-    assert len(attributes1["ProductCodes"]) == 0
-    assert "SriovNetSupport" in attributes2
-    assert attributes2["SriovNetSupport"]["Value"] == "simple"
+    assert "Description" in description
+    assert description["Description"]["Value"] == "Test ami for product codes"
+    assert "BootMode" in boot_mode
+    assert boot_mode["BootMode"]["Value"] == "uefi"
+    assert "SriovNetSupport" in sriov
+    assert sriov["SriovNetSupport"]["Value"] == "simple"
 
 
 @mock_ec2
 def test_ami_describe_image_attribute_block_device_fail():
     # Setup
     conn = boto3.client("ec2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", "us-east-1")
-    ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
-    response = conn.describe_instances(
-        Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
-    )
-    instance_id = response["Reservations"][0]["Instances"][0]["InstanceId"]
-    image_id = conn.create_image(InstanceId=instance_id, Name="TestImage")["ImageId"]
+    test_image = conn.describe_images()
+    image_id = test_image["Images"][0]["ImageId"]
 
     # Execute
     with pytest.raises(ClientError) as e:
