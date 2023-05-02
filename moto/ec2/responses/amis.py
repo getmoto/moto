@@ -56,10 +56,25 @@ class AmisResponse(EC2BaseResponse):
 
     def describe_image_attribute(self) -> str:
         ami_id = self._get_param("ImageId")
-        groups = self.ec2_backend.get_launch_permission_groups(ami_id)
-        users = self.ec2_backend.get_launch_permission_users(ami_id)
+        attribute_name = self._get_param("Attribute")
+        groups = None
+        users = None
+        attribute_value = None
+        if attribute_name == "launchPermission":
+            groups = self.ec2_backend.get_launch_permission_groups(ami_id)
+            users = self.ec2_backend.get_launch_permission_users(ami_id)
+        else:
+            attribute_value = self.ec2_backend.describe_image_attribute(
+                ami_id, attribute_name
+            )
         template = self.response_template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
-        return template.render(ami_id=ami_id, groups=groups, users=users)
+        return template.render(
+            ami_id=ami_id,
+            users=users,
+            groups=groups,
+            attribute_name=attribute_name,
+            attribute_value=attribute_value,
+        )
 
     def modify_image_attribute(self) -> str:
         ami_id = self._get_param("ImageId")
@@ -175,10 +190,16 @@ DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE = """
 <DescribeImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <imageId>{{ ami_id }}</imageId>
-   {% if not groups and not users %}
-      <launchPermission/>
-   {% else %}
-      <launchPermission>
+    <{{ attribute_name }}>
+    {% if attribute_name == 'productCodes' %}
+        {% for value in product_codes %}
+        <item>
+            <productCode>{{ value }}</productCode>
+            <type>marketplace</type>
+        </item>
+        {% endfor %}
+    {% endif %}
+    {% if attribute_name == 'launchPermission' %}
          {% if groups %}
             {% for group in groups %}
                <item>
@@ -193,8 +214,11 @@ DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE = """
                </item>
             {% endfor %}
          {% endif %}
-      </launchPermission>
-   {% endif %}
+    {% endif %}
+    {% if attribute_name not in ['launchPermission', 'productCodes'] %}
+            <value>{{ attribute_value }}</value>
+    {% endif %}
+    </{{ attribute_name }}>
 </DescribeImageAttributeResponse>"""
 
 MODIFY_IMAGE_ATTRIBUTE_RESPONSE = """

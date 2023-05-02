@@ -686,7 +686,7 @@ def test_ami_describe_executable_users():
     conn.modify_image_attribute(**ADD_USER_ARGS)
 
     attributes = conn.describe_image_attribute(
-        ImageId=image_id, Attribute="LaunchPermissions", DryRun=False
+        ImageId=image_id, Attribute="launchPermission", DryRun=False
     )
     attributes["LaunchPermissions"].should.have.length_of(1)
     attributes["LaunchPermissions"][0]["UserId"].should.equal(USER1)
@@ -721,7 +721,7 @@ def test_ami_describe_executable_users_negative():
     conn.modify_image_attribute(**ADD_USER_ARGS)
 
     attributes = conn.describe_image_attribute(
-        ImageId=image_id, Attribute="LaunchPermissions", DryRun=False
+        ImageId=image_id, Attribute="launchPermission", DryRun=False
     )
     attributes["LaunchPermissions"].should.have.length_of(1)
     attributes["LaunchPermissions"][0]["UserId"].should.equal(USER1)
@@ -755,7 +755,7 @@ def test_ami_describe_executable_users_and_filter():
     conn.modify_image_attribute(**ADD_USER_ARGS)
 
     attributes = conn.describe_image_attribute(
-        ImageId=image_id, Attribute="LaunchPermissions", DryRun=False
+        ImageId=image_id, Attribute="launchPermission", DryRun=False
     )
     attributes["LaunchPermissions"].should.have.length_of(1)
     attributes["LaunchPermissions"][0]["UserId"].should.equal(USER1)
@@ -1230,3 +1230,56 @@ def test_delete_snapshot_from_create_image():
     with pytest.raises(ClientError) as exc:
         ec2_client.describe_snapshots(SnapshotIds=[snapshot_id])
     exc.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
+
+
+@mock_ec2
+def test_ami_describe_image_attribute():
+    # Setup
+    conn = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", "us-east-1")
+    ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    response = conn.describe_instances(
+        Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
+    )
+    instance_id = response["Reservations"][0]["Instances"][0]["InstanceId"]
+    image_id = conn.create_image(InstanceId=instance_id, Name="TestImage")["ImageId"]
+
+    # Execute
+    attributes1 = conn.describe_image_attribute(
+        ImageId=image_id, Attribute="productCodes", DryRun=False
+    )
+    attributes2 = conn.describe_image_attribute(
+        ImageId=image_id, Attribute="sriovNetSupport", DryRun=False
+    )
+
+    # Verify
+    assert "ProductCodes" in attributes1
+    assert len(attributes1["ProductCodes"]) == 0
+    assert "SriovNetSupport" in attributes2
+    assert attributes2["SriovNetSupport"]["Value"] == "simple"
+
+
+@mock_ec2
+def test_ami_describe_image_attribute_block_device_fail():
+    # Setup
+    conn = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", "us-east-1")
+    ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    response = conn.describe_instances(
+        Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
+    )
+    instance_id = response["Reservations"][0]["Instances"][0]["InstanceId"]
+    image_id = conn.create_image(InstanceId=instance_id, Name="TestImage")["ImageId"]
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.describe_image_attribute(
+            ImageId=image_id, Attribute="blockDeviceMapping", DryRun=False
+        )
+
+    # Verify
+    assert e.value.response["Error"]["Code"] == "AuthFailure"
+    assert (
+        e.value.response["Error"]["Message"]
+        == "Unauthorized attempt to access restricted resource"
+    )
