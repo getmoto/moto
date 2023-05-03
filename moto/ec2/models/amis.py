@@ -300,10 +300,6 @@ class AmiBackend:
         else:
             raise InvalidAMIIdError(ami_id)
 
-    def get_a_set_property(self, ami_id: str, property_name: str) -> Iterable[str]:
-        ami = self.describe_images(ami_ids=[ami_id])[0]
-        return ami.__getattribute__(property_name)
-
     def validate_permission_targets(
         self, user_ids: Optional[List[str]] = None, group: Optional[str] = None
     ) -> None:
