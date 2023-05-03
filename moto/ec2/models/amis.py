@@ -1,7 +1,7 @@
 import json
 import re
 from os import environ
-from typing import Any, Dict, List, Iterable, Optional, Set, cast
+from typing import Any, Dict, List, Optional, Set, cast
 from moto.utilities.utils import load_resource
 from ..exceptions import (
     InvalidAMIIdError,

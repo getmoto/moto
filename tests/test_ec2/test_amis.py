@@ -1307,3 +1307,21 @@ def test_ami_describe_image_attribute_block_device_fail():
         e.value.response["Error"]["Message"]
         == "Unauthorized attempt to access restricted resource"
     )
+
+
+@mock_ec2
+def test_ami_describe_image_attribute_invalid_param():
+    # Setup
+    conn = boto3.client("ec2", region_name="us-east-1")
+    test_image = conn.describe_images()
+    image_id = test_image["Images"][0]["ImageId"]
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.describe_image_attribute(
+            ImageId=image_id, Attribute="invalid", DryRun=False
+        )
+
+    # Verify
+    assert e.value.response["Error"]["Code"] == "InvalidRequest"
+    assert e.value.response["Error"]["Message"] == "The request received was invalid"
