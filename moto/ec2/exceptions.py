@@ -735,3 +735,15 @@ class UnknownVpcEndpointService(EC2ClientError):
             "InvalidVpcEndpointServiceId.NotFound",
             f"The VpcEndpointService Id '{service_id}' does not exist",
         )
+
+
+class AuthFailureRestricted(RESTError):
+    """Replicate real world issue https://github.com/aws/aws-cli/issues/1083"""
+
+    code = 401
+
+    def __init__(self) -> None:
+        super().__init__(
+            "AuthFailure",
+            "Unauthorized attempt to access restricted resource",
+        )

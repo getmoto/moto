@@ -1,13 +1,13 @@
 import json
 import re
 from os import environ
-from typing import Any, Dict, List, Iterable, Optional, Set, cast
+from typing import Any, Dict, List, Optional, Set, cast
 from moto.utilities.utils import load_resource
 from ..exceptions import (
     InvalidAMIIdError,
     InvalidAMIAttributeItemValueError,
-    MalformedAMIIdError,
     InvalidTaggableResourceType,
+    MalformedAMIIdError,
     UnvailableAMIIdError,
 )
 from .core import TaggedEC2Resource
@@ -27,7 +27,7 @@ else:
 
 
 class Ami(TaggedEC2Resource):
-    def __init__(
+    def __init__(  # pylint: disable=dangerous-default-value
         self,
         ec2_backend: Any,
         ami_id: str,
@@ -51,6 +51,8 @@ class Ami(TaggedEC2Resource):
         sriov: str = "simple",
         region_name: str = "us-east-1a",
         snapshot_description: Optional[str] = None,
+        product_codes: Set[str] = set(),
+        boot_mode: str = "uefi",
     ):
         self.ec2_backend = ec2_backend
         self.id = ami_id
@@ -70,6 +72,8 @@ class Ami(TaggedEC2Resource):
         self.root_device_type = root_device_type
         self.sriov = sriov
         self.creation_date = creation_date or utc_date_and_time()
+        self.product_codes = product_codes
+        self.boot_mode = boot_mode
 
         if instance:
             self.instance = instance
@@ -296,14 +300,6 @@ class AmiBackend:
         else:
             raise InvalidAMIIdError(ami_id)
 
-    def get_launch_permission_groups(self, ami_id: str) -> Iterable[str]:
-        ami = self.describe_images(ami_ids=[ami_id])[0]
-        return ami.launch_permission_groups
-
-    def get_launch_permission_users(self, ami_id: str) -> Iterable[str]:
-        ami = self.describe_images(ami_ids=[ami_id])[0]
-        return ami.launch_permission_users
-
     def validate_permission_targets(
         self, user_ids: Optional[List[str]] = None, group: Optional[str] = None
     ) -> None:
@@ -367,3 +363,6 @@ class AmiBackend:
 
         if group:
             ami.launch_permission_groups.discard(group)
+
+    def describe_image_attribute(self, ami_id: str, attribute_name: str) -> Any:
+        return self.amis[ami_id].__getattribute__(attribute_name)

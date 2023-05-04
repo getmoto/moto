@@ -686,7 +686,7 @@ def test_ami_describe_executable_users():
     conn.modify_image_attribute(**ADD_USER_ARGS)
 
     attributes = conn.describe_image_attribute(
-        ImageId=image_id, Attribute="LaunchPermissions", DryRun=False
+        ImageId=image_id, Attribute="launchPermission", DryRun=False
     )
     attributes["LaunchPermissions"].should.have.length_of(1)
     attributes["LaunchPermissions"][0]["UserId"].should.equal(USER1)
@@ -721,7 +721,7 @@ def test_ami_describe_executable_users_negative():
     conn.modify_image_attribute(**ADD_USER_ARGS)
 
     attributes = conn.describe_image_attribute(
-        ImageId=image_id, Attribute="LaunchPermissions", DryRun=False
+        ImageId=image_id, Attribute="launchPermission", DryRun=False
     )
     attributes["LaunchPermissions"].should.have.length_of(1)
     attributes["LaunchPermissions"][0]["UserId"].should.equal(USER1)
@@ -755,7 +755,7 @@ def test_ami_describe_executable_users_and_filter():
     conn.modify_image_attribute(**ADD_USER_ARGS)
 
     attributes = conn.describe_image_attribute(
-        ImageId=image_id, Attribute="LaunchPermissions", DryRun=False
+        ImageId=image_id, Attribute="launchPermission", DryRun=False
     )
     attributes["LaunchPermissions"].should.have.length_of(1)
     attributes["LaunchPermissions"][0]["UserId"].should.equal(USER1)
@@ -1230,3 +1230,98 @@ def test_delete_snapshot_from_create_image():
     with pytest.raises(ClientError) as exc:
         ec2_client.describe_snapshots(SnapshotIds=[snapshot_id])
     exc.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
+
+
+@mock_ec2
+def test_ami_describe_image_attribute_product_codes():
+    # Setup
+    conn = boto3.client("ec2", region_name="us-east-1")
+
+    # test ami loaded from moto/ec2/resources/ami.json
+    test_image = conn.describe_images(
+        Filters=[{"Name": "name", "Values": ["product_codes_test"]}]
+    )
+    image_id = test_image["Images"][0]["ImageId"]
+    expected_codes = [
+        {"ProductCodeId": "code123", "ProductCodeType": "marketplace"},
+        {"ProductCodeId": "code456", "ProductCodeType": "marketplace"},
+    ]
+    # Execute
+    attributes = conn.describe_image_attribute(
+        ImageId=image_id, Attribute="productCodes", DryRun=False
+    )
+
+    # Verify
+    assert "ProductCodes" in attributes
+    assert len(attributes["ProductCodes"]) == 2
+    assert attributes["ProductCodes"] == expected_codes
+
+
+@mock_ec2
+def test_ami_describe_image_attribute():
+    # Setup
+    conn = boto3.client("ec2", region_name="us-east-1")
+
+    # test ami loaded from moto/ec2/resources/ami.json
+    test_image = conn.describe_images(
+        Filters=[{"Name": "name", "Values": ["product_codes_test"]}]
+    )
+    image_id = test_image["Images"][0]["ImageId"]
+
+    # Execute
+    description = conn.describe_image_attribute(
+        ImageId=image_id, Attribute="description", DryRun=False
+    )
+    boot_mode = conn.describe_image_attribute(
+        ImageId=image_id, Attribute="bootMode", DryRun=False
+    )
+    sriov = conn.describe_image_attribute(
+        ImageId=image_id, Attribute="sriovNetSupport", DryRun=False
+    )
+
+    # Verify
+    assert "Description" in description
+    assert description["Description"]["Value"] == "Test ami for product codes"
+    assert "BootMode" in boot_mode
+    assert boot_mode["BootMode"]["Value"] == "uefi"
+    assert "SriovNetSupport" in sriov
+    assert sriov["SriovNetSupport"]["Value"] == "simple"
+
+
+@mock_ec2
+def test_ami_describe_image_attribute_block_device_fail():
+    # Setup
+    conn = boto3.client("ec2", region_name="us-east-1")
+    test_image = conn.describe_images()
+    image_id = test_image["Images"][0]["ImageId"]
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.describe_image_attribute(
+            ImageId=image_id, Attribute="blockDeviceMapping", DryRun=False
+        )
+
+    # Verify
+    assert e.value.response["Error"]["Code"] == "AuthFailure"
+    assert (
+        e.value.response["Error"]["Message"]
+        == "Unauthorized attempt to access restricted resource"
+    )
+
+
+@mock_ec2
+def test_ami_describe_image_attribute_invalid_param():
+    # Setup
+    conn = boto3.client("ec2", region_name="us-east-1")
+    test_image = conn.describe_images()
+    image_id = test_image["Images"][0]["ImageId"]
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.describe_image_attribute(
+            ImageId=image_id, Attribute="invalid", DryRun=False
+        )
+
+    # Verify
+    assert e.value.response["Error"]["Code"] == "InvalidRequest"
+    assert e.value.response["Error"]["Message"] == "The request received was invalid"
