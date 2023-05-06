@@ -1,26 +1,19 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-  "name": "Moto",
-  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-  "image": "mcr.microsoft.com/devcontainers/python:0-3.11",
-
-  // Features to add to the dev container. More info: https://containers.dev/features.
-  // "features": {},
-
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  // "forwardPorts": [],
-
-  // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "make init",
-
-  // Configure tool-specific properties.
+  "name": "moto",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "root",
+  "remoteEnv": {
+    "PATH": "/.venv/bin:${containerEnv:PATH}"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-vscode.makefile-tools"]
+      "extensions": ["ms-vscode.makefile-tools", "ms-python.python"]
     }
-  }
-
-  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-  // "remoteUser": "root"
+  },
+  "postCreateCommand": "make init"
 }
