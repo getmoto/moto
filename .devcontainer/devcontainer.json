@@ -1,25 +1,25 @@
 {
   "name": "moto",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  // "build": {
+  //   "dockerfile": "Dockerfile"
+  // },
+  "image": "mcr.microsoft.com/devcontainers/python:0-3.11",
   "remoteUser": "root",
-  "remoteEnv": {
-    "PATH": "/.venv/bin:${containerEnv:PATH}"
-  },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-vscode.makefile-tools", "ms-python.black-formatter"],
-      "settings": {
-        "python.formatting.provider": "none",
-        "[python]": {
-          "editor.defaultFormatter": "ms-python.black-formatter"
-        }
-      }
+      "extensions": ["ms-vscode.makefile-tools", "ms-python.python"]
+      // "settings": {
+      //   "python.formatting.provider": "none",
+      //   "[python]": {
+      //     "editor.defaultFormatter": "ms-python.black-formatter"
+      //   }
+      // }
     }
   },
-  "postCreateCommand": "make init"
+  "postAttachCommand": {
+    "setup-env": "python -mvenv .venv && . .venv/bin/activate && make init"
+  }
 }
