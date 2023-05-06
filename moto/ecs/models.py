@@ -2,6 +2,7 @@ import re
 from copy import copy
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, List, Optional, Tuple
+from os import getenv
 
 from moto import settings
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
@@ -488,6 +489,14 @@ class CapacityProviderFailure(BaseObject):
 
 
 class Service(BaseObject, CloudFormationModel):
+    """Set the environment variable MOTO_ECS_SERVICE_RUNNING to a number of running tasks you want
+    the service to transition to, ie if set to 2:
+
+    MOTO_ECS_SERVICE_RUNNING=2
+
+    then describe_services call to return runningCount of the service AND deployment to 2
+    """
+
     def __init__(
         self,
         cluster: Cluster,
@@ -507,7 +516,6 @@ class Service(BaseObject, CloudFormationModel):
         self.cluster_arn = cluster.arn
         self.name = service_name
         self.status = "ACTIVE"
-        self.running_count = 0
         self.task_definition = task_definition.arn if task_definition else None
         self.desired_count = desired_count
         self.task_sets: List[TaskSet] = []
@@ -515,22 +523,6 @@ class Service(BaseObject, CloudFormationModel):
         self.events: List[Dict[str, Any]] = []
         self.launch_type = launch_type
         self.service_registries = service_registries or []
-        if self.deployment_controller["type"] == "ECS":
-            self.deployments = [
-                {
-                    "createdAt": datetime.now(timezone.utc),
-                    "desiredCount": self.desired_count,
-                    "id": f"ecs-svc/{mock_random.randint(0, 32**12)}",
-                    "launchType": self.launch_type,
-                    "pendingCount": self.desired_count,
-                    "runningCount": 0,
-                    "status": "PRIMARY",
-                    "taskDefinition": self.task_definition,
-                    "updatedAt": datetime.now(timezone.utc),
-                }
-            ]
-        else:
-            self.deployments = []
         self.load_balancers = load_balancers if load_balancers is not None else []
         self.scheduling_strategy = (
             scheduling_strategy if scheduling_strategy is not None else "REPLICA"
@@ -541,6 +533,30 @@ class Service(BaseObject, CloudFormationModel):
         self.region_name = cluster.region_name
         self._account_id = backend.account_id
         self._backend = backend
+
+        try:
+            ecs_running_count = int(getenv("MOTO_ECS_SERVICE_RUNNING", 0))
+        except ValueError:
+            # Unable to parse value of MOTO_ECS_SERVICE_RUNNING as an integer, set to default 0
+            ecs_running_count = 0
+
+        self.running_count = ecs_running_count
+        if self.deployment_controller["type"] == "ECS":
+            self.deployments = [
+                {
+                    "createdAt": datetime.now(timezone.utc),
+                    "desiredCount": self.desired_count,
+                    "id": f"ecs-svc/{mock_random.randint(0, 32**12)}",
+                    "launchType": self.launch_type,
+                    "pendingCount": self.desired_count,
+                    "runningCount": ecs_running_count,
+                    "status": "PRIMARY",
+                    "taskDefinition": self.task_definition,
+                    "updatedAt": datetime.now(timezone.utc),
+                }
+            ]
+        else:
+            self.deployments = []
 
     @property
     def arn(self) -> str:
