@@ -12,7 +12,13 @@
   },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-vscode.makefile-tools", "ms-python.python"]
+      "extensions": ["ms-vscode.makefile-tools", "ms-python.black-formatter"],
+      "settings": {
+        "python.formatting.provider": "none",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter"
+        }
+      }
     }
   },
   "postCreateCommand": "make init"
