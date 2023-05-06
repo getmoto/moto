@@ -627,6 +627,28 @@ def test_create_running_service():
 
 
 @mock_ecs
+@mock_ec2
+def test_create_running_service_bad_env_var():
+    running_service_count = "ALSDHLHA;''"
+    with mock.patch.dict(
+        os.environ, {"MOTO_ECS_SERVICE_RUNNING": str(running_service_count)}
+    ):
+        client = boto3.client("ecs", region_name="us-east-1")
+        ec2 = boto3.resource("ec2", region_name="us-east-1")
+        setup_ecs(client, ec2)
+
+        response = client.create_service(
+            cluster="test_ecs_cluster",
+            serviceName="test_ecs_service",
+            taskDefinition="test_ecs_task",
+            desiredCount=2,
+            platformVersion="2",
+        )
+
+        assert response["service"]["runningCount"] == 0
+
+
+@mock_ecs
 def test_create_service_errors():
     # given
     client = boto3.client("ecs", region_name="us-east-1")
