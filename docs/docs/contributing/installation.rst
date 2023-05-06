@@ -61,7 +61,7 @@ Moto is equipped with a `devcontainer.json` for use in VSCode Devcontainers and/
 Launching the Devcontainer or Codespace:
 
  - Configures Docker-in-Docker.
- - Sets up a Virtual Environment in `~/.venv`.
+ - Sets up a Virtual Environment in `${workspaceFolder}/.venv`.
  - Runs `make init`.
 
 Be patient while the Devcontainer or Codespace launches as dependencies automatically installed. 
