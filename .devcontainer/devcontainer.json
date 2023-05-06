@@ -10,9 +10,9 @@
   },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-vscode.makefile-tools", "ms-python.black-formatter"],
+      "extensions": ["ms-vscode.makefile-tools", "ms-python.python", "ms-python.black-formatter"],
       "settings": {
-        "python.defaultInterpreterPath": "./venv/bin/python",
+        "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
         "python.formatting.provider": "none",
         "[python]": {
           "editor.defaultFormatter": "ms-python.black-formatter"
