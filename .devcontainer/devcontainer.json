@@ -10,16 +10,16 @@
   },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-vscode.makefile-tools", "ms-python.python"]
-      // "settings": {
-      //   "python.formatting.provider": "none",
-      //   "[python]": {
-      //     "editor.defaultFormatter": "ms-python.black-formatter"
-      //   }
-      // }
+      "extensions": ["ms-vscode.makefile-tools", "ms-python.black-formatter"],
+      "settings": {
+        "python.defaultInterpreterPath": "./venv/bin/python",
+        "python.formatting.provider": "none",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter"
+        }
+      }
     }
   },
-  "postAttachCommand": {
-    "setup-env": "python -mvenv .venv && . .venv/bin/activate && make init"
-  }
+  "postCreateCommand": "python -m venv .venv",
+  "postStartCommand": ". .venv/bin/activate && make init"
 }
