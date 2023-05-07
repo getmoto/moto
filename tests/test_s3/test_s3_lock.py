@@ -228,7 +228,9 @@ def test_put_object_legal_hold_with_versions():
     )
 
     # assert that the version 1 is locked
-    head_obj_1 = s3.head_object(Bucket=bucket_name, Key=key_name, VersionId=version_id_1)
+    head_obj_1 = s3.head_object(
+        Bucket=bucket_name, Key=key_name, VersionId=version_id_1
+    )
     assert head_obj_1["ObjectLockLegalHoldStatus"] == "ON"
 
     # remove the lock from the version 1 of the object
