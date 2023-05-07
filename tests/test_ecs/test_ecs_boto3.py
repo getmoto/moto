@@ -607,6 +607,10 @@ def test_create_service():
 @mock_ecs
 @mock_ec2
 def test_create_running_service():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Can't set environment variables in server mode for a single test"
+        )
     running_service_count = 4
     with mock.patch.dict(
         os.environ, {"MOTO_ECS_SERVICE_RUNNING": str(running_service_count)}
@@ -914,7 +918,9 @@ def test_describe_services():
 @mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
 def test_describe_services_new_arn():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant set environment variables in server mode")
+        raise SkipTest(
+            "Can't set environment variables in server mode for a single test"
+        )
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName="test_ecs_cluster")
     _ = client.register_task_definition(
@@ -1382,7 +1388,9 @@ def test_register_container_instance():
 @mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
 def test_register_container_instance_new_arn_format():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant set environment variables in server mode")
+        raise SkipTest(
+            "Can't set environment variables in server mode for a single test"
+        )
     ecs_client = boto3.client("ecs", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -1920,7 +1928,9 @@ def test_run_task_default_cluster():
 @mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
 def test_run_task_default_cluster_new_arn_format():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant set environment variables in server mode")
+        raise SkipTest(
+            "Can't set environment variables in server mode for a single test"
+        )
     client = boto3.client("ecs", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
