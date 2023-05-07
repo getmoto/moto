@@ -14,6 +14,12 @@ from ._base_response import EC2BaseResponse
 class InstanceResponse(EC2BaseResponse):
     def describe_instances(self) -> str:
         self.error_on_dryrun()
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_instances.html
+        # You cannot specify this(MaxResults) parameter and the instance IDs parameter in the same request.
+        if "InstanceId.1" in self.data and "MaxResults" in self.data:
+            raise InvalidParameterCombination(
+                "The parameter instancesSet cannot be used with the parameter maxResults"
+            )
         filter_dict = self._filters_from_querystring()
         instance_ids = self._get_multi_param("InstanceId")
         token = self._get_param("NextToken")

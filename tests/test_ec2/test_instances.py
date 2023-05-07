@@ -318,21 +318,43 @@ def test_get_paginated_instances():
         instances.extend(
             conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
         )
-    instance_ids = [i.id for i in instances]
 
-    resp1 = client.describe_instances(InstanceIds=instance_ids, MaxResults=5)
+    resp1 = client.describe_instances(MaxResults=5)
     res1 = resp1["Reservations"]
     res1.should.have.length_of(5)
     next_token = resp1["NextToken"]
 
     next_token.should_not.equal(None)
 
-    resp2 = client.describe_instances(InstanceIds=instance_ids, NextToken=next_token)
+    resp2 = client.describe_instances(NextToken=next_token)
     resp2["Reservations"].should.have.length_of(7)  # 12 total - 5 from the first call
     assert "NextToken" not in resp2  # This is it - no more pages
 
     for i in instances:
         i.terminate()
+
+
+@mock_ec2
+def test_describe_instances_pagination_error():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    # Call describe_instances with a bad id should raise an error
+    with pytest.raises(ClientError) as ex:
+        paginator = client.get_paginator("describe_instances").paginate(
+            InstanceIds=["i-12345678"],
+            PaginationConfig={
+                "MaxItems": 9999,
+                "PageSize": 100,
+            },
+        )
+        for page in paginator:
+            dir(page)
+
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The parameter instancesSet cannot be used with the parameter maxResults"
+    )
 
 
 @mock_ec2
