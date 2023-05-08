@@ -2173,7 +2173,12 @@ class S3Response(BaseResponse):
             )
             key.set_metadata(multipart.metadata)
             self.backend.set_key_tags(key, multipart.tags)
-            self.backend.put_object_acl(bucket_name, key.name, multipart.acl)
+            self.backend.put_object_acl(
+                bucket_name=bucket_name,
+                key_name=key.name,
+                acl=multipart.acl,
+                key_is_clean=True,
+            )
 
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
             headers: Dict[str, Any] = {}

@@ -1888,9 +1888,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return new_key
 
     def put_object_acl(
-        self, bucket_name: str, key_name: str, acl: Optional[FakeAcl]
+        self,
+        bucket_name: str,
+        key_name: str,
+        acl: Optional[FakeAcl],
+        key_is_clean: bool = False,
     ) -> None:
-        key = self.get_object(bucket_name, key_name)
+        key = self.get_object(bucket_name, key_name, key_is_clean=key_is_clean)
         # TODO: Support the XML-based ACL format
         if key is not None:
             key.set_acl(acl)
