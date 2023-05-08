@@ -346,10 +346,14 @@ class FakeStackInstances(BaseModel):
                 instance.parameters = parameters or []
 
     def delete(self, accounts: List[str], regions: List[str]) -> None:
-        for instance in self.stack_instances:
-            if instance.region_name in regions and instance.account_id in accounts:
-                instance.delete()
-                self.stack_instances.remove(instance)
+        to_delete = [
+            i
+            for i in self.stack_instances
+            if i.region_name in regions and i.account_id in accounts
+        ]
+        for instance in to_delete:
+            instance.delete()
+            self.stack_instances.remove(instance)
 
     def get_instance(self, account: str, region: str) -> FakeStackInstance:  # type: ignore[return]
         for i, instance in enumerate(self.stack_instances):
