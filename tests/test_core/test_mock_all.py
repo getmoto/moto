@@ -6,7 +6,7 @@ from moto import mock_all
 
 
 @mock_all()
-def test_decorator():
+def test_decorator() -> None:
     rgn = "us-east-1"
     sqs = boto3.client("sqs", region_name=rgn)
     r = sqs.list_queues()
@@ -21,7 +21,7 @@ def test_decorator():
     r["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
 
-def test_context_manager():
+def test_context_manager() -> None:
     rgn = "us-east-1"
 
     with mock_all():

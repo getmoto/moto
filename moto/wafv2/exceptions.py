@@ -6,7 +6,7 @@ class WAFv2ClientError(JsonRESTError):
 
 
 class WAFV2DuplicateItemException(WAFv2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "WafV2DuplicateItem",
             "AWS WAF could not perform the operation because some resource in your request is a duplicate of an existing one.",
@@ -14,7 +14,7 @@ class WAFV2DuplicateItemException(WAFv2ClientError):
 
 
 class WAFNonexistentItemException(WAFv2ClientError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "WAFNonexistentItemException",
             "AWS WAF couldn’t perform the operation because your resource doesn’t exist.",

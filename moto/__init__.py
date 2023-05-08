@@ -1,17 +1,31 @@
 import importlib
 import sys
 from contextlib import ContextDecorator
+from moto.core.models import BaseMockAWS
+from typing import Any, Callable, List, Optional, TypeVar, overload
 
 
-def lazy_load(module_name, element, boto3_name=None, backend=None):
-    def f(*args, **kwargs):
+TEST_METHOD = TypeVar("TEST_METHOD", bound=Callable[..., Any])
+
+
+#@overload
+#def lazy_load(module_name: str, element: str, boto3_name: Optional[str]=None, backend: Optional[str]=None) -> Callable[[], None]:
+#    ...
+
+#@overload
+#def lazy_load(module_name: str, element: str, boto3_name: Optional[str]=None, backend: Optional[str]=None) -> Callable[[TEST_METHOD], BaseMockAWS]:
+#    ...
+
+#@overload
+def lazy_load(module_name: str, element: str, boto3_name: Optional[str]=None, backend: Optional[str]=None) -> Callable[[], BaseMockAWS]:
+    def f(*args: Any, **kwargs: Any) -> Any:
         module = importlib.import_module(module_name, "moto")
         return getattr(module, element)(*args, **kwargs)
 
     setattr(f, "name", module_name.replace(".", ""))
     setattr(f, "element", element)
-    setattr(f, "boto3_name", boto3_name or f.name)
-    setattr(f, "backend", backend or f"{f.name}_backends")
+    setattr(f, "boto3_name", boto3_name or f.name)  # type: ignore[attr-defined]
+    setattr(f, "backend", backend or f"{f.name}_backends")  # type: ignore[attr-defined]
     return f
 
 
@@ -175,17 +189,17 @@ mock_textract = lazy_load(".textract", "mock_textract")
 
 
 class MockAll(ContextDecorator):
-    def __init__(self):
-        self.mocks = []
+    def __init__(self) -> None:
+        self.mocks: List[Any] = []
         for mock in dir(sys.modules["moto"]):
-            if mock.startswith("mock_") and not mock == ("mock_all"):
+            if mock.startswith("mock_") and not mock == "mock_all":
                 self.mocks.append(globals()[mock]())
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         for mock in self.mocks:
             mock.start()
 
-    def __exit__(self, *exc):
+    def __exit__(self, *exc: Any) -> None:
         for mock in self.mocks:
             mock.stop()
 
