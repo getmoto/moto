@@ -2,6 +2,41 @@ Moto Changelog
 ==============
 
 
+4.1.9
+-----
+Docker Digest for 4.1.9: <autopopulateddigest>
+
+    New Services:
+        * Glue:
+            * batch_get_triggers
+            * create_trigger
+            * delete_trigger
+            * get_trigger
+            * get_triggers
+            * list_triggers
+            * start_trigger
+            * stop_trigger
+
+        * Glue:
+            * create_contact
+            * create_contact_list
+            * delete_contact
+            * delete_contact_list
+            * get_contact
+            * get_contact_list
+            * list_contact_lists
+            * list_contacts
+            * send_email
+
+    Miscellaneous:
+        * Kinesis: Improve calculations on stream limits
+        * EC2: Improve logic behind describe_image_attribute()
+        * S3: Various improvements to the logic behind copy_object()
+        * Scheduler: update_schedule() now supports the GroupName-parameter
+        * SNS: Improve and enhance validation of numeric parameters
+        * SNS: MessageDeduplicationId is now forwarded to SQS queues (Fixes a bug in 4.1.7)
+
+
 4.1.8
 -----
 Docker Digest for 4.1.8: _sha256:e83d868df71b193d625d9fb031282f6632c6c80d0314cfca6780f9a3f37d1f61_

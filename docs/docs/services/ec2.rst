@@ -294,7 +294,7 @@ ec2
 - [X] describe_iam_instance_profile_associations
 - [ ] describe_id_format
 - [ ] describe_identity_id_format
-- [ ] describe_image_attribute
+- [X] describe_image_attribute
 - [X] describe_images
 - [ ] describe_import_image_tasks
 - [ ] describe_import_snapshot_tasks
