@@ -4,6 +4,7 @@ from collections import OrderedDict
 from datetime import datetime
 import re
 from typing import Any, Dict, List, Optional
+from urllib import request
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api import state_manager
@@ -30,6 +31,9 @@ from .exceptions import (
     SchemaVersionNotFoundFromSchemaIdException,
     SchemaNotFoundException,
     SchemaVersionMetadataAlreadyExistsException,
+    SessionAlreadyExistsException,
+    SessionNotFoundException,
+    IllegalSessionStateException,
     TriggerNotFoundException,
 )
 from .utils import PartitionFilter
@@ -82,6 +86,12 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
+        "list_sessions": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "id",
+        },
         "list_triggers": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -96,6 +106,7 @@ class GlueBackend(BaseBackend):
         self.crawlers: Dict[str, FakeCrawler] = OrderedDict()
         self.jobs: Dict[str, FakeJob] = OrderedDict()
         self.job_runs: Dict[str, FakeJobRun] = OrderedDict()
+        self.sessions: Dict[str, FakeSession] = OrderedDict()
         self.tagger = TaggingService()
         self.triggers: Dict[str, FakeTrigger] = OrderedDict()
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
@@ -770,6 +781,68 @@ class GlueBackend(BaseBackend):
             schema.description = description
 
         return schema.as_dict()
+
+    def create_session(
+        self,
+        id: str,
+        description: str,
+        role: str,
+        command: Dict[str, str],
+        timeout: int,
+        idle_timeout: int,
+        default_arguments: Dict[str, str],
+        connections: Dict[str, List[str]],
+        max_capacity: float,
+        number_of_workers: int,
+        worker_type: str,
+        security_configuration: str,
+        glue_version: str,
+        tags: Dict[str, str],
+        request_origin: str,
+    ) -> None:
+        if id in self.sessions:
+            raise SessionAlreadyExistsException()
+
+        session = FakeSession(
+            id,
+            description,
+            role,
+            command,
+            timeout,
+            idle_timeout,
+            default_arguments,
+            connections,
+            max_capacity,
+            number_of_workers,
+            worker_type,
+            security_configuration,
+            glue_version,
+            tags,
+            request_origin,
+            backend=self,
+        )
+        self.sessions[id] = session
+        return session
+
+    def get_session(self, id: str) -> "FakeSession":
+        try:
+            return self.sessions[id]
+        except KeyError:
+            raise SessionNotFoundException(id)
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_sessions(self) -> List["FakeSession"]:  # type: ignore[misc]
+        return [session for _, session in self.sessions.items()]
+
+    def stop_session(self, id: str) -> None:
+        session = self.get_session(id)
+        session.stop_session()
+
+    def delete_session(self, id: str) -> None:
+        try:
+            del self.sessions[id]
+        except KeyError:
+            raise SessionNotFoundException(id)
 
     def create_trigger(
         self,
@@ -1515,6 +1588,79 @@ class FakeSchemaVersion(BaseModel):
             "Status": self.schema_version_status,
             "CreatedTime": str(self.created_time),
         }
+
+
+class FakeSession(BaseModel):
+    def __init__(
+        self,
+        id: str,
+        description: str,
+        role: str,
+        command: Dict[str, str],
+        timeout: int,
+        idle_timeout: int,
+        default_arguments: Dict[str, str],
+        connections: Dict[str, List[str]],
+        max_capacity: float,
+        number_of_workers: int,
+        worker_type: str,
+        security_configuration: str,
+        glue_version: str,
+        tags: Dict[str, str],
+        request_origin: str,
+        backend: GlueBackend,
+    ):
+        self.id = id
+        self.description = description
+        self.role = role
+        self.command = command
+        self.timeout = timeout
+        self.idle_timeout = idle_timeout
+        self.default_arguments = default_arguments
+        self.connections = connections
+        self.max_capacity = max_capacity
+        self.number_of_workers = number_of_workers
+        self.worker_type = worker_type
+        self.security_configuration = security_configuration
+        self.glue_version = glue_version
+        self.tags = tags
+        self.request_origin = request_origin
+        self.creation_time = datetime.utcnow()
+        self.last_updated = self.creation_time
+        self.arn = (
+            f"arn:aws:glue:{backend.region_name}:{backend.account_id}:session/{self.id}"
+        )
+        self.backend = backend
+        self.backend.tag_resource(self.arn, tags)
+
+    def get_id(self) -> str:
+        return self.id
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "Id": self.id,
+            "Description": self.description,
+            "Role": self.role,
+            "Command": self.command,
+            "Timeout": self.timeout,
+            "IdleTimeout": self.idle_timeout,
+            "DefaultArguments": self.default_arguments,
+            "Connections": self.connections,
+            "MaxCapacity": self.max_capacity,
+            "NumberOfWorkers": self.number_of_workers,
+            "WorkerType": self.worker_type,
+            "SecurityConfiguration": self.security_configuration,
+            "GlueVersion": self.glue_version,
+            "RequestOrigin": self.request_origin,
+            "Tags": self.tags,
+            "CreationTime": self.creation_time.isoformat(),
+            "LastUpdated": self.last_updated.isoformat(),
+        }
+
+    def stop_session(self) -> None:
+        if self.state != "READY":
+            raise IllegalSessionStateException(f"Session is in {self.state} status")
+        self.state = "STOPPING"
 
 
 class FakeTrigger(BaseModel):
