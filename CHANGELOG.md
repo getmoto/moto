@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.9
 -----
-Docker Digest for 4.1.9: <autopopulateddigest>
+Docker Digest for 4.1.9: _sha256:121a51dcf0e42e53a601803bdeb25324d18b2d45f08a79923c65034f4f14448a_
 
     New Services:
         * Glue:
