@@ -1522,10 +1522,14 @@ class S3Response(BaseResponse):
             acl = self.backend.get_bucket(bucket_name).acl
         tagging = self._tagging_from_headers(request.headers)
 
+        if "versionId" in query:
+            version_id = query["versionId"][0]
+        else:
+            version_id = None
+
         if "retention" in query:
             if not lock_enabled:
                 raise LockNotEnabled
-            version_id = query.get("VersionId")
             retention = self._mode_until_from_body()
             self.backend.put_object_retention(
                 bucket_name, key_name, version_id=version_id, retention=retention
@@ -1535,7 +1539,6 @@ class S3Response(BaseResponse):
         if "legal-hold" in query:
             if not lock_enabled:
                 raise LockNotEnabled
-            version_id = query.get("VersionId")
             legal_hold_status = self._legal_hold_status_from_xml(body)
             self.backend.put_object_legal_hold(
                 bucket_name, key_name, version_id, legal_hold_status
@@ -1547,10 +1550,6 @@ class S3Response(BaseResponse):
             return 200, response_headers, ""
 
         if "tagging" in query:
-            if "versionId" in query:
-                version_id = query["versionId"][0]
-            else:
-                version_id = None
             key_to_tag = self.backend.get_object(
                 bucket_name, key_name, version_id=version_id
             )
