@@ -2036,7 +2036,7 @@
 - [X] describe_iam_instance_profile_associations
 - [ ] describe_id_format
 - [ ] describe_identity_id_format
-- [ ] describe_image_attribute
+- [X] describe_image_attribute
 - [X] describe_images
 - [ ] describe_import_image_tasks
 - [ ] describe_import_snapshot_tasks
@@ -4614,7 +4614,7 @@
 
 ## opensearch
 <details>
-<summary>17% implemented</summary>
+<summary>16% implemented</summary>
 
 - [ ] accept_inbound_connection
 - [X] add_tags
@@ -4634,6 +4634,8 @@
 - [ ] describe_domain_auto_tunes
 - [ ] describe_domain_change_progress
 - [X] describe_domain_config
+- [ ] describe_domain_health
+- [ ] describe_domain_nodes
 - [ ] describe_domains
 - [ ] describe_dry_run_progress
 - [ ] describe_inbound_connections
@@ -5028,7 +5030,7 @@
 
 ## quicksight
 <details>
-<summary>10% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] cancel_ingestion
 - [ ] create_account_customization
@@ -5049,6 +5051,9 @@
 - [ ] create_template_alias
 - [ ] create_theme
 - [ ] create_theme_alias
+- [ ] create_topic
+- [ ] create_topic_refresh_schedule
+- [ ] create_vpc_connection
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
 - [ ] delete_analysis
@@ -5067,8 +5072,11 @@
 - [ ] delete_template_alias
 - [ ] delete_theme
 - [ ] delete_theme_alias
+- [ ] delete_topic
+- [ ] delete_topic_refresh_schedule
 - [X] delete_user
 - [ ] delete_user_by_principal_id
+- [ ] delete_vpc_connection
 - [ ] describe_account_customization
 - [ ] describe_account_settings
 - [ ] describe_account_subscription
@@ -5100,7 +5108,12 @@
 - [ ] describe_theme
 - [ ] describe_theme_alias
 - [ ] describe_theme_permissions
+- [ ] describe_topic
+- [ ] describe_topic_permissions
+- [ ] describe_topic_refresh
+- [ ] describe_topic_refresh_schedule
 - [X] describe_user
+- [ ] describe_vpc_connection
 - [ ] generate_embed_url_for_anonymous_user
 - [ ] generate_embed_url_for_registered_user
 - [ ] get_dashboard_embed_url
@@ -5126,8 +5139,11 @@
 - [ ] list_theme_aliases
 - [ ] list_theme_versions
 - [ ] list_themes
+- [ ] list_topic_refresh_schedules
+- [ ] list_topics
 - [ ] list_user_groups
 - [X] list_users
+- [ ] list_vpc_connections
 - [ ] put_data_set_refresh_properties
 - [X] register_user
 - [ ] restore_analysis
@@ -5163,7 +5179,11 @@
 - [ ] update_theme
 - [ ] update_theme_alias
 - [ ] update_theme_permissions
+- [ ] update_topic
+- [ ] update_topic_permissions
+- [ ] update_topic_refresh_schedule
 - [ ] update_user
+- [ ] update_vpc_connection
 </details>
 
 ## ram

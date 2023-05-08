@@ -45,6 +45,8 @@ opensearch
 - [ ] describe_domain_auto_tunes
 - [ ] describe_domain_change_progress
 - [X] describe_domain_config
+- [ ] describe_domain_health
+- [ ] describe_domain_nodes
 - [ ] describe_domains
 - [ ] describe_dry_run_progress
 - [ ] describe_inbound_connections
