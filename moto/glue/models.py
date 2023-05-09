@@ -4,7 +4,6 @@ from collections import OrderedDict
 from datetime import datetime
 import re
 from typing import Any, Dict, List, Optional
-from urllib import request
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api import state_manager
@@ -90,7 +89,7 @@ class GlueBackend(BaseBackend):
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "id",
+            "unique_attribute": "session_id",
         },
         "list_triggers": {
             "input_token": "next_token",
@@ -784,7 +783,7 @@ class GlueBackend(BaseBackend):
 
     def create_session(
         self,
-        id: str,
+        session_id: str,
         description: str,
         role: str,
         command: Dict[str, str],
@@ -800,11 +799,11 @@ class GlueBackend(BaseBackend):
         tags: Dict[str, str],
         request_origin: str,
     ) -> None:
-        if id in self.sessions:
+        if session_id in self.sessions:
             raise SessionAlreadyExistsException()
 
         session = FakeSession(
-            id,
+            session_id,
             description,
             role,
             command,
@@ -821,28 +820,27 @@ class GlueBackend(BaseBackend):
             request_origin,
             backend=self,
         )
-        self.sessions[id] = session
-        return session
+        self.sessions[session_id] = session
 
-    def get_session(self, id: str) -> "FakeSession":
+    def get_session(self, session_id: str) -> "FakeSession":
         try:
-            return self.sessions[id]
+            return self.sessions[session_id]
         except KeyError:
-            raise SessionNotFoundException(id)
+            raise SessionNotFoundException(session_id)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_sessions(self) -> List["FakeSession"]:  # type: ignore[misc]
         return [session for _, session in self.sessions.items()]
 
-    def stop_session(self, id: str) -> None:
-        session = self.get_session(id)
+    def stop_session(self, session_id: str) -> None:
+        session = self.get_session(session_id)
         session.stop_session()
 
-    def delete_session(self, id: str) -> None:
+    def delete_session(self, session_id: str) -> None:
         try:
-            del self.sessions[id]
+            del self.sessions[session_id]
         except KeyError:
-            raise SessionNotFoundException(id)
+            raise SessionNotFoundException(session_id)
 
     def create_trigger(
         self,
@@ -1593,7 +1591,7 @@ class FakeSchemaVersion(BaseModel):
 class FakeSession(BaseModel):
     def __init__(
         self,
-        id: str,
+        session_id: str,
         description: str,
         role: str,
         command: Dict[str, str],
@@ -1610,7 +1608,7 @@ class FakeSession(BaseModel):
         request_origin: str,
         backend: GlueBackend,
     ):
-        self.id = id
+        self.session_id = session_id
         self.description = description
         self.role = role
         self.command = command
@@ -1627,19 +1625,17 @@ class FakeSession(BaseModel):
         self.request_origin = request_origin
         self.creation_time = datetime.utcnow()
         self.last_updated = self.creation_time
-        self.arn = (
-            f"arn:aws:glue:{backend.region_name}:{backend.account_id}:session/{self.id}"
-        )
+        self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:session/{self.session_id}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
         self.state = "READY"
 
     def get_id(self) -> str:
-        return self.id
+        return self.session_id
 
     def as_dict(self) -> Dict[str, Any]:
         return {
-            "Id": self.id,
+            "Id": self.session_id,
             "CreatedOn": self.creation_time.isoformat(),
             "Status": self.state,
             "ErrorMessage": "string",

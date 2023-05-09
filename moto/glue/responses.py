@@ -528,8 +528,8 @@ class GlueResponse(BaseResponse):
         return json.dumps(schema)
 
     def create_session(self) -> str:
-        session = self.glue_backend.create_session(
-            id=self.parameters.get("Id"),  # type: ignore[arg-type]
+        self.glue_backend.create_session(
+            session_id=self.parameters.get("Id"),  # type: ignore[arg-type]
             description=self.parameters.get("Description"),  # type: ignore[arg-type]
             role=self.parameters.get("Role"),  # type: ignore[arg-type]
             command=self.parameters.get("Command"),  # type: ignore[arg-type]
@@ -545,11 +545,11 @@ class GlueResponse(BaseResponse):
             tags=self.parameters.get("Tags"),  # type: ignore[arg-type]
             request_origin=self.parameters.get("RequestOrigin"),  # type: ignore[arg-type]
         )
-        return json.dumps({"Session": session.as_dict()})
+        return ""
 
     def get_session(self) -> str:
-        id = self.parameters.get("Id")
-        session = self.glue_backend.get_session(id)  # type: ignore[arg-type]
+        session_id = self.parameters.get("Id")
+        session = self.glue_backend.get_session(session_id)  # type: ignore[arg-type]
         return json.dumps({"Session": session.as_dict()})
 
     def list_sessions(self) -> str:
@@ -584,16 +584,14 @@ class GlueResponse(BaseResponse):
         ]
 
     def stop_session(self) -> str:
-        id = self.parameters.get("Id")
-        request_origin = self.parameters.get("RequestOrigin")
-        self.glue_backend.stop_session(id)  # type: ignore[arg-type]
-        return json.dumps({"Id": id})
+        session_id = self.parameters.get("Id")
+        self.glue_backend.stop_session(session_id)  # type: ignore[arg-type]
+        return json.dumps({"Id": session_id})
 
     def delete_session(self) -> str:
-        id = self.parameters.get("Id")
-        request_origin = self.parameters.get("RequestOrigin")
-        self.glue_backend.delete_session(id)  # type: ignore[arg-type]
-        return json.dumps({"Id": id})
+        session_id = self.parameters.get("Id")
+        self.glue_backend.delete_session(session_id)  # type: ignore[arg-type]
+        return json.dumps({"Id": session_id})
 
     def batch_get_crawlers(self) -> str:
         crawler_names = self._get_param("CrawlerNames")

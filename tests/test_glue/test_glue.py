@@ -794,25 +794,25 @@ def test_delete_trigger():
 def create_test_session(client):
     session_id = str(uuid4())
     client.create_session(
-        id=session_id,
-        description="string",
-        role="string",
-        command={"Name": "string", "PythonVersion": "string"},
-        timeout=123,
-        idle_timeout=123,
-        default_arguments={"string": "string"},
-        connections={
+        Id=session_id,
+        Description="string",
+        Role="arn_of_a_testing_role",
+        Command={"Name": "string", "PythonVersion": "string"},
+        Timeout=123,
+        IdleTimeout=123,
+        DefaultArguments={"string": "string"},
+        Connections={
             "Connections": [
                 "string",
             ]
         },
-        max_capacity=123.0,
-        number_of_workers=123,
-        worker_type="Standard",
-        security_configuration="string",
-        glue_version="string",
-        tags={"string": "string"},
-        request_origin="string",
+        MaxCapacity=123.0,
+        NumberOfWorkers=123,
+        WorkerType="Standard",
+        SecurityConfiguration="string",
+        GlueVersion="string",
+        Tags={"string": "string"},
+        RequestOrigin="string",
     )
     return session_id
 
@@ -822,7 +822,7 @@ def test_create_session():
     client = create_glue_client()
     session_id = create_test_session(client)
 
-    resp = client.get_session(session_id)
+    resp = client.get_session(Id=session_id)
     assert resp["Session"]["Id"] == session_id
 
 
@@ -831,7 +831,7 @@ def test_get_session():
     client = create_glue_client()
     session_id = create_test_session(client)
 
-    resp = client.get_session(session_id)
+    resp = client.get_session(Id=session_id)
     assert resp["Session"]["Id"] == session_id
 
 
@@ -849,7 +849,7 @@ def test_delete_session():
     client = create_glue_client()
     session_id = create_test_session(client)
 
-    resp = client.delete_session(session_id)
+    resp = client.delete_session(Id=session_id)
     assert resp["Id"] == session_id
 
     resp = client.list_sessions()
@@ -861,11 +861,11 @@ def test_stop_session():
     client = create_glue_client()
     session_id = create_test_session(client)
 
-    resp = client.get_session(session_id)
+    resp = client.get_session(Id=session_id)
     assert resp["Session"]["Status"] == "READY"
 
-    resp = client.stop_session(id)
+    resp = client.stop_session(Id=session_id)
     assert resp["Id"] == session_id
 
-    resp = client.get_session(session_id)
+    resp = client.get_session(Id=session_id)
     assert resp["Session"]["Status"] == "STOPPING"
