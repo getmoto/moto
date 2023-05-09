@@ -791,49 +791,81 @@ def test_delete_trigger():
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
 
 
-@mock_glue
-def test_stop_session():
-    client = create_glue_client()
-    resp = client.stop_session()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_glue
-def test_list_sessions():
-    client = create_glue_client()
-    resp = client.list_sessions()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_glue
-def test_get_session():
-    client = create_glue_client()
-    resp = client.get_session()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_glue
-def test_delete_session():
-    client = create_glue_client()
-    resp = client.delete_session()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_glue
-def test_delete_session():
-    client = create_glue_client()
-    resp = client.delete_session()
-
-    raise Exception("NotYetImplemented")
+def create_test_session(client):
+    session_id = str(uuid4())
+    client.create_session(
+        id=session_id,
+        description="string",
+        role="string",
+        command={"Name": "string", "PythonVersion": "string"},
+        timeout=123,
+        idle_timeout=123,
+        default_arguments={"string": "string"},
+        connections={
+            "Connections": [
+                "string",
+            ]
+        },
+        max_capacity=123.0,
+        number_of_workers=123,
+        worker_type="Standard",
+        security_configuration="string",
+        glue_version="string",
+        tags={"string": "string"},
+        request_origin="string",
+    )
+    return session_id
 
 
 @mock_glue
 def test_create_session():
     client = create_glue_client()
-    resp = client.create_session()
+    session_id = create_test_session(client)
 
-    raise Exception("NotYetImplemented")
+    resp = client.get_session(session_id)
+    assert resp["Session"]["Id"] == session_id
+
+
+@mock_glue
+def test_get_session():
+    client = create_glue_client()
+    session_id = create_test_session(client)
+
+    resp = client.get_session(session_id)
+    assert resp["Session"]["Id"] == session_id
+
+
+@mock_glue
+def test_list_sessions():
+    client = create_glue_client()
+    session_id = create_test_session(client)
+
+    resp = client.list_sessions()
+    assert session_id in resp["Ids"]
+
+
+@mock_glue
+def test_delete_session():
+    client = create_glue_client()
+    session_id = create_test_session(client)
+
+    resp = client.delete_session(session_id)
+    assert resp["Id"] == session_id
+
+    resp = client.list_sessions()
+    assert session_id not in resp["Ids"]
+
+
+@mock_glue
+def test_stop_session():
+    client = create_glue_client()
+    session_id = create_test_session(client)
+
+    resp = client.get_session(session_id)
+    assert resp["Session"]["Status"] == "READY"
+
+    resp = client.stop_session(id)
+    assert resp["Id"] == session_id
+
+    resp = client.get_session(session_id)
+    assert resp["Session"]["Status"] == "STOPPING"

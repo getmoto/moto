@@ -1041,30 +1041,6 @@ class GlueBackend(BaseBackend):
                 triggers.append(self.triggers[trigger_name].as_dict())
         return triggers
 
-    def stop_session(self, id, request_origin):
-        # implement here
-        return id
-    
-    def list_sessions(self, next_token, max_results, tags, request_origin):
-        # implement here
-        return ids, sessions, next_token
-    
-    def get_session(self, id, request_origin):
-        # implement here
-        return session
-    
-    def delete_session(self, id, request_origin):
-        # implement here
-        return id
-    
-    def delete_session(self, id, request_origin):
-        # implement here
-        return id
-    
-    def create_session(self, id, description, role, command, timeout, idle_timeout, default_arguments, connections, max_capacity, number_of_workers, worker_type, security_configuration, glue_version, tags, request_origin):
-        # implement here
-        return session
-    
 
 class FakeDatabase(BaseModel):
     def __init__(self, database_name: str, database_input: Dict[str, Any]):
@@ -1656,6 +1632,7 @@ class FakeSession(BaseModel):
         )
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
+        self.state = "READY"
 
     def get_id(self) -> str:
         return self.id
@@ -1663,22 +1640,18 @@ class FakeSession(BaseModel):
     def as_dict(self) -> Dict[str, Any]:
         return {
             "Id": self.id,
+            "CreatedOn": self.creation_time.isoformat(),
+            "Status": self.state,
+            "ErrorMessage": "string",
             "Description": self.description,
             "Role": self.role,
             "Command": self.command,
-            "Timeout": self.timeout,
-            "IdleTimeout": self.idle_timeout,
             "DefaultArguments": self.default_arguments,
             "Connections": self.connections,
-            "MaxCapacity": self.max_capacity,
-            "NumberOfWorkers": self.number_of_workers,
-            "WorkerType": self.worker_type,
+            "Progress": 12.3,
+            "MaxCapacity": 123.0,
             "SecurityConfiguration": self.security_configuration,
             "GlueVersion": self.glue_version,
-            "RequestOrigin": self.request_origin,
-            "Tags": self.tags,
-            "CreationTime": self.creation_time.isoformat(),
-            "LastUpdated": self.last_updated.isoformat(),
         }
 
     def stop_session(self) -> None:
