@@ -327,8 +327,9 @@ def test_get_paginated_instances():
     next_token.should_not.equal(None)
 
     resp2 = client.describe_instances(NextToken=next_token)
-    resp2["Reservations"].should.have.length_of(7)  # 12 total - 5 from the first call
-    assert "NextToken" not in resp2  # This is it - no more pages
+
+    # at least 12 total - 5 from the first call but there may be more from servermode tests
+    assert len(resp2["Reservations"]) >= 7
 
     for i in instances:
         i.terminate()
