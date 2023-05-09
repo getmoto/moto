@@ -682,3 +682,39 @@ def test_copy_object_in_place_website_redirect_location():
 
     head_object = client.head_object(Bucket=bucket_name, Key=key)
     assert head_object["WebsiteRedirectLocation"] == "/test/direct"
+
+
+@mock_s3
+def test_copy_object_in_place_with_bucket_encryption():
+    # If a bucket has encryption configured, it will allow copy in place per default
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "test-bucket"
+    client.create_bucket(Bucket=bucket_name)
+    key = "source-key"
+
+    response = client.put_bucket_encryption(
+        Bucket=bucket_name,
+        ServerSideEncryptionConfiguration={
+            "Rules": [
+                {
+                    "ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"},
+                    "BucketKeyEnabled": False,
+                },
+            ]
+        },
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = client.put_object(
+        Body=b"",
+        Bucket=bucket_name,
+        Key=key,
+    )
+    assert response["ServerSideEncryption"] == "AES256"
+
+    response = client.copy_object(
+        Bucket=bucket_name,
+        CopySource={"Bucket": bucket_name, "Key": key},
+        Key=key,
+    )
+    assert response["ServerSideEncryption"] == "AES256"

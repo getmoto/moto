@@ -242,7 +242,7 @@ class FakeKey(BaseModel, ManagedState):
             res["x-amz-server-side-encryption"] = self.encryption
             if self.encryption == "aws:kms" and self.kms_key_id is not None:
                 res["x-amz-server-side-encryption-aws-kms-key-id"] = self.kms_key_id
-        if self.bucket_key_enabled is not None:
+        if self.encryption == "aws:kms" and self.bucket_key_enabled is not None:
             res[
                 "x-amz-server-side-encryption-bucket-key-enabled"
             ] = self.bucket_key_enabled
@@ -2373,6 +2373,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         lock_legal_status: Optional[str] = None,
         lock_until: Optional[str] = None,
     ) -> None:
+        bucket = self.get_bucket(dest_bucket_name)
         if src_key.name == dest_key_name and src_key.bucket_name == dest_bucket_name:
             if src_key.encryption and src_key.encryption != "AES256" and not encryption:
                 # this a special case, as now S3 default to AES256 when not provided
@@ -2386,6 +2387,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     encryption,
                     mdirective == "REPLACE",
                     website_redirect_location,
+                    bucket.encryption,  # S3 will allow copy in place if the bucket has encryption configured
                 )
             ):
                 raise CopyObjectMustChangeSomething
@@ -2417,7 +2419,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             new_key.set_expiry(None)
 
         # Send notifications that an object was copied
-        bucket = self.get_bucket(dest_bucket_name)
         notifications.send_event(
             self.account_id, notifications.S3_OBJECT_CREATE_COPY, bucket, new_key
         )
