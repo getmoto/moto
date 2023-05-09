@@ -4839,6 +4839,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -11959,6 +11968,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
@@ -13828,6 +13846,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -14630,6 +14657,9 @@
               "Value": "AU-NSW"
             },
             "local-zones": {
+              "apse2-akl1-az1": {
+                "Value": "apse2-akl1-az1"
+              },
               "apse2-per1-az1": {
                 "Value": "apse2-per1-az1"
               }
@@ -16351,6 +16381,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -17058,6 +17097,9 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verified-access": {
+                "Value": "verified-access"
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -18676,6 +18718,15 @@
                 "Value": "kinesis",
                 "endpoint": {
                   "Value": "kinesis.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kinesisanalytics": {
+                "Value": "kinesisanalytics",
+                "endpoint": {
+                  "Value": "kinesisanalytics.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -21114,6 +21165,9 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verified-access": {
+                "Value": "verified-access"
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -25472,6 +25526,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -26179,6 +26242,9 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verified-access": {
+                "Value": "verified-access"
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -33225,6 +33291,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -33959,6 +34034,9 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verified-access": {
+                "Value": "verified-access"
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -35656,6 +35734,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -36288,6 +36375,9 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verified-access": {
+                "Value": "verified-access"
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -42589,6 +42679,9 @@
               "trustedadvisor": {
                 "Value": "trustedadvisor"
               },
+              "verified-access": {
+                "Value": "verified-access"
+              },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
               },
@@ -44779,6 +44872,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -45546,6 +45648,9 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verified-access": {
+                "Value": "verified-access"
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -47350,6 +47455,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -48034,6 +48148,9 @@
               "trustedadvisor": {
                 "Value": "trustedadvisor"
               },
+              "verified-access": {
+                "Value": "verified-access"
+              },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
               },
@@ -48366,6 +48483,15 @@
                 "Value": "codedeploy",
                 "endpoint": {
                   "Value": "codedeploy.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codepipeline": {
+                "Value": "codepipeline",
+                "endpoint": {
+                  "Value": "codepipeline.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -49175,7 +49301,7 @@
                   "Value": "sns.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -49339,6 +49465,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "workspaces": {
+                "Value": "workspaces"
               },
               "xray": {
                 "Value": "xray",
@@ -50658,7 +50787,7 @@
                   "Value": "sns.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -52135,6 +52264,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -52716,6 +52854,9 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verified-access": {
+                "Value": "verified-access"
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -54733,6 +54874,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -55497,6 +55647,9 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verified-access": {
+                "Value": "verified-access"
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
