@@ -789,3 +789,51 @@ def test_delete_trigger():
         client.get_trigger(Name=trigger_name)
 
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
+
+
+@mock_glue
+def test_stop_session():
+    client = create_glue_client()
+    resp = client.stop_session()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_glue
+def test_list_sessions():
+    client = create_glue_client()
+    resp = client.list_sessions()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_glue
+def test_get_session():
+    client = create_glue_client()
+    resp = client.get_session()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_glue
+def test_delete_session():
+    client = create_glue_client()
+    resp = client.delete_session()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_glue
+def test_delete_session():
+    client = create_glue_client()
+    resp = client.delete_session()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_glue
+def test_create_session():
+    client = create_glue_client()
+    resp = client.create_session()
+
+    raise Exception("NotYetImplemented")

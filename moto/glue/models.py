@@ -968,6 +968,30 @@ class GlueBackend(BaseBackend):
                 triggers.append(self.triggers[trigger_name].as_dict())
         return triggers
 
+    def stop_session(self, id, request_origin):
+        # implement here
+        return id
+    
+    def list_sessions(self, next_token, max_results, tags, request_origin):
+        # implement here
+        return ids, sessions, next_token
+    
+    def get_session(self, id, request_origin):
+        # implement here
+        return session
+    
+    def delete_session(self, id, request_origin):
+        # implement here
+        return id
+    
+    def delete_session(self, id, request_origin):
+        # implement here
+        return id
+    
+    def create_session(self, id, description, role, command, timeout, idle_timeout, default_arguments, connections, max_capacity, number_of_workers, worker_type, security_configuration, glue_version, tags, request_origin):
+        # implement here
+        return session
+    
 
 class FakeDatabase(BaseModel):
     def __init__(self, database_name: str, database_input: Dict[str, Any]):
