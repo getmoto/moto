@@ -1136,6 +1136,9 @@ class ExportTask(BaseModel):
 
         self.status = "complete"
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        self.source_type = (
+            "SNAPSHOT" if type(snapshot) is DatabaseSnapshot else "CLUSTER"
+        )
 
     def to_xml(self) -> str:
         template = Template(
@@ -1161,6 +1164,7 @@ class ExportTask(BaseModel):
             <TotalExtractedDataInGB>{{ 1 }}</TotalExtractedDataInGB>
             <FailureCause></FailureCause>
             <WarningMessage></WarningMessage>
+            <SourceType>{{ task.source_type }}</SourceType>
             """
         )
         return template.render(task=self, snapshot=self.snapshot)
