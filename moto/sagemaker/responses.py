@@ -217,6 +217,37 @@ class SageMakerResponse(BaseResponse):
         return json.dumps(response)
 
     @amzn_request_id
+    def create_transform_job(self) -> TYPE_RESPONSE:
+        transform_job = self.sagemaker_backend.create_transform_job(
+            transform_job_name=self._get_param("TransformJobName"),
+            model_name=self._get_param("ModelName"),
+            max_concurrent_transforms=self._get_param("MaxConcurrentTransforms"),
+            model_client_config=self._get_param("ModelClientConfig"),
+            max_payload_in_mb=self._get_param("MaxPayloadInMB"),
+            batch_strategy=self._get_param("BatchStrategy"),
+            environment=self._get_param("Environment"),
+            transform_input=self._get_param("TransformInput"),
+            transform_output=self._get_param("TransformOutput"),
+            data_capture_config=self._get_param("DataCaptureConfig"),
+            transform_resources=self._get_param("TransformResources"),
+            data_processing=self._get_param("DataProcessing"),
+            tags=self._get_param("Tags"),
+            experiment_config=self._get_param("ExperimentConfig"),
+        )
+        response = {
+            "TransformJobArn": transform_job.transform_job_arn,
+        }
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def describe_transform_job(self) -> str:
+        transform_job_name = self._get_param("TransformJobName")
+        response = self.sagemaker_backend.describe_transform_job(
+            transform_job_name=transform_job_name
+        )
+        return json.dumps(response)
+
+    @amzn_request_id
     def create_training_job(self) -> TYPE_RESPONSE:
         training_job = self.sagemaker_backend.create_training_job(
             training_job_name=self._get_param("TrainingJobName"),
@@ -640,6 +671,59 @@ class SageMakerResponse(BaseResponse):
             )
 
         response = self.sagemaker_backend.list_processing_jobs(
+            next_token=next_token,
+            max_results=max_results,
+            creation_time_after=self._get_param("CreationTimeAfter"),
+            creation_time_before=self._get_param("CreationTimeBefore"),
+            last_modified_time_after=self._get_param("LastModifiedTimeAfter"),
+            last_modified_time_before=self._get_param("LastModifiedTimeBefore"),
+            name_contains=self._get_param("NameContains"),
+            status_equals=status_equals,
+        )
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def list_transform_jobs(self) -> TYPE_RESPONSE:
+        max_results_range = range(1, 101)
+        allowed_sort_by = ["Name", "CreationTime", "Status"]
+        allowed_sort_order = ["Ascending", "Descending"]
+        allowed_status_equals = [
+            "Completed",
+            "Stopped",
+            "InProgress",
+            "Stopping",
+            "Failed",
+        ]
+
+        max_results = self._get_int_param("MaxResults")
+        sort_by = self._get_param("SortBy", "CreationTime")
+        sort_order = self._get_param("SortOrder", "Ascending")
+        status_equals = self._get_param("StatusEquals")
+        next_token = self._get_param("NextToken")
+        errors = []
+        if max_results and max_results not in max_results_range:
+            errors.append(
+                f"Value '{max_results}' at 'maxResults' failed to satisfy constraint: Member must have value less than or equal to {max_results_range[-1]}"
+            )
+
+        if sort_by not in allowed_sort_by:
+            errors.append(format_enum_error(sort_by, "sortBy", allowed_sort_by))
+        if sort_order not in allowed_sort_order:
+            errors.append(
+                format_enum_error(sort_order, "sortOrder", allowed_sort_order)
+            )
+
+        if status_equals and status_equals not in allowed_status_equals:
+            errors.append(
+                format_enum_error(status_equals, "statusEquals", allowed_status_equals)
+            )
+
+        if errors != []:
+            raise AWSValidationException(
+                f"{len(errors)} validation errors detected: {';'.join(errors)}"
+            )
+
+        response = self.sagemaker_backend.list_transform_jobs(
             next_token=next_token,
             max_results=max_results,
             creation_time_after=self._get_param("CreationTimeAfter"),
