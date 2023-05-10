@@ -589,7 +589,7 @@ def test_create_service():
     response["service"]["desiredCount"].should.equal(2)
     len(response["service"]["events"]).should.equal(0)
     len(response["service"]["loadBalancers"]).should.equal(0)
-    response["service"]["pendingCount"].should.equal(0)
+    response["service"]["pendingCount"].should.equal(2)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
         f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:service/test_ecs_cluster/test_ecs_service"
@@ -623,7 +623,7 @@ def test_create_running_service():
             cluster="test_ecs_cluster",
             serviceName="test_ecs_service",
             taskDefinition="test_ecs_task",
-            desiredCount=2,
+            desiredCount=4,
             platformVersion="2",
         )
 
@@ -728,7 +728,7 @@ def test_create_service_scheduling_strategy():
     response["service"]["desiredCount"].should.equal(2)
     len(response["service"]["events"]).should.equal(0)
     len(response["service"]["loadBalancers"]).should.equal(0)
-    response["service"]["pendingCount"].should.equal(0)
+    response["service"]["pendingCount"].should.equal(2)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
         f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:service/test_ecs_cluster/test_ecs_service"
@@ -3007,7 +3007,7 @@ def test_create_service_load_balancing():
         "test_container_name"
     )
     response["service"]["loadBalancers"][0]["containerPort"].should.equal(123)
-    response["service"]["pendingCount"].should.equal(0)
+    response["service"]["pendingCount"].should.equal(2)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
         f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:service/test_ecs_cluster/test_ecs_service"

@@ -529,18 +529,19 @@ class Service(BaseObject, CloudFormationModel):
         )
         self.platform_version = platform_version
         self.tags = tags if tags is not None else []
-        self.pending_count = 0
         self.region_name = cluster.region_name
         self._account_id = backend.account_id
         self._backend = backend
 
         try:
-            ecs_running_count = int(getenv("MOTO_ECS_SERVICE_RUNNING", 0))
+            # negative running count not allowed, set to 0 if so
+            ecs_running_count = max(int(getenv("MOTO_ECS_SERVICE_RUNNING", 0)), 0)
         except ValueError:
             # Unable to parse value of MOTO_ECS_SERVICE_RUNNING as an integer, set to default 0
             ecs_running_count = 0
 
         self.running_count = ecs_running_count
+        self.pending_count = desired_count - ecs_running_count
         if self.deployment_controller["type"] == "ECS":
             self.deployments = [
                 {
@@ -548,7 +549,7 @@ class Service(BaseObject, CloudFormationModel):
                     "desiredCount": self.desired_count,
                     "id": f"ecs-svc/{mock_random.randint(0, 32**12)}",
                     "launchType": self.launch_type,
-                    "pendingCount": self.desired_count,
+                    "pendingCount": self.pending_count,
                     "runningCount": ecs_running_count,
                     "status": "PRIMARY",
                     "taskDefinition": self.task_definition,
@@ -1657,6 +1658,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             # It is only deleted later on
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ecs.html#ECS.Client.delete_service
             service.status = "INACTIVE"
+            service.pending_count = 0
             return service
 
     def register_container_instance(
