@@ -2418,6 +2418,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             # Object copied from Glacier object should not have expiry
             new_key.set_expiry(None)
 
+        if src_key.checksum_value:
+            new_key.checksum_value = src_key.checksum_value
+            new_key.checksum_algorithm = src_key.checksum_algorithm
+
         # Send notifications that an object was copied
         notifications.send_event(
             self.account_id, notifications.S3_OBJECT_CREATE_COPY, bucket, new_key
