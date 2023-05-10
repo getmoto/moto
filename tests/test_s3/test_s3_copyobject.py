@@ -46,7 +46,7 @@ def test_copy_key_boto3_with_sha256_checksum():
     key_name = "key"
     new_key = "new_key"
     bucket = "foobar"
-    expected_hash = "YWIzZDA3ZjMxNjljY2JkMGVkNmM0YjQ1ZGUyMTUxOWY5ZjkzOGM3MmQyNDEyNDk5OGFhYjk0OWNlODNiYjUxYg=="
+    expected_hash = "qz0H8xacy9DtbEtF3iFRn5+TjHLSQSSZiquUnOg7tRs="
 
     s3.create_bucket(Bucket=bucket)
     key = s3.Object("foobar", key_name)
