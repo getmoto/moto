@@ -200,7 +200,7 @@ def compute_checksum(body: bytes, algorithm: str) -> bytes:
     if algorithm == "SHA1":
         hashed_body = _hash(hashlib.sha1, (body,))
     elif algorithm == "CRC32" or algorithm == "CRC32C":
-        hashed_body = f"{binascii.crc32(body)}".encode("utf-8")
+        hashed_body = binascii.crc32(body).to_bytes(4, "big")
     else:
         hashed_body = _hash(hashlib.sha256, (body,))
     return base64.b64encode(hashed_body)
@@ -208,10 +208,10 @@ def compute_checksum(body: bytes, algorithm: str) -> bytes:
 
 def _hash(fn: Any, args: Any) -> bytes:
     try:
-        return fn(*args, usedforsecurity=False).hexdigest().encode("utf-8")
+        return fn(*args, usedforsecurity=False).digest()
     except TypeError:
         # The usedforsecurity-parameter is only available as of Python 3.9
-        return fn(*args).hexdigest().encode("utf-8")
+        return fn(*args).digest()
 
 
 def cors_matches_origin(origin_header: str, allowed_origins: List[str]) -> bool:

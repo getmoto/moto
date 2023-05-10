@@ -730,3 +730,42 @@ def test_copy_object_in_place_with_bucket_encryption():
         Key=key,
     )
     assert response["ServerSideEncryption"] == "AES256"
+
+
+@mock_s3
+@pytest.mark.parametrize(
+    "algorithm", ["CRC32", "SHA1", "SHA256"],
+)
+def test_copy_key_boto3_with_both_sha256_checksum(algorithm):
+    # This test will validate that moto S3 checksum calculations are correct
+    # We first create an object with a Checksum calculated by boto, by specifying ChecksumAlgorithm="SHA256"
+    # we then retrieve the right checksum from this request
+    # we copy the object while requesting moto to recalculate the checksum for that key
+    # we verify that both checksums are equal
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    source_key = "source-key"
+    dest_key = "dest-key"
+    bucket = "foobar"
+    body = b"checksum-test"
+    client.create_bucket(Bucket=bucket)
+
+    checksum_key = f"Checksum{algorithm}"
+
+    resp = client.put_object(
+        Bucket=bucket,
+        Key=source_key,
+        Body=body,
+        ChecksumAlgorithm=algorithm,
+    )
+    assert checksum_key in resp
+    checksum_by_boto = resp[checksum_key]
+
+    resp = client.copy_object(
+        Bucket=bucket,
+        CopySource=f"{bucket}/{source_key}",
+        Key=dest_key,
+        ChecksumAlgorithm=algorithm,
+    )
+
+    assert checksum_key in resp["CopyObjectResult"]
+    assert resp["CopyObjectResult"][checksum_key] == checksum_by_boto
