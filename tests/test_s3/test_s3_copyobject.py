@@ -68,6 +68,18 @@ def test_copy_key_boto3_with_sha256_checksum():
     assert "ChecksumSHA256" in resp["Checksum"]
     assert resp["Checksum"]["ChecksumSHA256"] == expected_hash
 
+    # Verify in place
+    copy_in_place = client.copy_object(
+        Bucket=bucket,
+        CopySource=f"{bucket}/{new_key}",
+        Key=new_key,
+        ChecksumAlgorithm="SHA256",
+        MetadataDirective="REPLACE",
+    )
+
+    assert "ChecksumSHA256" in copy_in_place["CopyObjectResult"]
+    assert copy_in_place["CopyObjectResult"]["ChecksumSHA256"] == expected_hash
+
 
 @mock_s3
 def test_copy_key_with_version_boto3():
