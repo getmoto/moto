@@ -711,21 +711,39 @@ def test_cancel_rotate_secret():
 
 @mock_secretsmanager
 def test_rotate_secret():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(
-        Name=DEFAULT_SECRET_NAME, SecretString="foosecret", Description="foodescription"
-    )
+    with freeze_time("2023-05-10 10:20:30+01:00"):
+        conn = boto3.client("secretsmanager", region_name="us-west-2")
+        conn.create_secret(
+            Name=DEFAULT_SECRET_NAME,
+            SecretString="foosecret",
+            Description="foodescription",
+        )
 
-    rotated_secret = conn.rotate_secret(SecretId=DEFAULT_SECRET_NAME)
+        rotated_secret = conn.rotate_secret(
+            SecretId=DEFAULT_SECRET_NAME, RotationRules={"AutomaticallyAfterDays": 10}
+        )
 
-    assert rotated_secret
-    assert rotated_secret["ARN"] != ""  # Test arn not empty
-    assert rotated_secret["Name"] == DEFAULT_SECRET_NAME
-    assert rotated_secret["VersionId"] != ""
+        assert rotated_secret
+        assert rotated_secret["ARN"] != ""  # Test arn not empty
+        assert rotated_secret["Name"] == DEFAULT_SECRET_NAME
+        assert rotated_secret["VersionId"] != ""
 
-    describe_secret = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
+        describe_secret = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
 
-    assert describe_secret["Description"] == "foodescription"
+        assert describe_secret["Description"] == "foodescription"
+        assert "NextRotationDate" in describe_secret
+        assert "LastRotatedDate" in describe_secret
+
+        # can't do freeze time tests in servermode tests
+        if settings.TEST_SERVER_MODE:
+            return
+
+        assert describe_secret["NextRotationDate"] == datetime(
+            2023, 5, 20, 10, 20, 30, tzinfo=tzlocal()
+        )
+        assert describe_secret["LastChangedDate"] == datetime(
+            2023, 5, 10, 10, 20, 30, tzinfo=tzlocal()
+        )
 
 
 @mock_secretsmanager
