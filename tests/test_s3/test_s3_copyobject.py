@@ -734,7 +734,8 @@ def test_copy_object_in_place_with_bucket_encryption():
 
 @mock_s3
 @pytest.mark.parametrize(
-    "algorithm", ["CRC32", "SHA1", "SHA256"],
+    "algorithm",
+    ["CRC32", "SHA1", "SHA256"],
 )
 def test_copy_key_boto3_with_both_sha256_checksum(algorithm):
     # This test will validate that moto S3 checksum calculations are correct
