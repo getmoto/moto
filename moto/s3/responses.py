@@ -2102,10 +2102,10 @@ class S3Response(BaseResponse):
         ps = minidom.parseString(body).getElementsByTagName("Part")
         prev = 0
         for p in ps:
-            pn = int(p.getElementsByTagName("PartNumber")[0].firstChild.wholeText)
+            pn = int(p.getElementsByTagName("PartNumber")[0].firstChild.wholeText)  # type: ignore[union-attr]
             if pn <= prev:
                 raise InvalidPartOrder()
-            yield (pn, p.getElementsByTagName("ETag")[0].firstChild.wholeText)
+            yield (pn, p.getElementsByTagName("ETag")[0].firstChild.wholeText)  # type: ignore[union-attr]
 
     def _key_response_post(
         self,
