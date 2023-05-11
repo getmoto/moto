@@ -1027,7 +1027,10 @@ DESCRIBE_SCALING_POLICIES_TEMPLATE = """<DescribePoliciesResponse xmlns="http://
                 {% for metric in policy.target_tracking_config["CustomizedMetricSpecification"].get("Metrics", []) %}
                 <member>
                   <Id>{{ metric.get("Id") }}</Id>
+                  {% if metric.get("MetricStat") is none %}
                   <Expression>{{ metric.get("Expression") }}</Expression>
+                  {% endif %}
+                  {% if metric.get("Expression") is none %}
                   <MetricStat>
                     <Metric>
                       <Namespace>{{ metric.get("MetricStat", {}).get("Metric", {}).get("Namespace") }}</Namespace>
@@ -1044,8 +1047,9 @@ DESCRIBE_SCALING_POLICIES_TEMPLATE = """<DescribePoliciesResponse xmlns="http://
                     <Stat>{{ metric.get("MetricStat", {}).get("Stat") }}</Stat>
                     <Unit>{{ metric.get("MetricStat", {}).get("Unit") }}</Unit>
                   </MetricStat>
+                  {% endif %}
                   <Label>{{ metric.get("Label") }}</Label>
-                  <ReturnData>{{ 'true' if metric.get("ReturnData") else 'false' }}</ReturnData>
+                  <ReturnData>{{ 'true' if metric.get("ReturnData") is none else metric.get("ReturnData") }}</ReturnData>
                 </member>
                 {% endfor %}
               </Metrics>
