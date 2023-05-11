@@ -711,7 +711,10 @@ def test_cancel_rotate_secret():
 
 @mock_secretsmanager
 def test_rotate_secret():
-    with freeze_time("2023-05-10 10:20:30+01:00"):
+    # Setup
+    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal())
+    rotate_after_days = 10
+    with freeze_time(frozen_time):
         conn = boto3.client("secretsmanager", region_name="us-west-2")
         conn.create_secret(
             Name=DEFAULT_SECRET_NAME,
@@ -719,17 +722,18 @@ def test_rotate_secret():
             Description="foodescription",
         )
 
+        # Execute
         rotated_secret = conn.rotate_secret(
-            SecretId=DEFAULT_SECRET_NAME, RotationRules={"AutomaticallyAfterDays": 10}
+            SecretId=DEFAULT_SECRET_NAME,
+            RotationRules={"AutomaticallyAfterDays": rotate_after_days},
         )
+        describe_secret = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
 
+        # Verify
         assert rotated_secret
         assert rotated_secret["ARN"] != ""  # Test arn not empty
         assert rotated_secret["Name"] == DEFAULT_SECRET_NAME
         assert rotated_secret["VersionId"] != ""
-
-        describe_secret = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
-
         assert describe_secret["Description"] == "foodescription"
         assert "NextRotationDate" in describe_secret
         assert "LastRotatedDate" in describe_secret
@@ -738,11 +742,9 @@ def test_rotate_secret():
         if settings.TEST_SERVER_MODE:
             return
 
-        assert describe_secret["NextRotationDate"] == datetime(
-            2023, 5, 20, 10, 20, 30, tzinfo=tzlocal()
-        )
-        assert describe_secret["LastChangedDate"] == datetime(
-            2023, 5, 10, 10, 20, 30, tzinfo=tzlocal()
+        assert describe_secret["LastChangedDate"] == frozen_time
+        assert describe_secret["NextRotationDate"] == frozen_time + timedelta(
+            days=rotate_after_days
         )
 
 
