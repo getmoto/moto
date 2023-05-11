@@ -20,7 +20,7 @@ from ..exceptions import (
     InvalidAssociationIdError,
     InvalidDestinationCIDRBlockParameterError,
     RouteAlreadyExistsError,
-    RouteNotSupportedError
+    RouteNotSupportedError,
 )
 from ..utils import (
     EC2_RESOURCE_TO_PREFIX,

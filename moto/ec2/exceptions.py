@@ -237,8 +237,9 @@ class RouteAlreadyExistsError(EC2ClientError):
 class RouteNotSupportedError(EC2ClientError):
     def __init__(self, vpce_id: str):
         super().__init__(
-            "RouteNotSupported", f"Route table contains unsupported route target: {vpce_id}. "
-                                 f"VPC Endpoints of this type cannot be used as route targets."
+            "RouteNotSupported",
+            f"Route table contains unsupported route target: {vpce_id}. "
+            f"VPC Endpoints of this type cannot be used as route targets.",
         )
 
 
