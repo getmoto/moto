@@ -88,8 +88,8 @@ class FakeSecret:
         self.auto_rotate_after_days = 0
         self.deleted_date: Optional[float] = None
         self.policy: Optional[str] = None
-        self.next_rotation_date = None
-        self.last_rotation_date = None
+        self.next_rotation_date: Optional[int] = None
+        self.last_rotation_date: Optional[int] = None
 
     def update(
         self,
