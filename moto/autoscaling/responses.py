@@ -1022,6 +1022,34 @@ DESCRIBE_SCALING_POLICIES_TEMPLATE = """<DescribePoliciesResponse xmlns="http://
               {% if policy.target_tracking_config["CustomizedMetricSpecification"].get("Unit") %}
               <Unit>{{ policy.target_tracking_config["CustomizedMetricSpecification"].get("Unit") }}</Unit>
               {% endif %}
+              {% if policy.target_tracking_config["CustomizedMetricSpecification"].get("Metrics") %}
+              <Metrics>
+                {% for metric in policy.target_tracking_config["CustomizedMetricSpecification"].get("Metrics", []) %}
+                <member>
+                  <Id>{{ metric.get("Id") }}</Id>
+                  <Expression>{{ metric.get("Expression") }}</Expression>
+                  <MetricStat>
+                    <Metric>
+                      <Namespace>{{ metric.get("MetricStat", {}).get("Metric", {}).get("Namespace") }}</Namespace>
+                      <MetricName>{{ metric.get("MetricStat", {}).get("Metric", {}).get("MetricName") }}</MetricName>
+                      <Dimensions>
+                      {% for dim in metric.get("MetricStat", {}).get("Metric", {}).get("Dimensions", []) %}
+                        <member>
+                          <Name>{{ dim.get("Name") }}</Name>
+                          <Value>{{ dim.get("Value") }}</Value>
+                        </member>
+                      {% endfor %}
+                      </Dimensions>
+                    </Metric>
+                    <Stat>{{ metric.get("MetricStat", {}).get("Stat") }}</Stat>
+                    <Unit>{{ metric.get("MetricStat", {}).get("Unit") }}</Unit>
+                  </MetricStat>
+                  <Label>{{ metric.get("Label") }}</Label>
+                  <ReturnData>{{ 'true' if metric.get("ReturnData") else 'false' }}</ReturnData>
+                </member>
+                {% endfor %}
+              </Metrics>
+              {% endif %}
             </CustomizedMetricSpecification>
             {% endif %}
             <TargetValue>{{ policy.target_tracking_config.get("TargetValue") }}</TargetValue>
