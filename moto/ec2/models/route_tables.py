@@ -143,7 +143,7 @@ class Route(CloudFormationModel):
         interface: Optional[NetworkInterface] = None,
         vpc_pcx: Optional[VPCPeeringConnection] = None,
         carrier_gateway: Optional[CarrierGateway] = None,
-        vpc_endpoint_id: Optional[VPCEndPoint] = None,
+        vpc_endpoint_id: Optional[str] = None,
     ):
         self.id = generate_route_id(
             route_table.id,
@@ -374,7 +374,7 @@ class RouteBackend:
         carrier_gateway = None
 
         if vpc_endpoint_id:
-            vpce = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_endpoint_id])
+            vpce = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_endpoint_id])  # type: ignore[attr-defined]
             if not vpce[0].endpoint_type == "GatewayLoadBalancer":
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_route.html
                 # VpcEndpointId (string) – The ID of a VPC endpoint. Supported for Gateway Load Balancer endpoints only.
