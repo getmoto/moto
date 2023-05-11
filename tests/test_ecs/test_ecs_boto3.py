@@ -653,7 +653,6 @@ def test_create_running_service_bad_env_var():
         assert response["service"]["runningCount"] == 0
 
 
-
 @mock_ecs
 @mock_ec2
 def test_create_running_service_negative_env_var():
