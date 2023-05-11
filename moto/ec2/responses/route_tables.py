@@ -214,6 +214,11 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                   <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
+                {% if route.vpc_endpoint_id %}
+                  <gatewayId>{{ route.vpc_endpoint_id }}</gatewayId>
+                  <origin>CreateRoute</origin>
+                  <state>active</state>
+                {% endif %}
                 {% if route.instance %}
                   <instanceId>{{ route.instance.id }}</instanceId>
                   <origin>CreateRoute</origin>

@@ -20,6 +20,7 @@ from ..exceptions import (
     InvalidAssociationIdError,
     InvalidDestinationCIDRBlockParameterError,
     RouteAlreadyExistsError,
+    RouteNotSupportedError
 )
 from ..utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -371,6 +372,11 @@ class RouteBackend:
         interface = None
         destination_prefix_list = None
         carrier_gateway = None
+
+        if vpc_endpoint_id:
+            vpce = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_endpoint_id])
+            if not vpce[0].endpoint_type == "GatewayLoadBalancer":
+                raise RouteNotSupportedError(vpc_endpoint_id)
 
         route_table = self.get_route_table(route_table_id)
 
