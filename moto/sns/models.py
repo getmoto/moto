@@ -139,36 +139,20 @@ class Topic(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: Any,
+        original_resource: "Topic",
         new_resource_name: str,
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
     ) -> "Topic":
-        cls.delete_from_cloudformation_json(
-            original_resource.name, cloudformation_json, account_id, region_name
-        )
+        original_resource.delete(account_id, region_name)
         return cls.create_from_cloudformation_json(
             new_resource_name, cloudformation_json, account_id, region_name
         )
 
-    @classmethod
-    def delete_from_cloudformation_json(  # type: ignore[misc]
-        cls,
-        resource_name: str,
-        cloudformation_json: Any,
-        account_id: str,
-        region_name: str,
-    ) -> None:
-        sns_backend = sns_backends[account_id][region_name]
-        properties = cloudformation_json["Properties"]
-
-        topic_name = properties.get(cls.cloudformation_name_type()) or resource_name
-        topic_arn = make_arn_for_topic(account_id, topic_name, sns_backend.region_name)
-        subscriptions, _ = sns_backend.list_subscriptions(topic_arn)
-        for subscription in subscriptions:
-            sns_backend.unsubscribe(subscription.arn)
-        sns_backend.delete_topic(topic_arn)
+    def delete(self, account_id: str, region_name: str) -> None:
+        sns_backend: SNSBackend = sns_backends[account_id][region_name]
+        sns_backend.delete_topic(self.arn)
 
     def _create_default_topic_policy(
         self, region_name: str, account_id: str, name: str

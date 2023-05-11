@@ -793,17 +793,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         for logical_name in resource_names_by_action["Remove"]:
             resource_json = self._resource_json_map[logical_name]
             resource = self._parsed_resources[logical_name]
-            # ToDo: Standardize this.
-            if hasattr(resource, "physical_resource_id"):
-                resource_name = self._parsed_resources[
-                    logical_name
-                ].physical_resource_id
-            else:
-                resource_name = None
-            parse_and_delete_resource(
-                resource_name, resource_json, self._account_id, self._region_name
-            )
-            self._parsed_resources.pop(logical_name)
+            self._delete_resource(resource, resource_json)
 
         self._template = template
         if parameters:
@@ -859,24 +849,12 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                         not isinstance(parsed_resource, str)
                         and parsed_resource is not None
                     ):
-                        try:
-                            parsed_resource.delete(self._account_id, self._region_name)
-                        except (TypeError, AttributeError):
-                            if hasattr(parsed_resource, "physical_resource_id"):
-                                resource_name = parsed_resource.physical_resource_id
-                            else:
-                                resource_name = None
 
-                            resource_json = self._resource_json_map[
-                                parsed_resource.logical_resource_id
-                            ]
+                        resource_json = self._resource_json_map[
+                            parsed_resource.logical_resource_id
+                        ]
 
-                            parse_and_delete_resource(
-                                resource_name,
-                                resource_json,
-                                self._account_id,
-                                self._region_name,
-                            )
+                        self._delete_resource(parsed_resource, resource_json)
 
                         self._parsed_resources.pop(parsed_resource.logical_resource_id)
                 except Exception as e:
@@ -888,6 +866,24 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
             tries += 1
         if tries == 5:
             raise last_exception
+
+    def _delete_resource(
+        self, parsed_resource: Any, resource_json: Dict[str, Any]
+    ) -> None:
+        try:
+            parsed_resource.delete(self._account_id, self._region_name)
+        except (TypeError, AttributeError):
+            if hasattr(parsed_resource, "physical_resource_id"):
+                resource_name = parsed_resource.physical_resource_id
+            else:
+                resource_name = None
+
+            parse_and_delete_resource(
+                resource_name,
+                resource_json,
+                self._account_id,
+                self._region_name,
+            )
 
 
 class OutputMap(collections_abc.Mapping):  # type: ignore[type-arg]
