@@ -9,7 +9,6 @@ from moto.ec2.models.instances import Instance
 from moto.ec2.models.managed_prefixes import ManagedPrefixList
 from moto.ec2.models.nat_gateways import NatGateway
 from moto.ec2.models.transit_gateway import TransitGateway
-from moto.ec2.models.vpcs import VPCEndPoint
 from moto.ec2.models.vpc_peering_connections import VPCPeeringConnection
 from moto.ec2.models.vpn_gateway import VpnGateway
 from .core import TaggedEC2Resource
