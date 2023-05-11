@@ -2101,11 +2101,11 @@ class S3Response(BaseResponse):
     def _complete_multipart_body(self, body: bytes) -> Iterator[Tuple[int, str]]:
         ps = minidom.parseString(body).getElementsByTagName("Part")
         prev = 0
-        for p in ps:  # type: ignore[union-attr]
-            pn = int(p.getElementsByTagName("PartNumber")[0].firstChild.wholeText)
+        for p in ps:
+            pn = int(p.getElementsByTagName("PartNumber")[0].firstChild.wholeText)  # type: ignore[union-attr]
             if pn <= prev:
-                raise InvalidPartOrder()  # type: ignore[union-attr]
-            yield (pn, p.getElementsByTagName("ETag")[0].firstChild.wholeText)
+                raise InvalidPartOrder()
+            yield (pn, p.getElementsByTagName("ETag")[0].firstChild.wholeText)  # type: ignore[union-attr]
 
     def _key_response_post(
         self,
