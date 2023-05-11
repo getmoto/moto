@@ -1041,6 +1041,50 @@ def test_create_route_with_unknown_egress_only_igw():
     err["Message"].should.equal("The eigw ID 'eoigw' does not exist")
 
 
+
+@mock_ec2
+def test_create_route_with_vpc_endpoint():
+    ec2_resource, ec2_client, route_table, vpc = setup_vpc()
+
+    dest_cidr = "0.0.0.0/0"
+    vpc_end_point = ec2_client.create_vpc_endpoint(
+        VpcId=vpc.id,
+        ServiceName="com.amazonaws.us-east-1.s3",
+        RouteTableIds=[route_table.id],
+        VpcEndpointType="gateway",
+    )
+
+    ec2_client.create_route(DestinationCidrBlock=dest_cidr,
+                            VpcEndpointId=vpc_end_point['VpcEndpoint']['VpcEndpointId'],
+                            RouteTableId=route_table.id)
+
+    rt = ec2_client.describe_route_tables()
+
+    assert rt['RouteTables']['Routes']
+
+
+
+# @mock_ec2
+# def test_create_route_with_invalid_vpc_endpoint():
+#     ec2 = boto3.resource("ec2", region_name="eu-central-1")
+#     ec2_client = boto3.client("ec2", region_name="eu-central-1")
+#
+#     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+#     ec2.create_subnet(
+#         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+#     )
+#
+#     route_table = ec2.create_route_table(VpcId=vpc.id)
+#
+#     with pytest.raises(ClientError) as ex:
+#         ec2_client.create_route(
+#             RouteTableId=route_table.id, EgressOnlyInternetGatewayId="eoigw"
+#         )
+#     err = ex.value.response["Error"]
+#     err["Code"].should.equal("InvalidGatewayID.NotFound")
+#     err["Message"].should.equal("The eigw ID 'eoigw' does not exist")
+
+
 @mock_ec2
 def test_associate_route_table_by_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
@@ -1087,3 +1131,17 @@ def test_associate_route_table_by_subnet():
     verify[0]["Associations"][0]["SubnetId"].should.equals(subnet_id)
     verify[0]["Associations"][0]["RouteTableAssociationId"].should.equal(assoc_id)
     verify[0]["Associations"][0].doesnt.have.key("GatewayId")
+
+
+def setup_vpc():
+    ec2_resource = boto3.resource("ec2", region_name="eu-central-1")
+    ec2_client = boto3.client("ec2", region_name="eu-central-1")
+
+    vpc = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16")
+    ec2_resource.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    route_table = ec2_resource.create_route_table(VpcId=vpc.id)
+
+    return ec2_resource, ec2_client, route_table, vpc

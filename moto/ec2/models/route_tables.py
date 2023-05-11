@@ -9,6 +9,7 @@ from moto.ec2.models.instances import Instance
 from moto.ec2.models.managed_prefixes import ManagedPrefixList
 from moto.ec2.models.nat_gateways import NatGateway
 from moto.ec2.models.transit_gateway import TransitGateway
+from moto.ec2.models.vpcs import VPCEndPoint
 from moto.ec2.models.vpc_peering_connections import VPCPeeringConnection
 from moto.ec2.models.vpn_gateway import VpnGateway
 from .core import TaggedEC2Resource
@@ -141,6 +142,7 @@ class Route(CloudFormationModel):
         interface: Optional[NetworkInterface] = None,
         vpc_pcx: Optional[VPCPeeringConnection] = None,
         carrier_gateway: Optional[CarrierGateway] = None,
+        vpc_endpoint_id: Optional[VPCEndPoint] = None,
     ):
         self.id = generate_route_id(
             route_table.id,
@@ -161,6 +163,7 @@ class Route(CloudFormationModel):
         self.interface = interface
         self.vpc_pcx = vpc_pcx
         self.carrier_gateway = carrier_gateway
+        self.vpc_endpoint_id = vpc_endpoint_id
 
     @property
     def physical_resource_id(self) -> str:
@@ -359,6 +362,7 @@ class RouteBackend:
         interface_id: Optional[str] = None,
         vpc_peering_connection_id: Optional[str] = None,
         carrier_gateway_id: Optional[str] = None,
+        vpc_endpoint_id: Optional[str] = None,
     ) -> Route:
         gateway = None
         nat_gateway = None
@@ -414,6 +418,7 @@ class RouteBackend:
             transit_gateway=transit_gateway,
             interface=interface,
             carrier_gateway=carrier_gateway,
+            vpc_endpoint_id=vpc_endpoint_id,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)  # type: ignore[attr-defined]
             if vpc_peering_connection_id
             else None,

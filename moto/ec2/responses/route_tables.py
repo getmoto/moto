@@ -25,6 +25,7 @@ class RouteTables(EC2BaseResponse):
         interface_id = self._get_param("NetworkInterfaceId")
         pcx_id = self._get_param("VpcPeeringConnectionId")
         carrier_gateway_id = self._get_param("CarrierGatewayId")
+        vpc_endpoint_id = self._get_param("VpcEndpointId")
 
         self.ec2_backend.create_route(
             route_table_id,
@@ -39,6 +40,7 @@ class RouteTables(EC2BaseResponse):
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
             carrier_gateway_id=carrier_gateway_id,
+            vpc_endpoint_id=vpc_endpoint_id,
         )
 
         template = self.response_template(CREATE_ROUTE_RESPONSE)
