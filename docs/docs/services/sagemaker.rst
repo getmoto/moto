@@ -77,7 +77,7 @@ sagemaker
 - [ ] create_space
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
-- [ ] create_transform_job
+- [X] create_transform_job
 - [X] create_trial
 - [X] create_trial_component
 - [ ] create_user_profile
@@ -181,7 +181,7 @@ sagemaker
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
-- [ ] describe_transform_job
+- [X] describe_transform_job
 - [X] describe_trial
 - [X] describe_trial_component
 - [ ] describe_user_profile
@@ -261,7 +261,7 @@ sagemaker
 - [X] list_tags
 - [X] list_training_jobs
 - [ ] list_training_jobs_for_hyper_parameter_tuning_job
-- [ ] list_transform_jobs
+- [X] list_transform_jobs
 - [X] list_trial_components
 - [X] list_trials
 - [ ] list_user_profiles
