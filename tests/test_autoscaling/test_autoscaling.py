@@ -781,21 +781,18 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
                                 "MetricName": "CPUUtilization",
                                 "Namespace": "AWS/EC2",
                                 "Dimensions": [
-                                    {
-                                        "Name": "AutoScalingGroupName",
-                                        "Value": asg_name
-                                    }
-                                ]
+                                    {"Name": "AutoScalingGroupName", "Value": asg_name}
+                                ],
                             },
-                            "Stat": "Average"
+                            "Stat": "Average",
                         },
-                        "ReturnData": False
+                        "ReturnData": False,
                     },
                     {
                         "Label": "Calculate square cpu",
                         "Id": "load",
-                        "Expression": "cpu^2"
-                    }
+                        "Expression": "cpu^2",
+                    },
                 ],
             },
         },
@@ -827,23 +824,20 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
                                 "MetricName": "CPUUtilization",
                                 "Namespace": "AWS/EC2",
                                 "Dimensions": [
-                                    {
-                                        "Name": "AutoScalingGroupName",
-                                        "Value": asg_name
-                                    }
-                                ]
+                                    {"Name": "AutoScalingGroupName", "Value": asg_name}
+                                ],
                             },
                             "Stat": "Average",
-                            "Unit": "None"
+                            "Unit": "None",
                         },
-                        "ReturnData": False
+                        "ReturnData": False,
                     },
                     {
                         "Label": "Calculate square cpu",
                         "Id": "load",
                         "Expression": "cpu^2",
-                        "ReturnData": True
-                    }
+                        "ReturnData": True,
+                    },
                 ],
             },
             "TargetValue": 1000000.0,
