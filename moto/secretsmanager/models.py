@@ -88,6 +88,8 @@ class FakeSecret:
         self.auto_rotate_after_days = 0
         self.deleted_date: Optional[float] = None
         self.policy: Optional[str] = None
+        self.next_rotation_date: Optional[int] = None
+        self.last_rotation_date: Optional[int] = None
 
     def update(
         self,
@@ -167,9 +169,10 @@ class FakeSecret:
             "RotationEnabled": self.rotation_enabled,
             "RotationLambdaARN": self.rotation_lambda_arn,
             "RotationRules": {"AutomaticallyAfterDays": self.auto_rotate_after_days},
-            "LastRotatedDate": None,
+            "LastRotatedDate": self.last_rotation_date,
             "LastChangedDate": self.last_changed_date,
             "LastAccessedDate": None,
+            "NextRotationDate": self.next_rotation_date,
             "DeletedDate": self.deleted_date,
             "Tags": self.tags,
             "VersionIdsToStages": version_id_to_stages,
@@ -535,6 +538,10 @@ class SecretsManagerBackend(BaseBackend):
                     )
                     raise InvalidParameterException(msg)
 
+                self.secrets[secret_id].next_rotation_date = int(time.time()) + (
+                    int(rotation_period) * 86400
+                )
+
         secret = self.secrets[secret_id]
 
         # The rotation function must end with the versions of the secret in
@@ -625,7 +632,7 @@ class SecretsManagerBackend(BaseBackend):
                 secret.versions[new_version_id], new_version_id
             )
             secret.versions[new_version_id]["version_stages"] = ["AWSCURRENT"]
-
+        self.secrets[secret_id].last_rotation_date = int(time.time())
         return secret.to_short_dict()
 
     def get_random_password(

@@ -711,21 +711,41 @@ def test_cancel_rotate_secret():
 
 @mock_secretsmanager
 def test_rotate_secret():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(
-        Name=DEFAULT_SECRET_NAME, SecretString="foosecret", Description="foodescription"
-    )
+    # Setup
+    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal())
+    rotate_after_days = 10
+    with freeze_time(frozen_time):
+        conn = boto3.client("secretsmanager", region_name="us-west-2")
+        conn.create_secret(
+            Name=DEFAULT_SECRET_NAME,
+            SecretString="foosecret",
+            Description="foodescription",
+        )
 
-    rotated_secret = conn.rotate_secret(SecretId=DEFAULT_SECRET_NAME)
+        # Execute
+        rotated_secret = conn.rotate_secret(
+            SecretId=DEFAULT_SECRET_NAME,
+            RotationRules={"AutomaticallyAfterDays": rotate_after_days},
+        )
+        describe_secret = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
 
-    assert rotated_secret
-    assert rotated_secret["ARN"] != ""  # Test arn not empty
-    assert rotated_secret["Name"] == DEFAULT_SECRET_NAME
-    assert rotated_secret["VersionId"] != ""
+        # Verify
+        assert rotated_secret
+        assert rotated_secret["ARN"] != ""  # Test arn not empty
+        assert rotated_secret["Name"] == DEFAULT_SECRET_NAME
+        assert rotated_secret["VersionId"] != ""
+        assert describe_secret["Description"] == "foodescription"
+        assert "NextRotationDate" in describe_secret
+        assert "LastRotatedDate" in describe_secret
 
-    describe_secret = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
+        # can't do freeze time tests in servermode tests
+        if settings.TEST_SERVER_MODE:
+            return
 
-    assert describe_secret["Description"] == "foodescription"
+        assert describe_secret["LastChangedDate"] == frozen_time
+        assert describe_secret["NextRotationDate"] == frozen_time + timedelta(
+            days=rotate_after_days
+        )
 
 
 @mock_secretsmanager
