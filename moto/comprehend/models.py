@@ -201,7 +201,7 @@ class ComprehendBackend(BaseBackend):
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def detect_pii_entities(self, text: str, language: str) -> List[dict[str, Any]]:
+    def detect_pii_entities(self, text: str, language: str) -> List[Dict[str, Any]]:
         if language not in self.detect_pii_entities_languages:
             raise DetectPIIValidationException(
                 language, self.detect_pii_entities_languages
@@ -211,7 +211,7 @@ class ComprehendBackend(BaseBackend):
             raise TextSizeLimitExceededException(text_size)
         return CANNED_DETECT_RESPONSE
 
-    def detect_key_phrases(self, text: str, language: str) -> List[dict[str, Any]]:
+    def detect_key_phrases(self, text: str, language: str) -> List[Dict[str, Any]]:
         if language not in self.detect_key_phrases_languages:
             raise DetectPIIValidationException(
                 language, self.detect_key_phrases_languages
@@ -221,7 +221,7 @@ class ComprehendBackend(BaseBackend):
             raise TextSizeLimitExceededException(text_size)
         return CANNED_PHRASES_RESPONSE
 
-    def detect_sentiment(self, text: str, language: str) -> dict[str, Any]:
+    def detect_sentiment(self, text: str, language: str) -> Dict[str, Any]:
         if language not in self.detect_key_phrases_languages:
             raise DetectPIIValidationException(
                 language, self.detect_key_phrases_languages
