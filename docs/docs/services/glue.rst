@@ -66,7 +66,7 @@ glue
 
 - [ ] create_script
 - [ ] create_security_configuration
-- [ ] create_session
+- [X] create_session
 - [X] create_table
 - [X] create_trigger
 - [ ] create_user_defined_function
@@ -90,7 +90,7 @@ glue
 - [X] delete_schema
 - [ ] delete_schema_versions
 - [ ] delete_security_configuration
-- [ ] delete_session
+- [X] delete_session
 - [X] delete_table
 - [X] delete_table_version
 - [X] delete_trigger
@@ -155,7 +155,7 @@ glue
 - [ ] get_schema_versions_diff
 - [ ] get_security_configuration
 - [ ] get_security_configurations
-- [ ] get_session
+- [X] get_session
 - [ ] get_statement
 - [X] get_table
 - [X] get_table_version
@@ -188,7 +188,7 @@ glue
 - [X] list_registries
 - [ ] list_schema_versions
 - [ ] list_schemas
-- [ ] list_sessions
+- [X] list_sessions
 - [ ] list_statements
 - [X] list_triggers
 - [ ] list_workflows
@@ -217,7 +217,7 @@ glue
 - [ ] start_workflow_run
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
-- [ ] stop_session
+- [X] stop_session
 - [X] stop_trigger
 - [ ] stop_workflow_run
 - [X] tag_resource

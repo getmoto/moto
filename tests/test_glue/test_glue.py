@@ -789,3 +789,83 @@ def test_delete_trigger():
         client.get_trigger(Name=trigger_name)
 
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
+
+
+def create_test_session(client):
+    session_id = str(uuid4())
+    client.create_session(
+        Id=session_id,
+        Description="string",
+        Role="arn_of_a_testing_role",
+        Command={"Name": "string", "PythonVersion": "string"},
+        Timeout=123,
+        IdleTimeout=123,
+        DefaultArguments={"string": "string"},
+        Connections={
+            "Connections": [
+                "string",
+            ]
+        },
+        MaxCapacity=123.0,
+        NumberOfWorkers=123,
+        WorkerType="Standard",
+        SecurityConfiguration="string",
+        GlueVersion="string",
+        Tags={"string": "string"},
+        RequestOrigin="string",
+    )
+    return session_id
+
+
+@mock_glue
+def test_create_session():
+    client = create_glue_client()
+    session_id = create_test_session(client)
+
+    resp = client.get_session(Id=session_id)
+    assert resp["Session"]["Id"] == session_id
+
+
+@mock_glue
+def test_get_session():
+    client = create_glue_client()
+    session_id = create_test_session(client)
+
+    resp = client.get_session(Id=session_id)
+    assert resp["Session"]["Id"] == session_id
+
+
+@mock_glue
+def test_list_sessions():
+    client = create_glue_client()
+    session_id = create_test_session(client)
+
+    resp = client.list_sessions()
+    assert session_id in resp["Ids"]
+
+
+@mock_glue
+def test_delete_session():
+    client = create_glue_client()
+    session_id = create_test_session(client)
+
+    resp = client.delete_session(Id=session_id)
+    assert resp["Id"] == session_id
+
+    resp = client.list_sessions()
+    assert session_id not in resp["Ids"]
+
+
+@mock_glue
+def test_stop_session():
+    client = create_glue_client()
+    session_id = create_test_session(client)
+
+    resp = client.get_session(Id=session_id)
+    assert resp["Session"]["Status"] == "READY"
+
+    resp = client.stop_session(Id=session_id)
+    assert resp["Id"] == session_id
+
+    resp = client.get_session(Id=session_id)
+    assert resp["Session"]["Status"] == "STOPPING"

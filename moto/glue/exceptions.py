@@ -31,6 +31,11 @@ class CrawlerAlreadyExistsException(AlreadyExistsException):
         super().__init__("Crawler")
 
 
+class SessionAlreadyExistsException(AlreadyExistsException):
+    def __init__(self) -> None:
+        super().__init__("Session")
+
+
 class EntityNotFoundException(GlueClientError):
     def __init__(self, msg: str):
         super().__init__("EntityNotFoundException", msg)
@@ -105,6 +110,16 @@ class SchemaVersionNotFoundFromSchemaVersionIdException(EntityNotFoundException)
         super().__init__(
             f"Schema version is not found. SchemaVersionId: {schema_version_id}",
         )
+
+
+class SessionNotFoundException(EntityNotFoundException):
+    def __init__(self, session: str):
+        super().__init__(f"Session {session} not found.")
+
+
+class IllegalSessionStateException(GlueClientError):
+    def __init__(self, msg: str):
+        super().__init__("IllegalSessionStateException", msg)
 
 
 class RegistryNotFoundException(EntityNotFoundException):
