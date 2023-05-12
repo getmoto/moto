@@ -59,13 +59,35 @@ def test_mock_works_with_resource_created_outside(
     m = mock_s3()
     m.start()
 
-    # So remind us to mock this client
+    # So remind us to mock this resource
     from moto.core import patch_resource
 
     patch_resource(outside_resource)
 
     b = list(outside_resource.buckets.all())
     b.should.equal([])
+    m.stop()
+
+
+def test_patch_can_be_called_on_a_mocked_client():
+    # start S3 after the mock, ensuring that the client contains our event-handler
+    m = mock_s3()
+    m.start()
+    client = boto3.client("s3", region_name="us-east-1")
+
+    from moto.core import patch_client
+
+    patch_client(client)
+    patch_client(client)
+
+    # At this point, our event-handler should only be registered once, by `mock_s3`
+    # `patch_client` should not re-register the event-handler
+    test_object = b"test_object_text"
+    client.create_bucket(Bucket="buck")
+    client.put_object(Bucket="buck", Key="to", Body=test_object)
+    got_object = client.get_object(Bucket="buck", Key="to")["Body"].read()
+    assert got_object == test_object
+
     m.stop()
 
 
