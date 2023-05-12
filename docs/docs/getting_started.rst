@@ -121,7 +121,7 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
 .. sourcecode:: python
 
     import unittest
-    from moto import mock_s3
+    from moto import mock_s3 as MockS3
     import boto3
 
     def func_to_test(bucket_name, key, content):
@@ -130,7 +130,7 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
         object.put(Body=content)
 
     class MyTest(unittest.TestCase):
-        mock_s3 = mock_s3()
+        mock_s3 = MockS3()
         bucket_name = "test-bucket"
         def setUp(self):
             self.mock_s3.start()
