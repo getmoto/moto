@@ -771,6 +771,30 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
                 "PredefinedMetricType": "ASGAverageNetworkIn",
             },
             "TargetValue": 1000000.0,
+            "CustomizedMetricSpecification": {
+                "Metrics": [
+                    {
+                        "Label": "Get ASGAverageCPUUtilization",
+                        "Id": "cpu",
+                        "MetricStat": {
+                            "Metric": {
+                                "MetricName": "CPUUtilization",
+                                "Namespace": "AWS/EC2",
+                                "Dimensions": [
+                                    {"Name": "AutoScalingGroupName", "Value": asg_name}
+                                ],
+                            },
+                            "Stat": "Average",
+                        },
+                        "ReturnData": False,
+                    },
+                    {
+                        "Label": "Calculate square cpu",
+                        "Id": "load",
+                        "Expression": "cpu^2",
+                    },
+                ],
+            },
         },
     )
 
@@ -785,6 +809,36 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
         {
             "PredefinedMetricSpecification": {
                 "PredefinedMetricType": "ASGAverageNetworkIn",
+            },
+            "CustomizedMetricSpecification": {
+                "MetricName": "None",
+                "Namespace": "None",
+                "Dimensions": [],
+                "Statistic": "None",
+                "Metrics": [
+                    {
+                        "Label": "Get ASGAverageCPUUtilization",
+                        "Id": "cpu",
+                        "MetricStat": {
+                            "Metric": {
+                                "MetricName": "CPUUtilization",
+                                "Namespace": "AWS/EC2",
+                                "Dimensions": [
+                                    {"Name": "AutoScalingGroupName", "Value": asg_name}
+                                ],
+                            },
+                            "Stat": "Average",
+                            "Unit": "None",
+                        },
+                        "ReturnData": False,
+                    },
+                    {
+                        "Label": "Calculate square cpu",
+                        "Id": "load",
+                        "Expression": "cpu^2",
+                        "ReturnData": True,
+                    },
+                ],
             },
             "TargetValue": 1000000.0,
         }
