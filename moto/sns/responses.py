@@ -226,6 +226,13 @@ class SNSResponse(BaseResponse):
         subscription = self.backend.subscribe(topic_arn, endpoint, protocol)
 
         if attributes is not None:
+            # We need to set the FilterPolicyScope first, as the validation of the FilterPolicy will depend on it
+            if "FilterPolicyScope" in attributes:
+                filter_policy_scope = attributes.pop("FilterPolicyScope")
+                self.backend.set_subscription_attributes(
+                    subscription.arn, "FilterPolicyScope", filter_policy_scope
+                )
+
             for attr_name, attr_value in attributes.items():
                 self.backend.set_subscription_attributes(
                     subscription.arn, attr_name, attr_value

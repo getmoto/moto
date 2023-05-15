@@ -250,7 +250,6 @@ def test_creating_subscription_with_attributes():
     filter_policy = json.dumps(
         {
             "store": ["example_corp"],
-            "event": ["order_cancelled"],
             "encrypted": [False],
             "customer_interests": ["basketball", "baseball"],
             "price": [100, 100.12],
@@ -371,7 +370,6 @@ def test_set_subscription_attributes():
     filter_policy = json.dumps(
         {
             "store": ["example_corp"],
-            "event": ["order_cancelled"],
             "encrypted": [False],
             "customer_interests": ["basketball", "baseball"],
             "price": [100, 100.12],
@@ -389,6 +387,17 @@ def test_set_subscription_attributes():
     attrs["Attributes"]["RawMessageDelivery"].should.equal("true")
     attrs["Attributes"]["DeliveryPolicy"].should.equal(delivery_policy)
     attrs["Attributes"]["FilterPolicy"].should.equal(filter_policy)
+
+    filter_policy_scope = "MessageBody"
+    conn.set_subscription_attributes(
+        SubscriptionArn=subscription_arn,
+        AttributeName="FilterPolicyScope",
+        AttributeValue=filter_policy_scope,
+    )
+
+    attrs = conn.get_subscription_attributes(SubscriptionArn=subscription_arn)
+
+    attrs["Attributes"]["FilterPolicyScope"].should.equal(filter_policy_scope)
 
     # not existing subscription
     with pytest.raises(ClientError):
@@ -640,6 +649,70 @@ def test_subscribe_invalid_filter_policy():
     err.response["Error"]["Message"].should.equal(
         "Invalid parameter: Attributes Reason: FilterPolicy: Value of < must be numeric\n at ..."
     )
+
+    try:
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={
+                "FilterPolicy": json.dumps({"store": {"key": [{"exists": None}]}})
+            },
+        )
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: Filter policy scope MessageAttributes does not support nested filter policy"
+        )
+
+    try:
+        filter_policy = {
+            "key_a": ["value_one"],
+            "key_b": ["value_two"],
+            "key_c": ["value_three"],
+            "key_d": ["value_four"],
+            "key_e": ["value_five"],
+            "key_f": ["value_six"],
+        }
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={"FilterPolicy": json.dumps(filter_policy)},
+        )
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: FilterPolicy: Filter policy can not have more than 5 keys"
+        )
+
+    try:
+        nested_filter_policy = {
+            "key_a": {
+                "key_b": {
+                    "key_c": ["value_one", "value_two", "value_three", "value_four"]
+                },
+            },
+            "key_d": {"key_e": ["value_one", "value_two", "value_three"]},
+            "key_f": ["value_one", "value_two", "value_three"],
+        }
+        # The first array has four values in a three-level nested key, and the second has three values in a two-level
+        # nested key. The total combination is calculated as follows:
+        # 3 x 4 x 2 x 3 x 1 x 3 = 216
+        conn.subscribe(
+            TopicArn=topic_arn,
+            Protocol="http",
+            Endpoint="http://example.com/",
+            Attributes={
+                "FilterPolicyScope": "MessageBody",
+                "FilterPolicy": json.dumps(nested_filter_policy),
+            },
+        )
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Invalid parameter: FilterPolicy: Filter policy is too complex"
+        )
 
 
 @mock_sns

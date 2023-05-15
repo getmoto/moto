@@ -28,7 +28,12 @@ from .exceptions import (
     TooManyEntriesInBatchRequest,
     BatchEntryIdsNotDistinct,
 )
-from .utils import make_arn_for_topic, make_arn_for_subscription, is_e164
+from .utils import (
+    make_arn_for_topic,
+    make_arn_for_subscription,
+    is_e164,
+    FilterPolicyMatcher,
+)
 
 
 DEFAULT_PAGE_SIZE = 100
@@ -192,6 +197,7 @@ class Subscription(BaseModel):
         self.arn = make_arn_for_subscription(self.topic.arn)
         self.attributes: Dict[str, Any] = {}
         self._filter_policy = None  # filter policy as a dict, not json.
+        self._filter_policy_matcher = None
         self.confirmed = False
 
     def publish(
@@ -203,8 +209,9 @@ class Subscription(BaseModel):
         group_id: Optional[str] = None,
         deduplication_id: Optional[str] = None,
     ) -> None:
-        if not self._matches_filter_policy(message_attributes):
-            return
+        if self._filter_policy_matcher is not None:
+            if not self._filter_policy_matcher.matches(message_attributes, message):
+                return
 
         if self.protocol == "sqs":
             queue_name = self.endpoint.split(":")[-1]
@@ -276,131 +283,6 @@ class Subscription(BaseModel):
             lambda_backends[self.account_id][region].send_sns_message(
                 function_name, message, subject=subject, qualifier=qualifier
             )
-
-    def _matches_filter_policy(
-        self, message_attributes: Optional[Dict[str, Any]]
-    ) -> bool:
-        if not self._filter_policy:
-            return True
-
-        if message_attributes is None:
-            message_attributes = {}
-
-        def _field_match(
-            field: str, rules: List[Any], message_attributes: Dict[str, Any]
-        ) -> bool:
-            for rule in rules:
-                #  TODO: boolean value matching is not supported, SNS behavior unknown
-                if isinstance(rule, str):
-                    if field not in message_attributes:
-                        return False
-                    if message_attributes[field]["Value"] == rule:
-                        return True
-                    try:
-                        json_data = json.loads(message_attributes[field]["Value"])
-                        if rule in json_data:
-                            return True
-                    except (ValueError, TypeError):
-                        pass
-                if isinstance(rule, (int, float)):
-                    if field not in message_attributes:
-                        return False
-                    if message_attributes[field]["Type"] == "Number":
-                        attribute_values = [message_attributes[field]["Value"]]
-                    elif message_attributes[field]["Type"] == "String.Array":
-                        try:
-                            attribute_values = json.loads(
-                                message_attributes[field]["Value"]
-                            )
-                            if not isinstance(attribute_values, list):
-                                attribute_values = [attribute_values]
-                        except (ValueError, TypeError):
-                            return False
-                    else:
-                        return False
-
-                    for attribute_value in attribute_values:
-                        attribute_value = float(attribute_value)
-                        # Even the official documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
-                        # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
-                        if int(attribute_value * 1000000) == int(rule * 1000000):
-                            return True
-                if isinstance(rule, dict):
-                    keyword = list(rule.keys())[0]
-                    value = list(rule.values())[0]
-                    if keyword == "exists":
-                        if value and field in message_attributes:
-                            return True
-                        elif not value and field not in message_attributes:
-                            return True
-                    elif keyword == "prefix" and isinstance(value, str):
-                        if field in message_attributes:
-                            attr = message_attributes[field]
-                            if attr["Type"] == "String" and attr["Value"].startswith(
-                                value
-                            ):
-                                return True
-                    elif keyword == "anything-but":
-                        if field not in message_attributes:
-                            continue
-                        attr = message_attributes[field]
-                        if isinstance(value, dict):
-                            # We can combine anything-but with the prefix-filter
-                            anything_but_key = list(value.keys())[0]
-                            anything_but_val = list(value.values())[0]
-                            if anything_but_key != "prefix":
-                                return False
-                            if attr["Type"] == "String":
-                                actual_values = [attr["Value"]]
-                            else:
-                                actual_values = [v for v in attr["Value"]]
-                            if all(
-                                [
-                                    not v.startswith(anything_but_val)
-                                    for v in actual_values
-                                ]
-                            ):
-                                return True
-                        else:
-                            undesired_values = (
-                                [value] if isinstance(value, str) else value
-                            )
-                            if attr["Type"] == "Number":
-                                actual_values = [float(attr["Value"])]
-                            elif attr["Type"] == "String":
-                                actual_values = [attr["Value"]]
-                            else:
-                                actual_values = [v for v in attr["Value"]]
-                            if all([v not in undesired_values for v in actual_values]):
-                                return True
-                    elif keyword == "numeric" and isinstance(value, list):
-                        # [(< x), (=, y), (>=, z)]
-                        numeric_ranges = zip(value[0::2], value[1::2])
-                        if (
-                            message_attributes.get(field, {}).get("Type", "")
-                            == "Number"
-                        ):
-                            msg_value = float(message_attributes[field]["Value"])
-                            matches = []
-                            for operator, test_value in numeric_ranges:
-                                test_value = test_value
-                                if operator == ">":
-                                    matches.append((msg_value > test_value))
-                                if operator == ">=":
-                                    matches.append((msg_value >= test_value))
-                                if operator == "=":
-                                    matches.append((msg_value == test_value))
-                                if operator == "<":
-                                    matches.append((msg_value < test_value))
-                                if operator == "<=":
-                                    matches.append((msg_value <= test_value))
-                            return all(matches)
-            return False
-
-        return all(
-            _field_match(field, rules, message_attributes)
-            for field, rules in self._filter_policy.items()
-        )
 
     def get_post_data(
         self,
@@ -848,6 +730,7 @@ class SNSBackend(BaseBackend):
             "RawMessageDelivery",
             "DeliveryPolicy",
             "FilterPolicy",
+            "FilterPolicyScope",
             "RedrivePolicy",
             "SubscriptionRoleArn",
         ]:
@@ -859,26 +742,90 @@ class SNSBackend(BaseBackend):
             raise SNSNotFoundError(f"Subscription with arn {arn} not found")
         subscription = _subscription[0]
 
-        subscription.attributes[name] = value
-
         if name == "FilterPolicy":
             filter_policy = json.loads(value)
-            self._validate_filter_policy(filter_policy)
+            # we validate the filter policy differently depending on the scope
+            # we need to always set the scope first
+            filter_policy_scope = subscription.attributes.get("FilterPolicyScope")
+            self._validate_filter_policy(filter_policy, scope=filter_policy_scope)
             subscription._filter_policy = filter_policy
+            subscription._filter_policy_matcher = FilterPolicyMatcher(
+                filter_policy, filter_policy_scope
+            )
 
-    def _validate_filter_policy(self, value: Any) -> None:
-        # TODO: extend validation checks
+        subscription.attributes[name] = value
+
+    def _validate_filter_policy(self, value: Any, scope: str) -> None:
         combinations = 1
-        for rules in value.values():
-            combinations *= len(rules)
-        # Even the official documentation states the total combination of values must not exceed 100, in reality it is 150
-        # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
+
+        def aggregate_rules(
+            filter_policy: Dict[str, Any], depth: int = 1
+        ) -> List[List[Any]]:
+            """
+            This method evaluate the filter policy recursively, and returns only a list of lists of rules.
+            It also calculates the combinations of rules, calculated depending on the nesting of the rules.
+            Example:
+            nested_filter_policy = {
+                "key_a": {
+                    "key_b": {
+                        "key_c": ["value_one", "value_two", "value_three", "value_four"]
+                    }
+                },
+                "key_d": {
+                    "key_e": ["value_one", "value_two", "value_three"]
+                }
+            }
+            This function then iterates on the values of the top level keys of the filter policy: ("key_a", "key_d")
+            If the iterated value is not a list, it means it is a nested property. If the scope is `MessageBody`, it is
+            allowed, we call this method on the value, adding a level to the depth to keep track on how deep the key is.
+            If the value is a list, it means it contains rules: we will append this list of rules in _rules, and
+            calculate the combinations it adds.
+            For the example filter policy containing nested properties, we calculate it this way
+            The first array has four values in a three-level nested key, and the second has three values in a two-level
+            nested key. 3 x 4 x 2 x 3 = 72
+            The return value would be:
+            [["value_one", "value_two", "value_three", "value_four"], ["value_one", "value_two", "value_three"]]
+            It allows us to later iterate of the list of rules in an easy way, to verify its conditions.
+
+            :param filter_policy: a dict, starting at the FilterPolicy
+            :param depth: the depth/level of the rules we are evaluating
+            :return: a list of lists of rules
+            """
+            nonlocal combinations
+            _rules = []
+            for key, _value in filter_policy.items():
+                if isinstance(_value, dict):
+                    if scope == "MessageBody":
+                        # From AWS docs: "unlike attribute-based policies, payload-based policies support property nesting."
+                        _rules.extend(aggregate_rules(_value, depth=depth + 1))
+                    else:
+                        raise SNSInvalidParameter(
+                            "Invalid parameter: Filter policy scope MessageAttributes does not support nested filter policy"
+                        )
+                elif isinstance(_value, list):
+                    _rules.append(_value)
+                    combinations = combinations * len(_value) * depth
+                else:
+                    raise SNSInvalidParameter(
+                        f'Invalid parameter: FilterPolicy: "{key}" must be an object or an array'
+                    )
+            return _rules
+
+        # A filter policy can have a maximum of five attribute names. For a nested policy, only parent keys are counted.
+        if len(value.values()) > 5:
+            raise SNSInvalidParameter(
+                "Invalid parameter: FilterPolicy: Filter policy can not have more than 5 keys"
+            )
+
+        aggregated_rules = aggregate_rules(value)
+        # For the complexity of the filter policy, the total combination of values must not exceed 150.
+        # https://docs.aws.amazon.com/sns/latest/dg/subscription-filter-policy-constraints.html
         if combinations > 150:
             raise SNSInvalidParameter(
                 "Invalid parameter: FilterPolicy: Filter policy is too complex"
             )
 
-        for rules in value.values():
+        for rules in aggregated_rules:
             for rule in rules:
                 if rule is None:
                     continue

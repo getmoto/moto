@@ -23,6 +23,14 @@ MESSAGE_FROM_SQS_TEMPLATE = (
 )
 
 
+def to_comparable_dicts(list_entry: list):
+    if list_entry:
+        if isinstance(list_entry[0], dict):
+            return set(map(json.dumps, list_entry))
+
+    return set(list_entry)
+
+
 @mock_sqs
 @mock_sns
 def test_publish_to_sqs():
@@ -656,7 +664,9 @@ def test_publish_deduplication_id_to_non_fifo():
     topic.publish(Message="message")
 
 
-def _setup_filter_policy_test(filter_policy):
+def _setup_filter_policy_test(
+    filter_policy: dict, filter_policy_scope: str = "MessageAttributes"
+):
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="some-topic")
 
@@ -665,6 +675,10 @@ def _setup_filter_policy_test(filter_policy):
 
     subscription = topic.subscribe(
         Protocol="sqs", Endpoint=queue.attributes["QueueArn"]
+    )
+
+    subscription.set_attributes(
+        AttributeName="FilterPolicyScope", AttributeValue=filter_policy_scope
     )
 
     subscription.set_attributes(
@@ -697,6 +711,25 @@ def test_filtering_exact_string():
 
 @mock_sqs
 @mock_sns
+def test_filtering_exact_string_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": ["example_corp"]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": "example_corp"}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([{"result": {"Type": "String", "Value": "match"}}])
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"store": "example_corp"}])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_exact_string_multiple_message_attributes():
     topic, queue = _setup_filter_policy_test({"store": ["example_corp"]})
 
@@ -720,6 +753,25 @@ def test_filtering_exact_string_multiple_message_attributes():
             }
         ]
     )
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_multiple_message_attributes_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": ["example_corp"]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": "example_corp", "event": "order_cancelled"}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([{"result": {"Type": "String", "Value": "match"}}])
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"store": "example_corp", "event": "order_cancelled"}])
 
 
 @mock_sqs
@@ -755,6 +807,43 @@ def test_filtering_exact_string_OR_matching():
 
 @mock_sqs
 @mock_sns
+def test_filtering_exact_string_OR_matching_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": ["example_corp", "different_corp"]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": "example_corp"}),
+        MessageAttributes={
+            "result": {"DataType": "String", "StringValue": "match example_corp"}
+        },
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": "different_corp"}),
+        MessageAttributes={
+            "result": {"DataType": "String", "StringValue": "match different_corp"}
+        },
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    to_comparable_dicts(message_attributes).should.equal(
+        to_comparable_dicts(
+            [
+                {"result": {"Type": "String", "Value": "match example_corp"}},
+                {"result": {"Type": "String", "Value": "match different_corp"}},
+            ]
+        )
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts([{"store": "example_corp"}, {"store": "different_corp"}])
+    )
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_exact_string_AND_matching_positive():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"], "event": ["order_cancelled"]}
@@ -784,6 +873,40 @@ def test_filtering_exact_string_AND_matching_positive():
 
 @mock_sqs
 @mock_sns
+def test_filtering_exact_string_AND_matching_positive_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": ["example_corp"], "event": ["order_cancelled"]},
+        filter_policy_scope="MessageBody",
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": "example_corp", "event": "order_cancelled"}),
+        MessageAttributes={
+            "result": {
+                "DataType": "String",
+                "StringValue": "match example_corp order_cancelled",
+            }
+        },
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {
+                    "Type": "String",
+                    "Value": "match example_corp order_cancelled",
+                },
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"store": "example_corp", "event": "order_cancelled"}])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_exact_string_AND_matching_no_match():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"], "event": ["order_cancelled"]}
@@ -802,6 +925,31 @@ def test_filtering_exact_string_AND_matching_no_match():
     message_bodies.should.equal([])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
     message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_AND_matching_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": ["example_corp"], "event": ["order_cancelled"]},
+        filter_policy_scope="MessageBody",
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": "example_corp", "event": "order_accepted"}),
+        MessageAttributes={
+            "result": {
+                "DataType": "String",
+                "StringValue": "match example_corp order_accepted",
+            }
+        },
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
 
 
 @mock_sqs
@@ -825,6 +973,25 @@ def test_filtering_exact_string_no_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_exact_string_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": ["example_corp"]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": "different_corp"}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "no match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_exact_string_no_attributes_no_match():
     topic, queue = _setup_filter_policy_test({"store": ["example_corp"]})
 
@@ -835,6 +1002,25 @@ def test_filtering_exact_string_no_attributes_no_match():
     message_bodies.should.equal([])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
     message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_empty_body_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": ["example_corp"]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "no match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
 
 
 @mock_sqs
@@ -856,6 +1042,31 @@ def test_filtering_exact_number_int():
 
 @mock_sqs
 @mock_sns
+def test_filtering_exact_number_int_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"price": [100]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"price": 100}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {"Type": "String", "Value": "match"},
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"price": 100}])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_exact_number_float():
     topic, queue = _setup_filter_policy_test({"price": [100.1]})
 
@@ -869,6 +1080,31 @@ def test_filtering_exact_number_float():
     message_bodies.should.equal(["match"])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
     message_attributes.should.equal([{"price": {"Type": "Number", "Value": "100.1"}}])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_number_float_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"price": [100.1]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"price": 100.1}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {"Type": "String", "Value": "match"},
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"price": 100.1}])
 
 
 @mock_sqs
@@ -894,6 +1130,31 @@ def test_filtering_exact_number_float_accuracy():
 
 @mock_sqs
 @mock_sns
+def test_filtering_exact_number_float_accuracy_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"price": [100.123456789]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"price": 100.1234567}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {"Type": "String", "Value": "match"},
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"price": 100.1234567}])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_exact_number_no_match():
     topic, queue = _setup_filter_policy_test({"price": [100]})
 
@@ -911,6 +1172,25 @@ def test_filtering_exact_number_no_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_exact_number_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"price": [100]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"price": 101}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "no match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_exact_number_with_string_no_match():
     topic, queue = _setup_filter_policy_test({"price": [100]})
 
@@ -924,6 +1204,25 @@ def test_filtering_exact_number_with_string_no_match():
     message_bodies.should.equal([])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
     message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_number_with_string_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"price": [100]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"price": "100"}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "no match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
 
 
 @mock_sqs
@@ -961,6 +1260,32 @@ def test_filtering_string_array_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_string_array_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": ["basketball", "baseball"]},
+        filter_policy_scope="MessageBody",
+    )
+
+    topic.publish(
+        Message=json.dumps({"customer_interests": ["basketball", "rugby"]}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {"Type": "String", "Value": "match"},
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"customer_interests": ["basketball", "rugby"]}])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_string_array_no_match():
     topic, queue = _setup_filter_policy_test({"customer_interests": ["baseball"]})
 
@@ -983,6 +1308,25 @@ def test_filtering_string_array_no_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_string_array_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": ["baseball"]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"customer_interests": ["basketball", "rugby"]}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "no_match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_string_array_with_number_match():
     topic, queue = _setup_filter_policy_test({"price": [100, 500]})
 
@@ -1000,6 +1344,31 @@ def test_filtering_string_array_with_number_match():
     message_attributes.should.equal(
         [{"price": {"Type": "String.Array", "Value": json.dumps([100, 50])}}]
     )
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_string_array_with_number_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"price": [100, 500]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"price": [100, 50]}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {"Type": "String", "Value": "match"},
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"price": [100, 50]}])
 
 
 @mock_sqs
@@ -1028,6 +1397,31 @@ def test_filtering_string_array_with_number_float_accuracy_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_string_array_with_number_float_accuracy_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"price": [100.123456789, 500]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"price": [100.1234567, 50]}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {"Type": "String", "Value": "match"},
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"price": [100.1234567, 50]}])
+
+
+@mock_sqs
+@mock_sns
 # this is the correct behavior from SNS
 def test_filtering_string_array_with_number_no_array_match():
     topic, queue = _setup_filter_policy_test({"price": [100, 500]})
@@ -1044,6 +1438,32 @@ def test_filtering_string_array_with_number_no_array_match():
     message_attributes.should.equal(
         [{"price": {"Type": "String.Array", "Value": "100"}}]
     )
+
+
+@mock_sqs
+@mock_sns
+# this is the correct behavior from SNS
+def test_filtering_string_array_with_number_no_array_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"price": [100, 500]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"price": 100}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {"Type": "String", "Value": "match"},
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"price": 100}])
 
 
 @mock_sqs
@@ -1067,6 +1487,25 @@ def test_filtering_string_array_with_number_no_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_string_array_with_number_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"price": [500]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"price": [100, 50]}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "no_match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+
+
+@mock_sqs
+@mock_sns
 # this is the correct behavior from SNS
 def test_filtering_string_array_with_string_no_array_no_match():
     topic, queue = _setup_filter_policy_test({"price": [100]})
@@ -1083,6 +1522,25 @@ def test_filtering_string_array_with_string_no_array_no_match():
     message_bodies.should.equal([])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
     message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_string_array_with_string_no_array_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"price": [100]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"price": "one hundred"}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "no_match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
 
 
 @mock_sqs
@@ -1108,6 +1566,31 @@ def test_filtering_attribute_key_exists_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_body_key_exists_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": [{"exists": True}]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": "example_corp"}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {"Type": "String", "Value": "match"},
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"store": "example_corp"}])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_attribute_key_exists_no_match():
     topic, queue = _setup_filter_policy_test({"store": [{"exists": True}]})
 
@@ -1123,6 +1606,25 @@ def test_filtering_attribute_key_exists_no_match():
     message_bodies.should.equal([])
     message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
     message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_body_key_exists_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": [{"exists": True}]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"event": "order_cancelled"}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "no match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
 
 
 @mock_sqs
@@ -1148,6 +1650,31 @@ def test_filtering_attribute_key_not_exists_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_body_key_not_exists_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": [{"exists": False}]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"event": "order_cancelled"}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {"Type": "String", "Value": "match"},
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([{"event": "order_cancelled"}])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_attribute_key_not_exists_no_match():
     topic, queue = _setup_filter_policy_test({"store": [{"exists": False}]})
 
@@ -1156,6 +1683,25 @@ def test_filtering_attribute_key_not_exists_no_match():
         MessageAttributes={
             "store": {"DataType": "String", "StringValue": "example_corp"}
         },
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_body_key_not_exists_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {"store": [{"exists": False}]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": "example_corp"}),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "no match"}},
     )
 
     messages = queue.receive_messages(MaxNumberOfMessages=5)
@@ -1211,6 +1757,53 @@ def test_filtering_all_AND_matching_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_all_AND_matching_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "store": [{"exists": True}],
+            "event": ["order_cancelled"],
+            "customer_interests": ["basketball", "baseball"],
+            "price": [100],
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    topic.publish(
+        Message=json.dumps(
+            {
+                "store": "example_corp",
+                "event": "order_cancelled",
+                "customer_interests": ["basketball", "rugby"],
+                "price": 100,
+            }
+        ),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal(
+        [
+            {
+                "result": {"Type": "String", "Value": "match"},
+            }
+        ]
+    )
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal(
+        [
+            {
+                "store": "example_corp",
+                "event": "order_cancelled",
+                "customer_interests": ["basketball", "rugby"],
+                "price": 100,
+            }
+        ]
+    )
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_all_AND_matching_no_match():
     topic, queue = _setup_filter_policy_test(
         {
@@ -1244,6 +1837,39 @@ def test_filtering_all_AND_matching_no_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_all_AND_matching_no_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "store": [{"exists": True}],
+            "event": ["order_cancelled"],
+            "customer_interests": ["basketball", "baseball"],
+            "price": [100],
+            "encrypted": [False],
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    topic.publish(
+        Message=json.dumps(
+            {
+                "store": "example_corp",
+                "event": "order_cancelled",
+                "customer_interests": ["basketball", "rugby"],
+                "price": 100,
+            }
+        ),
+        MessageAttributes={"result": {"DataType": "String", "StringValue": "no match"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_prefix():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"prefix": "bas"}]}
@@ -1260,6 +1886,34 @@ def test_filtering_prefix():
     messages = queue.receive_messages(MaxNumberOfMessages=5)
     message_bodies = [json.loads(m.body)["Message"] for m in messages]
     set(message_bodies).should.equal({"match1", "match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_prefix_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "customer_interests": [{"prefix": "bas"}],
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    for interest in ["basketball", "rugby", "baseball"]:
+        topic.publish(
+            Message=json.dumps(
+                {
+                    "customer_interests": interest,
+                }
+            )
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts(
+            [{"customer_interests": "basketball"}, {"customer_interests": "baseball"}]
+        )
+    )
 
 
 @mock_sqs
@@ -1284,6 +1938,34 @@ def test_filtering_anything_but():
 
 @mock_sqs
 @mock_sns
+def test_filtering_anything_but_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "customer_interests": [{"anything-but": "basketball"}],
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    for interest in ["basketball", "rugby", "baseball"]:
+        topic.publish(
+            Message=json.dumps(
+                {
+                    "customer_interests": interest,
+                }
+            )
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts(
+            [{"customer_interests": "rugby"}, {"customer_interests": "baseball"}]
+        )
+    )
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_anything_but_multiple_values():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"anything-but": ["basketball", "rugby"]}]}
@@ -1300,6 +1982,32 @@ def test_filtering_anything_but_multiple_values():
     messages = queue.receive_messages(MaxNumberOfMessages=5)
     message_bodies = [json.loads(m.body)["Message"] for m in messages]
     set(message_bodies).should.equal({"match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_multiple_values_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "customer_interests": [{"anything-but": ["basketball", "rugby"]}],
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    for interest in ["basketball", "rugby", "baseball"]:
+        topic.publish(
+            Message=json.dumps(
+                {
+                    "customer_interests": interest,
+                }
+            )
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts([{"customer_interests": "baseball"}])
+    )
 
 
 @mock_sqs
@@ -1325,23 +2033,53 @@ def test_filtering_anything_but_prefix():
 
 @mock_sqs
 @mock_sns
-def test_filtering_anything_but_unknown():
+def test_filtering_anything_but_prefix_message_body():
     topic, queue = _setup_filter_policy_test(
-        {"customer_interests": [{"anything-but": {"unknown": "bas"}}]}
+        {
+            "customer_interests": [{"anything-but": {"prefix": "bas"}}],
+        },
+        filter_policy_scope="MessageBody",
     )
 
-    for interest, idx in [("basketball", "1"), ("rugby", "2"), ("baseball", "3")]:
+    for interest in ["basketball", "rugby", "baseball"]:
         topic.publish(
-            Message=f"match{idx}",
-            MessageAttributes={
-                "customer_interests": {"DataType": "String", "StringValue": interest},
-            },
+            Message=json.dumps(
+                {
+                    "customer_interests": interest,
+                }
+            )
         )
 
-    # This should match rugby only
     messages = queue.receive_messages(MaxNumberOfMessages=5)
     message_bodies = [json.loads(m.body)["Message"] for m in messages]
-    message_bodies.should.equal([])
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts([{"customer_interests": "rugby"}])
+    )
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_unknown():
+    try:
+        _setup_filter_policy_test(
+            {"customer_interests": [{"anything-but": {"unknown": "bas"}}]}
+        )
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_unknown_message_body_raises():
+    try:
+        _setup_filter_policy_test(
+            {
+                "customer_interests": [{"anything-but": {"unknown": "bas"}}],
+            },
+            filter_policy_scope="MessageBody",
+        )
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameter")
 
 
 @mock_sqs
@@ -1366,6 +2104,86 @@ def test_filtering_anything_but_numeric():
 
 @mock_sqs
 @mock_sns
+def test_filtering_anything_but_numeric_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "customer_interests": [{"anything-but": [100]}],
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    for nr in [50, 100, 150]:
+        topic.publish(
+            Message=json.dumps(
+                {
+                    "customer_interests": nr,
+                }
+            )
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts([{"customer_interests": 50}, {"customer_interests": 150}])
+    )
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_numeric_string():
+    topic, queue = _setup_filter_policy_test(
+        {"customer_interests": [{"anything-but": ["100"]}]}
+    )
+
+    for nr, idx in [("50", "1"), ("100", "2"), ("150", "3")]:
+        topic.publish(
+            Message=f"match{idx}",
+            MessageAttributes={
+                "customer_interests": {"DataType": "Number", "StringValue": nr},
+            },
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    set(message_bodies).should.equal({"match1", "match2", "match3"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_anything_but_numeric_string_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "customer_interests": [{"anything-but": ["100"]}],
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    for nr in [50, 100, 150]:
+        topic.publish(
+            Message=json.dumps(
+                {
+                    "customer_interests": nr,
+                }
+            )
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts(
+            [
+                {"customer_interests": 50},
+                {"customer_interests": 100},
+                {"customer_interests": 150},
+            ]
+        )
+    )
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_numeric_match():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"numeric": ["=", 100]}]}
@@ -1386,6 +2204,32 @@ def test_filtering_numeric_match():
 
 @mock_sqs
 @mock_sns
+def test_filtering_numeric_match_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "customer_interests": [{"numeric": ["=", 100]}],
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    for nr in [50, 100, 150]:
+        topic.publish(
+            Message=json.dumps(
+                {
+                    "customer_interests": nr,
+                }
+            )
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts([{"customer_interests": 100}])
+    )
+
+
+@mock_sqs
+@mock_sns
 def test_filtering_numeric_range():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"numeric": [">", 49, "<=", 100]}]}
@@ -1402,3 +2246,297 @@ def test_filtering_numeric_range():
     messages = queue.receive_messages(MaxNumberOfMessages=5)
     message_bodies = [json.loads(m.body)["Message"] for m in messages]
     set(message_bodies).should.equal({"match1", "match2"})
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_numeric_range_message_body():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "customer_interests": [{"numeric": [">", 49, "<=", 100]}],
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    for nr in [50, 100, 150]:
+        topic.publish(
+            Message=json.dumps(
+                {
+                    "customer_interests": nr,
+                }
+            )
+        )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts([{"customer_interests": 50}, {"customer_interests": 100}])
+    )
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_message_body_invalid_json_no_match():
+    topic, queue = _setup_filter_policy_test(
+        {"store": ["example_corp"]}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message='{"store": "another_corp"',
+        MessageAttributes={"match": {"DataType": "String", "StringValue": "body"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_message_body_empty_filter_policy_match():
+    topic, queue = _setup_filter_policy_test({}, filter_policy_scope="MessageBody")
+
+    topic.publish(
+        Message='{"store": "another_corp"}',
+        MessageAttributes={"match": {"DataType": "String", "StringValue": "body"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    to_comparable_dicts(message_attributes).should.equal(
+        to_comparable_dicts([{"match": {"Type": "String", "Value": "body"}}])
+    )
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts([{"store": "another_corp"}])
+    )
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_message_body_nested():
+    topic, queue = _setup_filter_policy_test(
+        {"store": {"name": ["example_corp"]}}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": {"name": "example_corp"}}),
+        MessageAttributes={"match": {"DataType": "String", "StringValue": "body"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([{"match": {"Type": "String", "Value": "body"}}])
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts([{"store": {"name": "example_corp"}}])
+    )
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_message_body_nested_no_match():
+    topic, queue = _setup_filter_policy_test(
+        {"store": {"name": ["example_corp"]}}, filter_policy_scope="MessageBody"
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": {"name": "another_corp"}}),
+        MessageAttributes={"match": {"DataType": "String", "StringValue": "body"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_message_body_nested_prefix():
+    topic, queue = _setup_filter_policy_test(
+        {"store": {"name": [{"prefix": "example_corp"}]}},
+        filter_policy_scope="MessageBody",
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": {"name": "example_corp"}}),
+        MessageAttributes={"match": {"DataType": "String", "StringValue": "body"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([{"match": {"Type": "String", "Value": "body"}}])
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    to_comparable_dicts(message_bodies).should.equal(
+        to_comparable_dicts([{"store": {"name": "example_corp"}}])
+    )
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_message_body_nested_prefix_no_match():
+    topic, queue = _setup_filter_policy_test(
+        {"store": {"name": [{"prefix": "example_corp"}]}},
+        filter_policy_scope="MessageBody",
+    )
+
+    topic.publish(
+        Message=json.dumps({"store": {"name": "another_corp-1"}}),
+        MessageAttributes={"match": {"DataType": "String", "StringValue": "body"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_message_body_nested_multiple_prefix():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "Records": {
+                "s3": {"object": {"key": [{"prefix": "test-"}]}},
+                "eventName": [{"prefix": "ObjectCreated:"}],
+            }
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    payload = {
+        "Records": [
+            {
+                "eventName": "ObjectCreated:Put",
+                "s3": {
+                    "object": {
+                        "key": "test-entry.xml",
+                    }
+                },
+            }
+        ]
+    }
+
+    topic.publish(
+        Message=json.dumps(payload),
+        MessageAttributes={"match": {"DataType": "String", "StringValue": "body"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([{"match": {"Type": "String", "Value": "body"}}])
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([payload])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_message_body_nested_multiple_prefix_no_match():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "Records": {
+                "s3": {"object": {"key": [{"prefix": "test-"}]}},
+                "eventName": [{"prefix": "ObjectCreated:"}],
+            }
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    payload = {
+        "Records": [
+            {
+                "eventName": "ObjectCreated:Put",
+                "s3": {
+                    "object": {
+                        "key": "no-match-entry.xml",
+                    }
+                },
+            }
+        ]
+    }
+
+    topic.publish(
+        Message=json.dumps(payload),
+        MessageAttributes={"match": {"DataType": "String", "StringValue": "body"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)["Message"] for m in messages]
+    message_bodies.should.equal([])
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_message_body_nested_multiple_records_partial_match():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "Records": {
+                "eventName": [{"prefix": "ObjectCreated:"}],
+            }
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    payload = {
+        "Records": [
+            {
+                "eventName": "ObjectCreated:Put",
+            },
+            {
+                "eventName": "ObjectDeleted:Delete",
+            },
+        ]
+    }
+
+    topic.publish(
+        Message=json.dumps(payload),
+        MessageAttributes={"match": {"DataType": "String", "StringValue": "body"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([{"match": {"Type": "String", "Value": "body"}}])
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([payload])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_message_body_nested_multiple_records_match():
+    topic, queue = _setup_filter_policy_test(
+        {
+            "Records": {
+                "eventName": [{"prefix": "ObjectCreated:"}],
+            }
+        },
+        filter_policy_scope="MessageBody",
+    )
+
+    payload = {
+        "Records": [
+            {
+                "eventName": "ObjectCreated:Put",
+            },
+            {
+                "eventName": "ObjectCreated:Put",
+            },
+        ]
+    }
+
+    topic.publish(
+        Message=json.dumps(payload),
+        MessageAttributes={"match": {"DataType": "String", "StringValue": "body"}},
+    )
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
+    message_attributes.should.equal([{"match": {"Type": "String", "Value": "body"}}])
+    message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
+    message_bodies.should.equal([payload])
