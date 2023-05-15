@@ -804,6 +804,30 @@
   "Location": "eu-west-1"
  },
  {
+  "InstanceType": "i4g.16xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "i4g.2xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "i4g.4xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "i4g.8xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "i4g.large",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "i4g.xlarge",
+  "Location": "eu-west-1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
   "Location": "eu-west-1"
  },

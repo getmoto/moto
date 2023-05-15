@@ -832,6 +832,30 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "i4g.16xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i4g.2xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i4g.4xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i4g.8xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i4g.large",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i4g.xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
   "Location": "us-west-2"
  },

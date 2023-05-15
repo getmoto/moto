@@ -2740,6 +2740,10 @@
   "Location": "aps1-az2"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "aps1-az2"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "aps1-az2"
  },
@@ -4201,6 +4205,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "u-12tb1.112xlarge",
   "Location": "aps1-az3"
  },
  {
