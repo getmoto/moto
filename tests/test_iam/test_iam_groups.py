@@ -8,6 +8,8 @@ import pytest
 from botocore.exceptions import ClientError
 from moto import mock_iam
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from freezegun import freeze_time
+from dateutil.tz import tzlocal
 
 MOCK_POLICY = """
 {
@@ -107,10 +109,23 @@ def test_add_user_to_unknown_group():
 
 @mock_iam
 def test_add_user_to_group():
-    conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_group(GroupName="my-group")
-    conn.create_user(UserName="my-user")
-    conn.add_user_to_group(GroupName="my-group", UserName="my-user")
+    # Setup
+    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal())
+
+    group = "my-group"
+    user = "my-user"
+    with freeze_time(frozen_time):
+        conn = boto3.client("iam", region_name="us-east-1")
+        conn.create_group(GroupName=group)
+        conn.create_user(UserName=user)
+        conn.add_user_to_group(GroupName=group, UserName=user)
+
+    # Execute
+    result = conn.get_group(GroupName=group)
+
+    # Verify
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["CreateDate"] == frozen_time
 
 
 @mock_iam

@@ -1738,6 +1738,7 @@ GET_GROUP_TEMPLATE = """<GetGroupResponse>
             <UserName>{{ user.name }}</UserName>
             <UserId>{{ user.id }}</UserId>
             <Arn>{{ user.arn }}</Arn>
+            <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
           </member>
         {% endfor %}
       </Users>
