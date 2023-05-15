@@ -93,6 +93,7 @@ Run using Docker
 ----------------------
 You could also use the official Docker image.
 This is stored in two different repositories:
+
  - https://hub.docker.com/r/motoserver/moto/tags
  - https://github.com/getmoto/moto/pkgs/container/motoserver
 
