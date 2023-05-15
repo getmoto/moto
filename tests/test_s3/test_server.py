@@ -75,13 +75,13 @@ def test_s3_server_bucket_create(key_name):
     # HeadObject
     res = test_client.head(f"/{key_name}", "http://foobaz.localhost:5000/")
     res.status_code.should.equal(200)
-    assert res.headers.get("AcceptRanges") == "bytes"
+    assert res.headers.get("Accept-Ranges") == "bytes"
 
     # GetObject
     res = test_client.get(f"/{key_name}", "http://foobaz.localhost:5000/")
     res.status_code.should.equal(200)
     res.data.should.equal(b"test value")
-    assert res.headers.get("AcceptRanges") == "bytes"
+    assert res.headers.get("Accept-Ranges") == "bytes"
 
 
 def test_s3_server_ignore_subdomain_for_bucketnames():
