@@ -1393,7 +1393,7 @@ class S3Response(BaseResponse):
 
         response_headers.update(key.metadata)
         response_headers.update(key.response_dict)
-        response_headers.update({"AcceptRanges": "bytes"})
+        response_headers.update({"Accept-Ranges": "bytes"})
         return 200, response_headers, key.value
 
     def _key_response_put(
@@ -1698,7 +1698,7 @@ class S3Response(BaseResponse):
         if key:
             response_headers.update(key.metadata)
             response_headers.update(key.response_dict)
-            response_headers.update({"AcceptRanges": "bytes"})
+            response_headers.update({"Accept-Ranges": "bytes"})
 
             if if_unmodified_since:
                 if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
