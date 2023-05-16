@@ -6,7 +6,7 @@ import json
 
 import pytest
 from botocore.exceptions import ClientError
-from moto import mock_iam
+from moto import mock_iam, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from freezegun import freeze_time
 from dateutil.tz import tzlocal
@@ -125,6 +125,9 @@ def test_add_user_to_group():
 
     # Verify
     assert len(result["Users"]) == 1
+    if settings.TEST_SERVER_MODE:
+        assert "CreateDate" in result["Users"][0]
+        return
     assert result["Users"][0]["CreateDate"] == frozen_time
 
 
