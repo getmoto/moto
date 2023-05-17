@@ -4,7 +4,6 @@ import re
 import json
 import sys
 import warnings
-from collections import namedtuple
 from datetime import datetime
 from enum import Enum, unique
 from json import JSONDecodeError
@@ -27,6 +26,7 @@ from moto.events.exceptions import (
     IllegalStatusException,
 )
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.arns import parse_arn
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
@@ -37,10 +37,6 @@ UNDEFINED = object()
 
 
 class Rule(CloudFormationModel):
-    Arn = namedtuple(
-        "Arn", ["account", "region", "service", "resource_type", "resource_id"]
-    )
-
     def __init__(
         self,
         name: str,
@@ -123,13 +119,13 @@ class Rule(CloudFormationModel):
         # - SQS Queue + FIFO Queue
         # - Cross-region/account EventBus
         for target in self.targets:
-            arn = self._parse_arn(target["Arn"])
+            arn = parse_arn(target["Arn"])
 
             if arn.service == "logs" and arn.resource_type == "log-group":
                 self._send_to_cw_log_group(arn.resource_id, event)
             elif arn.service == "events" and not arn.resource_type:
                 input_template = json.loads(target["InputTransformer"]["InputTemplate"])
-                archive_arn = self._parse_arn(input_template["archive-arn"])
+                archive_arn = parse_arn(input_template["archive-arn"])
 
                 self._send_to_events_archive(archive_arn.resource_id, event)
             elif arn.service == "sqs":
@@ -148,33 +144,6 @@ class Rule(CloudFormationModel):
                 cross_account_backend.put_events([new_event])
             else:
                 raise NotImplementedError(f"Expr not defined for {type(self)}")
-
-    def _parse_arn(self, arn: str) -> Arn:
-        # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
-        # this method needs probably some more fine tuning,
-        # when also other targets are supported
-        _, _, service, region, account, resource = arn.split(":", 5)
-
-        if ":" in resource and "/" in resource:
-            if resource.index(":") < resource.index("/"):
-                resource_type, resource_id = resource.split(":", 1)
-            else:
-                resource_type, resource_id = resource.split("/", 1)
-        elif ":" in resource:
-            resource_type, resource_id = resource.split(":", 1)
-        elif "/" in resource:
-            resource_type, resource_id = resource.split("/", 1)
-        else:
-            resource_type = None
-            resource_id = resource
-
-        return self.Arn(
-            account=account,
-            region=region,
-            service=service,
-            resource_type=resource_type,
-            resource_id=resource_id,
-        )
 
     def _send_to_cw_log_group(self, name: str, event: Dict[str, Any]) -> None:
         from moto.logs import logs_backends
