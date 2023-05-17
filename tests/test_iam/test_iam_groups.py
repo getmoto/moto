@@ -8,6 +8,7 @@ import pytest
 from botocore.exceptions import ClientError
 from moto import mock_iam, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.backends import get_backend
 from freezegun import freeze_time
 from dateutil.tz import tzlocal
 
@@ -120,15 +121,23 @@ def test_add_user_to_group():
         conn.create_user(UserName=user)
         conn.add_user_to_group(GroupName=group, UserName=user)
 
+        # use internal api to set password, doesn't work in servermode
+        if not settings.TEST_SERVER_MODE:
+            iam_backend = get_backend("iam")[ACCOUNT_ID]["global"]
+            iam_backend.users[user].password_last_used = datetime.utcnow()
     # Execute
     result = conn.get_group(GroupName=group)
 
     # Verify
     assert len(result["Users"]) == 1
+
+    # if in servermode then we can't test for password because we can't
+    # manipulate the backend with internal an api
     if settings.TEST_SERVER_MODE:
         assert "CreateDate" in result["Users"][0]
         return
     assert result["Users"][0]["CreateDate"] == frozen_time
+    assert result["Users"][0]["PasswordLastUsed"] == frozen_time
 
 
 @mock_iam
