@@ -162,6 +162,10 @@ class Message(BaseModel):
     def body(self) -> str:
         return escape(self._body).replace('"', "&quot;").replace("\r", "&#xD;")
 
+    @property
+    def original_body(self) -> str:
+        return self._body
+
     def mark_sent(self, delay_seconds: Optional[int] = None) -> None:
         self.sent_timestamp = int(unix_time_millis())  # type: ignore
         if delay_seconds:
@@ -1030,7 +1034,7 @@ class SQSBackend(BaseBackend):
                 errors.append(
                     {
                         "Id": receipt_and_id["msg_user_id"],
-                        "SenderFault": "true",
+                        "SenderFault": True,
                         "Code": "ReceiptHandleIsInvalid",
                         "Message": f'The input receipt handle "{receipt_and_id["receipt_handle"]}" is not a valid receipt handle.',
                     }

@@ -1,0 +1,39 @@
+# Run separate test cases to verify SQS works with multiple botocore versions (/multiple response-types, QUERY and JSON)
+#
+name: "SQS Tests"
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+jobs:
+  test:
+    if: ${{ github.event.label.name == 'service-sqs' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.11" ]
+        botocore-version: ["1.29.126", "1.29.127", "1.29.128"]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Update pip
+      run: |
+        python -m pip install --upgrade pip
+
+    - name: Install project dependencies
+      run: |
+        pip install -r requirements-dev.txt
+        pip install botocore==${{ matrix.botocore-version }}
+
+    - name: Run tests
+      run: |
+        pytest -sv tests/test_sqs
