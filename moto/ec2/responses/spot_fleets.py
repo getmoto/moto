@@ -57,6 +57,7 @@ class SpotFleets(EC2BaseResponse):
             .get("LaunchTemplateConfigs", {})
             .values()
         )
+        tag_specifications = spot_config.get("TagSpecification")
 
         request = self.ec2_backend.request_spot_fleet(
             spot_price=spot_price,
@@ -66,6 +67,7 @@ class SpotFleets(EC2BaseResponse):
             launch_specs=launch_specs,
             launch_template_config=launch_template_config,
             instance_interruption_behaviour=instance_interruption_behaviour,
+            tag_specifications=tag_specifications,
         )
 
         template = self.response_template(REQUEST_SPOT_FLEET_TEMPLATE)
@@ -89,6 +91,16 @@ DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http
         <item>
             <spotFleetRequestId>{{ request.id }}</spotFleetRequestId>
             <spotFleetRequestState>{{ request.state }}</spotFleetRequestState>
+            {% for resource_type in request.tag_specifications %}
+            <tag>
+            {% for key, value in request.tag_specifications[resource_type].items() %}
+            <item>
+                <key>{{ key }}</key>
+                <value>{{ value }}</value>
+            </item>
+            {% endfor %}
+            </tag>
+            {% endfor %}
             <spotFleetRequestConfig>
                 {% if request.spot_price %}
                 <spotPrice>{{ request.spot_price }}</spotPrice>
