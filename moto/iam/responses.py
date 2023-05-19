@@ -1738,6 +1738,10 @@ GET_GROUP_TEMPLATE = """<GetGroupResponse>
             <UserName>{{ user.name }}</UserName>
             <UserId>{{ user.id }}</UserId>
             <Arn>{{ user.arn }}</Arn>
+            <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
+            {% if user.password_last_used_iso_8601 %}
+              <PasswordLastUsed>{{ user.password_last_used_iso_8601 }}</PasswordLastUsed>
+            {% endif %}
           </member>
         {% endfor %}
       </Users>
