@@ -1,3 +1,4 @@
+import datetime
 from unittest import SkipTest, mock
 import sure  # noqa # pylint: disable=unused-import
 
@@ -8,6 +9,7 @@ from botocore.awsrequest import AWSPreparedRequest
 from moto.core.responses import AWSServiceSpec, BaseResponse
 from moto.core.responses import flatten_json_request_body
 from moto import settings
+from freezegun import freeze_time
 
 
 def test_flatten_json_request_body():
@@ -225,3 +227,21 @@ def test_jinja_render_prettify(m_env_var):
     xml_string = template.render()
     assert xml_string == expected_output
     assert m_env_var
+
+
+def test_response_metadata():
+    # Setup
+    frozen_time = datetime.datetime(
+        2023, 5, 20, 10, 20, 30, tzinfo=datetime.timezone.utc
+    )
+    request = AWSPreparedRequest("GET", "http://request", {}, None, False)
+
+    # Execute
+    with freeze_time(frozen_time):
+        bc = BaseResponse()
+        bc.setup_class(request, request.url, request.headers)
+
+    # Verify
+    assert "date" in bc.response_headers
+    if not settings.TEST_SERVER_MODE:
+        assert bc.response_headers["date"] == "Sat, 20 May 2023 10:20:30 GMT"
