@@ -91,16 +91,14 @@ DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http
         <item>
             <spotFleetRequestId>{{ request.id }}</spotFleetRequestId>
             <spotFleetRequestState>{{ request.state }}</spotFleetRequestState>
-            {% for resource_type in request.tags %}
-            <tag>
-                {% for key, value in request.tags[resource_type].items() %}
+            <tagSet>
+                {% for key, value in request.tags.get('spot-fleet-request', {}).items() %}
                 <item>
                     <key>{{ key }}</key>
                     <value>{{ value }}</value>
                 </item>
                 {% endfor %}
-            </tag>
-            {% endfor %}
+            </tagSet>
             <spotFleetRequestConfig>
                 {% if request.spot_price %}
                 <spotPrice>{{ request.spot_price }}</spotPrice>

@@ -202,11 +202,16 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         self.fulfilled_capacity = 0.0
 
         self.launch_specs = []
-        self.tags: Dict[str, Any] = (
-            convert_tag_spec(tag_specifications)
-            if tag_specifications is not None
-            else {}
-        )
+
+        self.tags = {}
+        if tag_specifications is not None:
+            tags = convert_tag_spec(tag_specifications)
+            for resource_type in tags:
+                if resource_type != "spot-fleet-request":
+                    raise ValueError(
+                        f"The value for `ResourceType` must be `spot-fleet-request`, but got {resource_type} instead."
+                    )
+            self.tags.update(tags)
 
         launch_specs_from_config = []
         for config in launch_template_config or []:

@@ -75,7 +75,10 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
         "AllocationStrategy": allocation_strategy,
         "FulfilledCapacity": 6,
         "TagSpecifications": [
-            {"ResourceType": "instance", "Tags": [{"Key": "test2", "Value": "value2"}]}
+            {
+                "ResourceType": "spot-fleet-request",
+                "Tags": [{"Key": "test2", "Value": "value2"}],
+            }
         ],
     }
 
@@ -96,7 +99,7 @@ def test_create_spot_fleet_with_lowest_price():
     len(spot_fleet_requests).should.equal(1)
     spot_fleet_request = spot_fleet_requests[0]
     spot_fleet_request["SpotFleetRequestState"].should.equal("active")
-    spot_fleet_request["Tags"].should.equal({"Key": "test2", "Value": "value2"})
+    spot_fleet_request["Tags"].should.equal([{"Key": "test2", "Value": "value2"}])
     spot_fleet_config = spot_fleet_request["SpotFleetRequestConfig"]
 
     spot_fleet_config["SpotPrice"].should.equal("0.12")
