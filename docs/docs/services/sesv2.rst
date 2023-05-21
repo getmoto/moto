@@ -93,6 +93,7 @@ sesv2
 - [ ] put_configuration_set_tracking_options
 - [ ] put_configuration_set_vdm_options
 - [ ] put_dedicated_ip_in_pool
+- [ ] put_dedicated_ip_pool_scaling_attributes
 - [ ] put_dedicated_ip_warmup_attributes
 - [ ] put_deliverability_dashboard_option
 - [ ] put_email_identity_configuration_set_attributes

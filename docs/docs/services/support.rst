@@ -40,8 +40,10 @@ support
         
 
 - [ ] describe_communications
+- [ ] describe_create_case_options
 - [ ] describe_services
 - [ ] describe_severity_levels
+- [ ] describe_supported_languages
 - [ ] describe_trusted_advisor_check_refresh_statuses
 - [ ] describe_trusted_advisor_check_result
 - [ ] describe_trusted_advisor_check_summaries

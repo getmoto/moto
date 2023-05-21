@@ -5955,7 +5955,7 @@
 
 ## sagemaker
 <details>
-<summary>17% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -6527,6 +6527,7 @@
 - [ ] put_configuration_set_tracking_options
 - [ ] put_configuration_set_vdm_options
 - [ ] put_dedicated_ip_in_pool
+- [ ] put_dedicated_ip_pool_scaling_attributes
 - [ ] put_dedicated_ip_warmup_attributes
 - [ ] put_deliverability_dashboard_option
 - [ ] put_email_identity_configuration_set_attributes
@@ -6881,7 +6882,7 @@
 
 ## support
 <details>
-<summary>35% implemented</summary>
+<summary>31% implemented</summary>
 
 - [ ] add_attachments_to_set
 - [ ] add_communication_to_case
@@ -6889,8 +6890,10 @@
 - [ ] describe_attachment
 - [X] describe_cases
 - [ ] describe_communications
+- [ ] describe_create_case_options
 - [ ] describe_services
 - [ ] describe_severity_levels
+- [ ] describe_supported_languages
 - [ ] describe_trusted_advisor_check_refresh_statuses
 - [ ] describe_trusted_advisor_check_result
 - [ ] describe_trusted_advisor_check_summaries
@@ -7232,6 +7235,7 @@
 - marketplacecommerceanalytics
 - mediaconvert
 - mediapackage-vod
+- mediapackagev2
 - mediatailor
 - memorydb
 - mgh
