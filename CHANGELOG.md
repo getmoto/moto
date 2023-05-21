@@ -2,6 +2,41 @@ Moto Changelog
 ==============
 
 
+4.1.10
+------
+Docker Digest for 4.1.10: <autopopulateddigest>
+
+    New Services:
+        * Glue:
+            * create_session()
+            * delete_session()
+            * get_session()
+            * list_sessions()
+            * stop_session()
+
+        * Sagemaker:
+            * create_transform_job()
+            * describe_transform_job()
+            * list_transform_jobs()
+
+    Miscellaneous:
+        * Core: The `date`-header is now returned for all operations (set to the current date)
+        * AutoScaling: describe_policies() now returns the field `TargetTrackingConfiguration.CustomizedMetricSpecification.Metrics`
+        * Cloudformation: delete_stack_instances() now behaves correctly when deleting multiple regions
+        * EC2: create_route() now takes the `VpcEndpointId`-parameter into account
+        * EC2: describe_instances() now throws an exception when both the InstanceIds and PaginationConfig parameters are supplied
+        * IAM: get_group() now returns the fields `CreateDate` and `PasswordLastUsed`
+        * RDS: start_export_task() now returns the field `SourceType`
+        * S3: aligned checksum calculation with how AWS behaves
+        * S3: now returns `Accept-Ranges`-headers, instead of `AcceptRanges`, in-line with AWS
+        * S3: copy_object() now behaves correctly when copying objects in encrypted buckets
+        * S3: put_object_legal_hold() now takes the VersionId-parameter into account
+        * S3: put_object_retention() now takes the VersionId-parameter into account
+        * SecretsManager: list_secrets now returns the fields `LastRotatedDate` and `NextRotationDate`
+        * SNS: Topics can now be accessed across accounts
+        * SNS: Fixed a bug so that topics without properties can now be deleted using CloudFormation
+
+
 4.1.9
 -----
 Docker Digest for 4.1.9: _sha256:121a51dcf0e42e53a601803bdeb25324d18b2d45f08a79923c65034f4f14448a_
