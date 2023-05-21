@@ -96,9 +96,9 @@ def test_create_topic_should_be_indempodent():
 @mock_sns
 def test_get_missing_topic():
     conn = boto3.client("sns", region_name="us-east-1")
-    conn.get_topic_attributes.when.called_with(TopicArn="a-fake-arn").should.throw(
-        ClientError
-    )
+    conn.get_topic_attributes.when.called_with(
+        TopicArn="arn:aws:sns:us-east-1:424242424242:a-fake-arn"
+    ).should.throw(ClientError)
 
 
 @mock_sns
@@ -360,7 +360,10 @@ def test_add_permission_errors():
         Label="test-2",
         AWSAccountId=["999999999999"],
         ActionName=["AddPermission"],
-    ).should.throw(ClientError, "Topic does not exist")
+    ).should.throw(
+        ClientError,
+        f"An error occurred (NotFound) when calling the AddPermission operation: Topic with arn {topic_arn + '-not-existing'} not found",
+    )
 
     client.add_permission.when.called_with(
         TopicArn=topic_arn,
@@ -383,7 +386,10 @@ def test_remove_permission_errors():
 
     client.remove_permission.when.called_with(
         TopicArn=topic_arn + "-not-existing", Label="test"
-    ).should.throw(ClientError, "Topic does not exist")
+    ).should.throw(
+        ClientError,
+        f"An error occurred (NotFound) when calling the RemovePermission operation: Topic with arn {topic_arn + '-not-existing'} not found",
+    )
 
 
 @mock_sns

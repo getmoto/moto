@@ -34,7 +34,7 @@ from .utils import (
     is_e164,
     FilterPolicyMatcher,
 )
-
+from moto.utilities.arns import parse_arn
 
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
@@ -486,13 +486,15 @@ class SNSBackend(BaseBackend):
         try:
             topic = self.get_topic(arn)
             self.delete_topic_subscriptions(topic)
-            self.topics.pop(arn)
+            parsed_arn = parse_arn(arn)
+            sns_backends[parsed_arn.account][parsed_arn.region].topics.pop(arn, None)
         except KeyError:
             raise SNSNotFoundError(f"Topic with arn {arn} not found")
 
     def get_topic(self, arn: str) -> Topic:
+        parsed_arn = parse_arn(arn)
         try:
-            return self.topics[arn]
+            return sns_backends[parsed_arn.account][parsed_arn.region].topics[arn]
         except KeyError:
             raise SNSNotFoundError(f"Topic with arn {arn} not found")
 
@@ -932,10 +934,8 @@ class SNSBackend(BaseBackend):
         aws_account_ids: List[str],
         action_names: List[str],
     ) -> None:
-        if topic_arn not in self.topics:
-            raise SNSNotFoundError("Topic does not exist")
-
-        policy = self.topics[topic_arn]._policy_json
+        topic = self.get_topic(topic_arn)
+        policy = topic._policy_json
         statement = next(
             (
                 statement
@@ -964,18 +964,16 @@ class SNSBackend(BaseBackend):
             "Resource": topic_arn,
         }
 
-        self.topics[topic_arn]._policy_json["Statement"].append(statement)
+        topic._policy_json["Statement"].append(statement)
 
     def remove_permission(self, topic_arn: str, label: str) -> None:
-        if topic_arn not in self.topics:
-            raise SNSNotFoundError("Topic does not exist")
-
-        statements = self.topics[topic_arn]._policy_json["Statement"]
+        topic = self.get_topic(topic_arn)
+        statements = topic._policy_json["Statement"]
         statements = [
             statement for statement in statements if statement["Sid"] != label
         ]
 
-        self.topics[topic_arn]._policy_json["Statement"] = statements
+        topic._policy_json["Statement"] = statements
 
     def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
         if resource_arn not in self.topics:
