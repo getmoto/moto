@@ -520,6 +520,30 @@
   "Location": "ca-central-1"
  },
  {
+  "InstanceType": "i4g.16xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "i4g.2xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "i4g.4xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "i4g.8xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "i4g.large",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "i4g.xlarge",
+  "Location": "ca-central-1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
   "Location": "ca-central-1"
  },
