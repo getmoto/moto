@@ -1,5 +1,10 @@
 .. _getting_started:
 
+
+.. role:: raw-html(raw)
+    :format: html
+
+
 =========================
 Getting Started with Moto
 =========================
@@ -223,7 +228,7 @@ You need to ensure that the mocks are actually in place.
 
  #. **VERY IMPORTANT**: ensure that you have your mocks set up *BEFORE* your `boto3` client is established.
     This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
-    See the pesky imports section below on how to work around this.
+    See :ref:`pesky_imports_section` below on how to work around this.
 
 .. note:: By default, the region must be one supported by AWS, see :ref:`Can I mock the default AWS region?` for how to change this.
 
@@ -267,17 +272,30 @@ Next, once you need to do anything with the mocked AWS environment, do something
         assert len(result["Buckets"]) == 1
         assert result["Buckets"][0]["Name"] == "somebucket"
 
+
+.. _pesky_imports_section:
+
 What about those pesky imports
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Recall earlier, it was mentioned that mocks should be established __BEFORE__ the clients are set up. One way
-to avoid import issues is to make use of local Python imports -- i.e. import the module inside of the unit
-test you want to run vs. importing at the top of the file.
+As mentioned earlier, mocks should be established __BEFORE__ the clients are set up.
+
+Some background on why this is necessary:  :raw-html:`<br />`
+Moto intercepts HTTP requests using a custom event handler that hooks into botocore's event-system.  :raw-html:`<br />`
+When creating clients/resources, `boto3` gathers all event handlers that have been registered at that point, and injects those handlers into the created client/resource. Event handlers registered after a client is created, are not used.
+
+The `moto.core`-package registers our event handler on initialization. So to be pedantic: `moto.core` should be imported before a client is created, in order for `boto3` to call our custom handler and therefore for Moto to be active.  :raw-html:`<br />`
+The easiest way to ensure this happens, is to establish a mock before the clients are setup, as `moto.core` is imported when the mock starts.
+
+
+One way to avoid import issues is to make use of local Python imports -- i.e. import the module that creates boto3-clients inside of the unit test you want to run.
 
 Example:
 
 .. sourcecode:: python
 
     def test_something(s3):
+        # s3 is a fixture defined above that yields a boto3 s3 client.
+        
         from some.package.that.does.something.with.s3 import some_func # <-- Local import for unit test
         # ^^ Importing here ensures that the mock has been established.
 
