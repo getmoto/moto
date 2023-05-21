@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.10
 ------
-Docker Digest for 4.1.10: <autopopulateddigest>
+Docker Digest for 4.1.10: _sha256:095d1dfadc71b4c68f05240129a32acf6dd7ba722c78afd4f01d8c7c3af0ebb4_
 
     New Services:
         * Glue:
