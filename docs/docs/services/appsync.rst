@@ -54,7 +54,7 @@ appsync
 - [ ] get_domain_name
 - [ ] get_function
 - [X] get_graphql_api
-- [ ] get_introspection_schema
+- [X] get_introspection_schema
 - [ ] get_resolver
 - [X] get_schema_creation_status
 - [X] get_type

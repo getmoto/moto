@@ -12,3 +12,16 @@ class GraphqlAPINotFound(AppSyncExceptions):
     def __init__(self, api_id: str):
         super().__init__("NotFoundException", f"GraphQL API {api_id} not found.")
         self.description = json.dumps({"message": self.message})
+
+
+class GraphQLSchemaException(AppSyncExceptions):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("GraphQLSchemaException", message)
+        self.description = json.dumps({"message": self.message})
+
+
+class BadRequestException(AppSyncExceptions):
+    def __init__(self, message: str):
+        super().__init__("BadRequestException", message)

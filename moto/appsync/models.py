@@ -1,4 +1,5 @@
 import base64
+import json
 from datetime import timedelta, datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from moto.core import BaseBackend, BackendDict, BaseModel
@@ -6,7 +7,15 @@ from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import GraphqlAPINotFound
+from .exceptions import GraphqlAPINotFound, GraphQLSchemaException, BadRequestException
+
+AWS_DIRECTIVES = """directive @aws_api_key on OBJECT | FIELD_DEFINITION
+directive @aws_iam on OBJECT | FIELD_DEFINITION
+directive @aws_oidc on OBJECT | FIELD_DEFINITION
+directive @aws_cognito_user_pools on OBJECT | FIELD_DEFINITION
+directive @aws_auth on FIELD_DEFINITION
+directive @aws_subscribe(mutations: [ String ]) on FIELD_DEFINITION
+"""
 
 
 class GraphqlSchema(BaseModel):
@@ -48,6 +57,31 @@ class GraphqlSchema(BaseModel):
         except GraphQLError as e:
             self.status = "FAILED"
             self.parse_error = str(e)
+
+    def get_introspection_schema(self, format_: str, include_directives: bool) -> str:
+        from graphql import (
+            get_introspection_query,
+            graphql_sync,
+            print_schema,
+            build_client_schema,
+            build_schema,
+        )
+
+        schema = build_schema(self.definition + AWS_DIRECTIVES)
+        query = get_introspection_query(descriptions=False)
+        introspection_query_result = graphql_sync(schema, query)
+        introspection_data = introspection_query_result.data
+        if not introspection_data:
+            raise GraphQLSchemaException(message="Failed to parse schema document.")
+        if not include_directives:
+            del introspection_data["__schema"]["directives"]
+
+        if format_ == "SDL":
+            return print_schema(build_client_schema(introspection_data))
+        elif format_ == "JSON":
+            return json.dumps(introspection_query_result.data)
+        else:
+            raise BadRequestException(message=f"Invalid format {format_} given")
 
 
 class GraphqlAPIKey(BaseModel):
@@ -253,6 +287,15 @@ class AppSyncBackend(BaseBackend):
         if api_id not in self.graphql_apis:
             raise GraphqlAPINotFound(api_id)
         return self.graphql_apis[api_id]
+
+    def get_graphql_schema(self, api_id: str) -> GraphqlSchema:
+        graphql_api = self.get_graphql_api(api_id)
+        if not graphql_api.graphql_schema:
+            # When calling get_introspetion_schema without a graphql schema
+            # the response GraphQLSchemaException exception includes InvalidSyntaxError
+            # in the message. This might not be the case for other methods.
+            raise GraphQLSchemaException(message="InvalidSyntaxError")
+        return graphql_api.graphql_schema
 
     def delete_graphql_api(self, api_id: str) -> None:
         self.graphql_apis.pop(api_id)
