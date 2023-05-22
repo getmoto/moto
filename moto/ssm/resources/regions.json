@@ -590,7 +590,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -2070,7 +2076,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -3964,7 +3976,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -6433,7 +6451,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -8335,7 +8359,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -9886,7 +9916,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -11660,7 +11696,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -11825,6 +11867,15 @@
                 "Value": "meteringmarketplace",
                 "endpoint": {
                   "Value": "metering.marketplace.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13067,7 +13118,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -15548,7 +15605,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -17652,7 +17715,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -18685,7 +18754,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -18787,6 +18862,15 @@
                 "Value": "meteringmarketplace",
                 "endpoint": {
                   "Value": "metering.marketplace.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19907,7 +19991,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -21761,7 +21851,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -22122,6 +22218,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "mwaa": {
+                "Value": "mwaa"
               },
               "neptune": {
                 "Value": "neptune",
@@ -23028,7 +23127,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -23344,6 +23449,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "mwaa": {
+                "Value": "mwaa"
               },
               "neptune": {
                 "Value": "neptune",
@@ -24696,7 +24804,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -26769,7 +26883,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -26952,6 +27072,15 @@
                 "Value": "meteringmarketplace",
                 "endpoint": {
                   "Value": "metering.marketplace.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27997,7 +28126,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -29536,6 +29671,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codestar-connections": {
+                "Value": "codestar-connections",
+                "endpoint": {
+                  "Value": "codestar-connections.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cognito-identity": {
                 "Value": "cognito-identity",
                 "endpoint": {
@@ -29780,7 +29924,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -30987,7 +31137,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -31170,6 +31326,15 @@
                 "Value": "meteringmarketplace",
                 "endpoint": {
                   "Value": "metering.marketplace.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32398,7 +32563,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -35063,7 +35234,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -37187,7 +37364,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -38730,7 +38913,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -39976,7 +40165,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -41624,7 +41819,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -43880,7 +44081,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -46682,7 +46889,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -48717,7 +48930,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -50074,7 +50293,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -51749,7 +51974,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
@@ -53963,7 +54194,13 @@
                 }
               },
               "eventbridge": {
-                "Value": "eventbridge"
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "events": {
                 "Value": "events",
