@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.ec2.exceptions import InvalidParameterValueErrorTagSpotFleetRequest
 
 if TYPE_CHECKING:
     from moto.ec2.models.instances import Instance
@@ -208,9 +209,7 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
             tags = convert_tag_spec(tag_specifications)
             for resource_type in tags:
                 if resource_type != "spot-fleet-request":
-                    raise ValueError(
-                        f"The value for `ResourceType` must be `spot-fleet-request`, but got {resource_type} instead."
-                    )
+                    raise InvalidParameterValueErrorTagSpotFleetRequest(resource_type)
             self.tags.update(tags)
 
         launch_specs_from_config = []

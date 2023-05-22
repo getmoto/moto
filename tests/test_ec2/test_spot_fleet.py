@@ -4,6 +4,7 @@ import pytest
 
 from moto import mock_ec2
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from botocore.exceptions import ClientError
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
 
@@ -81,6 +82,30 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
             }
         ],
     }
+
+
+@mock_ec2
+def test_create_spot_fleet_with_invalid_tag_specifications():
+    conn = boto3.client("ec2", region_name="us-west-2")
+    subnet_id = get_subnet_id(conn)
+
+    config = spot_config(subnet_id)
+    invalid_resource_type = "invalid-resource-type"
+    config["TagSpecifications"] = [
+        {
+            "ResourceType": invalid_resource_type,
+            "Tags": [{"Key": "test2", "Value": "value2"}],
+        }
+    ]
+
+    with pytest.raises(ClientError) as ex:
+        request = conn.request_spot_fleet(SpotFleetRequestConfig=config)
+
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        f"The value for `ResourceType` must be `spot-fleet-request`, but got `{invalid_resource_type}` instead."
+    )
 
 
 @mock_ec2
