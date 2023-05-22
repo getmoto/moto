@@ -99,7 +99,7 @@ def test_create_spot_fleet_with_invalid_tag_specifications():
     ]
 
     with pytest.raises(ClientError) as ex:
-        request = conn.request_spot_fleet(SpotFleetRequestConfig=config)
+        _ = conn.request_spot_fleet(SpotFleetRequestConfig=config)
 
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
