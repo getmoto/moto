@@ -87,8 +87,7 @@ class GraphqlSchema(BaseModel):
 
         schema = build_schema(self.definition + AWS_CUSTOM_GRAPHQL)
         introspection_data = introspection_from_schema(schema, descriptions=False)
-        if not introspection_data:
-            raise GraphQLSchemaException(message="Failed to parse schema document.")
+
         if not include_directives:
             introspection_data["__schema"]["directives"] = []
 

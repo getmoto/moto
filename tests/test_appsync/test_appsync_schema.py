@@ -1,7 +1,8 @@
 import boto3
 import sure  # noqa # pylint: disable=unused-import
 import json
-
+from botocore.exceptions import ClientError
+import pytest
 from moto import mock_appsync
 
 schema = """type Mutation {
@@ -117,6 +118,22 @@ def test_get_type_from_schema():
 
 
 @mock_appsync
+def test_get_introspection_schema_raise_gql_schema_error_if_no_schema():
+    client = boto3.client("appsync", region_name="us-east-2")
+
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    with pytest.raises(ClientError) as exc:
+        client.get_introspection_schema(apiId=api_id, format="SDL")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("GraphQLSchemaException")
+    # AWS API appears to return InvalidSyntaxError if no schema exists
+    err["Message"].should.equal("InvalidSyntaxError")
+
+
+@mock_appsync
 def test_get_introspection_schema_sdl():
     client = boto3.client("appsync", region_name="us-east-2")
 
@@ -151,6 +168,24 @@ def test_get_introspection_schema_json():
     schema_json["__schema"].should.have.key("subscriptionType")
     schema_json["__schema"].should.have.key("types")
     schema_json["__schema"].should.have.key("directives")
+
+
+@mock_appsync
+def test_get_introspection_schema_bad_format():
+    client = boto3.client("appsync", region_name="us-east-2")
+
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    client.start_schema_creation(apiId=api_id, definition=schema.encode("utf-8"))
+
+    with pytest.raises(ClientError) as exc:
+        client.get_introspection_schema(apiId=api_id, format="NotAFormat")
+    err = exc.value.response["Error"]
+
+    err["Code"].should.equal("BadRequestException")
+    err["Message"].should.equal("Invalid format NotAFormat given")
 
 
 @mock_appsync
