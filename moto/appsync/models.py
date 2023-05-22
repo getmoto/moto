@@ -9,12 +9,31 @@ from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import GraphqlAPINotFound, GraphQLSchemaException, BadRequestException
 
-AWS_DIRECTIVES = """directive @aws_api_key on OBJECT | FIELD_DEFINITION
-directive @aws_iam on OBJECT | FIELD_DEFINITION
-directive @aws_oidc on OBJECT | FIELD_DEFINITION
-directive @aws_cognito_user_pools on OBJECT | FIELD_DEFINITION
-directive @aws_auth on FIELD_DEFINITION
-directive @aws_subscribe(mutations: [ String ]) on FIELD_DEFINITION
+# AWS custom scalars and directives
+# https://github.com/dotansimha/graphql-code-generator/discussions/4311#discussioncomment-2921796
+AWS_CUSTOM_GRAPHQL = """scalar AWSTime
+scalar AWSDateTime
+scalar AWSTimestamp
+scalar AWSEmail
+scalar AWSJSON
+scalar AWSURL
+scalar AWSPhone
+scalar AWSIPAddress
+scalar BigInt
+scalar Double
+
+directive @aws_subscribe(mutations: [String!]!) on FIELD_DEFINITION
+
+# Allows transformer libraries to deprecate directive arguments.
+directive @deprecated(reason: String!) on INPUT_FIELD_DEFINITION | ENUM
+
+directive @aws_auth(cognito_groups: [String!]!) on FIELD_DEFINITION
+directive @aws_api_key on FIELD_DEFINITION | OBJECT
+directive @aws_iam on FIELD_DEFINITION | OBJECT
+directive @aws_oidc on FIELD_DEFINITION | OBJECT
+directive @aws_cognito_user_pools(
+  cognito_groups: [String!]
+) on FIELD_DEFINITION | OBJECT
 """
 
 
@@ -60,26 +79,23 @@ class GraphqlSchema(BaseModel):
 
     def get_introspection_schema(self, format_: str, include_directives: bool) -> str:
         from graphql import (
-            get_introspection_query,
-            graphql_sync,
             print_schema,
             build_client_schema,
+            introspection_from_schema,
             build_schema,
         )
 
-        schema = build_schema(self.definition + AWS_DIRECTIVES)
-        query = get_introspection_query(descriptions=False)
-        introspection_query_result = graphql_sync(schema, query)
-        introspection_data = introspection_query_result.data
+        schema = build_schema(self.definition + AWS_CUSTOM_GRAPHQL)
+        introspection_data = introspection_from_schema(schema, descriptions=False)
         if not introspection_data:
             raise GraphQLSchemaException(message="Failed to parse schema document.")
         if not include_directives:
-            del introspection_data["__schema"]["directives"]
+            introspection_data["__schema"]["directives"] = []
 
         if format_ == "SDL":
             return print_schema(build_client_schema(introspection_data))
         elif format_ == "JSON":
-            return json.dumps(introspection_query_result.data)
+            return json.dumps(introspection_data)
         else:
             raise BadRequestException(message=f"Invalid format {format_} given")
 

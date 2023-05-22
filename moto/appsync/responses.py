@@ -238,10 +238,10 @@ class AppSyncResponse(BaseResponse):
 
     def get_introspection_schema(self) -> TYPE_RESPONSE:  # type: ignore[return]
         api_id = self.path.split("/")[-2]
-        format_ = self.querystring.get("format")[0]
+        format_ = self.querystring.get("format")[0]  # type: ignore[index]
         if self.querystring.get("includeDirectives"):
             include_directives = (
-                self.querystring.get("includeDirectives")[0].lower() == "true"
+                self.querystring.get("includeDirectives")[0].lower() == "true"  # type: ignore[index]
             )
         else:
             include_directives = True

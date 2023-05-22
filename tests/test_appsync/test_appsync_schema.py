@@ -32,6 +32,7 @@ schema_with_directives = """type Mutation {
 type Post {
     id: ID!
     title: String!
+    createdAt: AWSDateTime!
 }
 
 type Query {
