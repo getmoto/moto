@@ -1474,10 +1474,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     """
 
-    buckets: Dict[str, FakeBucket] = {}
-
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
+        self.buckets: Dict[str, FakeBucket] = {}
         self.tagger = TaggingService()
 
         state_manager.register_default_transition(
