@@ -1965,7 +1965,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if not key_is_clean:
             key_name = clean_key_name(key_name)
         bucket = self.get_bucket_global(bucket_name)
-        
+
         key = None
 
         if bucket:
@@ -2501,10 +2501,22 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ]
 
 
-s3_backends = BackendDict(
+class S3BackendDict(BackendDict):
+    """
+    Encapsulation class to hold S3 backends.
+
+    This is specialised to include additional attributes to help multi-account support in S3
+    but is otherwise identical to the superclass.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Maps bucket names to account IDs. This is used to locate the exact S3Backend
+        # holding the bucket and to maintain the common bucket namespace.
+        self.bucket_owners: dict[str, tuple[str, str]] = {}
+
+
+s3_backends = S3BackendDict(
     S3Backend, service_name="s3", use_boto3_regions=False, additional_regions=["global"]
 )
-
-# Mapping of bucket name to account ID. This is used to locate the backend
-# when S3 objects are accessed across accounts.
-s3_backends.bucket_owners: dict[str, tuple[str, str]] = {}
