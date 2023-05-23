@@ -1615,7 +1615,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return metrics
 
     def create_bucket(self, bucket_name: str, region_name: str) -> FakeBucket:
-        if bucket_name in self.buckets:
+        if bucket_name in s3_backends.bucket_owners.keys():
             raise BucketAlreadyExists(bucket=bucket_name)
         if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
             raise InvalidBucketName()
@@ -1964,8 +1964,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> Optional[FakeKey]:
         if not key_is_clean:
             key_name = clean_key_name(key_name)
-
         bucket = self.get_bucket_global(bucket_name)
+        
         key = None
 
         if bucket:

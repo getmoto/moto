@@ -3401,3 +3401,13 @@ def test_cross_account_region_access():
         assert client2.get_object(Bucket=bucket_name, Key=key)
 
         assert client2.put_object(Bucket=bucket_name, Key=key, Body=b"kaytranada")
+
+        # Ensure bucket namespace is shared across accounts
+        with pytest.raises(ClientError) as exc:
+            client2.create_bucket(Bucket=bucket_name)
+        exc.value.response["Error"]["Code"].should.equal("BucketAlreadyExists")
+        exc.value.response["Error"]["Message"].should.equal(
+            "The requested bucket name is not available. The bucket "
+            "namespace is shared by all users of the system. Please "
+            "select a different name and try again"
+        )
