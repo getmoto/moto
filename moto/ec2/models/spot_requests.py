@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.ec2.exceptions import InvalidParameterValueErrorTagSpotFleetRequest
 
 if TYPE_CHECKING:
     from moto.ec2.models.instances import Instance
@@ -185,6 +186,7 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         launch_specs: List[Dict[str, Any]],
         launch_template_config: Optional[List[Dict[str, Any]]],
         instance_interruption_behaviour: Optional[str],
+        tag_specifications: Optional[List[Dict[str, Any]]],
     ):
 
         self.ec2_backend = ec2_backend
@@ -201,6 +203,14 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         self.fulfilled_capacity = 0.0
 
         self.launch_specs = []
+
+        self.tags = {}
+        if tag_specifications is not None:
+            tags = convert_tag_spec(tag_specifications)
+            for resource_type in tags:
+                if resource_type != "spot-fleet-request":
+                    raise InvalidParameterValueErrorTagSpotFleetRequest(resource_type)
+            self.tags.update(tags)
 
         launch_specs_from_config = []
         for config in launch_template_config or []:
@@ -456,6 +466,7 @@ class SpotRequestBackend:
         launch_specs: List[Dict[str, Any]],
         launch_template_config: Optional[List[Dict[str, Any]]] = None,
         instance_interruption_behaviour: Optional[str] = None,
+        tag_specifications: Optional[List[Dict[str, Any]]] = None,
     ) -> SpotFleetRequest:
 
         spot_fleet_request_id = random_spot_fleet_request_id()
@@ -470,6 +481,7 @@ class SpotRequestBackend:
             launch_specs=launch_specs,
             launch_template_config=launch_template_config,
             instance_interruption_behaviour=instance_interruption_behaviour,
+            tag_specifications=tag_specifications,
         )
         self.spot_fleet_requests[spot_fleet_request_id] = request
         return request

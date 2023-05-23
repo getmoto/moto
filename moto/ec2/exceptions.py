@@ -436,6 +436,14 @@ class InvalidParameterValueError(EC2ClientError):
         )
 
 
+class InvalidParameterValueErrorTagSpotFleetRequest(EC2ClientError):
+    def __init__(self, resource_type: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"The value for `ResourceType` must be `spot-fleet-request`, but got `{resource_type}` instead.",
+        )
+
+
 class EmptyTagSpecError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
