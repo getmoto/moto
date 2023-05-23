@@ -937,6 +937,7 @@ class FakeBucket(CloudFormationModel):
         self.default_lock_days: Optional[int] = 0
         self.default_lock_years: Optional[int] = 0
         self.ownership_rule: Optional[Dict[str, Any]] = None
+        s3_backends.bucket_owners[name] = account_id
 
     @property
     def location(self) -> str:
@@ -1645,6 +1646,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def list_buckets(self) -> List[FakeBucket]:
         return list(self.buckets.values())
 
+    def get_bucket_global(self, bucket_name: str) -> FakeBucket:
+        if bucket_name in s3_backends.bucket_owners:
+            account_id = s3_backends.bucket_owners[bucket_name]
+            return s3_backends[account_id]["global"].get_bucket(bucket_name)
+        else:
+            return self.get_bucket(bucket_name)
+
     def get_bucket(self, bucket_name: str) -> FakeBucket:
         try:
             return self.buckets[bucket_name]
@@ -1837,7 +1845,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
 
-        bucket = self.get_bucket(bucket_name)
+        bucket = self.get_bucket_global(bucket_name)
 
         # getting default config from bucket if not included in put request
         if bucket.encryption:
@@ -1956,7 +1964,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> Optional[FakeKey]:
         if not key_is_clean:
             key_name = clean_key_name(key_name)
-        bucket = self.get_bucket(bucket_name)
+
+        bucket = self.get_bucket_global(bucket_name)
         key = None
 
         if bucket:
@@ -2495,3 +2504,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 s3_backends = BackendDict(
     S3Backend, service_name="s3", use_boto3_regions=False, additional_regions=["global"]
 )
+
+# Mapping of bucket name to account ID. This is used to locate the backend
+# when S3 objects are accessed across accounts.
+s3_backends.bucket_owners: dict[str, tuple[str, str]] = {}

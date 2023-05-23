@@ -586,7 +586,7 @@ class S3Response(BaseResponse):
             template = self.response_template(S3_BUCKET_GET_OWNERSHIP_RULE)
             return 200, {}, template.render(ownership_rule=ownership_rule)
 
-        bucket = self.backend.get_bucket(bucket_name)
+        bucket = self.backend.get_bucket_global(bucket_name)
         prefix = querystring.get("prefix", [None])[0]
         if prefix and isinstance(prefix, bytes):
             prefix = prefix.decode("utf-8")
@@ -639,7 +639,7 @@ class S3Response(BaseResponse):
         self, bucket_name: str, querystring: Dict[str, Any]
     ) -> str:
         template = self.response_template(S3_BUCKET_GET_RESPONSE_V2)
-        bucket = self.backend.get_bucket(bucket_name)
+        bucket = self.backend.get_bucket_global(bucket_name)
 
         continuation_token = querystring.get("continuation-token", [None])[0]
         if continuation_token is not None and continuation_token == "":
@@ -1194,7 +1194,7 @@ class S3Response(BaseResponse):
             signed_url = "Signature=" in request.path
         try:
             key = self.backend.get_object(bucket_name, key_name)
-            bucket = self.backend.get_bucket(bucket_name)
+            bucket = self.backend.get_bucket_global(bucket_name)
         except S3ClientError:
             key = bucket = None
         if key:
@@ -1498,7 +1498,7 @@ class S3Response(BaseResponse):
         if bucket_key_enabled is not None:
             bucket_key_enabled = str(bucket_key_enabled).lower()
 
-        bucket = self.backend.get_bucket(bucket_name)
+        bucket = self.backend.get_bucket_global(bucket_name)
         lock_enabled = bucket.object_lock_enabled
 
         lock_mode = request.headers.get("x-amz-object-lock-mode", None)
@@ -1519,7 +1519,7 @@ class S3Response(BaseResponse):
 
         acl = self._acl_from_headers(request.headers)
         if acl is None:
-            acl = self.backend.get_bucket(bucket_name).acl
+            acl = bucket.acl
         tagging = self._tagging_from_headers(request.headers)
 
         if "versionId" in query:
@@ -1680,7 +1680,7 @@ class S3Response(BaseResponse):
 
         response_headers: Dict[str, Any] = {}
         version_id = query.get("versionId", [None])[0]
-        if version_id and not self.backend.get_bucket(bucket_name).is_versioned:
+        if version_id and not self.backend.get_bucket_global(bucket_name).is_versioned:
             return 400, response_headers, ""
 
         part_number = query.get("partNumber", [None])[0]
