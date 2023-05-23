@@ -17,7 +17,7 @@ import requests
 
 from moto.moto_api import state_manager
 from moto.s3.responses import DEFAULT_REGION_NAME
-from unittest import SkipTest
+from unittest import SkipTest, mock
 import pytest
 
 import sure  # noqa # pylint: disable=unused-import
@@ -3377,3 +3377,27 @@ def test_checksum_response(algorithm):
             ChecksumAlgorithm=algorithm,
         )
         assert f"Checksum{algorithm}" in response
+
+
+@mock_s3
+def test_cross_account_region_access():
+    client1 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client2 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    account2 = "222222222222"
+    bucket_name = "cross-account-bucket"
+    key = "test-key"
+
+    # Create a bucket in the default account
+    client1.create_bucket(Bucket=bucket_name)
+    client1.put_object(Bucket=bucket_name, Key=key, Body=b"data")
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account2}):
+        # Ensure the bucket can be retrieved from another account
+        response = client2.list_objects(Bucket=bucket_name)
+        response.should.have.key("Contents").length_of(1)
+        response["Contents"][0]["Key"].should.equal(key)
+
+        assert client2.get_object(Bucket=bucket_name, Key=key)
+
+        assert client2.put_object(Bucket=bucket_name, Key=key, Body=b"kaytranada")
