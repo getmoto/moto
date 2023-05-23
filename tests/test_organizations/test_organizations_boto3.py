@@ -1245,6 +1245,38 @@ def test_tag_resource_organization_organizational_unit():
 
 
 @mock_organizations
+def test_tag_resource_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    _ = client.list_roots()["Roots"][0]["Id"]
+
+    resource_id = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description="A dummy service control policy",
+        Name="MockServiceControlPolicy",
+        Type="SERVICE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+
+    client.tag_resource(ResourceId=resource_id, Tags=[{"Key": "key", "Value": "value"}])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+    # adding a tag with an existing key, will update the value
+    client.tag_resource(
+        ResourceId=resource_id, Tags=[{"Key": "key", "Value": "new-value"}]
+    )
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "new-value"}])
+
+    client.untag_resource(ResourceId=resource_id, TagKeys=["key"])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([])
+
+
+@mock_organizations
 def test_tag_resource_errors():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
