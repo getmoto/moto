@@ -574,6 +574,10 @@ class ECRBackend(BaseBackend):
             )
         )
 
+        # if an image with a matching manifest exists and it is tagged,
+        # trying to put the same image with the same tag will result in an
+        # ImageAlreadyExistsException
+
         try:
             existing_images_with_matching_tag = list(
                 filter(
@@ -595,11 +599,14 @@ class ECRBackend(BaseBackend):
             )
             repository.images.append(image)
             if existing_images_with_matching_tag:
+                # Tags are unique, so delete any existing image with this tag first
+                # (or remove the tag if the image has more than one tag)
                 self.batch_delete_image(
                     repository_name=repository_name, image_ids=[{"imageTag": image_tag}]
                 )
             return image
         else:
+            # this image is in ECR
             image = existing_images_with_matching_manifest[0]
             if image.image_tag == image_tag:
                 raise ImageAlreadyExistsException(

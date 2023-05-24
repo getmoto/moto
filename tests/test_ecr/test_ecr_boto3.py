@@ -516,7 +516,9 @@ def test_put_multiple_images_with_same_tag():
         imageManifest=json.dumps(_create_image_manifest()),
     )["image"]["imageId"]["imageDigest"]
 
-    # We should overwrite the first image
+    # We should overwrite the first image because the first image
+    # only has one tag
+
     image_2 = client.put_image(
         repositoryName=repo_name,
         imageTag=image_tag,
