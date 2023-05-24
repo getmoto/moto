@@ -1,0 +1,20 @@
+# When the appropriate label is applied, notify user that payment is waiting
+#
+name: "Payment Notification"
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+jobs:
+  test:
+    if: ${{ github.repository == 'getmoto/moto' && github.event.label.name == 'payment-approved' }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Leave comment
+      uses: peter-evans/create-or-update-comment@v3
+      with:
+        issue-number: ${{ context.issue.number }}
+        body: |
+          Test message
