@@ -105,6 +105,26 @@ class ImageNotFoundException(JsonRESTError):
         )
 
 
+class ImageAlreadyExistsException(JsonRESTError):
+    code = 400
+
+    def __init__(
+        self,
+        repository_name: str,
+        registry_id: str,
+        digest: str,
+        image_tag: str,
+    ):
+        super().__init__(
+            error_type="ImageAlreadyExistsException",
+            message=(
+                f"Image with digest '{digest}' and tag '{image_tag}' already exists "
+                f"in the repository with name '{repository_name}' "
+                f"in registry with id '{registry_id}'"
+            ),
+        )
+
+
 class InvalidParameterException(JsonRESTError):
     code = 400
 

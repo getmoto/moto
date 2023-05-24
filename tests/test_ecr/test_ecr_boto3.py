@@ -543,6 +543,53 @@ def test_put_multiple_images_with_same_tag():
 
 
 @mock_ecr
+def test_put_same_image_with_same_tag():
+    repo_name = "testrepo"
+    image_tag = "my-tag"
+    manifest = json.dumps(_create_image_manifest())
+
+    client = boto3.client("ecr", "us-east-1")
+    client.create_repository(repositoryName=repo_name)
+
+    image_1 = client.put_image(
+        repositoryName=repo_name,
+        imageTag=image_tag,
+        imageManifest=manifest,
+    )["image"]["imageId"]["imageDigest"]
+
+    with pytest.raises(ClientError) as e:
+        client.put_image(
+            repositoryName=repo_name,
+            imageTag=image_tag,
+            imageManifest=manifest,
+        )["image"]["imageId"]["imageDigest"]
+
+    ex = e.value
+    ex.operation_name.should.equal("PutImage")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ImageAlreadyExistsException")
+    ex.response["Error"]["Message"].should.equal(
+        f"Image with digest '{image_1}' and tag '{image_tag}' already exists "
+        f"in the repository with name '{repo_name}' in registry with id '{ACCOUNT_ID}'"
+    )
+
+    images = client.describe_images(repositoryName=repo_name)["imageDetails"]
+
+    images.should.have.length_of(1)
+
+    # Image with different tags are allowed
+    image_2 = client.put_image(
+        repositoryName=repo_name,
+        imageTag="different-tag",
+        imageManifest=json.dumps(_create_image_manifest()),
+    )["image"]["imageId"]["imageDigest"]
+
+    images = client.describe_images(repositoryName=repo_name)["imageDetails"]
+    images.should.have.length_of(2)
+    set([img["imageDigest"] for img in images]).should.equal({image_1, image_2})
+
+
+@mock_ecr
 def test_list_images():
     client = boto3.client("ecr", region_name="us-east-1")
     _ = client.create_repository(repositoryName="test_repository_1")
