@@ -68,3 +68,15 @@ jobs:
         name: motoserver
         path: |
           serverlogs/*
+
+  leave_comment:
+    if: ${{ github.repository == 'getmoto/moto' && github.event.label.name == 'payment-approved' }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Leave comment
+      uses: peter-evans/create-or-update-comment@v3
+      with:
+        issue-number: ${{ context.issue.number }}
+        body: |
+          Test message
