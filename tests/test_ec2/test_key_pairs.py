@@ -104,7 +104,9 @@ def test_key_pairs_create_boto3():
     kps[0].should.have.key("KeyPairId")
     kps[0].should.have.key("KeyName").equal(key_name)
     kps[0].should.have.key("KeyFingerprint")
-    kps[0].should.have.key("CreateTime").equal(datetime(2014, 1, 1, 5, 0, 0))
+    kps[0]["CreateTime"].replace(tzinfo=None).should.equal(
+        datetime(2014, 1, 1, 5, 0, 0)
+    )
 
 
 @mock_ec2

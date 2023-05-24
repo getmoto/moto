@@ -15,6 +15,7 @@ from ..utils import (
     generic_filter,
     random_key_pair_id,
 )
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 
 class KeyPair(BaseModel):
@@ -24,6 +25,10 @@ class KeyPair(BaseModel):
         self.fingerprint = fingerprint
         self.material = material
         self.create_time = datetime.utcnow()
+
+    @property
+    def created_iso_8601(self) -> str:
+        return iso_8601_datetime_with_milliseconds(self.create_time)
 
     def get_filter_value(self, filter_name: str) -> str:
         if filter_name == "key-name":
