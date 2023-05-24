@@ -506,6 +506,7 @@ def test_put_image_with_multiple_tags():
 def test_put_multiple_images_with_same_tag():
     repo_name = "testrepo"
     image_tag = "my-tag"
+    manifest = json.dumps(_create_image_manifest())
 
     client = boto3.client("ecr", "us-east-1")
     client.create_repository(repositoryName=repo_name)
@@ -513,7 +514,7 @@ def test_put_multiple_images_with_same_tag():
     image_1 = client.put_image(
         repositoryName=repo_name,
         imageTag=image_tag,
-        imageManifest=json.dumps(_create_image_manifest()),
+        imageManifest=manifest,
     )["image"]["imageId"]["imageDigest"]
 
     # We should overwrite the first image because the first image
@@ -532,11 +533,11 @@ def test_put_multiple_images_with_same_tag():
     images.should.have.length_of(1)
     images[0]["imageDigest"].should.equal(image_2)
 
-    # Image with different tags are allowed
+    # Same image with different tags is allowed
     image_3 = client.put_image(
         repositoryName=repo_name,
         imageTag="different-tag",
-        imageManifest=json.dumps(_create_image_manifest()),
+        imageManifest=manifest,
     )["image"]["imageId"]["imageDigest"]
 
     images = client.describe_images(repositoryName=repo_name)["imageDetails"]

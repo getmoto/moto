@@ -616,6 +616,7 @@ class ECRBackend(BaseBackend):
                     repository_name=repository_name,
                 )
             else:
+                # update existing image
                 image.update_tag(image_tag)
                 return image
 
