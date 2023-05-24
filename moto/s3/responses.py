@@ -907,12 +907,12 @@ class S3Response(BaseResponse):
 
             try:
                 new_bucket = self.backend.create_bucket(bucket_name, region_name)
-            except BucketAlreadyExists as exc:
-                existing_bucket = self.backend.get_bucket_global(bucket_name)
-                if existing_bucket.account_id == self.get_current_account():
-                    # special cases when the bucket belong to self
+            except BucketAlreadyExists:
+                new_bucket = self.backend.get_bucket_global(bucket_name)
+                if new_bucket.account_id == self.get_current_account():
+                    # special cases when the bucket belongs to self
                     if (
-                        existing_bucket.region_name == DEFAULT_REGION_NAME
+                        new_bucket.region_name == DEFAULT_REGION_NAME
                         and region_name == DEFAULT_REGION_NAME
                     ):
                         # us-east-1 has different behavior - creating a bucket there is an idempotent operation
@@ -921,7 +921,7 @@ class S3Response(BaseResponse):
                         template = self.response_template(S3_DUPLICATE_BUCKET_ERROR)
                         return 409, {}, template.render(bucket_name=bucket_name)
                 else:
-                    raise exc
+                    raise
 
             if "x-amz-acl" in request.headers:
                 # TODO: Support the XML-based ACL format
