@@ -1,4 +1,5 @@
 from typing import Any, Dict, List
+from datetime import datetime
 
 from moto.core import BaseModel
 from ..exceptions import (
@@ -22,6 +23,7 @@ class KeyPair(BaseModel):
         self.name = name
         self.fingerprint = fingerprint
         self.material = material
+        self.create_time = datetime.utcnow()
 
     def get_filter_value(self, filter_name: str) -> str:
         if filter_name == "key-name":
