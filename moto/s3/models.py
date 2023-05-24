@@ -2509,12 +2509,18 @@ class S3BackendDict(BackendDict):
     but is otherwise identical to the superclass.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        backend: Any,
+        service_name: str,
+        use_boto3_regions: bool = True,
+        additional_regions: Optional[List[str]] = None,
+    ):
+        super().__init__(backend, service_name, use_boto3_regions, additional_regions)
 
         # Maps bucket names to account IDs. This is used to locate the exact S3Backend
         # holding the bucket and to maintain the common bucket namespace.
-        self.bucket_owners: dict[str, tuple[str, str]] = {}
+        self.bucket_owners: dict[str, str] = {}
 
 
 s3_backends = S3BackendDict(
