@@ -3411,3 +3411,9 @@ def test_cross_account_region_access():
             "namespace is shared by all users of the system. Please "
             "select a different name and try again"
         )
+
+    # Ensure bucket name can be reused if it is deleted
+    client1.delete_object(Bucket=bucket_name, Key=key)
+    client1.delete_bucket(Bucket=bucket_name)
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account2}):
+        client2.create_bucket(Bucket=bucket_name)

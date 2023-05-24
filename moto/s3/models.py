@@ -1668,6 +1668,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             # Can't delete a bucket with keys
             return None
         else:
+            s3_backends.bucket_owners.pop(bucket_name, None)
             return self.buckets.pop(bucket_name)
 
     def put_bucket_versioning(self, bucket_name: str, status: str) -> None:
