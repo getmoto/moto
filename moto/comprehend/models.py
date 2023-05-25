@@ -2,8 +2,61 @@
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.utilities.tagging_service import TaggingService
-from .exceptions import ResourceNotFound
+from .exceptions import (
+    ResourceNotFound,
+    DetectPIIValidationException,
+    TextSizeLimitExceededException,
+)
 from typing import Any, Dict, List, Iterable
+
+CANNED_DETECT_RESPONSE = [
+    {
+        "Score": 0.9999890923500061,
+        "Type": "NAME",
+        "BeginOffset": 50,
+        "EndOffset": 58,
+    },
+    {
+        "Score": 0.9999966621398926,
+        "Type": "EMAIL",
+        "BeginOffset": 230,
+        "EndOffset": 259,
+    },
+    {
+        "Score": 0.9999954700469971,
+        "Type": "BANK_ACCOUNT_NUMBER",
+        "BeginOffset": 334,
+        "EndOffset": 349,
+    },
+]
+
+CANNED_PHRASES_RESPONSE = [
+    {
+        "Score": 0.9999890923500061,
+        "BeginOffset": 50,
+        "EndOffset": 58,
+    },
+    {
+        "Score": 0.9999966621398926,
+        "BeginOffset": 230,
+        "EndOffset": 259,
+    },
+    {
+        "Score": 0.9999954700469971,
+        "BeginOffset": 334,
+        "EndOffset": 349,
+    },
+]
+
+CANNED_SENTIMENT_RESPONSE = {
+    "Sentiment": "NEUTRAL",
+    "SentimentScore": {
+        "Positive": 0.008101312443614006,
+        "Negative": 0.0002824589901138097,
+        "Neutral": 0.9916020035743713,
+        "Mixed": 1.4156351426208857e-05,
+    },
+}
 
 
 class EntityRecognizer(BaseModel):
@@ -52,6 +105,24 @@ class EntityRecognizer(BaseModel):
 
 class ComprehendBackend(BaseBackend):
     """Implementation of Comprehend APIs."""
+
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/comprehend/client/detect_key_phrases.html
+    detect_key_phrases_languages = [
+        "ar",
+        "hi",
+        "ko",
+        "zh-TW",
+        "ja",
+        "zh",
+        "de",
+        "pt",
+        "en",
+        "it",
+        "fr",
+        "es",
+    ]
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/comprehend/client/detect_pii_entities.html
+    detect_pii_entities_languages = ["en"]
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -129,6 +200,36 @@ class ComprehendBackend(BaseBackend):
 
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def detect_pii_entities(self, text: str, language: str) -> List[Dict[str, Any]]:
+        if language not in self.detect_pii_entities_languages:
+            raise DetectPIIValidationException(
+                language, self.detect_pii_entities_languages
+            )
+        text_size = len(text)
+        if text_size > 100000:
+            raise TextSizeLimitExceededException(text_size)
+        return CANNED_DETECT_RESPONSE
+
+    def detect_key_phrases(self, text: str, language: str) -> List[Dict[str, Any]]:
+        if language not in self.detect_key_phrases_languages:
+            raise DetectPIIValidationException(
+                language, self.detect_key_phrases_languages
+            )
+        text_size = len(text)
+        if text_size > 100000:
+            raise TextSizeLimitExceededException(text_size)
+        return CANNED_PHRASES_RESPONSE
+
+    def detect_sentiment(self, text: str, language: str) -> Dict[str, Any]:
+        if language not in self.detect_key_phrases_languages:
+            raise DetectPIIValidationException(
+                language, self.detect_key_phrases_languages
+            )
+        text_size = len(text)
+        if text_size > 5000:
+            raise TextSizeLimitExceededException(text_size)
+        return CANNED_SENTIMENT_RESPONSE
 
 
 comprehend_backends = BackendDict(ComprehendBackend, "comprehend")

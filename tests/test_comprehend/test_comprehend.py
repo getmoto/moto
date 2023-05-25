@@ -4,6 +4,11 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_comprehend
+from moto.comprehend.models import (
+    CANNED_DETECT_RESPONSE,
+    CANNED_PHRASES_RESPONSE,
+    CANNED_SENTIMENT_RESPONSE,
+)
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -197,4 +202,175 @@ def test_delete_entity_recognizer():
     err["Code"].should.equal("ResourceNotFoundException")
     err["Message"].should.equal(
         "RESOURCE_NOT_FOUND: Could not find specified resource."
+    )
+
+
+@mock_comprehend
+def test_detect_pii_entities():
+    # Setup
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    sample_text = "Doesn't matter what we send, we will get a canned response"
+
+    # Execute
+    result = client.detect_pii_entities(Text=sample_text, LanguageCode="en")
+
+    # Verify
+    assert "Entities" in result
+    assert result["Entities"] == CANNED_DETECT_RESPONSE
+
+
+@mock_comprehend
+def test_detect_pii_entities_invalid_languages():
+    # Setup
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    sample_text = "Doesn't matter what we send, we will get a canned response"
+    language = "es"
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.detect_pii_entities(Text=sample_text, LanguageCode=language)
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == f"Value '{language}' at 'languageCode'failed to satisfy constraint: "
+        f"Member must satisfy enum value set: [en]"
+    )
+
+
+@mock_comprehend
+def test_detect_pii_entities_text_too_large():
+    # Setup
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    size = 100001
+    sample_text = "x" * size
+    language = "en"
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.detect_pii_entities(Text=sample_text, LanguageCode=language)
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "TextSizeLimitExceededException"
+    assert (
+        err["Message"]
+        == "Input text size exceeds limit. Max length of request text allowed is 100000 bytes "
+        f"while in this request the text size is {size} bytes"
+    )
+
+
+@mock_comprehend
+def test_detect_key_phrases():
+    # Setup
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    sample_text = "Doesn't matter what we send, we will get a canned response"
+
+    # Execute
+    result = client.detect_key_phrases(Text=sample_text, LanguageCode="en")
+
+    # Verify
+    assert "KeyPhrases" in result
+    assert result["KeyPhrases"] == CANNED_PHRASES_RESPONSE
+
+
+@mock_comprehend
+def test_detect_key_phrases_invalid_languages():
+    # Setup
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    sample_text = "Doesn't matter what we send, we will get a canned response"
+    language = "blah"
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.detect_key_phrases(Text=sample_text, LanguageCode=language)
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == f"Value '{language}' at 'languageCode'failed to satisfy constraint: "
+        f"Member must satisfy enum value set: [ar, hi, ko, zh-TW, ja, zh, de, pt, en, it, fr, es]"
+    )
+
+
+@mock_comprehend
+def test_detect_detect_key_phrases_text_too_large():
+    # Setup
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    size = 100002
+    sample_text = "x" * size
+    language = "en"
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.detect_key_phrases(Text=sample_text, LanguageCode=language)
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "TextSizeLimitExceededException"
+    assert (
+        err["Message"]
+        == "Input text size exceeds limit. Max length of request text allowed is 100000 bytes "
+        f"while in this request the text size is {size} bytes"
+    )
+
+
+@mock_comprehend
+def test_detect_sentiment():
+    # Setup
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    sample_text = "Doesn't matter what we send, we will get a canned response"
+
+    # Execute
+    result = client.detect_sentiment(Text=sample_text, LanguageCode="en")
+
+    # Verify
+    del result["ResponseMetadata"]
+    assert result == CANNED_SENTIMENT_RESPONSE
+
+
+@mock_comprehend
+def test_detect_sentiment_invalid_languages():
+    # Setup
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    sample_text = "Doesn't matter what we send, we will get a canned response"
+    language = "blah"
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.detect_sentiment(Text=sample_text, LanguageCode=language)
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == f"Value '{language}' at 'languageCode'failed to satisfy constraint: "
+        "Member must satisfy enum value set: [ar, hi, ko, zh-TW, ja, zh, de, pt, en, it, fr, es]"
+    )
+
+
+@mock_comprehend
+def test_detect_sentiment_text_too_large():
+    # Setup
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    size = 5001
+    sample_text = "x" * size
+    language = "en"
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.detect_sentiment(Text=sample_text, LanguageCode=language)
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "TextSizeLimitExceededException"
+    assert (
+        err["Message"]
+        == "Input text size exceeds limit. Max length of request text allowed is 100000 bytes while "
+        f"in this request the text size is {size} bytes"
     )
