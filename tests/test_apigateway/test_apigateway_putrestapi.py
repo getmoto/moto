@@ -1,9 +1,11 @@
 import boto3
 import os
 import pytest
+import sys
 
 from botocore.exceptions import ClientError
-from moto import mock_apigateway
+from moto import mock_apigateway, settings
+from unittest import SkipTest
 
 
 @mock_apigateway
@@ -142,6 +144,9 @@ def test_put_rest_api__existing_methods_still_exist():
 
 @mock_apigateway
 def test_put_rest_api__fail_on_invalid_spec():
+    if sys.version_info < (3, 8) or settings.TEST_SERVER_MODE:
+        raise SkipTest("openapi-module throws an error in Py3.7")
+
     client = boto3.client("apigateway", region_name="us-east-2")
 
     response = client.create_rest_api(name="my_api", description="this is my api")
