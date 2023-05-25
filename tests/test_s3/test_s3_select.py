@@ -6,7 +6,7 @@ from unittest import TestCase
 from uuid import uuid4
 
 
-SIMPLE_JSON = {"a1": "b1", "a2": "b2"}
+SIMPLE_JSON = {"a1": "b1", "a2": "b2", "a3": None}
 SIMPLE_JSON2 = {"a1": "b2", "a3": "b3"}
 SIMPLE_LIST = [SIMPLE_JSON, SIMPLE_JSON2]
 SIMPLE_CSV = """a,b,c
@@ -47,7 +47,14 @@ class TestS3Select(TestCase):
             OutputSerialization={"JSON": {"RecordDelimiter": ","}},
         )
         result = list(x["Payload"])
-        result.should.contain({"Records": {"Payload": b'{"a1":"b1","a2":"b2"},'}})
+        result.should.contain(
+            {"Records": {"Payload": b'{"a1":"b1","a2":"b2","a3":null},'}}
+        )
+
+        # Verify result is valid JSON
+        json.loads(result[0]["Records"]["Payload"][0:-1].decode("utf-8"))
+
+        # Verify result contains metadata
         result.should.contain(
             {
                 "Stats": {

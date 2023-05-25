@@ -2486,9 +2486,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
             use_headers = input_details["CSV"].get("FileHeaderInfo", "") == "USE"
             query_input = csv_to_json(query_input, use_headers)
+        query_result = parse_query(query_input, select_query)
+        from py_partiql_parser import SelectEncoder
+
         return [
-            json.dumps(x, indent=None, separators=(",", ":")).encode("utf-8")
-            for x in parse_query(query_input, select_query)
+            json.dumps(x, indent=None, separators=(",", ":"), cls=SelectEncoder).encode(
+                "utf-8"
+            )
+            for x in query_result
         ]
 
 
