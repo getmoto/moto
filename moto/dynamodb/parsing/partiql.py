@@ -1,4 +1,7 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from py_partiql_parser import QueryMetadata
 
 
 def query(
@@ -9,7 +12,7 @@ def query(
     return DynamoDBStatementParser(source_data).parse(statement, parameters)
 
 
-def get_query_metadata(statement: str) -> Any:
+def get_query_metadata(statement: str) -> "QueryMetadata":
     from py_partiql_parser import DynamoDBStatementParser
 
     return DynamoDBStatementParser.get_query_metadata(query=statement)
