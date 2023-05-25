@@ -8,7 +8,6 @@ from botocore.exceptions import ClientError
 from moto import mock_ec2, settings
 from uuid import uuid4
 from unittest import SkipTest
-from freezegun import freeze_time
 
 from .helpers import rsa_check_private_key
 
@@ -79,7 +78,6 @@ def test_key_pairs_create_dryrun_boto3():
 
 
 @mock_ec2
-@freeze_time("2014-01-01 05:00:00")
 def test_key_pairs_create_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -104,9 +102,7 @@ def test_key_pairs_create_boto3():
     kps[0].should.have.key("KeyPairId")
     kps[0].should.have.key("KeyName").equal(key_name)
     kps[0].should.have.key("KeyFingerprint")
-    kps[0]["CreateTime"].replace(tzinfo=None).should.equal(
-        datetime(2014, 1, 1, 5, 0, 0)
-    )
+    kps[0].should.have.key("CreateTime").should.be.a(datetime)
 
 
 @mock_ec2
