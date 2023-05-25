@@ -612,7 +612,7 @@ class ECRBackend(BaseBackend):
                 raise ImageAlreadyExistsException(
                     registry_id=repository.registry_id,
                     image_tag=image_tag,
-                    digest=image.image_digest,
+                    digest=image.get_image_digest(),
                     repository_name=repository_name,
                 )
             else:
