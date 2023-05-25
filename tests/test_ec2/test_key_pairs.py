@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime
 
 import sure  # noqa # pylint: disable=unused-import
 import boto3
@@ -101,6 +102,7 @@ def test_key_pairs_create_boto3():
     kps[0].should.have.key("KeyPairId")
     kps[0].should.have.key("KeyName").equal(key_name)
     kps[0].should.have.key("KeyFingerprint")
+    kps[0].should.have.key("CreateTime").should.be.a(datetime)
 
 
 @mock_ec2

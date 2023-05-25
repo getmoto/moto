@@ -37,6 +37,7 @@ DESCRIBE_KEY_PAIRS_RESPONSE = """<DescribeKeyPairsResponse xmlns="http://ec2.ama
     <keySet>
     {% for keypair in keypairs %}
       <item>
+           <createTime>{{ keypair.created_iso_8601 }}</createTime>
            <keyPairId>{{ keypair.id }}</keyPairId>
            <keyName>{{ keypair.name }}</keyName>
            <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
