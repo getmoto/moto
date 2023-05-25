@@ -1,4 +1,5 @@
 import base64
+import json
 from datetime import timedelta, datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from moto.core import BaseBackend, BackendDict, BaseModel
@@ -6,7 +7,34 @@ from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import GraphqlAPINotFound
+from .exceptions import GraphqlAPINotFound, GraphQLSchemaException, BadRequestException
+
+# AWS custom scalars and directives
+# https://github.com/dotansimha/graphql-code-generator/discussions/4311#discussioncomment-2921796
+AWS_CUSTOM_GRAPHQL = """scalar AWSTime
+scalar AWSDateTime
+scalar AWSTimestamp
+scalar AWSEmail
+scalar AWSJSON
+scalar AWSURL
+scalar AWSPhone
+scalar AWSIPAddress
+scalar BigInt
+scalar Double
+
+directive @aws_subscribe(mutations: [String!]!) on FIELD_DEFINITION
+
+# Allows transformer libraries to deprecate directive arguments.
+directive @deprecated(reason: String!) on INPUT_FIELD_DEFINITION | ENUM
+
+directive @aws_auth(cognito_groups: [String!]!) on FIELD_DEFINITION
+directive @aws_api_key on FIELD_DEFINITION | OBJECT
+directive @aws_iam on FIELD_DEFINITION | OBJECT
+directive @aws_oidc on FIELD_DEFINITION | OBJECT
+directive @aws_cognito_user_pools(
+  cognito_groups: [String!]
+) on FIELD_DEFINITION | OBJECT
+"""
 
 
 class GraphqlSchema(BaseModel):
@@ -48,6 +76,27 @@ class GraphqlSchema(BaseModel):
         except GraphQLError as e:
             self.status = "FAILED"
             self.parse_error = str(e)
+
+    def get_introspection_schema(self, format_: str, include_directives: bool) -> str:
+        from graphql import (
+            print_schema,
+            build_client_schema,
+            introspection_from_schema,
+            build_schema,
+        )
+
+        schema = build_schema(self.definition + AWS_CUSTOM_GRAPHQL)
+        introspection_data = introspection_from_schema(schema, descriptions=False)
+
+        if not include_directives:
+            introspection_data["__schema"]["directives"] = []
+
+        if format_ == "SDL":
+            return print_schema(build_client_schema(introspection_data))
+        elif format_ == "JSON":
+            return json.dumps(introspection_data)
+        else:
+            raise BadRequestException(message=f"Invalid format {format_} given")
 
 
 class GraphqlAPIKey(BaseModel):
@@ -253,6 +302,15 @@ class AppSyncBackend(BaseBackend):
         if api_id not in self.graphql_apis:
             raise GraphqlAPINotFound(api_id)
         return self.graphql_apis[api_id]
+
+    def get_graphql_schema(self, api_id: str) -> GraphqlSchema:
+        graphql_api = self.get_graphql_api(api_id)
+        if not graphql_api.graphql_schema:
+            # When calling get_introspetion_schema without a graphql schema
+            # the response GraphQLSchemaException exception includes InvalidSyntaxError
+            # in the message. This might not be the case for other methods.
+            raise GraphQLSchemaException(message="InvalidSyntaxError")
+        return graphql_api.graphql_schema
 
     def delete_graphql_api(self, api_id: str) -> None:
         self.graphql_apis.pop(api_id)
