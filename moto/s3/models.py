@@ -1495,6 +1495,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     key.dispose()
             for part in bucket.multiparts.values():
                 part.dispose()
+            s3_backends.bucket_owners.pop(bucket.name, None)
         #
         # Second, go through the list of instances
         # It may contain FakeKeys created earlier, which are no longer tracked
