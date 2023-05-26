@@ -937,7 +937,7 @@ class FakeBucket(CloudFormationModel):
         self.default_lock_days: Optional[int] = 0
         self.default_lock_years: Optional[int] = 0
         self.ownership_rule: Optional[Dict[str, Any]] = None
-        s3_backends.bucket_owners[name] = account_id
+        s3_backends.bucket_accounts[name] = account_id
 
     @property
     def location(self) -> str:
@@ -1495,7 +1495,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     key.dispose()
             for part in bucket.multiparts.values():
                 part.dispose()
-            s3_backends.bucket_owners.pop(bucket.name, None)
+            s3_backends.bucket_accounts.pop(bucket.name, None)
         #
         # Second, go through the list of instances
         # It may contain FakeKeys created earlier, which are no longer tracked
@@ -1616,7 +1616,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return metrics
 
     def create_bucket(self, bucket_name: str, region_name: str) -> FakeBucket:
-        if bucket_name in s3_backends.bucket_owners.keys():
+        if bucket_name in s3_backends.bucket_accounts.keys():
             raise BucketAlreadyExists(bucket=bucket_name)
         if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
             raise InvalidBucketName()
@@ -1648,8 +1648,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return list(self.buckets.values())
 
     def get_bucket_global(self, bucket_name: str) -> FakeBucket:
-        if bucket_name in s3_backends.bucket_owners:
-            account_id = s3_backends.bucket_owners[bucket_name]
+        if bucket_name in s3_backends.bucket_accounts:
+            account_id = s3_backends.bucket_accounts[bucket_name]
             return s3_backends[account_id]["global"].get_bucket(bucket_name)
         else:
             return self.get_bucket(bucket_name)
@@ -1669,7 +1669,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             # Can't delete a bucket with keys
             return None
         else:
-            s3_backends.bucket_owners.pop(bucket_name, None)
+            s3_backends.bucket_accounts.pop(bucket_name, None)
             return self.buckets.pop(bucket_name)
 
     def put_bucket_versioning(self, bucket_name: str, status: str) -> None:
@@ -2522,7 +2522,7 @@ class S3BackendDict(BackendDict):
 
         # Maps bucket names to account IDs. This is used to locate the exact S3Backend
         # holding the bucket and to maintain the common bucket namespace.
-        self.bucket_owners: dict[str, str] = {}
+        self.bucket_accounts: dict[str, str] = {}
 
 
 s3_backends = S3BackendDict(
