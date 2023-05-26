@@ -5,9 +5,11 @@ import warnings
 from functools import wraps
 from moto import settings, mock_s3
 from moto.dynamodb.models import DynamoDBBackend
-from moto.s3 import models as s3model
+from moto.s3 import models as s3model, s3_backends
 from moto.s3.responses import S3ResponseInstance
 from unittest import SkipTest, TestCase
+
+from tests import DEFAULT_ACCOUNT_ID
 
 
 def verify_zero_warnings(f):
@@ -39,7 +41,7 @@ class TestS3FileHandleClosures(TestCase):
     def setUp(self) -> None:
         if settings.TEST_SERVER_MODE:
             raise SkipTest("No point in testing ServerMode, we're not using boto3")
-        self.s3 = s3model.S3Backend("us-west-1", "1234")
+        self.s3 = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
         self.s3.create_bucket("my-bucket", "us-west-1")
         self.s3.create_bucket("versioned-bucket", "us-west-1")
         self.s3.put_object("my-bucket", "my-key", "x" * 10_000_000)
