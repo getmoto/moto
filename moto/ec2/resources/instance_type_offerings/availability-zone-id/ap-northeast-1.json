@@ -4528,6 +4528,42 @@
   "Location": "apne1-az4"
  },
  {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
+  "Location": "apne1-az4"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "apne1-az4"
  },
