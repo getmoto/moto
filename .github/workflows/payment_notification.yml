@@ -15,7 +15,7 @@ jobs:
     - name: Leave comment
       uses: peter-evans/create-or-update-comment@v3
       with:
-        issue-number: ${{ context.issue.number }}
+        issue-number: ${{ github.event.pull_request.number }}
         body: |
           Hi @${{ github.event.pull_request.user.login }},
 
