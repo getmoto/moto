@@ -489,7 +489,7 @@ class SNSBackend(BaseBackend):
             parsed_arn = parse_arn(arn)
             sns_backends[parsed_arn.account][parsed_arn.region].topics.pop(arn, None)
         except KeyError:
-            raise SNSNotFoundError(f"Topic with arn {arn} not found")
+            raise TopicNotFound
 
     def get_topic(self, arn: str) -> Topic:
         parsed_arn = parse_arn(arn)
