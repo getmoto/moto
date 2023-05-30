@@ -8,6 +8,15 @@ from uuid import uuid4
 
 SIMPLE_JSON = {"a1": "b1", "a2": "b2", "a3": None}
 SIMPLE_JSON2 = {"a1": "b2", "a3": "b3"}
+EXTENSIVE_JSON = [
+    {
+        "staff": [
+            {"name": "Janelyn M", "city": "Chicago", "kids": 2},
+            {"name": "Stacy P", "city": "Seattle", "kids": 1},
+        ],
+        "country": "USA",
+    }
+]
 SIMPLE_LIST = [SIMPLE_JSON, SIMPLE_JSON2]
 SIMPLE_CSV = """a,b,c
 e,r,f
@@ -30,11 +39,17 @@ class TestS3Select(TestCase):
         self.client.put_object(
             Bucket=self.bucket_name, Key="simple_csv", Body=SIMPLE_CSV
         )
+        self.client.put_object(
+            Bucket=self.bucket_name,
+            Key="extensive.json",
+            Body=json.dumps(EXTENSIVE_JSON),
+        )
 
     def tearDown(self) -> None:
         self.client.delete_object(Bucket=self.bucket_name, Key="list.json")
         self.client.delete_object(Bucket=self.bucket_name, Key="simple.json")
         self.client.delete_object(Bucket=self.bucket_name, Key="simple_csv")
+        self.client.delete_object(Bucket=self.bucket_name, Key="extensive.json")
         self.client.delete_bucket(Bucket=self.bucket_name)
 
     def test_query_all(self):
@@ -119,3 +134,31 @@ class TestS3Select(TestCase):
         )
         result = list(x["Payload"])
         result.should.contain({"Records": {"Payload": b'{"_1":3},'}})
+
+    def test_extensive_json__select_list(self):
+        x = self.client.select_object_content(
+            Bucket=self.bucket_name,
+            Key="extensive.json",
+            Expression="select * from s3object[*].staff[*] s",
+            ExpressionType="SQL",
+            InputSerialization={"JSON": {"Type": "DOCUMENT"}},
+            OutputSerialization={"JSON": {"RecordDelimiter": ","}},
+        )
+        result = list(x["Payload"])
+        assert {"Records": {"Payload": b"{},"}} in result
+
+    def test_extensive_json__select_all(self):
+        x = self.client.select_object_content(
+            Bucket=self.bucket_name,
+            Key="extensive.json",
+            Expression="select * from s3object s",
+            ExpressionType="SQL",
+            InputSerialization={"JSON": {"Type": "DOCUMENT"}},
+            OutputSerialization={"JSON": {"RecordDelimiter": ","}},
+        )
+        result = list(x["Payload"])
+        assert {
+            "Records": {
+                "Payload": b'{"_1":[{"staff":[{"name":"Janelyn M","city":"Chicago","kids":2},{"name":"Stacy P","city":"Seattle","kids":1}],"country":"USA"}]},'
+            }
+        } in result
