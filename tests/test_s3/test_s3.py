@@ -3381,6 +3381,9 @@ def test_checksum_response(algorithm):
 
 @mock_s3
 def test_cross_account_region_access():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Multi-accounts env config only works serverside")
+
     client1 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client2 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
