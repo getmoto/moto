@@ -362,7 +362,7 @@ def test_add_permission_errors():
         ActionName=["AddPermission"],
     ).should.throw(
         ClientError,
-        f"An error occurred (NotFound) when calling the AddPermission operation: Topic does not exist",
+        "An error occurred (NotFound) when calling the AddPermission operation: Topic does not exist",
     )
 
     client.add_permission.when.called_with(
@@ -388,7 +388,7 @@ def test_remove_permission_errors():
         TopicArn=topic_arn + "-not-existing", Label="test"
     ).should.throw(
         ClientError,
-        f"An error occurred (NotFound) when calling the RemovePermission operation: Topic does not exist",
+        "An error occurred (NotFound) when calling the RemovePermission operation: Topic does not exist",
     )
 
 
