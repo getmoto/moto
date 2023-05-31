@@ -25,6 +25,9 @@ def test_create_and_delete_topic():
         # Delete the topic
         conn.delete_topic(TopicArn=topics[0]["TopicArn"])
 
+        # Ensure DeleteTopic is idempotent
+        conn.delete_topic(TopicArn=topics[0]["TopicArn"])
+
         # And there should now be 0 topics
         topics_json = conn.list_topics()
         topics = topics_json["Topics"]
@@ -35,9 +38,10 @@ def test_create_and_delete_topic():
 def test_delete_non_existent_topic():
     conn = boto3.client("sns", region_name="us-east-1")
 
-    conn.delete_topic.when.called_with(
-        TopicArn="arn:aws:sns:us-east-1:123456789012:fake-topic"
-    ).should.throw(conn.exceptions.NotFoundException)
+    # Ensure DeleteTopic does not throw an error for non-existent topics
+    conn.delete_topic(
+        TopicArn="arn:aws:sns:us-east-1:123456789012:this-topic-does-not-exist"
+    )
 
 
 @mock_sns
@@ -362,7 +366,7 @@ def test_add_permission_errors():
         ActionName=["AddPermission"],
     ).should.throw(
         ClientError,
-        f"An error occurred (NotFound) when calling the AddPermission operation: Topic with arn {topic_arn + '-not-existing'} not found",
+        "An error occurred (NotFound) when calling the AddPermission operation: Topic does not exist",
     )
 
     client.add_permission.when.called_with(
@@ -388,7 +392,7 @@ def test_remove_permission_errors():
         TopicArn=topic_arn + "-not-existing", Label="test"
     ).should.throw(
         ClientError,
-        f"An error occurred (NotFound) when calling the RemovePermission operation: Topic with arn {topic_arn + '-not-existing'} not found",
+        "An error occurred (NotFound) when calling the RemovePermission operation: Topic does not exist",
     )
 
 

@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import json
 import requests
@@ -483,20 +484,18 @@ class SNSBackend(BaseBackend):
                 self.subscriptions.pop(key)
 
     def delete_topic(self, arn: str) -> None:
-        try:
+        with contextlib.suppress(TopicNotFound):
             topic = self.get_topic(arn)
             self.delete_topic_subscriptions(topic)
             parsed_arn = parse_arn(arn)
             sns_backends[parsed_arn.account][parsed_arn.region].topics.pop(arn, None)
-        except KeyError:
-            raise SNSNotFoundError(f"Topic with arn {arn} not found")
 
     def get_topic(self, arn: str) -> Topic:
         parsed_arn = parse_arn(arn)
         try:
             return sns_backends[parsed_arn.account][parsed_arn.region].topics[arn]
         except KeyError:
-            raise SNSNotFoundError(f"Topic with arn {arn} not found")
+            raise TopicNotFound
 
     def set_topic_attribute(
         self, topic_arn: str, attribute_name: str, attribute_value: str
@@ -1006,10 +1005,7 @@ class SNSBackend(BaseBackend):
         """
         The MessageStructure and MessageDeduplicationId-parameters have not yet been implemented.
         """
-        try:
-            topic = self.get_topic(topic_arn)
-        except SNSNotFoundError:
-            raise TopicNotFound
+        topic = self.get_topic(topic_arn)
 
         if len(publish_batch_request_entries) > 10:
             raise TooManyEntriesInBatchRequest
