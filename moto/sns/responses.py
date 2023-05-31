@@ -1,4 +1,3 @@
-import contextlib
 import json
 import re
 from collections import defaultdict
@@ -7,7 +6,7 @@ from typing import Any, Dict, Tuple, Union
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import sns_backends, SNSBackend
-from .exceptions import InvalidParameterValue, SNSNotFoundError, TopicNotFound
+from .exceptions import InvalidParameterValue, SNSNotFoundError
 from .utils import is_e164
 
 
@@ -145,8 +144,7 @@ class SNSResponse(BaseResponse):
 
     def delete_topic(self) -> str:
         topic_arn = self._get_param("TopicArn")
-        with contextlib.suppress(TopicNotFound):
-            self.backend.delete_topic(topic_arn)
+        self.backend.delete_topic(topic_arn)
 
         if self.request_json:
             return json.dumps(

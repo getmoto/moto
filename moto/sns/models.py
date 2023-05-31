@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import json
 import requests
@@ -483,13 +484,11 @@ class SNSBackend(BaseBackend):
                 self.subscriptions.pop(key)
 
     def delete_topic(self, arn: str) -> None:
-        try:
+        with contextlib.suppress(TopicNotFound):
             topic = self.get_topic(arn)
             self.delete_topic_subscriptions(topic)
             parsed_arn = parse_arn(arn)
             sns_backends[parsed_arn.account][parsed_arn.region].topics.pop(arn, None)
-        except KeyError:
-            raise TopicNotFound
 
     def get_topic(self, arn: str) -> Topic:
         parsed_arn = parse_arn(arn)
