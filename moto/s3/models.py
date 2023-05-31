@@ -2524,7 +2524,7 @@ class S3BackendDict(BackendDict):
 
         # Maps bucket names to account IDs. This is used to locate the exact S3Backend
         # holding the bucket and to maintain the common bucket namespace.
-        self.bucket_accounts: dict[str, str] = {}
+        self.bucket_accounts: Dict[str, str] = {}
 
 
 s3_backends = S3BackendDict(
