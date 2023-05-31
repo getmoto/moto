@@ -1346,7 +1346,11 @@ def test_update_secret(pass_arn):
     secret = conn.get_secret_value(SecretId=secret_id)
     assert secret["SecretString"] == "foosecret"
 
-    updated_secret = conn.update_secret(SecretId=secret_id, SecretString="barsecret")
+    updated_secret = conn.update_secret(
+        SecretId=secret_id,
+        SecretString="barsecret",
+        Description="new desc",
+    )
 
     assert updated_secret["ARN"]
     assert updated_secret["Name"] == "test-secret"
@@ -1355,6 +1359,8 @@ def test_update_secret(pass_arn):
     secret = conn.get_secret_value(SecretId=secret_id)
     assert secret["SecretString"] == "barsecret"
     assert created_secret["VersionId"] != updated_secret["VersionId"]
+
+    assert conn.describe_secret(SecretId=secret_id)["Description"] == "new desc"
 
 
 @mock_secretsmanager

@@ -352,6 +352,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_binary: Optional[str] = None,
         client_request_token: Optional[str] = None,
         kms_key_id: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> str:
 
         # error if secret does not exist
@@ -366,7 +367,7 @@ class SecretsManagerBackend(BaseBackend):
 
         secret = self.secrets[secret_id]
         tags = secret.tags
-        description = secret.description
+        description = description or secret.description
 
         secret = self._add_secret(
             secret_id,
