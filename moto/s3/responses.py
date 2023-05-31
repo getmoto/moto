@@ -909,15 +909,19 @@ class S3Response(BaseResponse):
                 new_bucket = self.backend.create_bucket(bucket_name, region_name)
             except BucketAlreadyExists:
                 new_bucket = self.backend.get_bucket(bucket_name)
-                if (
-                    new_bucket.region_name == DEFAULT_REGION_NAME
-                    and region_name == DEFAULT_REGION_NAME
-                ):
-                    # us-east-1 has different behavior - creating a bucket there is an idempotent operation
-                    pass
+                if new_bucket.account_id == self.get_current_account():
+                    # special cases when the bucket belongs to self
+                    if (
+                        new_bucket.region_name == DEFAULT_REGION_NAME
+                        and region_name == DEFAULT_REGION_NAME
+                    ):
+                        # us-east-1 has different behavior - creating a bucket there is an idempotent operation
+                        pass
+                    else:
+                        template = self.response_template(S3_DUPLICATE_BUCKET_ERROR)
+                        return 409, {}, template.render(bucket_name=bucket_name)
                 else:
-                    template = self.response_template(S3_DUPLICATE_BUCKET_ERROR)
-                    return 409, {}, template.render(bucket_name=bucket_name)
+                    raise
 
             if "x-amz-acl" in request.headers:
                 # TODO: Support the XML-based ACL format
@@ -1519,7 +1523,7 @@ class S3Response(BaseResponse):
 
         acl = self._acl_from_headers(request.headers)
         if acl is None:
-            acl = self.backend.get_bucket(bucket_name).acl
+            acl = bucket.acl
         tagging = self._tagging_from_headers(request.headers)
 
         if "versionId" in query:
