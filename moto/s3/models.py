@@ -1647,18 +1647,15 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def list_buckets(self) -> List[FakeBucket]:
         return list(self.buckets.values())
 
-    def get_bucket_global(self, bucket_name: str) -> FakeBucket:
+    def get_bucket(self, bucket_name: str) -> FakeBucket:
+        if bucket_name in self.buckets:
+            return self.buckets[bucket_name]
+
         if bucket_name in s3_backends.bucket_accounts:
             account_id = s3_backends.bucket_accounts[bucket_name]
             return s3_backends[account_id]["global"].get_bucket(bucket_name)
-        else:
-            return self.get_bucket(bucket_name)
 
-    def get_bucket(self, bucket_name: str) -> FakeBucket:
-        try:
-            return self.buckets[bucket_name]
-        except KeyError:
-            raise MissingBucket(bucket=bucket_name)
+        raise MissingBucket(bucket=bucket_name)
 
     def head_bucket(self, bucket_name: str) -> FakeBucket:
         return self.get_bucket(bucket_name)
@@ -1847,7 +1844,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
 
-        bucket = self.get_bucket_global(bucket_name)
+        bucket = self.get_bucket(bucket_name)
 
         # getting default config from bucket if not included in put request
         if bucket.encryption:
@@ -1966,7 +1963,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> Optional[FakeKey]:
         if not key_is_clean:
             key_name = clean_key_name(key_name)
-        bucket = self.get_bucket_global(bucket_name)
+        bucket = self.get_bucket(bucket_name)
 
         key = None
 
