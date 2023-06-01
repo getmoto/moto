@@ -493,7 +493,7 @@ class SNSBackend(BaseBackend):
     def get_topic(self, arn: str) -> Topic:
         parsed_arn = parse_arn(arn)
         try:
-            return sns_backends[parsed_arn.account][parsed_arn.region].topics[arn]
+            return sns_backends[parsed_arn.account][self.region_name].topics[arn]
         except KeyError:
             raise TopicNotFound
 
