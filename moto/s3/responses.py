@@ -1458,6 +1458,10 @@ class S3Response(BaseResponse):
         key_name: str,
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "PUT", query)
+        # TODO: work on ACL, anonymous users are allowed to upload objects to public bucket, not currently supported
+        # because of unsupported "anonymous" user.
+        # An object created by an anon user in a public bucket will be public. If created by an authenticated user,
+        # by default those objects will be private and owned by the creating user
         self._authenticate_and_authorize_s3_action()
 
         response_headers = self._get_cors_headers_other(request.headers, bucket_name)
@@ -1571,8 +1575,6 @@ class S3Response(BaseResponse):
             lock_mode = bucket.default_lock_mode
 
         acl = self._acl_from_headers(request.headers)
-        if acl is None:
-            acl = bucket.acl
         tagging = self._tagging_from_headers(request.headers)
 
         if "versionId" in query:
@@ -1599,6 +1601,8 @@ class S3Response(BaseResponse):
             return 200, response_headers, ""
 
         if "acl" in query:
+            if not acl:
+                acl = self._acl_from_body()
             self.backend.put_object_acl(bucket_name, key_name, acl)
             return 200, response_headers, ""
 
@@ -1664,8 +1668,7 @@ class S3Response(BaseResponse):
 
             new_key: FakeKey = self.backend.get_object(bucket_name, key_name)  # type: ignore
 
-            if acl is not None:
-                new_key.set_acl(acl)
+            new_key.set_acl(acl or get_canned_acl("private"))
 
             tdirective = request.headers.get("x-amz-tagging-directive")
             if tdirective == "REPLACE":
@@ -1710,7 +1713,9 @@ class S3Response(BaseResponse):
         metadata = metadata_from_headers(request.headers)
         metadata.update(metadata_from_headers(query))
         new_key.set_metadata(metadata)
-        new_key.set_acl(acl)
+        # TODO: if the user is anonymous in a public bucket, the canned ACL should be `public`
+        # not currently supported (always-on default credentials)
+        new_key.set_acl(acl or get_canned_acl("private"))
         new_key.website_redirect_location = request.headers.get(
             "x-amz-website-redirect-location"
         )
@@ -2179,7 +2184,9 @@ class S3Response(BaseResponse):
             metadata = metadata_from_headers(request.headers)
             tagging = self._tagging_from_headers(request.headers)
             storage_type = request.headers.get("x-amz-storage-class", "STANDARD")
-            acl = self._acl_from_headers(request.headers)
+            # TODO: if the user is anonymous in a public bucket, the canned ACL should be `public`
+            # not currently supported (always-on default credentials)
+            acl = self._acl_from_headers(request.headers) or get_canned_acl("private")
 
             multipart_id = self.backend.create_multipart_upload(
                 bucket_name,
