@@ -581,6 +581,17 @@ class FakeAcl(BaseModel):
                     return True
         return False
 
+    def __eq__(self, other: Any) -> bool:
+        """
+        User-defined classes always compare unequal except to themselves by default. Using the `config_dict` allows
+        to check for equality in ACLs.
+        :param other: another FakeAcl object to compare to
+        :return: a boolean indicating equality
+        """
+        if not isinstance(other, FakeAcl):
+            return False
+        return self.to_config_dict() == other.to_config_dict()
+
     def __repr__(self) -> str:
         return f"FakeAcl(grants: {self.grants})"
 
@@ -604,9 +615,7 @@ class FakeAcl(BaseModel):
                     if grantee.uri:
                         grant_list.append(
                             {
-                                "grantee": grantee.uri.split(
-                                    "http://acs.amazonaws.com/groups/s3/"
-                                )[1],
+                                "grantee": grantee.uri.rsplit("/", maxsplit=1)[1],
                                 "permission": CAMEL_CASED_PERMISSIONS[permission],
                             }
                         )
@@ -637,9 +646,8 @@ def get_canned_acl(acl: str) -> FakeAcl:
     elif acl == "public-read":
         grants.append(FakeGrant([ALL_USERS_GRANTEE], [PERMISSION_READ]))
     elif acl == "public-read-write":
-        grants.append(
-            FakeGrant([ALL_USERS_GRANTEE], [PERMISSION_READ, PERMISSION_WRITE])
-        )
+        grants.append(FakeGrant([ALL_USERS_GRANTEE], [PERMISSION_READ]))
+        grants.append(FakeGrant([ALL_USERS_GRANTEE], [PERMISSION_WRITE]))
     elif acl == "authenticated-read":
         grants.append(FakeGrant([AUTHENTICATED_USERS_GRANTEE], [PERMISSION_READ]))
     elif acl == "bucket-owner-read":
@@ -649,9 +657,9 @@ def get_canned_acl(acl: str) -> FakeAcl:
     elif acl == "aws-exec-read":
         pass  # TODO: bucket owner, EC2 Read
     elif acl == "log-delivery-write":
-        grants.append(
-            FakeGrant([LOG_DELIVERY_GRANTEE], [PERMISSION_READ_ACP, PERMISSION_WRITE])
-        )
+        grants.append(FakeGrant([LOG_DELIVERY_GRANTEE], [PERMISSION_READ_ACP]))
+        grants.append(FakeGrant([LOG_DELIVERY_GRANTEE], [PERMISSION_WRITE]))
+
     else:
         assert False, f"Unknown canned acl: {acl}"
     return FakeAcl(grants=grants)

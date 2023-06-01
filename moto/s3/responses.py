@@ -1736,7 +1736,7 @@ class S3Response(BaseResponse):
         metadata = metadata_from_headers(self.headers)
         metadata.update(metadata_from_headers(self.querystring))
         new_key.set_metadata(metadata)
-        new_key.set_acl(acl)
+        new_key.set_acl(acl or get_canned_acl("private"))
         new_key.website_redirect_location = self.headers.get(
             "x-amz-website-redirect-location"
         )
@@ -2498,7 +2498,9 @@ class S3Response(BaseResponse):
             metadata = metadata_from_headers(request.headers)
             tagging = self._tagging_from_headers(request.headers)
             storage_type = request.headers.get("x-amz-storage-class", "STANDARD")
-            acl = self._acl_from_headers(request.headers)
+            # TODO: if the user is anonymous in a public bucket, the canned ACL should be `public`
+            # not currently supported (always-on default credentials)
+            acl = self._acl_from_headers(request.headers) or get_canned_acl("private")
 
             multipart_id = self.backend.create_multipart_upload(
                 bucket_name,
