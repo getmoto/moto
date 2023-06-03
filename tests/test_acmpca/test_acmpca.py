@@ -1,7 +1,6 @@
 """Unit tests for acmpca-supported APIs."""
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_acmpca
 from moto.core import DEFAULT_ACCOUNT_ID
@@ -30,8 +29,9 @@ def test_create_certificate_authority():
         IdempotencyToken="terraform-20221125230308947400000001",
     )
 
-    resp.should.have.key("CertificateAuthorityArn").match(
-        f"^arn:aws:acm-pca:eu-west-1:{DEFAULT_ACCOUNT_ID}:certificate-authority/"
+    assert (
+        f"arn:aws:acm-pca:eu-west-1:{DEFAULT_ACCOUNT_ID}:certificate-authority/"
+        in resp["CertificateAuthorityArn"]
     )
 
 
@@ -51,18 +51,16 @@ def test_describe_certificate_authority():
         "CertificateAuthority"
     ]
 
-    ca.should.have.key("Arn").equals(ca_arn)
-    ca.should.have.key("OwnerAccount").equals(DEFAULT_ACCOUNT_ID)
-    ca.should.have.key("CreatedAt")
-    ca.should.have.key("Type").equals("SUBORDINATE")
-    ca.should.have.key("Status").equals("PENDING_CERTIFICATE")
-    ca.should.have.key("CertificateAuthorityConfiguration").equals(
-        {
-            "KeyAlgorithm": "RSA_4096",
-            "SigningAlgorithm": "SHA512WITHRSA",
-            "Subject": {"CommonName": "yscb41lw.test"},
-        }
-    )
+    assert ca["Arn"] == ca_arn
+    assert ca["OwnerAccount"] == DEFAULT_ACCOUNT_ID
+    assert "CreatedAt" in ca
+    assert ca["Type"] == "SUBORDINATE"
+    assert ca["Status"] == "PENDING_CERTIFICATE"
+    assert ca["CertificateAuthorityConfiguration"] == {
+        "KeyAlgorithm": "RSA_4096",
+        "SigningAlgorithm": "SHA512WITHRSA",
+        "Subject": {"CommonName": "yscb41lw.test"},
+    }
 
 
 @mock_acmpca
@@ -72,7 +70,7 @@ def test_describe_unknown_certificate_authority():
     with pytest.raises(ClientError) as exc:
         client.describe_certificate_authority(CertificateAuthorityArn="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_acmpca
@@ -91,7 +89,7 @@ def test_get_certificate_authority_certificate():
     resp = client.get_certificate_authority_certificate(CertificateAuthorityArn=ca_arn)
 
     # Certificate is empty for now,  until we call import_certificate_authority_certificate
-    resp.should.have.key("Certificate").equals("")
+    assert resp["Certificate"] == ""
 
 
 @mock_acmpca
@@ -109,7 +107,7 @@ def test_get_certificate_authority_csr():
 
     resp = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)
 
-    resp.should.have.key("Csr")
+    assert "Csr" in resp
 
 
 @mock_acmpca
@@ -126,7 +124,7 @@ def test_list_tags_when_ca_has_no_tags():
     )["CertificateAuthorityArn"]
 
     resp = client.list_tags(CertificateAuthorityArn=ca_arn)
-    resp.should.have.key("Tags").equals([])
+    assert resp["Tags"] == []
 
 
 @mock_acmpca
@@ -144,9 +142,7 @@ def test_list_tags():
     )["CertificateAuthorityArn"]
 
     resp = client.list_tags(CertificateAuthorityArn=ca_arn)
-    resp.should.have.key("Tags").equals(
-        [{"Key": "t1", "Value": "v1"}, {"Key": "t2", "Value": "v2"}]
-    )
+    assert resp["Tags"] == [{"Key": "t1", "Value": "v1"}, {"Key": "t2", "Value": "v2"}]
 
 
 @mock_acmpca
@@ -169,8 +165,8 @@ def test_update_certificate_authority():
     ca = client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)[
         "CertificateAuthority"
     ]
-    ca.should.have.key("Status").equals("DISABLED")
-    ca.should.have.key("LastStateChangeAt")
+    assert ca["Status"] == "DISABLED"
+    assert "LastStateChangeAt" in ca
 
 
 @mock_acmpca
@@ -190,7 +186,7 @@ def test_delete_certificate_authority():
     ca = client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)[
         "CertificateAuthority"
     ]
-    ca.should.have.key("Status").equals("DELETED")
+    assert ca["Status"] == "DELETED"
 
 
 @mock_acmpca
@@ -214,7 +210,7 @@ def test_issue_certificate():
         Validity={"Type": "YEARS", "Value": 10},
     )
 
-    resp.should.have.key("CertificateArn")
+    assert "CertificateArn" in resp
 
 
 @mock_acmpca
@@ -241,7 +237,7 @@ def test_get_certificate():
     resp = client.get_certificate(
         CertificateAuthorityArn=ca_arn, CertificateArn=certificate_arn
     )
-    resp.should.have.key("Certificate")
+    assert "Certificate" in resp
 
 
 @mock_acmpca
@@ -266,12 +262,12 @@ def test_import_certificate_authority_certificate():
     ca = client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)[
         "CertificateAuthority"
     ]
-    ca.should.have.key("Status").equals("ACTIVE")
-    ca.should.have.key("NotBefore")
-    ca.should.have.key("NotAfter")
+    assert ca["Status"] == "ACTIVE"
+    assert "NotBefore" in ca
+    assert "NotAfter" in ca
 
     resp = client.get_certificate_authority_certificate(CertificateAuthorityArn=ca_arn)
-    resp.should.have.key("Certificate").match("^-----BEGIN CERTIFICATE-----")
+    assert "-----BEGIN CERTIFICATE-----" in resp["Certificate"]
 
 
 @mock_acmpca
@@ -292,9 +288,7 @@ def test_tag_certificate_authority():
     )
 
     resp = client.list_tags(CertificateAuthorityArn=ca_arn)
-    resp.should.have.key("Tags").equals(
-        [{"Key": "t1", "Value": "v1"}, {"Key": "t2", "Value": "v2"}]
-    )
+    assert resp["Tags"] == [{"Key": "t1", "Value": "v1"}, {"Key": "t2", "Value": "v2"}]
 
 
 @mock_acmpca
@@ -319,7 +313,7 @@ def test_untag_certificate_authority():
     )
 
     resp = client.list_tags(CertificateAuthorityArn=ca_arn)
-    resp.should.have.key("Tags").equals([{"Key": "t2", "Value": "v2"}])
+    assert resp["Tags"] == [{"Key": "t2", "Value": "v2"}]
 
 
 def create_cert():
