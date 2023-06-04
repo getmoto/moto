@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.11
 ------
-Docker Digest for 4.1.11: <autopopulateddigest>
+Docker Digest for 4.1.11: _sha256:0ac1ec726e428bd3134c10c32639d72f814bbe002b9d2010420850aab8bc2550_
 
     New Methods:
 
