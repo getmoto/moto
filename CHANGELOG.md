@@ -22,7 +22,7 @@ Docker Digest for 4.1.11: <autopopulateddigest>
         * ECR: put_image(): now behaves correctly on duplicate images with duplicate tags
         * Organizations: create_policy() now supports the Tags-parameter
         * RDS: creation times of all objects are now in UTC
-        * RDS: creation times of all objects are now in UTC
+        * Redshift: creation times of all objects are now in UTC
         * S3: Bucket names are now global, meaning they have to be unique across accounts
         * S3: select_object_content() now supports None-values
         * S3: select_object_content() now supports nested FROM-clauses (from x.y as xy)
