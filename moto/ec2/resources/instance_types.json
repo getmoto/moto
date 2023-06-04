@@ -5777,7 +5777,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 64,
    "ValidCores": [
-    2,
     4,
     6,
     8,
@@ -5872,7 +5871,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 96,
    "ValidCores": [
-    2,
     4,
     6,
     8,
@@ -6061,7 +6059,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 128,
    "ValidCores": [
-    4,
     8,
     12,
     16,
@@ -6110,7 +6107,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -6159,7 +6156,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 192,
    "ValidCores": [
-    4,
     8,
     12,
     16,
@@ -6355,14 +6351,12 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 32,
    "ValidCores": [
-    1,
-    2,
-    3,
     4,
-    5,
     6,
-    7,
     8,
+    10,
+    12,
+    14,
     16
    ],
    "ValidThreadsPerCore": [
@@ -6493,7 +6487,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -32884,7 +32878,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 96,
    "ValidCores": [
-    2,
     4,
     6,
     8,
@@ -33073,7 +33066,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 128,
    "ValidCores": [
-    4,
     8,
     12,
     16,
@@ -33122,7 +33114,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -33367,14 +33359,12 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 32,
    "ValidCores": [
-    1,
-    2,
-    3,
     4,
-    5,
     6,
-    7,
     8,
+    10,
+    12,
+    14,
     16
    ],
    "ValidThreadsPerCore": [
@@ -33505,7 +33495,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -48965,7 +48955,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 64,
    "ValidCores": [
-    2,
     4,
     6,
     8,
@@ -49060,7 +49049,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 96,
    "ValidCores": [
-    2,
     4,
     6,
     8,
@@ -49249,7 +49237,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 128,
    "ValidCores": [
-    4,
     8,
     12,
     16,
@@ -49298,7 +49285,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -49540,14 +49527,12 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 32,
    "ValidCores": [
-    1,
-    2,
-    3,
     4,
-    5,
     6,
-    7,
     8,
+    10,
+    12,
+    14,
     16
    ],
    "ValidThreadsPerCore": [
@@ -49678,7 +49663,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -62935,7 +62920,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -63067,7 +63052,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -63497,7 +63482,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -63837,7 +63822,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
