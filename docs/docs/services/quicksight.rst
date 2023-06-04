@@ -78,6 +78,8 @@ quicksight
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
+- [ ] describe_asset_bundle_export_job
+- [ ] describe_asset_bundle_import_job
 - [ ] describe_dashboard
 - [ ] describe_dashboard_definition
 - [ ] describe_dashboard_permissions
@@ -114,6 +116,8 @@ quicksight
 - [ ] get_dashboard_embed_url
 - [ ] get_session_embed_url
 - [ ] list_analyses
+- [ ] list_asset_bundle_export_jobs
+- [ ] list_asset_bundle_import_jobs
 - [ ] list_dashboard_versions
 - [ ] list_dashboards
 - [ ] list_data_sets
@@ -165,6 +169,8 @@ quicksight
 - [ ] search_data_sources
 - [ ] search_folders
 - [ ] search_groups
+- [ ] start_asset_bundle_export_job
+- [ ] start_asset_bundle_import_job
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization

@@ -2,6 +2,37 @@ Moto Changelog
 ==============
 
 
+4.1.11
+------
+Docker Digest for 4.1.11: <autopopulateddigest>
+
+    New Methods:
+
+        * AppSync:
+            * get_introspection_schema()
+
+        * Comprehend:
+            * detect_key_phrases()
+            * detect_pii_entities()
+            * detect_sentiment()
+
+    Miscellaneous:
+        * EC2: describe_key_pairs() now returns the CreateTime-attribute
+        * EC2: describe_spot_fleet_requests() now returns the Tags-attribute
+        * ECR: put_image(): now behaves correctly on duplicate images with duplicate tags
+        * Organizations: create_policy() now supports the Tags-parameter
+        * RDS: creation times of all objects are now in UTC
+        * RDS: creation times of all objects are now in UTC
+        * S3: Bucket names are now global, meaning they have to be unique across accounts
+        * S3: select_object_content() now supports None-values
+        * S3: select_object_content() now supports nested FROM-clauses (from x.y as xy)
+        * SecretsManager - update_secret() now supports the Description-parameter
+        * SNS now returns the correct error message for non-existing topics
+        * SNS: Topics are no longer accessible across regions (only across accounts)
+        * SNS: delete_topic() is now idempotent and no longer throws an error for non-existent topics
+        * SQS: Requests and responses in JSON-format are now supported
+        * SSM: MaintenanceWindows now have tagging support
+
 4.1.10
 ------
 Docker Digest for 4.1.10: _sha256:095d1dfadc71b4c68f05240129a32acf6dd7ba722c78afd4f01d8c7c3af0ebb4_
