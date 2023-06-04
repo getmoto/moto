@@ -5,7 +5,7 @@ import requests
 import re
 
 from collections import OrderedDict
-from typing import Any, Dict, List, Iterable, Optional, Tuple
+from typing import Any, Dict, List, Iterable, Optional, Tuple, Set
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import (
@@ -76,7 +76,9 @@ class Topic(CloudFormationModel):
         deduplication_id: Optional[str] = None,
     ) -> str:
         message_id = str(mock_random.uuid4())
-        subscriptions, _ = self.sns_backend.list_subscriptions(self.arn)
+        subscriptions, _ = self.sns_backend.list_subscriptions_by_topic(
+            topic_arn=self.arn
+        )
         for subscription in subscriptions:
             subscription.publish(
                 message,
@@ -418,7 +420,13 @@ class SNSBackend(BaseBackend):
             service_region, zones, "sns"
         )
 
-    def update_sms_attributes(self, attrs: Dict[str, str]) -> None:
+    def get_sms_attributes(self, filter_list: Set[str]) -> Dict[str, str]:
+        if len(filter_list) > 0:
+            return {k: v for k, v in self.sms_attributes.items() if k in filter_list}
+        else:
+            return self.sms_attributes
+
+    def set_sms_attributes(self, attrs: Dict[str, str]) -> None:
         self.sms_attributes.update(attrs)
 
     def create_topic(
@@ -427,7 +435,6 @@ class SNSBackend(BaseBackend):
         attributes: Optional[Dict[str, str]] = None,
         tags: Optional[Dict[str, str]] = None,
     ) -> Topic:
-
         if attributes is None:
             attributes = {}
         if attributes.get("FifoTopic") and attributes["FifoTopic"].lower() == "true":
@@ -555,16 +562,18 @@ class SNSBackend(BaseBackend):
         self.subscriptions.pop(subscription_arn, None)
 
     def list_subscriptions(
-        self, topic_arn: Optional[str] = None, next_token: Optional[str] = None
+        self, next_token: Optional[str] = None
     ) -> Tuple[List[Subscription], Optional[int]]:
-        if topic_arn:
-            topic = self.get_topic(topic_arn)
-            filtered = OrderedDict(
-                [(sub.arn, sub) for sub in self._get_topic_subscriptions(topic)]
-            )
-            return self._get_values_nexttoken(filtered, next_token)
-        else:
-            return self._get_values_nexttoken(self.subscriptions, next_token)
+        return self._get_values_nexttoken(self.subscriptions, next_token)
+
+    def list_subscriptions_by_topic(
+        self, topic_arn: str, next_token: Optional[str] = None
+    ) -> Tuple[List[Subscription], Optional[int]]:
+        topic = self.get_topic(topic_arn)
+        filtered = OrderedDict(
+            [(sub.arn, sub) for sub in self._get_topic_subscriptions(topic)]
+        )
+        return self._get_values_nexttoken(filtered, next_token)
 
     def publish(
         self,
@@ -642,7 +651,7 @@ class SNSBackend(BaseBackend):
         except KeyError:
             raise SNSNotFoundError(f"Application with arn {arn} not found")
 
-    def set_application_attributes(
+    def set_platform_application_attributes(
         self, arn: str, attributes: Dict[str, Any]
     ) -> PlatformApplication:
         application = self.get_application(arn)
@@ -1047,6 +1056,35 @@ class SNSBackend(BaseBackend):
                         }
                     )
         return successful, failed
+
+    def check_if_phone_number_is_opted_out(self, number: str) -> bool:
+        """
+        Current implementation returns True for all numbers ending in '99'
+        """
+        return number.endswith("99")
+
+    def list_phone_numbers_opted_out(self) -> List[str]:
+        return self.opt_out_numbers
+
+    def opt_in_phone_number(self, number: str) -> None:
+        try:
+            self.opt_out_numbers.remove(number)
+        except ValueError:
+            pass
+
+    def confirm_subscription(self) -> None:
+        pass
+
+    def get_endpoint_attributes(self, arn: str) -> Dict[str, str]:
+        endpoint = self.get_endpoint(arn)
+        return endpoint.attributes
+
+    def get_platform_application_attributes(self, arn: str) -> Dict[str, str]:
+        application = self.get_application(arn)
+        return application.attributes
+
+    def get_topic_attributes(self) -> None:
+        pass
 
 
 sns_backends = BackendDict(SNSBackend, "sns")

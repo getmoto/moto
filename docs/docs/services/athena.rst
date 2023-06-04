@@ -36,6 +36,7 @@ athena
 - [X] create_prepared_statement
 - [ ] create_presigned_notebook_url
 - [X] create_work_group
+- [ ] delete_capacity_reservation
 - [ ] delete_data_catalog
 - [ ] delete_named_query
 - [ ] delete_notebook

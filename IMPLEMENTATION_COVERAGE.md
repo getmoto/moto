@@ -301,9 +301,11 @@
 
 ## appsync
 <details>
-<summary>29% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] associate_api
+- [ ] associate_merged_graphql_api
+- [ ] associate_source_graphql_api
 - [ ] create_api_cache
 - [X] create_api_key
 - [ ] create_data_source
@@ -321,6 +323,8 @@
 - [ ] delete_resolver
 - [ ] delete_type
 - [ ] disassociate_api
+- [ ] disassociate_merged_graphql_api
+- [ ] disassociate_source_graphql_api
 - [ ] evaluate_code
 - [ ] evaluate_mapping_template
 - [ ] flush_api_cache
@@ -333,6 +337,7 @@
 - [ ] get_introspection_schema
 - [ ] get_resolver
 - [X] get_schema_creation_status
+- [ ] get_source_api_association
 - [X] get_type
 - [X] list_api_keys
 - [ ] list_data_sources
@@ -341,9 +346,12 @@
 - [X] list_graphql_apis
 - [ ] list_resolvers
 - [ ] list_resolvers_by_function
+- [ ] list_source_api_associations
 - [X] list_tags_for_resource
 - [ ] list_types
+- [ ] list_types_by_association
 - [X] start_schema_creation
+- [ ] start_schema_merge
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_api_cache
@@ -353,6 +361,7 @@
 - [ ] update_function
 - [X] update_graphql_api
 - [ ] update_resolver
+- [ ] update_source_api_association
 - [ ] update_type
 </details>
 
@@ -371,6 +380,7 @@
 - [X] create_prepared_statement
 - [ ] create_presigned_notebook_url
 - [X] create_work_group
+- [ ] delete_capacity_reservation
 - [ ] delete_data_catalog
 - [ ] delete_named_query
 - [ ] delete_notebook
@@ -788,7 +798,7 @@
 
 ## cloudtrail
 <details>
-<summary>36% implemented</summary>
+<summary>34% implemented</summary>
 
 - [X] add_tags
 - [ ] cancel_query
@@ -826,9 +836,11 @@
 - [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
+- [ ] start_event_data_store_ingestion
 - [ ] start_import
 - [X] start_logging
 - [ ] start_query
+- [ ] stop_event_data_store_ingestion
 - [ ] stop_import
 - [X] stop_logging
 - [ ] update_channel
@@ -5030,7 +5042,7 @@
 
 ## quicksight
 <details>
-<summary>9% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] cancel_ingestion
 - [ ] create_account_customization
@@ -5083,6 +5095,8 @@
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
+- [ ] describe_asset_bundle_export_job
+- [ ] describe_asset_bundle_import_job
 - [ ] describe_dashboard
 - [ ] describe_dashboard_definition
 - [ ] describe_dashboard_permissions
@@ -5119,6 +5133,8 @@
 - [ ] get_dashboard_embed_url
 - [ ] get_session_embed_url
 - [ ] list_analyses
+- [ ] list_asset_bundle_export_jobs
+- [ ] list_asset_bundle_import_jobs
 - [ ] list_dashboard_versions
 - [ ] list_dashboards
 - [ ] list_data_sets
@@ -5153,6 +5169,8 @@
 - [ ] search_data_sources
 - [ ] search_folders
 - [ ] search_groups
+- [ ] start_asset_bundle_export_job
+- [ ] start_asset_bundle_import_job
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization
@@ -6575,11 +6593,11 @@
 
 ## sns
 <details>
-<summary>52% implemented</summary>
+<summary>78% implemented</summary>
 
 - [X] add_permission
-- [ ] check_if_phone_number_is_opted_out
-- [ ] confirm_subscription
+- [X] check_if_phone_number_is_opted_out
+- [X] confirm_subscription
 - [X] create_platform_application
 - [X] create_platform_endpoint
 - [ ] create_sms_sandbox_phone_number
@@ -6589,29 +6607,29 @@
 - [ ] delete_sms_sandbox_phone_number
 - [X] delete_topic
 - [ ] get_data_protection_policy
-- [ ] get_endpoint_attributes
-- [ ] get_platform_application_attributes
-- [ ] get_sms_attributes
+- [X] get_endpoint_attributes
+- [X] get_platform_application_attributes
+- [X] get_sms_attributes
 - [ ] get_sms_sandbox_account_status
 - [X] get_subscription_attributes
-- [ ] get_topic_attributes
+- [X] get_topic_attributes
 - [X] list_endpoints_by_platform_application
 - [ ] list_origination_numbers
-- [ ] list_phone_numbers_opted_out
+- [X] list_phone_numbers_opted_out
 - [X] list_platform_applications
 - [ ] list_sms_sandbox_phone_numbers
 - [X] list_subscriptions
-- [ ] list_subscriptions_by_topic
+- [X] list_subscriptions_by_topic
 - [X] list_tags_for_resource
 - [X] list_topics
-- [ ] opt_in_phone_number
+- [X] opt_in_phone_number
 - [X] publish
 - [X] publish_batch
 - [ ] put_data_protection_policy
 - [X] remove_permission
 - [X] set_endpoint_attributes
-- [ ] set_platform_application_attributes
-- [ ] set_sms_attributes
+- [X] set_platform_application_attributes
+- [X] set_sms_attributes
 - [X] set_subscription_attributes
 - [ ] set_topic_attributes
 - [X] subscribe
@@ -7036,7 +7054,7 @@
 
 ## wafv2
 <details>
-<summary>23% implemented</summary>
+<summary>22% implemented</summary>
 
 - [X] associate_web_acl
 - [ ] check_capacity
@@ -7052,6 +7070,8 @@
 - [ ] delete_regex_pattern_set
 - [ ] delete_rule_group
 - [X] delete_web_acl
+- [ ] describe_all_managed_products
+- [ ] describe_managed_products_by_vendor
 - [ ] describe_managed_rule_group
 - [X] disassociate_web_acl
 - [ ] generate_mobile_sdk_release_url

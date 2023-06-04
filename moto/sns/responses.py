@@ -307,7 +307,7 @@ class SNSResponse(BaseResponse):
     def list_subscriptions_by_topic(self) -> str:
         topic_arn = self._get_param("TopicArn")
         next_token = self._get_param("NextToken")
-        subscriptions, next_token = self.backend.list_subscriptions(
+        subscriptions, next_token = self.backend.list_subscriptions_by_topic(
             topic_arn, next_token=next_token
         )
 
@@ -443,14 +443,14 @@ class SNSResponse(BaseResponse):
 
     def get_platform_application_attributes(self) -> str:
         arn = self._get_param("PlatformApplicationArn")
-        application = self.backend.get_application(arn)
+        attributes = self.backend.get_platform_application_attributes(arn)
 
         if self.request_json:
             return json.dumps(
                 {
                     "GetPlatformApplicationAttributesResponse": {
                         "GetPlatformApplicationAttributesResult": {
-                            "Attributes": application.attributes
+                            "Attributes": attributes
                         },
                         "ResponseMetadata": {
                             "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
@@ -460,13 +460,13 @@ class SNSResponse(BaseResponse):
             )
 
         template = self.response_template(GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
-        return template.render(application=application)
+        return template.render(attributes=attributes)
 
     def set_platform_application_attributes(self) -> str:
         arn = self._get_param("PlatformApplicationArn")
         attributes = self._get_attributes()
 
-        self.backend.set_application_attributes(arn, attributes)
+        self.backend.set_platform_application_attributes(arn, attributes)
 
         if self.request_json:
             return json.dumps(
@@ -589,15 +589,13 @@ class SNSResponse(BaseResponse):
     def get_endpoint_attributes(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         arn = self._get_param("EndpointArn")
         try:
-            endpoint = self.backend.get_endpoint(arn)
+            attributes = self.backend.get_endpoint_attributes(arn)
 
             if self.request_json:
                 return json.dumps(
                     {
                         "GetEndpointAttributesResponse": {
-                            "GetEndpointAttributesResult": {
-                                "Attributes": endpoint.attributes
-                            },
+                            "GetEndpointAttributesResult": {"Attributes": attributes},
                             "ResponseMetadata": {
                                 "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
                             },
@@ -606,7 +604,7 @@ class SNSResponse(BaseResponse):
                 )
 
             template = self.response_template(GET_ENDPOINT_ATTRIBUTES_TEMPLATE)
-            return template.render(endpoint=endpoint)
+            return template.render(attributes=attributes)
         except SNSNotFoundError:
             error_response = self._error("NotFound", "Endpoint does not exist")
             return error_response, dict(status=404)
@@ -683,7 +681,7 @@ class SNSResponse(BaseResponse):
             if "key" in item and "value" in item:
                 result[item["key"]] = item["value"]
 
-        self.backend.update_sms_attributes(result)
+        self.backend.set_sms_attributes(result)
 
         template = self.response_template(SET_SMS_ATTRIBUTES_TEMPLATE)
         return template.render()
@@ -694,12 +692,7 @@ class SNSResponse(BaseResponse):
             if key.startswith("attributes.member.1"):
                 filter_list.add(value[0])
 
-        if len(filter_list) > 0:
-            result = {
-                k: v for k, v in self.backend.sms_attributes.items() if k in filter_list
-            }
-        else:
-            result = self.backend.sms_attributes
+        result = self.backend.get_sms_attributes(filter_list)
 
         template = self.response_template(GET_SMS_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=result)
@@ -715,21 +708,19 @@ class SNSResponse(BaseResponse):
             )
             return error_response, dict(status=400)
 
-        # There should be a nicer way to set if a nubmer has opted out
+        x = self.backend.check_if_phone_number_is_opted_out(number)
         template = self.response_template(CHECK_IF_OPTED_OUT_TEMPLATE)
-        return template.render(opt_out=str(number.endswith("99")).lower())
+        return template.render(opt_out=str(x).lower())
 
     def list_phone_numbers_opted_out(self) -> str:
+        numbers = self.backend.list_phone_numbers_opted_out()
         template = self.response_template(LIST_OPTOUT_TEMPLATE)
-        return template.render(opt_outs=self.backend.opt_out_numbers)
+        return template.render(opt_outs=numbers)
 
     def opt_in_phone_number(self) -> str:
         number = self._get_param("phoneNumber")
 
-        try:
-            self.backend.opt_out_numbers.remove(number)
-        except ValueError:
-            pass
+        self.backend.opt_in_phone_number(number)
 
         template = self.response_template(OPT_IN_NUMBER_TEMPLATE)
         return template.render()
@@ -955,10 +946,10 @@ DELETE_PLATFORM_APPLICATION_TEMPLATE = """<DeletePlatformApplicationResponse xml
 GET_ENDPOINT_ATTRIBUTES_TEMPLATE = """<GetEndpointAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
   <GetEndpointAttributesResult>
     <Attributes>
-    {% for attribute in endpoint.attributes %}
+    {% for attribute in attributes %}
       <entry>
         <key>{{ attribute }}</key>
-        <value>{{ endpoint.attributes[attribute] }}</value>
+        <value>{{ attributes[attribute] }}</value>
       </entry>
     {% endfor %}
     </Attributes>
@@ -994,10 +985,10 @@ LIST_ENDPOINTS_BY_PLATFORM_APPLICATION_TEMPLATE = """<ListEndpointsByPlatformApp
 GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE = """<GetPlatformApplicationAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
   <GetPlatformApplicationAttributesResult>
     <Attributes>
-    {% for attribute in application.attributes %}
+    {% for attribute in attributes %}
       <entry>
         <key>{{ attribute }}</key>
-        <value>{{ application.attributes[attribute] }}</value>
+        <value>{{ attributes[attribute] }}</value>
       </entry>
     {% endfor %}
     </Attributes>
