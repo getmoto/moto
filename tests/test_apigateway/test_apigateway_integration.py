@@ -51,7 +51,7 @@ def test_http_integration():
         f"https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
     )
 
-    requests.get(deploy_url).content.should.equal(b"a fake response")
+    assert requests.get(deploy_url).content == b"a fake response"
 
 
 @mock_apigateway
@@ -75,8 +75,8 @@ def test_aws_integration_dynamodb():
         f"https://{api_id}.execute-api.us-west-2.amazonaws.com/{stage_name}",
         json={"TableName": table_name, "Item": {"name": {"S": "the-key"}}},
     )
-    res.status_code.should.equal(200)
-    res.content.should.equal(b"{}")
+    assert res.status_code == 200
+    assert res.content == b"{}"
 
 
 @mock_apigateway
@@ -100,20 +100,20 @@ def test_aws_integration_dynamodb_multiple_stages():
         f"https://{api_id}.execute-api.us-west-2.amazonaws.com/dev",
         json={"TableName": table_name, "Item": {"name": {"S": "the-key"}}},
     )
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
     res = requests.put(
         f"https://{api_id}.execute-api.us-west-2.amazonaws.com/staging",
         json={"TableName": table_name, "Item": {"name": {"S": "the-key"}}},
     )
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
     # We haven't pushed to prod yet
     res = requests.put(
         f"https://{api_id}.execute-api.us-west-2.amazonaws.com/prod",
         json={"TableName": table_name, "Item": {"name": {"S": "the-key"}}},
     )
-    res.status_code.should.equal(400)
+    assert res.status_code == 400
 
 
 @mock_apigateway
@@ -153,17 +153,17 @@ def test_aws_integration_dynamodb_multiple_resources():
             "Item": {"name": {"S": "the-key"}, "attr2": {"S": "sth"}},
         },
     )
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
     # Get item from child resource
     res = requests.get(
         f"https://{api_id}.execute-api.us-west-2.amazonaws.com/dev/item",
         json={"TableName": table_name, "Key": {"name": {"S": "the-key"}}},
     )
-    res.status_code.should.equal(200)
-    json.loads(res.content).should.equal(
-        {"Item": {"name": {"S": "the-key"}, "attr2": {"S": "sth"}}}
-    )
+    assert res.status_code == 200
+    assert json.loads(res.content) == {
+        "Item": {"name": {"S": "the-key"}, "attr2": {"S": "sth"}}
+    }
 
 
 @mock_apigateway
@@ -180,7 +180,7 @@ def test_aws_integration_sagemaker():
     response = client.get_integration(
         restApiId=api_id, resourceId=resource_id, httpMethod="PUT"
     )
-    response.should.have.key("uri").equals(integration_action)
+    assert response["uri"] == integration_action
 
 
 def create_table(dynamodb, table_name):

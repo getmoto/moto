@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_apigateway
@@ -24,20 +23,18 @@ def test_create_stage_minimal():
         restApiId=api_id, stageName=new_stage_name, deploymentId=deployment_id
     )
 
-    response.should.have.key("stageName").equals(new_stage_name)
-    response.should.have.key("deploymentId").equals(deployment_id)
-    response.should.have.key("methodSettings").equals({})
-    response.should.have.key("variables").equals({})
-    response.should.have.key("ResponseMetadata").should.have.key(
-        "HTTPStatusCode"
-    ).equals(201)
-    response.should.have.key("description").equals("")
-    response.shouldnt.have.key("cacheClusterStatus")
-    response.should.have.key("cacheClusterEnabled").equals(False)
+    assert response["stageName"] == new_stage_name
+    assert response["deploymentId"] == deployment_id
+    assert response["methodSettings"] == {}
+    assert response["variables"] == {}
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
+    assert response["description"] == ""
+    assert "cacheClusterStatus" not in response
+    assert response["cacheClusterEnabled"] is False
 
     stage = client.get_stage(restApiId=api_id, stageName=new_stage_name)
-    stage["stageName"].should.equal(new_stage_name)
-    stage["deploymentId"].should.equal(deployment_id)
+    assert stage["stageName"] == new_stage_name
+    assert stage["deploymentId"] == deployment_id
 
 
 @mock_apigateway
@@ -59,21 +56,19 @@ def test_create_stage_with_env_vars():
         variables={"env": "dev"},
     )
 
-    response.should.have.key("stageName").equals(new_stage_name_with_vars)
-    response.should.have.key("deploymentId").equals(deployment_id)
-    response.should.have.key("methodSettings").equals({})
-    response.should.have.key("variables").equals({"env": "dev"})
-    response.should.have.key("ResponseMetadata").should.have.key(
-        "HTTPStatusCode"
-    ).equals(201)
-    response.should.have.key("description").equals("")
-    response.shouldnt.have.key("cacheClusterStatus")
-    response.should.have.key("cacheClusterEnabled").equals(False)
+    assert response["stageName"] == new_stage_name_with_vars
+    assert response["deploymentId"] == deployment_id
+    assert response["methodSettings"] == {}
+    assert response["variables"] == {"env": "dev"}
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
+    assert response["description"] == ""
+    assert "cacheClusterStatus" not in response
+    assert response["cacheClusterEnabled"] is False
 
     stage = client.get_stage(restApiId=api_id, stageName=new_stage_name_with_vars)
-    stage["stageName"].should.equal(new_stage_name_with_vars)
-    stage["deploymentId"].should.equal(deployment_id)
-    stage["variables"].should.have.key("env").which.should.match("dev")
+    assert stage["stageName"] == new_stage_name_with_vars
+    assert stage["deploymentId"] == deployment_id
+    assert stage["variables"]["env"] == "dev"
 
 
 @mock_apigateway
@@ -97,21 +92,19 @@ def test_create_stage_with_vars_and_cache():
         description="hello moto",
     )
 
-    response.should.have.key("stageName").equals(new_stage_name)
-    response.should.have.key("deploymentId").equals(deployment_id)
-    response.should.have.key("methodSettings").equals({})
-    response.should.have.key("variables").equals({"env": "dev"})
-    response.should.have.key("ResponseMetadata").should.have.key(
-        "HTTPStatusCode"
-    ).equals(201)
-    response.should.have.key("description").equals("hello moto")
-    response.should.have.key("cacheClusterStatus").equals("AVAILABLE")
-    response.should.have.key("cacheClusterEnabled").equals(True)
-    response.should.have.key("cacheClusterSize").equals("0.5")
+    assert response["stageName"] == new_stage_name
+    assert response["deploymentId"] == deployment_id
+    assert response["methodSettings"] == {}
+    assert response["variables"] == {"env": "dev"}
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
+    assert response["description"] == "hello moto"
+    assert response["cacheClusterStatus"] == "AVAILABLE"
+    assert response["cacheClusterEnabled"] is True
+    assert response["cacheClusterSize"] == "0.5"
 
     stage = client.get_stage(restApiId=api_id, stageName=new_stage_name)
 
-    stage["cacheClusterSize"].should.equal("0.5")
+    assert stage["cacheClusterSize"] == "0.5"
 
 
 @mock_apigateway
@@ -137,24 +130,22 @@ def test_create_stage_with_cache_settings():
         description="hello moto",
     )
 
-    response.should.have.key("stageName").equals(new_stage_name)
-    response.should.have.key("deploymentId").equals(deployment_id)
-    response.should.have.key("methodSettings").equals({})
-    response.should.have.key("variables").equals({"env": "dev"})
-    response.should.have.key("ResponseMetadata").should.have.key(
-        "HTTPStatusCode"
-    ).equals(201)
-    response.should.have.key("description").equals("hello moto")
-    response.should.have.key("cacheClusterStatus").equals("AVAILABLE")
-    response.should.have.key("cacheClusterEnabled").equals(True)
-    response.should.have.key("cacheClusterSize").equals("1.6")
-    response.should.have.key("tracingEnabled").equals(True)
+    assert response["stageName"] == new_stage_name
+    assert response["deploymentId"] == deployment_id
+    assert response["methodSettings"] == {}
+    assert response["variables"] == {"env": "dev"}
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
+    assert response["description"] == "hello moto"
+    assert response["cacheClusterStatus"] == "AVAILABLE"
+    assert response["cacheClusterEnabled"] is True
+    assert response["cacheClusterSize"] == "1.6"
+    assert response["tracingEnabled"] is True
 
     stage = client.get_stage(restApiId=api_id, stageName=new_stage_name)
-    stage["stageName"].should.equal(new_stage_name)
-    stage["deploymentId"].should.equal(deployment_id)
-    stage["variables"].should.have.key("env").which.should.match("dev")
-    stage["cacheClusterSize"].should.equal("1.6")
+    assert stage["stageName"] == new_stage_name
+    assert stage["deploymentId"] == deployment_id
+    assert stage["variables"]["env"] == "dev"
+    assert stage["cacheClusterSize"] == "1.6"
 
 
 @mock_apigateway
@@ -171,8 +162,8 @@ def test_recreate_stage_from_deployment():
             restApiId=api_id, stageName=stage_name, deploymentId=depl_id1
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ConflictException")
-    err["Message"].should.equal("Stage already exists")
+    assert err["Code"] == "ConflictException"
+    assert err["Message"] == "Stage already exists"
 
 
 @mock_apigateway
@@ -194,8 +185,8 @@ def test_create_stage_twice():
             restApiId=api_id, stageName=new_stage_name, deploymentId=depl_id1
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ConflictException")
-    err["Message"].should.equal("Stage already exists")
+    assert err["Code"] == "ConflictException"
+    assert err["Message"] == "Stage already exists"
 
 
 @mock_apigateway
@@ -222,20 +213,20 @@ def test_delete_stage():
     )
     stages = client.get_stages(restApiId=api_id)["item"]
     stage_names = [stage["stageName"] for stage in stages]
-    stage_names.should.have.length_of(3)
-    stage_names.should.contain(stage_name)
-    stage_names.should.contain(new_stage_name)
-    stage_names.should.contain(new_stage_name_with_vars)
+    assert len(stage_names) == 3
+    assert stage_name in stage_names
+    assert new_stage_name in stage_names
+    assert new_stage_name_with_vars in stage_names
 
     # delete stage
     response = client.delete_stage(restApiId=api_id, stageName=new_stage_name_with_vars)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 202
 
     # verify other stage still exists
     stages = client.get_stages(restApiId=api_id)["item"]
     stage_names = [stage["stageName"] for stage in stages]
-    stage_names.should.have.length_of(2)
-    stage_names.shouldnt.contain(new_stage_name_with_vars)
+    assert len(stage_names) == 2
+    assert new_stage_name_with_vars not in stage_names
 
 
 @mock_apigateway
@@ -249,26 +240,26 @@ def test_delete_stage_created_by_deployment():
 
     # Sanity check that the deployment exists
     depls = client.get_deployments(restApiId=api_id)["items"]
-    depls.should.have.length_of(1)
-    set(depls[0].keys()).should.equal({"id", "createdDate"})
+    assert len(depls) == 1
+    assert set(depls[0].keys()) == {"id", "createdDate"}
 
     # Sanity check that the stage exists
     stage = client.get_stages(restApiId=api_id)["item"][0]
-    stage.should.have.key("deploymentId").equals(depl_id1)
-    stage.should.have.key("stageName").equals(stage_name)
+    assert stage["deploymentId"] == depl_id1
+    assert stage["stageName"] == stage_name
 
     # delete stage
     response = client.delete_stage(restApiId=api_id, stageName=stage_name)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 202
 
     # verify no stage exists
     stages = client.get_stages(restApiId=api_id)
-    stages.should.have.key("item").equals([])
+    assert stages["item"] == []
 
     # verify deployment still exists, unchanged
     depls = client.get_deployments(restApiId=api_id)["items"]
-    depls.should.have.length_of(1)
-    set(depls[0].keys()).should.equal({"id", "createdDate"})
+    assert len(depls) == 1
+    assert set(depls[0].keys()) == {"id", "createdDate"}
 
 
 @mock_apigateway
@@ -279,8 +270,8 @@ def test_delete_stage_unknown_stage():
     with pytest.raises(ClientError) as exc:
         client.delete_stage(restApiId=api_id, stageName="unknown")
     err = exc.value.response["Error"]
-    err["Message"].should.equal("Invalid stage identifier specified")
-    err["Code"].should.equal("NotFoundException")
+    assert err["Message"] == "Invalid stage identifier specified"
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigateway
@@ -298,11 +289,9 @@ def test_update_stage_configuration():
 
     response = client.get_deployment(restApiId=api_id, deploymentId=deployment_id)
 
-    response.should.have.key("id").equals(deployment_id)
-    response.should.have.key("ResponseMetadata").should.have.key(
-        "HTTPStatusCode"
-    ).equals(200)
-    response.should.have.key("description").equals("1.0.1")
+    assert response["id"] == deployment_id
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["description"] == "1.0.1"
 
     response = client.create_deployment(
         restApiId=api_id, stageName=stage_name, description="1.0.2"
@@ -310,10 +299,10 @@ def test_update_stage_configuration():
     deployment_id2 = response["id"]
 
     stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-    stage["stageName"].should.equal(stage_name)
-    stage["deploymentId"].should.equal(deployment_id2)
-    stage.shouldnt.have.key("cacheClusterSize")
-    stage.shouldnt.have.key("cacheClusterStatus")
+    assert stage["stageName"] == stage_name
+    assert stage["deploymentId"] == deployment_id2
+    assert "cacheClusterSize" not in stage
+    assert "cacheClusterStatus" not in stage
 
     client.update_stage(
         restApiId=api_id,
@@ -325,8 +314,8 @@ def test_update_stage_configuration():
 
     stage = client.get_stage(restApiId=api_id, stageName=stage_name)
 
-    stage.should.have.key("cacheClusterSize").which.should.equal("0.5")
-    stage.should.have.key("cacheClusterStatus").equals("AVAILABLE")
+    assert stage["cacheClusterSize"] == "0.5"
+    assert stage["cacheClusterStatus"] == "AVAILABLE"
 
     client.update_stage(
         restApiId=api_id,
@@ -338,7 +327,7 @@ def test_update_stage_configuration():
 
     stage = client.get_stage(restApiId=api_id, stageName=stage_name)
 
-    stage.should.have.key("cacheClusterSize").which.should.equal("1.6")
+    assert stage["cacheClusterSize"] == "1.6"
 
     client.update_stage(
         restApiId=api_id,
@@ -368,16 +357,14 @@ def test_update_stage_configuration():
 
     stage = client.get_stage(restApiId=api_id, stageName=stage_name)
 
-    stage["description"].should.match("stage description update")
-    stage["cacheClusterSize"].should.equal("1.6")
-    stage["variables"]["environment"].should.match("dev")
-    stage["variables"].should_not.have.key("region")
-    stage["cacheClusterEnabled"].should.equal(True)
-    stage["deploymentId"].should.match(deployment_id)
-    stage["methodSettings"].should.have.key("*/*")
-    stage["methodSettings"]["*/*"].should.have.key(
-        "cacheDataEncrypted"
-    ).which.should.be.true
+    assert stage["description"] == "stage description update"
+    assert stage["cacheClusterSize"] == "1.6"
+    assert stage["variables"]["environment"] == "dev"
+    assert "region" not in stage["variables"]
+    assert stage["cacheClusterEnabled"] is True
+    assert stage["deploymentId"] == deployment_id
+    assert "*/*" in stage["methodSettings"]
+    assert stage["methodSettings"]["*/*"]["cacheDataEncrypted"] is True
 
 
 @mock_apigateway
@@ -410,12 +397,10 @@ def test_update_stage_add_access_log_settings():
     )
 
     stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-    stage.should.have.key("accessLogSettings").equals(
-        {
-            "format": "$context.identity.sourceIp msg",
-            "destinationArn": "arn:aws:logs:us-east-1:123456789012:log-group:foo-bar-x0hyv",
-        }
-    )
+    assert stage["accessLogSettings"] == {
+        "format": "$context.identity.sourceIp msg",
+        "destinationArn": "arn:aws:logs:us-east-1:123456789012:log-group:foo-bar-x0hyv",
+    }
 
 
 @mock_apigateway
@@ -436,7 +421,7 @@ def test_update_stage_tracing_disabled():
     )
 
     stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-    stage.should.have.key("tracingEnabled").equals(False)
+    assert stage["tracingEnabled"] is False
 
     client.update_stage(
         restApiId=api_id,
@@ -445,7 +430,7 @@ def test_update_stage_tracing_disabled():
     )
 
     stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-    stage.should.have.key("tracingEnabled").equals(True)
+    assert stage["tracingEnabled"] is True
 
 
 @mock_apigateway
@@ -467,7 +452,7 @@ def test_update_stage_remove_access_log_settings():
     )
 
     stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-    stage.shouldnt.have.key("accessLogSettings")
+    assert "accessLogSettings" not in stage
 
 
 @mock_apigateway
@@ -491,9 +476,10 @@ def test_update_stage_configuration_unknown_operation():
             ],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "Member must satisfy enum value set: [add, remove, move, test, replace, copy]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Member must satisfy enum value set: [add, remove, move, test, replace, copy]"
     )
 
 
@@ -506,4 +492,4 @@ def test_non_existent_stage():
     with pytest.raises(ClientError) as exc:
         client.get_stage(restApiId=api_id, stageName="xxx")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"

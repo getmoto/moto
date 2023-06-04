@@ -10,7 +10,7 @@ def test_get_vpc_links_empty():
     client = boto3.client("apigateway", region_name="eu-west-1")
 
     resp = client.get_vpc_links()
-    resp.should.have.key("items").equals([])
+    assert resp["items"] == []
 
 
 @mock_apigateway
@@ -24,12 +24,12 @@ def test_create_vpc_link():
         tags={"key1": "value1"},
     )
 
-    resp.should.have.key("id")
-    resp.should.have.key("name").equals("vpcl")
-    resp.should.have.key("description").equals("my first vpc link")
-    resp.should.have.key("targetArns").equals(["elb:target:arn"])
-    resp.should.have.key("status").equals("AVAILABLE")
-    resp.should.have.key("tags").equals({"key1": "value1"})
+    assert "id" in resp
+    assert resp["name"] == "vpcl"
+    assert resp["description"] == "my first vpc link"
+    assert resp["targetArns"] == ["elb:target:arn"]
+    assert resp["status"] == "AVAILABLE"
+    assert resp["tags"] == {"key1": "value1"}
 
 
 @mock_apigateway
@@ -45,12 +45,12 @@ def test_get_vpc_link():
 
     resp = client.get_vpc_link(vpcLinkId=vpc_link_id)
 
-    resp.should.have.key("id")
-    resp.should.have.key("name").equals("vpcl")
-    resp.should.have.key("description").equals("my first vpc link")
-    resp.should.have.key("targetArns").equals(["elb:target:arn"])
-    resp.should.have.key("status").equals("AVAILABLE")
-    resp.should.have.key("tags").equals({"key1": "value1"})
+    assert "id" in resp
+    assert resp["name"] == "vpcl"
+    assert resp["description"] == "my first vpc link"
+    assert resp["targetArns"] == ["elb:target:arn"]
+    assert resp["status"] == "AVAILABLE"
+    assert resp["tags"] == {"key1": "value1"}
 
 
 @mock_apigateway
@@ -60,8 +60,8 @@ def test_get_vpc_link_unknown():
     with pytest.raises(ClientError) as exc:
         client.get_vpc_link(vpcLinkId="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("VPCLink not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "VPCLink not found"
 
 
 @mock_apigateway
@@ -76,8 +76,8 @@ def test_get_vpc_links():
     )["id"]
 
     links = client.get_vpc_links()["items"]
-    links.should.have.length_of(1)
-    links[0]["id"].should.equal(vpc_link_id)
+    assert len(links) == 1
+    assert links[0]["id"] == vpc_link_id
 
     client.create_vpc_link(
         name="vpcl2",
@@ -87,7 +87,7 @@ def test_get_vpc_links():
     )
 
     links = client.get_vpc_links()["items"]
-    links.should.have.length_of(2)
+    assert len(links) == 2
 
 
 @mock_apigateway
@@ -102,9 +102,9 @@ def test_delete_vpc_link():
     )["id"]
 
     links = client.get_vpc_links()["items"]
-    links.should.have.length_of(1)
+    assert len(links) == 1
 
     client.delete_vpc_link(vpcLinkId=vpc_link_id)
 
     links = client.get_vpc_links()["items"]
-    links.should.have.length_of(0)
+    assert len(links) == 0
