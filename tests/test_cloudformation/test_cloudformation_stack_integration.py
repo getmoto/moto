@@ -1730,6 +1730,10 @@ def test_ssm_parameter():
     waiter = cfn.get_waiter("stack_create_complete")
     waiter.wait(StackName=stack_name)
 
+    stack_resources = cfn.list_stack_resources(StackName=stack_name)
+    ssm_resource = stack_resources.get("StackResourceSummaries")[0]
+    ssm_resource.get("PhysicalResourceId").should.equal("test_ssm")
+
     ssm_client = boto3.client("ssm", region_name="us-west-2")
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"

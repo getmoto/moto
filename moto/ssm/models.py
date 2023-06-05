@@ -349,6 +349,10 @@ class Parameter(CloudFormationModel):
 
         ssm_backend.delete_parameter(properties.get("Name"))
 
+    @property
+    def physical_resource_id(self):
+        return self.name
+
 
 MAX_TIMEOUT_SECONDS = 3600
 
