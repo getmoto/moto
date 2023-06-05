@@ -1778,6 +1778,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -4680,6 +4689,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediastore": {
                 "Value": "mediastore",
                 "endpoint": {
@@ -7077,6 +7095,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediastore": {
                 "Value": "mediastore",
                 "endpoint": {
@@ -7519,6 +7546,15 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securitylake": {
+                "Value": "securitylake",
+                "endpoint": {
+                  "Value": "securitylake.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -10521,6 +10557,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediatailor": {
                 "Value": "mediatailor",
                 "endpoint": {
@@ -10978,6 +11023,15 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securitylake": {
+                "Value": "securitylake",
+                "endpoint": {
+                  "Value": "securitylake.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13807,6 +13861,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediatailor": {
                 "Value": "mediatailor",
                 "endpoint": {
@@ -16303,6 +16366,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediastore": {
                 "Value": "mediastore",
                 "endpoint": {
@@ -18591,6 +18663,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "batch": {
+                "Value": "batch",
+                "endpoint": {
+                  "Value": "batch.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "chatbot": {
                 "Value": "chatbot"
               },
@@ -18907,6 +18988,15 @@
                 "Value": "iam",
                 "endpoint": {
                   "Value": "iam.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "imagebuilder": {
+                "Value": "imagebuilder",
+                "endpoint": {
+                  "Value": "imagebuilder.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19291,6 +19381,15 @@
                 "Value": "synthetics",
                 "endpoint": {
                   "Value": "synthetics.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "transitgateway": {
+                "Value": "transitgateway",
+                "endpoint": {
+                  "Value": "ec2.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25649,6 +25748,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediastore": {
                 "Value": "mediastore",
                 "endpoint": {
@@ -28777,6 +28885,15 @@
                 "Value": "mediapackage-vod",
                 "endpoint": {
                   "Value": "mediapackage-vod.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -33516,6 +33633,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediastore": {
                 "Value": "mediastore",
                 "endpoint": {
@@ -35995,6 +36121,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediastore": {
                 "Value": "mediastore",
                 "endpoint": {
@@ -37997,6 +38132,15 @@
                 "Value": "mediapackage-vod",
                 "endpoint": {
                   "Value": "mediapackage-vod.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -42472,6 +42616,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "memorydb": {
                 "Value": "memorydb",
                 "endpoint": {
@@ -45101,6 +45254,15 @@
                 "Value": "mediapackage-vod",
                 "endpoint": {
                   "Value": "mediapackage-vod.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47749,6 +47911,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediatailor": {
                 "Value": "mediatailor",
                 "endpoint": {
@@ -49463,6 +49634,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -49905,7 +50085,13 @@
                 }
               },
               "workspaces": {
-                "Value": "workspaces"
+                "Value": "workspaces",
+                "endpoint": {
+                  "Value": "workspaces.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "xray": {
                 "Value": "xray",
@@ -50896,6 +51082,15 @@
                 "Value": "meteringmarketplace",
                 "endpoint": {
                   "Value": "metering.marketplace.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52624,6 +52819,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "memorydb": {
                 "Value": "memorydb",
                 "endpoint": {
@@ -53051,6 +53255,15 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securitylake": {
+                "Value": "securitylake",
+                "endpoint": {
+                  "Value": "securitylake.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55151,6 +55364,15 @@
                 "Value": "mediapackage-vod",
                 "endpoint": {
                   "Value": "mediapackage-vod.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
