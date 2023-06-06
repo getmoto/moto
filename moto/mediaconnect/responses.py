@@ -16,7 +16,7 @@ class MediaConnectResponse(BaseResponse):
 
     def create_flow(self) -> str:
         availability_zone = self._get_param("availabilityZone")
-        entitlements = self._get_param("entitlements")
+        entitlements = self._get_param("entitlements", [])
         name = self._get_param("name")
         outputs = self._get_param("outputs")
         source = self._get_param("source")
