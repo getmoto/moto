@@ -350,7 +350,7 @@ class Parameter(CloudFormationModel):
         ssm_backend.delete_parameter(properties.get("Name"))
 
     @property
-    def physical_resource_id(self):
+    def physical_resource_id(self) -> str:
         return self.name
 
 
