@@ -1,4 +1,7 @@
+import copy
 import decimal
+
+from botocore.utils import merge_dicts
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 from typing import Any, Dict, List, Union, Optional
 
@@ -8,7 +11,7 @@ from moto.dynamodb.exceptions import (
     EmptyKeyAttributeException,
     ItemSizeTooLarge,
 )
-from moto.dynamodb.models.utilities import bytesize
+from .utilities import bytesize, find_nested_key
 
 deserializer = TypeDeserializer()
 serializer = TypeSerializer()
@@ -66,28 +69,6 @@ class DynamoType(object):
             self.value = [DynamoType(val) for val in self.value]
         elif self.is_map():
             self.value = dict((k, DynamoType(v)) for k, v in self.value.items())
-
-    def filter(self, projection_expressions: str) -> None:
-        nested_projections = [
-            expr[0 : expr.index(".")] for expr in projection_expressions if "." in expr
-        ]
-        if self.is_map():
-            expressions_to_delete = []
-            for attr in self.value:
-                if (
-                    attr not in projection_expressions
-                    and attr not in nested_projections
-                ):
-                    expressions_to_delete.append(attr)
-                elif attr in nested_projections:
-                    relevant_expressions = [
-                        expr[len(attr + ".") :]
-                        for expr in projection_expressions
-                        if expr.startswith(attr + ".")
-                    ]
-                    self.value[attr].filter(relevant_expressions)
-            for expr in expressions_to_delete:
-                self.value.pop(expr)
 
     def __hash__(self) -> int:
         return hash((self.type, self.value))
@@ -213,7 +194,25 @@ class DynamoType(object):
         return value_size
 
     def to_json(self) -> Dict[str, Any]:
+        # Returns a regular JSON object where the value can still be/contain a DynamoType
         return {self.type: self.value}
+
+    def to_regular_json(self) -> Dict[str, Any]:
+        # Returns a regular JSON object in full
+        value = copy.deepcopy(self.value)
+        if isinstance(value, dict):
+            for key, nested_value in value.items():
+                value[key] = (
+                    nested_value.to_regular_json()
+                    if isinstance(nested_value, DynamoType)
+                    else nested_value
+                )
+        if isinstance(value, list):
+            value = [
+                val.to_regular_json() if isinstance(val, DynamoType) else val
+                for val in value
+            ]
+        return {self.type: value}
 
     def compare(self, range_comparison: str, range_objs: List[Any]) -> bool:
         """
@@ -310,7 +309,7 @@ class Item(BaseModel):
     def to_regular_json(self) -> Dict[str, Any]:
         attributes = {}
         for key, attribute in self.attrs.items():
-            attributes[key] = deserializer.deserialize(attribute.to_json())
+            attributes[key] = deserializer.deserialize(attribute.to_regular_json())
         return attributes
 
     def describe_attrs(
@@ -412,20 +411,19 @@ class Item(BaseModel):
                     f"{action} action not support for update_with_attribute_updates"
                 )
 
-    # Filter using projection_expression
-    # Ensure a deep copy is used to filter, otherwise actual data will be removed
-    def filter(self, projection_expression: str) -> None:
+    def project(self, projection_expression: str) -> "Item":
+        # Returns a new Item with only the dictionary-keys that match the provided projection_expression
+        # Will return an empty Item if the expression does not match anything
+        result: Dict[str, Any] = dict()
         expressions = [x.strip() for x in projection_expression.split(",")]
-        top_level_expressions = [
-            expr[0 : expr.index(".")] for expr in expressions if "." in expr
-        ]
-        for attr in list(self.attrs):
-            if attr not in expressions and attr not in top_level_expressions:
-                self.attrs.pop(attr)
-            if attr in top_level_expressions:
-                relevant_expressions = [
-                    expr[len(attr + ".") :]
-                    for expr in expressions
-                    if expr.startswith(attr + ".")
-                ]
-                self.attrs[attr].filter(relevant_expressions)
+        for expr in expressions:
+            x = find_nested_key(expr.split("."), self.to_regular_json())
+            merge_dicts(result, x)
+
+        return Item(
+            hash_key=self.hash_key,
+            range_key=self.range_key,
+            # 'result' is a normal Python dictionary ({'key': 'value'}
+            # We need to convert that into DynamoDB dictionary ({'M': {'key': {'S': 'value'}}})
+            attrs=serializer.serialize(result)["M"],
+        )
