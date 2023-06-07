@@ -353,7 +353,9 @@ class S3Response(BaseResponse):
             return 404, {}, ""
         return 200, {"x-amz-bucket-region": bucket.region_name}, ""
 
-    def _set_cors_headers(self, headers: Dict[str, str], bucket: FakeBucket) -> None:
+    def _set_cors_headers_options(
+        self, headers: Dict[str, str], bucket: FakeBucket
+    ) -> None:
         """
         TODO: smarter way of matching the right CORS rule:
         See https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
@@ -408,9 +410,56 @@ class S3Response(BaseResponse):
             # AWS S3 seems to return 403 on OPTIONS and 404 on GET/HEAD
             return 403, {}, ""
 
-        self._set_cors_headers(headers, bucket)
+        self._set_cors_headers_options(headers, bucket)
 
         return 200, self.response_headers, ""
+
+    def _get_cors_headers_other(
+        self, headers: Dict[str, str], bucket_name: str
+    ) -> Dict[str, Any]:
+        """
+        Returns a dictionary with the appropriate CORS headers
+        Should be used for non-OPTIONS requests only
+        Applicable if the 'Origin' header matches one of a CORS-rules - returns an empty dictionary otherwise
+        """
+        response_headers: Dict[str, Any] = dict()
+        try:
+            origin = headers.get("Origin")
+            if not origin:
+                return response_headers
+            bucket = self.backend.get_bucket(bucket_name)
+
+            def _to_string(header: Union[List[str], str]) -> str:
+                # We allow list and strs in header values. Transform lists in comma-separated strings
+                if isinstance(header, list):
+                    return ", ".join(header)
+                return header
+
+            for cors_rule in bucket.cors:
+                if cors_rule.allowed_origins is not None:
+                    if cors_matches_origin(origin, cors_rule.allowed_origins):  # type: ignore
+                        response_headers["Access-Control-Allow-Origin"] = origin  # type: ignore
+                        if cors_rule.allowed_methods is not None:
+                            response_headers[
+                                "Access-Control-Allow-Methods"
+                            ] = _to_string(cors_rule.allowed_methods)
+                        if cors_rule.allowed_headers is not None:
+                            response_headers[
+                                "Access-Control-Allow-Headers"
+                            ] = _to_string(cors_rule.allowed_headers)
+                        if cors_rule.exposed_headers is not None:
+                            response_headers[
+                                "Access-Control-Expose-Headers"
+                            ] = _to_string(cors_rule.exposed_headers)
+                        if cors_rule.max_age_seconds is not None:
+                            response_headers["Access-Control-Max-Age"] = _to_string(
+                                cors_rule.max_age_seconds
+                            )
+
+                        return response_headers
+        except S3ClientError:
+            pass
+        return response_headers
 
     def _bucket_response_get(
         self, bucket_name: str, querystring: Dict[str, Any]
@@ -1294,7 +1343,7 @@ class S3Response(BaseResponse):
         self._set_action("KEY", "GET", query)
         self._authenticate_and_authorize_s3_action()
 
-        response_headers: Dict[str, Any] = {}
+        response_headers = self._get_cors_headers_other(headers, bucket_name)
         if query.get("uploadId"):
             upload_id = query["uploadId"][0]
 
@@ -1411,7 +1460,7 @@ class S3Response(BaseResponse):
         self._set_action("KEY", "PUT", query)
         self._authenticate_and_authorize_s3_action()
 
-        response_headers: Dict[str, Any] = {}
+        response_headers = self._get_cors_headers_other(request.headers, bucket_name)
         if query.get("uploadId") and query.get("partNumber"):
             upload_id = query["uploadId"][0]
             part_number = int(query["partNumber"][0])
