@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 import botocore.exceptions
 from moto import mock_apigatewayv2
@@ -25,21 +24,21 @@ def test_create_api_mapping():
 
     # check post response has all expected keys
     for key in expected_keys:
-        post_resp.should.have.key(key)
+        assert key in post_resp
 
     # check get response has all expected keys
     for key in expected_keys:
-        get_resp.should.have.key(key)
+        assert key in get_resp
 
     # check that values are equal for post and get of same resource
     for key in expected_keys:
-        post_resp.get(key).should.equal(get_resp.get(key))
+        assert post_resp.get(key) == get_resp.get(key)
 
     # ensure known values are set correct in post response
-    post_resp.get("ApiId").should_not.equal(None)
-    post_resp.get("ApiMappingId").should_not.equal(None)
-    post_resp.get("ApiMappingKey").should.equal("v1/api")
-    post_resp.get("Stage").should.equal("$default")
+    assert post_resp.get("ApiId") is not None
+    assert post_resp.get("ApiMappingId") is not None
+    assert post_resp.get("ApiMappingKey") == "v1/api"
+    assert post_resp.get("Stage") == "$default"
 
 
 @mock_apigatewayv2
@@ -54,9 +53,10 @@ def test_create_api_mapping_missing_api():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "Invalid API identifier specified The resource specified in the request was not found."
+    assert err["Code"] == "NotFoundException"
+    assert (
+        err["Message"]
+        == "Invalid API identifier specified The resource specified in the request was not found."
     )
 
 
@@ -73,9 +73,10 @@ def test_create_api_mapping_missing_domain():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "The domain name resource specified in the request was not found."
+    assert err["Code"] == "NotFoundException"
+    assert (
+        err["Message"]
+        == "The domain name resource specified in the request was not found."
     )
 
 
@@ -100,8 +101,8 @@ def test_create_api_mapping_bad_mapping_keys():
             )
 
         err = exc.value.response["Error"]
-        err["Code"].should.equal("BadRequestException")
-        err["Message"].should.equal(message)
+        assert err["Code"] == "BadRequestException"
+        assert err["Message"] == message
 
 
 @mock_apigatewayv2
@@ -133,9 +134,9 @@ def test_get_api_mappings():
     )
 
     # sanity check responses
-    v1_mapping.should.have.key("ApiMappingKey").equals("v1/api")
-    v2_mapping.should.have.key("ApiMappingKey").equals("v2/api")
-    hr_mapping.should.have.key("ApiMappingKey").equals("hr/api")
+    assert v1_mapping["ApiMappingKey"] == "v1/api"
+    assert v2_mapping["ApiMappingKey"] == "v2/api"
+    assert hr_mapping["ApiMappingKey"] == "hr/api"
 
     # make comparable
     del v1_mapping["ResponseMetadata"]
@@ -143,10 +144,10 @@ def test_get_api_mappings():
     del hr_mapping["ResponseMetadata"]
 
     get_resp = client.get_api_mappings(DomainName=included_domain["DomainName"])
-    get_resp.should.have.key("Items")
-    get_resp.get("Items").should.contain(v1_mapping)
-    get_resp.get("Items").should.contain(v2_mapping)
-    get_resp.get("Items").should_not.contain(hr_mapping)
+    assert "Items" in get_resp
+    assert v1_mapping in get_resp.get("Items")
+    assert v2_mapping in get_resp.get("Items")
+    assert hr_mapping not in get_resp.get("Items")
 
 
 @mock_apigatewayv2
@@ -165,16 +166,16 @@ def test_delete_api_mapping():
     del v1_mapping["ResponseMetadata"]
 
     get_resp = client.get_api_mappings(DomainName=api_domain["DomainName"])
-    get_resp.should.have.key("Items")
-    get_resp.get("Items").should.contain(v1_mapping)
+    assert "Items" in get_resp
+    assert v1_mapping in get_resp.get("Items")
 
     client.delete_api_mapping(
         DomainName=api_domain["DomainName"], ApiMappingId=v1_mapping["ApiMappingId"]
     )
 
     get_resp = client.get_api_mappings(DomainName=api_domain["DomainName"])
-    get_resp.should.have.key("Items")
-    get_resp.get("Items").should_not.contain(v1_mapping)
+    assert "Items" in get_resp
+    assert v1_mapping not in get_resp.get("Items")
 
 
 @mock_apigatewayv2
@@ -189,7 +190,8 @@ def test_delete_api_mapping_dne():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "The api mapping resource specified in the request was not found."
+    assert err["Code"] == "NotFoundException"
+    assert (
+        err["Message"]
+        == "The api mapping resource specified in the request was not found."
     )

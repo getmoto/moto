@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_apigatewayv2
@@ -16,9 +15,9 @@ def test_reimport_api_standard_fields():
         Body="---\nopenapi: 3.0.1\ninfo:\n  title: tf-acc-test-2983214806752144669_DIFFERENT\n  version: 2.0\nx-amazon-apigateway-cors:\n  allow_methods:\n    - delete\n  allow_origins:\n    - https://www.google.de\npaths:\n  \"/test\":\n    get:\n      x-amazon-apigateway-integration:\n        type: HTTP_PROXY\n        httpMethod: GET\n        payloadFormatVersion: '1.0'\n        uri: https://www.google.de\n",
     )
 
-    resp.should.have.key("CorsConfiguration").equals({})
-    resp.should.have.key("Name").equals("tf-acc-test-2983214806752144669_DIFFERENT")
-    resp.should.have.key("Version").equals("2.0")
+    assert resp["CorsConfiguration"] == {}
+    assert resp["Name"] == "tf-acc-test-2983214806752144669_DIFFERENT"
+    assert resp["Version"] == "2.0"
 
 
 @mock_apigatewayv2
@@ -33,14 +32,15 @@ def test_reimport_api_failonwarnings():
             FailOnWarnings=True,
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.equal(
-        "Warnings found during import:\n\tParse issue: attribute paths.'/update'(get).responses.200.content.schema.#/components/schemas/ModelThatDoesNotExist is missing"
+    assert err["Code"] == "BadRequestException"
+    assert (
+        err["Message"]
+        == "Warnings found during import:\n\tParse issue: attribute paths.'/update'(get).responses.200.content.schema.#/components/schemas/ModelThatDoesNotExist is missing"
     )
 
     # Title should not have been updated
     resp = client.get_api(ApiId=api_id)
-    resp.should.have.key("Name").equals("test-import-api")
+    assert resp["Name"] == "test-import-api"
 
 
 @mock_apigatewayv2
@@ -56,7 +56,7 @@ def test_reimport_api_do_not_failonwarnings():
 
     # Title should have been updated
     resp = client.get_api(ApiId=api_id)
-    resp.should.have.key("Name").equals("Title test")
+    assert resp["Name"] == "Title test"
 
 
 @mock_apigatewayv2
@@ -71,24 +71,22 @@ def test_reimport_api_routes_and_integrations():
     )
 
     resp = client.get_integrations(ApiId=api_id)
-    resp.should.have.key("Items").length_of(1)
+    assert len(resp["Items"]) == 1
     integration = resp["Items"][0]
-    integration.should.have.key("ConnectionType").equals("INTERNET")
-    integration.should.have.key("IntegrationId")
-    integration.should.have.key("IntegrationMethod").equals("GET")
-    integration.should.have.key("IntegrationType").equals("HTTP_PROXY")
-    integration.should.have.key("IntegrationUri").equals("https://www.google.de")
-    integration.should.have.key("PayloadFormatVersion").equals("1.0")
-    integration.should.have.key("TimeoutInMillis").equals(30000)
+    assert integration["ConnectionType"] == "INTERNET"
+    assert "IntegrationId" in integration
+    assert integration["IntegrationMethod"] == "GET"
+    assert integration["IntegrationType"] == "HTTP_PROXY"
+    assert integration["IntegrationUri"] == "https://www.google.de"
+    assert integration["PayloadFormatVersion"] == "1.0"
+    assert integration["TimeoutInMillis"] == 30000
 
     resp = client.get_routes(ApiId=api_id)
-    resp.should.have.key("Items").length_of(1)
+    assert len(resp["Items"]) == 1
     route = resp["Items"][0]
-    route.should.have.key("ApiKeyRequired").equals(False)
-    route.should.have.key("AuthorizationScopes").equals([])
-    route.should.have.key("RequestParameters").equals({})
-    route.should.have.key("RouteId")
-    route.should.have.key("RouteKey").equals("GET /test")
-    route.should.have.key("Target").should.equal(
-        f"integrations/{integration['IntegrationId']}"
-    )
+    assert route["ApiKeyRequired"] is False
+    assert route["AuthorizationScopes"] == []
+    assert route["RequestParameters"] == {}
+    assert "RouteId" in route
+    assert route["RouteKey"] == "GET /test"
+    assert route["Target"] == f"integrations/{integration['IntegrationId']}"

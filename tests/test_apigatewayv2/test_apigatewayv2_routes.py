@@ -11,7 +11,7 @@ def test_get_routes_empty():
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
 
     resp = client.get_routes(ApiId=api_id)
-    resp.should.have.key("Items").equals([])
+    assert resp["Items"] == []
 
 
 @mock_apigatewayv2
@@ -20,18 +20,18 @@ def test_create_route_minimal():
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
     resp = client.create_route(ApiId=api_id, RouteKey="GET /")
 
-    resp.should.have.key("ApiKeyRequired").equals(False)
-    resp.should.have.key("AuthorizationType").equals("NONE")
-    resp.should.have.key("RouteId")
-    resp.should.have.key("RouteKey").equals("GET /")
+    assert resp["ApiKeyRequired"] is False
+    assert resp["AuthorizationType"] == "NONE"
+    assert "RouteId" in resp
+    assert resp["RouteKey"] == "GET /"
 
-    resp.shouldnt.have.key("AuthorizationScopes")
-    resp.shouldnt.have.key("AuthorizerId")
-    resp.shouldnt.have.key("ModelSelectionExpression")
-    resp.shouldnt.have.key("OperationName")
-    resp.shouldnt.have.key("RequestModels")
-    resp.shouldnt.have.key("RouteResponseSelectionExpression")
-    resp.shouldnt.have.key("Target")
+    assert "AuthorizationScopes" not in resp
+    assert "AuthorizerId" not in resp
+    assert "ModelSelectionExpression" not in resp
+    assert "OperationName" not in resp
+    assert "RequestModels" not in resp
+    assert "RouteResponseSelectionExpression" not in resp
+    assert "Target" not in resp
 
 
 @mock_apigatewayv2
@@ -57,19 +57,19 @@ def test_create_route_full():
         Target="t",
     )
 
-    resp.should.have.key("ApiKeyRequired").equals(True)
-    resp.should.have.key("AuthorizationType").equals("CUSTOM")
-    resp.should.have.key("AuthorizationScopes").equals(["scope1", "scope2"])
-    resp.should.have.key("AuthorizerId").equals("auth_id")
-    resp.should.have.key("RouteId")
-    resp.should.have.key("RouteKey").equals("GET /")
+    assert resp["ApiKeyRequired"] is True
+    assert resp["AuthorizationType"] == "CUSTOM"
+    assert resp["AuthorizationScopes"] == ["scope1", "scope2"]
+    assert resp["AuthorizerId"] == "auth_id"
+    assert "RouteId" in resp
+    assert resp["RouteKey"] == "GET /"
 
-    resp.should.have.key("ModelSelectionExpression").equals("mse")
-    resp.should.have.key("OperationName").equals("OP")
-    resp.should.have.key("RequestModels").equals({"req": "uest"})
-    resp.should.have.key("RequestParameters").equals({"action": {"Required": True}})
-    resp.should.have.key("RouteResponseSelectionExpression").equals("$default")
-    resp.should.have.key("Target").equals("t")
+    assert resp["ModelSelectionExpression"] == "mse"
+    assert resp["OperationName"] == "OP"
+    assert resp["RequestModels"] == {"req": "uest"}
+    assert resp["RequestParameters"] == {"action": {"Required": True}}
+    assert resp["RouteResponseSelectionExpression"] == "$default"
+    assert resp["Target"] == "t"
 
 
 @mock_apigatewayv2
@@ -81,7 +81,7 @@ def test_delete_route():
     client.delete_route(ApiId=api_id, RouteId=route_id)
 
     resp = client.get_routes(ApiId=api_id)
-    resp.should.have.key("Items").length_of(0)
+    assert len(resp["Items"]) == 0
 
 
 @mock_apigatewayv2
@@ -92,17 +92,17 @@ def test_get_route():
 
     resp = client.get_route(ApiId=api_id, RouteId=route_id)
 
-    resp.should.have.key("ApiKeyRequired").equals(False)
-    resp.should.have.key("AuthorizationType").equals("NONE")
-    resp.should.have.key("RouteId")
-    resp.should.have.key("RouteKey").equals("GET /")
+    assert resp["ApiKeyRequired"] is False
+    assert resp["AuthorizationType"] == "NONE"
+    assert "RouteId" in resp
+    assert resp["RouteKey"] == "GET /"
 
-    resp.shouldnt.have.key("AuthorizationScopes")
-    resp.shouldnt.have.key("AuthorizerId")
-    resp.shouldnt.have.key("ModelSelectionExpression")
-    resp.shouldnt.have.key("OperationName")
-    resp.shouldnt.have.key("RouteResponseSelectionExpression")
-    resp.shouldnt.have.key("Target")
+    assert "AuthorizationScopes" not in resp
+    assert "AuthorizerId" not in resp
+    assert "ModelSelectionExpression" not in resp
+    assert "OperationName" not in resp
+    assert "RouteResponseSelectionExpression" not in resp
+    assert "Target" not in resp
 
 
 @mock_apigatewayv2
@@ -113,8 +113,8 @@ def test_get_route_unknown():
         client.get_route(ApiId=api_id, RouteId="unknown")
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Invalid Route identifier specified unknown")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid Route identifier specified unknown"
 
 
 @mock_apigatewayv2
@@ -124,7 +124,7 @@ def test_get_routes():
     client.create_route(ApiId=api_id, RouteKey="GET /")
 
     resp = client.get_routes(ApiId=api_id)
-    resp.should.have.key("Items").length_of(1)
+    assert len(resp["Items"]) == 1
 
 
 @mock_apigatewayv2
@@ -135,10 +135,10 @@ def test_update_route_single_attribute():
 
     resp = client.update_route(ApiId=api_id, RouteId=route_id, RouteKey="POST /")
 
-    resp.should.have.key("ApiKeyRequired").equals(False)
-    resp.should.have.key("AuthorizationType").equals("NONE")
-    resp.should.have.key("RouteId").equals(route_id)
-    resp.should.have.key("RouteKey").equals("POST /")
+    assert resp["ApiKeyRequired"] is False
+    assert resp["AuthorizationType"] == "NONE"
+    assert resp["RouteId"] == route_id
+    assert resp["RouteKey"] == "POST /"
 
 
 @mock_apigatewayv2
@@ -164,18 +164,18 @@ def test_update_route_all_attributes():
         Target="t",
     )
 
-    resp.should.have.key("ApiKeyRequired").equals(False)
-    resp.should.have.key("AuthorizationType").equals("JWT")
-    resp.should.have.key("AuthorizationScopes").equals(["scope"])
-    resp.should.have.key("AuthorizerId").equals("auth_id")
-    resp.should.have.key("RouteId")
-    resp.should.have.key("RouteKey").equals("GET /")
-    resp.should.have.key("ModelSelectionExpression").equals("mse")
-    resp.should.have.key("OperationName").equals("OP")
-    resp.should.have.key("RequestModels").equals({"req": "uest"})
-    resp.should.have.key("RequestParameters").equals({"action": {"Required": True}})
-    resp.should.have.key("RouteResponseSelectionExpression").equals("$default")
-    resp.should.have.key("Target").equals("t")
+    assert resp["ApiKeyRequired"] is False
+    assert resp["AuthorizationType"] == "JWT"
+    assert resp["AuthorizationScopes"] == ["scope"]
+    assert resp["AuthorizerId"] == "auth_id"
+    assert "RouteId" in resp
+    assert resp["RouteKey"] == "GET /"
+    assert resp["ModelSelectionExpression"] == "mse"
+    assert resp["OperationName"] == "OP"
+    assert resp["RequestModels"] == {"req": "uest"}
+    assert resp["RequestParameters"] == {"action": {"Required": True}}
+    assert resp["RouteResponseSelectionExpression"] == "$default"
+    assert resp["Target"] == "t"
 
 
 @mock_apigatewayv2
@@ -195,7 +195,7 @@ def test_delete_route_request_parameter():
     request_params = client.get_route(ApiId=api_id, RouteId=route_id)[
         "RequestParameters"
     ]
-    request_params.keys().should.have.length_of(3)
+    assert len(request_params.keys()) == 3
 
     client.delete_route_request_parameter(
         ApiId=api_id,
@@ -206,9 +206,9 @@ def test_delete_route_request_parameter():
     request_params = client.get_route(ApiId=api_id, RouteId=route_id)[
         "RequestParameters"
     ]
-    request_params.keys().should.have.length_of(2)
-    request_params.should.have.key("action")
-    request_params.should.have.key("zparam")
+    assert len(request_params.keys()) == 2
+    assert "action" in request_params
+    assert "zparam" in request_params
 
 
 @mock_apigatewayv2
@@ -221,8 +221,8 @@ def test_create_route_response_minimal():
         ApiId=api_id, RouteId=route_id, RouteResponseKey="$default"
     )
 
-    resp.should.have.key("RouteResponseId")
-    resp.should.have.key("RouteResponseKey").equals("$default")
+    assert "RouteResponseId" in resp
+    assert resp["RouteResponseKey"] == "$default"
 
 
 @mock_apigatewayv2
@@ -239,12 +239,10 @@ def test_create_route_response():
         RouteResponseKey="$default",
     )
 
-    resp.should.have.key("RouteResponseId")
-    resp.should.have.key("RouteResponseKey").equals("$default")
-    resp.should.have.key("ModelSelectionExpression").equals("mse")
-    resp.should.have.key("ResponseModels").equals(
-        {"test": "tfacctest5832545056931060873"}
-    )
+    assert "RouteResponseId" in resp
+    assert resp["RouteResponseKey"] == "$default"
+    assert resp["ModelSelectionExpression"] == "mse"
+    assert resp["ResponseModels"] == {"test": "tfacctest5832545056931060873"}
 
 
 @mock_apigatewayv2
@@ -261,8 +259,8 @@ def test_get_route_response():
         ApiId=api_id, RouteId=route_id, RouteResponseId=route_response_id
     )
 
-    resp.should.have.key("RouteResponseId")
-    resp.should.have.key("RouteResponseKey").equals("$default")
+    assert "RouteResponseId" in resp
+    assert resp["RouteResponseKey"] == "$default"
 
 
 @mock_apigatewayv2
@@ -277,7 +275,7 @@ def test_get_route_response_unknown():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigatewayv2
@@ -295,4 +293,4 @@ def test_delete_route_response_unknown():
         client.get_route_response(ApiId=api_id, RouteId=r_id, RouteResponseId=rr_id)
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"
