@@ -254,10 +254,11 @@ def test_s3_server_post_cors_exposed_header():
     """
 
     test_client = authenticated_client()
+    valid_origin = "https://example.org"
     preflight_headers = {
         "Access-Control-Request-Method": "POST",
         "Access-Control-Request-Headers": "origin, x-requested-with",
-        "Origin": "https://example.org",
+        "Origin": valid_origin,
     }
     # Returns 403 on non existing bucket
     preflight_response = test_client.options(
@@ -265,8 +266,9 @@ def test_s3_server_post_cors_exposed_header():
     )
     assert preflight_response.status_code == 403
 
-    # Create the bucket
+    # Create the bucket & file
     test_client.put("/", "http://testcors.localhost:5000/")
+    test_client.put("/test", "http://testcors.localhost:5000/")
     res = test_client.put(
         "/?cors", "http://testcors.localhost:5000", data=cors_config_payload
     )
@@ -292,6 +294,50 @@ def test_s3_server_post_cors_exposed_header():
             assert header_name in preflight_response.headers
             assert preflight_response.headers[header_name] == header_value
 
+    # Test GET key response
+    # A regular GET should not receive any CORS headers
+    resp = test_client.get("/test", "http://testcors.localhost:5000/")
+    assert "Access-Control-Allow-Methods" not in resp.headers
+    assert "Access-Control-Expose-Headers" not in resp.headers
+
+    # A GET with mismatched Origin-header should not receive any CORS headers
+    resp = test_client.get(
+        "/test", "http://testcors.localhost:5000/", headers={"Origin": "something.com"}
+    )
+    assert "Access-Control-Allow-Methods" not in resp.headers
+    assert "Access-Control-Expose-Headers" not in resp.headers
+
+    # Only a GET with matching Origin-header should receive CORS headers
+    resp = test_client.get(
+        "/test", "http://testcors.localhost:5000/", headers={"Origin": valid_origin}
+    )
+    assert (
+        resp.headers["Access-Control-Allow-Methods"] == "HEAD, GET, PUT, POST, DELETE"
+    )
+    assert resp.headers["Access-Control-Expose-Headers"] == "ETag"
+
+    # Test PUT key response
+    # A regular PUT should not receive any CORS headers
+    resp = test_client.put("/test", "http://testcors.localhost:5000/")
+    assert "Access-Control-Allow-Methods" not in resp.headers
+    assert "Access-Control-Expose-Headers" not in resp.headers
+
+    # A PUT with mismatched Origin-header should not receive any CORS headers
+    resp = test_client.put(
+        "/test", "http://testcors.localhost:5000/", headers={"Origin": "something.com"}
+    )
+    assert "Access-Control-Allow-Methods" not in resp.headers
+    assert "Access-Control-Expose-Headers" not in resp.headers
+
+    # Only a PUT with matching Origin-header should receive CORS headers
+    resp = test_client.put(
+        "/test", "http://testcors.localhost:5000/", headers={"Origin": valid_origin}
+    )
+    assert (
+        resp.headers["Access-Control-Allow-Methods"] == "HEAD, GET, PUT, POST, DELETE"
+    )
+    assert resp.headers["Access-Control-Expose-Headers"] == "ETag"
+
 
 def test_s3_server_post_cors_multiple_origins():
     """Test that Moto only responds with the Origin that we that hosts the server"""
@@ -315,7 +361,7 @@ def test_s3_server_post_cors_multiple_origins():
 
     # Test only our requested origin is returned
     preflight_response = requests.options(
-        "http://testcors.localhost:6789/test",
+        "http://testcors.localhost:6789/test2",
         headers={
             "Access-Control-Request-Method": "POST",
             "Origin": "https://localhost:6789",
@@ -330,7 +376,7 @@ def test_s3_server_post_cors_multiple_origins():
 
     # Verify a request with unknown origin fails
     preflight_response = requests.options(
-        "http://testcors.localhost:6789/test",
+        "http://testcors.localhost:6789/test2",
         headers={
             "Access-Control-Request-Method": "POST",
             "Origin": "https://unknown.host",
@@ -347,7 +393,7 @@ def test_s3_server_post_cors_multiple_origins():
     requests.put("http://testcors.localhost:6789/?cors", data=cors_config_payload)
     for origin in ["https://sth.google.com", "https://a.google.com"]:
         preflight_response = requests.options(
-            "http://testcors.localhost:6789/test",
+            "http://testcors.localhost:6789/test2",
             headers={"Access-Control-Request-Method": "POST", "Origin": origin},
         )
         assert preflight_response.status_code == 200
@@ -355,7 +401,7 @@ def test_s3_server_post_cors_multiple_origins():
 
     # Non-matching requests throw an error though - it does not act as a full wildcard
     preflight_response = requests.options(
-        "http://testcors.localhost:6789/test",
+        "http://testcors.localhost:6789/test2",
         headers={
             "Access-Control-Request-Method": "POST",
             "Origin": "sth.microsoft.com",
@@ -372,7 +418,7 @@ def test_s3_server_post_cors_multiple_origins():
     requests.put("http://testcors.localhost:6789/?cors", data=cors_config_payload)
     for origin in ["https://a.google.com", "http://b.microsoft.com", "any"]:
         preflight_response = requests.options(
-            "http://testcors.localhost:6789/test",
+            "http://testcors.localhost:6789/test2",
             headers={"Access-Control-Request-Method": "POST", "Origin": origin},
         )
         assert preflight_response.status_code == 200
