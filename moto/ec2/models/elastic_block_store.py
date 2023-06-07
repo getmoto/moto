@@ -23,6 +23,7 @@ from ..utils import (
 
 IOPS_REQUIRED_VOLUME_TYPES = ["io1", "io2"]
 IOPS_SUPPORTED_VOLUME_TYPES = ["gp3", "io1", "io2"]
+THROUGHPUT_SUPPORTED_VOLUME_TYPES = ["gp3"]
 GP3_DEFAULT_IOPS = 3000
 
 
@@ -114,6 +115,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         kms_key_id: Optional[str] = None,
         volume_type: Optional[str] = None,
         iops: Optional[int] = None,
+        throughput: Optional[int] = None,
     ):
         self.id = volume_id
         self.volume_type = volume_type or "gp2"
@@ -127,6 +129,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         self.kms_key_id = kms_key_id
         self.modifications: List[VolumeModification] = []
         self.iops = iops
+        self.throughput = throughput
 
     def modify(
         self,
@@ -272,6 +275,7 @@ class EBSBackend:
         kms_key_id: Optional[str] = None,
         volume_type: Optional[str] = None,
         iops: Optional[int] = None,
+        throughput: Optional[int] = None,
     ) -> Volume:
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
@@ -283,6 +287,8 @@ class EBSBackend:
             iops = GP3_DEFAULT_IOPS
         elif volume_type not in IOPS_SUPPORTED_VOLUME_TYPES and iops:
             raise InvalidParameterDependency("VolumeType", "Iops")
+        if volume_type not in THROUGHPUT_SUPPORTED_VOLUME_TYPES and throughput:
+            raise InvalidParameterDependency("VolumeType", "Throughput")
 
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)  # type: ignore[attr-defined]
@@ -302,6 +308,7 @@ class EBSBackend:
             kms_key_id=kms_key_id,
             volume_type=volume_type,
             iops=iops,
+            throughput=throughput,
         )
         self.volumes[volume_id] = volume
         return volume
