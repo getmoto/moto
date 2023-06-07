@@ -1,6 +1,5 @@
 import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_lambda, mock_cloudformation, mock_apigateway, mock_iam, mock_logs
 
@@ -340,24 +339,24 @@ def test_simple_apigateway_with_lambda_proxy():
     #
     # Verify Rest API was created
     api = apigw.get_rest_apis()["items"][0]
-    api["id"].should.equal(api_id)
-    api["name"].should.equal("dev-timeseries-service")
+    assert api["id"] == api_id
+    assert api["name"] == "dev-timeseries-service"
     #
     # Verify Gateway Resource was created
     paths = apigw.get_resources(restApiId=api_id)["items"]
     root_path = [p for p in paths if p["path"] == "/"][0]
     hello_path = [p for p in paths if p["path"] == "/hello"][0]
-    hello_path["parentId"].should.equal(root_path["id"])
+    assert hello_path["parentId"] == root_path["id"]
     #
     # Verify Gateway Method was created
     m = apigw.get_method(
         restApiId=api_id, resourceId=hello_path["id"], httpMethod="GET"
     )
-    m["httpMethod"].should.equal("GET")
+    assert m["httpMethod"] == "GET"
     #
     # Verify a Gateway Deployment was created
     d = apigw.get_deployments(restApiId=api_id)["items"]
-    d.should.have.length_of(1)
+    assert len(d) == 1
     #
     # Verify Lambda function was created
     awslambda.get_function(FunctionName=fn_name)  # Will throw 404 if it doesn't exist
@@ -365,9 +364,13 @@ def test_simple_apigateway_with_lambda_proxy():
     # Verify Lambda Permission was created
     policy = json.loads(awslambda.get_policy(FunctionName=fn_name)["Policy"])
     statement = policy["Statement"][0]
-    statement["FunctionName"].should.contain(fn_name)
-    statement["Condition"]["ArnLike"]["AWS:SourceArn"].should.equal(
-        f"arn:aws:execute-api:us-east-1:123456789012:{api_id}/*/*"
+    assert (
+        statement["FunctionName"]
+        == f"arn:aws:lambda:us-east-1:123456789012:function:{fn_name}"
+    )
+    assert (
+        statement["Condition"]["ArnLike"]["AWS:SourceArn"]
+        == f"arn:aws:execute-api:us-east-1:123456789012:{api_id}/*/*"
     )
 
 
@@ -380,4 +383,4 @@ def test_apigateway_with_unknown_description():
     cf.create_stack(StackName="teststack", TemplateBody=template_with_missing_sub)
 
     api = apigw.get_rest_apis()["items"][0]
-    api.should.have.key("description").equals("${UnknownResource}")
+    assert api["description"] == "${UnknownResource}"

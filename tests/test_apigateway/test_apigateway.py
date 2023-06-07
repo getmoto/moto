@@ -2,10 +2,9 @@ import json
 
 import boto3
 from freezegun import freeze_time
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway, mock_cognitoidp
+from moto import mock_apigateway, mock_cognitoidp, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 import pytest
 
@@ -26,19 +25,17 @@ def test_create_and_get_rest_api():
 
     response.pop("ResponseMetadata")
     response.pop("createdDate")
-    response.should.equal(
-        {
-            "id": api_id,
-            "name": "my_api",
-            "description": "this is my api",
-            "version": "V1",
-            "binaryMediaTypes": [],
-            "apiKeySource": "HEADER",
-            "endpointConfiguration": {"types": ["EDGE"]},
-            "tags": {},
-            "disableExecuteApiEndpoint": True,
-        }
-    )
+    assert response == {
+        "id": api_id,
+        "name": "my_api",
+        "description": "this is my api",
+        "version": "V1",
+        "binaryMediaTypes": [],
+        "apiKeySource": "HEADER",
+        "endpointConfiguration": {"types": ["EDGE"]},
+        "tags": {},
+        "disableExecuteApiEndpoint": True,
+    }
 
 
 @mock_apigateway
@@ -64,33 +61,30 @@ def test_update_rest_api():
     response.pop("ResponseMetadata")
     response.pop("createdDate")
     response.pop("binaryMediaTypes")
-    response.should.equal(
-        {
-            "id": api_id,
-            "name": "new-name",
-            "version": "V1",
-            "description": "new-description",
-            "apiKeySource": "AUTHORIZER",
-            "policy": '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": '
-            '"execute-api:Invoke", "Resource": ["execute-api:/*"]}]}',
-            "endpointConfiguration": {"types": ["EDGE"]},
-            "tags": {},
-            "disableExecuteApiEndpoint": True,
-        }
-    )
+    assert response == {
+        "id": api_id,
+        "name": "new-name",
+        "version": "V1",
+        "description": "new-description",
+        "apiKeySource": "AUTHORIZER",
+        "policy": '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": '
+        '"execute-api:Invoke", "Resource": ["execute-api:/*"]}]}',
+        "endpointConfiguration": {"types": ["EDGE"]},
+        "tags": {},
+        "disableExecuteApiEndpoint": True,
+    }
     # should fail with wrong apikeysoruce
     patchOperations = [
         {"op": "replace", "path": "/apiKeySource", "value": "Wrong-value-AUTHORIZER"}
     ]
     with pytest.raises(ClientError) as ex:
-        response = client.update_rest_api(
-            restApiId=api_id, patchOperations=patchOperations
-        )
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "1 validation error detected: Value 'Wrong-value-AUTHORIZER' at 'createRestApiInput.apiKeySource' failed to satisfy constraint: Member must satisfy enum value set: [AUTHORIZER, HEADER]"
+        client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
+    err = ex.value.response["Error"]
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'Wrong-value-AUTHORIZER' at 'createRestApiInput.apiKeySource' failed to satisfy constraint: Member must satisfy enum value set: [AUTHORIZER, HEADER]"
     )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    assert err["Code"] == "ValidationException"
 
 
 @mock_apigateway
@@ -101,7 +95,7 @@ def test_update_rest_api_invalid_api_id():
     ]
     with pytest.raises(ClientError) as ex:
         client.update_rest_api(restApiId="api_id", patchOperations=patchOperations)
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
 
 
 @mock_apigateway
@@ -114,15 +108,15 @@ def test_update_rest_api_operation_add_remove():
         {"op": "add", "path": "/binaryMediaTypes", "value": "image/jpeg"},
     ]
     response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
-    response["binaryMediaTypes"].should.equal(["image/png", "image/jpeg"])
-    response["description"].should.equal("this is my api")
+    assert response["binaryMediaTypes"] == ["image/png", "image/jpeg"]
+    assert response["description"] == "this is my api"
     patchOperations = [
         {"op": "remove", "path": "/binaryMediaTypes", "value": "image/png"},
         {"op": "remove", "path": "/description"},
     ]
     response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
-    response["binaryMediaTypes"].should.equal(["image/jpeg"])
-    response["description"].should.equal("")
+    assert response["binaryMediaTypes"] == ["image/jpeg"]
+    assert response["description"] == ""
 
 
 @mock_apigateway
@@ -134,12 +128,12 @@ def test_list_and_delete_apis():
     client.create_rest_api(name="my_api2", description="this is my api2")
 
     response = client.get_rest_apis()
-    len(response["items"]).should.equal(2)
+    assert len(response["items"]) == 2
 
     client.delete_rest_api(restApiId=api_id)
 
     response = client.get_rest_apis()
-    len(response["items"]).should.equal(1)
+    assert len(response["items"]) == 1
 
 
 @mock_apigateway
@@ -154,7 +148,7 @@ def test_create_rest_api_with_tags():
     response = client.get_rest_api(restApiId=api_id)
 
     assert "tags" in response
-    response["tags"].should.equal({"MY_TAG1": "MY_VALUE1"})
+    assert response["tags"] == {"MY_TAG1": "MY_VALUE1"}
 
 
 @mock_apigateway
@@ -170,7 +164,7 @@ def test_create_rest_api_with_policy():
     response = client.get_rest_api(restApiId=api_id)
 
     assert "policy" in response
-    response["policy"].should.equal(policy)
+    assert response["policy"] == policy
 
 
 @mock_apigateway
@@ -183,7 +177,7 @@ def test_create_rest_api_invalid_apikeysource():
             description="this is my api",
             apiKeySource="not a valid api key source",
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
 
 
 @mock_apigateway
@@ -197,7 +191,7 @@ def test_create_rest_api_valid_apikeysources():
     api_id = response["id"]
 
     response = client.get_rest_api(restApiId=api_id)
-    response["apiKeySource"].should.equal("HEADER")
+    assert response["apiKeySource"] == "HEADER"
 
     # 2. test creating rest api with AUTHORIZER apiKeySource
     response = client.create_rest_api(
@@ -206,7 +200,7 @@ def test_create_rest_api_valid_apikeysources():
     api_id = response["id"]
 
     response = client.get_rest_api(restApiId=api_id)
-    response["apiKeySource"].should.equal("AUTHORIZER")
+    assert response["apiKeySource"] == "AUTHORIZER"
 
 
 @mock_apigateway
@@ -219,7 +213,7 @@ def test_create_rest_api_invalid_endpointconfiguration():
             description="this is my api",
             endpointConfiguration={"types": ["INVALID"]},
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
 
 
 @mock_apigateway
@@ -235,7 +229,7 @@ def test_create_rest_api_valid_endpointconfigurations():
     api_id = response["id"]
 
     response = client.get_rest_api(restApiId=api_id)
-    response["endpointConfiguration"].should.equal({"types": ["PRIVATE"]})
+    assert response["endpointConfiguration"] == {"types": ["PRIVATE"]}
 
     # 2. test creating rest api with REGIONAL endpointConfiguration
     response = client.create_rest_api(
@@ -246,7 +240,7 @@ def test_create_rest_api_valid_endpointconfigurations():
     api_id = response["id"]
 
     response = client.get_rest_api(restApiId=api_id)
-    response["endpointConfiguration"].should.equal({"types": ["REGIONAL"]})
+    assert response["endpointConfiguration"] == {"types": ["REGIONAL"]}
 
     # 3. test creating rest api with EDGE endpointConfiguration
     response = client.create_rest_api(
@@ -257,7 +251,7 @@ def test_create_rest_api_valid_endpointconfigurations():
     api_id = response["id"]
 
     response = client.get_rest_api(restApiId=api_id)
-    response["endpointConfiguration"].should.equal({"types": ["EDGE"]})
+    assert response["endpointConfiguration"] == {"types": ["EDGE"]}
 
 
 @mock_apigateway
@@ -277,9 +271,11 @@ def test_create_resource__validate_name():
     for name in invalid_names:
         with pytest.raises(ClientError) as ex:
             client.create_resource(restApiId=api_id, parentId=root_id, pathPart=name)
-        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.value.response["Error"]["Message"].should.equal(
-            "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end and an optional plus sign before the closing brace."
+        err = ex.value.response["Error"]
+        assert err["Code"] == "BadRequestException"
+        assert (
+            err["Message"]
+            == "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end and an optional plus sign before the closing brace."
         )
     # All valid names  should go through
     for name in valid_names:
@@ -301,21 +297,23 @@ def test_create_resource():
     # this is hard to match against, so remove it
     root_resource["ResponseMetadata"].pop("HTTPHeaders", None)
     root_resource["ResponseMetadata"].pop("RetryAttempts", None)
-    root_resource.should.equal(
-        {"path": "/", "id": root_id, "ResponseMetadata": {"HTTPStatusCode": 200}}
-    )
+    assert root_resource == {
+        "path": "/",
+        "id": root_id,
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+    }
 
     client.create_resource(restApiId=api_id, parentId=root_id, pathPart="users")
 
     resources = client.get_resources(restApiId=api_id)["items"]
-    len(resources).should.equal(2)
+    assert len(resources) == 2
     non_root_resource = [resource for resource in resources if resource["path"] != "/"][
         0
     ]
 
     client.delete_resource(restApiId=api_id, resourceId=non_root_resource["id"])
 
-    len(client.get_resources(restApiId=api_id)["items"]).should.equal(1)
+    assert len(client.get_resources(restApiId=api_id)["items"]) == 1
 
 
 @mock_apigateway
@@ -343,15 +341,13 @@ def test_child_resource():
     # this is hard to match against, so remove it
     child_resource["ResponseMetadata"].pop("HTTPHeaders", None)
     child_resource["ResponseMetadata"].pop("RetryAttempts", None)
-    child_resource.should.equal(
-        {
-            "path": "/users/tags",
-            "pathPart": "tags",
-            "parentId": users_id,
-            "id": tags_id,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-        }
-    )
+    assert child_resource == {
+        "path": "/users/tags",
+        "pathPart": "tags",
+        "parentId": users_id,
+        "id": tags_id,
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+    }
 
 
 @mock_apigateway
@@ -378,16 +374,14 @@ def test_create_method():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "httpMethod": "GET",
-            "authorizationType": "none",
-            "apiKeyRequired": False,
-            "methodResponses": {},
-            "requestParameters": {"method.request.header.InvocationType": True},
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-        }
-    )
+    assert response == {
+        "httpMethod": "GET",
+        "authorizationType": "none",
+        "apiKeyRequired": False,
+        "methodResponses": {},
+        "requestParameters": {"method.request.header.InvocationType": True},
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+    }
 
 
 @mock_apigateway
@@ -414,15 +408,13 @@ def test_create_method_apikeyrequired():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "httpMethod": "GET",
-            "authorizationType": "none",
-            "apiKeyRequired": True,
-            "methodResponses": {},
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-        }
-    )
+    assert response == {
+        "httpMethod": "GET",
+        "authorizationType": "none",
+        "apiKeyRequired": True,
+        "methodResponses": {},
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+    }
 
 
 @mock_apigateway
@@ -448,9 +440,10 @@ def test_create_method_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {"ResponseMetadata": {"HTTPStatusCode": 201}, "statusCode": "200"}
-    )
+    assert response == {
+        "ResponseMetadata": {"HTTPStatusCode": 201},
+        "statusCode": "200",
+    }
 
     response = client.get_method_response(
         restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
@@ -458,9 +451,10 @@ def test_create_method_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {"ResponseMetadata": {"HTTPStatusCode": 200}, "statusCode": "200"}
-    )
+    assert response == {
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+        "statusCode": "200",
+    }
 
     response = client.delete_method_response(
         restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
@@ -468,7 +462,7 @@ def test_create_method_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal({"ResponseMetadata": {"HTTPStatusCode": 204}})
+    assert response == {"ResponseMetadata": {"HTTPStatusCode": 204}}
 
 
 @mock_apigateway
@@ -480,8 +474,8 @@ def test_get_method_unknown_resource_id():
     with pytest.raises(ClientError) as ex:
         client.get_method(restApiId=api_id, resourceId="sth", httpMethod="GET")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Invalid resource identifier specified")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid resource identifier specified"
 
 
 @mock_apigateway
@@ -506,8 +500,8 @@ def test_delete_method():
     with pytest.raises(ClientError) as ex:
         client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Invalid Method identifier specified")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid Method identifier specified"
 
 
 @mock_apigateway
@@ -547,21 +541,19 @@ def test_integrations():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "ResponseMetadata": {"HTTPStatusCode": 201},
-            "httpMethod": "POST",
-            "type": "HTTP",
-            "uri": "http://httpbin.org/robots.txt",
-            "passthroughBehavior": "WHEN_NO_TEMPLATES",
-            "cacheKeyParameters": [],
-            "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
-            "contentHandling": "CONVERT_TO_TEXT",
-            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
-            "tlsConfig": {"insecureSkipVerification": True},
-            "connectionType": "INTERNET",
-        }
-    )
+    assert response == {
+        "ResponseMetadata": {"HTTPStatusCode": 201},
+        "httpMethod": "POST",
+        "type": "HTTP",
+        "uri": "http://httpbin.org/robots.txt",
+        "passthroughBehavior": "WHEN_NO_TEMPLATES",
+        "cacheKeyParameters": [],
+        "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
+        "contentHandling": "CONVERT_TO_TEXT",
+        "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+        "tlsConfig": {"insecureSkipVerification": True},
+        "connectionType": "INTERNET",
+    }
 
     response = client.get_integration(
         restApiId=api_id, resourceId=root_id, httpMethod="GET"
@@ -569,47 +561,43 @@ def test_integrations():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "httpMethod": "POST",
-            "type": "HTTP",
-            "uri": "http://httpbin.org/robots.txt",
-            "passthroughBehavior": "WHEN_NO_TEMPLATES",
-            "cacheKeyParameters": [],
-            "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
-            "contentHandling": "CONVERT_TO_TEXT",
-            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
-            "tlsConfig": {"insecureSkipVerification": True},
-            "connectionType": "INTERNET",
-        }
-    )
+    assert response == {
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+        "httpMethod": "POST",
+        "type": "HTTP",
+        "uri": "http://httpbin.org/robots.txt",
+        "passthroughBehavior": "WHEN_NO_TEMPLATES",
+        "cacheKeyParameters": [],
+        "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
+        "contentHandling": "CONVERT_TO_TEXT",
+        "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+        "tlsConfig": {"insecureSkipVerification": True},
+        "connectionType": "INTERNET",
+    }
 
     response = client.get_resource(restApiId=api_id, resourceId=root_id)
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response["resourceMethods"]["GET"]["httpMethod"].should.equal("GET")
-    response["resourceMethods"]["GET"]["authorizationType"].should.equal("none")
-    response["resourceMethods"]["GET"]["methodIntegration"].should.equal(
-        {
-            "httpMethod": "POST",
-            "type": "HTTP",
-            "uri": "http://httpbin.org/robots.txt",
-            "cacheKeyParameters": [],
-            "passthroughBehavior": "WHEN_NO_TEMPLATES",
-            "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
-            "contentHandling": "CONVERT_TO_TEXT",
-            "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
-            "tlsConfig": {"insecureSkipVerification": True},
-            "connectionType": "INTERNET",
-        }
-    )
+    assert response["resourceMethods"]["GET"]["httpMethod"] == "GET"
+    assert response["resourceMethods"]["GET"]["authorizationType"] == "none"
+    assert response["resourceMethods"]["GET"]["methodIntegration"] == {
+        "httpMethod": "POST",
+        "type": "HTTP",
+        "uri": "http://httpbin.org/robots.txt",
+        "cacheKeyParameters": [],
+        "passthroughBehavior": "WHEN_NO_TEMPLATES",
+        "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
+        "contentHandling": "CONVERT_TO_TEXT",
+        "credentials": f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/apigateway-invoke-lambda-exec-role",
+        "tlsConfig": {"insecureSkipVerification": True},
+        "connectionType": "INTERNET",
+    }
 
     client.delete_integration(restApiId=api_id, resourceId=root_id, httpMethod="GET")
 
     response = client.get_resource(restApiId=api_id, resourceId=root_id)
-    response["resourceMethods"]["GET"].shouldnt.contain("methodIntegration")
+    assert "methodIntegration" not in response["resourceMethods"]["GET"]
 
     # Create a new integration with a requestTemplates config
 
@@ -626,7 +614,7 @@ def test_integrations():
         "application/json": '{\n    "StreamName": "$input.params(\'stream-name\')",\n    "Records": []\n}'
     }
     test_uri = "http://example.com/foobar.txt"
-    response = client.put_integration(
+    client.put_integration(
         restApiId=api_id,
         resourceId=root_id,
         httpMethod="POST",
@@ -641,10 +629,10 @@ def test_integrations():
     response = client.get_integration(
         restApiId=api_id, resourceId=root_id, httpMethod="POST"
     )
-    response["uri"].should.equal(test_uri)
-    response["requestTemplates"].should.equal(templates)
-    response["passthroughBehavior"].should.equal("WHEN_NO_MATCH")
-    response.should.have.key("timeoutInMillis").equals(29000)
+    assert response["uri"] == test_uri
+    assert response["requestTemplates"] == templates
+    assert response["passthroughBehavior"] == "WHEN_NO_MATCH"
+    assert response["timeoutInMillis"] == 29000
 
 
 @mock_apigateway
@@ -691,18 +679,16 @@ def test_integration_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "statusCode": "200",
-            "selectionPattern": "foobar",
-            "ResponseMetadata": {"HTTPStatusCode": 201},
-            "responseTemplates": {},  # Note: TF compatibility
-            "responseParameters": {
-                "method.response.header.Location": "integration.response.body.redirect.url",
-                "method.response.header.x-user-id": "integration.response.header.x-userid",
-            },
-        }
-    )
+    assert response == {
+        "statusCode": "200",
+        "selectionPattern": "foobar",
+        "ResponseMetadata": {"HTTPStatusCode": 201},
+        "responseTemplates": {},  # Note: TF compatibility
+        "responseParameters": {
+            "method.response.header.Location": "integration.response.body.redirect.url",
+            "method.response.header.x-user-id": "integration.response.header.x-userid",
+        },
+    }
 
     response = client.get_integration_response(
         restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
@@ -710,43 +696,39 @@ def test_integration_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "statusCode": "200",
-            "selectionPattern": "foobar",
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {},  # Note: TF compatibility
-            "responseParameters": {
-                "method.response.header.Location": "integration.response.body.redirect.url",
-                "method.response.header.x-user-id": "integration.response.header.x-userid",
-            },
-        }
-    )
+    assert response == {
+        "statusCode": "200",
+        "selectionPattern": "foobar",
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+        "responseTemplates": {},  # Note: TF compatibility
+        "responseParameters": {
+            "method.response.header.Location": "integration.response.body.redirect.url",
+            "method.response.header.x-user-id": "integration.response.header.x-userid",
+        },
+    }
 
     response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response["methodIntegration"]["integrationResponses"].should.equal(
-        {
-            "200": {
-                "responseTemplates": {},  # Note: TF compatibility
-                "selectionPattern": "foobar",
-                "statusCode": "200",
-                "responseParameters": {
-                    "method.response.header.Location": "integration.response.body.redirect.url",
-                    "method.response.header.x-user-id": "integration.response.header.x-userid",
-                },
-            }
+    assert response["methodIntegration"]["integrationResponses"] == {
+        "200": {
+            "responseTemplates": {},  # Note: TF compatibility
+            "selectionPattern": "foobar",
+            "statusCode": "200",
+            "responseParameters": {
+                "method.response.header.Location": "integration.response.body.redirect.url",
+                "method.response.header.x-user-id": "integration.response.header.x-userid",
+            },
         }
-    )
+    }
 
-    response = client.delete_integration_response(
+    client.delete_integration_response(
         restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
     )
 
     response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
-    response["methodIntegration"]["integrationResponses"].should.equal({})
+    assert response["methodIntegration"]["integrationResponses"] == {}
 
     # adding a new method and perfomring put intergration with contentHandling as CONVERT_TO_BINARY
     client.put_method(
@@ -779,15 +761,13 @@ def test_integration_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "statusCode": "200",
-            "selectionPattern": "foobar",
-            "ResponseMetadata": {"HTTPStatusCode": 201},
-            "responseTemplates": {},  # Note: TF compatibility
-            "contentHandling": "CONVERT_TO_BINARY",
-        }
-    )
+    assert response == {
+        "statusCode": "200",
+        "selectionPattern": "foobar",
+        "ResponseMetadata": {"HTTPStatusCode": 201},
+        "responseTemplates": {},  # Note: TF compatibility
+        "contentHandling": "CONVERT_TO_BINARY",
+    }
 
     response = client.get_integration_response(
         restApiId=api_id, resourceId=root_id, httpMethod="PUT", statusCode="200"
@@ -795,15 +775,13 @@ def test_integration_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "statusCode": "200",
-            "selectionPattern": "foobar",
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {},  # Note: TF compatibility
-            "contentHandling": "CONVERT_TO_BINARY",
-        }
-    )
+    assert response == {
+        "statusCode": "200",
+        "selectionPattern": "foobar",
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+        "responseTemplates": {},  # Note: TF compatibility
+        "contentHandling": "CONVERT_TO_BINARY",
+    }
 
 
 @mock_apigateway
@@ -834,17 +812,15 @@ def test_update_authorizer_configuration():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "id": authorizer_id,
-            "name": authorizer_name,
-            "type": "COGNITO_USER_POOLS",
-            "providerARNs": [user_pool_arn],
-            "identitySource": "method.request.header.Authorization",
-            "authorizerResultTtlInSeconds": 300,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-        }
-    )
+    assert response == {
+        "id": authorizer_id,
+        "name": authorizer_name,
+        "type": "COGNITO_USER_POOLS",
+        "providerARNs": [user_pool_arn],
+        "identitySource": "method.request.header.Authorization",
+        "authorizerResultTtlInSeconds": 300,
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+    }
 
     client.update_authorizer(
         restApiId=api_id,
@@ -854,7 +830,7 @@ def test_update_authorizer_configuration():
 
     authorizer = client.get_authorizer(restApiId=api_id, authorizerId=authorizer_id)
 
-    authorizer.should.have.key("type").which.should.equal("TOKEN")
+    assert authorizer["type"] == "TOKEN"
 
     client.update_authorizer(
         restApiId=api_id,
@@ -863,12 +839,11 @@ def test_update_authorizer_configuration():
     )
 
     authorizer = client.get_authorizer(restApiId=api_id, authorizerId=authorizer_id)
-
-    authorizer.should.have.key("type").which.should.equal("REQUEST")
+    assert authorizer["type"] == "REQUEST"
 
     # TODO: implement mult-update tests
 
-    try:
+    with pytest.raises(Exception) as exc:
         client.update_authorizer(
             restApiId=api_id,
             authorizerId=authorizer_id,
@@ -876,9 +851,8 @@ def test_update_authorizer_configuration():
                 {"op": "add", "path": "/notasetting", "value": "eu-west-1"}
             ],
         )
-        assert False.should.be.ok  # Fail, should not be here
-    except Exception:
-        assert True.should.be.ok
+    if not settings.TEST_SERVER_MODE:
+        assert 'Patch operation "add" not implemented' in str(exc.value)
 
 
 @mock_apigateway
@@ -890,8 +864,8 @@ def test_non_existent_authorizer():
     with pytest.raises(ClientError) as exc:
         client.get_authorizer(restApiId=api_id, authorizerId="xxx")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Invalid Authorizer identifier specified")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid Authorizer identifier specified"
 
     with pytest.raises(ClientError) as exc:
         client.update_authorizer(
@@ -900,8 +874,8 @@ def test_non_existent_authorizer():
             patchOperations=[{"op": "add", "path": "/type", "value": "sth"}],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Invalid Authorizer identifier specified")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid Authorizer identifier specified"
 
 
 @mock_apigateway
@@ -932,17 +906,15 @@ def test_create_authorizer():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "id": authorizer_id,
-            "name": authorizer_name,
-            "type": "COGNITO_USER_POOLS",
-            "providerARNs": [user_pool_arn],
-            "identitySource": "method.request.header.Authorization",
-            "authorizerResultTtlInSeconds": 300,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-        }
-    )
+    assert response == {
+        "id": authorizer_id,
+        "name": authorizer_name,
+        "type": "COGNITO_USER_POOLS",
+        "providerARNs": [user_pool_arn],
+        "identitySource": "method.request.header.Authorization",
+        "authorizerResultTtlInSeconds": 300,
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+    }
 
     authorizer_name2 = "my_authorizer2"
     response = client.create_authorizer(
@@ -960,8 +932,8 @@ def test_create_authorizer():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
 
-    response["items"][0]["id"].should.match(rf"{authorizer_id2}|{authorizer_id}")
-    response["items"][1]["id"].should.match(rf"{authorizer_id2}|{authorizer_id}")
+    assert response["items"][0]["id"] in [authorizer_id, authorizer_id2]
+    assert response["items"][1]["id"] in [authorizer_id, authorizer_id2]
 
     new_authorizer_name_with_vars = "authorizer_with_vars"
     response = client.create_authorizer(
@@ -977,25 +949,23 @@ def test_create_authorizer():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
 
-    response.should.equal(
-        {
-            "name": new_authorizer_name_with_vars,
-            "id": authorizer_id3,
-            "type": "COGNITO_USER_POOLS",
-            "providerARNs": [user_pool_arn],
-            "identitySource": "method.request.header.Authorization",
-            "authorizerResultTtlInSeconds": 300,
-            "ResponseMetadata": {"HTTPStatusCode": 201},
-        }
-    )
+    assert response == {
+        "name": new_authorizer_name_with_vars,
+        "id": authorizer_id3,
+        "type": "COGNITO_USER_POOLS",
+        "providerARNs": [user_pool_arn],
+        "identitySource": "method.request.header.Authorization",
+        "authorizerResultTtlInSeconds": 300,
+        "ResponseMetadata": {"HTTPStatusCode": 201},
+    }
 
     stage = client.get_authorizer(restApiId=api_id, authorizerId=authorizer_id3)
-    stage["name"].should.equal(new_authorizer_name_with_vars)
-    stage["id"].should.equal(authorizer_id3)
-    stage["type"].should.equal("COGNITO_USER_POOLS")
-    stage["providerARNs"].should.equal([user_pool_arn])
-    stage["identitySource"].should.equal("method.request.header.Authorization")
-    stage["authorizerResultTtlInSeconds"].should.equal(300)
+    assert stage["name"] == new_authorizer_name_with_vars
+    assert stage["id"] == authorizer_id3
+    assert stage["type"] == "COGNITO_USER_POOLS"
+    assert stage["providerARNs"] == [user_pool_arn]
+    assert stage["identitySource"] == "method.request.header.Authorization"
+    assert stage["authorizerResultTtlInSeconds"] == 300
 
 
 @mock_apigateway
@@ -1026,17 +996,15 @@ def test_delete_authorizer():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "id": authorizer_id,
-            "name": authorizer_name,
-            "type": "COGNITO_USER_POOLS",
-            "providerARNs": [user_pool_arn],
-            "identitySource": "method.request.header.Authorization",
-            "authorizerResultTtlInSeconds": 300,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-        }
-    )
+    assert response == {
+        "id": authorizer_id,
+        "name": authorizer_name,
+        "type": "COGNITO_USER_POOLS",
+        "providerARNs": [user_pool_arn],
+        "identitySource": "method.request.header.Authorization",
+        "authorizerResultTtlInSeconds": 300,
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+    }
 
     authorizer_name2 = "my_authorizer2"
     response = client.create_authorizer(
@@ -1049,17 +1017,15 @@ def test_delete_authorizer():
     authorizer_id2 = response["id"]
 
     authorizers = client.get_authorizers(restApiId=api_id)["items"]
-    sorted([authorizer["name"] for authorizer in authorizers]).should.equal(
-        sorted([authorizer_name2, authorizer_name])
+    assert sorted([authorizer["name"] for authorizer in authorizers]) == sorted(
+        [authorizer_name2, authorizer_name]
     )
     # delete stage
     response = client.delete_authorizer(restApiId=api_id, authorizerId=authorizer_id2)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 202
     # verify other stage still exists
     authorizers = client.get_authorizers(restApiId=api_id)["items"]
-    sorted([authorizer["name"] for authorizer in authorizers]).should.equal(
-        sorted([authorizer_name])
-    )
+    assert [authorizer["name"] for authorizer in authorizers] == [authorizer_name]
 
 
 @mock_apigateway
@@ -1107,18 +1073,16 @@ def test_put_integration_response_with_response_template():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "statusCode": "200",
-            "selectionPattern": "foobar",
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {"application/json": json.dumps({"data": "test"})},
-            "responseParameters": {
-                "method.response.header.Location": "integration.response.body.redirect.url",
-                "method.response.header.x-user-id": "integration.response.header.x-userid",
-            },
-        }
-    )
+    assert response == {
+        "statusCode": "200",
+        "selectionPattern": "foobar",
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+        "responseTemplates": {"application/json": json.dumps({"data": "test"})},
+        "responseParameters": {
+            "method.response.header.Location": "integration.response.body.redirect.url",
+            "method.response.header.x-user-id": "integration.response.header.x-userid",
+        },
+    }
 
 
 @mock_apigateway
@@ -1147,8 +1111,8 @@ def test_put_integration_response_but_integration_not_found():
             selectionPattern="foobar",
             responseTemplates={"application/json": json.dumps({"data": "test"})},
         )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_apigateway
@@ -1183,9 +1147,10 @@ def test_put_integration_validation():
                 type=_type,
                 uri="http://httpbin.org/robots.txt",
             )
-        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.value.response["Error"]["Message"].should.equal(
-            "Enumeration value for HttpMethod must be non-empty"
+        assert ex.value.response["Error"]["Code"] == "BadRequestException"
+        assert (
+            ex.value.response["Error"]["Message"]
+            == "Enumeration value for HttpMethod must be non-empty"
         )
     for _type in types_not_requiring_integration_method:
         # Ensure that integrations of these types do not need the integrationHttpMethod
@@ -1239,9 +1204,10 @@ def test_put_integration_validation():
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
                 integrationHttpMethod="POST",
             )
-        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.value.response["Error"]["Message"].should.equal(
-            "Integrations of type 'AWS_PROXY' currently only supports Lambda function and Firehose stream invocations."
+        assert ex.value.response["Error"]["Code"] == "BadRequestException"
+        assert (
+            ex.value.response["Error"]["Message"]
+            == "Integrations of type 'AWS_PROXY' currently only supports Lambda function and Firehose stream invocations."
         )
     for _type in aws_types:
         # Ensure that the Role ARN is for the current account
@@ -1255,9 +1221,10 @@ def test_put_integration_validation():
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
                 integrationHttpMethod="POST",
             )
-        ex.value.response["Error"]["Code"].should.equal("AccessDeniedException")
-        ex.value.response["Error"]["Message"].should.equal(
-            "Cross-account pass role is not allowed."
+        assert ex.value.response["Error"]["Code"] == "AccessDeniedException"
+        assert (
+            ex.value.response["Error"]["Message"]
+            == "Cross-account pass role is not allowed."
         )
     for _type in ["AWS"]:
         # Ensure that the Role ARN is specified for aws integrations
@@ -1270,9 +1237,10 @@ def test_put_integration_validation():
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
                 integrationHttpMethod="POST",
             )
-        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.value.response["Error"]["Message"].should.equal(
-            "Role ARN must be specified for AWS integrations"
+        assert ex.value.response["Error"]["Code"] == "BadRequestException"
+        assert (
+            ex.value.response["Error"]["Message"]
+            == "Role ARN must be specified for AWS integrations"
         )
     for _type in http_types:
         # Ensure that the URI is valid HTTP
@@ -1285,9 +1253,10 @@ def test_put_integration_validation():
                 uri="non-valid-http",
                 integrationHttpMethod="POST",
             )
-        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.value.response["Error"]["Message"].should.equal(
-            "Invalid HTTP endpoint specified for URI"
+        assert ex.value.response["Error"]["Code"] == "BadRequestException"
+        assert (
+            ex.value.response["Error"]["Message"]
+            == "Invalid HTTP endpoint specified for URI"
         )
     for _type in aws_types:
         # Ensure that the URI is an ARN
@@ -1300,9 +1269,10 @@ def test_put_integration_validation():
                 uri="non-valid-arn",
                 integrationHttpMethod="POST",
             )
-        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.value.response["Error"]["Message"].should.equal(
-            "Invalid ARN specified in the request"
+        assert ex.value.response["Error"]["Code"] == "BadRequestException"
+        assert (
+            ex.value.response["Error"]["Message"]
+            == "Invalid ARN specified in the request"
         )
     for _type in aws_types:
         # Ensure that the URI is a valid ARN
@@ -1315,9 +1285,10 @@ def test_put_integration_validation():
                 uri="arn:aws:iam::0000000000:role/service-role/asdf",
                 integrationHttpMethod="POST",
             )
-        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.value.response["Error"]["Message"].should.equal(
-            "AWS ARN for integration must contain path or action"
+        assert ex.value.response["Error"]["Code"] == "BadRequestException"
+        assert (
+            ex.value.response["Error"]["Message"]
+            == "AWS ARN for integration must contain path or action"
         )
 
 
@@ -1333,14 +1304,14 @@ def test_create_domain_names():
         certificateName=test_certificate_name,
         certificatePrivateKey=test_certificate_private_key,
     )
-    response["domainName"].should.equal(domain_name)
-    response["certificateName"].should.equal(test_certificate_name)
+    assert response["domainName"] == domain_name
+    assert response["certificateName"] == test_certificate_name
     # without domain name it should throw BadRequestException
     with pytest.raises(ClientError) as ex:
         client.create_domain_name(domainName="")
 
-    ex.value.response["Error"]["Message"].should.equal("No Domain Name specified")
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    assert ex.value.response["Error"]["Message"] == "No Domain Name specified"
+    assert ex.value.response["Error"]["Code"] == "BadRequestException"
 
 
 @mock_apigateway
@@ -1348,21 +1319,21 @@ def test_get_domain_names():
     client = boto3.client("apigateway", region_name="us-west-2")
     # without any domain names already present
     result = client.get_domain_names()
-    result["items"].should.equal([])
+    assert result["items"] == []
     domain_name = "testDomain"
     test_certificate_name = "test.certificate"
     response = client.create_domain_name(
         domainName=domain_name, certificateName=test_certificate_name
     )
 
-    response["domainName"].should.equal(domain_name)
-    response["certificateName"].should.equal(test_certificate_name)
-    response["domainNameStatus"].should.equal("AVAILABLE")
+    assert response["domainName"] == domain_name
+    assert response["certificateName"] == test_certificate_name
+    assert response["domainNameStatus"] == "AVAILABLE"
     # after adding a new domain name
     result = client.get_domain_names()
-    result["items"][0]["domainName"].should.equal(domain_name)
-    result["items"][0]["certificateName"].should.equal(test_certificate_name)
-    result["items"][0]["domainNameStatus"].should.equal("AVAILABLE")
+    assert result["items"][0]["domainName"] == domain_name
+    assert result["items"][0]["certificateName"] == test_certificate_name
+    assert result["items"][0]["domainNameStatus"] == "AVAILABLE"
 
 
 @mock_apigateway
@@ -1373,8 +1344,8 @@ def test_get_domain_name():
     client.create_domain_name(domainName=domain_name)
     # retrieving the data of added domain name.
     result = client.get_domain_name(domainName=domain_name)
-    result["domainName"].should.equal(domain_name)
-    result["domainNameStatus"].should.equal("AVAILABLE")
+    assert result["domainName"] == domain_name
+    assert result["domainNameStatus"] == "AVAILABLE"
 
 
 @mock_apigateway
@@ -1393,8 +1364,8 @@ def test_create_model():
         description=description,
         contentType=content_type,
     )
-    response["name"].should.equal(model_name)
-    response["description"].should.equal(description)
+    assert response["name"] == model_name
+    assert response["description"] == description
 
     # with an invalid rest_api_id it should throw NotFoundException
     with pytest.raises(ClientError) as ex:
@@ -1404,8 +1375,8 @@ def test_create_model():
             description=description,
             contentType=content_type,
         )
-    ex.value.response["Error"]["Message"].should.equal("Invalid Rest API Id specified")
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    assert ex.value.response["Error"]["Message"] == "Invalid Rest API Id specified"
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
 
     with pytest.raises(ClientError) as ex:
         client.create_model(
@@ -1415,8 +1386,8 @@ def test_create_model():
             contentType=content_type,
         )
 
-    ex.value.response["Error"]["Message"].should.equal("No Model Name specified")
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    assert ex.value.response["Error"]["Message"] == "No Model Name specified"
+    assert ex.value.response["Error"]["Code"] == "BadRequestException"
 
 
 @mock_apigateway
@@ -1429,7 +1400,7 @@ def test_get_api_models():
     content_type = "application/json"
     # when no models are present
     result = client.get_models(restApiId=rest_api_id)
-    result["items"].should.equal([])
+    assert result["items"] == []
     # add a model
     client.create_model(
         restApiId=rest_api_id,
@@ -1466,8 +1437,8 @@ def test_get_model_by_name():
 
     with pytest.raises(ClientError) as ex:
         client.get_model(restApiId=dummy_rest_api_id, modelName=model_name)
-    ex.value.response["Error"]["Message"].should.equal("Invalid Rest API Id specified")
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    assert ex.value.response["Error"]["Message"] == "Invalid Rest API Id specified"
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
 
 
 @mock_apigateway
@@ -1478,8 +1449,8 @@ def test_get_model_with_invalid_name():
     # test with an invalid model name
     with pytest.raises(ClientError) as ex:
         client.get_model(restApiId=rest_api_id, modelName="fake")
-    ex.value.response["Error"]["Message"].should.equal("Invalid Model Name specified")
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    assert ex.value.response["Error"]["Message"] == "Invalid Model Name specified"
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
 
 
 @mock_apigateway
@@ -1494,11 +1465,12 @@ def test_api_key_value_min_length():
     with pytest.raises(ClientError) as e:
         client.create_api_key(**payload)
     ex = e.value
-    ex.operation_name.should.equal("CreateApiKey")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("BadRequestException")
-    ex.response["Error"]["Message"].should.equal(
-        "API Key value should be at least 20 characters"
+    assert ex.operation_name == "CreateApiKey"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "BadRequestException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "API Key value should be at least 20 characters"
     )
 
 
@@ -1515,19 +1487,19 @@ def test_get_api_key_include_value():
     api_key_id_one = response["id"]
 
     response = client.get_api_key(apiKey=api_key_id_one, includeValue=True)
-    response.should.have.key("value")
+    assert "value" in response
 
     response = client.get_api_key(apiKey=api_key_id_one)
-    response.should_not.have.key("value")
+    assert "value" not in response
 
     response = client.get_api_key(apiKey=api_key_id_one, includeValue=True)
-    response.should.have.key("value")
+    assert "value" in response
 
     response = client.get_api_key(apiKey=api_key_id_one, includeValue=False)
-    response.should_not.have.key("value")
+    assert "value" not in response
 
     response = client.get_api_key(apiKey=api_key_id_one, includeValue=True)
-    response.should.have.key("value")
+    assert "value" in response
 
 
 @mock_apigateway
@@ -1547,19 +1519,19 @@ def test_get_api_keys_include_values():
     client.create_api_key(**payload2)
 
     response = client.get_api_keys()
-    len(response["items"]).should.equal(2)
+    assert len(response["items"]) == 2
     for api_key in response["items"]:
-        api_key.should_not.have.key("value")
+        assert "value" not in api_key
 
     response = client.get_api_keys(includeValues=True)
-    len(response["items"]).should.equal(2)
+    assert len(response["items"]) == 2
     for api_key in response["items"]:
-        api_key.should.have.key("value")
+        assert "value" in api_key
 
     response = client.get_api_keys(includeValues=False)
-    len(response["items"]).should.equal(2)
+    assert len(response["items"]) == 2
     for api_key in response["items"]:
-        api_key.should_not.have.key("value")
+        assert "value" not in api_key
 
 
 @mock_apigateway
@@ -1572,14 +1544,14 @@ def test_create_api_key():
     payload = {"value": apikey_value, "name": apikey_name}
 
     response = client.create_api_key(**payload)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
-    response["name"].should.equal(apikey_name)
-    response["value"].should.equal(apikey_value)
-    response["enabled"].should.equal(False)
-    response["stageKeys"].should.equal([])
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
+    assert response["name"] == apikey_name
+    assert response["value"] == apikey_value
+    assert response["enabled"] is False
+    assert response["stageKeys"] == []
 
     response = client.get_api_keys()
-    len(response["items"]).should.equal(1)
+    assert len(response["items"]) == 1
 
 
 @mock_apigateway
@@ -1594,7 +1566,7 @@ def test_create_api_key_twice():
     client.create_api_key(**payload)
     with pytest.raises(ClientError) as ex:
         client.create_api_key(**payload)
-    ex.value.response["Error"]["Code"].should.equal("ConflictException")
+    assert ex.value.response["Error"]["Code"] == "ConflictException"
 
 
 @mock_apigateway
@@ -1602,7 +1574,7 @@ def test_api_keys():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
     response = client.get_api_keys()
-    len(response["items"]).should.equal(0)
+    assert len(response["items"]) == 0
 
     apikey_value = "01234567890123456789"
     apikey_name = "TESTKEY1"
@@ -1614,10 +1586,10 @@ def test_api_keys():
     response = client.create_api_key(**payload)
     apikey_id = response["id"]
     apikey = client.get_api_key(apiKey=response["id"], includeValue=True)
-    apikey["name"].should.equal(apikey_name)
-    apikey["value"].should.equal(apikey_value)
-    apikey["tags"]["tag1"].should.equal("test_tag1")
-    apikey["tags"]["tag2"].should.equal("1")
+    assert apikey["name"] == apikey_name
+    assert apikey["value"] == apikey_value
+    assert apikey["tags"]["tag1"] == "test_tag1"
+    assert apikey["tags"]["tag2"] == "1"
 
     patch_operations = [
         {"op": "replace", "path": "/name", "value": "TESTKEY3_CHANGE"},
@@ -1626,31 +1598,31 @@ def test_api_keys():
         {"op": "replace", "path": "/enabled", "value": "false"},
     ]
     response = client.update_api_key(apiKey=apikey_id, patchOperations=patch_operations)
-    response["name"].should.equal("TESTKEY3_CHANGE")
-    response["customerId"].should.equal("12345")
-    response["description"].should.equal("APIKEY UPDATE TEST")
-    response["enabled"].should.equal(False)
+    assert response["name"] == "TESTKEY3_CHANGE"
+    assert response["customerId"] == "12345"
+    assert response["description"] == "APIKEY UPDATE TEST"
+    assert response["enabled"] is False
 
     updated_api_key = client.get_api_key(apiKey=apikey_id)
-    updated_api_key["name"].should.equal("TESTKEY3_CHANGE")
-    updated_api_key["customerId"].should.equal("12345")
-    updated_api_key["description"].should.equal("APIKEY UPDATE TEST")
-    updated_api_key["enabled"].should.equal(False)
+    assert updated_api_key["name"] == "TESTKEY3_CHANGE"
+    assert updated_api_key["customerId"] == "12345"
+    assert updated_api_key["description"] == "APIKEY UPDATE TEST"
+    assert updated_api_key["enabled"] is False
 
     response = client.get_api_keys()
-    len(response["items"]).should.equal(1)
+    assert len(response["items"]) == 1
 
     payload = {"name": apikey_name}
     client.create_api_key(**payload)
 
     response = client.get_api_keys()
-    len(response["items"]).should.equal(2)
+    assert len(response["items"]) == 2
 
     response = client.delete_api_key(apiKey=apikey_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 202
 
     response = client.get_api_keys()
-    len(response["items"]).should.equal(1)
+    assert len(response["items"]) == 1
 
 
 @mock_apigateway
@@ -1658,22 +1630,20 @@ def test_usage_plans():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
     response = client.get_usage_plans()
-    len(response["items"]).should.equal(0)
+    assert len(response["items"]) == 0
 
     # # Try to get info about a non existing usage
     with pytest.raises(ClientError) as ex:
         client.get_usage_plan(usagePlanId="not_existing")
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid Usage Plan ID specified"
-    )
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+    assert ex.value.response["Error"]["Message"] == "Invalid Usage Plan ID specified"
 
     usage_plan_name = "TEST-PLAN"
     payload = {"name": usage_plan_name}
     response = client.create_usage_plan(**payload)
     usage_plan = client.get_usage_plan(usagePlanId=response["id"])
-    usage_plan["name"].should.equal(usage_plan_name)
-    usage_plan["apiStages"].should.equal([])
+    assert usage_plan["name"] == usage_plan_name
+    assert usage_plan["apiStages"] == []
 
     payload = {
         "name": "TEST-PLAN-2",
@@ -1689,23 +1659,21 @@ def test_usage_plans():
 
     # The payload should remain unchanged
     for key, value in payload.items():
-        usage_plan.should.have.key(key).which.should.equal(value)
+        assert usage_plan[key] == value
 
     # Status code should be 200
-    usage_plan["ResponseMetadata"].should.have.key("HTTPStatusCode").which.should.equal(
-        200
-    )
+    assert usage_plan["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     # An Id should've been generated
-    usage_plan.should.have.key("id").which.should_not.be.none
+    assert usage_plan["id"]
 
     response = client.get_usage_plans()
-    len(response["items"]).should.equal(2)
+    assert len(response["items"]) == 2
 
     client.delete_usage_plan(usagePlanId=usage_plan_id)
 
     response = client.get_usage_plans()
-    len(response["items"]).should.equal(1)
+    assert len(response["items"]) == 1
 
 
 @mock_apigateway
@@ -1735,11 +1703,11 @@ def test_update_usage_plan():
             {"op": "replace", "path": "/productCode", "value": "new-productionCode"},
         ],
     )
-    response["quota"]["limit"].should.equal(1000)
-    response["quota"]["period"].should.equal("MONTH")
-    response["name"].should.equal("new-name")
-    response["description"].should.equal("new-description")
-    response["productCode"].should.equal("new-productionCode")
+    assert response["quota"]["limit"] == 1000
+    assert response["quota"]["period"] == "MONTH"
+    assert response["name"] == "new-name"
+    assert response["description"] == "new-description"
+    assert response["productCode"] == "new-productionCode"
 
 
 @mock_apigateway
@@ -1756,58 +1724,55 @@ def test_usage_plan_keys():
 
     # Get current plan keys (expect none)
     response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
-    len(response["items"]).should.equal(0)
+    assert len(response["items"]) == 0
 
     # Create usage plan key
     key_type = "API_KEY"
     payload = {"usagePlanId": usage_plan_id, "keyId": key_id, "keyType": key_type}
     response = client.create_usage_plan_key(**payload)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equals(201)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
     usage_plan_key_id = response["id"]
 
     # Get current plan keys (expect 1)
     response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
-    len(response["items"]).should.equal(1)
+    assert len(response["items"]) == 1
 
     # Get a single usage plan key and check it matches the created one
     usage_plan_key = client.get_usage_plan_key(
         usagePlanId=usage_plan_id, keyId=usage_plan_key_id
     )
-    usage_plan_key["name"].should.equal(key_name)
-    usage_plan_key["id"].should.equal(key_id)
-    usage_plan_key["type"].should.equal(key_type)
-    usage_plan_key["value"].should.equal(key_value)
+    assert usage_plan_key["name"] == key_name
+    assert usage_plan_key["id"] == key_id
+    assert usage_plan_key["type"] == key_type
+    assert usage_plan_key["value"] == key_value
 
     # Delete usage plan key
     client.delete_usage_plan_key(usagePlanId=usage_plan_id, keyId=key_id)
 
     # Get current plan keys (expect none)
     response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
-    len(response["items"]).should.equal(0)
+    assert len(response["items"]) == 0
 
     # Try to get info about a non existing api key
     with pytest.raises(ClientError) as ex:
         client.get_usage_plan_key(usagePlanId=usage_plan_id, keyId="not_existing_key")
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid API Key identifier specified"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid API Key identifier specified"
 
     # Try to get info about an existing api key that has not jet added to a valid usage plan
     with pytest.raises(ClientError) as ex:
         client.get_usage_plan_key(usagePlanId=usage_plan_id, keyId=key_id)
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid Usage Plan ID specified"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid Usage Plan ID specified"
 
     # Try to get info about an existing api key that has not jet added to a valid usage plan
     with pytest.raises(ClientError) as ex:
         client.get_usage_plan_key(usagePlanId="not_existing_plan_id", keyId=key_id)
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid Usage Plan ID specified"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid Usage Plan ID specified"
 
 
 @mock_apigateway
@@ -1817,12 +1782,13 @@ def test_create_usage_plan_key_non_existent_api_key():
     usage_plan_id = "test"
 
     # Attempt to create a usage plan key for a API key that doesn't exists
-    payload = {
-        "usagePlanId": usage_plan_id,
-        "keyId": "non-existent",
-        "keyType": "API_KEY",
-    }
-    client.create_usage_plan_key.when.called_with(**payload).should.throw(ClientError)
+    with pytest.raises(ClientError) as exc:
+        client.create_usage_plan_key(
+            usagePlanId=usage_plan_id, keyId="non-existent", keyType="API_KEY"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid API Key identifier specified"
 
 
 @mock_apigateway
@@ -1849,13 +1815,13 @@ def test_get_usage_plans_using_key_id():
 
     # All usage plans should be returned when keyId is not included
     all_plans = client.get_usage_plans()
-    len(all_plans["items"]).should.equal(2)
+    assert len(all_plans["items"]) == 2
 
     # Only the usage plan attached to the given api key are included
     only_plans_with_key = client.get_usage_plans(keyId=key_id)
-    len(only_plans_with_key["items"]).should.equal(1)
-    only_plans_with_key["items"][0]["name"].should.equal(attached_plan["name"])
-    only_plans_with_key["items"][0]["id"].should.equal(attached_plan["id"])
+    assert len(only_plans_with_key["items"]) == 1
+    assert only_plans_with_key["items"][0]["name"] == attached_plan["name"]
+    assert only_plans_with_key["items"][0]["id"] == attached_plan["id"]
 
 
 def create_method_integration(client, api_id, httpMethod="GET"):
@@ -1904,11 +1870,9 @@ def test_get_integration_response_unknown_response():
         client.get_integration_response(
             restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="300"
         )
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid Response status code specified"
-    )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid Response status code specified"
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigateway
@@ -1916,11 +1880,9 @@ def test_get_api_key_unknown_apikey():
     client = boto3.client("apigateway", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.get_api_key(apiKey="unknown")
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid API Key identifier specified"
-    )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid API Key identifier specified"
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigateway
@@ -1928,11 +1890,9 @@ def test_get_domain_name_unknown_domainname():
     client = boto3.client("apigateway", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.get_domain_name(domainName="www.google.com")
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid domain name identifier specified"
-    )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid domain name identifier specified"
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigateway
@@ -1940,11 +1900,9 @@ def test_delete_domain_name_unknown_domainname():
     client = boto3.client("apigateway", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.delete_domain_name(domainName="www.google.com")
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid domain name identifier specified"
-    )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid domain name identifier specified"
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigateway
@@ -1967,26 +1925,26 @@ def test_create_base_path_mapping():
 
     response = client.create_base_path_mapping(domainName=domain_name, restApiId=api_id)
 
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
-    response["basePath"].should.equal("(none)")
-    response["restApiId"].should.equal(api_id)
-    response.should_not.have.key("stage")
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
+    assert response["basePath"] == "(none)"
+    assert response["restApiId"] == api_id
+    assert "stage" not in response
 
     response = client.create_base_path_mapping(
         domainName=domain_name, restApiId=api_id, stage=stage_name
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
-    response["basePath"].should.equal("(none)")
-    response["restApiId"].should.equal(api_id)
-    response["stage"].should.equal(stage_name)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
+    assert response["basePath"] == "(none)"
+    assert response["restApiId"] == api_id
+    assert response["stage"] == stage_name
 
     response = client.create_base_path_mapping(
         domainName=domain_name, restApiId=api_id, stage=stage_name, basePath="v1"
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
-    response["basePath"].should.equal("v1")
-    response["restApiId"].should.equal(api_id)
-    response["stage"].should.equal(stage_name)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
+    assert response["basePath"] == "v1"
+    assert response["restApiId"] == api_id
+    assert response["stage"] == stage_name
 
 
 @mock_apigateway
@@ -2000,15 +1958,11 @@ def test_create_base_path_mapping_with_unknown_api():
     )
 
     with pytest.raises(ClientError) as ex:
-        client.create_base_path_mapping(
-            domainName=domain_name, restApiId="none-exists-api"
-        )
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid REST API identifier specified"
-    )
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        client.create_base_path_mapping(domainName=domain_name, restApiId="no")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid REST API identifier specified"
+    assert err["Code"] == "BadRequestException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_apigateway
@@ -2033,13 +1987,13 @@ def test_create_base_path_mapping_with_invalid_base_path():
         client.create_base_path_mapping(
             domainName=domain_name, restApiId=api_id, basePath="/v1"
         )
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "API Gateway V1 doesn't support the slash character (/) in base path mappings. "
-        "To create a multi-level base path mapping, use API Gateway V2."
+    err = ex.value.response["Error"]
+    assert (
+        err["Message"]
+        == "API Gateway V1 doesn't support the slash character (/) in base path mappings. To create a multi-level base path mapping, use API Gateway V2."
     )
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert err["Code"] == "BadRequestException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_apigateway
@@ -2064,12 +2018,10 @@ def test_create_base_path_mapping_with_unknown_stage():
         client.create_base_path_mapping(
             domainName=domain_name, restApiId=api_id, stage="unknown-stage"
         )
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid stage identifier specified"
-    )
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid stage identifier specified"
+    assert err["Code"] == "BadRequestException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_apigateway
@@ -2092,12 +2044,10 @@ def test_create_base_path_mapping_with_duplicate_base_path():
         client.create_base_path_mapping(
             domainName=domain_name, restApiId=api_id, basePath=base_path
         )
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "Base path already exists for this domain name"
-    )
-    ex.value.response["Error"]["Code"].should.equal("ConflictException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Base path already exists for this domain name"
+    assert err["Code"] == "ConflictException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
 
 
 @mock_apigateway
@@ -2126,21 +2076,21 @@ def test_get_base_path_mappings():
     )
 
     response = client.get_base_path_mappings(domainName=domain_name)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     items = response["items"]
 
-    items[0]["basePath"].should.equal("(none)")
-    items[0]["restApiId"].should.equal(api_id)
-    items[0].should_not.have.key("stage")
+    assert items[0]["basePath"] == "(none)"
+    assert items[0]["restApiId"] == api_id
+    assert "stage" not in items[0]
 
-    items[1]["basePath"].should.equal("v1")
-    items[1]["restApiId"].should.equal(api_id)
-    items[1].should_not.have.key("stage")
+    assert items[1]["basePath"] == "v1"
+    assert items[1]["restApiId"] == api_id
+    assert "stage" not in items[1]
 
-    items[2]["basePath"].should.equal("v2")
-    items[2]["restApiId"].should.equal(api_id)
-    items[2]["stage"].should.equal(stage_name)
+    assert items[2]["basePath"] == "v2"
+    assert items[2]["restApiId"] == api_id
+    assert items[2]["stage"] == stage_name
 
 
 @mock_apigateway
@@ -2149,12 +2099,10 @@ def test_get_base_path_mappings_with_unknown_domain():
 
     with pytest.raises(ClientError) as ex:
         client.get_base_path_mappings(domainName="unknown-domain")
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid domain name identifier specified"
-    )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid domain name identifier specified"
+    assert err["Code"] == "NotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_apigateway
@@ -2180,10 +2128,10 @@ def test_get_base_path_mapping():
     )
 
     response = client.get_base_path_mapping(domainName=domain_name, basePath="(none)")
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response["basePath"].should.equal("(none)")
-    response["restApiId"].should.equal(api_id)
-    response["stage"].should.equal(stage_name)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["basePath"] == "(none)"
+    assert response["restApiId"] == api_id
+    assert response["stage"] == stage_name
 
 
 @mock_apigateway
@@ -2193,11 +2141,12 @@ def test_get_base_path_mapping_with_unknown_domain():
     with pytest.raises(ClientError) as ex:
         client.get_base_path_mapping(domainName="unknown-domain", basePath="v1")
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid domain name identifier specified"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid domain name identifier specified"
     )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_apigateway
@@ -2218,11 +2167,12 @@ def test_get_base_path_mapping_with_unknown_base_path():
     with pytest.raises(ClientError) as ex:
         client.get_base_path_mapping(domainName=domain_name, basePath="unknown")
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid base path mapping identifier specified"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid base path mapping identifier specified"
     )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_apigateway
@@ -2245,16 +2195,17 @@ def test_delete_base_path_mapping():
     response = client.delete_base_path_mapping(
         domainName=domain_name, basePath=base_path
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 202
 
     with pytest.raises(ClientError) as ex:
         client.get_base_path_mapping(domainName=domain_name, basePath=base_path)
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid base path mapping identifier specified"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid base path mapping identifier specified"
     )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_apigateway
@@ -2264,11 +2215,12 @@ def test_delete_base_path_mapping_with_unknown_domain():
     with pytest.raises(ClientError) as ex:
         client.delete_base_path_mapping(domainName="unknown-domain", basePath="v1")
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid domain name identifier specified"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid domain name identifier specified"
     )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_apigateway
@@ -2289,11 +2241,12 @@ def test_delete_base_path_mapping_with_unknown_base_path():
     with pytest.raises(ClientError) as ex:
         client.delete_base_path_mapping(domainName=domain_name, basePath="unknown")
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid base path mapping identifier specified"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid base path mapping identifier specified"
     )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_apigateway
@@ -2330,26 +2283,26 @@ def test_update_path_mapping():
     response = client.update_base_path_mapping(
         domainName=domain_name, basePath="(none)", patchOperations=patch_operations
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response["basePath"].should.equal(base_path)
-    response["restApiId"].should.equal(new_api_id)
-    response["stage"].should.equal(stage_name)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["basePath"] == base_path
+    assert response["restApiId"] == new_api_id
+    assert response["stage"] == stage_name
 
 
 @mock_apigateway
 def test_update_path_mapping_with_unknown_domain():
-
     client = boto3.client("apigateway", region_name="us-west-2")
     with pytest.raises(ClientError) as ex:
         client.update_base_path_mapping(
             domainName="unknown-domain", basePath="(none)", patchOperations=[]
         )
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid domain name identifier specified"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid domain name identifier specified"
     )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_apigateway
@@ -2372,11 +2325,12 @@ def test_update_path_mapping_with_unknown_base_path():
             domainName=domain_name, basePath="unknown", patchOperations=[]
         )
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid base path mapping identifier specified"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid base path mapping identifier specified"
     )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_apigateway
@@ -2402,7 +2356,7 @@ def test_update_path_mapping_to_same_base_path():
 
     response = client.get_base_path_mappings(domainName=domain_name)
     items = response["items"]
-    len(items).should.equal(2)
+    assert len(items) == 2
 
     patch_operations = [
         {"op": "replace", "path": "/basePath", "value": "v2"},
@@ -2410,16 +2364,16 @@ def test_update_path_mapping_to_same_base_path():
     response = client.update_base_path_mapping(
         domainName=domain_name, basePath="v1", patchOperations=patch_operations
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response["basePath"].should.equal("v2")
-    response["restApiId"].should.equal(api_id_1)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["basePath"] == "v2"
+    assert response["restApiId"] == api_id_1
 
     response = client.get_base_path_mappings(domainName=domain_name)
     items = response["items"]
-    len(items).should.equal(1)
-    items[0]["basePath"].should.equal("v2")
-    items[0]["restApiId"].should.equal(api_id_1)
-    items[0].should_not.have.key("stage")
+    assert len(items) == 1
+    assert items[0]["basePath"] == "v2"
+    assert items[0]["restApiId"] == api_id_1
+    assert "stage" not in items[0]
 
 
 @mock_apigateway
@@ -2447,11 +2401,11 @@ def test_update_path_mapping_with_unknown_api():
             ],
         )
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid REST API identifier specified"
+    assert (
+        ex.value.response["Error"]["Message"] == "Invalid REST API identifier specified"
     )
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "BadRequestException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_apigateway
@@ -2477,8 +2431,6 @@ def test_update_path_mapping_with_unknown_stage():
             patchOperations=[{"op": "replace", "path": "/stage", "value": "unknown"}],
         )
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid stage identifier specified"
-    )
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Message"] == "Invalid stage identifier specified"
+    assert ex.value.response["Error"]["Code"] == "BadRequestException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
