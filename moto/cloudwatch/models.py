@@ -651,6 +651,17 @@ class CloudWatchBackend(BaseBackend):
         end_time: datetime,
         scan_by: str = "TimestampAscending",
     ) -> List[Dict[str, Any]]:
+        start_time = start_time.replace(microsecond=0)
+        end_time = end_time.replace(microsecond=0)
+
+        if start_time > end_time:
+            raise ValidationError(
+                "The parameter EndTime must be greater than StartTime."
+            )
+        if start_time == end_time:
+            raise ValidationError(
+                "The parameter StartTime must not equal parameter EndTime."
+            )
 
         period_data = [
             md for md in self.get_all_metrics() if start_time <= md.timestamp < end_time
@@ -731,6 +742,14 @@ class CloudWatchBackend(BaseBackend):
         dimensions: List[Dict[str, str]],
         unit: Optional[str] = None,
     ) -> List[Statistics]:
+        start_time = start_time.replace(microsecond=0)
+        end_time = end_time.replace(microsecond=0)
+
+        if start_time >= end_time:
+            raise InvalidParameterValue(
+                "The parameter StartTime must be less than the parameter EndTime."
+            )
+
         period_delta = timedelta(seconds=period)
         filtered_data = [
             md

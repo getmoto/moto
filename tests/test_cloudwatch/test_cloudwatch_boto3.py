@@ -377,6 +377,121 @@ def test_get_metric_statistics_dimensions():
 
 
 @mock_cloudwatch
+def test_get_metric_statistics_endtime_sooner_than_starttime():
+    # given
+    utc_now = datetime.now(tz=timezone.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        # get_metric_statistics
+        cloudwatch.get_metric_statistics(
+            Namespace="tester",
+            MetricName="metric",
+            StartTime=utc_now + timedelta(seconds=1),
+            EndTime=utc_now,
+            Period=60,
+            Statistics=["SampleCount"],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetMetricStatistics")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+    ex.response["Error"]["Message"].should.equal(
+        "The parameter StartTime must be less than the parameter EndTime."
+    )
+
+
+@mock_cloudwatch
+def test_get_metric_statistics_starttime_endtime_equals():
+    # given
+    utc_now = datetime.now(tz=timezone.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        # get_metric_statistics
+        cloudwatch.get_metric_statistics(
+            Namespace="tester",
+            MetricName="metric",
+            StartTime=utc_now,
+            EndTime=utc_now,
+            Period=60,
+            Statistics=["SampleCount"],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetMetricStatistics")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+    ex.response["Error"]["Message"].should.equal(
+        "The parameter StartTime must be less than the parameter EndTime."
+    )
+
+
+@mock_cloudwatch
+def test_get_metric_statistics_starttime_endtime_within_1_second():
+    # given
+    utc_now = datetime.now(tz=timezone.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        # get_metric_statistics
+        cloudwatch.get_metric_statistics(
+            Namespace="tester",
+            MetricName="metric",
+            StartTime=utc_now.replace(microsecond=20 * 1000),
+            EndTime=utc_now.replace(microsecond=987 * 1000),
+            Period=60,
+            Statistics=["SampleCount"],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetMetricStatistics")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+    ex.response["Error"]["Message"].should.equal(
+        "The parameter StartTime must be less than the parameter EndTime."
+    )
+
+
+@mock_cloudwatch
+def test_get_metric_statistics_starttime_endtime_ignore_miliseconds():
+    cloudwatch = boto3.client("cloudwatch", region_name="us-east-1")
+    utc_now = datetime.now(tz=timezone.utc)
+
+    cloudwatch.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName="metric",
+                Value=1.5,
+                Timestamp=utc_now.replace(microsecond=200 * 1000),
+            )
+        ],
+    )
+
+    stats = cloudwatch.get_metric_statistics(
+        Namespace="tester",
+        MetricName="metric",
+        StartTime=utc_now.replace(microsecond=999 * 1000),
+        EndTime=utc_now + timedelta(seconds=1),
+        Period=60,
+        Statistics=["SampleCount", "Sum"],
+    )
+
+    stats["Datapoints"].should.have.length_of(1)
+    datapoint = stats["Datapoints"][0]
+    datapoint["SampleCount"].should.equal(1.0)
+    datapoint["Sum"].should.equal(1.5)
+
+
+@mock_cloudwatch
 def test_duplicate_put_metric_data():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=timezone.utc)
@@ -1212,6 +1327,158 @@ def test_get_metric_data_for_unit():
         )
         len(metric_result_data).should.equal(1)
         metric_result_data[0]["Values"][0].should.equal(expected_value)
+
+
+@mock_cloudwatch
+def test_get_metric_data_endtime_sooner_than_starttime():
+    # given
+    utc_now = datetime.now(tz=timezone.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        # get_metric_data
+        cloudwatch.get_metric_data(
+            MetricDataQueries=[
+                {
+                    "Id": "test",
+                    "MetricStat": {
+                        "Metric": {
+                            "Namespace": "my_namespace/",
+                            "MetricName": "metric1",
+                        },
+                        "Period": 60,
+                        "Stat": "SampleCount",
+                    },
+                },
+            ],
+            StartTime=utc_now + timedelta(seconds=1),
+            EndTime=utc_now,
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetMetricData")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationError")
+    ex.response["Error"]["Message"].should.equal(
+        "The parameter EndTime must be greater than StartTime."
+    )
+
+
+@mock_cloudwatch
+def test_get_metric_data_starttime_endtime_equals():
+    # given
+    utc_now = datetime.now(tz=timezone.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        # get_metric_data
+        cloudwatch.get_metric_data(
+            MetricDataQueries=[
+                {
+                    "Id": "test",
+                    "MetricStat": {
+                        "Metric": {
+                            "Namespace": "my_namespace/",
+                            "MetricName": "metric1",
+                        },
+                        "Period": 60,
+                        "Stat": "SampleCount",
+                    },
+                },
+            ],
+            StartTime=utc_now,
+            EndTime=utc_now,
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetMetricData")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationError")
+    ex.response["Error"]["Message"].should.equal(
+        "The parameter StartTime must not equal parameter EndTime."
+    )
+
+
+@mock_cloudwatch
+def test_get_metric_data_starttime_endtime_within_1_second():
+    # given
+    utc_now = datetime.now(tz=timezone.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        # get_metric_data
+        cloudwatch.get_metric_data(
+            MetricDataQueries=[
+                {
+                    "Id": "test",
+                    "MetricStat": {
+                        "Metric": {
+                            "Namespace": "my_namespace/",
+                            "MetricName": "metric1",
+                        },
+                        "Period": 60,
+                        "Stat": "SampleCount",
+                    },
+                },
+            ],
+            StartTime=utc_now.replace(microsecond=20 * 1000),
+            EndTime=utc_now.replace(microsecond=987 * 1000),
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetMetricData")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationError")
+    ex.response["Error"]["Message"].should.equal(
+        "The parameter StartTime must not equal parameter EndTime."
+    )
+
+
+@mock_cloudwatch
+def test_get_metric_data_starttime_endtime_ignore_miliseconds():
+    utc_now = datetime.now(tz=timezone.utc).replace(microsecond=200 * 1000)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace = "my_namespace/"
+
+    # put metric data
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": -50,
+                "Timestamp": utc_now,
+            },
+        ],
+    )
+    # get_metric_data
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "test",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                },
+            },
+        ],
+        StartTime=utc_now.replace(microsecond=999 * 1000),
+        EndTime=(utc_now + timedelta(seconds=1)).replace(microsecond=0),
+    )
+
+    len(response["MetricDataResults"]).should.equal(1)
+    response["MetricDataResults"][0]["Id"].should.equal("test")
+    response["MetricDataResults"][0]["Values"][0].should.equal(1.0)
 
 
 @mock_cloudwatch
