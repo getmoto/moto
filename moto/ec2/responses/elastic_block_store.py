@@ -67,6 +67,7 @@ class ElasticBlockStore(EC2BaseResponse):
         encrypted = self._get_bool_param("Encrypted", if_none=False)
         kms_key_id = self._get_param("KmsKeyId")
         iops = self._get_param("Iops")
+        throughput = self._get_param("Throughput")
 
         self.error_on_dryrun()
 
@@ -78,6 +79,7 @@ class ElasticBlockStore(EC2BaseResponse):
             kms_key_id=kms_key_id,
             volume_type=volume_type,
             iops=iops,
+            throughput=throughput,
         )
         volume.add_tags(volume_tags)
         template = self.response_template(CREATE_VOLUME_RESPONSE)
@@ -246,6 +248,9 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   {% if volume.iops %}
     <iops>{{ volume.iops }}</iops>
   {% endif %}
+  {% if volume.throughput %}
+    <throughput>{{ volume.throughput }}</throughput>
+  {% endif %}
 </CreateVolumeResponse>"""
 
 DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -294,6 +299,9 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
              <volumeType>{{ volume.volume_type }}</volumeType>
              {% if volume.iops %}
                <iops>{{ volume.iops }}</iops>
+             {% endif %}
+             {% if volume.throughput %}
+               <throughput>{{ volume.throughput }}</throughput>
              {% endif %}
           </item>
       {% endfor %}
