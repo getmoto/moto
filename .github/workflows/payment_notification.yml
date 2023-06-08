@@ -12,19 +12,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Leave comment
-      uses: peter-evans/create-or-update-comment@v3
+    - uses: actions/github-script@v5
       with:
-        issue-number: ${{ github.event.pull_request.number }}
-        body: |
-          Hi @${{ github.event.pull_request.user.login }},
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: |
+              Hi @${{ github.event.pull_request.user.login }},
 
-          Thank you for contributing to Moto!
+              Thank you for contributing to Moto!
 
-          To show our thanks, we'd like to share some of the donations that we've received with you. PR's like this are the big reason that Moto is as successful as it is - so it's only fair that you, as a contributor, gets to share the spoils.
+              To show our thanks, we'd like to share some of the donations that we've received with you. PR's like this are the big reason that Moto is as successful as it is - so it's only fair that you, as a contributor, gets to share the spoils.
 
-          We've created a companion website with more information:
-          https://payments.getmoto.org/
+              We've created a companion website with more information:
+              https://payments.getmoto.org/
 
-          This website is still in beta, but everything should work. Feel free to open a bug or discussion if you run into any problems:
-          https://github.com/getmoto/payments
+              This website is still in beta, but everything should work. Feel free to open a bug or discussion if you run into any problems:
+              https://github.com/getmoto/payments
+          })
