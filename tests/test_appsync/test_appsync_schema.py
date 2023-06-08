@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import json
 from botocore.exceptions import ClientError
 import pytest
@@ -62,7 +61,7 @@ def test_start_schema_creation():
 
     resp = client.start_schema_creation(apiId=api_id, definition=b"sth")
 
-    resp.should.have.key("status").equals("PROCESSING")
+    assert resp["status"] == "PROCESSING"
 
 
 @mock_appsync
@@ -75,8 +74,8 @@ def test_get_schema_creation_status():
     client.start_schema_creation(apiId=api_id, definition=schema.encode("utf-8"))
     resp = client.get_schema_creation_status(apiId=api_id)
 
-    resp.should.have.key("status").equals("SUCCESS")
-    resp.shouldnt.have.key("details")
+    assert resp["status"] == "SUCCESS"
+    assert "details" not in resp
 
 
 @mock_appsync
@@ -89,8 +88,8 @@ def test_get_schema_creation_status_invalid():
     client.start_schema_creation(apiId=api_id, definition=b"sth")
     resp = client.get_schema_creation_status(apiId=api_id)
 
-    resp.should.have.key("status").equals("FAILED")
-    resp.should.have.key("details").match("Syntax Error")
+    assert resp["status"] == "FAILED"
+    assert "Syntax Error" in resp["details"]
 
 
 @mock_appsync
@@ -104,17 +103,17 @@ def test_get_type_from_schema():
     client.start_schema_creation(apiId=api_id, definition=schema.encode("utf-8"))
     resp = client.get_type(apiId=api_id, typeName="Post", format="SDL")
 
-    resp.should.have.key("type")
+    assert "type" in resp
     graphql_type = resp["type"]
-    graphql_type.should.have.key("name").equals("Post")
-    graphql_type.should.have.key("description").equals("My custom post type")
-    graphql_type.should.have.key("arn").equals("arn:aws:appsync:graphql_type/Post")
-    graphql_type.should.have.key("definition").equals("NotYetImplemented")
-    graphql_type.should.have.key("format").equals("SDL")
+    assert graphql_type["name"] == "Post"
+    assert graphql_type["description"] == "My custom post type"
+    assert graphql_type["arn"] == "arn:aws:appsync:graphql_type/Post"
+    assert graphql_type["definition"] == "NotYetImplemented"
+    assert graphql_type["format"] == "SDL"
 
     query_type = client.get_type(apiId=api_id, typeName="Query", format="SDL")["type"]
-    query_type.should.have.key("name").equals("Query")
-    query_type.shouldnt.have.key("description")
+    assert query_type["name"] == "Query"
+    assert "description" not in query_type
 
 
 @mock_appsync
@@ -128,9 +127,9 @@ def test_get_introspection_schema_raise_gql_schema_error_if_no_schema():
     with pytest.raises(ClientError) as exc:
         client.get_introspection_schema(apiId=api_id, format="SDL")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("GraphQLSchemaException")
+    assert err["Code"] == "GraphQLSchemaException"
     # AWS API appears to return InvalidSyntaxError if no schema exists
-    err["Message"].should.equal("InvalidSyntaxError")
+    assert err["Message"] == "InvalidSyntaxError"
 
 
 @mock_appsync
@@ -145,13 +144,12 @@ def test_get_introspection_schema_sdl():
 
     resp = client.get_introspection_schema(apiId=api_id, format="SDL")
     schema_sdl = resp["schema"].read().decode("utf-8")
-    schema_sdl.should.contain("putPost(")
-    schema_sdl.should.contain("singlePost(id: ID!): Post")
+    assert "putPost(" in schema_sdl
+    assert "singlePost(id: ID!): Post" in schema_sdl
 
 
 @mock_appsync
 def test_get_introspection_schema_json():
-
     client = boto3.client("appsync", region_name="us-east-2")
 
     api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
@@ -162,12 +160,12 @@ def test_get_introspection_schema_json():
 
     resp = client.get_introspection_schema(apiId=api_id, format="JSON")
     schema_json = json.loads(resp["schema"].read().decode("utf-8"))
-    schema_json.should.have.key("__schema")
-    schema_json["__schema"].should.have.key("queryType")
-    schema_json["__schema"].should.have.key("mutationType")
-    schema_json["__schema"].should.have.key("subscriptionType")
-    schema_json["__schema"].should.have.key("types")
-    schema_json["__schema"].should.have.key("directives")
+    assert "__schema" in schema_json
+    assert "queryType" in schema_json["__schema"]
+    assert "mutationType" in schema_json["__schema"]
+    assert "subscriptionType" in schema_json["__schema"]
+    assert "types" in schema_json["__schema"]
+    assert "directives" in schema_json["__schema"]
 
 
 @mock_appsync
@@ -184,8 +182,8 @@ def test_get_introspection_schema_bad_format():
         client.get_introspection_schema(apiId=api_id, format="NotAFormat")
     err = exc.value.response["Error"]
 
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.equal("Invalid format NotAFormat given")
+    assert err["Code"] == "BadRequestException"
+    assert err["Message"] == "Invalid format NotAFormat given"
 
 
 @mock_appsync
@@ -206,7 +204,7 @@ def test_get_introspection_schema_include_directives_true():
 
     schema_sdl = resp["schema"].read().decode("utf-8")
 
-    schema_sdl.should.contain("@aws_subscribe")
+    assert "@aws_subscribe" in schema_sdl
 
 
 @mock_appsync
@@ -227,4 +225,4 @@ def test_get_introspection_schema_include_directives_false():
 
     schema_sdl = resp["schema"].read().decode("utf-8")
 
-    schema_sdl.shouldnt.contain("@aws_subscribe")
+    assert "@aws_subscribe" not in schema_sdl

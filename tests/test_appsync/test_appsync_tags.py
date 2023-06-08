@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_appsync
 
@@ -11,11 +10,11 @@ def test_create_graphql_api_with_tags():
         name="api1", authenticationType="API_KEY", tags={"key": "val", "key2": "val2"}
     )["graphqlApi"]
 
-    api.should.have.key("tags").equals({"key": "val", "key2": "val2"})
+    assert api["tags"] == {"key": "val", "key2": "val2"}
 
     api = client.get_graphql_api(apiId=api["apiId"])["graphqlApi"]
 
-    api.should.have.key("tags").equals({"key": "val", "key2": "val2"})
+    assert api["tags"] == {"key": "val", "key2": "val2"}
 
 
 @mock_appsync
@@ -28,7 +27,7 @@ def test_tag_resource():
     client.tag_resource(resourceArn=(api["arn"]), tags={"key1": "val1"})
 
     api = client.get_graphql_api(apiId=api["apiId"])["graphqlApi"]
-    api.should.have.key("tags").equals({"key1": "val1"})
+    assert api["tags"] == {"key1": "val1"}
 
 
 @mock_appsync
@@ -45,7 +44,7 @@ def test_tag_resource_with_existing_tags():
     )
 
     api = client.get_graphql_api(apiId=api["apiId"])["graphqlApi"]
-    api.should.have.key("tags").equals({"key2": "new value", "key3": "val3"})
+    assert api["tags"] == {"key2": "new value", "key3": "val3"}
 
 
 @mock_appsync
@@ -58,7 +57,7 @@ def test_untag_resource():
     client.untag_resource(resourceArn=api["arn"], tagKeys=["key"])
 
     api = client.get_graphql_api(apiId=api["apiId"])["graphqlApi"]
-    api.should.have.key("tags").equals({"key2": "val2"})
+    assert api["tags"] == {"key2": "val2"}
 
 
 @mock_appsync
@@ -71,7 +70,7 @@ def test_untag_resource_all():
     client.untag_resource(resourceArn=api["arn"], tagKeys=["key", "key2"])
 
     api = client.get_graphql_api(apiId=api["apiId"])["graphqlApi"]
-    api.should.have.key("tags").equals({})
+    assert api["tags"] == {}
 
 
 @mock_appsync
@@ -83,4 +82,4 @@ def test_list_tags_for_resource():
 
     resp = client.list_tags_for_resource(resourceArn=api["arn"])
 
-    resp.should.have.key("tags").equals({"key": "val", "key2": "val2"})
+    assert resp["tags"] == {"key": "val", "key2": "val2"}

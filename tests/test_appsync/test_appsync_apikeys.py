@@ -14,13 +14,13 @@ def test_create_api_key_simple():
     ]["apiId"]
     resp = client.create_api_key(apiId=api_id)
 
-    resp.should.have.key("apiKey")
+    assert "apiKey" in resp
     api_key = resp["apiKey"]
 
-    api_key.should.have.key("id")
-    api_key.shouldnt.have.key("description")
-    api_key.should.have.key("expires")
-    api_key.should.have.key("deletes")
+    assert "id" in api_key
+    assert "description" not in api_key
+    assert "expires" in api_key
+    assert "deletes" in api_key
 
 
 @mock_appsync
@@ -36,13 +36,13 @@ def test_create_api_key():
         apiId=api_id, description="my first api key", expires=tomorrow_in_secs
     )
 
-    resp.should.have.key("apiKey")
+    assert "apiKey" in resp
     api_key = resp["apiKey"]
 
-    api_key.should.have.key("id")
-    api_key.should.have.key("description").equals("my first api key")
-    api_key.should.have.key("expires").equals(tomorrow_in_secs)
-    api_key.should.have.key("deletes").equals(tomorrow_in_secs)
+    assert "id" in api_key
+    assert api_key["description"] == "my first api key"
+    assert api_key["expires"] == tomorrow_in_secs
+    assert api_key["deletes"] == tomorrow_in_secs
 
 
 @mock_appsync
@@ -57,14 +57,14 @@ def test_delete_api_key():
     client.delete_api_key(apiId=api_id, id=api_key_id)
 
     resp = client.list_api_keys(apiId=api_id)
-    resp.should.have.key("apiKeys").length_of(0)
+    assert len(resp["apiKeys"]) == 0
 
 
 @mock_appsync
 def test_list_api_keys_unknown_api():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     resp = client.list_api_keys(apiId="unknown")
-    resp.should.have.key("apiKeys").equals([])
+    assert resp["apiKeys"] == []
 
 
 @mock_appsync
@@ -75,7 +75,7 @@ def test_list_api_keys_empty():
     ]["apiId"]
 
     resp = client.list_api_keys(apiId=api_id)
-    resp.should.have.key("apiKeys").equals([])
+    assert resp["apiKeys"] == []
 
 
 @mock_appsync
@@ -87,7 +87,7 @@ def test_list_api_keys():
     client.create_api_key(apiId=api_id)
     client.create_api_key(apiId=api_id, description="my first api key")
     resp = client.list_api_keys(apiId=api_id)
-    resp.should.have.key("apiKeys").length_of(2)
+    assert len(resp["apiKeys"]) == 2
 
 
 @mock_appsync
@@ -106,7 +106,7 @@ def test_update_api_key():
         apiId=api_id, id=original["id"], description="my second api key"
     )["apiKey"]
 
-    updated.should.have.key("id").equals(original["id"])
-    updated.should.have.key("description").equals("my second api key")
-    updated.should.have.key("expires").equals(original["expires"])
-    updated.should.have.key("deletes").equals(original["deletes"])
+    assert updated["id"] == original["id"]
+    assert updated["description"] == "my second api key"
+    assert updated["expires"] == original["expires"]
+    assert updated["deletes"] == original["deletes"]
