@@ -3,7 +3,6 @@ import boto3
 from botocore.exceptions import ClientError
 
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_autoscaling, mock_ec2
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -26,21 +25,22 @@ def test_create_launch_configuration():
     )
 
     launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
-    launch_config["LaunchConfigurationName"].should.equal("tester")
-    launch_config.should.have.key("LaunchConfigurationARN")
-    launch_config["ImageId"].should.equal(EXAMPLE_AMI_ID)
-    launch_config["InstanceType"].should.equal("t1.micro")
-    launch_config["KeyName"].should.equal("the_keys")
-    set(launch_config["SecurityGroups"]).should.equal(set(["default", "default2"]))
+    assert launch_config["LaunchConfigurationName"] == "tester"
+    assert "LaunchConfigurationARN" in launch_config
+    assert launch_config["ImageId"] == EXAMPLE_AMI_ID
+    assert launch_config["InstanceType"] == "t1.micro"
+    assert launch_config["KeyName"] == "the_keys"
+    assert set(launch_config["SecurityGroups"]) == set(["default", "default2"])
     userdata = launch_config["UserData"]
     userdata = base64.b64decode(userdata)
-    userdata.should.equal(b"This is some user_data")
-    launch_config["InstanceMonitoring"].should.equal({"Enabled": True})
-    launch_config["IamInstanceProfile"].should.equal(
-        f"arn:aws:iam::{ACCOUNT_ID}:instance-profile/testing"
+    assert userdata == b"This is some user_data"
+    assert launch_config["InstanceMonitoring"] == {"Enabled": True}
+    assert (
+        launch_config["IamInstanceProfile"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:instance-profile/testing"
     )
-    launch_config["SpotPrice"].should.equal("0.1")
-    launch_config["BlockDeviceMappings"].should.equal([])
+    assert launch_config["SpotPrice"] == "0.1"
+    assert launch_config["BlockDeviceMappings"] == []
 
 
 @mock_autoscaling
@@ -75,29 +75,29 @@ def test_create_launch_configuration_with_block_device_mappings():
     )
 
     launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
-    launch_config["LaunchConfigurationName"].should.equal("tester")
+    assert launch_config["LaunchConfigurationName"] == "tester"
 
     mappings = launch_config["BlockDeviceMappings"]
-    mappings.should.have.length_of(3)
+    assert len(mappings) == 3
 
     xvdh = [m for m in mappings if m["DeviceName"] == "/dev/xvdh"][0]
     xvdp = [m for m in mappings if m["DeviceName"] == "/dev/xvdp"][0]
     xvdb = [m for m in mappings if m["DeviceName"] == "/dev/xvdb"][0]
 
-    xvdh.shouldnt.have.key("VirtualName")
-    xvdh.should.have.key("Ebs")
-    xvdh["Ebs"]["VolumeSize"].should.equal(100)
-    xvdh["Ebs"]["VolumeType"].should.equal("io1")
-    xvdh["Ebs"]["DeleteOnTermination"].should.equal(False)
-    xvdh["Ebs"]["Iops"].should.equal(1000)
+    assert "VirtualName" not in xvdh
+    assert "Ebs" in xvdh
+    assert xvdh["Ebs"]["VolumeSize"] == 100
+    assert xvdh["Ebs"]["VolumeType"] == "io1"
+    assert xvdh["Ebs"]["DeleteOnTermination"] is False
+    assert xvdh["Ebs"]["Iops"] == 1000
 
-    xvdp.shouldnt.have.key("VirtualName")
-    xvdp.should.have.key("Ebs")
-    xvdp["Ebs"]["SnapshotId"].should.equal("snap-1234abcd")
-    xvdp["Ebs"]["VolumeType"].should.equal("standard")
+    assert "VirtualName" not in xvdp
+    assert "Ebs" in xvdp
+    assert xvdp["Ebs"]["SnapshotId"] == "snap-1234abcd"
+    assert xvdp["Ebs"]["VolumeType"] == "standard"
 
-    xvdb["VirtualName"].should.equal("ephemeral0")
-    xvdb.shouldnt.have.key("Ebs")
+    assert xvdb["VirtualName"] == "ephemeral0"
+    assert "Ebs" not in xvdb
 
 
 @mock_autoscaling
@@ -119,17 +119,15 @@ def test_create_launch_configuration_additional_parameters():
     )
 
     launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
-    launch_config["ClassicLinkVPCId"].should.equal("vpc_id")
-    launch_config["ClassicLinkVPCSecurityGroups"].should.equal(["classic_sg1"])
-    launch_config["EbsOptimized"].should.equal(True)
-    launch_config["AssociatePublicIpAddress"].should.equal(True)
-    launch_config["MetadataOptions"].should.equal(
-        {
-            "HttpTokens": "optional",
-            "HttpPutResponseHopLimit": 123,
-            "HttpEndpoint": "disabled",
-        }
-    )
+    assert launch_config["ClassicLinkVPCId"] == "vpc_id"
+    assert launch_config["ClassicLinkVPCSecurityGroups"] == ["classic_sg1"]
+    assert launch_config["EbsOptimized"] is True
+    assert launch_config["AssociatePublicIpAddress"] is True
+    assert launch_config["MetadataOptions"] == {
+        "HttpTokens": "optional",
+        "HttpPutResponseHopLimit": 123,
+        "HttpEndpoint": "disabled",
+    }
 
 
 @mock_autoscaling
@@ -151,7 +149,7 @@ def test_create_launch_configuration_without_public_ip():
     )
 
     launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
-    launch_config["AssociatePublicIpAddress"].should.equal(False)
+    assert launch_config["AssociatePublicIpAddress"] is False
 
     asg_name = f"asg-{random_image_id}"
     client.create_auto_scaling_group(
@@ -169,7 +167,7 @@ def test_create_launch_configuration_without_public_ip():
     instance = ec2_client.describe_instances(InstanceIds=[instance_id])["Reservations"][
         0
     ]["Instances"][0]
-    instance.shouldnt.have.key("PublicIpAddress")
+    assert "PublicIpAddress" not in instance
 
 
 @mock_autoscaling
@@ -182,8 +180,8 @@ def test_create_launch_configuration_additional_params_default_to_false():
     )
 
     launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
-    launch_config["EbsOptimized"].should.equal(False)
-    launch_config["AssociatePublicIpAddress"].should.equal(False)
+    assert launch_config["EbsOptimized"] is False
+    assert launch_config["AssociatePublicIpAddress"] is False
 
 
 @mock_autoscaling
@@ -200,12 +198,12 @@ def test_create_launch_configuration_defaults():
     launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
 
     # Defaults
-    launch_config["KeyName"].should.equal("")
-    launch_config["SecurityGroups"].should.equal([])
-    launch_config["UserData"].should.equal("")
-    launch_config["InstanceMonitoring"].should.equal({"Enabled": False})
-    launch_config.shouldnt.have.key("IamInstanceProfile")
-    launch_config.shouldnt.have.key("SpotPrice")
+    assert launch_config["KeyName"] == ""
+    assert launch_config["SecurityGroups"] == []
+    assert launch_config["UserData"] == ""
+    assert launch_config["InstanceMonitoring"] == {"Enabled": False}
+    assert "IamInstanceProfile" not in launch_config
+    assert "SpotPrice" not in launch_config
 
 
 @mock_autoscaling
@@ -221,10 +219,8 @@ def test_launch_configuration_describe_filter():
     configs = client.describe_launch_configurations(
         LaunchConfigurationNames=["tester", "tester2"]
     )
-    configs["LaunchConfigurations"].should.have.length_of(2)
-    client.describe_launch_configurations()[
-        "LaunchConfigurations"
-    ].should.have.length_of(3)
+    assert len(configs["LaunchConfigurations"]) == 2
+    assert len(client.describe_launch_configurations()["LaunchConfigurations"]) == 3
 
 
 @mock_autoscaling
@@ -240,13 +236,13 @@ def test_launch_configuration_describe_paginated():
     response = conn.describe_launch_configurations()
     lcs = response["LaunchConfigurations"]
     marker = response["NextToken"]
-    lcs.should.have.length_of(50)
-    marker.should.equal(lcs[-1]["LaunchConfigurationName"])
+    assert len(lcs) == 50
+    assert marker == lcs[-1]["LaunchConfigurationName"]
 
     response2 = conn.describe_launch_configurations(NextToken=marker)
 
     lcs.extend(response2["LaunchConfigurations"])
-    lcs.should.have.length_of(51)
+    assert len(lcs) == 51
     assert "NextToken" not in response2.keys()
 
 
@@ -259,15 +255,11 @@ def test_launch_configuration_delete():
         InstanceType="m1.small",
     )
 
-    client.describe_launch_configurations()[
-        "LaunchConfigurations"
-    ].should.have.length_of(1)
+    assert len(client.describe_launch_configurations()["LaunchConfigurations"]) == 1
 
     client.delete_launch_configuration(LaunchConfigurationName="tester")
 
-    client.describe_launch_configurations()[
-        "LaunchConfigurations"
-    ].should.have.length_of(0)
+    assert len(client.describe_launch_configurations()["LaunchConfigurations"]) == 0
 
 
 @pytest.mark.parametrize(
@@ -292,10 +284,8 @@ def test_invalid_launch_configuration_request_raises_error(request_params):
     client = boto3.client("autoscaling", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.create_launch_configuration(**request_params)
-    ex.value.response["Error"]["Code"].should.equal("ValidationError")
-    ex.value.response["Error"]["Message"].should.match(
-        r"^Valid requests must contain.*"
-    )
+    assert ex.value.response["Error"]["Code"] == "ValidationError"
+    assert "Valid requests must contain" in ex.value.response["Error"]["Message"]
 
 
 @mock_autoscaling
@@ -338,10 +328,10 @@ def test_launch_config_with_block_device_mappings__volumes_are_created():
     volumes = ec2_client.describe_volumes(
         Filters=[{"Name": "attachment.instance-id", "Values": [instance_id]}]
     )["Volumes"]
-    volumes.should.have.length_of(2)
-    volumes[0].should.have.key("Size").equals(8)
-    volumes[0].should.have.key("Encrypted").equals(False)
-    volumes[0].should.have.key("VolumeType").equals("gp2")
-    volumes[1].should.have.key("Size").equals(10)
-    volumes[1].should.have.key("Encrypted").equals(False)
-    volumes[1].should.have.key("VolumeType").equals("standard")
+    assert len(volumes) == 2
+    assert volumes[0]["Size"] == 8
+    assert volumes[0]["Encrypted"] is False
+    assert volumes[0]["VolumeType"] == "gp2"
+    assert volumes[1]["Size"] == 10
+    assert volumes[1]["Encrypted"] is False
+    assert volumes[1]["VolumeType"] == "standard"

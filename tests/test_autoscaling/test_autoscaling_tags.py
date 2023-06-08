@@ -50,7 +50,7 @@ def test_autoscaling_tags_update():
     )
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
-    response["AutoScalingGroups"][0]["Tags"].should.have.length_of(2)
+    assert len(response["AutoScalingGroups"][0]["Tags"]) == 2
 
 
 @mock_autoscaling
@@ -101,16 +101,16 @@ def test_delete_tags_by_key():
     )
     group = response["AutoScalingGroups"][0]
     tags = group["Tags"]
-    tags.should.contain(tag_to_keep)
-    tags.should_not.contain(tag_to_delete)
+    assert tag_to_keep in tags
+    assert tag_to_delete not in tags
 
 
 @mock_autoscaling
 def test_describe_tags_without_resources():
     client = boto3.client("autoscaling", region_name="us-east-2")
     resp = client.describe_tags()
-    resp.should.have.key("Tags").equals([])
-    resp.shouldnt.have.key("NextToken")
+    assert resp["Tags"] == []
+    assert "NextToken" not in resp
 
 
 @mock_autoscaling
@@ -120,43 +120,35 @@ def test_describe_tags_no_filter():
     create_asgs(client, subnet)
 
     response = client.describe_tags()
-    response.should.have.key("Tags").length_of(4)
-    response["Tags"].should.contain(
-        {
-            "ResourceId": "test_asg",
-            "ResourceType": "auto-scaling-group",
-            "Key": "test_key",
-            "Value": "updated_test_value",
-            "PropagateAtLaunch": True,
-        }
-    )
-    response["Tags"].should.contain(
-        {
-            "ResourceId": "test_asg",
-            "ResourceType": "auto-scaling-group",
-            "Key": "test_key2",
-            "Value": "test_value2",
-            "PropagateAtLaunch": False,
-        }
-    )
-    response["Tags"].should.contain(
-        {
-            "ResourceId": "test_asg2",
-            "ResourceType": "auto-scaling-group",
-            "Key": "asg2tag1",
-            "Value": "val",
-            "PropagateAtLaunch": False,
-        }
-    )
-    response["Tags"].should.contain(
-        {
-            "ResourceId": "test_asg2",
-            "ResourceType": "auto-scaling-group",
-            "Key": "asg2tag2",
-            "Value": "diff",
-            "PropagateAtLaunch": False,
-        }
-    )
+    len(response["Tags"]) == 4
+    assert {
+        "ResourceId": "test_asg",
+        "ResourceType": "auto-scaling-group",
+        "Key": "test_key",
+        "Value": "updated_test_value",
+        "PropagateAtLaunch": True,
+    } in response["Tags"]
+    assert {
+        "ResourceId": "test_asg",
+        "ResourceType": "auto-scaling-group",
+        "Key": "test_key2",
+        "Value": "test_value2",
+        "PropagateAtLaunch": False,
+    } in response["Tags"]
+    assert {
+        "ResourceId": "test_asg2",
+        "ResourceType": "auto-scaling-group",
+        "Key": "asg2tag1",
+        "Value": "val",
+        "PropagateAtLaunch": False,
+    } in response["Tags"]
+    assert {
+        "ResourceId": "test_asg2",
+        "ResourceType": "auto-scaling-group",
+        "Key": "asg2tag2",
+        "Value": "diff",
+        "PropagateAtLaunch": False,
+    } in response["Tags"]
 
 
 @mock_autoscaling
@@ -168,66 +160,54 @@ def test_describe_tags_filter_by_name():
     response = client.describe_tags(
         Filters=[{"Name": "auto-scaling-group", "Values": ["test_asg"]}]
     )
-    response.should.have.key("Tags").length_of(2)
-    response["Tags"].should.contain(
-        {
-            "ResourceId": "test_asg",
-            "ResourceType": "auto-scaling-group",
-            "Key": "test_key",
-            "Value": "updated_test_value",
-            "PropagateAtLaunch": True,
-        }
-    )
-    response["Tags"].should.contain(
-        {
-            "ResourceId": "test_asg",
-            "ResourceType": "auto-scaling-group",
-            "Key": "test_key2",
-            "Value": "test_value2",
-            "PropagateAtLaunch": False,
-        }
-    )
+    assert len(response["Tags"]) == 2
+    assert {
+        "ResourceId": "test_asg",
+        "ResourceType": "auto-scaling-group",
+        "Key": "test_key",
+        "Value": "updated_test_value",
+        "PropagateAtLaunch": True,
+    } in response["Tags"]
+    assert {
+        "ResourceId": "test_asg",
+        "ResourceType": "auto-scaling-group",
+        "Key": "test_key2",
+        "Value": "test_value2",
+        "PropagateAtLaunch": False,
+    } in response["Tags"]
 
     response = client.describe_tags(
         Filters=[{"Name": "auto-scaling-group", "Values": ["test_asg", "test_asg2"]}]
     )
-    response.should.have.key("Tags").length_of(4)
-    response["Tags"].should.contain(
-        {
-            "ResourceId": "test_asg",
-            "ResourceType": "auto-scaling-group",
-            "Key": "test_key",
-            "Value": "updated_test_value",
-            "PropagateAtLaunch": True,
-        }
-    )
-    response["Tags"].should.contain(
-        {
-            "ResourceId": "test_asg",
-            "ResourceType": "auto-scaling-group",
-            "Key": "test_key2",
-            "Value": "test_value2",
-            "PropagateAtLaunch": False,
-        }
-    )
-    response["Tags"].should.contain(
-        {
-            "ResourceId": "test_asg2",
-            "ResourceType": "auto-scaling-group",
-            "Key": "asg2tag1",
-            "Value": "val",
-            "PropagateAtLaunch": False,
-        }
-    )
-    response["Tags"].should.contain(
-        {
-            "ResourceId": "test_asg2",
-            "ResourceType": "auto-scaling-group",
-            "Key": "asg2tag2",
-            "Value": "diff",
-            "PropagateAtLaunch": False,
-        }
-    )
+    assert len(response["Tags"]) == 4
+    assert {
+        "ResourceId": "test_asg",
+        "ResourceType": "auto-scaling-group",
+        "Key": "test_key",
+        "Value": "updated_test_value",
+        "PropagateAtLaunch": True,
+    } in response["Tags"]
+    assert {
+        "ResourceId": "test_asg",
+        "ResourceType": "auto-scaling-group",
+        "Key": "test_key2",
+        "Value": "test_value2",
+        "PropagateAtLaunch": False,
+    } in response["Tags"]
+    assert {
+        "ResourceId": "test_asg2",
+        "ResourceType": "auto-scaling-group",
+        "Key": "asg2tag1",
+        "Value": "val",
+        "PropagateAtLaunch": False,
+    } in response["Tags"]
+    assert {
+        "ResourceId": "test_asg2",
+        "ResourceType": "auto-scaling-group",
+        "Key": "asg2tag2",
+        "Value": "diff",
+        "PropagateAtLaunch": False,
+    } in response["Tags"]
 
 
 @mock_autoscaling
@@ -239,8 +219,8 @@ def test_describe_tags_filter_by_propgateatlaunch():
     response = client.describe_tags(
         Filters=[{"Name": "propagate-at-launch", "Values": ["True"]}]
     )
-    response.should.have.key("Tags").length_of(1)
-    response["Tags"].should.contain(
+    len(response["Tags"]) == 1
+    assert response["Tags"] == [
         {
             "ResourceId": "test_asg",
             "ResourceType": "auto-scaling-group",
@@ -248,7 +228,7 @@ def test_describe_tags_filter_by_propgateatlaunch():
             "Value": "updated_test_value",
             "PropagateAtLaunch": True,
         }
-    )
+    ]
 
 
 def create_asgs(client, subnet):
