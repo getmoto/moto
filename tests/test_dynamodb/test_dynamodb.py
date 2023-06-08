@@ -895,7 +895,10 @@ def test_nested_projection_expression_using_get_item_with_attr_expression():
             "nested": {
                 "level1": {"id": "id1", "att": "irrelevant"},
                 "level2": {"id": "id2", "include": "all"},
-                "level3": {"id": "irrelevant"},
+                "level3": {
+                    "id": "irrelevant",
+                    "children": [{"Name": "child_a"}, {"Name": "child_b"}],
+                },
             },
             "foo": "bar",
         }
@@ -926,10 +929,20 @@ def test_nested_projection_expression_using_get_item_with_attr_expression():
             "nested": {
                 "level1": {"id": "id1", "att": "irrelevant"},
                 "level2": {"id": "id2", "include": "all"},
-                "level3": {"id": "irrelevant"},
+                "level3": {
+                    "id": "irrelevant",
+                    "children": [{"Name": "child_a"}, {"Name": "child_b"}],
+                },
             },
         }
     )
+
+    # Test a get_item retrieving children
+    result = table.get_item(
+        Key={"forum_name": "key1"},
+        ProjectionExpression="nested.level3.children[0].Name",
+    )["Item"]
+    result.should.equal({"nested": {"level3": {"children": [{"Name": "child_a"}]}}})
 
 
 @mock_dynamodb
@@ -3400,7 +3413,6 @@ def test_query_catches_when_no_filters():
 
 @mock_dynamodb
 def test_invalid_transact_get_items():
-
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
         TableName="test1",

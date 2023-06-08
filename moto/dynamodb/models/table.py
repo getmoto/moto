@@ -50,12 +50,12 @@ class SecondaryIndex(BaseModel):
             ]
 
             if projection_type == "KEYS_ONLY":
-                item.filter(",".join(key_attributes))
+                item = item.project(",".join(key_attributes))
             elif projection_type == "INCLUDE":
                 allowed_attributes = key_attributes + self.projection.get(
                     "NonKeyAttributes", []
                 )
-                item.filter(",".join(allowed_attributes))
+                item = item.project(",".join(allowed_attributes))
             # ALL is handled implicitly by not filtering
         return item
 
@@ -607,11 +607,7 @@ class Table(CloudFormationModel):
                 result = self.items[hash_key]
 
             if projection_expression and result:
-                result = copy.deepcopy(result)
-                result.filter(projection_expression)
-
-            if not result:
-                raise KeyError
+                result = result.project(projection_expression)
 
             return result
         except KeyError:
@@ -728,9 +724,7 @@ class Table(CloudFormationModel):
             results = possible_results
 
         if index_name:
-
             if index_range_key:
-
                 # Convert to float if necessary to ensure proper ordering
                 def conv(x: DynamoType) -> Any:
                     return float(x.value) if x.type == "N" else x.value
@@ -751,8 +745,7 @@ class Table(CloudFormationModel):
         results = copy.deepcopy(results)
         if index_name:
             index = self.get_index(index_name)
-            for result in results:
-                index.project(result)
+            results = [index.project(r) for r in results]
 
         results, last_evaluated_key = self._trim_results(
             results, limit, exclusive_start_key, scanned_index=index_name
@@ -762,8 +755,7 @@ class Table(CloudFormationModel):
             results = [item for item in results if filter_expression.expr(item)]
 
         if projection_expression:
-            for result in results:
-                result.filter(projection_expression)
+            results = [r.project(projection_expression) for r in results]
 
         return results, scanned_count, last_evaluated_key
 
@@ -788,7 +780,6 @@ class Table(CloudFormationModel):
         return indexes_by_name[index_name]
 
     def has_idx_items(self, index_name: str) -> Iterator[Item]:
-
         idx = self.get_index(index_name)
         idx_col_set = set([i["AttributeName"] for i in idx.schema])
 
@@ -848,8 +839,7 @@ class Table(CloudFormationModel):
         results = copy.deepcopy(results)
         if index_name:
             index = self.get_index(index_name)
-            for result in results:
-                index.project(result)
+            results = [index.project(r) for r in results]
 
         results, last_evaluated_key = self._trim_results(
             results, limit, exclusive_start_key, scanned_index=index_name
@@ -859,9 +849,7 @@ class Table(CloudFormationModel):
             results = [item for item in results if filter_expression.expr(item)]
 
         if projection_expression:
-            results = copy.deepcopy(results)
-            for result in results:
-                result.filter(projection_expression)
+            results = [r.project(projection_expression) for r in results]
 
         return results, scanned_count, last_evaluated_key
 

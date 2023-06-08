@@ -199,7 +199,6 @@ def test_update_item_range_key_set():
 
 @mock_dynamodb
 def test_batch_get_item_non_existing_table():
-
     client = boto3.client("dynamodb", region_name="us-west-2")
 
     with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
@@ -768,7 +767,6 @@ def test_query_begins_with_without_brackets():
 
 @mock_dynamodb
 def test_transact_write_items_multiple_operations_fail():
-
     # Setup
     schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
