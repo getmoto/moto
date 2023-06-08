@@ -1,7 +1,6 @@
 """Unit tests for apigatewayv2-supported APIs."""
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_apigatewayv2
@@ -17,9 +16,9 @@ def test_create_api_with_unknown_protocol_type():
     with pytest.raises(ClientError) as exc:
         client.create_api(Name="test-api", ProtocolType="?")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.equal(
-        "Invalid protocol specified. Must be one of [HTTP, WEBSOCKET]"
+    assert err["Code"] == "BadRequestException"
+    assert (
+        err["Message"] == "Invalid protocol specified. Must be one of [HTTP, WEBSOCKET]"
     )
 
 
@@ -28,20 +27,17 @@ def test_create_api_minimal():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     resp = client.create_api(Name="test-api", ProtocolType="HTTP")
 
-    resp.should.have.key("ApiId")
-    resp.should.have.key("ApiEndpoint").equals(
-        f"https://{resp['ApiId']}.execute-api.eu-west-1.amazonaws.com"
+    assert "ApiId" in resp
+    assert (
+        resp["ApiEndpoint"]
+        == f"https://{resp['ApiId']}.execute-api.eu-west-1.amazonaws.com"
     )
-    resp.should.have.key("ApiKeySelectionExpression").equals(
-        "$request.header.x-api-key"
-    )
-    resp.should.have.key("CreatedDate")
-    resp.should.have.key("DisableExecuteApiEndpoint").equals(False)
-    resp.should.have.key("Name").equals("test-api")
-    resp.should.have.key("ProtocolType").equals("HTTP")
-    resp.should.have.key("RouteSelectionExpression").equals(
-        "$request.method $request.path"
-    )
+    assert resp["ApiKeySelectionExpression"] == "$request.header.x-api-key"
+    assert "CreatedDate" in resp
+    assert resp["DisableExecuteApiEndpoint"] is False
+    assert resp["Name"] == "test-api"
+    assert resp["ProtocolType"] == "HTTP"
+    assert resp["RouteSelectionExpression"] == "$request.method $request.path"
 
 
 @mock_apigatewayv2
@@ -66,29 +62,28 @@ def test_create_api():
         Version="1.0",
     )
 
-    resp.should.have.key("ApiId")
-    resp.should.have.key("ApiEndpoint").equals(
-        f"https://{resp['ApiId']}.execute-api.eu-west-1.amazonaws.com"
+    assert "ApiId" in resp
+    assert (
+        resp["ApiEndpoint"]
+        == f"https://{resp['ApiId']}.execute-api.eu-west-1.amazonaws.com"
     )
-    resp.should.have.key("ApiKeySelectionExpression").equals("s3l3ction")
-    resp.should.have.key("CreatedDate")
-    resp.should.have.key("CorsConfiguration").equals(
-        {
-            "AllowCredentials": True,
-            "AllowHeaders": ["x-header1"],
-            "AllowMethods": ["GET", "PUT"],
-            "AllowOrigins": ["google.com"],
-            "ExposeHeaders": ["x-header1"],
-            "MaxAge": 2,
-        }
-    )
-    resp.should.have.key("Description").equals("my first api")
-    resp.should.have.key("DisableExecuteApiEndpoint").equals(True)
-    resp.should.have.key("DisableSchemaValidation").equals(True)
-    resp.should.have.key("Name").equals("test-api")
-    resp.should.have.key("ProtocolType").equals("HTTP")
-    resp.should.have.key("RouteSelectionExpression").equals("route_s3l3ction")
-    resp.should.have.key("Version").equals("1.0")
+    assert resp["ApiKeySelectionExpression"] == "s3l3ction"
+    assert "CreatedDate" in resp
+    assert resp["CorsConfiguration"] == {
+        "AllowCredentials": True,
+        "AllowHeaders": ["x-header1"],
+        "AllowMethods": ["GET", "PUT"],
+        "AllowOrigins": ["google.com"],
+        "ExposeHeaders": ["x-header1"],
+        "MaxAge": 2,
+    }
+    assert resp["Description"] == "my first api"
+    assert resp["DisableExecuteApiEndpoint"] is True
+    assert resp["DisableSchemaValidation"] is True
+    assert resp["Name"] == "test-api"
+    assert resp["ProtocolType"] == "HTTP"
+    assert resp["RouteSelectionExpression"] == "route_s3l3ction"
+    assert resp["Version"] == "1.0"
 
 
 @mock_apigatewayv2
@@ -100,7 +95,7 @@ def test_delete_api():
 
     with pytest.raises(ClientError) as exc:
         client.get_api(ApiId=api_id)
-    exc.value.response["Error"]["Code"].should.equal("NotFoundException")
+    assert exc.value.response["Error"]["Code"] == "NotFoundException"
 
 
 @mock_apigatewayv2
@@ -129,9 +124,9 @@ def test_delete_cors_configuration():
 
     resp = client.get_api(ApiId=api_id)
 
-    resp.shouldnt.have.key("CorsConfiguration")
-    resp.should.have.key("Description").equals("my first api")
-    resp.should.have.key("Name").equals("test-api")
+    assert "CorsConfiguration" not in resp
+    assert resp["Description"] == "my first api"
+    assert resp["Name"] == "test-api"
 
 
 @mock_apigatewayv2
@@ -141,8 +136,8 @@ def test_get_api_unknown():
         client.get_api(ApiId="unknown")
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Invalid API identifier specified unknown")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid API identifier specified unknown"
 
 
 @mock_apigatewayv2
@@ -152,34 +147,31 @@ def test_get_api():
 
     resp = client.get_api(ApiId=api_id)
 
-    resp.should.have.key("ApiId").equals(api_id)
-    resp.should.have.key("ApiEndpoint").equals(
-        f"https://{resp['ApiId']}.execute-api.ap-southeast-1.amazonaws.com"
+    assert resp["ApiId"] == api_id
+    assert (
+        resp["ApiEndpoint"]
+        == f"https://{resp['ApiId']}.execute-api.ap-southeast-1.amazonaws.com"
     )
-    resp.should.have.key("ApiKeySelectionExpression").equals(
-        "$request.header.x-api-key"
-    )
-    resp.should.have.key("CreatedDate")
-    resp.should.have.key("DisableExecuteApiEndpoint").equals(False)
-    resp.should.have.key("Name").equals("test-get-api")
-    resp.should.have.key("ProtocolType").equals("WEBSOCKET")
-    resp.should.have.key("RouteSelectionExpression").equals(
-        "$request.method $request.path"
-    )
+    assert resp["ApiKeySelectionExpression"] == "$request.header.x-api-key"
+    assert "CreatedDate" in resp
+    assert resp["DisableExecuteApiEndpoint"] is False
+    assert resp["Name"] == "test-get-api"
+    assert resp["ProtocolType"] == "WEBSOCKET"
+    assert resp["RouteSelectionExpression"] == "$request.method $request.path"
 
 
 @mock_apigatewayv2
 def test_get_apis():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
-    client.get_apis().should.have.key("Items").length_of(0)
+    assert len(client.get_apis()["Items"]) == 0
 
     api_id_1 = client.create_api(Name="api1", ProtocolType="HTTP")["ApiId"]
     api_id_2 = client.create_api(Name="api2", ProtocolType="WEBSOCKET")["ApiId"]
-    client.get_apis().should.have.key("Items").length_of(2)
+    assert len(client.get_apis()["Items"]) == 2
 
     api_ids = [i["ApiId"] for i in client.get_apis()["Items"]]
-    api_ids.should.contain(api_id_1)
-    api_ids.should.contain(api_id_2)
+    assert api_id_1 in api_ids
+    assert api_id_2 in api_ids
 
 
 @mock_apigatewayv2
@@ -216,29 +208,28 @@ def test_update_api_minimal():
         },
     )
 
-    resp.should.have.key("ApiId")
-    resp.should.have.key("ApiEndpoint").equals(
-        f"https://{resp['ApiId']}.execute-api.eu-west-1.amazonaws.com"
+    assert "ApiId" in resp
+    assert (
+        resp["ApiEndpoint"]
+        == f"https://{resp['ApiId']}.execute-api.eu-west-1.amazonaws.com"
     )
-    resp.should.have.key("ApiKeySelectionExpression").equals("s3l3ction")
-    resp.should.have.key("CreatedDate")
-    resp.should.have.key("CorsConfiguration").equals(
-        {
-            "AllowCredentials": False,
-            "AllowHeaders": ["x-header2"],
-            "AllowMethods": ["GET", "PUT"],
-            "AllowOrigins": ["google.com"],
-            "ExposeHeaders": ["x-header2"],
-            "MaxAge": 2,
-        }
-    )
-    resp.should.have.key("Description").equals("my first api")
-    resp.should.have.key("DisableExecuteApiEndpoint").equals(True)
-    resp.should.have.key("DisableSchemaValidation").equals(True)
-    resp.should.have.key("Name").equals("test-api")
-    resp.should.have.key("ProtocolType").equals("HTTP")
-    resp.should.have.key("RouteSelectionExpression").equals("route_s3l3ction")
-    resp.should.have.key("Version").equals("1.0")
+    assert resp["ApiKeySelectionExpression"] == "s3l3ction"
+    assert "CreatedDate" in resp
+    assert resp["CorsConfiguration"] == {
+        "AllowCredentials": False,
+        "AllowHeaders": ["x-header2"],
+        "AllowMethods": ["GET", "PUT"],
+        "AllowOrigins": ["google.com"],
+        "ExposeHeaders": ["x-header2"],
+        "MaxAge": 2,
+    }
+    assert resp["Description"] == "my first api"
+    assert resp["DisableExecuteApiEndpoint"] is True
+    assert resp["DisableSchemaValidation"] is True
+    assert resp["Name"] == "test-api"
+    assert resp["ProtocolType"] == "HTTP"
+    assert resp["RouteSelectionExpression"] == "route_s3l3ction"
+    assert resp["Version"] == "1.0"
 
 
 @mock_apigatewayv2
@@ -265,18 +256,19 @@ def test_update_api_empty_fields():
 
     resp = client.update_api(ApiId=api_id, Description="", Name="updated", Version="")
 
-    resp.should.have.key("ApiId")
-    resp.should.have.key("ApiEndpoint").equals(
-        f"https://{resp['ApiId']}.execute-api.eu-west-1.amazonaws.com"
+    assert "ApiId" in resp
+    assert (
+        resp["ApiEndpoint"]
+        == f"https://{resp['ApiId']}.execute-api.eu-west-1.amazonaws.com"
     )
-    resp.should.have.key("ApiKeySelectionExpression").equals("s3l3ction")
-    resp.should.have.key("Description").equals("")
-    resp.should.have.key("DisableExecuteApiEndpoint").equals(True)
-    resp.should.have.key("DisableSchemaValidation").equals(True)
-    resp.should.have.key("Name").equals("updated")
-    resp.should.have.key("ProtocolType").equals("HTTP")
-    resp.should.have.key("RouteSelectionExpression").equals("route_s3l3ction")
-    resp.should.have.key("Version").equals("")
+    assert resp["ApiKeySelectionExpression"] == "s3l3ction"
+    assert resp["Description"] == ""
+    assert resp["DisableExecuteApiEndpoint"] is True
+    assert resp["DisableSchemaValidation"] is True
+    assert resp["Name"] == "updated"
+    assert resp["ProtocolType"] == "HTTP"
+    assert resp["RouteSelectionExpression"] == "route_s3l3ction"
+    assert resp["Version"] == ""
 
 
 @mock_apigatewayv2
@@ -303,23 +295,22 @@ def test_update_api():
         Version="1.1",
     )
 
-    resp.should.have.key("ApiId")
-    resp.should.have.key("ApiEndpoint").equals(
-        f"https://{resp['ApiId']}.execute-api.us-east-2.amazonaws.com"
+    assert "ApiId" in resp
+    assert (
+        resp["ApiEndpoint"]
+        == f"https://{resp['ApiId']}.execute-api.us-east-2.amazonaws.com"
     )
-    resp.should.have.key("ApiKeySelectionExpression").equals("api_key_s3l3ction")
-    resp.should.have.key("CorsConfiguration").equals(
-        {
-            "AllowCredentials": True,
-            "AllowHeaders": ["X-Amz-Target"],
-            "AllowMethods": ["GET"],
-        }
-    )
-    resp.should.have.key("CreatedDate")
-    resp.should.have.key("Description").equals("updated API")
-    resp.should.have.key("DisableSchemaValidation").equals(True)
-    resp.should.have.key("DisableExecuteApiEndpoint").equals(True)
-    resp.should.have.key("Name").equals("new name")
-    resp.should.have.key("ProtocolType").equals("HTTP")
-    resp.should.have.key("RouteSelectionExpression").equals("route_s3l3ction")
-    resp.should.have.key("Version").equals("1.1")
+    assert resp["ApiKeySelectionExpression"] == "api_key_s3l3ction"
+    assert resp["CorsConfiguration"] == {
+        "AllowCredentials": True,
+        "AllowHeaders": ["X-Amz-Target"],
+        "AllowMethods": ["GET"],
+    }
+    assert "CreatedDate" in resp
+    assert resp["Description"] == "updated API"
+    assert resp["DisableSchemaValidation"] is True
+    assert resp["DisableExecuteApiEndpoint"] is True
+    assert resp["Name"] == "new name"
+    assert resp["ProtocolType"] == "HTTP"
+    assert resp["RouteSelectionExpression"] == "route_s3l3ction"
+    assert resp["Version"] == "1.1"

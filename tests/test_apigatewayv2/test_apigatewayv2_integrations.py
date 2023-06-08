@@ -11,7 +11,7 @@ def test_get_integrations_empty():
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
 
     resp = client.get_integrations(ApiId=api_id)
-    resp.should.have.key("Items").equals([])
+    assert resp["Items"] == []
 
 
 @mock_apigatewayv2
@@ -21,8 +21,8 @@ def test_create_integration_minimum():
 
     resp = client.create_integration(ApiId=api_id, IntegrationType="HTTP")
 
-    resp.should.have.key("IntegrationId")
-    resp.should.have.key("IntegrationType").equals("HTTP")
+    assert "IntegrationId" in resp
+    assert resp["IntegrationType"] == "HTTP"
 
 
 @mock_apigatewayv2
@@ -34,10 +34,11 @@ def test_create_integration_for_internet_mock():
         ApiId=api_id, ConnectionType="INTERNET", IntegrationType="MOCK"
     )
 
-    resp.should.have.key("IntegrationId")
-    resp.should.have.key("IntegrationType").equals("MOCK")
-    resp.should.have.key("IntegrationResponseSelectionExpression").equals(
-        "${integration.response.statuscode}"
+    assert "IntegrationId" in resp
+    assert resp["IntegrationType"] == "MOCK"
+    assert (
+        resp["IntegrationResponseSelectionExpression"]
+        == "${integration.response.statuscode}"
     )
 
 
@@ -66,23 +67,23 @@ def test_create_integration_full():
         TlsConfig={"ServerNameToVerify": "server"},
     )
 
-    resp.should.have.key("IntegrationId")
-    resp.should.have.key("ConnectionId").equals("conn_id")
-    resp.should.have.key("ConnectionType").equals("INTERNET")
-    resp.should.have.key("ContentHandlingStrategy").equals("CONVERT_TO_BINARY")
-    resp.should.have.key("CredentialsArn").equals("cred:arn")
-    resp.should.have.key("Description").equals("my full integration")
-    resp.should.have.key("IntegrationMethod").equals("PUT")
-    resp.should.have.key("IntegrationType").equals("HTTP")
-    resp.should.have.key("IntegrationSubtype").equals("n/a")
-    resp.should.have.key("PassthroughBehavior").equals("WHEN_NO_MATCH")
-    resp.should.have.key("PayloadFormatVersion").equals("1.0")
-    resp.should.have.key("RequestParameters").equals({"r": "p"})
-    resp.should.have.key("RequestTemplates").equals({"r": "t"})
-    resp.should.have.key("ResponseParameters").equals({"res": {"par": "am"}})
-    resp.should.have.key("TemplateSelectionExpression").equals("tse")
-    resp.should.have.key("TimeoutInMillis").equals(123)
-    resp.should.have.key("TlsConfig").equals({"ServerNameToVerify": "server"})
+    assert "IntegrationId" in resp
+    assert resp["ConnectionId"] == "conn_id"
+    assert resp["ConnectionType"] == "INTERNET"
+    assert resp["ContentHandlingStrategy"] == "CONVERT_TO_BINARY"
+    assert resp["CredentialsArn"] == "cred:arn"
+    assert resp["Description"] == "my full integration"
+    assert resp["IntegrationMethod"] == "PUT"
+    assert resp["IntegrationType"] == "HTTP"
+    assert resp["IntegrationSubtype"] == "n/a"
+    assert resp["PassthroughBehavior"] == "WHEN_NO_MATCH"
+    assert resp["PayloadFormatVersion"] == "1.0"
+    assert resp["RequestParameters"] == {"r": "p"}
+    assert resp["RequestTemplates"] == {"r": "t"}
+    assert resp["ResponseParameters"] == {"res": {"par": "am"}}
+    assert resp["TemplateSelectionExpression"] == "tse"
+    assert resp["TimeoutInMillis"] == 123
+    assert resp["TlsConfig"] == {"ServerNameToVerify": "server"}
 
 
 @mock_apigatewayv2
@@ -96,8 +97,8 @@ def test_get_integration():
 
     resp = client.get_integration(ApiId=api_id, IntegrationId=integration_id)
 
-    resp.should.have.key("IntegrationId")
-    resp.should.have.key("IntegrationType").equals("HTTP")
+    assert "IntegrationId" in resp
+    assert resp["IntegrationType"] == "HTTP"
 
 
 @mock_apigatewayv2
@@ -108,8 +109,8 @@ def test_get_integration_unknown():
     with pytest.raises(ClientError) as exc:
         client.get_integration(ApiId=api_id, IntegrationId="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Invalid Integration identifier specified unknown")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid Integration identifier specified unknown"
 
 
 @mock_apigatewayv2
@@ -122,8 +123,8 @@ def test_get_integrations():
     ]
     resp = client.get_integrations(ApiId=api_id)
 
-    resp.should.have.key("Items").length_of(1)
-    resp["Items"][0].should.have.key("IntegrationId").equals(integration_id)
+    assert len(resp["Items"]) == 1
+    assert resp["Items"][0]["IntegrationId"] == integration_id
 
 
 @mock_apigatewayv2
@@ -140,7 +141,7 @@ def test_delete_integration():
     with pytest.raises(ClientError) as exc:
         client.get_integration(ApiId=api_id, IntegrationId=integration_id)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigatewayv2
@@ -172,23 +173,23 @@ def test_update_integration_single_attr():
         ApiId=api_id, IntegrationId=int_id, Description="updated int"
     )
 
-    resp.should.have.key("IntegrationId")
-    resp.should.have.key("ConnectionId").equals("conn_id")
-    resp.should.have.key("ConnectionType").equals("INTERNET")
-    resp.should.have.key("ContentHandlingStrategy").equals("CONVERT_TO_BINARY")
-    resp.should.have.key("CredentialsArn").equals("cred:arn")
-    resp.should.have.key("Description").equals("updated int")
-    resp.should.have.key("IntegrationMethod").equals("PUT")
-    resp.should.have.key("IntegrationType").equals("HTTP")
-    resp.should.have.key("IntegrationSubtype").equals("n/a")
-    resp.should.have.key("PassthroughBehavior").equals("WHEN_NO_MATCH")
-    resp.should.have.key("PayloadFormatVersion").equals("1.0")
-    resp.should.have.key("RequestParameters").equals({"r": "p"})
-    resp.should.have.key("RequestTemplates").equals({"r": "t"})
-    resp.should.have.key("ResponseParameters").equals({"res": {"par": "am"}})
-    resp.should.have.key("TemplateSelectionExpression").equals("tse")
-    resp.should.have.key("TimeoutInMillis").equals(123)
-    resp.should.have.key("TlsConfig").equals({"ServerNameToVerify": "server"})
+    assert "IntegrationId" in resp
+    assert resp["ConnectionId"] == "conn_id"
+    assert resp["ConnectionType"] == "INTERNET"
+    assert resp["ContentHandlingStrategy"] == "CONVERT_TO_BINARY"
+    assert resp["CredentialsArn"] == "cred:arn"
+    assert resp["Description"] == "updated int"
+    assert resp["IntegrationMethod"] == "PUT"
+    assert resp["IntegrationType"] == "HTTP"
+    assert resp["IntegrationSubtype"] == "n/a"
+    assert resp["PassthroughBehavior"] == "WHEN_NO_MATCH"
+    assert resp["PayloadFormatVersion"] == "1.0"
+    assert resp["RequestParameters"] == {"r": "p"}
+    assert resp["RequestTemplates"] == {"r": "t"}
+    assert resp["ResponseParameters"] == {"res": {"par": "am"}}
+    assert resp["TemplateSelectionExpression"] == "tse"
+    assert resp["TimeoutInMillis"] == 123
+    assert resp["TlsConfig"] == {"ServerNameToVerify": "server"}
 
 
 @mock_apigatewayv2
@@ -227,23 +228,23 @@ def test_update_integration_all_attrs():
         PassthroughBehavior="NEVER",
     )
 
-    resp.should.have.key("IntegrationId")
-    resp.should.have.key("ConnectionId").equals("conn_id")
-    resp.should.have.key("ConnectionType").equals("VPC_LINK")
-    resp.should.have.key("ContentHandlingStrategy").equals("CONVERT_TO_TEXT")
-    resp.should.have.key("CredentialsArn").equals("")
-    resp.should.have.key("Description").equals("my full integration")
-    resp.should.have.key("IntegrationMethod").equals("PATCH")
-    resp.should.have.key("IntegrationType").equals("AWS")
-    resp.should.have.key("IntegrationSubtype").equals("n/a")
-    resp.should.have.key("PassthroughBehavior").equals("NEVER")
-    resp.should.have.key("PayloadFormatVersion").equals("1.0")
-    resp.should.have.key("RequestParameters").equals({"r": "p"})
-    resp.should.have.key("RequestTemplates").equals({"r": "t"})
-    resp.should.have.key("ResponseParameters").equals({"res": {"par": "am"}})
-    resp.should.have.key("TemplateSelectionExpression").equals("tse")
-    resp.should.have.key("TimeoutInMillis").equals(123)
-    resp.should.have.key("TlsConfig").equals({"ServerNameToVerify": "server"})
+    assert "IntegrationId" in resp
+    assert resp["ConnectionId"] == "conn_id"
+    assert resp["ConnectionType"] == "VPC_LINK"
+    assert resp["ContentHandlingStrategy"] == "CONVERT_TO_TEXT"
+    assert resp["CredentialsArn"] == ""
+    assert resp["Description"] == "my full integration"
+    assert resp["IntegrationMethod"] == "PATCH"
+    assert resp["IntegrationType"] == "AWS"
+    assert resp["IntegrationSubtype"] == "n/a"
+    assert resp["PassthroughBehavior"] == "NEVER"
+    assert resp["PayloadFormatVersion"] == "1.0"
+    assert resp["RequestParameters"] == {"r": "p"}
+    assert resp["RequestTemplates"] == {"r": "t"}
+    assert resp["ResponseParameters"] == {"res": {"par": "am"}}
+    assert resp["TemplateSelectionExpression"] == "tse"
+    assert resp["TimeoutInMillis"] == 123
+    assert resp["TlsConfig"] == {"ServerNameToVerify": "server"}
 
 
 @mock_apigatewayv2
@@ -273,9 +274,10 @@ def test_update_integration_request_parameters():
 
     int_id = resp["IntegrationId"]
     # Having an empty value between quotes ("''") is valid
-    resp["RequestParameters"].should.equal(
-        {"append:header.header1": "$context.requestId", "remove:querystring.qs1": "''"}
-    )
+    assert resp["RequestParameters"] == {
+        "append:header.header1": "$context.requestId",
+        "remove:querystring.qs1": "''",
+    }
 
     resp = client.update_integration(
         ApiId=api_id,
@@ -295,23 +297,19 @@ def test_update_integration_request_parameters():
         },
     )
 
-    resp.should.have.key("IntegrationId")
-    resp.should.have.key("IntegrationMethod").equals("ANY")
-    resp.should.have.key("IntegrationType").equals("HTTP_PROXY")
-    resp.should.have.key("PayloadFormatVersion").equals("1.0")
+    assert "IntegrationId" in resp
+    assert resp["IntegrationMethod"] == "ANY"
+    assert resp["IntegrationType"] == "HTTP_PROXY"
+    assert resp["PayloadFormatVersion"] == "1.0"
     # Having no value ("") is not valid, so that param should not be persisted
-    resp.should.have.key("RequestParameters").equals(
-        {
-            "append:header.header1": "$context.accountId",
-            "overwrite:header.header2": "$stageVariables.environmentId",
-        }
-    )
-    resp.should.have.key("ResponseParameters").equals(
-        {
-            "404": {},
-            "500": {
-                "append:header.header1": "$context.requestId",
-                "overwrite:statuscode": "403",
-            },
-        }
-    )
+    assert resp["RequestParameters"] == {
+        "append:header.header1": "$context.accountId",
+        "overwrite:header.header2": "$stageVariables.environmentId",
+    }
+    assert resp["ResponseParameters"] == {
+        "404": {},
+        "500": {
+            "append:header.header1": "$context.requestId",
+            "overwrite:statuscode": "403",
+        },
+    }

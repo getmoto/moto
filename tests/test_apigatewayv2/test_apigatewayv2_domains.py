@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 import botocore.exceptions
 from moto import mock_apigatewayv2
@@ -23,19 +22,19 @@ def test_create_domain_name():
 
     # check post response has all keys
     for key in expected_keys:
-        post_resp.should.have.key(key)
+        assert key in post_resp
 
     # check get response has all keys
     for key in expected_keys:
-        get_resp.should.have.key(key)
+        assert key in get_resp
 
     # check that values are equal for post and get of same resource
     for key in expected_keys:
-        post_resp.get(key).should.equal(get_resp.get(key))
+        assert post_resp.get(key) == get_resp.get(key)
 
     # ensure known values are set correct in post response
-    post_resp.get("DomainName").should.equal(domain_name)
-    post_resp.get("Tags").should.equal(tags)
+    assert post_resp.get("DomainName") == domain_name
+    assert post_resp.get("Tags") == tags
 
 
 @mock_apigatewayv2
@@ -47,8 +46,8 @@ def test_create_domain_name_already_exists():
         client.create_domain_name(DomainName="exists.io")
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ConflictException")
-    err["Message"].should.equal("The domain name resource already exists.")
+    assert err["Code"] == "ConflictException"
+    assert err["Message"] == "The domain name resource already exists."
 
 
 @mock_apigatewayv2
@@ -58,17 +57,17 @@ def test_get_domain_names():
     prod_domain = client.create_domain_name(DomainName="prod.service.io")
 
     # sanity check responses
-    dev_domain.should.have.key("DomainName").equals("dev.service.io")
-    prod_domain.should.have.key("DomainName").equals("prod.service.io")
+    assert dev_domain["DomainName"] == "dev.service.io"
+    assert prod_domain["DomainName"] == "prod.service.io"
 
     # make comparable
     del dev_domain["ResponseMetadata"]
     del prod_domain["ResponseMetadata"]
 
     get_resp = client.get_domain_names()
-    get_resp.should.have.key("Items")
-    get_resp.get("Items").should.contain(dev_domain)
-    get_resp.get("Items").should.contain(prod_domain)
+    assert "Items" in get_resp
+    assert dev_domain in get_resp.get("Items")
+    assert prod_domain in get_resp.get("Items")
 
 
 @mock_apigatewayv2
@@ -79,8 +78,8 @@ def test_delete_domain_name():
     get_resp = client.get_domain_names()
 
     del post_resp["ResponseMetadata"]
-    get_resp.should.have.key("Items")
-    get_resp.get("Items").should_not.contain(post_resp)
+    assert "Items" in get_resp
+    assert post_resp not in get_resp.get("Items")
 
 
 @mock_apigatewayv2
@@ -90,7 +89,8 @@ def test_delete_domain_name_dne():
         client.delete_domain_name(DomainName="dne.io")
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "The domain name resource specified in the request was not found."
+    assert err["Code"] == "NotFoundException"
+    assert (
+        err["Message"]
+        == "The domain name resource specified in the request was not found."
     )

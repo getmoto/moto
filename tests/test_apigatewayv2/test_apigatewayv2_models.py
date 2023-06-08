@@ -14,11 +14,11 @@ def test_create_model():
         ApiId=api_id, ContentType="app/xml", Description="desc", Name="nm", Schema="cs"
     )
 
-    resp.should.have.key("ContentType").equals("app/xml")
-    resp.should.have.key("Description").equals("desc")
-    resp.should.have.key("ModelId")
-    resp.should.have.key("Name").equals("nm")
-    resp.should.have.key("Schema").equals("cs")
+    assert resp["ContentType"] == "app/xml"
+    assert resp["Description"] == "desc"
+    assert "ModelId" in resp
+    assert resp["Name"] == "nm"
+    assert resp["Schema"] == "cs"
 
 
 @mock_apigatewayv2
@@ -32,11 +32,11 @@ def test_get_model():
 
     resp = client.get_model(ApiId=api_id, ModelId=model_id)
 
-    resp.should.have.key("ContentType").equals("app/xml")
-    resp.should.have.key("Description").equals("desc")
-    resp.should.have.key("ModelId")
-    resp.should.have.key("Name").equals("nm")
-    resp.should.have.key("Schema").equals("cs")
+    assert resp["ContentType"] == "app/xml"
+    assert resp["Description"] == "desc"
+    assert "ModelId" in resp
+    assert resp["Name"] == "nm"
+    assert resp["Schema"] == "cs"
 
 
 @mock_apigatewayv2
@@ -54,7 +54,7 @@ def test_delete_model():
         client.get_model(ApiId=api_id, ModelId=model_id)
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigatewayv2
@@ -66,7 +66,7 @@ def test_get_model_unknown():
         client.get_model(ApiId=api_id, ModelId="unknown")
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigatewayv2
@@ -82,11 +82,11 @@ def test_update_model_single_attr():
 
     resp = client.update_model(ApiId=api_id, ModelId=model_id, Schema="cs2")
 
-    resp.should.have.key("ContentType").equals("app/xml")
-    resp.should.have.key("Description").equals("desc")
-    resp.should.have.key("ModelId")
-    resp.should.have.key("Name").equals("nm")
-    resp.should.have.key("Schema").equals("cs2")
+    assert resp["ContentType"] == "app/xml"
+    assert resp["Description"] == "desc"
+    assert "ModelId" in resp
+    assert resp["Name"] == "nm"
+    assert resp["Schema"] == "cs2"
 
 
 @mock_apigatewayv2
@@ -109,7 +109,7 @@ def test_update_model_all_attrs():
         Schema="cs2",
     )
 
-    resp.should.have.key("ContentType").equals("app/html")
-    resp.should.have.key("Description").equals("html2.x")
-    resp.should.have.key("Name").equals("html-schema")
-    resp.should.have.key("Schema").equals("cs2")
+    assert resp["ContentType"] == "app/html"
+    assert resp["Description"] == "html2.x"
+    assert resp["Name"] == "html-schema"
+    assert resp["Schema"] == "cs2"
