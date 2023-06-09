@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_autoscaling
 from unittest import TestCase
@@ -19,7 +18,7 @@ class TestAutoScalingScheduledActions(TestCase):
             AutoScalingGroupName=self.asg_name
         )
         actions = response["ScheduledUpdateGroupActions"]
-        actions.should.have.length_of(30)
+        assert len(actions) == 30
 
     def test_non_existing_group_name(self):
         self._create_scheduled_action(name="my-scheduled-action", idx=1)
@@ -29,7 +28,7 @@ class TestAutoScalingScheduledActions(TestCase):
         )
         actions = response["ScheduledUpdateGroupActions"]
         # since there is no such group name, no actions have been returned
-        actions.should.have.length_of(0)
+        assert len(actions) == 0
 
     def test_describe_scheduled_actions_returns_all_actions_when_no_argument_is_passed(
         self,
@@ -46,7 +45,7 @@ class TestAutoScalingScheduledActions(TestCase):
         actions = response["ScheduledUpdateGroupActions"]
 
         # Since no argument is passed describe_scheduled_actions, all scheduled actions are returned
-        actions.should.have.length_of(40)
+        assert len(actions) == 40
 
     def test_scheduled_action_delete(self):
         for i in range(3):
@@ -56,7 +55,7 @@ class TestAutoScalingScheduledActions(TestCase):
             AutoScalingGroupName=self.asg_name
         )
         actions = response["ScheduledUpdateGroupActions"]
-        actions.should.have.length_of(3)
+        assert len(actions) == 3
 
         self.client.delete_scheduled_action(
             AutoScalingGroupName=self.asg_name,
@@ -70,7 +69,7 @@ class TestAutoScalingScheduledActions(TestCase):
             AutoScalingGroupName=self.asg_name
         )
         actions = response["ScheduledUpdateGroupActions"]
-        actions.should.have.length_of(1)
+        assert len(actions) == 1
 
     def _create_scheduled_action(self, name, idx, asg_name=None):
         self.client.put_scheduled_update_group_action(

@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_autoscaling, mock_elb, mock_ec2
 
@@ -43,7 +42,8 @@ def test_enable_metrics_collection():
     resp = as_client.describe_auto_scaling_groups(
         AutoScalingGroupNames=["tester_group"]
     )["AutoScalingGroups"][0]
-    resp.should.have.key("EnabledMetrics").length_of(1)
-    resp["EnabledMetrics"][0].should.equal(
-        {"Metric": "GroupMinSize", "Granularity": "1Minute"}
-    )
+    assert len(resp["EnabledMetrics"]) == 1
+    assert resp["EnabledMetrics"][0] == {
+        "Metric": "GroupMinSize",
+        "Granularity": "1Minute",
+    }

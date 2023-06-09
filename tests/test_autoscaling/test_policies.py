@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_autoscaling
@@ -39,11 +38,11 @@ def test_create_policy_boto3():
     )
 
     policy = client.describe_policies()["ScalingPolicies"][0]
-    policy["PolicyName"].should.equal("ScaleUp")
-    policy["AdjustmentType"].should.equal("ExactCapacity")
-    policy["AutoScalingGroupName"].should.equal("tester_group")
-    policy["ScalingAdjustment"].should.equal(3)
-    policy["Cooldown"].should.equal(60)
+    assert policy["PolicyName"] == "ScaleUp"
+    assert policy["AdjustmentType"] == "ExactCapacity"
+    assert policy["AutoScalingGroupName"] == "tester_group"
+    assert policy["ScalingAdjustment"] == 3
+    assert policy["Cooldown"] == 60
 
 
 @mock_autoscaling
@@ -58,10 +57,10 @@ def test_create_policy_default_values_boto3():
     )
 
     policy = client.describe_policies()["ScalingPolicies"][0]
-    policy["PolicyName"].should.equal("ScaleUp")
+    assert policy["PolicyName"] == "ScaleUp"
 
     # Defaults
-    policy["Cooldown"].should.equal(300)
+    assert policy["Cooldown"] == 300
 
 
 @mock_autoscaling
@@ -75,9 +74,9 @@ def test_update_policy_boto3():
         ScalingAdjustment=3,
     )
 
-    client.describe_policies()["ScalingPolicies"].should.have.length_of(1)
+    assert len(client.describe_policies()["ScalingPolicies"]) == 1
     policy = client.describe_policies()["ScalingPolicies"][0]
-    policy["ScalingAdjustment"].should.equal(3)
+    assert policy["ScalingAdjustment"] == 3
 
     # Now update it by creating another with the same name
     client.put_scaling_policy(
@@ -86,9 +85,9 @@ def test_update_policy_boto3():
         AutoScalingGroupName="tester_group",
         ScalingAdjustment=2,
     )
-    client.describe_policies()["ScalingPolicies"].should.have.length_of(1)
+    assert len(client.describe_policies()["ScalingPolicies"]) == 1
     policy = client.describe_policies()["ScalingPolicies"][0]
-    policy["ScalingAdjustment"].should.equal(2)
+    assert policy["ScalingAdjustment"] == 2
 
 
 @mock_autoscaling
@@ -102,10 +101,10 @@ def test_delete_policy_boto3():
         ScalingAdjustment=3,
     )
 
-    client.describe_policies()["ScalingPolicies"].should.have.length_of(1)
+    assert len(client.describe_policies()["ScalingPolicies"]) == 1
 
     client.delete_policy(PolicyName="ScaleUp")
-    client.describe_policies()["ScalingPolicies"].should.have.length_of(0)
+    assert len(client.describe_policies()["ScalingPolicies"]) == 0
 
 
 @mock_autoscaling
@@ -122,7 +121,7 @@ def test_execute_policy_exact_capacity_boto3():
     client.execute_policy(PolicyName="ScaleUp")
 
     instances = client.describe_auto_scaling_instances()
-    instances["AutoScalingInstances"].should.have.length_of(3)
+    assert len(instances["AutoScalingInstances"]) == 3
 
 
 @mock_autoscaling
@@ -139,7 +138,7 @@ def test_execute_policy_positive_change_in_capacity_boto3():
     client.execute_policy(PolicyName="ScaleUp")
 
     instances = client.describe_auto_scaling_instances()
-    instances["AutoScalingInstances"].should.have.length_of(5)
+    assert len(instances["AutoScalingInstances"]) == 5
 
 
 @pytest.mark.parametrize(
@@ -162,4 +161,4 @@ def test_execute_policy_percent_change_in_capacity_boto3(adjustment, nr_of_insta
     client.execute_policy(PolicyName="ScaleUp")
 
     instances = client.describe_auto_scaling_instances()
-    instances["AutoScalingInstances"].should.have.length_of(nr_of_instances)
+    assert len(instances["AutoScalingInstances"]) == nr_of_instances

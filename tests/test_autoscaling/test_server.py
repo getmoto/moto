@@ -1,5 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
-
 import moto.server as server
 
 """
@@ -13,5 +11,5 @@ def test_describe_autoscaling_groups():
 
     res = test_client.get("/?Action=DescribeLaunchConfigurations")
 
-    res.data.should.contain(b"<DescribeLaunchConfigurationsResponse")
-    res.data.should.contain(b"<LaunchConfigurations>")
+    assert b"<DescribeLaunchConfigurationsResponse" in res.data
+    assert b"<LaunchConfigurations>" in res.data

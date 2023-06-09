@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_autoscaling, mock_elb, mock_ec2
 from .utils import setup_networking
@@ -57,8 +56,8 @@ class TestAutoScalingELB(TestCase):
             AutoScalingGroupName=self.asg_name
         )
         assert response["ResponseMetadata"]["RequestId"]
-        list(response["LoadBalancers"]).should.have.length_of(1)
-        response["LoadBalancers"][0]["LoadBalancerName"].should.equal(self.lb_name)
+        assert len(list(response["LoadBalancers"])) == 1
+        assert response["LoadBalancers"][0]["LoadBalancerName"] == self.lb_name
 
     def test_create_elb_and_autoscaling_group_no_relationship(self):
         self.as_client.create_auto_scaling_group(
@@ -74,13 +73,11 @@ class TestAutoScalingELB(TestCase):
         response = self.as_client.describe_load_balancers(
             AutoScalingGroupName=self.asg_name
         )
-        list(response["LoadBalancers"]).should.have.length_of(0)
+        assert len(list(response["LoadBalancers"])) == 0
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(0)
+        assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 0
 
     def test_attach_load_balancer(self):
         self.as_client.create_auto_scaling_group(
@@ -103,21 +100,20 @@ class TestAutoScalingELB(TestCase):
         response = self.as_client.attach_load_balancers(
             AutoScalingGroupName=self.asg_name, LoadBalancerNames=[self.lb_name]
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(self.instance_count)
+        assert (
+            len(list(response["LoadBalancerDescriptions"][0]["Instances"]))
+            == self.instance_count
+        )
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        list(
-            response["AutoScalingGroups"][0]["LoadBalancerNames"]
-        ).should.have.length_of(1)
+        assert len(list(response["AutoScalingGroups"][0]["LoadBalancerNames"])) == 1
 
     def test_detach_load_balancer(self):
         self.as_client.create_auto_scaling_group(
@@ -141,19 +137,17 @@ class TestAutoScalingELB(TestCase):
         response = self.as_client.detach_load_balancers(
             AutoScalingGroupName=self.asg_name, LoadBalancerNames=[self.lb_name]
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(0)
+        assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 0
 
         response = self.as_client.describe_load_balancers(
             AutoScalingGroupName=self.asg_name
         )
-        list(response["LoadBalancers"]).should.have.length_of(0)
+        assert len(list(response["LoadBalancers"])) == 0
 
     def test_create_autoscaling_group_within_elb(self):
         # we attach a couple of machines to the load balancer
@@ -221,53 +215,53 @@ class TestAutoScalingELB(TestCase):
             AutoScalingGroupNames=[self.asg_name]
         )
         group = resp["AutoScalingGroups"][0]
-        group["AutoScalingGroupName"].should.equal(self.asg_name)
-        set(group["AvailabilityZones"]).should.equal(set(["us-east-1a", "us-east-1b"]))
-        group["DesiredCapacity"].should.equal(2)
-        group["MaxSize"].should.equal(INSTANCE_COUNT_GROUP)
-        group["MinSize"].should.equal(INSTANCE_COUNT_GROUP)
-        group["Instances"].should.have.length_of(INSTANCE_COUNT_GROUP)
-        group["VPCZoneIdentifier"].should.equal(
-            f"{self.mocked_networking['subnet1']},{self.mocked_networking['subnet2']}"
+        assert group["AutoScalingGroupName"] == self.asg_name
+        assert set(group["AvailabilityZones"]) == set(["us-east-1a", "us-east-1b"])
+        assert group["DesiredCapacity"] == 2
+        assert group["MaxSize"] == INSTANCE_COUNT_GROUP
+        assert group["MinSize"] == INSTANCE_COUNT_GROUP
+        assert len(group["Instances"]) == INSTANCE_COUNT_GROUP
+        assert (
+            group["VPCZoneIdentifier"]
+            == f"{self.mocked_networking['subnet1']},{self.mocked_networking['subnet2']}"
         )
-        group["LaunchConfigurationName"].should.equal(self.lc_name)
-        group["DefaultCooldown"].should.equal(60)
-        group["HealthCheckGracePeriod"].should.equal(100)
-        group["HealthCheckType"].should.equal("EC2")
-        group["LoadBalancerNames"].should.equal([self.lb_name])
-        group["PlacementGroup"].should.equal("test_placement")
-        list(group["TerminationPolicies"]).should.equal(
-            ["OldestInstance", "NewestInstance"]
-        )
-        list(group["Tags"]).should.have.length_of(1)
+        assert group["LaunchConfigurationName"] == self.lc_name
+        assert group["DefaultCooldown"] == 60
+        assert group["HealthCheckGracePeriod"] == 100
+        assert group["HealthCheckType"] == "EC2"
+        assert group["LoadBalancerNames"] == [self.lb_name]
+        assert group["PlacementGroup"] == "test_placement"
+        assert list(group["TerminationPolicies"]) == [
+            "OldestInstance",
+            "NewestInstance",
+        ]
+        assert len(list(group["Tags"])) == 1
         tag = group["Tags"][0]
-        tag["ResourceId"].should.equal(self.asg_name)
-        tag["Key"].should.equal("test_key")
-        tag["Value"].should.equal("test_value")
-        tag["PropagateAtLaunch"].should.equal(True)
+        assert tag["ResourceId"] == self.asg_name
+        assert tag["Key"] == "test_key"
+        assert tag["Value"] == "test_value"
+        assert tag["PropagateAtLaunch"] is True
 
         instances_attached = self.elb_client.describe_instance_health(
             LoadBalancerName=self.lb_name
         )["InstanceStates"]
-        instances_attached.should.have.length_of(
-            INSTANCE_COUNT_START + INSTANCE_COUNT_GROUP
-        )
+        assert len(instances_attached) == INSTANCE_COUNT_START + INSTANCE_COUNT_GROUP
         attached_ids = [i["InstanceId"] for i in instances_attached]
         for ec2_instance_id in instances_ids:
-            attached_ids.should.contain(ec2_instance_id)
+            assert ec2_instance_id in attached_ids
 
         scheduled_actions = self.as_client.describe_scheduled_actions(
             AutoScalingGroupName=self.asg_name
         )
         scheduled_action_1 = scheduled_actions["ScheduledUpdateGroupActions"][0]
-        scheduled_action_1["AutoScalingGroupName"].should.equal(self.asg_name)
-        scheduled_action_1["DesiredCapacity"].should.equal(9)
-        scheduled_action_1["MaxSize"].should.equal(12)
-        scheduled_action_1["MinSize"].should.equal(5)
-        scheduled_action_1.should.contain("StartTime")
-        scheduled_action_1.should.contain("EndTime")
-        scheduled_action_1["Recurrence"].should.equal("* * * * *")
-        scheduled_action_1["ScheduledActionName"].should.equal("my-scheduled-action")
+        assert scheduled_action_1["AutoScalingGroupName"] == self.asg_name
+        assert scheduled_action_1["DesiredCapacity"] == 9
+        assert scheduled_action_1["MaxSize"] == 12
+        assert scheduled_action_1["MinSize"] == 5
+        assert "StartTime" in scheduled_action_1
+        assert "EndTime" in scheduled_action_1
+        assert scheduled_action_1["Recurrence"] == "* * * * *"
+        assert scheduled_action_1["ScheduledActionName"] == "my-scheduled-action"
 
 
 @mock_autoscaling
@@ -316,7 +310,7 @@ class TestAutoScalingInstances(TestCase):
         response = self.as_client.attach_load_balancers(
             AutoScalingGroupName=self.asg_name, LoadBalancerNames=[self.lb_name]
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     def test_detach_one_instance_decrement(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -336,38 +330,34 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_detach],
             ShouldDecrementDesiredCapacity=True,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(1)
-        instance_to_detach.shouldnt.be.within(
-            [x["InstanceId"] for x in response["AutoScalingGroups"][0]["Instances"]]
-        )
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 1
+        assert instance_to_detach not in [
+            x["InstanceId"] for x in response["AutoScalingGroups"][0]["Instances"]
+        ]
 
         # test to ensure tag has been removed
         response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
         tags = response["Reservations"][0]["Instances"][0]["Tags"]
-        tags.should.have.length_of(1)
+        assert len(tags) == 1
 
         # test to ensure tag is present on other instance
         response = ec2_client.describe_instances(InstanceIds=[instance_to_keep])
         tags = response["Reservations"][0]["Instances"][0]["Tags"]
-        tags.should.have.length_of(2)
+        assert len(tags) == 2
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(1)
-        instance_to_detach.shouldnt.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 1
+        assert instance_to_detach not in [
+            x["InstanceId"]
+            for x in response["LoadBalancerDescriptions"][0]["Instances"]
+        ]
 
     def test_detach_one_instance(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -387,34 +377,30 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_detach],
             ShouldDecrementDesiredCapacity=False,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
         # test to ensure instance was replaced
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(2)
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 2
 
         response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
         tags = response["Reservations"][0]["Instances"][0]["Tags"]
-        tags.should.have.length_of(1)
+        assert len(tags) == 1
 
         response = ec2_client.describe_instances(InstanceIds=[instance_to_keep])
         tags = response["Reservations"][0]["Instances"][0]["Tags"]
-        tags.should.have.length_of(2)
+        assert len(tags) == 2
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(2)
-        instance_to_detach.shouldnt.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 2
+        assert instance_to_detach not in [
+            x["InstanceId"]
+            for x in response["LoadBalancerDescriptions"][0]["Instances"]
+        ]
 
     def test_standby_one_instance_decrement(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -431,38 +417,32 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_standby],
             ShouldDecrementDesiredCapacity=True,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(2)
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(1)
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 2
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 1
 
         response = self.as_client.describe_auto_scaling_instances(
             InstanceIds=[instance_to_standby]
         )
-        response["AutoScalingInstances"][0]["LifecycleState"].should.equal("Standby")
+        assert response["AutoScalingInstances"][0]["LifecycleState"] == "Standby"
 
         # test to ensure tag has been retained (standby instance is still part of the ASG)
         response = ec2_client.describe_instances(InstanceIds=[instance_to_standby])
         for reservation in response["Reservations"]:
             for instance in reservation["Instances"]:
                 tags = instance["Tags"]
-                tags.should.have.length_of(2)
+                assert len(tags) == 2
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(1)
-        instance_to_standby.shouldnt.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(response["LoadBalancerDescriptions"][0]["Instances"]) == 1
+        for x in response["LoadBalancerDescriptions"][0]["Instances"]:
+            assert x["InstanceId"] not in instance_to_standby
 
     def test_standby_one_instance(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -479,38 +459,32 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_standby],
             ShouldDecrementDesiredCapacity=False,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(3)
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(2)
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 3
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 2
 
         response = self.as_client.describe_auto_scaling_instances(
             InstanceIds=[instance_to_standby]
         )
-        response["AutoScalingInstances"][0]["LifecycleState"].should.equal("Standby")
+        assert response["AutoScalingInstances"][0]["LifecycleState"] == "Standby"
 
         # test to ensure tag has been retained (standby instance is still part of the ASG)
         response = ec2_client.describe_instances(InstanceIds=[instance_to_standby])
         for reservation in response["Reservations"]:
             for instance in reservation["Instances"]:
                 tags = instance["Tags"]
-                tags.should.have.length_of(2)
+                assert len(tags) == 2
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(2)
-        instance_to_standby.shouldnt.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(response["LoadBalancerDescriptions"][0]["Instances"]) == 2
+        for x in response["LoadBalancerDescriptions"][0]["Instances"]:
+            assert x["InstanceId"] not in instance_to_standby
 
     def test_standby_elb_update(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -525,31 +499,25 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_standby],
             ShouldDecrementDesiredCapacity=False,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(3)
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(2)
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 3
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 2
 
         response = self.as_client.describe_auto_scaling_instances(
             InstanceIds=[instance_to_standby]
         )
-        response["AutoScalingInstances"][0]["LifecycleState"].should.equal("Standby")
+        assert response["AutoScalingInstances"][0]["LifecycleState"] == "Standby"
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(2)
-        instance_to_standby.shouldnt.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(response["LoadBalancerDescriptions"][0]["Instances"]) == 2
+        for x in response["LoadBalancerDescriptions"][0]["Instances"]:
+            assert x["InstanceId"] not in instance_to_standby
 
     def test_standby_terminate_instance_decrement(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -566,54 +534,49 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_standby_terminate],
             ShouldDecrementDesiredCapacity=False,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(3)
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(2)
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 3
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 2
 
         response = self.as_client.describe_auto_scaling_instances(
             InstanceIds=[instance_to_standby_terminate]
         )
-        response["AutoScalingInstances"][0]["LifecycleState"].should.equal("Standby")
+        assert response["AutoScalingInstances"][0]["LifecycleState"] == "Standby"
 
         response = self.as_client.terminate_instance_in_auto_scaling_group(
             InstanceId=instance_to_standby_terminate,
             ShouldDecrementDesiredCapacity=True,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         # AWS still decrements desired capacity ASG if requested, even if the terminated instance is in standby
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(1)
-        response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"].should_not.equal(
-            instance_to_standby_terminate
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 1
+        assert (
+            response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"]
+            != instance_to_standby_terminate
         )
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(1)
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 1
 
         response = ec2_client.describe_instances(
             InstanceIds=[instance_to_standby_terminate]
         )
-        response["Reservations"][0]["Instances"][0]["State"]["Name"].should.equal(
-            "terminated"
+        assert (
+            response["Reservations"][0]["Instances"][0]["State"]["Name"] == "terminated"
         )
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(1)
-        instance_to_standby_terminate.shouldnt.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 1
+        for x in response["LoadBalancerDescriptions"][0]["Instances"]:
+            assert x["InstanceId"] not in instance_to_standby_terminate
 
     def test_standby_terminate_instance_no_decrement(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -630,54 +593,48 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_standby_terminate],
             ShouldDecrementDesiredCapacity=False,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(3)
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(2)
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 3
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 2
 
         response = self.as_client.describe_auto_scaling_instances(
             InstanceIds=[instance_to_standby_terminate]
         )
-        response["AutoScalingInstances"][0]["LifecycleState"].should.equal("Standby")
+        assert response["AutoScalingInstances"][0]["LifecycleState"] == "Standby"
 
         response = self.as_client.terminate_instance_in_auto_scaling_group(
             InstanceId=instance_to_standby_terminate,
             ShouldDecrementDesiredCapacity=False,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
         group = response["AutoScalingGroups"][0]
-        group["Instances"].should.have.length_of(2)
-        instance_to_standby_terminate.shouldnt.be.within(
-            [x["InstanceId"] for x in group["Instances"]]
-        )
-        group["DesiredCapacity"].should.equal(2)
+        assert len(group["Instances"]) == 2
+        assert instance_to_standby_terminate not in [
+            x["InstanceId"] for x in group["Instances"]
+        ]
+        assert group["DesiredCapacity"] == 2
 
         response = ec2_client.describe_instances(
             InstanceIds=[instance_to_standby_terminate]
         )
-        response["Reservations"][0]["Instances"][0]["State"]["Name"].should.equal(
-            "terminated"
+        assert (
+            response["Reservations"][0]["Instances"][0]["State"]["Name"] == "terminated"
         )
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(2)
-        instance_to_standby_terminate.shouldnt.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(response["LoadBalancerDescriptions"][0]["Instances"]) == 2
+        for x in response["LoadBalancerDescriptions"][0]["Instances"]:
+            assert x["InstanceId"] not in instance_to_standby_terminate
 
     def test_standby_detach_instance_decrement(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -694,55 +651,45 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_standby_detach],
             ShouldDecrementDesiredCapacity=False,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(3)
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(2)
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 3
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 2
 
         response = self.as_client.describe_auto_scaling_instances(
             InstanceIds=[instance_to_standby_detach]
         )
-        response["AutoScalingInstances"][0]["LifecycleState"].should.equal("Standby")
+        assert response["AutoScalingInstances"][0]["LifecycleState"] == "Standby"
 
         response = self.as_client.detach_instances(
             AutoScalingGroupName=self.asg_name,
             InstanceIds=[instance_to_standby_detach],
             ShouldDecrementDesiredCapacity=True,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         # AWS still decrements desired capacity ASG if requested, even if the detached instance was in standby
-        response = self.as_client.describe_auto_scaling_groups(
+        group = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
-        )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(1)
-        response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"].should_not.equal(
-            instance_to_standby_detach
-        )
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(1)
+        )["AutoScalingGroups"][0]
+        assert len(group["Instances"]) == 1
+        assert group["Instances"][0]["InstanceId"] != instance_to_standby_detach
+        assert group["DesiredCapacity"] == 1
 
-        response = ec2_client.describe_instances(
+        instance = ec2_client.describe_instances(
             InstanceIds=[instance_to_standby_detach]
-        )
-        response["Reservations"][0]["Instances"][0]["State"]["Name"].should.equal(
-            "running"
-        )
+        )["Reservations"][0]["Instances"][0]
+        assert instance["State"]["Name"] == "running"
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(1)
-        instance_to_standby_detach.shouldnt.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(response["LoadBalancerDescriptions"][0]["Instances"]) == 1
+        for x in response["LoadBalancerDescriptions"][0]["Instances"]:
+            assert x["InstanceId"] not in instance_to_standby_detach
 
     def test_standby_detach_instance_no_decrement(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -759,55 +706,47 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_standby_detach],
             ShouldDecrementDesiredCapacity=False,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(3)
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(2)
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 3
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 2
 
         response = self.as_client.describe_auto_scaling_instances(
             InstanceIds=[instance_to_standby_detach]
         )
-        response["AutoScalingInstances"][0]["LifecycleState"].should.equal("Standby")
+        assert response["AutoScalingInstances"][0]["LifecycleState"] == "Standby"
 
         response = self.as_client.detach_instances(
             AutoScalingGroupName=self.asg_name,
             InstanceIds=[instance_to_standby_detach],
             ShouldDecrementDesiredCapacity=False,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
         group = response["AutoScalingGroups"][0]
-        group["Instances"].should.have.length_of(2)
-        instance_to_standby_detach.shouldnt.be.within(
-            [x["InstanceId"] for x in group["Instances"]]
-        )
-        group["DesiredCapacity"].should.equal(2)
+        assert len(group["Instances"]) == 2
+        assert instance_to_standby_detach not in [
+            x["InstanceId"] for x in group["Instances"]
+        ]
+        assert group["DesiredCapacity"] == 2
 
-        response = ec2_client.describe_instances(
+        instance = ec2_client.describe_instances(
             InstanceIds=[instance_to_standby_detach]
-        )
-        response["Reservations"][0]["Instances"][0]["State"]["Name"].should.equal(
-            "running"
-        )
+        )["Reservations"][0]["Instances"][0]
+        assert instance["State"]["Name"] == "running"
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(2)
-        instance_to_standby_detach.shouldnt.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 2
+        for x in response["LoadBalancerDescriptions"][0]["Instances"]:
+            assert x["InstanceId"] not in instance_to_standby_detach
 
     def test_standby_exit_standby(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -824,54 +763,48 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_standby_exit_standby],
             ShouldDecrementDesiredCapacity=False,
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.have.length_of(3)
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(2)
+        assert len(response["AutoScalingGroups"][0]["Instances"]) == 3
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 2
 
         response = self.as_client.describe_auto_scaling_instances(
             InstanceIds=[instance_to_standby_exit_standby]
         )
-        response["AutoScalingInstances"][0]["LifecycleState"].should.equal("Standby")
+        assert response["AutoScalingInstances"][0]["LifecycleState"] == "Standby"
 
         response = self.as_client.exit_standby(
             AutoScalingGroupName=self.asg_name,
             InstanceIds=[instance_to_standby_exit_standby],
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
         group = response["AutoScalingGroups"][0]
-        group["Instances"].should.have.length_of(3)
-        instance_to_standby_exit_standby.should.be.within(
-            [x["InstanceId"] for x in group["Instances"]]
-        )
-        group["DesiredCapacity"].should.equal(3)
+        assert len(group["Instances"]) == 3
+        assert instance_to_standby_exit_standby in [
+            x["InstanceId"] for x in group["Instances"]
+        ]
+        assert group["DesiredCapacity"] == 3
 
-        response = ec2_client.describe_instances(
+        instance = ec2_client.describe_instances(
             InstanceIds=[instance_to_standby_exit_standby]
-        )
-        response["Reservations"][0]["Instances"][0]["State"]["Name"].should.equal(
-            "running"
-        )
+        )["Reservations"][0]["Instances"][0]
+        assert instance["State"]["Name"] == "running"
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(3)
-        instance_to_standby_exit_standby.should.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 3
+        assert instance_to_standby_exit_standby in [
+            x["InstanceId"]
+            for x in response["LoadBalancerDescriptions"][0]["Instances"]
+        ]
 
 
 @mock_autoscaling
@@ -921,7 +854,7 @@ class TestAutoScalingInstancesProtected(TestCase):
         response = self.as_client.attach_load_balancers(
             AutoScalingGroupName=self.asg_name, LoadBalancerNames=[self.lb_name]
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     def test_attach_one_instance(self):
         ec2 = boto3.resource("ec2", "us-east-1")
@@ -935,22 +868,20 @@ class TestAutoScalingInstancesProtected(TestCase):
         response = self.as_client.attach_instances(
             AutoScalingGroupName=self.asg_name, InstanceIds=instances_to_add
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
         instances = response["AutoScalingGroups"][0]["Instances"]
-        instances.should.have.length_of(3)
+        assert len(instances) == 3
         for instance in instances:
-            instance["ProtectedFromScaleIn"].should.equal(True)
+            assert instance["ProtectedFromScaleIn"] is True
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(3)
+        assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 3
 
 
 @mock_autoscaling
@@ -991,7 +922,6 @@ class TestAutoScalingTerminateInstances(TestCase):
         )
 
     def test_terminate_instance_in_auto_scaling_group_decrement(self):
-
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
@@ -1006,15 +936,13 @@ class TestAutoScalingTerminateInstances(TestCase):
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
         )
-        response["AutoScalingGroups"][0]["Instances"].should.equal([])
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(0)
+        assert response["AutoScalingGroups"][0]["Instances"] == []
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 0
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(0)
+        assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 0
 
     def test_terminate_instance_in_auto_scaling_group_no_decrement(self):
         response = self.as_client.describe_auto_scaling_groups(
@@ -1035,18 +963,14 @@ class TestAutoScalingTerminateInstances(TestCase):
             instance["InstanceId"]
             for instance in response["AutoScalingGroups"][0]["Instances"]
         )
-        replaced_instance_id.should_not.equal(original_instance_id)
-        response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(1)
+        assert replaced_instance_id != original_instance_id
+        assert response["AutoScalingGroups"][0]["DesiredCapacity"] == 1
 
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.lb_name]
         )
-        list(
-            response["LoadBalancerDescriptions"][0]["Instances"]
-        ).should.have.length_of(1)
-        original_instance_id.shouldnt.be.within(
-            [
-                x["InstanceId"]
-                for x in response["LoadBalancerDescriptions"][0]["Instances"]
-            ]
-        )
+        assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 1
+        assert original_instance_id not in [
+            x["InstanceId"]
+            for x in response["LoadBalancerDescriptions"][0]["Instances"]
+        ]

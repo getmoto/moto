@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import unittest
 from moto import mock_autoscaling, mock_elbv2
 from tests import EXAMPLE_AMI_ID
@@ -53,14 +52,12 @@ class TestAutoscalignELBv2(unittest.TestCase):
         response = self.as_client.describe_load_balancer_target_groups(
             AutoScalingGroupName=self.asg_name
         )
-        list(response["LoadBalancerTargetGroups"]).should.have.length_of(1)
+        assert len(list(response["LoadBalancerTargetGroups"])) == 1
 
         response = self.elbv2_client.describe_target_health(
             TargetGroupArn=self.target_group_arn
         )
-        list(response["TargetHealthDescriptions"]).should.have.length_of(
-            self.instance_count
-        )
+        assert len(list(response["TargetHealthDescriptions"])) == self.instance_count
 
     def test_attach_detach_target_groups(self):
         # create asg without attaching to target group
@@ -81,8 +78,8 @@ class TestAutoscalignELBv2(unittest.TestCase):
         response = self.elbv2_client.describe_target_health(
             TargetGroupArn=self.target_group_arn
         )
-        list(response["TargetHealthDescriptions"]).should.have.length_of(
-            self.instance_count * 2
+        assert (
+            len(list(response["TargetHealthDescriptions"])) == self.instance_count * 2
         )
 
         response = self.as_client.detach_load_balancer_target_groups(
@@ -91,9 +88,7 @@ class TestAutoscalignELBv2(unittest.TestCase):
         response = self.elbv2_client.describe_target_health(
             TargetGroupArn=self.target_group_arn
         )
-        list(response["TargetHealthDescriptions"]).should.have.length_of(
-            self.instance_count
-        )
+        assert len(list(response["TargetHealthDescriptions"])) == self.instance_count
 
     def test_detach_all_target_groups(self):
         response = self.as_client.detach_load_balancer_target_groups(
@@ -103,8 +98,8 @@ class TestAutoscalignELBv2(unittest.TestCase):
         response = self.elbv2_client.describe_target_health(
             TargetGroupArn=self.target_group_arn
         )
-        list(response["TargetHealthDescriptions"]).should.have.length_of(0)
+        assert len(list(response["TargetHealthDescriptions"])) == 0
         response = self.as_client.describe_load_balancer_target_groups(
             AutoScalingGroupName=self.asg_name
         )
-        list(response["LoadBalancerTargetGroups"]).should.have.length_of(0)
+        assert len(list(response["LoadBalancerTargetGroups"])) == 0
