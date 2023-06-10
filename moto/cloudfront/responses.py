@@ -14,7 +14,7 @@ class CloudFrontResponse(BaseResponse):
         super().__init__(service_name="cloudfront")
 
     def _get_xml_body(self) -> Dict[str, Any]:
-        return xmltodict.parse(self.body, dict_constructor=dict)
+        return xmltodict.parse(self.body, dict_constructor=dict, force_list="Path")
 
     @property
     def backend(self) -> CloudFrontBackend:
