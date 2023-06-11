@@ -1,7 +1,7 @@
-import botocore.client
 import boto3
-import sure  # noqa # pylint: disable=unused-import
+import pytest
 
+from botocore.exceptions import ClientError
 from moto import mock_lambda, mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from uuid import uuid4
@@ -39,36 +39,31 @@ def test_tags():
     )
 
     # List tags when there are none
-    conn.list_tags(Resource=function["FunctionArn"])["Tags"].should.equal(dict())
+    assert conn.list_tags(Resource=function["FunctionArn"])["Tags"] == dict()
 
     # List tags when there is one
-    conn.tag_resource(Resource=function["FunctionArn"], Tags=dict(spam="eggs"))[
-        "ResponseMetadata"
-    ]["HTTPStatusCode"].should.equal(200)
-    conn.list_tags(Resource=function["FunctionArn"])["Tags"].should.equal(
-        dict(spam="eggs")
-    )
+    resp = conn.tag_resource(Resource=function["FunctionArn"], Tags={"spam": "eggs"})
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert conn.list_tags(Resource=function["FunctionArn"])["Tags"] == {"spam": "eggs"}
 
     # List tags when another has been added
-    conn.tag_resource(Resource=function["FunctionArn"], Tags=dict(foo="bar"))[
-        "ResponseMetadata"
-    ]["HTTPStatusCode"].should.equal(200)
-    conn.list_tags(Resource=function["FunctionArn"])["Tags"].should.equal(
-        dict(spam="eggs", foo="bar")
-    )
+    resp = conn.tag_resource(Resource=function["FunctionArn"], Tags=dict(foo="bar"))
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert conn.list_tags(Resource=function["FunctionArn"])["Tags"] == {
+        "spam": "eggs",
+        "foo": "bar",
+    }
 
     # Untag resource
-    conn.untag_resource(Resource=function["FunctionArn"], TagKeys=["spam", "trolls"])[
-        "ResponseMetadata"
-    ]["HTTPStatusCode"].should.equal(204)
-    conn.list_tags(Resource=function["FunctionArn"])["Tags"].should.equal(
-        dict(foo="bar")
+    resp = conn.untag_resource(
+        Resource=function["FunctionArn"], TagKeys=["spam", "trolls"]
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
+    assert conn.list_tags(Resource=function["FunctionArn"])["Tags"] == {"foo": "bar"}
 
     # Untag a tag that does not exist (no error and no change)
-    conn.untag_resource(Resource=function["FunctionArn"], TagKeys=["spam"])[
-        "ResponseMetadata"
-    ]["HTTPStatusCode"].should.equal(204)
+    resp = conn.untag_resource(Resource=function["FunctionArn"], TagKeys=["spam"])
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
 
 
 @mock_lambda
@@ -93,10 +88,10 @@ def test_create_function_with_tags():
     )
 
     tags = conn.list_tags(Resource=function["FunctionArn"])["Tags"]
-    tags.should.equal({"key1": "val1", "key2": "val2"})
+    assert tags == {"key1": "val1", "key2": "val2"}
 
     result = conn.get_function(FunctionName=function_name)
-    result.should.have.key("Tags").equals({"key1": "val1", "key2": "val2"})
+    assert result["Tags"] == {"key1": "val1", "key2": "val2"}
 
 
 @mock_lambda
@@ -105,16 +100,17 @@ def test_tags_not_found():
     Test list_tags and tag_resource when the lambda with the given arn does not exist
     """
     conn = boto3.client("lambda", _lambda_region)
-    conn.list_tags.when.called_with(
-        Resource=f"arn:aws:lambda:{ACCOUNT_ID}:function:not-found"
-    ).should.throw(botocore.client.ClientError)
+    with pytest.raises(ClientError):
+        conn.list_tags(Resource=f"arn:aws:lambda:{ACCOUNT_ID}:function:not-found")
 
-    conn.tag_resource.when.called_with(
-        Resource=f"arn:aws:lambda:{ACCOUNT_ID}:function:not-found",
-        Tags=dict(spam="eggs"),
-    ).should.throw(botocore.client.ClientError)
+    with pytest.raises(ClientError):
+        conn.tag_resource(
+            Resource=f"arn:aws:lambda:{ACCOUNT_ID}:function:not-found",
+            Tags=dict(spam="eggs"),
+        )
 
-    conn.untag_resource.when.called_with(
-        Resource=f"arn:aws:lambda:{ACCOUNT_ID}:function:not-found",
-        TagKeys=["spam"],
-    ).should.throw(botocore.client.ClientError)
+    with pytest.raises(ClientError):
+        conn.untag_resource(
+            Resource=f"arn:aws:lambda:{ACCOUNT_ID}:function:not-found",
+            TagKeys=["spam"],
+        )

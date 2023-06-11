@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
@@ -27,8 +26,8 @@ def test_publish_lambda_layers__without_content():
             LicenseInfo="MIT",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValueException")
-    err["Message"].should.equal("Missing Content")
+    assert err["Code"] == "InvalidParameterValueException"
+    assert err["Message"] == "Missing Content"
 
 
 @mock_lambda
@@ -66,26 +65,24 @@ def test_get_lambda_layers():
         version.pop("CreatedDate")
     result["LayerVersions"].sort(key=lambda x: x["Version"])
     expected_arn = f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:layer:{layer_name}:"
-    result["LayerVersions"].should.equal(
-        [
-            {
-                "Version": 1,
-                "LayerVersionArn": expected_arn + "1",
-                "CompatibleRuntimes": ["python3.6"],
-                "Description": "",
-                "LicenseInfo": "MIT",
-                "CompatibleArchitectures": [],
-            },
-            {
-                "Version": 2,
-                "LayerVersionArn": expected_arn + "2",
-                "CompatibleRuntimes": ["python3.6"],
-                "Description": "",
-                "LicenseInfo": "MIT",
-                "CompatibleArchitectures": [],
-            },
-        ]
-    )
+    assert result["LayerVersions"] == [
+        {
+            "Version": 1,
+            "LayerVersionArn": expected_arn + "1",
+            "CompatibleRuntimes": ["python3.6"],
+            "Description": "",
+            "LicenseInfo": "MIT",
+            "CompatibleArchitectures": [],
+        },
+        {
+            "Version": 2,
+            "LayerVersionArn": expected_arn + "2",
+            "CompatibleRuntimes": ["python3.6"],
+            "Description": "",
+            "LicenseInfo": "MIT",
+            "CompatibleArchitectures": [],
+        },
+    ]
 
     function_name = str(uuid4())[0:6]
     conn.create_function(
@@ -103,19 +100,19 @@ def test_get_lambda_layers():
     )
 
     result = conn.get_function_configuration(FunctionName=function_name)
-    result["Layers"].should.equal(
-        [{"Arn": (expected_arn + "1"), "CodeSize": len(zip_content)}]
-    )
+    assert result["Layers"] == [
+        {"Arn": (expected_arn + "1"), "CodeSize": len(zip_content)}
+    ]
     result = conn.update_function_configuration(
         FunctionName=function_name, Layers=[(expected_arn + "2")]
     )
-    result["Layers"].should.equal(
-        [{"Arn": (expected_arn + "2"), "CodeSize": len(zip_content)}]
-    )
+    assert result["Layers"] == [
+        {"Arn": (expected_arn + "2"), "CodeSize": len(zip_content)}
+    ]
 
     # Test get layer versions for non existant layer
     result = conn.list_layer_versions(LayerName=f"{layer_name}2")
-    result["LayerVersions"].should.equal([])
+    assert result["LayerVersions"] == []
 
     # Test create function with non existant layer version
     with pytest.raises((ValueError, ClientError)):
@@ -159,11 +156,11 @@ def test_get_layer_version():
     layer_version = resp["Version"]
 
     resp = conn.get_layer_version(LayerName=layer_name, VersionNumber=layer_version)
-    resp.should.have.key("Description").equals("")
-    resp.should.have.key("Version").equals(1)
-    resp.should.have.key("CompatibleArchitectures").equals(["x86_64"])
-    resp.should.have.key("CompatibleRuntimes").equals(["python3.6"])
-    resp.should.have.key("LicenseInfo").equals("MIT")
+    assert resp["Description"] == ""
+    assert resp["Version"] == 1
+    assert resp["CompatibleArchitectures"] == ["x86_64"]
+    assert resp["CompatibleRuntimes"] == ["python3.6"]
+    assert resp["LicenseInfo"] == "MIT"
 
 
 @mock_lambda
@@ -185,7 +182,7 @@ def test_get_layer_version__unknown():
     with pytest.raises(ClientError) as exc:
         conn.get_layer_version(LayerName=layer_name, VersionNumber=1)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
     conn.publish_layer_version(
         LayerName=layer_name,
@@ -198,7 +195,7 @@ def test_get_layer_version__unknown():
     with pytest.raises(ClientError) as exc:
         conn.get_layer_version(LayerName=layer_name, VersionNumber=999)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_lambda
@@ -227,7 +224,7 @@ def test_delete_layer_version():
     conn.delete_layer_version(LayerName=layer_name, VersionNumber=layer_version)
 
     result = conn.list_layer_versions(LayerName=layer_name)["LayerVersions"]
-    result.should.equal([])
+    assert result == []
 
 
 @mock_lambda

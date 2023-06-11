@@ -1,11 +1,10 @@
-import botocore.client
 import boto3
 import json
 import pytest
 import time
-import sure  # noqa # pylint: disable=unused-import
 import uuid
 
+from botocore.exceptions import ClientError
 from moto import mock_dynamodb, mock_lambda, mock_logs, mock_sns, mock_sqs
 from uuid import uuid4
 from .utilities import (
@@ -358,7 +357,7 @@ def test_list_event_source_mappings():
         EventSourceArn=queue.attributes["QueueArn"], FunctionName=func["FunctionArn"]
     )
     mappings = conn.list_event_source_mappings(EventSourceArn="123")
-    mappings["EventSourceMappings"].should.have.length_of(0)
+    assert len(mappings["EventSourceMappings"]) == 0
 
     mappings = conn.list_event_source_mappings(
         EventSourceArn=queue.attributes["QueueArn"]
@@ -394,9 +393,8 @@ def test_get_event_source_mapping():
     assert mapping["UUID"] == response["UUID"]
     assert mapping["FunctionArn"] == func["FunctionArn"]
 
-    conn.get_event_source_mapping.when.called_with(UUID="1").should.throw(
-        botocore.client.ClientError
-    )
+    with pytest.raises(ClientError):
+        conn.get_event_source_mapping(UUID="1")
 
 
 @mock_lambda
@@ -474,6 +472,5 @@ def test_delete_event_source_mapping():
     response = conn.delete_event_source_mapping(UUID=response["UUID"])
 
     assert response["State"] == "Deleting"
-    conn.get_event_source_mapping.when.called_with(UUID=response["UUID"]).should.throw(
-        botocore.client.ClientError
-    )
+    with pytest.raises(ClientError):
+        conn.get_event_source_mapping(UUID=response["UUID"])

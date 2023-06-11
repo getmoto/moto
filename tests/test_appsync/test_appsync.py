@@ -25,8 +25,8 @@ def test_create_graphql_api():
     )
     assert api["uris"] == {"GRAPHQL": "http://graphql.uri"}
     assert api["xrayEnabled"] is False
-    api.shouldnt.have.key("additionalAuthenticationProviders")
-    api.shouldnt.have.key("logConfig")
+    assert "additionalAuthenticationProviders" not in api
+    assert "logConfig" not in api
 
 
 @mock_appsync
