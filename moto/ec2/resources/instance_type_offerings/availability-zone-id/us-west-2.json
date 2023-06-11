@@ -2304,6 +2304,14 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "u-18tb1.112xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "u-24tb1.112xlarge",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "usw2-az1"
  },
@@ -8861,6 +8869,10 @@
  },
  {
   "InstanceType": "u-18tb1.112xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "u-24tb1.112xlarge",
   "Location": "usw2-az4"
  },
  {

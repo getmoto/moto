@@ -348,6 +348,38 @@
   "Location": "af-south-1"
  },
  {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
+  "Location": "af-south-1"
+ },
+ {
   "InstanceType": "inf1.24xlarge",
   "Location": "af-south-1"
  },
