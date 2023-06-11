@@ -301,6 +301,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -11953,6 +11962,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -19072,6 +19090,15 @@
                 "Value": "meteringmarketplace",
                 "endpoint": {
                   "Value": "metering.marketplace.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27341,6 +27368,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -29899,6 +29935,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -31617,6 +31662,15 @@
                 "Value": "meteringmarketplace",
                 "endpoint": {
                   "Value": "metering.marketplace.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -35896,6 +35950,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kendra": {
+                "Value": "kendra",
+                "endpoint": {
+                  "Value": "kendra.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -39041,6 +39104,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -40198,6 +40270,15 @@
                 "Value": "cloudhsmv2",
                 "endpoint": {
                   "Value": "cloudhsmv2.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.me-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -43443,15 +43524,6 @@
               },
               "aiq": {
                 "Value": "aiq"
-              },
-              "alexaforbusiness": {
-                "Value": "alexaforbusiness",
-                "endpoint": {
-                  "Value": "a4b.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
               },
               "amazonlocationservice": {
                 "Value": "amazonlocationservice"
@@ -49895,6 +49967,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "simspaceweaver": {
+                "Value": "simspaceweaver",
+                "endpoint": {
+                  "Value": "simspaceweaver.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sms": {
                 "Value": "sms",
                 "endpoint": {
@@ -51406,6 +51487,15 @@
                 "Value": "ses",
                 "endpoint": {
                   "Value": "email.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "simspaceweaver": {
+                "Value": "simspaceweaver",
+                "endpoint": {
+                  "Value": "simspaceweaver.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
