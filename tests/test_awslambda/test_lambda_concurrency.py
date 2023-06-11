@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_lambda
 from uuid import uuid4
@@ -33,7 +32,7 @@ def test_put_function_concurrency(key):
         FunctionName=name_or_arn, ReservedConcurrentExecutions=expected_concurrency
     )
 
-    result["ReservedConcurrentExecutions"].should.equal(expected_concurrency)
+    assert result["ReservedConcurrentExecutions"] == expected_concurrency
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
@@ -61,7 +60,7 @@ def test_delete_function_concurrency(key):
     conn.delete_function_concurrency(FunctionName=name_or_arn)
     result = conn.get_function(FunctionName=function_name)
 
-    result.doesnt.have.key("Concurrency")
+    assert "Concurrency" not in result
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
@@ -89,4 +88,4 @@ def test_get_function_concurrency(key):
 
     result = conn.get_function_concurrency(FunctionName=name_or_arn)
 
-    result["ReservedConcurrentExecutions"].should.equal(expected_concurrency)
+    assert result["ReservedConcurrentExecutions"] == expected_concurrency

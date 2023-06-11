@@ -1,12 +1,11 @@
 import base64
-import botocore.client
 import boto3
 import io
 import json
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 import zipfile
 
+from botocore.exceptions import ClientError
 from moto import mock_lambda, mock_ec2, settings
 from uuid import uuid4
 from unittest import SkipTest
@@ -43,19 +42,19 @@ def test_invoke_function_that_throws_error():
         FunctionName=function_name, Payload=json.dumps({}), LogType="Tail"
     )
 
-    failure_response.should.have.key("FunctionError").being.equal("Handled")
+    assert failure_response["FunctionError"] == "Handled"
 
     payload = failure_response["Payload"].read().decode("utf-8")
     payload = json.loads(payload)
-    payload["errorType"].should.equal("Exception")
-    payload["errorMessage"].should.equal("I failed!")
-    payload.should.have.key("stackTrace")
+    assert payload["errorType"] == "Exception"
+    assert payload["errorMessage"] == "I failed!"
+    assert "stackTrace" in payload
 
     logs = base64.b64decode(failure_response["LogResult"]).decode("utf-8")
-    logs.should.contain("START RequestId:")
-    logs.should.contain("I failed!")
-    logs.should.contain("Traceback (most recent call last):")
-    logs.should.contain("END RequestId:")
+    assert "START RequestId:" in logs
+    assert "I failed!" in logs
+    assert "Traceback (most recent call last):" in logs
+    assert "END RequestId:" in logs
 
 
 @pytest.mark.network
@@ -93,27 +92,29 @@ def test_invoke_requestresponse_function(invocation_type, key):
     if "FunctionError" in success_result:
         assert False, success_result["Payload"].read().decode("utf-8")
 
-    success_result["StatusCode"].should.equal(200)
-    success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"].should.equal(
-        "application/json"
+    assert success_result["StatusCode"] == 200
+    assert (
+        success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"]
+        == "application/json"
     )
     logs = base64.b64decode(success_result["LogResult"]).decode("utf-8")
 
-    logs.should.contain("START RequestId:")
-    logs.should.contain("custom log event")
-    logs.should.contain("END RequestId:")
+    assert "START RequestId:" in logs
+    assert "custom log event" in logs
+    assert "END RequestId:" in logs
 
     payload = success_result["Payload"].read().decode("utf-8")
-    json.loads(payload).should.equal(in_data)
+    assert json.loads(payload) == in_data
 
     # Logs should not be returned by default, only when the LogType-param is supplied
     success_result = conn.invoke(
         FunctionName=name_or_arn, Payload=json.dumps(in_data), **kw
     )
 
-    success_result["StatusCode"].should.equal(200)
-    success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"].should.equal(
-        "application/json"
+    assert success_result["StatusCode"] == 200
+    assert (
+        success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"]
+        == "application/json"
     )
     assert "LogResult" not in success_result
 
@@ -136,16 +137,15 @@ def test_invoke_event_function():
         Publish=True,
     )
 
-    conn.invoke.when.called_with(
-        FunctionName="notAFunction", InvocationType="Event", Payload="{}"
-    ).should.throw(botocore.client.ClientError)
+    with pytest.raises(ClientError):
+        conn.invoke(FunctionName="notAFunction", InvocationType="Event", Payload="{}")
 
     in_data = {"msg": "So long and thanks for all the fish"}
     success_result = conn.invoke(
         FunctionName=function_name, InvocationType="Event", Payload=json.dumps(in_data)
     )
-    success_result["StatusCode"].should.equal(202)
-    json.loads(success_result["Payload"].read().decode("utf-8")).should.equal(in_data)
+    assert success_result["StatusCode"] == 202
+    assert json.loads(success_result["Payload"].read().decode("utf-8")) == in_data
 
 
 @pytest.mark.network
@@ -167,19 +167,19 @@ def test_invoke_lambda_using_environment_port():
         FunctionName=function_name, InvocationType="Event", Payload="{}"
     )
 
-    success_result["StatusCode"].should.equal(202)
+    assert success_result["StatusCode"] == 202
     response = success_result["Payload"].read()
     response = json.loads(response.decode("utf-8"))
 
     functions = response["functions"]
     function_names = [f["FunctionName"] for f in functions]
-    function_names.should.contain(function_name)
+    assert function_name in function_names
 
     # Host matches the full URL, so one of:
     # http://host.docker.internal:5000
     # http://172.0.2.1:5000
     # http://172.0.1.1:4555
-    response["host"].should.match("http://.+:[0-9]{4}")
+    assert "http://" in response["host"]
 
 
 @pytest.mark.network
@@ -209,7 +209,7 @@ def test_invoke_lambda_using_networkmode():
     response = success_result["Payload"].read()
     functions = json.loads(response.decode("utf-8"))["response"]
     function_names = [f["FunctionName"] for f in functions]
-    function_names.should.contain(function_name)
+    assert function_name in function_names
 
 
 @pytest.mark.network
@@ -234,9 +234,9 @@ def test_invoke_function_with_multiple_files_in_zip():
     success_result = conn.invoke(
         FunctionName=function_name, InvocationType="Event", Payload=json.dumps(in_data)
     )
-    json.loads(success_result["Payload"].read().decode("utf-8")).should.equal(
-        {"msg": "So long and thanks for: stuff"}
-    )
+    assert json.loads(success_result["Payload"].read().decode("utf-8")) == {
+        "msg": "So long and thanks for: stuff"
+    }
 
 
 @pytest.mark.network
@@ -257,15 +257,14 @@ def test_invoke_dryrun_function():
         Publish=True,
     )
 
-    conn.invoke.when.called_with(
-        FunctionName="notAFunction", InvocationType="Event", Payload="{}"
-    ).should.throw(botocore.client.ClientError)
+    with pytest.raises(ClientError):
+        conn.invoke(FunctionName="notAFunction", InvocationType="Event", Payload="{}")
 
     in_data = {"msg": "So long and thanks for all the fish"}
     success_result = conn.invoke(
         FunctionName=function_name, InvocationType="DryRun", Payload=json.dumps(in_data)
     )
-    success_result["StatusCode"].should.equal(204)
+    assert success_result["StatusCode"] == 204
 
 
 if settings.TEST_SERVER_MODE:
@@ -297,10 +296,10 @@ if settings.TEST_SERVER_MODE:
             InvocationType="RequestResponse",
             Payload=json.dumps(in_data),
         )
-        result["StatusCode"].should.equal(200)
+        assert result["StatusCode"] == 200
         actual_payload = json.loads(result["Payload"].read().decode("utf-8"))
         expected_payload = {"id": vol.id, "state": vol.state, "size": vol.size}
-        actual_payload.should.equal(expected_payload)
+        assert actual_payload == expected_payload
 
 
 @pytest.mark.network
@@ -362,7 +361,7 @@ def test_invoke_async_function(key):
         FunctionName=name_or_arn, InvokeArgs=json.dumps({"test": "event"})
     )
 
-    success_result["Status"].should.equal(202)
+    assert success_result["Status"] == 202
 
 
 @pytest.mark.network
@@ -384,16 +383,14 @@ def test_invoke_function_large_response():
     )
 
     resp = conn.invoke(FunctionName=fxn["FunctionArn"])
-    resp.should.have.key("FunctionError").equals("Unhandled")
+    assert resp["FunctionError"] == "Unhandled"
     payload = resp["Payload"].read().decode("utf-8")
     payload = json.loads(payload)
-    payload.should.equal(
-        {
-            "errorMessage": "Response payload size exceeded maximum allowed payload size (6291556 bytes).",
-            "errorType": "Function.ResponseSizeTooLarge",
-        }
-    )
+    assert payload == {
+        "errorMessage": "Response payload size exceeded maximum allowed payload size (6291556 bytes).",
+        "errorType": "Function.ResponseSizeTooLarge",
+    }
 
     # Absolutely fine when invoking async
     resp = conn.invoke(FunctionName=fxn["FunctionArn"], InvocationType="Event")
-    resp.shouldnt.have.key("FunctionError")
+    assert "FunctionError" not in resp

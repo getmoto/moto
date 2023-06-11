@@ -33,14 +33,15 @@ def test_create_alias():
         FunctionName=function_name, Name="alias1", FunctionVersion="$LATEST"
     )
 
-    resp.should.have.key("AliasArn").equals(
-        f"arn:aws:lambda:ap-southeast-1:{ACCOUNT_ID}:function:{function_name}:alias1"
+    assert (
+        resp["AliasArn"]
+        == f"arn:aws:lambda:ap-southeast-1:{ACCOUNT_ID}:function:{function_name}:alias1"
     )
-    resp.should.have.key("Name").equals("alias1")
-    resp.should.have.key("FunctionVersion").equals("$LATEST")
-    resp.should.have.key("Description").equals("")
-    resp.should.have.key("RevisionId")
-    resp.shouldnt.have.key("RoutingConfig")
+    assert resp["Name"] == "alias1"
+    assert resp["FunctionVersion"] == "$LATEST"
+    assert resp["Description"] == ""
+    assert "RevisionId" in resp
+    assert "RoutingConfig" not in resp
 
 
 @mock_lambda
@@ -64,11 +65,9 @@ def test_create_alias_with_routing_config():
         RoutingConfig={"AdditionalVersionWeights": {"2": 0.5}},
     )
 
-    resp.should.have.key("Name").equals("alias1")
-    resp.should.have.key("Description").equals("desc")
-    resp.should.have.key("RoutingConfig").equals(
-        {"AdditionalVersionWeights": {"2": 0.5}}
-    )
+    assert resp["Name"] == "alias1"
+    assert resp["Description"] == "desc"
+    assert resp["RoutingConfig"] == {"AdditionalVersionWeights": {"2": 0.5}}
 
 
 @mock_lambda
@@ -89,11 +88,12 @@ def test_create_alias_using_function_arn():
         FunctionName=fn_arn, Name="alias1", FunctionVersion="$LATEST"
     )
 
-    resp.should.have.key("AliasArn").equals(
-        f"arn:aws:lambda:ap-southeast-1:{ACCOUNT_ID}:function:{function_name}:alias1"
+    assert (
+        resp["AliasArn"]
+        == f"arn:aws:lambda:ap-southeast-1:{ACCOUNT_ID}:function:{function_name}:alias1"
     )
-    resp.should.have.key("Name").equals("alias1")
-    resp.should.have.key("FunctionVersion").equals("$LATEST")
+    assert resp["Name"] == "alias1"
+    assert resp["FunctionVersion"] == "$LATEST"
 
 
 @mock_lambda
@@ -118,7 +118,7 @@ def test_delete_alias():
     with pytest.raises(ClientError) as exc:
         client.get_alias(FunctionName=function_name, Name="alias1")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_lambda
@@ -140,13 +140,14 @@ def test_get_alias():
 
     resp = client.get_alias(FunctionName=function_name, Name="alias1")
 
-    resp.should.have.key("AliasArn").equals(
-        f"arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:alias1"
+    assert (
+        resp["AliasArn"]
+        == f"arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:alias1"
     )
-    resp.should.have.key("Name").equals("alias1")
-    resp.should.have.key("FunctionVersion").equals("$LATEST")
-    resp.should.have.key("Description").equals("")
-    resp.should.have.key("RevisionId")
+    assert resp["Name"] == "alias1"
+    assert resp["FunctionVersion"] == "$LATEST"
+    assert resp["Description"] == ""
+    assert "RevisionId" in resp
 
 
 @mock_lambda
@@ -169,13 +170,14 @@ def test_get_alias_using_function_arn():
 
     resp = client.get_alias(FunctionName=fn_arn, Name="alias1")
 
-    resp.should.have.key("AliasArn").equals(
-        f"arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:alias1"
+    assert (
+        resp["AliasArn"]
+        == f"arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:alias1"
     )
-    resp.should.have.key("Name").equals("alias1")
-    resp.should.have.key("FunctionVersion").equals("$LATEST")
-    resp.should.have.key("Description").equals("")
-    resp.should.have.key("RevisionId")
+    assert resp["Name"] == "alias1"
+    assert resp["FunctionVersion"] == "$LATEST"
+    assert resp["Description"] == ""
+    assert "RevisionId" in resp
 
 
 @mock_lambda
@@ -198,13 +200,14 @@ def test_get_alias_using_alias_arn():
 
     resp = client.get_alias(FunctionName=alias_arn, Name="alias1")
 
-    resp.should.have.key("AliasArn").equals(
-        f"arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:alias1"
+    assert (
+        resp["AliasArn"]
+        == f"arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:alias1"
     )
-    resp.should.have.key("Name").equals("alias1")
-    resp.should.have.key("FunctionVersion").equals("$LATEST")
-    resp.should.have.key("Description").equals("")
-    resp.should.have.key("RevisionId")
+    assert resp["Name"] == "alias1"
+    assert resp["FunctionVersion"] == "$LATEST"
+    assert resp["Description"] == ""
+    assert "RevisionId" in resp
 
 
 @mock_lambda
@@ -223,9 +226,10 @@ def test_get_unknown_alias():
     with pytest.raises(ClientError) as exc:
         client.get_alias(FunctionName=function_name, Name="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(
-        f"Cannot find alias arn: arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:unknown"
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == f"Cannot find alias arn: arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:unknown"
     )
 
 
@@ -253,13 +257,14 @@ def test_update_alias():
         Description="updated desc",
     )
 
-    resp.should.have.key("AliasArn").equals(
-        f"arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{function_name}:alias1"
+    assert (
+        resp["AliasArn"]
+        == f"arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{function_name}:alias1"
     )
-    resp.should.have.key("Name").equals("alias1")
-    resp.should.have.key("FunctionVersion").equals("1")
-    resp.should.have.key("Description").equals("updated desc")
-    resp.should.have.key("RevisionId")
+    assert resp["Name"] == "alias1"
+    assert resp["FunctionVersion"] == "1"
+    assert resp["Description"] == "updated desc"
+    assert "RevisionId" in resp
 
 
 @mock_lambda
@@ -288,15 +293,14 @@ def test_update_alias_routingconfig():
         RoutingConfig={"AdditionalVersionWeights": {"2": 0.5}},
     )
 
-    resp.should.have.key("AliasArn").equals(
-        f"arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{function_name}:alias1"
+    assert (
+        resp["AliasArn"]
+        == f"arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{function_name}:alias1"
     )
-    resp.should.have.key("Name").equals("alias1")
-    resp.should.have.key("FunctionVersion").equals("$LATEST")
-    resp.should.have.key("Description").equals("desc")
-    resp.should.have.key("RoutingConfig").equals(
-        {"AdditionalVersionWeights": {"2": 0.5}}
-    )
+    assert resp["Name"] == "alias1"
+    assert resp["FunctionVersion"] == "$LATEST"
+    assert resp["Description"] == "desc"
+    assert resp["RoutingConfig"] == {"AdditionalVersionWeights": {"2": 0.5}}
 
 
 @mock_lambda
@@ -317,6 +321,7 @@ def test_get_function_using_alias():
     client.create_alias(FunctionName=fn_name, Name="live", FunctionVersion="1")
 
     fn = client.get_function(FunctionName=fn_name, Qualifier="live")["Configuration"]
-    fn["FunctionArn"].should.equal(
-        f"arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{fn_name}:1"
+    assert (
+        fn["FunctionArn"]
+        == f"arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{fn_name}:1"
     )

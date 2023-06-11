@@ -1,6 +1,5 @@
 import boto3
 import io
-import sure  # noqa # pylint: disable=unused-import
 import zipfile
 from botocore.exceptions import ClientError
 from moto import mock_cloudformation, mock_iam, mock_lambda, mock_s3, mock_sqs
@@ -83,24 +82,21 @@ def test_lambda_can_be_updated_by_cloudformation():
     created_fn_name = get_created_function_name(cf, stack)
     # Verify function has been created
     created_fn = lmbda.get_function(FunctionName=created_fn_name)
-    created_fn["Configuration"]["Handler"].should.equal(
-        "lambda_function.lambda_handler1"
-    )
-    created_fn["Configuration"]["Runtime"].should.equal("python3.7")
-    created_fn["Code"]["Location"].should.match("/test1.zip")
+    assert created_fn["Configuration"]["Handler"] == "lambda_function.lambda_handler1"
+    assert created_fn["Configuration"]["Runtime"] == "python3.7"
+    assert "/test1.zip" in created_fn["Code"]["Location"]
     # Update CF stack
     cf.update_stack(StackName=stack_name, TemplateBody=body2)
     updated_fn_name = get_created_function_name(cf, stack)
     # Verify function has been updated
     updated_fn = lmbda.get_function(FunctionName=updated_fn_name)
-    updated_fn["Configuration"]["FunctionArn"].should.equal(
-        created_fn["Configuration"]["FunctionArn"]
+    assert (
+        updated_fn["Configuration"]["FunctionArn"]
+        == created_fn["Configuration"]["FunctionArn"]
     )
-    updated_fn["Configuration"]["Handler"].should.equal(
-        "lambda_function.lambda_handler2"
-    )
-    updated_fn["Configuration"]["Runtime"].should.equal("python3.8")
-    updated_fn["Code"]["Location"].should.match("/test2.zip")
+    assert updated_fn["Configuration"]["Handler"] == "lambda_function.lambda_handler2"
+    assert updated_fn["Configuration"]["Runtime"] == "python3.8"
+    assert "/test2.zip" in updated_fn["Code"]["Location"]
 
 
 @mock_cloudformation
@@ -117,7 +113,7 @@ def test_lambda_can_be_deleted_by_cloudformation():
     # Verify function was deleted
     with pytest.raises(ClientError) as e:
         lmbda.get_function(FunctionName=created_fn_name)
-    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_cloudformation
@@ -152,10 +148,10 @@ def test_event_source_mapping_create_from_cloudformation_json():
     cf.create_stack(StackName=random_stack_name(), TemplateBody=esm_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
 
-    event_sources["EventSourceMappings"].should.have.length_of(1)
+    assert len(event_sources["EventSourceMappings"]) == 1
     event_source = event_sources["EventSourceMappings"][0]
-    event_source["EventSourceArn"].should.be.equal(queue.attributes["QueueArn"])
-    event_source["FunctionArn"].should.be.equal(created_fn_arn)
+    assert event_source["EventSourceArn"] == queue.attributes["QueueArn"]
+    assert event_source["FunctionArn"] == created_fn_arn
 
 
 @mock_cloudformation
@@ -189,12 +185,12 @@ def test_event_source_mapping_delete_stack():
     )
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
 
-    event_sources["EventSourceMappings"].should.have.length_of(1)
+    assert len(event_sources["EventSourceMappings"]) == 1
 
     cf.delete_stack(StackName=esm_stack["StackId"])
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
 
-    event_sources["EventSourceMappings"].should.have.length_of(0)
+    assert len(event_sources["EventSourceMappings"]) == 0
 
 
 @mock_cloudformation
@@ -228,8 +224,8 @@ def test_event_source_mapping_update_from_cloudformation_json():
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
     original_esm = event_sources["EventSourceMappings"][0]
 
-    original_esm["State"].should.equal("Enabled")
-    original_esm["BatchSize"].should.equal(1)
+    assert original_esm["State"] == "Enabled"
+    assert original_esm["BatchSize"] == 1
 
     # Update
     new_template = event_source_mapping_template.substitute(
@@ -246,8 +242,8 @@ def test_event_source_mapping_update_from_cloudformation_json():
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
     updated_esm = event_sources["EventSourceMappings"][0]
 
-    updated_esm["State"].should.equal("Disabled")
-    updated_esm["BatchSize"].should.equal(10)
+    assert updated_esm["State"] == "Disabled"
+    assert updated_esm["BatchSize"] == 10
 
 
 @mock_cloudformation
@@ -281,8 +277,8 @@ def test_event_source_mapping_delete_from_cloudformation_json():
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
     original_esm = event_sources["EventSourceMappings"][0]
 
-    original_esm["State"].should.equal("Enabled")
-    original_esm["BatchSize"].should.equal(1)
+    assert original_esm["State"] == "Enabled"
+    assert original_esm["BatchSize"] == 1
 
     # Update with deletion of old resources
     new_template = event_source_mapping_template.substitute(
@@ -298,12 +294,12 @@ def test_event_source_mapping_delete_from_cloudformation_json():
     cf.update_stack(StackName=stack_name, TemplateBody=new_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
 
-    event_sources["EventSourceMappings"].should.have.length_of(1)
+    assert len(event_sources["EventSourceMappings"]) == 1
     updated_esm = event_sources["EventSourceMappings"][0]
 
-    updated_esm["State"].should.equal("Disabled")
-    updated_esm["BatchSize"].should.equal(10)
-    updated_esm["UUID"].shouldnt.equal(original_esm["UUID"])
+    assert updated_esm["State"] == "Disabled"
+    assert updated_esm["BatchSize"] == 10
+    assert updated_esm["UUID"] != original_esm["UUID"]
 
 
 def create_stack(cf, s3):
