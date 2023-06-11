@@ -32783,7 +32783,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 64,
    "ValidCores": [
-    2,
     4,
     6,
     8,
@@ -33163,7 +33162,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 192,
    "ValidCores": [
-    4,
     8,
     12,
     16,
@@ -49334,7 +49332,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 192,
    "ValidCores": [
-    4,
     8,
     12,
     16,
