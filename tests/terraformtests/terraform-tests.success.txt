@@ -31,6 +31,12 @@ apigatewayv2:
   - TestAccAPIGatewayV2Model
   - TestAccAPIGatewayV2Route
   - TestAccAPIGatewayV2VPCLink
+appconfig:
+  - TestAccAppConfigConfigurationProfileDataSource_basic
+  - TestAccAppConfigConfigurationProfile_
+  - TestAccAppConfigConfigurationProfilesDataSource_basic
+  - TestAccAppConfigApplication_
+  - TestAccAppConfigHostedConfigurationVersion_
 autoscaling:
   - TestAccAutoScalingAttachment
   - TestAccAutoScalingGroupDataSource
