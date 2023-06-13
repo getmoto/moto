@@ -331,7 +331,7 @@ class SESBackend(BaseBackend):
                         )
 
     def send_raw_email(
-        self, source: str, destinations: List[str], raw_data: str
+        self, source: Optional[str], destinations: List[str], raw_data: str
     ) -> RawMessage:
         if source is not None:
             _, source_email_address = parseaddr(source)

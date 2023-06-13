@@ -1,3 +1,4 @@
+import base64
 import boto3
 import functools
 import datetime
@@ -236,6 +237,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         """
         use_raw_body: Use incoming bytes if True, encode to string otherwise
         """
+        event_name: Optional[str] = None
+        if "X-Moto-EventName" in headers:
+            event_name = headers["X-Moto-EventName"]
+            del headers["X-Moto-EventName"]
         querystring: Dict[str, Any] = OrderedDict()
         if hasattr(request, "body"):
             # Boto
@@ -267,10 +272,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             ):
                 decoded = json.loads(self.body)
 
-                target = request.headers.get("x-amz-target") or request.headers.get(
-                    "X-Amz-Target"
+                target = (
+                    request.headers.get("x-amz-target")
+                    or request.headers.get("X-Amz-Target")
+                    or event_name
                 )
-                _, method = target.split(".")
+                method = target.split(".")[-1]
                 input_spec = self.aws_service_spec.input_spec(method)
                 flat = flatten_json_request_body("", decoded, input_spec)
                 for key, value in flat.items():
@@ -994,6 +1001,8 @@ def to_str(value: Any, spec: Dict[str, Any]) -> str:
         )
     elif vtype == "string":
         return str(value)
+    elif vtype == "blob":
+        return base64.b64decode(value)
     elif value is None:
         return "null"
     else:

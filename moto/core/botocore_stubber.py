@@ -58,6 +58,7 @@ class BotocoreStubber:
             try:
                 recorder._record_request(request)
 
+                request.headers["X-Moto-EventName"] = event_name
                 status, headers, body = response_callback(
                     request, request.url, request.headers
                 )

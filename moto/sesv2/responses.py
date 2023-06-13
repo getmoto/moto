@@ -1,6 +1,7 @@
 """Handles incoming sesv2 requests, invokes methods, returns responses."""
 import json
 
+from moto.core.responses import AWSServiceSpec
 from moto.core.responses import BaseResponse
 from .models import sesv2_backends
 from ..ses.responses import SEND_EMAIL_RESPONSE
@@ -11,6 +12,8 @@ from urllib.parse import unquote
 
 class SESV2Response(BaseResponse):
     """Handler for SESV2 requests and responses."""
+
+    aws_service_spec = AWSServiceSpec("data/sesv2/2019-09-27/service-2.json")
 
     def __init__(self) -> None:
         super().__init__(service_name="sesv2")
@@ -23,31 +26,36 @@ class SESV2Response(BaseResponse):
     def send_email(self) -> str:
         """Piggy back on functionality from v1 mostly"""
 
-        params = get_params_dict(self.querystring)
-        from_email_address = params.get("FromEmailAddress")
-        destination = params.get("Destination")
-        content = params.get("Content")
-        if "Raw" in content:
-            all_destinations: List[str] = []
-            if "ToAddresses" in destination:
-                all_destinations = all_destinations + destination["ToAddresses"]
-            if "CcAddresses" in destination:
-                all_destinations = all_destinations + destination["CcAddresses"]
-            if "BccAddresses" in destination:
-                all_destinations = all_destinations + destination["BccAddresses"]
+        from_email_address = self._get_param("FromEmailAddress")
+        if "Content.Raw.Data" in self.data:
             message = self.sesv2_backend.send_raw_email(
                 source=from_email_address,
-                destinations=all_destinations,
-                raw_data=content["Raw"]["Data"],
+                destinations=[],
+                raw_data=self._get_param("Content.Raw.Data"),
             )
-        elif "Simple" in content:
+        elif "Content.Simple.Subject.Data" in self.data:
+            destinations: Dict[str, List[str]] = {
+                "ToAddresses": [],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            }
+            # no limit for recipients in v2
+            for dest_type in destinations:
+                i = 1
+                while True:
+                    field = f"Destination.{dest_type}.member.{i}"
+                    address = self.querystring.get(field)
+                    if address is None:
+                        break
+                    destinations[dest_type].append(address[0])
+                    i += 1
             message = self.sesv2_backend.send_email(  # type: ignore
                 source=from_email_address,
-                destinations=destination,
-                subject=content["Simple"]["Subject"]["Data"],
-                body=content["Simple"]["Subject"]["Data"],
+                destinations=destinations,
+                subject=self._get_param("Content.Simple.Subject.Data"),
+                body=self._get_param("Content.Simple.Body.Data"),
             )
-        elif "Template" in content:
+        elif "Template" in self.data:
             raise NotImplementedError("Template functionality not ready")
 
         # use v1 templates as response same in v1 and v2
@@ -55,7 +63,7 @@ class SESV2Response(BaseResponse):
         return template.render(message=message)
 
     def create_contact_list(self) -> str:
-        params = get_params_dict(self.data)
+        params = self.get_params_dict(self.data)
         self.sesv2_backend.create_contact_list(params)
         return json.dumps({})
 
@@ -75,7 +83,7 @@ class SESV2Response(BaseResponse):
 
     def create_contact(self) -> str:
         contact_list_name = self._get_param("ContactListName")
-        params = get_params_dict(self.data)
+        params = self.get_params_dict(self.data)
         self.sesv2_backend.create_contact(contact_list_name, params)
         return json.dumps({})
 
@@ -96,7 +104,5 @@ class SESV2Response(BaseResponse):
         self.sesv2_backend.delete_contact(unquote(email), contact_list_name)
         return json.dumps({})
 
-
-def get_params_dict(odict: Dict[str, Any]) -> Any:
-    # parsing of these params is nasty, hopefully there is a tidier way
-    return json.loads(list(dict(odict.items()).keys())[0])
+    def get_params_dict(self, odict: Dict[str, Any]) -> Dict[str, Any]:
+        return {k: self._get_param(k) for k in odict.keys()}
