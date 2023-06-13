@@ -70,6 +70,31 @@ def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
 
 
 @mock_sesv2
+def test_send_raw_email2(ses_v1):  # pylint: disable=redefined-outer-name
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    message = get_raw_email()
+    message["Subject"] = "Test-2"
+    destination = {
+        "ToAddresses": [x.strip() for x in message["To"].split(",")],
+    }
+    kwargs = dict(
+        FromEmailAddress=message["From"],
+        Destination=destination,
+        Content={"Raw": {"Data": message.as_bytes()}},
+    )
+
+    # Execute
+    ses_v1.verify_email_identity(EmailAddress="test@example.com")
+    conn.send_email(**kwargs)
+
+    # Verify
+    send_quota = ses_v1.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    assert sent_count == 2
+
+
+@mock_sesv2
 def test_create_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
