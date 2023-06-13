@@ -135,8 +135,9 @@ class FakeKey(BaseModel, ManagedState):
         )
         self._value_buffer = tempfile.SpooledTemporaryFile(self._max_buffer_size)
         self.disposed = False
-        self.value = value  # type: ignore
+        self.checksum_value = checksum_value
         self.lock = threading.Lock()
+        self.value = value  # type: ignore
 
         self.encryption = encryption
         self.kms_key_id = kms_key_id
@@ -145,7 +146,6 @@ class FakeKey(BaseModel, ManagedState):
         self.lock_mode = lock_mode
         self.lock_legal_status = lock_legal_status
         self.lock_until = lock_until
-        self.checksum_value = checksum_value
 
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
