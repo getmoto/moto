@@ -107,64 +107,34 @@ def test_codebuild_create_project_no_artifacts():
 
 
 @mock_codebuild
-def test_codebuild_create_project_with_invalid_name():
+def test_codebuild_create_project_with_invalid_inputs():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
-    name = "!some_project"
-    source = dict()
-    source["type"] = "S3"
-    # repository location for S3
-    source["location"] = "bucketname/path/file.zip"
-    # output artifacts
-    artifacts = {"type": "NO_ARTIFACTS"}
+    _input = {
+        "source": {"type": "S3", "location": "bucketname/path/file.zip"},
+        "artifacts": {"type": "NO_ARTIFACTS"},
+        "environment": {
+            "type": "LINUX_CONTAINER",
+            "image": "contents_not_validated",
+            "computeType": "BUILD_GENERAL1_SMALL",
+        },
+        "serviceRole": f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-role",
+    }
 
-    environment = dict()
-    environment["type"] = "LINUX_CONTAINER"
-    environment["image"] = "contents_not_validated"
-    environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = (
-        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
-    )
-
+    # Name too long
     with pytest.raises(client.exceptions.from_code("InvalidInputException")) as err:
-        client.create_project(
-            name=name,
-            source=source,
-            artifacts=artifacts,
-            environment=environment,
-            serviceRole=service_role,
-        )
+        client.create_project(name=("some_project_" * 12), **_input)
     err.value.response["Error"]["Code"].should.equal("InvalidInputException")
 
-
-@mock_codebuild
-def test_codebuild_create_project_with_invalid_name_length():
-    client = boto3.client("codebuild", region_name="eu-central-1")
-
-    name = "some_project_" * 12
-    source = dict()
-    source["type"] = "S3"
-    # repository location for S3
-    source["location"] = "bucketname/path/file.zip"
-    # output artifacts
-    artifacts = {"type": "NO_ARTIFACTS"}
-
-    environment = dict()
-    environment["type"] = "LINUX_CONTAINER"
-    environment["image"] = "contents_not_validated"
-    environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = (
-        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
-    )
-
+    # Name invalid
     with pytest.raises(client.exceptions.from_code("InvalidInputException")) as err:
-        client.create_project(
-            name=name,
-            source=source,
-            artifacts=artifacts,
-            environment=environment,
-            serviceRole=service_role,
-        )
+        client.create_project(name="!some_project_", **_input)
+    err.value.response["Error"]["Code"].should.equal("InvalidInputException")
+
+    # ServiceRole invalid
+    _input["serviceRole"] = "arn:aws:iam::0000:role/service-role/my-role"
+    with pytest.raises(client.exceptions.from_code("InvalidInputException")) as err:
+        client.create_project(name="valid_name", **_input)
     err.value.response["Error"]["Code"].should.equal("InvalidInputException")
 
 
@@ -349,7 +319,6 @@ def test_codebuild_get_batch_builds_for_project_no_history():
 
 @mock_codebuild
 def test_codebuild_start_build_no_project():
-
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
@@ -361,7 +330,6 @@ def test_codebuild_start_build_no_project():
 
 @mock_codebuild
 def test_codebuild_start_build_no_overrides():
-
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
@@ -428,7 +396,6 @@ def test_codebuild_start_build_multiple_times():
 
 @mock_codebuild
 def test_codebuild_start_build_with_overrides():
-
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"

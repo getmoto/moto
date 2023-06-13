@@ -30,14 +30,13 @@ def _validate_required_params_source(source: Dict[str, Any]) -> None:
 
 
 def _validate_required_params_service_role(account_id: str, service_role: str) -> None:
-    if f"arn:aws:iam::{account_id}:role/service-role/" not in service_role:
+    if not service_role.startswith(f"arn:aws:iam::{account_id}:role/"):
         raise InvalidInputException(
             "Invalid service role: Service role account ID does not match caller's account"
         )
 
 
 def _validate_required_params_artifacts(artifacts: Dict[str, Any]) -> None:
-
     if artifacts["type"] not in ["CODEPIPELINE", "S3", "NO_ARTIFACTS"]:
         raise InvalidInputException("Invalid type provided: Artifact type")
 
@@ -51,7 +50,6 @@ def _validate_required_params_artifacts(artifacts: Dict[str, Any]) -> None:
 
 
 def _validate_required_params_environment(environment: Dict[str, Any]) -> None:
-
     if environment["type"] not in [
         "WINDOWS_CONTAINER",
         "LINUX_CONTAINER",
@@ -116,9 +114,8 @@ class CodeBuildResponse(BaseResponse):
 
     def create_project(self) -> str:
         _validate_required_params_source(self._get_param("source"))
-        _validate_required_params_service_role(
-            self.current_account, self._get_param("serviceRole")
-        )
+        service_role = self._get_param("serviceRole")
+        _validate_required_params_service_role(self.current_account, service_role)
         _validate_required_params_artifacts(self._get_param("artifacts"))
         _validate_required_params_environment(self._get_param("environment"))
         _validate_required_params_project_name(self._get_param("name"))
@@ -134,7 +131,7 @@ class CodeBuildResponse(BaseResponse):
             self._get_param("source"),
             self._get_param("artifacts"),
             self._get_param("environment"),
-            self._get_param("serviceRole"),
+            service_role=service_role,
         )
 
         return json.dumps({"project": project_metadata})
