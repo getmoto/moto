@@ -78,7 +78,7 @@ class GlobalCluster(BaseModel):
         self.deletion_protection = (
             deletion_protection and deletion_protection.lower() == "true"
         )
-        self.members: List[str] = []
+        self.members: List[Cluster] = []
 
     def to_xml(self) -> str:
         template = Template(
@@ -92,10 +92,18 @@ class GlobalCluster(BaseModel):
           <StorageEncrypted>{{ 'true' if cluster.storage_encrypted else 'false' }}</StorageEncrypted>
           <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
           <GlobalClusterMembers>
-          {% for cluster_arn in cluster.members %}
+          {% for cluster_member in cluster.members %}
           <GlobalClusterMember>
-            <DBClusterArn>{{ cluster_arn }}</DBClusterArn>
-            <IsWriter>true</IsWriter>
+            <DBClusterArn>{{ cluster_member.db_cluster_arn }}</DBClusterArn>
+            <IsWriter>{{ 'true' if cluster_member.is_writer else 'false' }}</IsWriter>
+            {% if not cluster_member.is_writer %}<GlobalWriteForwardingStatus>disabled</GlobalWriteForwardingStatus>{% endif %}
+                <Readers>
+                    {% if cluster_member.is_writer %}
+                        {% for reader in cluster.members %}
+                            {% if not reader.is_writer %}<Reader>{{ reader.db_cluster_arn }}</Reader>{% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </Readers>
           </GlobalClusterMember>
           {% endfor %}
           </GlobalClusterMembers>
@@ -141,11 +149,11 @@ class Cluster:
                 engine=self.engine, storage_type=self.storage_type  # type: ignore
             )
         self.master_username = kwargs.get("master_username")
-        if not self.master_username:
-            raise InvalidParameterValue(
-                "The parameter MasterUsername must be provided and must not be blank."
-            )
-        self.master_user_password = kwargs.get("master_user_password")  # type: ignore
+        self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
+        if not self.master_username and self.global_cluster_identifier:
+            pass
+        else:
+            self.master_user_password = kwargs.get("master_user_password")  # type: ignore
 
         self.availability_zones = kwargs.get("availability_zones")
         if not self.availability_zones:
@@ -194,10 +202,10 @@ class Cluster:
                 "timeout_action": "RollbackCapacityChange",
                 "seconds_before_timeout": 300,
             }
-        self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
         self.cluster_members: List[str] = list()
         self.replication_source_identifier = kwargs.get("replication_source_identifier")
         self.read_replica_identifiers: List[str] = list()
+        self.is_writer: bool = False
 
     @property
     def is_multi_az(self) -> bool:
@@ -2119,7 +2127,27 @@ class RDSBackend(BaseBackend):
             and cluster.global_cluster_identifier in self.global_clusters
         ):
             global_cluster = self.global_clusters[cluster.global_cluster_identifier]
-            global_cluster.members.append(cluster.db_cluster_arn)
+
+            # Main DB cluster, does RW on global cluster
+            setattr(cluster, "is_writer", True)
+            # self.clusters[cluster_id] = cluster
+            global_cluster.members.append(cluster)
+
+        # search all backend to check if global cluster named global_cluster_identifier exists
+        # anywhere else
+        if (
+            cluster.global_cluster_identifier
+            and cluster.global_cluster_identifier not in self.global_clusters
+        ):
+            for regional_backend in rds_backends[self.account_id]:
+                if (
+                    cluster.global_cluster_identifier
+                    in rds_backends[self.account_id][regional_backend].global_clusters
+                ):
+                    global_cluster = rds_backends[self.account_id][
+                        regional_backend
+                    ].global_clusters[cluster.global_cluster_identifier]
+                    global_cluster.members.append(cluster)
 
         if cluster.replication_source_identifier:
             cluster_identifier = cluster.replication_source_identifier
@@ -2623,7 +2651,7 @@ class RDSBackend(BaseBackend):
         self.global_clusters[global_cluster_identifier] = global_cluster
         if source_cluster is not None:
             source_cluster.global_cluster_identifier = global_cluster.global_cluster_arn
-            global_cluster.members.append(source_cluster.db_cluster_arn)
+            global_cluster.members.append(source_cluster)
         return global_cluster
 
     def describe_global_clusters(self) -> List[GlobalCluster]:
@@ -2650,7 +2678,7 @@ class RDSBackend(BaseBackend):
             cluster = self.describe_db_clusters(
                 cluster_identifier=db_cluster_identifier
             )[0]
-            global_cluster.members.remove(cluster.db_cluster_arn)
+            global_cluster.members.remove(cluster)
             return global_cluster
         except:  # noqa: E722 Do not use bare except
             pass

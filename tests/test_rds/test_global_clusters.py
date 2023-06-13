@@ -92,6 +92,66 @@ def test_create_global_cluster_from_regular_cluster():
 
 
 @mock_rds
+def test_create_global_cluster_from_regular_cluster_with_reader():
+    east_client = boto3.client("rds", "eu-west-1")
+    west_client = boto3.client("rds", "eu-west-2")
+
+    # Create global cluster
+    east_client.create_global_cluster(
+        GlobalClusterIdentifier="test-global-db",
+        Engine="aurora-mysql",
+        DeletionProtection=False,
+        DatabaseName="test-db",
+        StorageEncrypted=False,
+    )
+
+    east_client.create_db_cluster(
+        DBClusterIdentifier="test-primary-cluster",
+        Engine="aurora-mysql",
+        GlobalClusterIdentifier="test-global-db",
+        MasterUsername="testUsername",
+        MasterUserPassword="testPassword",
+    )
+
+    east_client.create_db_instance(
+        DBInstanceIdentifier="test-primary-cluster-i1",
+        DBInstanceClass="db.r5.large",
+        Engine="aurora-mysql",
+        PubliclyAccessible=False,
+        DBClusterIdentifier="test-primary-cluster",
+    )
+
+    west_client.create_db_cluster(
+        DBClusterIdentifier="test-secondary-cluster",
+        Engine="aurora-mysql",
+        GlobalClusterIdentifier="test-global-db",
+    )
+
+    resp = east_client.describe_global_clusters(
+        GlobalClusterIdentifier="test-global-db"
+    )
+    members = resp["GlobalClusters"][0]["GlobalClusterMembers"]
+    assert len(members) == 2
+    assert (
+        members[0]["DBClusterArn"]
+        == "arn:aws:rds:eu-west-1:123456789012:cluster:test-primary-cluster"
+    )
+    assert len(members[0]["Readers"]) == 1
+    assert (
+        members[0]["Readers"][0]
+        == "arn:aws:rds:eu-west-2:123456789012:cluster:test-secondary-cluster"
+    )
+    assert members[0]["IsWriter"]
+
+    assert (
+        members[1]["DBClusterArn"]
+        == "arn:aws:rds:eu-west-2:123456789012:cluster:test-secondary-cluster"
+    )
+    assert len(members[1]["Readers"]) == 0
+    assert not members[1]["IsWriter"]
+
+
+@mock_rds
 def test_create_global_cluster_from_regular_cluster__using_name():
     client = boto3.client("rds", "us-east-1")
 
