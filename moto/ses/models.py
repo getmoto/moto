@@ -32,7 +32,6 @@ RECIPIENT_LIMIT = 50
 
 
 class SESFeedback(BaseModel):
-
     BOUNCE = "Bounce"
     COMPLAINT = "Complaint"
     DELIVERY = "Delivery"
@@ -351,6 +350,7 @@ class SESBackend(BaseBackend):
                 raise MessageRejectedError(
                     f"Did not have authority to send from email {source_email_address}"
                 )
+            source = source_email_address
 
         for header in "TO", "CC", "BCC":
             recipient_count += sum(
@@ -416,7 +416,6 @@ class SESBackend(BaseBackend):
     def create_configuration_set_event_destination(
         self, configuration_set_name: str, event_destination: Dict[str, Any]
     ) -> None:
-
         if self.config_set.get(configuration_set_name) is None:
             raise ConfigurationSetDoesNotExist("Invalid Configuration Set Name.")
 

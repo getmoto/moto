@@ -237,7 +237,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         """
         use_raw_body: Use incoming bytes if True, encode to string otherwise
         """
-        event_name: Optional[str] = None
+        event_name: str = ""
         if "X-Moto-EventName" in headers:
             event_name = headers["X-Moto-EventName"]
             del headers["X-Moto-EventName"]
@@ -1002,7 +1002,7 @@ def to_str(value: Any, spec: Dict[str, Any]) -> str:
     elif vtype == "string":
         return str(value)
     elif vtype == "blob":
-        return base64.b64decode(value)
+        return base64.b64decode(value).decode("utf-8")
     elif value is None:
         return "null"
     else:
