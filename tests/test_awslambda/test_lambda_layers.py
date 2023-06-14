@@ -115,7 +115,7 @@ def test_get_lambda_layers():
     assert result["LayerVersions"] == []
 
     # Test create function with non existant layer version
-    with pytest.raises((ValueError, ClientError)):
+    with pytest.raises(ClientError) as exc:
         conn.create_function(
             FunctionName=function_name,
             Runtime="python2.7",
@@ -129,6 +129,8 @@ def test_get_lambda_layers():
             Environment={"Variables": {"test_variable": "test_value"}},
             Layers=[(expected_arn + "3")],
         )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_lambda
@@ -200,7 +202,8 @@ def test_get_layer_version__unknown():
 
 @mock_lambda
 @mock_s3
-def test_delete_layer_version():
+@pytest.mark.parametrize("use_arn", [True, False])
+def test_delete_layer_version(use_arn):
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -219,9 +222,15 @@ def test_delete_layer_version():
         CompatibleRuntimes=["python3.6"],
         LicenseInfo="MIT",
     )
+    layer_arn = resp["LayerArn"]
     layer_version = resp["Version"]
 
-    conn.delete_layer_version(LayerName=layer_name, VersionNumber=layer_version)
+    if use_arn:
+        conn.get_layer_version(LayerName=layer_arn, VersionNumber=layer_version)
+        conn.delete_layer_version(LayerName=layer_arn, VersionNumber=layer_version)
+    else:
+        conn.get_layer_version(LayerName=layer_name, VersionNumber=layer_version)
+        conn.delete_layer_version(LayerName=layer_name, VersionNumber=layer_version)
 
     result = conn.list_layer_versions(LayerName=layer_name)["LayerVersions"]
     assert result == []

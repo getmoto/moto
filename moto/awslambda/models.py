@@ -41,6 +41,7 @@ from .exceptions import (
     InvalidRoleFormat,
     InvalidParameterValueException,
     UnknownLayerException,
+    UnknownLayerVersionException,
     UnknownFunctionException,
     UnknownAliasException,
 )
@@ -552,10 +553,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             for layer_version in layers_versions_arns
         ]
         if not all(layer_versions):
-            raise ValueError(
-                "InvalidParameterValueException",
-                f"One or more LayerVersion does not exist {layers_versions_arns}",
-            )
+            raise UnknownLayerVersionException(layers_versions_arns)
         return [{"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions]
 
     def get_code_signing_config(self) -> Dict[str, Any]:
@@ -1409,6 +1407,14 @@ class LayerStorage(object):
             str, LambdaFunction
         ] = weakref.WeakValueDictionary()
 
+    def _find_layer_by_name_or_arn(self, name_or_arn: str) -> Layer:
+        if name_or_arn in self._layers:
+            return self._layers[name_or_arn]
+        for layer in self._layers.values():
+            if layer.layer_arn == name_or_arn:
+                return layer
+        raise UnknownLayerException()
+
     def put_layer_version(self, layer_version: LayerVersion) -> None:
         """
         :param layer_version: LayerVersion
@@ -1423,12 +1429,12 @@ class LayerStorage(object):
         ]
 
     def delete_layer_version(self, layer_name: str, layer_version: str) -> None:
-        self._layers[layer_name].delete_version(layer_version)
+        layer = self._find_layer_by_name_or_arn(layer_name)
+        layer.delete_version(layer_version)
 
     def get_layer_version(self, layer_name: str, layer_version: str) -> LayerVersion:
-        if layer_name not in self._layers:
-            raise UnknownLayerException()
-        for lv in self._layers[layer_name].layer_versions.values():
+        layer = self._find_layer_by_name_or_arn(layer_name)
+        for lv in layer.layer_versions.values():
             if lv.version == int(layer_version):
                 return lv
         raise UnknownLayerException()

@@ -80,10 +80,12 @@ class LambdaResponse(BaseResponse):
 
     def layers_version(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
+        layer_name = unquote(self.path.split("/")[-3])
+        layer_version = self.path.split("/")[-1]
         if request.method == "DELETE":
-            return self._delete_layer_version()
+            return self._delete_layer_version(layer_name, layer_version)
         elif request.method == "GET":
-            return self._get_layer_version()
+            return self._get_layer_version(layer_name, layer_version)
 
     def layers_versions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
@@ -492,17 +494,13 @@ class LambdaResponse(BaseResponse):
         layers = self.backend.list_layers()
         return 200, {}, json.dumps({"Layers": layers})
 
-    def _delete_layer_version(self) -> TYPE_RESPONSE:
-        layer_name = self.path.split("/")[-3]
-        layer_version = self.path.split("/")[-1]
-
+    def _delete_layer_version(
+        self, layer_name: str, layer_version: str
+    ) -> TYPE_RESPONSE:
         self.backend.delete_layer_version(layer_name, layer_version)
         return 200, {}, "{}"
 
-    def _get_layer_version(self) -> TYPE_RESPONSE:
-        layer_name = self.path.split("/")[-3]
-        layer_version = self.path.split("/")[-1]
-
+    def _get_layer_version(self, layer_name: str, layer_version: str) -> TYPE_RESPONSE:
         layer = self.backend.get_layer_version(layer_name, layer_version)
         return 200, {}, json.dumps(layer.get_layer_version())
 
