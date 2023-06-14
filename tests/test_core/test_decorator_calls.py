@@ -20,7 +20,7 @@ def test_basic_decorator() -> None:
 
 
 @pytest.fixture(name="aws_credentials")
-def fixture_aws_credentials(monkeypatch: Any) -> None:
+def fixture_aws_credentials(monkeypatch: Any) -> None:  # type: ignore[misc]
     """Mocked AWS Credentials for moto."""
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
@@ -29,13 +29,15 @@ def fixture_aws_credentials(monkeypatch: Any) -> None:
 
 
 @pytest.mark.network
-def test_context_manager(aws_credentials: Any) -> None:  # pylint: disable=unused-argument
+def test_context_manager(aws_credentials: Any) -> None:  # type: ignore[misc]  # pylint: disable=unused-argument
     client = boto3.client("ec2", region_name="us-west-1")
     with pytest.raises(ClientError) as exc:
         client.describe_addresses()
     err = exc.value.response["Error"]
     assert err["Code"] == "AuthFailure"
-    assert err["Message"] == "AWS was not able to validate the provided access credentials"
+    assert (
+        err["Message"] == "AWS was not able to validate the provided access credentials"
+    )
 
     with mock_ec2():
         client = boto3.client("ec2", region_name="us-west-1")
@@ -56,7 +58,9 @@ def test_decorator_start_and_stop() -> None:
         client.describe_addresses()
     err = exc.value.response["Error"]
     assert err["Code"] == "AuthFailure"
-    assert err["Message"] == "AWS was not able to validate the provided access credentials"
+    assert (
+        err["Message"] == "AWS was not able to validate the provided access credentials"
+    )
 
 
 @mock_ec2
@@ -126,11 +130,11 @@ class TestWithSetup_LowercaseU:
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
 
-    def test_should_find_bucket(self)  -> None:
+    def test_should_find_bucket(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
         assert s3.head_bucket(Bucket="mybucket") is not None
 
-    def test_should_not_find_unknown_bucket(self)  -> None:
+    def test_should_not_find_unknown_bucket(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
         with pytest.raises(ClientError):
             s3.head_bucket(Bucket="unknown_bucket")
@@ -143,11 +147,11 @@ class TestWithSetupMethod:
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
 
-    def test_should_find_bucket(self)  -> None:
+    def test_should_find_bucket(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
         assert s3.head_bucket(Bucket="mybucket") is not None
 
-    def test_should_not_find_unknown_bucket(self)  -> None:
+    def test_should_not_find_unknown_bucket(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
         with pytest.raises(ClientError):
             s3.head_bucket(Bucket="unknown_bucket")
@@ -162,10 +166,10 @@ class TestKinesisUsingSetupMethod:
             StreamName=self.stream_name, ShardCount=1
         )
 
-    def test_stream_creation(self)  -> None:
+    def test_stream_creation(self) -> None:
         pass
 
-    def test_stream_recreation(self)  -> None:
+    def test_stream_recreation(self) -> None:
         # The setup-method will run again for this test
         # The fact that it passes, means the state was reset
         # Otherwise it would complain about a stream already existing
@@ -174,11 +178,11 @@ class TestKinesisUsingSetupMethod:
 
 @mock_s3
 class TestWithInvalidSetupMethod:
-    def setupmethod(self)  -> None:
+    def setupmethod(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
 
-    def test_should_not_find_bucket(self)  -> None:
+    def test_should_not_find_bucket(self) -> None:
         # Name of setupmethod is not recognized, so it will not be executed
         s3 = boto3.client("s3", region_name="us-east-1")
         with pytest.raises(ClientError):
@@ -187,17 +191,17 @@ class TestWithInvalidSetupMethod:
 
 @mock_s3
 class TestWithPublicMethod(unittest.TestCase):
-    def ensure_bucket_exists(self)  -> None:
+    def ensure_bucket_exists(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
 
-    def test_should_find_bucket(self)  -> None:
+    def test_should_find_bucket(self) -> None:
         self.ensure_bucket_exists()
 
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.head_bucket(Bucket="mybucket").shouldnt.equal(None)
 
-    def test_should_not_find_bucket(self)  -> None:
+    def test_should_not_find_bucket(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
         with pytest.raises(ClientError):
             s3.head_bucket(Bucket="mybucket")
@@ -205,16 +209,16 @@ class TestWithPublicMethod(unittest.TestCase):
 
 @mock_s3
 class TestWithPseudoPrivateMethod(unittest.TestCase):
-    def _ensure_bucket_exists(self)  -> None:
+    def _ensure_bucket_exists(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
 
-    def test_should_find_bucket(self)  -> None:
+    def test_should_find_bucket(self) -> None:
         self._ensure_bucket_exists()
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.head_bucket(Bucket="mybucket").shouldnt.equal(None)
 
-    def test_should_not_find_bucket(self)  -> None:
+    def test_should_not_find_bucket(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
         with pytest.raises(ClientError):
             s3.head_bucket(Bucket="mybucket")
@@ -222,20 +226,20 @@ class TestWithPseudoPrivateMethod(unittest.TestCase):
 
 @mock_s3
 class Baseclass(unittest.TestCase):
-    def setUp(self)  -> None:
+    def setUp(self) -> None:
         self.s3 = boto3.resource("s3", region_name="us-east-1")
         self.client = boto3.client("s3", region_name="us-east-1")
         self.test_bucket = self.s3.Bucket("testbucket")
         self.test_bucket.create()
 
-    def tearDown(self)  -> None:
+    def tearDown(self) -> None:
         # The bucket will still exist at this point
         self.test_bucket.delete()
 
 
 @mock_s3
 class TestSetUpInBaseClass(Baseclass):
-    def test_a_thing(self)  -> None:
+    def test_a_thing(self) -> None:
         # Verify that we can 'see' the setUp-method in the parent class
         self.client.head_bucket(Bucket="testbucket").shouldnt.equal(None)
 
@@ -243,42 +247,42 @@ class TestSetUpInBaseClass(Baseclass):
 @mock_s3
 class TestWithNestedClasses:
     class NestedClass(unittest.TestCase):
-        def _ensure_bucket_exists(self)  -> None:
+        def _ensure_bucket_exists(self) -> None:
             s3 = boto3.client("s3", region_name="us-east-1")
             s3.create_bucket(Bucket="bucketclass1")
 
-        def test_should_find_bucket(self)  -> None:
+        def test_should_find_bucket(self) -> None:
             self._ensure_bucket_exists()
             s3 = boto3.client("s3", region_name="us-east-1")
             s3.head_bucket(Bucket="bucketclass1")
 
     class NestedClass2(unittest.TestCase):
-        def _ensure_bucket_exists(self)  -> None:
+        def _ensure_bucket_exists(self) -> None:
             s3 = boto3.client("s3", region_name="us-east-1")
             s3.create_bucket(Bucket="bucketclass2")
 
-        def test_should_find_bucket(self)  -> None:
+        def test_should_find_bucket(self) -> None:
             self._ensure_bucket_exists()
             s3 = boto3.client("s3", region_name="us-east-1")
             s3.head_bucket(Bucket="bucketclass2")
 
-        def test_should_not_find_bucket_from_different_class(self)  -> None:
+        def test_should_not_find_bucket_from_different_class(self) -> None:
             s3 = boto3.client("s3", region_name="us-east-1")
             with pytest.raises(ClientError):
                 s3.head_bucket(Bucket="bucketclass1")
 
     class TestWithSetup(unittest.TestCase):
-        def setUp(self)  -> None:
+        def setUp(self) -> None:
             s3 = boto3.client("s3", region_name="us-east-1")
             s3.create_bucket(Bucket="mybucket")
 
-        def test_should_find_bucket(self)  -> None:
+        def test_should_find_bucket(self) -> None:
             s3 = boto3.client("s3", region_name="us-east-1")
             s3.head_bucket(Bucket="mybucket")
 
             s3.create_bucket(Bucket="bucketinsidetest")
 
-        def test_should_not_find_bucket_from_test_method(self)  -> None:
+        def test_should_not_find_bucket_from_test_method(self) -> None:
             s3 = boto3.client("s3", region_name="us-east-1")
             s3.head_bucket(Bucket="mybucket")
 

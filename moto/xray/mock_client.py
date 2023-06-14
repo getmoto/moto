@@ -11,7 +11,7 @@ class MockEmitter(UDPEmitter):  # type: ignore
     Replaces the code that sends UDP to local X-Ray daemon
     """
 
-    def __init__(self, daemon_address: str="127.0.0.1:2000"):
+    def __init__(self, daemon_address: str = "127.0.0.1:2000"):
         address = os.getenv(
             "AWS_XRAY_DAEMON_ADDRESS_YEAH_NOT_TODAY_MATE", daemon_address
         )
@@ -43,7 +43,7 @@ class MockXrayClient:
     that itno the recorder instance.
     """
 
-    def __call__(self, f: Any=None) -> Any:
+    def __call__(self, f: Any = None) -> Any:
         if not f:
             return self
 

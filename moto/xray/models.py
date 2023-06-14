@@ -9,7 +9,13 @@ from .exceptions import BadSegmentException
 
 
 class TelemetryRecords(BaseModel):
-    def __init__(self, instance_id: str, hostname: str, resource_arn: str, records: List[Dict[str, Any]]):
+    def __init__(
+        self,
+        instance_id: str,
+        hostname: str,
+        resource_arn: str,
+        records: List[Dict[str, Any]],
+    ):
         self.instance_id = instance_id
         self.hostname = hostname
         self.resource_arn = resource_arn
@@ -34,17 +40,17 @@ class TraceSegment(BaseModel):
         trace_id: str,
         start_time: float,
         raw: Any,
-        end_time: Optional[float]=None,
-        in_progress: bool=False,
-        service: Any=None,
-        user: Any=None,
-        origin: Any=None,
-        parent_id: Any=None,
-        http: Any=None,
-        aws: Any=None,
-        metadata: Any=None,
-        annotations: Any=None,
-        subsegments: Any=None,
+        end_time: Optional[float] = None,
+        in_progress: bool = False,
+        service: Any = None,
+        user: Any = None,
+        origin: Any = None,
+        parent_id: Any = None,
+        http: Any = None,
+        aws: Any = None,
+        metadata: Any = None,
+        annotations: Any = None,
+        subsegments: Any = None,
         **kwargs: Any
     ):
         self.name = name
@@ -161,11 +167,15 @@ class SegmentCollection(object):
             # Todo consolidate trace segments into a trace.
             # not enough working knowledge of xray to do this
 
-    def summary(self, start_time: str, end_time: str, filter_expression: Any=None) -> Dict[str, Any]:
+    def summary(
+        self, start_time: str, end_time: str, filter_expression: Any = None
+    ) -> Dict[str, Any]:
         # This beast https://docs.aws.amazon.com/xray/latest/api/API_GetTraceSummaries.html#API_GetTraceSummaries_ResponseSyntax
         if filter_expression is not None:
             raise AWSError(
-                "Not implemented yet - moto", exception_type="InternalFailure", status=500
+                "Not implemented yet - moto",
+                exception_type="InternalFailure",
+                status=500,
             )
 
         summaries = []
@@ -214,7 +224,9 @@ class SegmentCollection(object):
 
         return result
 
-    def get_trace_ids(self, trace_ids: List[str]) -> Tuple[List[Dict[str, Any]], List[str]]:
+    def get_trace_ids(
+        self, trace_ids: List[str]
+    ) -> Tuple[List[Dict[str, Any]], List[str]]:
         traces = []
         unprocessed = []
 
@@ -236,7 +248,9 @@ class XRayBackend(BaseBackend):
         self._segment_collection = SegmentCollection()
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, str]]:
+    def default_vpc_endpoint_service(
+        service_region: str, zones: List[str]
+    ) -> List[Dict[str, str]]:
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "xray"
@@ -265,7 +279,9 @@ class XRayBackend(BaseBackend):
                 seg_id=segment.id, code="InternalFailure", message=str(err)
             )
 
-    def get_trace_summary(self, start_time: str, end_time: str, filter_expression: Any) -> Dict[str, Any]:
+    def get_trace_summary(
+        self, start_time: str, end_time: str, filter_expression: Any
+    ) -> Dict[str, Any]:
         return self._segment_collection.summary(start_time, end_time, filter_expression)
 
     def get_trace_ids(self, trace_ids: List[str]) -> Dict[str, Any]:

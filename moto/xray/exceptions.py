@@ -2,7 +2,12 @@ from typing import Any, Dict, Optional
 
 
 class BadSegmentException(Exception):
-    def __init__(self, seg_id: Optional[str]=None, code: Optional[str]=None, message: Optional[str]=None):
+    def __init__(
+        self,
+        seg_id: Optional[str] = None,
+        code: Optional[str] = None,
+        message: Optional[str] = None,
+    ):
         self.id = seg_id
         self.code = code
         self.message = message

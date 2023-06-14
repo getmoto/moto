@@ -2,22 +2,18 @@ import importlib
 import sys
 from contextlib import ContextDecorator
 from moto.core.models import BaseMockAWS
-from typing import Any, Callable, List, Optional, TypeVar, overload
+from typing import Any, Callable, List, Optional, TypeVar
 
 
 TEST_METHOD = TypeVar("TEST_METHOD", bound=Callable[..., Any])
 
 
-#@overload
-#def lazy_load(module_name: str, element: str, boto3_name: Optional[str]=None, backend: Optional[str]=None) -> Callable[[], None]:
-#    ...
-
-#@overload
-#def lazy_load(module_name: str, element: str, boto3_name: Optional[str]=None, backend: Optional[str]=None) -> Callable[[TEST_METHOD], BaseMockAWS]:
-#    ...
-
-#@overload
-def lazy_load(module_name: str, element: str, boto3_name: Optional[str]=None, backend: Optional[str]=None) -> Callable[[], BaseMockAWS]:
+def lazy_load(
+    module_name: str,
+    element: str,
+    boto3_name: Optional[str] = None,
+    backend: Optional[str] = None,
+) -> Callable[..., BaseMockAWS]:
     def f(*args: Any, **kwargs: Any) -> Any:
         module = importlib.import_module(module_name, "moto")
         return getattr(module, element)(*args, **kwargs)

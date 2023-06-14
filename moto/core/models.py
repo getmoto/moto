@@ -5,7 +5,7 @@ import os
 import re
 import unittest
 from types import FunctionType
-from typing import Any, Callable, Dict, Optional, Set, TypeVar
+from typing import Any, Callable, Dict, Optional, Set, TypeVar, Union
 from typing import ContextManager
 from unittest.mock import patch
 
@@ -66,10 +66,13 @@ class BaseMockAWS(ContextManager["BaseMockAWS"]):
             self.reset()  # type: ignore[attr-defined]
 
     def __call__(
-        self, func: Callable[..., "BaseMockAWS"], reset: bool = True, remove_data: bool = True
+        self,
+        func: Callable[..., "BaseMockAWS"],
+        reset: bool = True,
+        remove_data: bool = True,
     ) -> Callable[..., "BaseMockAWS"]:
         if inspect.isclass(func):
-            return self.decorate_class(func)
+            return self.decorate_class(func)  # type: ignore
         return self.decorate_callable(func, reset, remove_data)
 
     def __enter__(self) -> "BaseMockAWS":
@@ -362,7 +365,6 @@ MockAWS = BotocoreEventMockAWS
 
 
 class ServerModeMockAWS(BaseMockAWS):
-
     RESET_IN_PROGRESS = False
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -428,7 +430,9 @@ class base_decorator:
     def __init__(self, backends: BackendDict):
         self.backends = backends
 
-    def __call__(self, func: Optional[Callable[..., Any]] = None) -> BaseMockAWS:
+    def __call__(
+        self, func: Optional[Callable[..., Any]] = None
+    ) -> Union[BaseMockAWS, Callable[..., BaseMockAWS]]:
         if settings.TEST_SERVER_MODE:
             mocked_backend: BaseMockAWS = ServerModeMockAWS(self.backends)
         else:

@@ -9,7 +9,7 @@ from tests import EXAMPLE_AMI_ID
 
 class TestNestedDecoratorsBoto3(unittest.TestCase):
     @mock_sqs
-    def setup_sqs_queue(self) -> None:
+    def setup_sqs_queue(self):
         conn = boto3.resource("sqs", region_name="us-east-1")
         queue = conn.create_queue(QueueName="some-queue")
 
@@ -19,7 +19,7 @@ class TestNestedDecoratorsBoto3(unittest.TestCase):
         queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
 
     @mock_ec2
-    def test_nested(self) -> None:
+    def test_nested(self):
         self.setup_sqs_queue()
 
         conn = boto3.client("ec2", region_name="us-west-2")

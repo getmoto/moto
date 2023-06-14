@@ -28,7 +28,14 @@ class FakeWebACL(BaseModel):
     """
 
     def __init__(
-        self, name: str, arn: str, wacl_id: str, visibility_config: Dict[str, Any], default_action: Dict[str, Any], description: Optional[str], rules: List[Dict[str, Any]]
+        self,
+        name: str,
+        arn: str,
+        wacl_id: str,
+        visibility_config: Dict[str, Any],
+        default_action: Dict[str, Any],
+        description: Optional[str],
+        rules: List[Dict[str, Any]],
     ):
         self.name = name
         self.created_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
@@ -41,7 +48,13 @@ class FakeWebACL(BaseModel):
         self.default_action = default_action
         self.lock_token = str(mock_random.uuid4())[0:6]
 
-    def update(self, default_action: Optional[Dict[str, Any]], rules: Optional[List[Dict[str, Any]]], description: Optional[str], visibility_config: Optional[Dict[str, Any]]) -> None:
+    def update(
+        self,
+        default_action: Optional[Dict[str, Any]],
+        rules: Optional[List[Dict[str, Any]]],
+        description: Optional[str],
+        visibility_config: Optional[Dict[str, Any]],
+    ) -> None:
         if default_action is not None:
             self.default_action = default_action
         if rules is not None:
@@ -113,7 +126,14 @@ class WAFV2Backend(BaseBackend):
             return None
 
     def create_web_acl(
-        self, name: str, visibility_config: Dict[str, Any], default_action: Dict[str, Any], scope: str, description: str, tags: List[Dict[str, str]], rules: List[Dict[str, Any]]
+        self,
+        name: str,
+        visibility_config: Dict[str, Any],
+        default_action: Dict[str, Any],
+        scope: str,
+        description: str,
+        tags: List[Dict[str, str]],
+        rules: List[Dict[str, Any]],
     ) -> FakeWebACL:
         """
         The following parameters are not yet implemented: CustomResponseBodies, CaptchaConfig
@@ -174,7 +194,13 @@ class WAFV2Backend(BaseBackend):
         self.tagging_service.untag_resource_using_names(arn, tag_keys)
 
     def update_web_acl(
-        self, name: str, _id: str, default_action: Optional[Dict[str, Any]], rules: Optional[List[Dict[str, Any]]], description: Optional[str], visibility_config: Optional[Dict[str, Any]]
+        self,
+        name: str,
+        _id: str,
+        default_action: Optional[Dict[str, Any]],
+        rules: Optional[List[Dict[str, Any]]],
+        description: Optional[str],
+        visibility_config: Optional[Dict[str, Any]],
     ) -> str:
         """
         The following parameters are not yet implemented: LockToken, CustomResponseBodies, CaptchaConfig
