@@ -181,7 +181,6 @@ class EmailResponse(BaseResponse):
         return template.render()
 
     def set_identity_notification_topic(self) -> str:
-
         identity = self.querystring.get("Identity")[0]  # type: ignore
         not_type = self.querystring.get("NotificationType")[0]  # type: ignore
         sns_topic = self.querystring.get("SnsTopic")  # type: ignore
@@ -212,7 +211,6 @@ class EmailResponse(BaseResponse):
         return template.render(name=configuration_set_name)
 
     def create_configuration_set_event_destination(self) -> str:
-
         configuration_set_name = self._get_param("ConfigurationSetName")  # type: ignore
         is_configuration_event_enabled = self.querystring.get(
             "EventDestination.Enabled"

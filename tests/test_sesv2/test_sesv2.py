@@ -1,7 +1,9 @@
 import boto3
 from botocore.exceptions import ClientError
 import pytest
-from moto import mock_sesv2, mock_ses
+from moto import mock_sesv2, mock_ses, settings
+from moto.ses.models import ses_backends, RawMessage
+from tests import DEFAULT_ACCOUNT_ID
 from ..test_ses.test_ses_boto3 import get_raw_email
 
 
@@ -65,8 +67,39 @@ def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
 
     # Verify
     send_quota = ses_v1.get_send_quota()
+    # 2 destinations in the message, two in the 'Destination'-argument
+    assert int(send_quota["SentLast24Hours"]) == 4
+
+
+@mock_sesv2
+def test_send_raw_email__with_specific_message(
+    ses_v1,
+):  # pylint: disable=redefined-outer-name
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    message = get_raw_email()
+    # This particular message means that our base64-encoded body contains a '='
+    # Testing this to ensure that we parse the body as JSON, not as a query-dict
+    message["Subject"] = "Test-2"
+    kwargs = dict(
+        Content={"Raw": {"Data": message.as_bytes()}},
+    )
+
+    # Execute
+    ses_v1.verify_email_identity(EmailAddress="test@example.com")
+    conn.send_email(**kwargs)
+
+    # Verify
+    send_quota = ses_v1.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
     assert sent_count == 2
+
+    if not settings.TEST_SERVER_MODE:
+        backend = ses_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+        msg: RawMessage = backend.sent_messages[0]
+        assert message.as_bytes() == msg.raw_data.encode("utf-8")
+        assert msg.source == "test@example.com"
+        assert msg.destinations == ["to@example.com", "foo@example.com"]
 
 
 @mock_sesv2
