@@ -152,6 +152,10 @@ class Cluster:
         self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
         if not self.master_username and self.global_cluster_identifier:
             pass
+        elif not self.master_username:
+            raise InvalidParameterValue(
+                "The parameter MasterUsername must be provided and must not be blank."
+            )
         else:
             self.master_user_password = kwargs.get("master_user_password")  # type: ignore
 
