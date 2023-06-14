@@ -7,9 +7,12 @@ on:
     types: [ labeled ]
 
 jobs:
-  test:
+  leave_comment:
     if: ${{ github.repository == 'getmoto/moto' && github.event.label.name == 'payment-approved' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
     - uses: actions/github-script@v5
