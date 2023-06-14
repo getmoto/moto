@@ -23,14 +23,14 @@ def test_create_function_url_config(key):
     resp = client.create_function_url_config(
         AuthType="AWS_IAM", FunctionName=name_or_arn
     )
-    resp.should.have.key("FunctionArn").equals(fxn["FunctionArn"])
-    resp.should.have.key("AuthType").equals("AWS_IAM")
-    resp.should.have.key("FunctionUrl")
+    assert resp["FunctionArn"] == fxn["FunctionArn"]
+    assert resp["AuthType"] == "AWS_IAM"
+    assert "FunctionUrl" in resp
 
     resp = client.get_function_url_config(FunctionName=name_or_arn)
-    resp.should.have.key("FunctionArn").equals(fxn["FunctionArn"])
-    resp.should.have.key("AuthType").equals("AWS_IAM")
-    resp.should.have.key("FunctionUrl")
+    assert resp["FunctionArn"] == fxn["FunctionArn"]
+    assert resp["AuthType"] == "AWS_IAM"
+    assert "FunctionUrl" in resp
 
 
 @mock_lambda
@@ -58,16 +58,14 @@ def test_create_function_url_config_with_cors():
             "MaxAge": 86400,
         },
     )
-    resp.should.have.key("Cors").equals(
-        {
-            "AllowCredentials": True,
-            "AllowHeaders": ["date", "keep-alive"],
-            "AllowMethods": ["*"],
-            "AllowOrigins": ["*"],
-            "ExposeHeaders": ["date", "keep-alive"],
-            "MaxAge": 86400,
-        }
-    )
+    assert resp["Cors"] == {
+        "AllowCredentials": True,
+        "AllowHeaders": ["date", "keep-alive"],
+        "AllowMethods": ["*"],
+        "AllowOrigins": ["*"],
+        "ExposeHeaders": ["date", "keep-alive"],
+        "MaxAge": 86400,
+    }
 
 
 @mock_lambda
@@ -99,7 +97,7 @@ def test_update_function_url_config_with_cors():
     resp = client.update_function_url_config(
         FunctionName=name_or_arn, AuthType="NONE", Cors={"AllowCredentials": False}
     )
-    resp.should.have.key("Cors").equals({"AllowCredentials": False})
+    assert resp["Cors"] == {"AllowCredentials": False}
 
 
 @mock_lambda

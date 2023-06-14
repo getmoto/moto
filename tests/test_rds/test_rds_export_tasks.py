@@ -25,6 +25,30 @@ def _prepare_db_snapshot(client, snapshot_name="snapshot-1"):
     return resp["DBSnapshot"]["DBSnapshotArn"]
 
 
+def _prepare_db_cluster_snapshot(client, snapshot_name="cluster-snapshot-1"):
+    db_cluster_identifier = "db-cluster-primary-1"
+    client.create_db_cluster(
+        AvailabilityZones=[
+            "us-west-2",
+        ],
+        BackupRetentionPeriod=1,
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterParameterGroupName="db-cluster-primary-1-group",
+        DatabaseName="staging-postgres",
+        Engine="postgres",
+        EngineVersion="5.6.10a",
+        MasterUserPassword="hunterxhunder",
+        MasterUsername="root",
+        Port=3306,
+        StorageEncrypted=True,
+    )
+    resp = client.create_db_cluster_snapshot(
+        DBClusterSnapshotIdentifier=snapshot_name,
+        DBClusterIdentifier=db_cluster_identifier,
+    )
+    return resp["DBClusterSnapshot"]["DBClusterSnapshotArn"]
+
+
 @mock_rds
 def test_start_export_task_fails_unknown_snapshot():
     client = boto3.client("rds", region_name="us-west-2")
@@ -44,7 +68,7 @@ def test_start_export_task_fails_unknown_snapshot():
 
 
 @mock_rds
-def test_start_export_task():
+def test_start_export_task_db():
     client = boto3.client("rds", region_name="us-west-2")
     source_arn = _prepare_db_snapshot(client)
 
@@ -67,6 +91,34 @@ def test_start_export_task():
         "arn:aws:kms:::key/0ea3fef3-80a7-4778-9d8c-1c0c6EXAMPLE"
     )
     export["ExportOnly"].should.equal(["schema.table"])
+    export["SourceType"].should.equal("SNAPSHOT")
+
+
+@mock_rds
+def test_start_export_task_db_cluster():
+    client = boto3.client("rds", region_name="us-west-2")
+    source_arn = _prepare_db_cluster_snapshot(client)
+
+    export = client.start_export_task(
+        ExportTaskIdentifier="export-snapshot-1",
+        SourceArn=source_arn,
+        S3BucketName="export-bucket",
+        S3Prefix="snaps/",
+        IamRoleArn="arn:aws:iam:::role/export-role",
+        KmsKeyId="arn:aws:kms:::key/0ea3fef3-80a7-4778-9d8c-1c0c6EXAMPLE",
+        ExportOnly=["schema.table"],
+    )
+
+    export["ExportTaskIdentifier"].should.equal("export-snapshot-1")
+    export["SourceArn"].should.equal(source_arn)
+    export["S3Bucket"].should.equal("export-bucket")
+    export["S3Prefix"].should.equal("snaps/")
+    export["IamRoleArn"].should.equal("arn:aws:iam:::role/export-role")
+    export["KmsKeyId"].should.equal(
+        "arn:aws:kms:::key/0ea3fef3-80a7-4778-9d8c-1c0c6EXAMPLE"
+    )
+    export["ExportOnly"].should.equal(["schema.table"])
+    export["SourceType"].should.equal("CLUSTER")
 
 
 @mock_rds

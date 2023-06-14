@@ -69,6 +69,11 @@ class AppSyncResponse(BaseResponse):
         if request.method == "GET":
             return self.get_type()
 
+    def schema(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self.get_introspection_schema()
+
     def create_graphql_api(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         name = params.get("name")
@@ -230,3 +235,19 @@ class AppSyncResponse(BaseResponse):
             api_id=api_id, type_name=type_name, type_format=type_format
         )
         return 200, {}, json.dumps(dict(type=graphql_type))
+
+    def get_introspection_schema(self) -> TYPE_RESPONSE:  # type: ignore[return]
+        api_id = self.path.split("/")[-2]
+        format_ = self.querystring.get("format")[0]  # type: ignore[index]
+        if self.querystring.get("includeDirectives"):
+            include_directives = (
+                self.querystring.get("includeDirectives")[0].lower() == "true"  # type: ignore[index]
+            )
+        else:
+            include_directives = True
+        graphql_schema = self.appsync_backend.get_graphql_schema(api_id=api_id)
+
+        schema = graphql_schema.get_introspection_schema(
+            format_=format_, include_directives=include_directives
+        )
+        return 200, {}, schema

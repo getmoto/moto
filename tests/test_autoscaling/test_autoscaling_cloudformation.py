@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import json
 
 from moto import mock_autoscaling, mock_cloudformation, mock_ec2, mock_elb
@@ -33,12 +32,12 @@ Outputs:
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=cf_template)
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack["Outputs"][0]["OutputValue"].should.be.equal("test_launch_configuration")
+    assert stack["Outputs"][0]["OutputValue"] == "test_launch_configuration"
 
     lc = client.describe_launch_configurations()["LaunchConfigurations"][0]
-    lc["LaunchConfigurationName"].should.be.equal("test_launch_configuration")
-    lc["ImageId"].should.be.equal(EXAMPLE_AMI_ID)
-    lc["InstanceType"].should.be.equal("t2.micro")
+    assert lc["LaunchConfigurationName"] == "test_launch_configuration"
+    assert lc["ImageId"] == EXAMPLE_AMI_ID
+    assert lc["InstanceType"] == "t2.micro"
 
     cf_template = """
 Resources:
@@ -57,12 +56,12 @@ Outputs:
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=cf_template)
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack["Outputs"][0]["OutputValue"].should.be.equal("test_launch_configuration")
+    assert stack["Outputs"][0]["OutputValue"] == "test_launch_configuration"
 
     lc = client.describe_launch_configurations()["LaunchConfigurations"][0]
-    lc["LaunchConfigurationName"].should.be.equal("test_launch_configuration")
-    lc["ImageId"].should.be.equal(EXAMPLE_AMI_ID)
-    lc["InstanceType"].should.be.equal("m5.large")
+    assert lc["LaunchConfigurationName"] == "test_launch_configuration"
+    assert lc["ImageId"] == EXAMPLE_AMI_ID
+    assert lc["InstanceType"] == "m5.large"
 
 
 @mock_autoscaling
@@ -107,13 +106,13 @@ Outputs:
         Parameters=[{"ParameterKey": "SubnetId", "ParameterValue": subnet_id}],
     )
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack["Outputs"][0]["OutputValue"].should.be.equal("test_auto_scaling_group")
+    assert stack["Outputs"][0]["OutputValue"] == "test_auto_scaling_group"
 
     asg = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-    asg["AutoScalingGroupName"].should.be.equal("test_auto_scaling_group")
-    asg["MinSize"].should.be.equal(1)
-    asg["MaxSize"].should.be.equal(5)
-    asg["LaunchConfigurationName"].should.be.equal("test_launch_configuration")
+    assert asg["AutoScalingGroupName"] == "test_auto_scaling_group"
+    assert asg["MinSize"] == 1
+    assert asg["MaxSize"] == 5
+    assert asg["LaunchConfigurationName"] == "test_launch_configuration"
 
     client.create_launch_configuration(
         LaunchConfigurationName="test_launch_configuration_new",
@@ -148,13 +147,13 @@ Outputs:
         Parameters=[{"ParameterKey": "SubnetId", "ParameterValue": subnet_id}],
     )
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack["Outputs"][0]["OutputValue"].should.be.equal("test_auto_scaling_group")
+    assert stack["Outputs"][0]["OutputValue"] == "test_auto_scaling_group"
 
     asg = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-    asg["AutoScalingGroupName"].should.be.equal("test_auto_scaling_group")
-    asg["MinSize"].should.be.equal(2)
-    asg["MaxSize"].should.be.equal(6)
-    asg["LaunchConfigurationName"].should.be.equal("test_launch_configuration_new")
+    assert asg["AutoScalingGroupName"] == "test_auto_scaling_group"
+    assert asg["MinSize"] == 2
+    assert asg["MaxSize"] == 6
+    assert asg["LaunchConfigurationName"] == "test_launch_configuration_new"
 
 
 @mock_autoscaling
@@ -208,16 +207,16 @@ Outputs:
         ],
     )
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack["Outputs"][0]["OutputValue"].should.be.equal("test_auto_scaling_group")
+    assert stack["Outputs"][0]["OutputValue"] == "test_auto_scaling_group"
 
     asg = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-    asg["AutoScalingGroupName"].should.be.equal("test_auto_scaling_group")
-    asg["MinSize"].should.be.equal(1)
-    asg["MaxSize"].should.be.equal(5)
+    assert asg["AutoScalingGroupName"] == "test_auto_scaling_group"
+    assert asg["MinSize"] == 1
+    assert asg["MaxSize"] == 5
     lt = asg["LaunchTemplate"]
-    lt["LaunchTemplateId"].should.be.equal(launch_template_id)
-    lt["LaunchTemplateName"].should.be.equal("test_launch_template")
-    lt["Version"].should.be.equal("1")
+    assert lt["LaunchTemplateId"] == launch_template_id
+    assert lt["LaunchTemplateName"] == "test_launch_template"
+    assert lt["Version"] == "1"
 
     template_response = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template_new",
@@ -259,16 +258,16 @@ Outputs:
         ],
     )
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack["Outputs"][0]["OutputValue"].should.be.equal("test_auto_scaling_group")
+    assert stack["Outputs"][0]["OutputValue"] == "test_auto_scaling_group"
 
     asg = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-    asg["AutoScalingGroupName"].should.be.equal("test_auto_scaling_group")
-    asg["MinSize"].should.be.equal(2)
-    asg["MaxSize"].should.be.equal(6)
+    assert asg["AutoScalingGroupName"] == "test_auto_scaling_group"
+    assert asg["MinSize"] == 2
+    assert asg["MaxSize"] == 6
     lt = asg["LaunchTemplate"]
-    lt["LaunchTemplateId"].should.be.equal(launch_template_id)
-    lt["LaunchTemplateName"].should.be.equal("test_launch_template_new")
-    lt["Version"].should.be.equal("1")
+    assert lt["LaunchTemplateId"] == launch_template_id
+    assert lt["LaunchTemplateName"] == "test_launch_template_new"
+    assert lt["Version"] == "1"
 
 
 @mock_autoscaling
@@ -356,16 +355,14 @@ def test_autoscaling_group_with_elb():
     cf.create_stack(StackName="web_stack", TemplateBody=web_setup_template_json)
 
     autoscale_group = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-    autoscale_group["LaunchConfigurationName"].should.contain("my-launch-config")
-    autoscale_group["LoadBalancerNames"].should.equal(["my-elb"])
+    assert "my-launch-config" in autoscale_group["LaunchConfigurationName"]
+    assert autoscale_group["LoadBalancerNames"] == ["my-elb"]
 
     # Confirm the Launch config was actually created
-    client.describe_launch_configurations()[
-        "LaunchConfigurations"
-    ].should.have.length_of(1)
+    assert len(client.describe_launch_configurations()["LaunchConfigurations"]) == 1
 
     # Confirm the ELB was actually created
-    elb.describe_load_balancers()["LoadBalancerDescriptions"].should.have.length_of(1)
+    assert len(elb.describe_load_balancers()["LoadBalancerDescriptions"]) == 1
 
     resources = cf.list_stack_resources(StackName="web_stack")["StackResourceSummaries"]
     as_group_resource = [
@@ -373,37 +370,37 @@ def test_autoscaling_group_with_elb():
         for resource in resources
         if resource["ResourceType"] == "AWS::AutoScaling::AutoScalingGroup"
     ][0]
-    as_group_resource["PhysicalResourceId"].should.contain("my-as-group")
+    assert "my-as-group" in as_group_resource["PhysicalResourceId"]
 
     launch_config_resource = [
         resource
         for resource in resources
         if resource["ResourceType"] == "AWS::AutoScaling::LaunchConfiguration"
     ][0]
-    launch_config_resource["PhysicalResourceId"].should.contain("my-launch-config")
+    assert "my-launch-config" in launch_config_resource["PhysicalResourceId"]
 
     elb_resource = [
         resource
         for resource in resources
         if resource["ResourceType"] == "AWS::ElasticLoadBalancing::LoadBalancer"
     ][0]
-    elb_resource["PhysicalResourceId"].should.contain("my-elb")
+    assert "my-elb" in elb_resource["PhysicalResourceId"]
 
     # confirm the instances were created with the right tags
     reservations = ec2.describe_instances()["Reservations"]
 
-    reservations.should.have.length_of(1)
-    reservations[0]["Instances"].should.have.length_of(2)
+    assert len(reservations) == 1
+    assert len(reservations[0]["Instances"]) == 2
     for instance in reservations[0]["Instances"]:
         tag_keys = [t["Key"] for t in instance["Tags"]]
-        tag_keys.should.contain("propagated-test-tag")
-        tag_keys.should_not.contain("not-propagated-test-tag")
+        assert "propagated-test-tag" in tag_keys
+        assert "not-propagated-test-tag" not in tag_keys
 
     # confirm scheduled scaling action was created
     response = client.describe_scheduled_actions(
         AutoScalingGroupName="test-scaling-group"
     )["ScheduledUpdateGroupActions"]
-    response.should.have.length_of(1)
+    assert len(response) == 1
 
 
 @mock_autoscaling
@@ -441,9 +438,9 @@ def test_autoscaling_group_update():
     cf.create_stack(StackName="asg_stack", TemplateBody=asg_template_json)
 
     asg = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-    asg["MinSize"].should.equal(2)
-    asg["MaxSize"].should.equal(2)
-    asg["DesiredCapacity"].should.equal(2)
+    assert asg["MinSize"] == 2
+    assert asg["MaxSize"] == 2
+    assert asg["DesiredCapacity"] == 2
 
     asg_template["Resources"]["my-as-group"]["Properties"]["MaxSize"] = 3
     asg_template["Resources"]["my-as-group"]["Properties"]["Tags"] = [
@@ -461,9 +458,9 @@ def test_autoscaling_group_update():
     asg_template_json = json.dumps(asg_template)
     cf.update_stack(StackName="asg_stack", TemplateBody=asg_template_json)
     asg = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-    asg["MinSize"].should.equal(2)
-    asg["MaxSize"].should.equal(3)
-    asg["DesiredCapacity"].should.equal(2)
+    assert asg["MinSize"] == 2
+    assert asg["MaxSize"] == 3
+    assert asg["DesiredCapacity"] == 2
 
     # confirm the instances were created with the right tags
     reservations = ec2.describe_instances()["Reservations"]
@@ -472,9 +469,10 @@ def test_autoscaling_group_update():
         for instance in res["Instances"]:
             if instance["State"]["Name"] == "running":
                 running_instance_count += 1
-                instance["Tags"].should.contain(
-                    {"Key": "propagated-test-tag", "Value": "propagated-test-tag-value"}
-                )
+                assert {
+                    "Key": "propagated-test-tag",
+                    "Value": "propagated-test-tag-value",
+                } in instance["Tags"]
                 tag_keys = [t["Key"] for t in instance["Tags"]]
-                tag_keys.should_not.contain("not-propagated-test-tag")
-    running_instance_count.should.equal(2)
+                assert "not-propagated-test-tag" not in tag_keys
+    assert running_instance_count == 2

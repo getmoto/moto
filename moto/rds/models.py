@@ -416,7 +416,6 @@ class Cluster:
 
 
 class ClusterSnapshot(BaseModel):
-
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
             ["cluster.db_cluster_arn", "cluster.db_cluster_identifier"],
@@ -486,7 +485,6 @@ class ClusterSnapshot(BaseModel):
 
 
 class Database(CloudFormationModel):
-
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(["db_cluster_identifier"], "DB Cluster Identifiers"),
         "db-instance-id": FilterDef(
@@ -551,7 +549,7 @@ class Database(CloudFormationModel):
         self.db_instance_identifier = kwargs.get("db_instance_identifier")
         self.db_name = kwargs.get("db_name")
         self.instance_create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.now()
+            datetime.datetime.utcnow()
         )
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
@@ -1039,7 +1037,6 @@ class Database(CloudFormationModel):
 
 
 class DatabaseSnapshot(BaseModel):
-
     SUPPORTED_FILTERS = {
         "db-instance-id": FilterDef(
             ["database.db_instance_arn", "database.db_instance_identifier"],
@@ -1058,7 +1055,9 @@ class DatabaseSnapshot(BaseModel):
         self.snapshot_id = snapshot_id
         self.tags = tags
         self.status = "available"
-        self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        self.created_at = iso_8601_datetime_with_milliseconds(
+            datetime.datetime.utcnow()
+        )
 
     @property
     def snapshot_arn(self) -> str:
@@ -1135,7 +1134,12 @@ class ExportTask(BaseModel):
         self.export_only = kwargs.get("export_only", [])
 
         self.status = "complete"
-        self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        self.created_at = iso_8601_datetime_with_milliseconds(
+            datetime.datetime.utcnow()
+        )
+        self.source_type = (
+            "SNAPSHOT" if type(snapshot) is DatabaseSnapshot else "CLUSTER"
+        )
 
     def to_xml(self) -> str:
         template = Template(
@@ -1161,6 +1165,7 @@ class ExportTask(BaseModel):
             <TotalExtractedDataInGB>{{ 1 }}</TotalExtractedDataInGB>
             <FailureCause></FailureCause>
             <WarningMessage></WarningMessage>
+            <SourceType>{{ task.source_type }}</SourceType>
             """
         )
         return template.render(task=self, snapshot=self.snapshot)
@@ -1179,7 +1184,9 @@ class EventSubscription(BaseModel):
         self.region_name = ""
         self.customer_aws_id = kwargs["account_id"]
         self.status = "active"
-        self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        self.created_at = iso_8601_datetime_with_milliseconds(
+            datetime.datetime.utcnow()
+        )
 
     @property
     def es_arn(self) -> str:

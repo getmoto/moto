@@ -28,6 +28,8 @@ appsync
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_api
+- [ ] associate_merged_graphql_api
+- [ ] associate_source_graphql_api
 - [ ] create_api_cache
 - [X] create_api_key
 - [ ] create_data_source
@@ -45,6 +47,8 @@ appsync
 - [ ] delete_resolver
 - [ ] delete_type
 - [ ] disassociate_api
+- [ ] disassociate_merged_graphql_api
+- [ ] disassociate_source_graphql_api
 - [ ] evaluate_code
 - [ ] evaluate_mapping_template
 - [ ] flush_api_cache
@@ -57,6 +61,7 @@ appsync
 - [ ] get_introspection_schema
 - [ ] get_resolver
 - [X] get_schema_creation_status
+- [ ] get_source_api_association
 - [X] get_type
 - [X] list_api_keys
   
@@ -73,9 +78,12 @@ appsync
 
 - [ ] list_resolvers
 - [ ] list_resolvers_by_function
+- [ ] list_source_api_associations
 - [X] list_tags_for_resource
 - [ ] list_types
+- [ ] list_types_by_association
 - [X] start_schema_creation
+- [ ] start_schema_merge
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_api_cache
@@ -85,5 +93,6 @@ appsync
 - [ ] update_function
 - [X] update_graphql_api
 - [ ] update_resolver
+- [ ] update_source_api_association
 - [ ] update_type
 

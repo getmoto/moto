@@ -1101,3 +1101,26 @@ def test_create_volume_with_iops():
 
     volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
     volume["Iops"].should.equal(4000)
+
+
+@mock_ec2
+def test_create_volume_with_throughput():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    volume = ec2.create_volume(
+        AvailabilityZone="us-east-1a", Size=10, VolumeType="gp3", Throughput=200
+    )
+    volume["Throughput"].should.equal(200)
+
+    volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
+    volume["Throughput"].should.equal(200)
+
+
+@mock_ec2
+def test_create_volume_with_throughput_fails():
+    resource = boto3.resource("ec2", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        resource.create_volume(
+            AvailabilityZone="us-east-1a", Size=10, VolumeType="gp2", Throughput=200
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterDependency")
+    ex.value.response["Error"]["Message"].should.contain("Throughput")

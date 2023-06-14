@@ -18,9 +18,9 @@ def test_create_authorizer_minimum():
         AuthorizerPayloadFormatVersion="2.0",
     )
 
-    resp.should.have.key("AuthorizerId")
-    resp.should.have.key("AuthorizerType").equals("REQUEST")
-    resp.should.have.key("Name").equals("auth1")
+    assert "AuthorizerId" in resp
+    assert resp["AuthorizerType"] == "REQUEST"
+    assert resp["Name"] == "auth1"
 
 
 @mock_apigatewayv2
@@ -42,20 +42,18 @@ def test_create_authorizer():
         Name="auth1",
     )
 
-    resp.should.have.key("AuthorizerId")
-    resp.should.have.key("AuthorizerCredentialsArn").equals("auth:creds:arn")
-    resp.should.have.key("AuthorizerPayloadFormatVersion").equals("2.0")
-    resp.should.have.key("AuthorizerResultTtlInSeconds").equals(3)
-    resp.should.have.key("AuthorizerType").equals("REQUEST")
-    resp.should.have.key("AuthorizerUri").equals("auth_uri")
-    resp.should.have.key("EnableSimpleResponses").equals(True)
-    resp.should.have.key("IdentitySource").equals(["$request.header.Authorization"])
-    resp.should.have.key("IdentityValidationExpression").equals("ive")
-    resp.should.have.key("JwtConfiguration").equals(
-        {"Audience": ["a1"], "Issuer": "moto.com"}
-    )
-    resp.should.have.key("Name").equals("auth1")
-    resp.should.have.key("AuthorizerPayloadFormatVersion").equals("2.0")
+    assert "AuthorizerId" in resp
+    assert resp["AuthorizerCredentialsArn"] == "auth:creds:arn"
+    assert resp["AuthorizerPayloadFormatVersion"] == "2.0"
+    assert resp["AuthorizerResultTtlInSeconds"] == 3
+    assert resp["AuthorizerType"] == "REQUEST"
+    assert resp["AuthorizerUri"] == "auth_uri"
+    assert resp["EnableSimpleResponses"] is True
+    assert resp["IdentitySource"] == ["$request.header.Authorization"]
+    assert resp["IdentityValidationExpression"] == "ive"
+    assert resp["JwtConfiguration"] == {"Audience": ["a1"], "Issuer": "moto.com"}
+    assert resp["Name"] == "auth1"
+    assert resp["AuthorizerPayloadFormatVersion"] == "2.0"
 
 
 @mock_apigatewayv2
@@ -73,9 +71,10 @@ def test_create_authorizer_without_payloadformatversion():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.equal(
-        "AuthorizerPayloadFormatVersion is a required parameter for REQUEST authorizer"
+    assert err["Code"] == "BadRequestException"
+    assert (
+        err["Message"]
+        == "AuthorizerPayloadFormatVersion is a required parameter for REQUEST authorizer"
     )
 
 
@@ -94,10 +93,10 @@ def test_get_authorizer():
 
     resp = client.get_authorizer(ApiId=api_id, AuthorizerId=authorizer_id)
 
-    resp.should.have.key("AuthorizerId")
-    resp.should.have.key("AuthorizerType").equals("REQUEST")
-    resp.should.have.key("Name").equals("auth1")
-    resp.should.have.key("AuthorizerPayloadFormatVersion").equals("2.0")
+    assert "AuthorizerId" in resp
+    assert resp["AuthorizerType"] == "REQUEST"
+    assert resp["Name"] == "auth1"
+    assert resp["AuthorizerPayloadFormatVersion"] == "2.0"
 
 
 @mock_apigatewayv2
@@ -115,7 +114,7 @@ def test_delete_authorizer():
         client.get_authorizer(ApiId=api_id, AuthorizerId="unknown")
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigatewayv2
@@ -127,7 +126,7 @@ def test_get_authorizer_unknown():
         client.get_authorizer(ApiId=api_id, AuthorizerId="unknown")
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigatewayv2
@@ -151,19 +150,17 @@ def test_update_authorizer_single():
 
     resp = client.update_authorizer(ApiId=api_id, AuthorizerId=auth_id, Name="auth2")
 
-    resp.should.have.key("AuthorizerId")
-    resp.should.have.key("AuthorizerCredentialsArn").equals("auth:creds:arn")
-    resp.should.have.key("AuthorizerPayloadFormatVersion").equals("2.0")
-    resp.should.have.key("AuthorizerResultTtlInSeconds").equals(3)
-    resp.should.have.key("AuthorizerType").equals("REQUEST")
-    resp.should.have.key("AuthorizerUri").equals("auth_uri")
-    resp.should.have.key("EnableSimpleResponses").equals(True)
-    resp.should.have.key("IdentitySource").equals(["$request.header.Authorization"])
-    resp.should.have.key("IdentityValidationExpression").equals("ive")
-    resp.should.have.key("JwtConfiguration").equals(
-        {"Audience": ["a1"], "Issuer": "moto.com"}
-    )
-    resp.should.have.key("Name").equals("auth2")
+    assert "AuthorizerId" in resp
+    assert resp["AuthorizerCredentialsArn"] == "auth:creds:arn"
+    assert resp["AuthorizerPayloadFormatVersion"] == "2.0"
+    assert resp["AuthorizerResultTtlInSeconds"] == 3
+    assert resp["AuthorizerType"] == "REQUEST"
+    assert resp["AuthorizerUri"] == "auth_uri"
+    assert resp["EnableSimpleResponses"] is True
+    assert resp["IdentitySource"] == ["$request.header.Authorization"]
+    assert resp["IdentityValidationExpression"] == "ive"
+    assert resp["JwtConfiguration"] == {"Audience": ["a1"], "Issuer": "moto.com"}
+    assert resp["Name"] == "auth2"
 
 
 @mock_apigatewayv2
@@ -196,16 +193,14 @@ def test_update_authorizer_all_attributes():
 
     resp = client.update_authorizer(ApiId=api_id, AuthorizerId=auth_id, Name="auth2")
 
-    resp.should.have.key("AuthorizerId")
-    resp.should.have.key("AuthorizerCredentialsArn").equals("")
-    resp.should.have.key("AuthorizerPayloadFormatVersion").equals("3.0")
-    resp.should.have.key("AuthorizerResultTtlInSeconds").equals(5)
-    resp.should.have.key("AuthorizerType").equals("REQUEST")
-    resp.should.have.key("AuthorizerUri").equals("auth_uri")
-    resp.should.have.key("EnableSimpleResponses").equals(False)
-    resp.should.have.key("IdentitySource").equals(["$request.header.Authentication"])
-    resp.should.have.key("IdentityValidationExpression").equals("ive2")
-    resp.should.have.key("JwtConfiguration").equals(
-        {"Audience": ["a2"], "Issuer": "moto.com"}
-    )
-    resp.should.have.key("Name").equals("auth2")
+    assert "AuthorizerId" in resp
+    assert resp["AuthorizerCredentialsArn"] == ""
+    assert resp["AuthorizerPayloadFormatVersion"] == "3.0"
+    assert resp["AuthorizerResultTtlInSeconds"] == 5
+    assert resp["AuthorizerType"] == "REQUEST"
+    assert resp["AuthorizerUri"] == "auth_uri"
+    assert resp["EnableSimpleResponses"] is False
+    assert resp["IdentitySource"] == ["$request.header.Authentication"]
+    assert resp["IdentityValidationExpression"] == "ive2"
+    assert resp["JwtConfiguration"] == {"Audience": ["a2"], "Issuer": "moto.com"}
+    assert resp["Name"] == "auth2"

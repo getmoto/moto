@@ -5,7 +5,6 @@ import uuid
 
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -47,8 +46,8 @@ def test_import_certificate():
     )
     resp = client.get_certificate(CertificateArn=resp["CertificateArn"])
 
-    resp["Certificate"].should.equal(SERVER_CRT.decode())
-    resp.should.contain("CertificateChain")
+    assert resp["Certificate"] == SERVER_CRT.decode()
+    assert "CertificateChain" in resp
 
 
 @mock_acm
@@ -64,15 +63,15 @@ def test_import_certificate_with_tags():
     arn = resp["CertificateArn"]
 
     resp = client.get_certificate(CertificateArn=arn)
-    resp["Certificate"].should.equal(SERVER_CRT.decode())
-    resp.should.contain("CertificateChain")
+    assert resp["Certificate"] == SERVER_CRT.decode()
+    assert "CertificateChain" in resp
 
     resp = client.list_tags_for_certificate(CertificateArn=arn)
     tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
-    tags.should.contain("Environment")
-    tags.should.contain("KeyOnly")
-    tags["Environment"].should.equal("QA")
-    tags["KeyOnly"].should.equal("__NONE__")
+    assert "Environment" in tags
+    assert "KeyOnly" in tags
+    assert tags["Environment"] == "QA"
+    assert tags["KeyOnly"] == "__NONE__"
 
 
 @mock_acm
@@ -82,7 +81,7 @@ def test_import_bad_certificate():
     try:
         client.import_certificate(Certificate=SERVER_CRT_BAD, PrivateKey=SERVER_KEY)
     except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ValidationException")
+        assert err.response["Error"]["Code"] == "ValidationException"
     else:
         raise RuntimeError("Should have raised ValidationException")
 
@@ -94,38 +93,38 @@ def test_list_certificates():
     pending_arn = client.request_certificate(DomainName="google.com")["CertificateArn"]
 
     certs = client.list_certificates()["CertificateSummaryList"]
-    [c["CertificateArn"] for c in certs].should.contain(issued_arn)
-    [c["CertificateArn"] for c in certs].should.contain(pending_arn)
+    assert issued_arn in [c["CertificateArn"] for c in certs]
+    assert pending_arn in [c["CertificateArn"] for c in certs]
     for cert in certs:
-        cert.should.have.key("CertificateArn")
-        cert.should.have.key("DomainName")
-        cert.should.have.key("Status")
-        cert.should.have.key("Type")
-        cert.should.have.key("KeyAlgorithm")
-        cert.should.have.key("RenewalEligibility")
-        cert.should.have.key("NotBefore")
-        cert.should.have.key("NotAfter")
+        assert "CertificateArn" in cert
+        assert "DomainName" in cert
+        assert "Status" in cert
+        assert "Type" in cert
+        assert "KeyAlgorithm" in cert
+        assert "RenewalEligibility" in cert
+        assert "NotBefore" in cert
+        assert "NotAfter" in cert
 
     resp = client.list_certificates(CertificateStatuses=["EXPIRED", "INACTIVE"])
-    len(resp["CertificateSummaryList"]).should.equal(0)
+    assert len(resp["CertificateSummaryList"]) == 0
 
     certs = client.list_certificates(CertificateStatuses=["PENDING_VALIDATION"])[
         "CertificateSummaryList"
     ]
-    [c["CertificateArn"] for c in certs].shouldnt.contain(issued_arn)
-    [c["CertificateArn"] for c in certs].should.contain(pending_arn)
+    assert issued_arn not in [c["CertificateArn"] for c in certs]
+    assert pending_arn in [c["CertificateArn"] for c in certs]
 
     certs = client.list_certificates(CertificateStatuses=["ISSUED"])[
         "CertificateSummaryList"
     ]
-    [c["CertificateArn"] for c in certs].should.contain(issued_arn)
-    [c["CertificateArn"] for c in certs].shouldnt.contain(pending_arn)
+    assert issued_arn in [c["CertificateArn"] for c in certs]
+    assert pending_arn not in [c["CertificateArn"] for c in certs]
 
     certs = client.list_certificates(
         CertificateStatuses=["ISSUED", "PENDING_VALIDATION"]
     )["CertificateSummaryList"]
-    [c["CertificateArn"] for c in certs].should.contain(issued_arn)
-    [c["CertificateArn"] for c in certs].should.contain(pending_arn)
+    assert issued_arn in [c["CertificateArn"] for c in certs]
+    assert pending_arn in [c["CertificateArn"] for c in certs]
 
 
 @mock_acm
@@ -135,7 +134,7 @@ def test_get_invalid_certificate():
     try:
         client.get_certificate(CertificateArn=BAD_ARN)
     except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
     else:
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
@@ -152,7 +151,7 @@ def test_delete_certificate():
     try:
         client.delete_certificate(CertificateArn=arn)
     except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
     else:
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
@@ -166,19 +165,19 @@ def test_describe_certificate():
         resp = client.describe_certificate(CertificateArn=arn)
     except OverflowError:
         pytest.skip("This test requires 64-bit time_t")
-    resp["Certificate"]["CertificateArn"].should.equal(arn)
-    resp["Certificate"]["DomainName"].should.equal(SERVER_COMMON_NAME)
-    resp["Certificate"]["Issuer"].should.equal("Moto")
-    resp["Certificate"]["KeyAlgorithm"].should.equal("RSA_2048")
-    resp["Certificate"]["Status"].should.equal("ISSUED")
-    resp["Certificate"]["Type"].should.equal("IMPORTED")
-    resp["Certificate"].should.have.key("RenewalEligibility").equals("INELIGIBLE")
-    resp["Certificate"].should.have.key("Options")
-    resp["Certificate"].should.have.key("DomainValidationOptions").length_of(1)
+    assert resp["Certificate"]["CertificateArn"] == arn
+    assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
+    assert resp["Certificate"]["Issuer"] == "Moto"
+    assert resp["Certificate"]["KeyAlgorithm"] == "RSA_2048"
+    assert resp["Certificate"]["Status"] == "ISSUED"
+    assert resp["Certificate"]["Type"] == "IMPORTED"
+    assert resp["Certificate"]["RenewalEligibility"] == "INELIGIBLE"
+    assert "Options" in resp["Certificate"]
 
+    assert len(resp["Certificate"]["DomainValidationOptions"]) == 1
     validation_option = resp["Certificate"]["DomainValidationOptions"][0]
-    validation_option.should.have.key("DomainName").equals(SERVER_COMMON_NAME)
-    validation_option.shouldnt.have.key("ValidationDomain")
+    assert validation_option["DomainName"] == SERVER_COMMON_NAME
+    assert "ValidationDomain" not in validation_option
 
 
 @mock_acm
@@ -188,7 +187,7 @@ def test_describe_certificate_with_bad_arn():
     with pytest.raises(ClientError) as err:
         client.describe_certificate(CertificateArn=BAD_ARN)
 
-    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert err.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_acm
@@ -197,9 +196,9 @@ def test_export_certificate():
     arn = _import_cert(client)
 
     resp = client.export_certificate(CertificateArn=arn, Passphrase="pass")
-    resp["Certificate"].should.equal(SERVER_CRT.decode())
-    resp["CertificateChain"].should.equal(CA_CRT.decode() + "\n" + AWS_ROOT_CA.decode())
-    resp.should.have.key("PrivateKey")
+    assert resp["Certificate"] == SERVER_CRT.decode()
+    assert resp["CertificateChain"] == CA_CRT.decode() + "\n" + AWS_ROOT_CA.decode()
+    assert "PrivateKey" in resp
 
     key = serialization.load_pem_private_key(
         bytes(resp["PrivateKey"], "utf-8"), password=b"pass", backend=default_backend()
@@ -210,7 +209,7 @@ def test_export_certificate():
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption(),
     )
-    private_key.should.equal(SERVER_KEY)
+    assert private_key == SERVER_KEY
 
 
 @mock_acm
@@ -220,7 +219,7 @@ def test_export_certificate_with_bad_arn():
     with pytest.raises(ClientError) as err:
         client.export_certificate(CertificateArn=BAD_ARN, Passphrase="pass")
 
-    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert err.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 # Also tests ListTagsForCertificate
@@ -236,13 +235,13 @@ def test_add_tags_to_certificate():
     resp = client.list_tags_for_certificate(CertificateArn=arn)
     tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
 
-    tags.should.contain("key1")
-    tags.should.contain("key2")
-    tags["key1"].should.equal("value1")
+    assert "key1" in tags
+    assert "key2" in tags
+    assert tags["key1"] == "value1"
 
     # This way, it ensures that we can detect if None is passed back when it shouldnt,
     # as we store keys without values with a value of None, but it shouldnt be passed back
-    tags["key2"].should.equal("__NONE__")
+    assert tags["key2"] == "__NONE__"
 
 
 @mock_acm
@@ -255,7 +254,7 @@ def test_add_tags_to_invalid_certificate():
             Tags=[{"Key": "key1", "Value": "value1"}, {"Key": "key2"}],
         )
     except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
     else:
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
@@ -267,7 +266,7 @@ def test_list_tags_for_invalid_certificate():
     try:
         client.list_tags_for_certificate(CertificateArn=BAD_ARN)
     except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
     else:
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
@@ -301,9 +300,9 @@ def test_remove_tags_from_certificate():
     tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
 
     for key in ("key2", "key3", "key4"):
-        tags.should_not.contain(key)
+        assert key not in tags
 
-    tags.should.contain("key1")
+    assert "key1" in tags
 
 
 @mock_acm
@@ -316,7 +315,7 @@ def test_remove_tags_from_invalid_certificate():
             Tags=[{"Key": "key1", "Value": "value1"}, {"Key": "key2"}],
         )
     except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
     else:
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
@@ -344,8 +343,8 @@ def test_resend_validation_email_invalid():
             ValidationDomain="NOTUSEDYET",
         )
     except ClientError as err:
-        err.response["Error"]["Code"].should.equal(
-            "InvalidDomainValidationOptionsException"
+        assert (
+            err.response["Error"]["Code"] == "InvalidDomainValidationOptionsException"
         )
     else:
         raise RuntimeError("Should have raised InvalidDomainValidationOptionsException")
@@ -357,7 +356,7 @@ def test_resend_validation_email_invalid():
             ValidationDomain="NOTUSEDYET",
         )
     except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
     else:
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
@@ -373,16 +372,16 @@ def test_request_certificate():
         IdempotencyToken=token,
         SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
     )
-    resp.should.contain("CertificateArn")
+    assert "CertificateArn" in resp
     arn = resp["CertificateArn"]
-    arn.should.match(r"arn:aws:acm:eu-central-1:\d{12}:certificate/")
+    assert f"arn:aws:acm:eu-central-1:{ACCOUNT_ID}:certificate/" in arn
 
     resp = client.request_certificate(
         DomainName="google.com",
         IdempotencyToken=token,
         SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
     )
-    resp["CertificateArn"].should.equal(arn)
+    assert resp["CertificateArn"] == arn
 
 
 @mock_acm
@@ -400,14 +399,14 @@ def test_request_certificate_with_tags():
             {"Key": "WithEmptyStr", "Value": ""},
         ],
     )
-    resp.should.contain("CertificateArn")
+    assert "CertificateArn" in resp
     arn_1 = resp["CertificateArn"]
 
     resp = client.list_tags_for_certificate(CertificateArn=arn_1)
     tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
-    tags.should.have.length_of(2)
-    tags["Environment"].should.equal("QA")
-    tags["WithEmptyStr"].should.equal("")
+    assert len(tags) == 2
+    assert tags["Environment"] == "QA"
+    assert tags["WithEmptyStr"] == ""
 
     # Request certificate for "google.com" with same IdempotencyToken but with different Tags
     resp = client.request_certificate(
@@ -422,9 +421,9 @@ def test_request_certificate_with_tags():
 
     resp = client.list_tags_for_certificate(CertificateArn=arn_2)
     tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
-    tags.should.have.length_of(2)
-    tags["Environment"].should.equal("Prod")
-    tags["KeyOnly"].should.equal("__NONE__")
+    assert len(tags) == 2
+    assert tags["Environment"] == "Prod"
+    assert tags["KeyOnly"] == "__NONE__"
 
     resp = client.request_certificate(
         DomainName="google.com",
@@ -458,10 +457,9 @@ def test_operations_with_invalid_tags():
         client.request_certificate(
             DomainName="example.com", Tags=[{"Key": "X" * 200, "Value": "Valid"}]
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.contain(
-        "Member must have length less than or equal to 128"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "Member must have length less than or equal to 128" in err["Message"]
 
     # import certificate with invalid tags
     with pytest.raises(ClientError) as ex:
@@ -475,10 +473,9 @@ def test_operations_with_invalid_tags():
             ],
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.contain(
-        "Member must have length less than or equal to 256"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "Member must have length less than or equal to 256" in err["Message"]
 
     arn = _import_cert(client)
 
@@ -488,20 +485,18 @@ def test_operations_with_invalid_tags():
             CertificateArn=arn,
             Tags=[{"Key": "aws:xxx", "Value": "Valid"}, {"Key": "key2"}],
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.contain(
-        "AWS internal tags cannot be changed with this API"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "AWS internal tags cannot be changed with this API" in err["Message"]
 
     # try removing invalid tags from existing certificate
     with pytest.raises(ClientError) as ex:
         client.remove_tags_from_certificate(
             CertificateArn=arn, Tags=[{"Key": "aws:xxx", "Value": "Valid"}]
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.contain(
-        "AWS internal tags cannot be changed with this API"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "AWS internal tags cannot be changed with this API" in err["Message"]
 
 
 @mock_acm
@@ -515,30 +510,26 @@ def test_add_too_many_tags():
             CertificateArn=arn,
             Tags=[{"Key": f"a-{i}", "Value": "abcd"} for i in range(1, 52)],
         )
-    ex.value.response["Error"]["Code"].should.equal("TooManyTagsException")
-    ex.value.response["Error"]["Message"].should.contain("contains too many Tags")
-    client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.empty
+    assert ex.value.response["Error"]["Code"] == "TooManyTagsException"
+    assert "contains too many Tags" in ex.value.response["Error"]["Message"]
+    assert client.list_tags_for_certificate(CertificateArn=arn)["Tags"] == []
 
     # Add 49 tags first, then try to add 2 more.
     client.add_tags_to_certificate(
         CertificateArn=arn,
         Tags=[{"Key": f"p-{i}", "Value": "pqrs"} for i in range(1, 50)],
     )
-    client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.length_of(
-        49
-    )
+    assert len(client.list_tags_for_certificate(CertificateArn=arn)["Tags"]) == 49
     with pytest.raises(ClientError) as ex:
         client.add_tags_to_certificate(
             CertificateArn=arn,
             Tags=[{"Key": "x-1", "Value": "xyz"}, {"Key": "x-2", "Value": "xyz"}],
         )
-    ex.value.response["Error"]["Code"].should.equal("TooManyTagsException")
-    ex.value.response["Error"]["Message"].should.contain("contains too many Tags")
-    ex.value.response["Error"]["Message"].count("pqrs").should.equal(49)
-    ex.value.response["Error"]["Message"].count("xyz").should.equal(2)
-    client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.length_of(
-        49
-    )
+    assert ex.value.response["Error"]["Code"] == "TooManyTagsException"
+    assert "contains too many Tags" in ex.value.response["Error"]["Message"]
+    assert ex.value.response["Error"]["Message"].count("pqrs") == 49
+    assert ex.value.response["Error"]["Message"].count("xyz") == 2
+    assert len(client.list_tags_for_certificate(CertificateArn=arn)["Tags"]) == 49
 
 
 @mock_acm
@@ -546,18 +537,18 @@ def test_request_certificate_no_san():
     client = boto3.client("acm", region_name="eu-central-1")
 
     resp = client.request_certificate(DomainName="google.com")
-    resp.should.contain("CertificateArn")
+    assert "CertificateArn" in resp
 
     resp2 = client.describe_certificate(CertificateArn=resp["CertificateArn"])
-    resp2.should.contain("Certificate")
+    assert "Certificate" in resp2
 
-    resp2["Certificate"].should.have.key("RenewalEligibility").equals("INELIGIBLE")
-    resp2["Certificate"].should.have.key("Options")
-    resp2["Certificate"].should.have.key("DomainValidationOptions").length_of(1)
+    assert resp2["Certificate"]["RenewalEligibility"] == "INELIGIBLE"
+    assert "Options" in resp2["Certificate"]
+    assert len(resp2["Certificate"]["DomainValidationOptions"]) == 1
 
     validation_option = resp2["Certificate"]["DomainValidationOptions"][0]
-    validation_option.should.have.key("DomainName").equals("google.com")
-    validation_option.should.have.key("ValidationDomain").equals("google.com")
+    assert validation_option["DomainName"] == "google.com"
+    assert validation_option["ValidationDomain"] == "google.com"
 
 
 # Also tests the SAN code
@@ -576,26 +567,26 @@ def test_request_certificate_issued_status():
 
     with freeze_time("2012-01-01 12:00:00"):
         resp = client.describe_certificate(CertificateArn=arn)
-    resp["Certificate"]["CertificateArn"].should.equal(arn)
-    resp["Certificate"]["DomainName"].should.equal("google.com")
-    resp["Certificate"]["Issuer"].should.equal("Amazon")
-    resp["Certificate"]["KeyAlgorithm"].should.equal("RSA_2048")
-    resp["Certificate"]["Status"].should.equal("PENDING_VALIDATION")
-    resp["Certificate"]["Type"].should.equal("AMAZON_ISSUED")
-    len(resp["Certificate"]["SubjectAlternativeNames"]).should.equal(3)
+    assert resp["Certificate"]["CertificateArn"] == arn
+    assert resp["Certificate"]["DomainName"] == "google.com"
+    assert resp["Certificate"]["Issuer"] == "Amazon"
+    assert resp["Certificate"]["KeyAlgorithm"] == "RSA_2048"
+    assert resp["Certificate"]["Status"] == "PENDING_VALIDATION"
+    assert resp["Certificate"]["Type"] == "AMAZON_ISSUED"
+    assert len(resp["Certificate"]["SubjectAlternativeNames"]) == 3
 
     # validation will be pending for 1 minute.
     with freeze_time("2012-01-01 12:00:00"):
         resp = client.describe_certificate(CertificateArn=arn)
-    resp["Certificate"]["CertificateArn"].should.equal(arn)
-    resp["Certificate"]["Status"].should.equal("PENDING_VALIDATION")
+    assert resp["Certificate"]["CertificateArn"] == arn
+    assert resp["Certificate"]["Status"] == "PENDING_VALIDATION"
 
     if not settings.TEST_SERVER_MODE:
         # Move time to get it issued.
         with freeze_time("2012-01-01 12:02:00"):
             resp = client.describe_certificate(CertificateArn=arn)
-        resp["Certificate"]["CertificateArn"].should.equal(arn)
-        resp["Certificate"]["Status"].should.equal("ISSUED")
+        assert resp["Certificate"]["CertificateArn"] == arn
+        assert resp["Certificate"]["Status"] == "ISSUED"
 
 
 @mock.patch("moto.settings.ACM_VALIDATION_WAIT", 3)
@@ -613,19 +604,19 @@ def test_request_certificate_issued_status_with_wait_in_envvar():
 
     with freeze_time("2012-01-01 12:00:00"):
         resp = client.describe_certificate(CertificateArn=arn)
-    resp["Certificate"]["CertificateArn"].should.equal(arn)
-    resp["Certificate"]["Status"].should.equal("PENDING_VALIDATION")
+    assert resp["Certificate"]["CertificateArn"] == arn
+    assert resp["Certificate"]["Status"] == "PENDING_VALIDATION"
 
     # validation will be pending for 3 seconds.
     with freeze_time("2012-01-01 12:00:02"):
         resp = client.describe_certificate(CertificateArn=arn)
-    resp["Certificate"]["CertificateArn"].should.equal(arn)
-    resp["Certificate"]["Status"].should.equal("PENDING_VALIDATION")
+    assert resp["Certificate"]["CertificateArn"] == arn
+    assert resp["Certificate"]["Status"] == "PENDING_VALIDATION"
 
     with freeze_time("2012-01-01 12:00:04"):
         resp = client.describe_certificate(CertificateArn=arn)
-    resp["Certificate"]["CertificateArn"].should.equal(arn)
-    resp["Certificate"]["Status"].should.equal("ISSUED")
+    assert resp["Certificate"]["CertificateArn"] == arn
+    assert resp["Certificate"]["Status"] == "ISSUED"
 
 
 @mock_acm
@@ -663,7 +654,7 @@ def test_request_certificate_with_mutiple_times():
                 ],
             )
         arn = resp["CertificateArn"]
-        arn.should.equal(original_arn)
+        assert arn == original_arn
 
     # Move time
     with freeze_time("2012-01-01 13:01:00"):
@@ -673,7 +664,7 @@ def test_request_certificate_with_mutiple_times():
             SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
         )
     arn = resp["CertificateArn"]
-    arn.should_not.equal(original_arn)
+    assert arn != original_arn
 
 
 @mock_acm
@@ -706,6 +697,6 @@ def test_elb_acm_in_use_by():
 
     response = acm_client.describe_certificate(CertificateArn=certificate_arn)
 
-    response["Certificate"]["InUseBy"].should.equal(
-        [create_load_balancer_request["DNSName"]]
-    )
+    assert response["Certificate"]["InUseBy"] == [
+        create_load_balancer_request["DNSName"]
+    ]

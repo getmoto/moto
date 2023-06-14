@@ -1573,6 +1573,10 @@ class APIGatewayBackend(BaseBackend):
                 validate_spec(api_doc)  # type: ignore[arg-type]
             except OpenAPIValidationError as e:
                 raise InvalidOpenAPIDocumentException(e)
+            except AttributeError:
+                # Call can fail in Python3.7 due to `typing_extensions 4.6.0` throwing an error
+                # Easiest to just ignore this for now - Py3.7 is EOL soon anyway
+                pass
         name = api_doc["info"]["title"]
         description = api_doc["info"]["description"]
         api = self.create_rest_api(name=name, description=description)
@@ -1644,6 +1648,10 @@ class APIGatewayBackend(BaseBackend):
                 validate_spec(api_doc)  # type: ignore[arg-type]
             except OpenAPIValidationError as e:
                 raise InvalidOpenAPIDocumentException(e)
+            except AttributeError:
+                # Call can fail in Python3.7 due to `typing_extensions 4.6.0` throwing an error
+                # Easiest to just ignore this for now - Py3.7 is EOL soon anyway
+                pass
 
         if mode == "overwrite":
             api = self.get_rest_api(function_id)

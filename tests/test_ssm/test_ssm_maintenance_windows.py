@@ -153,3 +153,62 @@ def test_delete_maintenance_windows():
 
     resp = ssm.describe_maintenance_windows()
     resp.should.have.key("WindowIdentities").equals([])
+
+
+@mock_ssm
+def test_tags():
+    ssm = boto3.client("ssm", region_name="us-east-1")
+
+    # create without & list
+    mw_id = ssm.create_maintenance_window(
+        Name="simple-window",
+        Schedule="cron(15 12 * * ? *)",
+        Duration=2,
+        Cutoff=1,
+        AllowUnassociatedTargets=False,
+    )["WindowId"]
+
+    # add & list
+    ssm.add_tags_to_resource(
+        ResourceType="MaintenanceWindow",
+        ResourceId=mw_id,
+        Tags=[{"Key": "k1", "Value": "v1"}],
+    )
+    tags = ssm.list_tags_for_resource(
+        ResourceType="MaintenanceWindow", ResourceId=mw_id
+    )["TagList"]
+    assert tags == [{"Key": "k1", "Value": "v1"}]
+
+    # create & list
+    mw_id = ssm.create_maintenance_window(
+        Name="simple-window",
+        Schedule="cron(15 12 * * ? *)",
+        Duration=2,
+        Cutoff=1,
+        AllowUnassociatedTargets=False,
+        Tags=[{"Key": "k2", "Value": "v2"}],
+    )["WindowId"]
+    tags = ssm.list_tags_for_resource(
+        ResourceType="MaintenanceWindow", ResourceId=mw_id
+    )["TagList"]
+    assert tags == [{"Key": "k2", "Value": "v2"}]
+
+    # add more & list
+    ssm.add_tags_to_resource(
+        ResourceType="MaintenanceWindow",
+        ResourceId=mw_id,
+        Tags=[{"Key": "k3", "Value": "v3"}],
+    )
+    tags = ssm.list_tags_for_resource(
+        ResourceType="MaintenanceWindow", ResourceId=mw_id
+    )["TagList"]
+    assert tags == [{"Key": "k2", "Value": "v2"}, {"Key": "k3", "Value": "v3"}]
+
+    # remove & list
+    ssm.remove_tags_from_resource(
+        ResourceType="MaintenanceWindow", ResourceId=mw_id, TagKeys=["k3"]
+    )
+    tags = ssm.list_tags_for_resource(
+        ResourceType="MaintenanceWindow", ResourceId=mw_id
+    )["TagList"]
+    assert tags == [{"Key": "k2", "Value": "v2"}]

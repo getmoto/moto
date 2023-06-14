@@ -14,7 +14,7 @@ def test_get_integration_responses_empty():
     ]
 
     resp = client.get_integration_responses(ApiId=api_id, IntegrationId=int_id)
-    resp.should.have.key("Items").equals([])
+    assert resp["Items"] == []
 
 
 @mock_apigatewayv2
@@ -36,12 +36,12 @@ def test_create_integration_response():
         TemplateSelectionExpression="tse",
     )
 
-    int_res.should.have.key("ContentHandlingStrategy").equals("CONVERT_TO_BINARY")
-    int_res.should.have.key("IntegrationResponseId")
-    int_res.should.have.key("IntegrationResponseKey").equals("int_res_key")
-    int_res.should.have.key("ResponseParameters").equals({"x-header": "header-value"})
-    int_res.should.have.key("ResponseTemplates").equals({"t": "template"})
-    int_res.should.have.key("TemplateSelectionExpression").equals("tse")
+    assert int_res["ContentHandlingStrategy"] == "CONVERT_TO_BINARY"
+    assert "IntegrationResponseId" in int_res
+    assert int_res["IntegrationResponseKey"] == "int_res_key"
+    assert int_res["ResponseParameters"] == {"x-header": "header-value"}
+    assert int_res["ResponseTemplates"] == {"t": "template"}
+    assert int_res["TemplateSelectionExpression"] == "tse"
 
 
 @mock_apigatewayv2
@@ -66,12 +66,12 @@ def test_get_integration_response():
         ApiId=api_id, IntegrationId=int_id, IntegrationResponseId=int_res_id
     )
 
-    int_res.should.have.key("ContentHandlingStrategy").equals("CONVERT_TO_BINARY")
-    int_res.should.have.key("IntegrationResponseId")
-    int_res.should.have.key("IntegrationResponseKey").equals("int_res_key")
-    int_res.should.have.key("ResponseParameters").equals({"x-header": "header-value"})
-    int_res.should.have.key("ResponseTemplates").equals({"t": "template"})
-    int_res.should.have.key("TemplateSelectionExpression").equals("tse")
+    assert int_res["ContentHandlingStrategy"] == "CONVERT_TO_BINARY"
+    assert "IntegrationResponseId" in int_res
+    assert int_res["IntegrationResponseKey"] == "int_res_key"
+    assert int_res["ResponseParameters"] == {"x-header": "header-value"}
+    assert int_res["ResponseTemplates"] == {"t": "template"}
+    assert int_res["TemplateSelectionExpression"] == "tse"
 
 
 @mock_apigatewayv2
@@ -87,10 +87,8 @@ def test_get_integration_response_unknown():
             ApiId=api_id, IntegrationId=int_id, IntegrationResponseId="unknown"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "Invalid IntegrationResponse identifier specified unknown"
-    )
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid IntegrationResponse identifier specified unknown"
 
 
 @mock_apigatewayv2
@@ -114,7 +112,7 @@ def test_delete_integration_response():
             ApiId=api_id, IntegrationId=int_id, IntegrationResponseId=int_res_id
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigatewayv2
@@ -136,9 +134,9 @@ def test_update_integration_response_single_attr():
         ContentHandlingStrategy="CONVERT_TO_BINARY",
     )
 
-    res.should.have.key("ContentHandlingStrategy").equals("CONVERT_TO_BINARY")
-    res.should.have.key("IntegrationResponseId")
-    res.should.have.key("IntegrationResponseKey").equals("int_res_key")
+    assert res["ContentHandlingStrategy"] == "CONVERT_TO_BINARY"
+    assert "IntegrationResponseId" in res
+    assert res["IntegrationResponseKey"] == "int_res_key"
 
 
 @mock_apigatewayv2
@@ -166,9 +164,9 @@ def test_update_integration_response_multiple_attrs():
         TemplateSelectionExpression="tse",
     )
 
-    res.should.have.key("ContentHandlingStrategy").equals("CONVERT_TO_BINARY")
-    res.should.have.key("IntegrationResponseId")
-    res.should.have.key("IntegrationResponseKey").equals("int_res_key2")
-    res.should.have.key("ResponseParameters").equals({"x-header": "header-value"})
-    res.should.have.key("ResponseTemplates").equals({"t": "template"})
-    res.should.have.key("TemplateSelectionExpression").equals("tse")
+    assert res["ContentHandlingStrategy"] == "CONVERT_TO_BINARY"
+    assert "IntegrationResponseId" in res
+    assert res["IntegrationResponseKey"] == "int_res_key2"
+    assert res["ResponseParameters"] == {"x-header": "header-value"}
+    assert res["ResponseTemplates"] == {"t": "template"}
+    assert res["TemplateSelectionExpression"] == "tse"

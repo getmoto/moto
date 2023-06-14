@@ -95,3 +95,24 @@ class ComprehendResponse(BaseResponse):
         tag_keys = params.get("TagKeys")
         self.comprehend_backend.untag_resource(resource_arn, tag_keys)
         return "{}"
+
+    def detect_pii_entities(self) -> str:
+        params = json.loads(self.body)
+        text = params.get("Text")
+        language = params.get("LanguageCode")
+        resp = self.comprehend_backend.detect_pii_entities(text, language)
+        return json.dumps(dict(Entities=resp))
+
+    def detect_key_phrases(self) -> str:
+        params = json.loads(self.body)
+        text = params.get("Text")
+        language = params.get("LanguageCode")
+        resp = self.comprehend_backend.detect_key_phrases(text, language)
+        return json.dumps(dict(KeyPhrases=resp))
+
+    def detect_sentiment(self) -> str:
+        params = json.loads(self.body)
+        text = params.get("Text")
+        language = params.get("LanguageCode")
+        resp = self.comprehend_backend.detect_sentiment(text, language)
+        return json.dumps(resp)

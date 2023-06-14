@@ -2,6 +2,107 @@ Moto Changelog
 ==============
 
 
+4.1.11
+------
+Docker Digest for 4.1.11: _sha256:0ac1ec726e428bd3134c10c32639d72f814bbe002b9d2010420850aab8bc2550_
+
+    New Methods:
+
+        * AppSync:
+            * get_introspection_schema()
+
+        * Comprehend:
+            * detect_key_phrases()
+            * detect_pii_entities()
+            * detect_sentiment()
+
+    Miscellaneous:
+        * EC2: describe_key_pairs() now returns the CreateTime-attribute
+        * EC2: describe_spot_fleet_requests() now returns the Tags-attribute
+        * ECR: put_image(): now behaves correctly on duplicate images with duplicate tags
+        * Organizations: create_policy() now supports the Tags-parameter
+        * RDS: creation times of all objects are now in UTC
+        * Redshift: creation times of all objects are now in UTC
+        * S3: Bucket names are now global, meaning they have to be unique across accounts
+        * S3: select_object_content() now supports None-values
+        * S3: select_object_content() now supports nested FROM-clauses (from x.y as xy)
+        * SecretsManager - update_secret() now supports the Description-parameter
+        * SNS now returns the correct error message for non-existing topics
+        * SNS: Topics are no longer accessible across regions (only across accounts)
+        * SNS: delete_topic() is now idempotent and no longer throws an error for non-existent topics
+        * SQS: Requests and responses in JSON-format are now supported
+        * SSM: MaintenanceWindows now have tagging support
+
+4.1.10
+------
+Docker Digest for 4.1.10: _sha256:095d1dfadc71b4c68f05240129a32acf6dd7ba722c78afd4f01d8c7c3af0ebb4_
+
+    New Services:
+        * Glue:
+            * create_session()
+            * delete_session()
+            * get_session()
+            * list_sessions()
+            * stop_session()
+
+        * Sagemaker:
+            * create_transform_job()
+            * describe_transform_job()
+            * list_transform_jobs()
+
+    Miscellaneous:
+        * Core: The `date`-header is now returned for all operations (set to the current date)
+        * AutoScaling: describe_policies() now returns the field `TargetTrackingConfiguration.CustomizedMetricSpecification.Metrics`
+        * Cloudformation: delete_stack_instances() now behaves correctly when deleting multiple regions
+        * EC2: create_route() now takes the `VpcEndpointId`-parameter into account
+        * EC2: describe_instances() now throws an exception when both the InstanceIds and PaginationConfig parameters are supplied
+        * IAM: get_group() now returns the fields `CreateDate` and `PasswordLastUsed`
+        * RDS: start_export_task() now returns the field `SourceType`
+        * S3: aligned checksum calculation with how AWS behaves
+        * S3: now returns `Accept-Ranges`-headers, instead of `AcceptRanges`, in-line with AWS
+        * S3: copy_object() now behaves correctly when copying objects in encrypted buckets
+        * S3: put_object_legal_hold() now takes the VersionId-parameter into account
+        * S3: put_object_retention() now takes the VersionId-parameter into account
+        * SecretsManager: list_secrets now returns the fields `LastRotatedDate` and `NextRotationDate`
+        * SNS: Topics can now be accessed across accounts
+        * SNS: Fixed a bug so that topics without properties can now be deleted using CloudFormation
+
+
+4.1.9
+-----
+Docker Digest for 4.1.9: _sha256:121a51dcf0e42e53a601803bdeb25324d18b2d45f08a79923c65034f4f14448a_
+
+    New Services:
+        * Glue:
+            * batch_get_triggers
+            * create_trigger
+            * delete_trigger
+            * get_trigger
+            * get_triggers
+            * list_triggers
+            * start_trigger
+            * stop_trigger
+
+        * Glue:
+            * create_contact
+            * create_contact_list
+            * delete_contact
+            * delete_contact_list
+            * get_contact
+            * get_contact_list
+            * list_contact_lists
+            * list_contacts
+            * send_email
+
+    Miscellaneous:
+        * Kinesis: Improve calculations on stream limits
+        * EC2: Improve logic behind describe_image_attribute()
+        * S3: Various improvements to the logic behind copy_object()
+        * Scheduler: update_schedule() now supports the GroupName-parameter
+        * SNS: Improve and enhance validation of numeric parameters
+        * SNS: MessageDeduplicationId is now forwarded to SQS queues (Fixes a bug in 4.1.7)
+
+
 4.1.8
 -----
 Docker Digest for 4.1.8: _sha256:e83d868df71b193d625d9fb031282f6632c6c80d0314cfca6780f9a3f37d1f61_

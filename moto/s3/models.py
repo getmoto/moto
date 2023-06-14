@@ -242,7 +242,7 @@ class FakeKey(BaseModel, ManagedState):
             res["x-amz-server-side-encryption"] = self.encryption
             if self.encryption == "aws:kms" and self.kms_key_id is not None:
                 res["x-amz-server-side-encryption-aws-kms-key-id"] = self.kms_key_id
-        if self.bucket_key_enabled is not None:
+        if self.encryption == "aws:kms" and self.bucket_key_enabled is not None:
             res[
                 "x-amz-server-side-encryption-bucket-key-enabled"
             ] = self.bucket_key_enabled
@@ -937,6 +937,7 @@ class FakeBucket(CloudFormationModel):
         self.default_lock_days: Optional[int] = 0
         self.default_lock_years: Optional[int] = 0
         self.ownership_rule: Optional[Dict[str, Any]] = None
+        s3_backends.bucket_accounts[name] = account_id
 
     @property
     def location(self) -> str:
@@ -1494,6 +1495,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     key.dispose()
             for part in bucket.multiparts.values():
                 part.dispose()
+            s3_backends.bucket_accounts.pop(bucket.name, None)
         #
         # Second, go through the list of instances
         # It may contain FakeKeys created earlier, which are no longer tracked
@@ -1614,7 +1616,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return metrics
 
     def create_bucket(self, bucket_name: str, region_name: str) -> FakeBucket:
-        if bucket_name in self.buckets:
+        if bucket_name in s3_backends.bucket_accounts.keys():
             raise BucketAlreadyExists(bucket=bucket_name)
         if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
             raise InvalidBucketName()
@@ -1646,10 +1648,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return list(self.buckets.values())
 
     def get_bucket(self, bucket_name: str) -> FakeBucket:
-        try:
+        if bucket_name in self.buckets:
             return self.buckets[bucket_name]
-        except KeyError:
-            raise MissingBucket(bucket=bucket_name)
+
+        if bucket_name in s3_backends.bucket_accounts:
+            account_id = s3_backends.bucket_accounts[bucket_name]
+            return s3_backends[account_id]["global"].get_bucket(bucket_name)
+
+        raise MissingBucket(bucket=bucket_name)
 
     def head_bucket(self, bucket_name: str) -> FakeBucket:
         return self.get_bucket(bucket_name)
@@ -1660,6 +1666,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             # Can't delete a bucket with keys
             return None
         else:
+            s3_backends.bucket_accounts.pop(bucket_name, None)
             return self.buckets.pop(bucket_name)
 
     def put_bucket_versioning(self, bucket_name: str, status: str) -> None:
@@ -1888,9 +1895,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return new_key
 
     def put_object_acl(
-        self, bucket_name: str, key_name: str, acl: Optional[FakeAcl]
+        self,
+        bucket_name: str,
+        key_name: str,
+        acl: Optional[FakeAcl],
+        key_is_clean: bool = False,
     ) -> None:
-        key = self.get_object(bucket_name, key_name)
+        key = self.get_object(bucket_name, key_name, key_is_clean=key_is_clean)
         # TODO: Support the XML-based ACL format
         if key is not None:
             key.set_acl(acl)
@@ -1953,6 +1964,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if not key_is_clean:
             key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
+
         key = None
 
         if bucket:
@@ -2369,6 +2381,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         lock_legal_status: Optional[str] = None,
         lock_until: Optional[str] = None,
     ) -> None:
+        bucket = self.get_bucket(dest_bucket_name)
         if src_key.name == dest_key_name and src_key.bucket_name == dest_bucket_name:
             if src_key.encryption and src_key.encryption != "AES256" and not encryption:
                 # this a special case, as now S3 default to AES256 when not provided
@@ -2382,6 +2395,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     encryption,
                     mdirective == "REPLACE",
                     website_redirect_location,
+                    bucket.encryption,  # S3 will allow copy in place if the bucket has encryption configured
                 )
             ):
                 raise CopyObjectMustChangeSomething
@@ -2412,8 +2426,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             # Object copied from Glacier object should not have expiry
             new_key.set_expiry(None)
 
+        if src_key.checksum_value:
+            new_key.checksum_value = src_key.checksum_value
+            new_key.checksum_algorithm = src_key.checksum_algorithm
+
         # Send notifications that an object was copied
-        bucket = self.get_bucket(dest_bucket_name)
         notifications.send_event(
             self.account_id, notifications.S3_OBJECT_CREATE_COPY, bucket, new_key
         )
@@ -2477,12 +2494,39 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
             use_headers = input_details["CSV"].get("FileHeaderInfo", "") == "USE"
             query_input = csv_to_json(query_input, use_headers)
+        query_result = parse_query(query_input, select_query)
+        from py_partiql_parser import SelectEncoder
+
         return [
-            json.dumps(x, indent=None, separators=(",", ":")).encode("utf-8")
-            for x in parse_query(query_input, select_query)
+            json.dumps(x, indent=None, separators=(",", ":"), cls=SelectEncoder).encode(
+                "utf-8"
+            )
+            for x in query_result
         ]
 
 
-s3_backends = BackendDict(
+class S3BackendDict(BackendDict):
+    """
+    Encapsulation class to hold S3 backends.
+
+    This is specialised to include additional attributes to help multi-account support in S3
+    but is otherwise identical to the superclass.
+    """
+
+    def __init__(
+        self,
+        backend: Any,
+        service_name: str,
+        use_boto3_regions: bool = True,
+        additional_regions: Optional[List[str]] = None,
+    ):
+        super().__init__(backend, service_name, use_boto3_regions, additional_regions)
+
+        # Maps bucket names to account IDs. This is used to locate the exact S3Backend
+        # holding the bucket and to maintain the common bucket namespace.
+        self.bucket_accounts: Dict[str, str] = {}
+
+
+s3_backends = S3BackendDict(
     S3Backend, service_name="s3", use_boto3_regions=False, additional_regions=["global"]
 )

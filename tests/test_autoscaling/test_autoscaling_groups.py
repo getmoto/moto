@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_autoscaling
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -27,22 +26,22 @@ class TestAutoScalingGroup(TestCase):
         self._create_group(name="tester_group")
 
         group = self.as_client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-        group["AutoScalingGroupName"].should.equal("tester_group")
-        group["MaxSize"].should.equal(2)
-        group["MinSize"].should.equal(1)
-        group["LaunchConfigurationName"].should.equal(self.lc_name)
+        assert group["AutoScalingGroupName"] == "tester_group"
+        assert group["MaxSize"] == 2
+        assert group["MinSize"] == 1
+        assert group["LaunchConfigurationName"] == self.lc_name
 
         # Defaults
-        group["AvailabilityZones"].should.equal(["us-east-1a"])  # subnet1
-        group["DesiredCapacity"].should.equal(1)
-        group["VPCZoneIdentifier"].should.equal(self.mocked_networking["subnet1"])
-        group["DefaultCooldown"].should.equal(300)
-        group["HealthCheckGracePeriod"].should.equal(300)
-        group["HealthCheckType"].should.equal("EC2")
-        group["LoadBalancerNames"].should.equal([])
-        group.shouldnt.have.key("PlacementGroup")
-        group["TerminationPolicies"].should.equal(["Default"])
-        group["Tags"].should.equal([])
+        assert group["AvailabilityZones"] == ["us-east-1a"]  # subnet1
+        assert group["DesiredCapacity"] == 1
+        assert group["VPCZoneIdentifier"] == self.mocked_networking["subnet1"]
+        assert group["DefaultCooldown"] == 300
+        assert group["HealthCheckGracePeriod"] == 300
+        assert group["HealthCheckType"] == "EC2"
+        assert group["LoadBalancerNames"] == []
+        assert "PlacementGroup" not in group
+        assert group["TerminationPolicies"] == ["Default"]
+        assert group["Tags"] == []
 
     def test_create_autoscaling_group__additional_params(self):
         self.as_client.create_auto_scaling_group(
@@ -55,36 +54,35 @@ class TestAutoScalingGroup(TestCase):
         )
 
         group = self.as_client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-        group["AutoScalingGroupName"].should.equal("tester_group")
-        group["CapacityRebalance"].should.equal(True)
+        assert group["AutoScalingGroupName"] == "tester_group"
+        assert group["CapacityRebalance"] is True
 
     def test_list_many_autoscaling_groups(self):
-
         for i in range(51):
             self._create_group(f"TestGroup{i}")
 
         response = self.as_client.describe_auto_scaling_groups()
         groups = response["AutoScalingGroups"]
         marker = response["NextToken"]
-        groups.should.have.length_of(50)
-        marker.should.equal(groups[-1]["AutoScalingGroupName"])
+        assert len(groups) == 50
+        assert marker == groups[-1]["AutoScalingGroupName"]
 
         response2 = self.as_client.describe_auto_scaling_groups(NextToken=marker)
 
         groups.extend(response2["AutoScalingGroups"])
-        groups.should.have.length_of(51)
+        assert len(groups) == 51
         assert "NextToken" not in response2.keys()
 
     def test_autoscaling_group_delete(self):
         self._create_group(name="tester_group")
 
         groups = self.as_client.describe_auto_scaling_groups()["AutoScalingGroups"]
-        groups.should.have.length_of(1)
+        assert len(groups) == 1
 
         self.as_client.delete_auto_scaling_group(AutoScalingGroupName="tester_group")
 
         groups = self.as_client.describe_auto_scaling_groups()["AutoScalingGroups"]
-        groups.should.have.length_of(0)
+        assert len(groups) == 0
 
     def test_describe_autoscaling_groups__instances(self):
         self._create_group(name="test_asg")
@@ -92,21 +90,22 @@ class TestAutoScalingGroup(TestCase):
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=["test_asg"]
         )
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
         group = response["AutoScalingGroups"][0]
-        group["AutoScalingGroupARN"].should.match(
+        assert (
             f"arn:aws:autoscaling:us-east-1:{ACCOUNT_ID}:autoScalingGroup:"
+            in group["AutoScalingGroupARN"]
         )
-        group["AutoScalingGroupName"].should.equal("test_asg")
-        group["LaunchConfigurationName"].should.equal(self.lc_name)
-        group.should_not.have.key("LaunchTemplate")
-        group["AvailabilityZones"].should.equal(["us-east-1a"])
-        group["VPCZoneIdentifier"].should.equal(self.mocked_networking["subnet1"])
+        assert group["AutoScalingGroupName"] == "test_asg"
+        assert group["LaunchConfigurationName"] == self.lc_name
+        assert "LaunchTemplate" not in group
+        assert group["AvailabilityZones"] == ["us-east-1a"]
+        assert group["VPCZoneIdentifier"] == self.mocked_networking["subnet1"]
         for instance in group["Instances"]:
-            instance["LaunchConfigurationName"].should.equal(self.lc_name)
-            instance.should_not.have.key("LaunchTemplate")
-            instance["AvailabilityZone"].should.equal("us-east-1a")
-            instance["InstanceType"].should.equal("t2.medium")
+            assert instance["LaunchConfigurationName"] == self.lc_name
+            assert "LaunchTemplate" not in instance
+            assert instance["AvailabilityZone"] == "us-east-1a"
+            assert instance["InstanceType"] == "t2.medium"
 
     def test_set_instance_health(self):
         self._create_group(name="test_asg")
@@ -116,7 +115,7 @@ class TestAutoScalingGroup(TestCase):
         )
 
         instance1 = response["AutoScalingGroups"][0]["Instances"][0]
-        instance1["HealthStatus"].should.equal("Healthy")
+        assert instance1["HealthStatus"] == "Healthy"
 
         self.as_client.set_instance_health(
             InstanceId=instance1["InstanceId"], HealthStatus="Unhealthy"
@@ -127,7 +126,7 @@ class TestAutoScalingGroup(TestCase):
         )
 
         instance1 = response["AutoScalingGroups"][0]["Instances"][0]
-        instance1["HealthStatus"].should.equal("Unhealthy")
+        assert instance1["HealthStatus"] == "Unhealthy"
 
     def test_suspend_processes(self):
         self._create_group(name="test-asg")
@@ -175,7 +174,7 @@ class TestAutoScalingGroup(TestCase):
             proc["ProcessName"]
             for proc in res["AutoScalingGroups"][0]["SuspendedProcesses"]
         ]
-        set(suspended_proc_names).should.equal(set(all_proc_names))
+        assert set(suspended_proc_names) == set(all_proc_names)
 
     def test_suspend_additional_processes(self):
         self._create_group(name="test-asg")
@@ -224,8 +223,9 @@ class TestAutoScalingGroup(TestCase):
         expected_suspended_processes = [
             {"ProcessName": "Terminate", "SuspensionReason": ""}
         ]
-        res["AutoScalingGroups"][0]["SuspendedProcesses"].should.equal(
-            expected_suspended_processes
+        assert (
+            res["AutoScalingGroups"][0]["SuspendedProcesses"]
+            == expected_suspended_processes
         )
 
     def test_resume_processes_all_by_default(self):
@@ -243,7 +243,7 @@ class TestAutoScalingGroup(TestCase):
         )
 
         # No processes should be suspended
-        res["AutoScalingGroups"][0]["SuspendedProcesses"].should.equal([])
+        assert res["AutoScalingGroups"][0]["SuspendedProcesses"] == []
 
     def _create_group(self, name):
         self.as_client.create_auto_scaling_group(

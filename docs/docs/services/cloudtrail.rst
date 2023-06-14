@@ -67,9 +67,11 @@ cloudtrail
 - [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
+- [ ] start_event_data_store_ingestion
 - [ ] start_import
 - [X] start_logging
 - [ ] start_query
+- [ ] stop_event_data_store_ingestion
 - [ ] stop_import
 - [X] stop_logging
 - [ ] update_channel

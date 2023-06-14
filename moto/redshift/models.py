@@ -31,7 +31,6 @@ from .exceptions import (
 
 
 class TaggableResourceMixin:
-
     resource_type = ""
 
     def __init__(
@@ -61,7 +60,6 @@ class TaggableResourceMixin:
 
 
 class Cluster(TaggableResourceMixin, CloudFormationModel):
-
     resource_type = "cluster"
 
     def __init__(
@@ -330,7 +328,6 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
 
 class SnapshotCopyGrant(TaggableResourceMixin, BaseModel):
-
     resource_type = "snapshotcopygrant"
 
     def __init__(self, snapshot_copy_grant_name: str, kms_key_id: str):
@@ -345,7 +342,6 @@ class SnapshotCopyGrant(TaggableResourceMixin, BaseModel):
 
 
 class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
-
     resource_type = "subnetgroup"
 
     def __init__(
@@ -425,7 +421,6 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
 
 
 class SecurityGroup(TaggableResourceMixin, BaseModel):
-
     resource_type = "securitygroup"
 
     def __init__(
@@ -456,7 +451,6 @@ class SecurityGroup(TaggableResourceMixin, BaseModel):
 
 
 class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
-
     resource_type = "parametergroup"
 
     def __init__(
@@ -516,7 +510,6 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
 
 
 class Snapshot(TaggableResourceMixin, BaseModel):
-
     resource_type = "snapshot"
 
     def __init__(
@@ -534,7 +527,9 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         self.snapshot_identifier = snapshot_identifier
         self.snapshot_type = snapshot_type
         self.status = "available"
-        self.create_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        self.create_time = iso_8601_datetime_with_milliseconds(
+            datetime.datetime.utcnow()
+        )
         self.iam_roles_arn = iam_roles_arn or []
 
     @property
@@ -1086,7 +1081,9 @@ class RedshiftBackend(BaseBackend):
             raise InvalidParameterValueError(
                 "Token duration must be between 900 and 3600 seconds"
             )
-        expiration = datetime.datetime.now() + datetime.timedelta(0, duration_seconds)
+        expiration = datetime.datetime.utcnow() + datetime.timedelta(
+            0, duration_seconds
+        )
         if cluster_identifier in self.clusters:
             user_prefix = "IAM:" if auto_create is False else "IAMA:"
             db_user = user_prefix + db_user

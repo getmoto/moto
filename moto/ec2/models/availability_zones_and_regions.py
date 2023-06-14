@@ -76,6 +76,7 @@ class RegionsAndZonesBackend:
         "ap-south-1": [
             Zone(region_name="ap-south-1", name="ap-south-1a", zone_id="aps1-az1"),
             Zone(region_name="ap-south-1", name="ap-south-1b", zone_id="aps1-az3"),
+            Zone(region_name="ap-south-1", name="ap-south-1c", zone_id="aps1-az2"),
         ],
         "eu-west-3": [
             Zone(region_name="eu-west-3", name="eu-west-3a", zone_id="euw3-az1"),
@@ -160,11 +161,13 @@ class RegionsAndZonesBackend:
         ],
         "sa-east-1": [
             Zone(region_name="sa-east-1", name="sa-east-1a", zone_id="sae1-az1"),
+            Zone(region_name="sa-east-1", name="sa-east-1b", zone_id="sae1-az2"),
             Zone(region_name="sa-east-1", name="sa-east-1c", zone_id="sae1-az3"),
         ],
         "ca-central-1": [
             Zone(region_name="ca-central-1", name="ca-central-1a", zone_id="cac1-az1"),
             Zone(region_name="ca-central-1", name="ca-central-1b", zone_id="cac1-az2"),
+            Zone(region_name="ca-central-1", name="ca-central-1d", zone_id="cac1-az4"),
         ],
         "ap-southeast-1": [
             Zone(
@@ -248,6 +251,7 @@ class RegionsAndZonesBackend:
             Zone(region_name="us-west-2", name="us-west-2a", zone_id="usw2-az2"),
             Zone(region_name="us-west-2", name="us-west-2b", zone_id="usw2-az1"),
             Zone(region_name="us-west-2", name="us-west-2c", zone_id="usw2-az3"),
+            Zone(region_name="us-west-2", name="us-west-2d", zone_id="usw2-az4"),
         ],
         "me-south-1": [
             Zone(region_name="me-south-1", name="me-south-1a", zone_id="mes1-az1"),

@@ -15,6 +15,7 @@ from moto.ecr.exceptions import (
     RepositoryAlreadyExistsException,
     RepositoryNotEmptyException,
     InvalidParameterException,
+    ImageAlreadyExistsException,
     RepositoryPolicyNotFoundException,
     LifecyclePolicyNotFoundException,
     RegistryPolicyNotFoundException,
@@ -566,19 +567,28 @@ class ECRBackend(BaseBackend):
             else:
                 image_manifest_mediatype = parsed_image_manifest["mediaType"]
 
-        # Tags are unique, so delete any existing image with this tag first
-        self.batch_delete_image(
-            repository_name=repository_name, image_ids=[{"imageTag": image_tag}]
-        )
-
-        existing_images = list(
+        existing_images_with_matching_manifest = list(
             filter(
                 lambda x: x.response_object["imageManifest"] == image_manifest,
                 repository.images,
             )
         )
 
-        if not existing_images:
+        # if an image with a matching manifest exists and it is tagged,
+        # trying to put the same image with the same tag will result in an
+        # ImageAlreadyExistsException
+
+        try:
+            existing_images_with_matching_tag = list(
+                filter(
+                    lambda x: x.response_object["imageTag"] == image_tag,
+                    repository.images,
+                )
+            )
+        except KeyError:
+            existing_images_with_matching_tag = []
+
+        if not existing_images_with_matching_manifest:
             # this image is not in ECR yet
             image = Image(
                 self.account_id,
@@ -588,11 +598,27 @@ class ECRBackend(BaseBackend):
                 image_manifest_mediatype,
             )
             repository.images.append(image)
+            if existing_images_with_matching_tag:
+                # Tags are unique, so delete any existing image with this tag first
+                # (or remove the tag if the image has more than one tag)
+                self.batch_delete_image(
+                    repository_name=repository_name, image_ids=[{"imageTag": image_tag}]
+                )
             return image
         else:
-            # update existing image
-            existing_images[0].update_tag(image_tag)
-            return existing_images[0]
+            # this image is in ECR
+            image = existing_images_with_matching_manifest[0]
+            if image.image_tag == image_tag:
+                raise ImageAlreadyExistsException(
+                    registry_id=repository.registry_id,
+                    image_tag=image_tag,
+                    digest=image.get_image_digest(),
+                    repository_name=repository_name,
+                )
+            else:
+                # update existing image
+                image.update_tag(image_tag)
+                return image
 
     def batch_get_image(
         self,

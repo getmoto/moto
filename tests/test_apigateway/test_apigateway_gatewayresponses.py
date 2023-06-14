@@ -12,8 +12,8 @@ def test_put_gateway_response_minimal():
 
     resp = client.put_gateway_response(restApiId=api_id, responseType="DEFAULT_4XX")
 
-    resp.should.have.key("responseType").equals("DEFAULT_4XX")
-    resp.should.have.key("defaultResponse").equals(False)
+    assert resp["responseType"] == "DEFAULT_4XX"
+    assert resp["defaultResponse"] is False
 
 
 @mock_apigateway
@@ -31,15 +31,15 @@ def test_put_gateway_response():
         },
     )
 
-    resp.should.have.key("responseType").equals("DEFAULT_4XX")
-    resp.should.have.key("defaultResponse").equals(False)
-    resp.should.have.key("statusCode").equals("401")
-    resp.should.have.key("responseParameters").equals(
-        {"gatewayresponse.header.Authorization": "'Basic'"}
-    )
-    resp.should.have.key("responseTemplates").equals(
-        {"application/xml": "#set($inputRoot = $input.path('$'))\n{ }"}
-    )
+    assert resp["responseType"] == "DEFAULT_4XX"
+    assert resp["defaultResponse"] is False
+    assert resp["statusCode"] == "401"
+    assert resp["responseParameters"] == {
+        "gatewayresponse.header.Authorization": "'Basic'"
+    }
+    assert resp["responseTemplates"] == {
+        "application/xml": "#set($inputRoot = $input.path('$'))\n{ }"
+    }
 
 
 @mock_apigateway
@@ -51,8 +51,8 @@ def test_get_gateway_response_minimal():
 
     resp = client.get_gateway_response(restApiId=api_id, responseType="DEFAULT_4XX")
 
-    resp.should.have.key("responseType").equals("DEFAULT_4XX")
-    resp.should.have.key("defaultResponse").equals(False)
+    assert resp["responseType"] == "DEFAULT_4XX"
+    assert resp["defaultResponse"] is False
 
 
 @mock_apigateway
@@ -72,15 +72,15 @@ def test_get_gateway_response():
 
     resp = client.get_gateway_response(restApiId=api_id, responseType="DEFAULT_4XX")
 
-    resp.should.have.key("responseType").equals("DEFAULT_4XX")
-    resp.should.have.key("defaultResponse").equals(False)
-    resp.should.have.key("statusCode").equals("401")
-    resp.should.have.key("responseParameters").equals(
-        {"gatewayresponse.header.Authorization": "'Basic'"}
-    )
-    resp.should.have.key("responseTemplates").equals(
-        {"application/xml": "#set($inputRoot = $input.path('$'))\n{ }"}
-    )
+    assert resp["responseType"] == "DEFAULT_4XX"
+    assert resp["defaultResponse"] is False
+    assert resp["statusCode"] == "401"
+    assert resp["responseParameters"] == {
+        "gatewayresponse.header.Authorization": "'Basic'"
+    }
+    assert resp["responseTemplates"] == {
+        "application/xml": "#set($inputRoot = $input.path('$'))\n{ }"
+    }
 
 
 @mock_apigateway
@@ -91,7 +91,7 @@ def test_get_gateway_response_unknown():
     with pytest.raises(ClientError) as exc:
         client.get_gateway_response(restApiId=api_id, responseType="DEFAULT_4XX")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"
 
 
 @mock_apigateway
@@ -100,7 +100,7 @@ def test_get_gateway_responses_empty():
     api_id = client.create_rest_api(name="my_api", description="d")["id"]
     resp = client.get_gateway_responses(restApiId=api_id)
 
-    resp.should.have.key("items").equals([])
+    assert resp["items"] == []
 
 
 @mock_apigateway
@@ -113,14 +113,14 @@ def test_get_gateway_responses():
     )
 
     resp = client.get_gateway_responses(restApiId=api_id)
-    resp.should.have.key("items").length_of(2)
+    assert len(resp["items"]) == 2
 
-    resp["items"].should.contain(
-        {"responseType": "DEFAULT_4XX", "defaultResponse": False}
-    )
-    resp["items"].should.contain(
-        {"responseType": "DEFAULT_5XX", "defaultResponse": False, "statusCode": "503"}
-    )
+    assert {"responseType": "DEFAULT_4XX", "defaultResponse": False} in resp["items"]
+    assert {
+        "responseType": "DEFAULT_5XX",
+        "defaultResponse": False,
+        "statusCode": "503",
+    } in resp["items"]
 
 
 @mock_apigateway
@@ -133,12 +133,10 @@ def test_delete_gateway_response():
     )
 
     resp = client.get_gateway_responses(restApiId=api_id)
-    resp.should.have.key("items").length_of(2)
+    assert len(resp["items"]) == 2
 
-    resp = client.delete_gateway_response(restApiId=api_id, responseType="DEFAULT_5XX")
+    client.delete_gateway_response(restApiId=api_id, responseType="DEFAULT_5XX")
 
     resp = client.get_gateway_responses(restApiId=api_id)
-    resp.should.have.key("items").length_of(1)
-    resp["items"].should.contain(
-        {"responseType": "DEFAULT_4XX", "defaultResponse": False}
-    )
+    assert len(resp["items"]) == 1
+    assert {"responseType": "DEFAULT_4XX", "defaultResponse": False} in resp["items"]

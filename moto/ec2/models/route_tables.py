@@ -19,6 +19,7 @@ from ..exceptions import (
     InvalidAssociationIdError,
     InvalidDestinationCIDRBlockParameterError,
     RouteAlreadyExistsError,
+    RouteNotSupportedError,
 )
 from ..utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -141,6 +142,7 @@ class Route(CloudFormationModel):
         interface: Optional[NetworkInterface] = None,
         vpc_pcx: Optional[VPCPeeringConnection] = None,
         carrier_gateway: Optional[CarrierGateway] = None,
+        vpc_endpoint_id: Optional[str] = None,
     ):
         self.id = generate_route_id(
             route_table.id,
@@ -161,6 +163,7 @@ class Route(CloudFormationModel):
         self.interface = interface
         self.vpc_pcx = vpc_pcx
         self.carrier_gateway = carrier_gateway
+        self.vpc_endpoint_id = vpc_endpoint_id
 
     @property
     def physical_resource_id(self) -> str:
@@ -359,6 +362,7 @@ class RouteBackend:
         interface_id: Optional[str] = None,
         vpc_peering_connection_id: Optional[str] = None,
         carrier_gateway_id: Optional[str] = None,
+        vpc_endpoint_id: Optional[str] = None,
     ) -> Route:
         gateway = None
         nat_gateway = None
@@ -367,6 +371,13 @@ class RouteBackend:
         interface = None
         destination_prefix_list = None
         carrier_gateway = None
+
+        if vpc_endpoint_id:
+            vpce = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_endpoint_id])  # type: ignore[attr-defined]
+            if not vpce[0].endpoint_type == "GatewayLoadBalancer":
+                # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_route.html
+                # VpcEndpointId (string) – The ID of a VPC endpoint. Supported for Gateway Load Balancer endpoints only.
+                raise RouteNotSupportedError(vpc_endpoint_id)
 
         route_table = self.get_route_table(route_table_id)
 
@@ -414,6 +425,7 @@ class RouteBackend:
             transit_gateway=transit_gateway,
             interface=interface,
             carrier_gateway=carrier_gateway,
+            vpc_endpoint_id=vpc_endpoint_id,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)  # type: ignore[attr-defined]
             if vpc_peering_connection_id
             else None,

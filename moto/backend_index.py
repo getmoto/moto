@@ -6,6 +6,7 @@ backend_url_patterns = [
     ("acm-pca", re.compile("https?://acm-pca\\.(.+)\\.amazonaws\\.com")),
     ("amp", re.compile("https?://aps\\.(.+)\\.amazonaws\\.com")),
     ("apigateway", re.compile("https?://apigateway\\.(.+)\\.amazonaws.com")),
+    ("appconfig", re.compile("https?://appconfig\\.(.+)\\.amazonaws\\.com")),
     (
         "applicationautoscaling",
         re.compile("https?://application-autoscaling\\.(.+)\\.amazonaws.com"),
@@ -158,7 +159,6 @@ backend_url_patterns = [
     ("service-quotas", re.compile("https?://servicequotas\\.(.+)\\.amazonaws\\.com")),
     ("ses", re.compile("https?://email\\.(.+)\\.amazonaws\\.com")),
     ("ses", re.compile("https?://ses\\.(.+)\\.amazonaws\\.com")),
-    ("sesv2", re.compile("https?://ses\\.(.+)\\.amazonaws\\.com")),
     ("sesv2", re.compile("https?://email\\.(.+)\\.amazonaws\\.com")),
     ("signer", re.compile("https?://signer\\.(.+)\\.amazonaws\\.com")),
     ("sns", re.compile("https?://sns\\.(.+)\\.amazonaws\\.com")),

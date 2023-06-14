@@ -10,7 +10,7 @@ def test_get_vpc_links_empty():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
 
     resp = client.get_vpc_links()
-    resp.should.have.key("Items").equals([])
+    assert resp["Items"] == []
 
 
 @mock_apigatewayv2
@@ -24,14 +24,14 @@ def test_create_vpc_links():
         Tags={"key1": "value1"},
     )
 
-    resp.should.have.key("CreatedDate")
-    resp.should.have.key("Name").equals("vpcl")
-    resp.should.have.key("SecurityGroupIds").equals(["sg1", "sg2"])
-    resp.should.have.key("SubnetIds").equals(["sid1", "sid2"])
-    resp.should.have.key("Tags").equals({"key1": "value1"})
-    resp.should.have.key("VpcLinkId")
-    resp.should.have.key("VpcLinkStatus").equals("AVAILABLE")
-    resp.should.have.key("VpcLinkVersion").equals("V2")
+    assert "CreatedDate" in resp
+    assert resp["Name"] == "vpcl"
+    assert resp["SecurityGroupIds"] == ["sg1", "sg2"]
+    assert resp["SubnetIds"] == ["sid1", "sid2"]
+    assert resp["Tags"] == {"key1": "value1"}
+    assert "VpcLinkId" in resp
+    assert resp["VpcLinkStatus"] == "AVAILABLE"
+    assert resp["VpcLinkVersion"] == "V2"
 
 
 @mock_apigatewayv2
@@ -47,14 +47,14 @@ def test_get_vpc_link():
 
     resp = client.get_vpc_link(VpcLinkId=vpc_link_id)
 
-    resp.should.have.key("CreatedDate")
-    resp.should.have.key("Name").equals("vpcl")
-    resp.should.have.key("SecurityGroupIds").equals(["sg1", "sg2"])
-    resp.should.have.key("SubnetIds").equals(["sid1", "sid2"])
-    resp.should.have.key("Tags").equals({"key1": "value1"})
-    resp.should.have.key("VpcLinkId")
-    resp.should.have.key("VpcLinkStatus").equals("AVAILABLE")
-    resp.should.have.key("VpcLinkVersion").equals("V2")
+    assert "CreatedDate" in resp
+    assert resp["Name"] == "vpcl"
+    assert resp["SecurityGroupIds"] == ["sg1", "sg2"]
+    assert resp["SubnetIds"] == ["sid1", "sid2"]
+    assert resp["Tags"] == {"key1": "value1"}
+    assert "VpcLinkId" in resp
+    assert resp["VpcLinkStatus"] == "AVAILABLE"
+    assert resp["VpcLinkVersion"] == "V2"
 
 
 @mock_apigatewayv2
@@ -64,8 +64,8 @@ def test_get_vpc_link_unknown():
     with pytest.raises(ClientError) as exc:
         client.get_vpc_link(VpcLinkId="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Invalid VpcLink identifier specified unknown")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid VpcLink identifier specified unknown"
 
 
 @mock_apigatewayv2
@@ -80,8 +80,8 @@ def test_get_vpc_links():
     )["VpcLinkId"]
 
     links = client.get_vpc_links()["Items"]
-    links.should.have.length_of(1)
-    links[0]["VpcLinkId"].should.equal(vpc_link_id)
+    assert len(links) == 1
+    assert links[0]["VpcLinkId"] == vpc_link_id
 
     client.create_vpc_link(
         Name="vpcl",
@@ -91,7 +91,7 @@ def test_get_vpc_links():
     )
 
     links = client.get_vpc_links()["Items"]
-    links.should.have.length_of(2)
+    assert len(links) == 2
 
 
 @mock_apigatewayv2
@@ -106,12 +106,12 @@ def test_delete_vpc_link():
     )["VpcLinkId"]
 
     links = client.get_vpc_links()["Items"]
-    links.should.have.length_of(1)
+    assert len(links) == 1
 
     client.delete_vpc_link(VpcLinkId=vpc_link_id)
 
     links = client.get_vpc_links()["Items"]
-    links.should.have.length_of(0)
+    assert len(links) == 0
 
 
 @mock_apigatewayv2
@@ -126,14 +126,14 @@ def test_update_vpc_link():
 
     resp = client.update_vpc_link(VpcLinkId=vpc_link_id, Name="vpcl2")
 
-    resp.should.have.key("CreatedDate")
-    resp.should.have.key("Name").equals("vpcl2")
-    resp.should.have.key("SecurityGroupIds").equals(["sg1", "sg2"])
-    resp.should.have.key("SubnetIds").equals(["sid1", "sid2"])
-    resp.should.have.key("Tags").equals({"key1": "value1"})
-    resp.should.have.key("VpcLinkId")
-    resp.should.have.key("VpcLinkStatus").equals("AVAILABLE")
-    resp.should.have.key("VpcLinkVersion").equals("V2")
+    assert "CreatedDate" in resp
+    assert resp["Name"] == "vpcl2"
+    assert resp["SecurityGroupIds"] == ["sg1", "sg2"]
+    assert resp["SubnetIds"] == ["sid1", "sid2"]
+    assert resp["Tags"] == {"key1": "value1"}
+    assert "VpcLinkId" in resp
+    assert resp["VpcLinkStatus"] == "AVAILABLE"
+    assert resp["VpcLinkVersion"] == "V2"
 
 
 @mock_apigatewayv2
@@ -152,11 +152,11 @@ def test_untag_vpc_link():
 
     resp = client.get_vpc_link(VpcLinkId=vpc_link_id)
 
-    resp.should.have.key("CreatedDate")
-    resp.should.have.key("Name").equals("vpcl")
-    resp.should.have.key("SecurityGroupIds").equals(["sg1", "sg2"])
-    resp.should.have.key("SubnetIds").equals(["sid1", "sid2"])
-    resp.should.have.key("Tags").equals({"key2": "val2"})
-    resp.should.have.key("VpcLinkId")
-    resp.should.have.key("VpcLinkStatus").equals("AVAILABLE")
-    resp.should.have.key("VpcLinkVersion").equals("V2")
+    assert "CreatedDate" in resp
+    assert resp["Name"] == "vpcl"
+    assert resp["SecurityGroupIds"] == ["sg1", "sg2"]
+    assert resp["SubnetIds"] == ["sid1", "sid2"]
+    assert resp["Tags"] == {"key2": "val2"}
+    assert "VpcLinkId" in resp
+    assert resp["VpcLinkStatus"] == "AVAILABLE"
+    assert resp["VpcLinkVersion"] == "V2"

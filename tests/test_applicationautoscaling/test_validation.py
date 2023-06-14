@@ -3,7 +3,6 @@ from moto import mock_applicationautoscaling, mock_ecs
 from moto.applicationautoscaling import models
 from moto.applicationautoscaling.exceptions import AWSValidationException
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from .test_applicationautoscaling import register_scalable_target
 
@@ -28,11 +27,9 @@ def test_describe_scalable_targets_with_invalid_scalable_dimension_should_return
             ServiceNamespace=DEFAULT_SERVICE_NAMESPACE, ScalableDimension="foo"
         )
     err = ex.value.response
-    err["Error"]["Code"].should.equal("ValidationException")
-    err["Error"]["Message"].split(":")[0].should.look_like(
-        "1 validation error detected"
-    )
-    err["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert err["Error"]["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Error"]["Message"]
+    assert err["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_applicationautoscaling
@@ -44,11 +41,9 @@ def test_describe_scalable_targets_with_invalid_service_namespace_should_return_
             ServiceNamespace="foo", ScalableDimension=DEFAULT_SCALABLE_DIMENSION
         )
     err = ex.value.response
-    err["Error"]["Code"].should.equal("ValidationException")
-    err["Error"]["Message"].split(":")[0].should.look_like(
-        "1 validation error detected"
-    )
-    err["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert err["Error"]["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Error"]["Message"]
+    assert err["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_applicationautoscaling
@@ -60,11 +55,9 @@ def test_describe_scalable_targets_with_multiple_invalid_parameters_should_retur
             ServiceNamespace="foo", ScalableDimension="bar"
         )
     err = ex.value.response
-    err["Error"]["Code"].should.equal("ValidationException")
-    err["Error"]["Message"].split(":")[0].should.look_like(
-        "2 validation errors detected"
-    )
-    err["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert err["Error"]["Code"] == "ValidationException"
+    assert "2 validation errors detected" in err["Error"]["Message"]
+    assert err["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_ecs
@@ -76,9 +69,9 @@ def test_register_scalable_target_ecs_with_non_existent_service_should_return_cl
     with pytest.raises(ClientError) as ex:
         register_scalable_target(client, ServiceNamespace="ecs", ResourceId=resource_id)
     err = ex.value.response
-    err["Error"]["Code"].should.equal("ClusterNotFoundException")
-    err["Error"]["Message"].should.equal("Cluster not found.")
-    err["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert err["Error"]["Code"] == "ClusterNotFoundException"
+    assert err["Error"]["Message"] == "Cluster not found."
+    assert err["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @pytest.mark.parametrize(
@@ -91,9 +84,7 @@ def test_register_scalable_target_ecs_with_non_existent_service_should_return_cl
 )
 def test_target_params_are_valid_success(namespace, r_id, dimension, expected):
     if expected is True:
-        models._target_params_are_valid(namespace, r_id, dimension).should.equal(
-            expected
-        )
+        assert models._target_params_are_valid(namespace, r_id, dimension) == expected
     else:
         with pytest.raises(AWSValidationException):
             models._target_params_are_valid(namespace, r_id, dimension)

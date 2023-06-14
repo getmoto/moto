@@ -349,6 +349,10 @@ class Parameter(CloudFormationModel):
 
         ssm_backend.delete_parameter(properties.get("Name"))
 
+    @property
+    def physical_resource_id(self) -> str:
+        return self.name
+
 
 MAX_TIMEOUT_SECONDS = 3600
 
@@ -1981,6 +1985,9 @@ class SimpleSystemManagerBackend(BaseBackend):
                 raise InvalidResourceId()
             else:
                 return
+        elif resource_type == "MaintenanceWindow":
+            if resource_id not in self.windows:
+                raise InvalidResourceId()
         elif resource_type not in (
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html#SSM.Client.remove_tags_from_resource
             "ManagedInstance",
@@ -2076,6 +2083,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         schedule_offset: int,
         start_date: str,
         end_date: str,
+        tags: Optional[List[Dict[str, str]]],
     ) -> str:
         """
         Creates a maintenance window. No error handling or input validation has been implemented yet.
@@ -2092,6 +2100,11 @@ class SimpleSystemManagerBackend(BaseBackend):
             end_date,
         )
         self.windows[window.id] = window
+
+        if tags:
+            window_tags = {t["Key"]: t["Value"] for t in tags}
+            self.add_tags_to_resource("MaintenanceWindow", window.id, window_tags)
+
         return window.id
 
     def get_maintenance_window(self, window_id: str) -> FakeMaintenanceWindow:

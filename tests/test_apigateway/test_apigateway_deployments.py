@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_apigateway
@@ -17,9 +16,10 @@ def test_create_deployment_requires_REST_methods():
 
     with pytest.raises(ClientError) as ex:
         client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "The REST API doesn't contain any methods"
+    assert ex.value.response["Error"]["Code"] == "BadRequestException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The REST API doesn't contain any methods"
     )
 
 
@@ -38,10 +38,8 @@ def test_create_deployment_requires_REST_method_integrations():
 
     with pytest.raises(ClientError) as ex:
         client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "No integration defined for method"
-    )
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+    assert ex.value.response["Error"]["Message"] == "No integration defined for method"
 
 
 @mock_apigateway
@@ -53,7 +51,7 @@ def test_create_simple_deployment_with_get_method():
     create_method_integration(client, api_id)
 
     deployment = client.create_deployment(restApiId=api_id, stageName=stage_name)
-    deployment.should.have.key("id")
+    assert "id" in deployment
 
 
 @mock_apigateway
@@ -65,7 +63,7 @@ def test_create_simple_deployment_with_post_method():
     create_method_integration(client, api_id, httpMethod="POST")
 
     deployment = client.create_deployment(restApiId=api_id, stageName=stage_name)
-    deployment.should.have.key("id")
+    assert "id" in deployment
 
 
 @mock_apigateway
@@ -80,10 +78,8 @@ def test_create_deployment_minimal():
     deployment_id = response["id"]
 
     response = client.get_deployment(restApiId=api_id, deploymentId=deployment_id)
-    response.should.have.key("id").equals(deployment_id)
-    response.should.have.key("ResponseMetadata").should.have.key(
-        "HTTPStatusCode"
-    ).equals(200)
+    assert response["id"] == deployment_id
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_apigateway
@@ -97,13 +93,13 @@ def test_create_deployment_with_empty_stage():
     deployment_id = response["id"]
 
     response = client.get_deployment(restApiId=api_id, deploymentId=deployment_id)
-    response.should.have.key("id")
-    response.should.have.key("createdDate")
-    response.shouldnt.have.key("stageName")
+    assert "id" in response
+    assert "createdDate" in response
+    assert "stageName" not in response
 
     # This should not create an empty stage
     stages = client.get_stages(restApiId=api_id)["item"]
-    stages.should.equal([])
+    assert stages == []
 
 
 @mock_apigateway
@@ -118,10 +114,10 @@ def test_get_deployments():
     deployment_id = response["id"]
 
     response = client.get_deployments(restApiId=api_id)
-    response.should.have.key("items").length_of(1)
+    assert len(response["items"]) == 1
 
     response["items"][0].pop("createdDate")
-    response["items"].should.equal([{"id": deployment_id}])
+    assert response["items"] == [{"id": deployment_id}]
 
 
 @mock_apigateway
@@ -143,8 +139,8 @@ def test_create_multiple_deployments():
 
     response = client.get_deployments(restApiId=api_id)
 
-    response["items"][0]["id"].should.match(rf"{deployment_id2}|{deployment_id}")
-    response["items"][1]["id"].should.match(rf"{deployment_id2}|{deployment_id}")
+    assert response["items"][0]["id"] in [deployment_id, deployment_id2]
+    assert response["items"][1]["id"] in [deployment_id, deployment_id2]
 
 
 @mock_apigateway
@@ -162,38 +158,39 @@ def test_delete_deployment__requires_stage_to_be_deleted():
     with pytest.raises(ClientError) as exc:
         client.delete_deployment(restApiId=api_id, deploymentId=deployment_id)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.equal(
-        "Active stages pointing to this deployment must be moved or deleted"
+    assert err["Code"] == "BadRequestException"
+    assert (
+        err["Message"]
+        == "Active stages pointing to this deployment must be moved or deleted"
     )
 
     # Deployment still exists
     deployments = client.get_deployments(restApiId=api_id)["items"]
-    deployments.should.have.length_of(1)
+    assert len(deployments) == 1
 
     # Stage still exists
     stages = client.get_stages(restApiId=api_id)["item"]
-    stages.should.have.length_of(1)
+    assert len(stages) == 1
 
     # Delete stage first
     resp = client.delete_stage(restApiId=api_id, stageName=stage_name)
-    resp["ResponseMetadata"].should.have.key("HTTPStatusCode").equals(202)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 202
 
     # Deployment still exists
     deployments = client.get_deployments(restApiId=api_id)["items"]
-    deployments.should.have.length_of(1)
+    assert len(deployments) == 1
 
     # Now delete deployment
     resp = client.delete_deployment(restApiId=api_id, deploymentId=deployment_id)
-    resp["ResponseMetadata"].should.have.key("HTTPStatusCode").equals(202)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 202
 
     # Deployment is gone
     deployments = client.get_deployments(restApiId=api_id)["items"]
-    deployments.should.have.length_of(0)
+    assert len(deployments) == 0
 
     # Stage is gone
     stages = client.get_stages(restApiId=api_id)["item"]
-    stages.should.have.length_of(0)
+    assert len(stages) == 0
 
 
 @mock_apigateway
@@ -206,5 +203,5 @@ def test_delete_unknown_deployment():
     with pytest.raises(ClientError) as exc:
         client.delete_deployment(restApiId=api_id, deploymentId="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Invalid Deployment identifier specified")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Invalid Deployment identifier specified"

@@ -421,6 +421,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         schedule_offset = self._get_int_param("ScheduleOffset")
         start_date = self._get_param("StartDate")
         end_date = self._get_param("EndDate")
+        tags = self._get_param("Tags")
         window_id = self.ssm_backend.create_maintenance_window(
             name=name,
             description=desc,
@@ -431,6 +432,7 @@ class SimpleSystemManagerResponse(BaseResponse):
             schedule_offset=schedule_offset,
             start_date=start_date,
             end_date=end_date,
+            tags=tags,
         )
         return json.dumps({"WindowId": window_id})
 

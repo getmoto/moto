@@ -10,7 +10,7 @@ def test_create_api_with_tags():
         Name="test-api", ProtocolType="HTTP", Tags={"key1": "value1", "key2": "value2"}
     )
 
-    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+    assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
 @mock_apigatewayv2
@@ -25,7 +25,7 @@ def test_tag_resource():
 
     resp = client.get_api(ApiId=api_id)
 
-    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+    assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
 @mock_apigatewayv2
@@ -40,7 +40,7 @@ def test_get_tags():
 
     resp = client.get_tags(ResourceArn=resource_arn)
 
-    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+    assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
 @mock_apigatewayv2
@@ -59,4 +59,4 @@ def test_untag_resource():
 
     resp = client.get_tags(ResourceArn=resource_arn)
 
-    resp.should.have.key("Tags").equals({"key1": "value1", "key3": "value3"})
+    assert resp["Tags"] == {"key1": "value1", "key3": "value3"}

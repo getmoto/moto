@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_amp
@@ -15,9 +14,9 @@ def test_create_workspace():
     client = boto3.client("amp", region_name="ap-southeast-1")
     resp = client.create_workspace(alias="test", clientToken="mytoken")
 
-    resp.should.have.key("arn")
-    resp.should.have.key("status").equals({"statusCode": "ACTIVE"})
-    resp.should.have.key("workspaceId")
+    assert "arn" in resp
+    assert resp["status"] == {"statusCode": "ACTIVE"}
+    assert "workspaceId" in resp
 
 
 @mock_amp
@@ -28,15 +27,15 @@ def test_describe_workspace():
     ]
 
     resp = client.describe_workspace(workspaceId=workspace_id)
-    resp.should.have.key("workspace")
+    assert "workspace" in resp
 
     workspace = resp["workspace"]
-    workspace.should.have.key("alias")
-    workspace.should.have.key("arn")
-    workspace.should.have.key("createdAt")
-    workspace.should.have.key("prometheusEndpoint")
-    workspace.should.have.key("status").equals({"statusCode": "ACTIVE"})
-    workspace.should.have.key("workspaceId").equals(workspace_id)
+    assert "alias" in workspace
+    assert "arn" in workspace
+    assert "createdAt" in workspace
+    assert "prometheusEndpoint" in workspace
+    assert workspace["status"] == {"statusCode": "ACTIVE"}
+    assert workspace["workspaceId"] == workspace_id
 
 
 @mock_amp
@@ -48,12 +47,12 @@ def test_list_workspaces():
 
     spaces = client.list_workspaces(maxResults=1000)["workspaces"]
     assert len(spaces) >= 2
-    [sp.get("alias") for sp in spaces].should.contain("test")
-    [sp.get("alias") for sp in spaces].should.contain(my_alias)
+    assert "test" in [sp.get("alias") for sp in spaces]
+    assert my_alias in [sp.get("alias") for sp in spaces]
 
     resp = client.list_workspaces(alias=my_alias)
-    resp.should.have.key("workspaces").length_of(1)
-    resp["workspaces"][0].should.have.key("alias").equals(my_alias)
+    assert len(resp["workspaces"]) == 1
+    assert resp["workspaces"][0]["alias"] == my_alias
 
 
 @mock_amp
@@ -64,13 +63,13 @@ def test_list_workspaces__paginated():
 
     # default pagesize is 100
     page1 = client.list_workspaces()
-    page1.should.have.key("workspaces").length_of(100)
-    page1.should.have.key("nextToken")
+    assert len(page1["workspaces"]) == 100
+    assert "nextToken" in page1
 
     # We can ask for a smaller pagesize
     page2 = client.list_workspaces(maxResults=15, nextToken=page1["nextToken"])
-    page2.should.have.key("workspaces").length_of(15)
-    page2.should.have.key("nextToken")
+    assert len(page2["workspaces"]) == 15
+    assert "nextToken" in page2
 
     # We could request all of them in one go
     all_workspaces = client.list_workspaces(maxResults=1000)["workspaces"]
@@ -86,8 +85,7 @@ def test_list_tags_for_resource():
         alias="test", clientToken="mytoken", tags={"t1": "v1", "t2": "v2"}
     )["arn"]
 
-    resp = client.list_tags_for_resource(resourceArn=arn)
-    resp.should.have.key("tags").equals({"t1": "v1", "t2": "v2"})
+    assert get_tags(arn, client) == {"t1": "v1", "t2": "v2"}
 
 
 @mock_amp
@@ -97,12 +95,12 @@ def test_update_workspace_alias():
     workspace_id = client.create_workspace(alias="initial")["workspaceId"]
 
     w = client.describe_workspace(workspaceId=workspace_id)["workspace"]
-    w.should.have.key("alias").equals("initial")
+    assert w["alias"] == "initial"
 
     client.update_workspace_alias(alias="updated", workspaceId=workspace_id)
 
     w = client.describe_workspace(workspaceId=workspace_id)["workspace"]
-    w.should.have.key("alias").equals("updated")
+    assert w["alias"] == "updated"
 
 
 @mock_amp
@@ -118,8 +116,8 @@ def test_delete_workspace():
     with pytest.raises(ClientError) as exc:
         client.describe_workspace(workspaceId=workspace_id)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Workspace not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Workspace not found"
 
 
 @mock_amp
@@ -132,17 +130,19 @@ def test_tag_resource():
 
     client.tag_resource(resourceArn=arn, tags={"t1": "v1", "t2": "v2"})
 
-    client.list_tags_for_resource(resourceArn=arn)["tags"].should.equal(
-        {"t": "v", "t1": "v1", "t2": "v2"}
+    expected = {"t": "v", "t1": "v1", "t2": "v2"}
+    assert get_tags(arn, client) == expected
+    assert (
+        client.describe_workspace(workspaceId=workspace_id)["workspace"]["tags"]
+        == expected
     )
-    client.describe_workspace(workspaceId=workspace_id)["workspace"][
-        "tags"
-    ].should.equal({"t": "v", "t1": "v1", "t2": "v2"})
 
     client.untag_resource(resourceArn=arn, tagKeys=["t1"])
-    client.list_tags_for_resource(resourceArn=arn)["tags"].should.equal(
-        {"t": "v", "t2": "v2"}
-    )
+    assert get_tags(arn, client) == {"t": "v", "t2": "v2"}
 
     client.untag_resource(resourceArn=arn, tagKeys=["t", "t2"])
-    client.list_tags_for_resource(resourceArn=arn)["tags"].should.equal({})
+    assert get_tags(arn, client) == {}
+
+
+def get_tags(arn, client):
+    return client.list_tags_for_resource(resourceArn=arn)["tags"]

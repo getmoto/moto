@@ -84,6 +84,11 @@ class RESTError(HTTPException):
     ) -> str:
         return self.description  # type: ignore[return-value]
 
+    def to_json(self) -> "JsonRESTError":
+        err = JsonRESTError(error_type=self.error_type, message=self.message)
+        err.code = self.code
+        return err
+
 
 class DryRunClientError(RESTError):
     code = 412

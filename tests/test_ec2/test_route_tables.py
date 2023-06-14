@@ -1042,6 +1042,62 @@ def test_create_route_with_unknown_egress_only_igw():
 
 
 @mock_ec2
+def test_create_route_with_vpc_endpoint():
+    # Setup
+    _, ec2_client, route_table, vpc = setup_vpc()
+    dest_cidr = "0.0.0.0/0"
+    vpc_end_point = ec2_client.create_vpc_endpoint(
+        VpcId=vpc.id,
+        ServiceName="com.amazonaws.vpce.eu-central-1.vpce-svc-084fa044c50cb1290",
+        RouteTableIds=[route_table.id],
+        VpcEndpointType="GatewayLoadBalancer",
+    )
+    vpce_id = vpc_end_point["VpcEndpoint"]["VpcEndpointId"]
+
+    # Execute
+    ec2_client.create_route(
+        DestinationCidrBlock=dest_cidr,
+        VpcEndpointId=vpce_id,
+        RouteTableId=route_table.id,
+    )
+    rt = ec2_client.describe_route_tables()
+    new_route = rt["RouteTables"][-1]["Routes"][1]
+
+    # Verify
+    assert new_route["DestinationCidrBlock"] == dest_cidr
+    assert new_route["GatewayId"] == vpce_id
+
+
+@mock_ec2
+def test_create_route_with_invalid_vpc_endpoint():
+    # Setup
+    _, ec2_client, route_table, vpc = setup_vpc()
+    dest_cidr = "0.0.0.0/0"
+    vpc_end_point = ec2_client.create_vpc_endpoint(
+        VpcId=vpc.id,
+        ServiceName="com.amazonaws.us-east-1.s3",
+        RouteTableIds=[route_table.id],
+        VpcEndpointType="Gateway",
+    )
+    vpce_id = vpc_end_point["VpcEndpoint"]["VpcEndpointId"]
+
+    # Execute
+    with pytest.raises(ClientError) as ex:
+        ec2_client.create_route(
+            DestinationCidrBlock=dest_cidr,
+            VpcEndpointId=vpce_id,
+            RouteTableId=route_table.id,
+        )
+    # Verify
+    err = ex.value.response["Error"]
+    assert err["Code"] == "RouteNotSupported"
+    assert (
+        err["Message"] == f"Route table contains unsupported route target: {vpce_id}. "
+        "VPC Endpoints of this type cannot be used as route targets."
+    )
+
+
+@mock_ec2
 def test_associate_route_table_by_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
@@ -1087,3 +1143,17 @@ def test_associate_route_table_by_subnet():
     verify[0]["Associations"][0]["SubnetId"].should.equals(subnet_id)
     verify[0]["Associations"][0]["RouteTableAssociationId"].should.equal(assoc_id)
     verify[0]["Associations"][0].doesnt.have.key("GatewayId")
+
+
+def setup_vpc():
+    ec2_resource = boto3.resource("ec2", region_name="eu-central-1")
+    ec2_client = boto3.client("ec2", region_name="eu-central-1")
+
+    vpc = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16")
+    ec2_resource.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    route_table = ec2_resource.create_route_table(VpcId=vpc.id)
+
+    return ec2_resource, ec2_client, route_table, vpc

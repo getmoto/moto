@@ -1,9 +1,11 @@
 import boto3
 import os
 import pytest
+import sys
 
 from botocore.exceptions import ClientError
-from moto import mock_apigateway
+from moto import mock_apigateway, settings
+from unittest import SkipTest
 
 
 @mock_apigateway
@@ -14,17 +16,13 @@ def test_import_rest_api__api_is_created():
     with open(path + "/resources/test_api.json", "rb") as api_json:
         response = client.import_rest_api(body=api_json.read())
 
-    response.should.have.key("id")
-    response.should.have.key("name").which.should.equal("doc")
-    response.should.have.key("description").which.should.equal(
-        "description from JSON file"
-    )
+    assert "id" in response
+    assert response["name"] == "doc"
+    assert response["description"] == "description from JSON file"
 
     response = client.get_rest_api(restApiId=response["id"])
-    response.should.have.key("name").which.should.equal("doc")
-    response.should.have.key("description").which.should.equal(
-        "description from JSON file"
-    )
+    assert response["name"] == "doc"
+    assert response["description"] == "description from JSON file"
 
 
 @mock_apigateway
@@ -36,18 +34,21 @@ def test_import_rest_api__nested_api():
         response = client.import_rest_api(body=api_json.read())
 
     resources = client.get_resources(restApiId=response["id"])["items"]
-    resources.should.have.length_of(5)
+    assert len(resources) == 5
 
     paths = [res["path"] for res in resources]
-    paths.should.contain("/")
-    paths.should.contain("/test")
-    paths.should.contain("/test/some")
-    paths.should.contain("/test/some/deep")
-    paths.should.contain("/test/some/deep/path")
+    assert "/" in paths
+    assert "/test" in paths
+    assert "/test/some" in paths
+    assert "/test/some/deep" in paths
+    assert "/test/some/deep/path" in paths
 
 
 @mock_apigateway
 def test_import_rest_api__invalid_api_creates_nothing():
+    if sys.version_info < (3, 8) or settings.TEST_SERVER_MODE:
+        raise SkipTest("openapi-module throws an error in Py3.7")
+
     client = boto3.client("apigateway", region_name="us-west-2")
 
     path = os.path.dirname(os.path.abspath(__file__))
@@ -55,12 +56,13 @@ def test_import_rest_api__invalid_api_creates_nothing():
         with pytest.raises(ClientError) as exc:
             client.import_rest_api(body=api_json.read(), failOnWarnings=True)
         err = exc.value.response["Error"]
-        err["Code"].should.equal("BadRequestException")
-        err["Message"].should.equal(
-            "Failed to parse the uploaded OpenAPI document due to: 'paths' is a required property"
+        assert err["Code"] == "BadRequestException"
+        assert (
+            err["Message"]
+            == "Failed to parse the uploaded OpenAPI document due to: 'paths' is a required property"
         )
 
-    client.get_rest_apis().should.have.key("items").length_of(0)
+    assert len(client.get_rest_apis()["items"]) == 0
 
 
 @mock_apigateway
@@ -77,7 +79,7 @@ def test_import_rest_api__methods_are_created():
 
     # We have a GET-method
     resp = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
-    resp["methodResponses"].should.equal({"200": {"statusCode": "200"}})
+    assert resp["methodResponses"] == {"200": {"statusCode": "200"}}
 
     # We have a POST on /test
     test_path_id = [res for res in resources["items"] if res["path"] == "/test"][0][
@@ -86,4 +88,4 @@ def test_import_rest_api__methods_are_created():
     resp = client.get_method(
         restApiId=api_id, resourceId=test_path_id, httpMethod="POST"
     )
-    resp["methodResponses"].should.equal({"201": {"statusCode": "201"}})
+    assert resp["methodResponses"] == {"201": {"statusCode": "201"}}

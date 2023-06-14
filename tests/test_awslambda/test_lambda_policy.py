@@ -1,6 +1,5 @@
 import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from botocore.exceptions import ClientError
@@ -41,13 +40,11 @@ def test_add_function_permission(key):
     assert "Statement" in response
     res = json.loads(response["Statement"])
     assert res["Action"] == "lambda:InvokeFunction"
-    res["Condition"].should.equal(
-        {
-            "ArnLike": {
-                "AWS:SourceArn": "arn:aws:lambda:us-west-2:account-id:function:helloworld"
-            }
+    assert res["Condition"] == {
+        "ArnLike": {
+            "AWS:SourceArn": "arn:aws:lambda:us-west-2:account-id:function:helloworld"
         }
-    )
+    }
 
 
 @mock_lambda
@@ -75,11 +72,9 @@ def test_add_permission_with_principalorgid():
     assert "Statement" in response
     res = json.loads(response["Statement"])
 
-    res["Condition"].should.have.key("StringEquals").equals(
-        {"aws:PrincipalOrgID": "o-a1b2c3d4e5"}
-    )
-    res["Condition"].should.have.key("ArnLike").equals({"AWS:SourceArn": source_arn})
-    res.shouldnt.have.key("PrincipalOrgID")
+    assert res["Condition"]["StringEquals"] == {"aws:PrincipalOrgID": "o-a1b2c3d4e5"}
+    assert res["Condition"]["ArnLike"] == {"AWS:SourceArn": source_arn}
+    assert "PrincipalOrgID" not in res
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
@@ -194,9 +189,10 @@ def test_add_permission_with_unknown_qualifier():
             Qualifier="5",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(
-        f"Function not found: arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:5"
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == f"Function not found: arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:5"
     )
 
 
@@ -224,10 +220,10 @@ def test_remove_function_permission(key):
     )
 
     remove = conn.remove_permission(FunctionName=name_or_arn, StatementId="1")
-    remove["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
+    assert remove["ResponseMetadata"]["HTTPStatusCode"] == 204
     policy = conn.get_policy(FunctionName=name_or_arn)["Policy"]
     policy = json.loads(policy)
-    policy["Statement"].should.equal([])
+    assert policy["Statement"] == []
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
@@ -269,10 +265,10 @@ def test_remove_function_permission__with_qualifier(key):
     remove = conn.remove_permission(
         FunctionName=name_or_arn, StatementId="1", Qualifier="2"
     )
-    remove["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
+    assert remove["ResponseMetadata"]["HTTPStatusCode"] == 204
     policy = conn.get_policy(FunctionName=name_or_arn, Qualifier="2")["Policy"]
     policy = json.loads(policy)
-    policy["Statement"].should.equal([])
+    assert policy["Statement"] == []
 
 
 @mock_lambda
@@ -283,7 +279,8 @@ def test_get_unknown_policy():
     with pytest.raises(ClientError) as exc:
         conn.get_policy(FunctionName="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(
-        "Function not found: arn:aws:lambda:us-west-2:123456789012:function:unknown"
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == "Function not found: arn:aws:lambda:us-west-2:123456789012:function:unknown"
     )

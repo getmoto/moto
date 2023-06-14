@@ -71,6 +71,7 @@ class SecretsManagerResponse(BaseResponse):
         secret_id = self._get_param("SecretId")
         secret_string = self._get_param("SecretString")
         secret_binary = self._get_param("SecretBinary")
+        description = self._get_param("Description")
         client_request_token = self._get_param("ClientRequestToken")
         kms_key_id = self._get_param("KmsKeyId", if_none=None)
         return self.backend.update_secret(
@@ -79,6 +80,7 @@ class SecretsManagerResponse(BaseResponse):
             secret_binary=secret_binary,
             client_request_token=client_request_token,
             kms_key_id=kms_key_id,
+            description=description,
         )
 
     def get_random_password(self) -> str:

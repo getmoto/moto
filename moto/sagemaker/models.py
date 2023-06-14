@@ -3,7 +3,7 @@ import os
 import random
 import string
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Iterable
+from typing import Any, Dict, List, Optional, Iterable, Union
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
@@ -717,6 +717,80 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         )
 
 
+class FakeTransformJob(BaseObject):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        transform_job_name: str,
+        model_name: str,
+        max_concurrent_transforms: int,
+        model_client_config: Dict[str, int],
+        max_payload_in_mb: int,
+        batch_strategy: str,
+        environment: Dict[str, str],
+        transform_input: Dict[str, Union[Dict[str, str], str]],
+        transform_output: Dict[str, str],
+        data_capture_config: Dict[str, Union[str, bool]],
+        transform_resources: Dict[str, Union[str, int]],
+        data_processing: Dict[str, str],
+        tags: Dict[str, str],
+        experiment_config: Dict[str, str],
+    ):
+        self.transform_job_name = transform_job_name
+        self.model_name = model_name
+        self.max_concurrent_transforms = max_concurrent_transforms
+        self.model_client_config = model_client_config
+        self.max_payload_in_mb = max_payload_in_mb
+        self.batch_strategy = batch_strategy
+        self.environment = environment
+        self.transform_input = transform_input
+        self.transform_output = transform_output
+        self.data_capture_config = data_capture_config
+        self.transform_resources = transform_resources
+        self.data_processing = data_processing
+        self.tags = tags
+        self.experiment_config = experiment_config
+        self.transform_job_arn = FakeTransformJob.arn_formatter(
+            transform_job_name, account_id, region_name
+        )
+        self.transform_job_status = "Completed"
+        self.failure_reason = ""
+        self.labeling_job_arn = ""
+        self.auto_ml_job_arn = ""
+        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = now_string
+        self.transform_start_time = now_string
+        self.transform_end_time = now_string
+        self.last_modified_time = now_string
+
+    # Override title case
+    def camelCase(self, key: str) -> str:
+        words = []
+        for word in key.split("_"):
+            if word == "mb":
+                words.append("MB")
+            else:
+                words.append(word.title())
+        return "".join(words)
+
+    @property
+    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        response_object = self.gen_response_object()
+        response = {
+            k: v for k, v in response_object.items() if v is not None and v != [None]
+        }
+        return response
+
+    @property
+    def response_create(self) -> Dict[str, str]:
+        return {"TransformJobArn": self.transform_job_arn}
+
+    @staticmethod
+    def arn_formatter(name: str, account_id: str, region_name: str) -> str:
+        return arn_formatter("transform-job", name, account_id, region_name)
+
+
 class Model(BaseObject, CloudFormationModel):
     def __init__(
         self,
@@ -1199,6 +1273,7 @@ class SageMakerModelBackend(BaseBackend):
         self.trials: Dict[str, FakeTrial] = {}
         self.trial_components: Dict[str, FakeTrialComponent] = {}
         self.training_jobs: Dict[str, FakeTrainingJob] = {}
+        self.transform_jobs: Dict[str, FakeTransformJob] = {}
         self.notebook_instance_lifecycle_configurations: Dict[
             str, FakeSageMakerNotebookInstanceLifecycleConfig
         ] = {}
@@ -1324,6 +1399,7 @@ class SageMakerModelBackend(BaseBackend):
             "endpoint": self.endpoints,
             "endpoint-config": self.endpoint_configs,
             "training-job": self.training_jobs,
+            "transform-job": self.transform_jobs,
             "experiment": self.experiments,
             "experiment-trial": self.trials,
             "experiment-trial-component": self.trial_components,
@@ -2270,6 +2346,137 @@ class SageMakerModelBackend(BaseBackend):
             "ProcessingJobSummaries": processing_job_summaries,
             "NextToken": str(next_index) if next_index is not None else None,
         }
+
+    def create_transform_job(
+        self,
+        transform_job_name: str,
+        model_name: str,
+        max_concurrent_transforms: int,
+        model_client_config: Dict[str, int],
+        max_payload_in_mb: int,
+        batch_strategy: str,
+        environment: Dict[str, str],
+        transform_input: Dict[str, Union[Dict[str, str], str]],
+        transform_output: Dict[str, str],
+        data_capture_config: Dict[str, Union[str, bool]],
+        transform_resources: Dict[str, Union[str, int]],
+        data_processing: Dict[str, str],
+        tags: Dict[str, str],
+        experiment_config: Dict[str, str],
+    ) -> FakeTransformJob:
+        transform_job = FakeTransformJob(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            transform_job_name=transform_job_name,
+            model_name=model_name,
+            max_concurrent_transforms=max_concurrent_transforms,
+            model_client_config=model_client_config,
+            max_payload_in_mb=max_payload_in_mb,
+            batch_strategy=batch_strategy,
+            environment=environment,
+            transform_input=transform_input,
+            transform_output=transform_output,
+            data_capture_config=data_capture_config,
+            transform_resources=transform_resources,
+            data_processing=data_processing,
+            tags=tags,
+            experiment_config=experiment_config,
+        )
+        self.transform_jobs[transform_job_name] = transform_job
+        return transform_job
+
+    def list_transform_jobs(
+        self,
+        next_token: str,
+        max_results: int,
+        creation_time_after: str,
+        creation_time_before: str,
+        last_modified_time_after: str,
+        last_modified_time_before: str,
+        name_contains: str,
+        status_equals: str,
+    ) -> Dict[str, Any]:
+        if next_token:
+            try:
+                starting_index = int(next_token)
+                if starting_index > len(self.transform_jobs):
+                    raise ValueError  # invalid next_token
+            except ValueError:
+                raise AWSValidationException('Invalid pagination token because "{0}".')
+        else:
+            starting_index = 0
+
+        if max_results:
+            end_index = max_results + starting_index
+            transform_jobs_fetched: Iterable[FakeTransformJob] = list(
+                self.transform_jobs.values()
+            )[starting_index:end_index]
+            if end_index >= len(self.transform_jobs):
+                next_index = None
+            else:
+                next_index = end_index
+        else:
+            transform_jobs_fetched = list(self.transform_jobs.values())
+            next_index = None
+
+        if name_contains is not None:
+            transform_jobs_fetched = filter(
+                lambda x: name_contains in x.transform_job_name, transform_jobs_fetched
+            )
+
+        if creation_time_after is not None:
+            transform_jobs_fetched = filter(
+                lambda x: x.creation_time > creation_time_after, transform_jobs_fetched
+            )
+
+        if creation_time_before is not None:
+            transform_jobs_fetched = filter(
+                lambda x: x.creation_time < creation_time_before, transform_jobs_fetched
+            )
+
+        if last_modified_time_after is not None:
+            transform_jobs_fetched = filter(
+                lambda x: x.last_modified_time > last_modified_time_after,
+                transform_jobs_fetched,
+            )
+
+        if last_modified_time_before is not None:
+            transform_jobs_fetched = filter(
+                lambda x: x.last_modified_time < last_modified_time_before,
+                transform_jobs_fetched,
+            )
+        if status_equals is not None:
+            transform_jobs_fetched = filter(
+                lambda x: x.transform_job_status == status_equals,
+                transform_jobs_fetched,
+            )
+
+        transform_job_summaries = [
+            {
+                "TransformJobName": transform_job_data.transform_job_name,
+                "TransformJobArn": transform_job_data.transform_job_arn,
+                "CreationTime": transform_job_data.creation_time,
+                "TransformEndTime": transform_job_data.transform_end_time,
+                "LastModifiedTime": transform_job_data.last_modified_time,
+                "TransformJobStatus": transform_job_data.transform_job_status,
+            }
+            for transform_job_data in transform_jobs_fetched
+        ]
+
+        return {
+            "TransformJobSummaries": transform_job_summaries,
+            "NextToken": str(next_index) if next_index is not None else None,
+        }
+
+    def describe_transform_job(self, transform_job_name: str) -> Dict[str, Any]:
+        try:
+            return self.transform_jobs[transform_job_name].response_object
+        except KeyError:
+            arn = FakeTransformJob.arn_formatter(
+                transform_job_name, self.account_id, self.region_name
+            )
+            message = f"Could not find transform job '{arn}'."
+            raise ValidationError(message=message)
 
     def create_training_job(
         self,

@@ -1,7 +1,8 @@
 import boto3
 import json
+import pytest
 
-# import sure  # noqa # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_sns
@@ -25,6 +26,9 @@ def test_create_and_delete_topic():
         # Delete the topic
         conn.delete_topic(TopicArn=topics[0]["TopicArn"])
 
+        # Ensure DeleteTopic is idempotent
+        conn.delete_topic(TopicArn=topics[0]["TopicArn"])
+
         # And there should now be 0 topics
         topics_json = conn.list_topics()
         topics = topics_json["Topics"]
@@ -35,9 +39,10 @@ def test_create_and_delete_topic():
 def test_delete_non_existent_topic():
     conn = boto3.client("sns", region_name="us-east-1")
 
-    conn.delete_topic.when.called_with(
-        TopicArn="arn:aws:sns:us-east-1:123456789012:fake-topic"
-    ).should.throw(conn.exceptions.NotFoundException)
+    # Ensure DeleteTopic does not throw an error for non-existent topics
+    conn.delete_topic(
+        TopicArn="arn:aws:sns:us-east-1:123456789012:this-topic-does-not-exist"
+    )
 
 
 @mock_sns
@@ -96,9 +101,9 @@ def test_create_topic_should_be_indempodent():
 @mock_sns
 def test_get_missing_topic():
     conn = boto3.client("sns", region_name="us-east-1")
-    conn.get_topic_attributes.when.called_with(TopicArn="a-fake-arn").should.throw(
-        ClientError
-    )
+    conn.get_topic_attributes.when.called_with(
+        TopicArn="arn:aws:sns:us-east-1:424242424242:a-fake-arn"
+    ).should.throw(ClientError)
 
 
 @mock_sns
@@ -127,8 +132,22 @@ def test_create_topic_should_be_of_certain_length():
 def test_create_topic_in_multiple_regions():
     for region in ["us-west-1", "us-west-2"]:
         conn = boto3.client("sns", region_name=region)
-        conn.create_topic(Name="some-topic")
+        topic_arn = conn.create_topic(Name="some-topic")["TopicArn"]
+        # We can find the topic
         list(conn.list_topics()["Topics"]).should.have.length_of(1)
+
+        # We can read the Topic details
+        topic = boto3.resource("sns", region_name=region).Topic(topic_arn)
+        topic.load()
+
+    # Topic does not exist in different region though
+    with pytest.raises(ClientError) as exc:
+        sns_resource = boto3.resource("sns", region_name="eu-north-1")
+        topic = sns_resource.Topic(topic_arn)
+        topic.load()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFound"
+    assert err["Message"] == "Topic does not exist"
 
 
 @mock_sns
@@ -360,7 +379,10 @@ def test_add_permission_errors():
         Label="test-2",
         AWSAccountId=["999999999999"],
         ActionName=["AddPermission"],
-    ).should.throw(ClientError, "Topic does not exist")
+    ).should.throw(
+        ClientError,
+        "An error occurred (NotFound) when calling the AddPermission operation: Topic does not exist",
+    )
 
     client.add_permission.when.called_with(
         TopicArn=topic_arn,
@@ -383,7 +405,10 @@ def test_remove_permission_errors():
 
     client.remove_permission.when.called_with(
         TopicArn=topic_arn + "-not-existing", Label="test"
-    ).should.throw(ClientError, "Topic does not exist")
+    ).should.throw(
+        ClientError,
+        "An error occurred (NotFound) when calling the RemovePermission operation: Topic does not exist",
+    )
 
 
 @mock_sns

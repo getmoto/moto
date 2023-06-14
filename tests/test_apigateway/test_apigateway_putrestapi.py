@@ -1,9 +1,11 @@
 import boto3
 import os
 import pytest
+import sys
 
 from botocore.exceptions import ClientError
-from moto import mock_apigateway
+from moto import mock_apigateway, settings
+from unittest import SkipTest
 
 
 @mock_apigateway
@@ -22,9 +24,9 @@ def test_put_rest_api__api_details_are_persisted():
             body=api_json.read(),
         )
 
-    response.should.have.key("id").which.should.equal(api_id)
-    response.should.have.key("name").which.should.equal("my_api")
-    response.should.have.key("description").which.should.equal("this is my api")
+    assert response["id"] == api_id
+    assert response["name"] == "my_api"
+    assert response["description"] == "this is my api"
 
 
 @mock_apigateway
@@ -43,7 +45,7 @@ def test_put_rest_api__methods_are_created():
 
     # We have a GET-method
     resp = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
-    resp["methodResponses"].should.equal({"200": {"statusCode": "200"}})
+    assert resp["methodResponses"] == {"200": {"statusCode": "200"}}
 
     # We have a POST on /test
     test_path_id = [res for res in resources["items"] if res["path"] == "/test"][0][
@@ -52,7 +54,7 @@ def test_put_rest_api__methods_are_created():
     resp = client.get_method(
         restApiId=api_id, resourceId=test_path_id, httpMethod="POST"
     )
-    resp["methodResponses"].should.equal({"201": {"statusCode": "201"}})
+    assert resp["methodResponses"] == {"201": {"statusCode": "201"}}
 
 
 @mock_apigateway
@@ -77,7 +79,7 @@ def test_put_rest_api__existing_methods_are_overwritten():
     response = client.get_method(
         restApiId=api_id, resourceId=root_id, httpMethod="POST"
     )
-    response.should.have.key("httpMethod").equals("POST")
+    assert response["httpMethod"] == "POST"
 
     path = os.path.dirname(os.path.abspath(__file__))
     with open(path + "/resources/test_api.json", "rb") as api_json:
@@ -94,13 +96,13 @@ def test_put_rest_api__existing_methods_are_overwritten():
         resource for resource in resources["items"] if resource["path"] == "/"
     ][0]["id"]
 
-    new_root_id.shouldnt.equal(root_id)
+    assert new_root_id != root_id
 
     # Our POST-method should be gone
     with pytest.raises(ClientError) as exc:
         client.get_method(restApiId=api_id, resourceId=new_root_id, httpMethod="POST")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
+    assert err["Code"] == "NotFoundException"
 
     # We just have a GET-method, as defined in the JSON
     client.get_method(restApiId=api_id, resourceId=new_root_id, httpMethod="GET")
@@ -137,11 +139,14 @@ def test_put_rest_api__existing_methods_still_exist():
     response = client.get_method(
         restApiId=api_id, resourceId=root_id, httpMethod="POST"
     )
-    response.should.have.key("httpMethod").equals("POST")
+    assert response["httpMethod"] == "POST"
 
 
 @mock_apigateway
 def test_put_rest_api__fail_on_invalid_spec():
+    if sys.version_info < (3, 8) or settings.TEST_SERVER_MODE:
+        raise SkipTest("openapi-module throws an error in Py3.7")
+
     client = boto3.client("apigateway", region_name="us-east-2")
 
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -154,9 +159,10 @@ def test_put_rest_api__fail_on_invalid_spec():
                 restApiId=api_id, failOnWarnings=True, body=api_json.read()
             )
         err = exc.value.response["Error"]
-        err["Code"].should.equal("BadRequestException")
-        err["Message"].should.equal(
-            "Failed to parse the uploaded OpenAPI document due to: 'paths' is a required property"
+        assert err["Code"] == "BadRequestException"
+        assert (
+            err["Message"]
+            == "Failed to parse the uploaded OpenAPI document due to: 'paths' is a required property"
         )
 
 
@@ -174,8 +180,8 @@ def test_put_rest_api__fail_on_invalid_version():
                 restApiId=api_id, failOnWarnings=True, body=api_json.read()
             )
         err = exc.value.response["Error"]
-        err["Code"].should.equal("BadRequestException")
-        err["Message"].should.equal("Only OpenAPI 3.x.x are currently supported")
+        assert err["Code"] == "BadRequestException"
+        assert err["Message"] == "Only OpenAPI 3.x.x are currently supported"
 
 
 @mock_apigateway
@@ -190,9 +196,10 @@ def test_put_rest_api__fail_on_invalid_mode():
         with pytest.raises(ClientError) as exc:
             client.put_rest_api(restApiId=api_id, mode="unknown", body=api_json.read())
         err = exc.value.response["Error"]
-        err["Code"].should.equal("BadRequestException")
-        err["Message"].should.equal(
-            'Enumeration value of OpenAPI import mode must be "overwrite" or "merge"'
+        assert err["Code"] == "BadRequestException"
+        assert (
+            err["Message"]
+            == 'Enumeration value of OpenAPI import mode must be "overwrite" or "merge"'
         )
 
 
@@ -212,6 +219,6 @@ def test_put_rest_api__as_yaml():
             body=api_yaml.read(),
         )
 
-    response.should.have.key("id").which.should.equal(api_id)
-    response.should.have.key("name").which.should.equal("my_api")
-    response.should.have.key("description").which.should.equal("this is my api")
+    assert response["id"] == api_id
+    assert response["name"] == "my_api"
+    assert response["description"] == "this is my api"

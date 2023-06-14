@@ -589,7 +589,7 @@ def test_create_service():
     response["service"]["desiredCount"].should.equal(2)
     len(response["service"]["events"]).should.equal(0)
     len(response["service"]["loadBalancers"]).should.equal(0)
-    response["service"]["pendingCount"].should.equal(0)
+    response["service"]["pendingCount"].should.equal(2)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
         f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:service/test_ecs_cluster/test_ecs_service"
@@ -602,6 +602,77 @@ def test_create_service():
     response["service"]["schedulingStrategy"].should.equal("REPLICA")
     response["service"]["launchType"].should.equal("EC2")
     response["service"]["platformVersion"].should.equal("2")
+
+
+@mock_ecs
+@mock_ec2
+def test_create_running_service():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Can't set environment variables in server mode for a single test"
+        )
+    running_service_count = 3
+    with mock.patch.dict(
+        os.environ, {"MOTO_ECS_SERVICE_RUNNING": str(running_service_count)}
+    ):
+        client = boto3.client("ecs", region_name="us-east-1")
+        ec2 = boto3.resource("ec2", region_name="us-east-1")
+        setup_ecs(client, ec2)
+
+        response = client.create_service(
+            cluster="test_ecs_cluster",
+            serviceName="test_ecs_service",
+            taskDefinition="test_ecs_task",
+            desiredCount=4,
+            platformVersion="2",
+        )
+
+        assert response["service"]["runningCount"] == running_service_count
+        assert response["service"]["pendingCount"] == 1
+
+
+@mock_ecs
+@mock_ec2
+def test_create_running_service_bad_env_var():
+    running_service_count = "ALSDHLHA;''"
+    with mock.patch.dict(
+        os.environ, {"MOTO_ECS_SERVICE_RUNNING": str(running_service_count)}
+    ):
+        client = boto3.client("ecs", region_name="us-east-1")
+        ec2 = boto3.resource("ec2", region_name="us-east-1")
+        setup_ecs(client, ec2)
+
+        response = client.create_service(
+            cluster="test_ecs_cluster",
+            serviceName="test_ecs_service",
+            taskDefinition="test_ecs_task",
+            desiredCount=2,
+            platformVersion="2",
+        )
+
+        assert response["service"]["runningCount"] == 0
+
+
+@mock_ecs
+@mock_ec2
+def test_create_running_service_negative_env_var():
+    running_service_count = "-20"
+    with mock.patch.dict(
+        os.environ, {"MOTO_ECS_SERVICE_RUNNING": str(running_service_count)}
+    ):
+        client = boto3.client("ecs", region_name="us-east-1")
+        ec2 = boto3.resource("ec2", region_name="us-east-1")
+        setup_ecs(client, ec2)
+
+        response = client.create_service(
+            cluster="test_ecs_cluster",
+            serviceName="test_ecs_service",
+            taskDefinition="test_ecs_task",
+            desiredCount=2,
+            platformVersion="2",
+        )
+
+        assert response["service"]["runningCount"] == 0
 
 
 @mock_ecs
@@ -680,7 +751,7 @@ def test_create_service_scheduling_strategy():
     response["service"]["desiredCount"].should.equal(2)
     len(response["service"]["events"]).should.equal(0)
     len(response["service"]["loadBalancers"]).should.equal(0)
-    response["service"]["pendingCount"].should.equal(0)
+    response["service"]["pendingCount"].should.equal(2)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
         f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:service/test_ecs_cluster/test_ecs_service"
@@ -870,7 +941,9 @@ def test_describe_services():
 @mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
 def test_describe_services_new_arn():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant set environment variables in server mode")
+        raise SkipTest(
+            "Can't set environment variables in server mode for a single test"
+        )
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName="test_ecs_cluster")
     _ = client.register_task_definition(
@@ -1338,7 +1411,9 @@ def test_register_container_instance():
 @mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
 def test_register_container_instance_new_arn_format():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant set environment variables in server mode")
+        raise SkipTest(
+            "Can't set environment variables in server mode for a single test"
+        )
     ecs_client = boto3.client("ecs", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -1876,7 +1951,9 @@ def test_run_task_default_cluster():
 @mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
 def test_run_task_default_cluster_new_arn_format():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant set environment variables in server mode")
+        raise SkipTest(
+            "Can't set environment variables in server mode for a single test"
+        )
     client = boto3.client("ecs", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -2953,7 +3030,7 @@ def test_create_service_load_balancing():
         "test_container_name"
     )
     response["service"]["loadBalancers"][0]["containerPort"].should.equal(123)
-    response["service"]["pendingCount"].should.equal(0)
+    response["service"]["pendingCount"].should.equal(2)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
         f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:service/test_ecs_cluster/test_ecs_service"

@@ -1,6 +1,7 @@
 import boto3
 import json
 import sure  # noqa # pylint: disable=unused-import
+import pytest
 
 from moto import mock_cloudformation, mock_sns
 
@@ -8,24 +9,7 @@ from moto import mock_cloudformation, mock_sns
 @mock_cloudformation
 @mock_sns
 def test_sns_topic():
-    dummy_template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "MySNSTopic": {
-                "Type": "AWS::SNS::Topic",
-                "Properties": {
-                    "Subscription": [
-                        {"Endpoint": "https://example.com", "Protocol": "https"}
-                    ],
-                    "TopicName": "my_topics",
-                },
-            }
-        },
-        "Outputs": {
-            "topic_name": {"Value": {"Fn::GetAtt": ["MySNSTopic", "TopicName"]}},
-            "topic_arn": {"Value": {"Ref": "MySNSTopic"}},
-        },
-    }
+    dummy_template = get_template(with_properties=True)
     template_json = json.dumps(dummy_template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
     cf.create_stack(StackName="test_stack", TemplateBody=template_json)
@@ -56,24 +40,7 @@ def test_sns_topic():
 @mock_cloudformation
 @mock_sns
 def test_sns_update_topic():
-    dummy_template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "MySNSTopic": {
-                "Type": "AWS::SNS::Topic",
-                "Properties": {
-                    "Subscription": [
-                        {"Endpoint": "https://example.com", "Protocol": "https"}
-                    ],
-                    "TopicName": "my_topics",
-                },
-            }
-        },
-        "Outputs": {
-            "topic_name": {"Value": {"Fn::GetAtt": ["MySNSTopic", "TopicName"]}},
-            "topic_arn": {"Value": {"Ref": "MySNSTopic"}},
-        },
-    }
+    dummy_template = get_template(with_properties=True)
     sns_template_json = json.dumps(dummy_template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
     cf.create_stack(StackName="test_stack", TemplateBody=sns_template_json)
@@ -104,25 +71,9 @@ def test_sns_update_topic():
 
 @mock_cloudformation
 @mock_sns
-def test_sns_update_remove_topic():
-    dummy_template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "MySNSTopic": {
-                "Type": "AWS::SNS::Topic",
-                "Properties": {
-                    "Subscription": [
-                        {"Endpoint": "https://example.com", "Protocol": "https"}
-                    ],
-                    "TopicName": "my_topics",
-                },
-            }
-        },
-        "Outputs": {
-            "topic_name": {"Value": {"Fn::GetAtt": ["MySNSTopic", "TopicName"]}},
-            "topic_arn": {"Value": {"Ref": "MySNSTopic"}},
-        },
-    }
+@pytest.mark.parametrize("with_properties", [True, False])
+def test_sns_update_remove_topic(with_properties):
+    dummy_template = get_template(with_properties)
     sns_template_json = json.dumps(dummy_template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
     cf.create_stack(StackName="test_stack", TemplateBody=sns_template_json)
@@ -142,26 +93,9 @@ def test_sns_update_remove_topic():
 
 @mock_cloudformation
 @mock_sns
-def test_sns_delete_topic():
-    dummy_template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "MySNSTopic": {
-                "Type": "AWS::SNS::Topic",
-                "Properties": {
-                    "Subscription": [
-                        {"Endpoint": "https://example.com", "Protocol": "https"}
-                    ],
-                    "TopicName": "my_topics",
-                },
-            }
-        },
-        "Outputs": {
-            "topic_name": {"Value": {"Fn::GetAtt": ["MySNSTopic", "TopicName"]}},
-            "topic_arn": {"Value": {"Ref": "MySNSTopic"}},
-        },
-    }
-    sns_template_json = json.dumps(dummy_template)
+@pytest.mark.parametrize("with_properties", [True, False])
+def test_sns_delete_topic(with_properties):
+    sns_template_json = json.dumps(get_template(with_properties))
     cf = boto3.client("cloudformation", region_name="us-west-1")
     cf.create_stack(StackName="test_stack", TemplateBody=sns_template_json)
 
@@ -173,3 +107,20 @@ def test_sns_delete_topic():
 
     topics = sns.list_topics()["Topics"]
     topics.should.have.length_of(0)
+
+
+def get_template(with_properties):
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {"MySNSTopic": {"Type": "AWS::SNS::Topic"}},
+        "Outputs": {
+            "topic_name": {"Value": {"Fn::GetAtt": ["MySNSTopic", "TopicName"]}},
+            "topic_arn": {"Value": {"Ref": "MySNSTopic"}},
+        },
+    }
+    if with_properties:
+        dummy_template["Resources"]["MySNSTopic"]["Properties"] = {
+            "Subscription": [{"Endpoint": "https://example.com", "Protocol": "https"}],
+            "TopicName": "my_topics",
+        }
+    return dummy_template

@@ -1,4 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
 import json
 
 import moto.server as server
@@ -13,7 +12,7 @@ def test_list_apis():
     test_client = backend.test_client()
 
     res = test_client.get("/restapis")
-    json.loads(res.data).should.contain("item")
+    assert "item" in json.loads(res.data)
 
 
 def test_usage_plans_apis():
@@ -22,33 +21,33 @@ def test_usage_plans_apis():
 
     # List usage plans (expect empty)
     res = test_client.get("/usageplans")
-    json.loads(res.data)["item"].should.have.length_of(0)
+    assert len(json.loads(res.data)["item"]) == 0
 
     # Create usage plan
     res = test_client.post("/usageplans", data=json.dumps({"name": "test"}))
     created_plan = json.loads(res.data)
-    created_plan["name"].should.equal("test")
+    assert created_plan["name"] == "test"
 
     # List usage plans (expect 1 plan)
     res = test_client.get("/usageplans")
-    json.loads(res.data)["item"].should.have.length_of(1)
+    assert len(json.loads(res.data)["item"]) == 1
 
     # Get single usage plan
     res = test_client.get(f"/usageplans/{created_plan['id']}")
     fetched_plan = json.loads(res.data)
-    fetched_plan.should.equal(created_plan)
+    assert fetched_plan == created_plan
 
     # Not existing usage plan
     res = test_client.get("/usageplans/not_existing")
-    res.status_code.should.equal(404)
+    assert res.status_code == 404
 
     # Delete usage plan
     res = test_client.delete(f"/usageplans/{created_plan['id']}")
-    res.data.should.equal(b"{}")
+    assert res.data == b"{}"
 
     # List usage plans (expect empty again)
     res = test_client.get("/usageplans")
-    json.loads(res.data)["item"].should.have.length_of(0)
+    assert len(json.loads(res.data)["item"]) == 0
 
 
 def test_usage_plans_keys():
@@ -62,19 +61,19 @@ def test_usage_plans_keys():
 
     # List usage plans keys (expect empty)
     res = test_client.get(f"/usageplans/{usage_plan_id}/keys")
-    json.loads(res.data)["item"].should.have.length_of(0)
+    assert len(json.loads(res.data)["item"]) == 0
 
     # Invalid api key (does not exists at all)
     res = test_client.get(f"/usageplans/{usage_plan_id}/keys/not_existing")
-    res.status_code.should.equal(404)
+    assert res.status_code == 404
 
     # not existing usage plan with existing api key
     res = test_client.get(f"/usageplans/not_existing/keys/{created_api_key['id']}")
-    res.status_code.should.equal(404)
+    assert res.status_code == 404
 
     # not jet added api key
     res = test_client.get(f"/usageplans/{usage_plan_id}/keys/{created_api_key['id']}")
-    res.status_code.should.equal(404)
+    assert res.status_code == 404
 
     # Create usage plan key
     res = test_client.post(
@@ -85,22 +84,22 @@ def test_usage_plans_keys():
 
     # List usage plans keys (expect 1 key)
     res = test_client.get(f"/usageplans/{usage_plan_id}/keys")
-    json.loads(res.data)["item"].should.have.length_of(1)
+    assert len(json.loads(res.data)["item"]) == 1
 
     # Get single usage plan key
     res = test_client.get(f"/usageplans/{usage_plan_id}/keys/{created_api_key['id']}")
     fetched_plan_key = json.loads(res.data)
-    fetched_plan_key.should.equal(created_usage_plan_key)
+    assert fetched_plan_key == created_usage_plan_key
 
     # Delete usage plan key
     res = test_client.delete(
         f"/usageplans/{usage_plan_id}/keys/{created_api_key['id']}"
     )
-    res.data.should.equal(b"{}")
+    assert res.data == b"{}"
 
     # List usage plans keys (expect to be empty again)
     res = test_client.get(f"/usageplans/{usage_plan_id}/keys")
-    json.loads(res.data)["item"].should.have.length_of(0)
+    assert len(json.loads(res.data)["item"]) == 0
 
 
 def test_create_usage_plans_key_non_existent_api_key():
@@ -113,7 +112,7 @@ def test_create_usage_plans_key_non_existent_api_key():
         f"/usageplans/{usage_plan_id}/keys",
         data=json.dumps({"keyId": "non-existent", "keyType": "API_KEY"}),
     )
-    res.status_code.should.equal(404)
+    assert res.status_code == 404
 
 
 def test_put_integration_response_without_body():
@@ -128,8 +127,8 @@ def test_put_integration_response_without_body():
     #     client.put_integration_response(
     #         restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
     #     )
-    # ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    # ex.value.response["Error"]["Message"].should.equal("Invalid request input")
+    # assert ex.value.response["Error"]["Code"] == "BadRequestException"
+    # assert ex.value.response["Error"]["Message"] == "Invalid request input"
     #
     # As a workaround, we can create a PUT-request without body, which will force the error
     # Related: # https://github.com/aws/aws-sdk-js/issues/2588
@@ -140,7 +139,8 @@ def test_put_integration_response_without_body():
     res = test_client.put(
         "/restapis/f_id/resources/r_id/methods/m_id/integration/responses/200/"
     )
-    res.status_code.should.equal(400)
-    json.loads(res.data).should.equal(
-        {"__type": "BadRequestException", "message": "Invalid request input"}
-    )
+    assert res.status_code == 400
+    assert json.loads(res.data) == {
+        "__type": "BadRequestException",
+        "message": "Invalid request input",
+    }

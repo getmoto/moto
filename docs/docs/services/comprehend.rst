@@ -67,9 +67,9 @@ comprehend
 - [ ] describe_topics_detection_job
 - [ ] detect_dominant_language
 - [ ] detect_entities
-- [ ] detect_key_phrases
-- [ ] detect_pii_entities
-- [ ] detect_sentiment
+- [X] detect_key_phrases
+- [X] detect_pii_entities
+- [X] detect_sentiment
 - [ ] detect_syntax
 - [ ] detect_targeted_sentiment
 - [ ] import_model

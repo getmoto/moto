@@ -9,6 +9,7 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)](#)
 [![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg)](https://pypistats.org/packages/moto)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Financial Contributors](https://opencollective.com/moto/tiers/badge.svg)](https://opencollective.com/moto)
 
 
 ## Install
@@ -69,6 +70,14 @@ The full documentation can be found here:
 
 [http://docs.getmoto.org/en/latest/](http://docs.getmoto.org/en/latest/)
 
+
+### Financial Contributions
+Support this project and continued development, by sponsoring us!
+
+Click the `Sponsor`-button at the top of the page for more information.
+
+Our finances are managed by OpenCollective, which means you have full visibility into all our contributions and expenses:
+https://opencollective.com/moto
 
 ### Security contact information
 

@@ -53,6 +53,8 @@ wafv2
         The LockToken-parameter is not yet implemented
         
 
+- [ ] describe_all_managed_products
+- [ ] describe_managed_products_by_vendor
 - [ ] describe_managed_rule_group
 - [X] disassociate_web_acl
 - [ ] generate_mobile_sdk_release_url

@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import glue_backends, GlueBackend, FakeJob, FakeCrawler
+from .models import glue_backends, GlueBackend, FakeJob, FakeCrawler, FakeSession
 
 
 class GlueResponse(BaseResponse):
@@ -526,6 +526,72 @@ class GlueResponse(BaseResponse):
         description = self._get_param("Description")
         schema = self.glue_backend.update_schema(schema_id, compatibility, description)
         return json.dumps(schema)
+
+    def create_session(self) -> str:
+        self.glue_backend.create_session(
+            session_id=self.parameters.get("Id"),  # type: ignore[arg-type]
+            description=self.parameters.get("Description"),  # type: ignore[arg-type]
+            role=self.parameters.get("Role"),  # type: ignore[arg-type]
+            command=self.parameters.get("Command"),  # type: ignore[arg-type]
+            timeout=self.parameters.get("Timeout"),  # type: ignore[arg-type]
+            idle_timeout=self.parameters.get("IdleTimeout"),  # type: ignore[arg-type]
+            default_arguments=self.parameters.get("DefaultArguments"),  # type: ignore[arg-type]
+            connections=self.parameters.get("Connections"),  # type: ignore[arg-type]
+            max_capacity=self.parameters.get("MaxCapacity"),  # type: ignore[arg-type]
+            number_of_workers=self.parameters.get("NumberOfWorkers"),  # type: ignore[arg-type]
+            worker_type=self.parameters.get("WorkerType"),  # type: ignore[arg-type]
+            security_configuration=self.parameters.get("SecurityConfiguration"),  # type: ignore[arg-type]
+            glue_version=self.parameters.get("GlueVersion"),  # type: ignore[arg-type]
+            tags=self.parameters.get("Tags"),  # type: ignore[arg-type]
+            request_origin=self.parameters.get("RequestOrigin"),  # type: ignore[arg-type]
+        )
+        return ""
+
+    def get_session(self) -> str:
+        session_id = self.parameters.get("Id")
+        session = self.glue_backend.get_session(session_id)  # type: ignore[arg-type]
+        return json.dumps({"Session": session.as_dict()})
+
+    def list_sessions(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        tags = self._get_param("Tags")
+        sessions, next_token = self.glue_backend.list_sessions(
+            next_token=next_token, max_results=max_results
+        )
+        filtered_session_ids = self._filter_sessions_by_tags(sessions, tags)
+
+        return json.dumps(
+            dict(
+                Ids=[session_id for session_id in filtered_session_ids],
+                Sessions=[
+                    self.glue_backend.get_session(session_id).as_dict()
+                    for session_id in filtered_session_ids
+                ],
+                NextToken=next_token,
+            )
+        )
+
+    def _filter_sessions_by_tags(
+        self, sessions: List[FakeSession], tags: Dict[str, str]
+    ) -> List[str]:
+        if not tags:
+            return [session.get_id() for session in sessions]
+        return [
+            session.get_id()
+            for session in sessions
+            if self.is_tags_match(session.arn, tags)
+        ]
+
+    def stop_session(self) -> str:
+        session_id = self.parameters.get("Id")
+        self.glue_backend.stop_session(session_id)  # type: ignore[arg-type]
+        return json.dumps({"Id": session_id})
+
+    def delete_session(self) -> str:
+        session_id = self.parameters.get("Id")
+        self.glue_backend.delete_session(session_id)  # type: ignore[arg-type]
+        return json.dumps({"Id": session_id})
 
     def batch_get_crawlers(self) -> str:
         crawler_names = self._get_param("CrawlerNames")

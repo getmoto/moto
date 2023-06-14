@@ -564,29 +564,42 @@ def test_update_stack_instances():
 @mock_cloudformation
 def test_delete_stack_instances():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    cf_conn.create_stack_set(
-        StackSetName="teststackset", TemplateBody=dummy_template_json
-    )
+    tss = "teststackset"
+    cf_conn.create_stack_set(StackSetName=tss, TemplateBody=dummy_template_json)
     cf_conn.create_stack_instances(
-        StackSetName="teststackset",
+        StackSetName=tss,
         Accounts=[ACCOUNT_ID],
-        Regions=["us-east-1", "us-west-2"],
+        Regions=["us-east-1", "us-west-2", "eu-north-1"],
     )
 
+    # Delete just one
     cf_conn.delete_stack_instances(
-        StackSetName="teststackset",
+        StackSetName=tss,
         Accounts=[ACCOUNT_ID],
         # Also delete unknown region for good measure - that should be a no-op
         Regions=["us-east-1", "us-east-2"],
         RetainStacks=False,
     )
 
-    cf_conn.list_stack_instances(StackSetName="teststackset")[
-        "Summaries"
-    ].should.have.length_of(1)
-    cf_conn.list_stack_instances(StackSetName="teststackset")["Summaries"][0][
-        "Region"
-    ].should.equal("us-west-2")
+    # Some should remain
+    remaining_stacks = cf_conn.list_stack_instances(StackSetName=tss)["Summaries"]
+    assert len(remaining_stacks) == 2
+    assert [stack["Region"] for stack in remaining_stacks] == [
+        "us-west-2",
+        "eu-north-1",
+    ]
+
+    # Delete all
+    cf_conn.delete_stack_instances(
+        StackSetName=tss,
+        Accounts=[ACCOUNT_ID],
+        # Also delete unknown region for good measure - that should be a no-op
+        Regions=["us-west-2", "eu-north-1"],
+        RetainStacks=False,
+    )
+
+    remaining_stacks = cf_conn.list_stack_instances(StackSetName=tss)["Summaries"]
+    assert len(remaining_stacks) == 0
 
 
 @mock_cloudformation

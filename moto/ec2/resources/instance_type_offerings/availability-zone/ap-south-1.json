@@ -2912,6 +2912,10 @@
   "Location": "ap-south-1b"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "ap-south-1b"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "ap-south-1b"
  },
@@ -4285,6 +4289,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "ap-south-1c"
+ },
+ {
+  "InstanceType": "u-12tb1.112xlarge",
   "Location": "ap-south-1c"
  },
  {

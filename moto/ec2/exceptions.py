@@ -234,6 +234,15 @@ class RouteAlreadyExistsError(EC2ClientError):
         )
 
 
+class RouteNotSupportedError(EC2ClientError):
+    def __init__(self, vpce_id: str):
+        super().__init__(
+            "RouteNotSupported",
+            f"Route table contains unsupported route target: {vpce_id}. "
+            f"VPC Endpoints of this type cannot be used as route targets.",
+        )
+
+
 class InvalidInstanceIdError(EC2ClientError):
     def __init__(self, instance_id: Any):
         if isinstance(instance_id, str):
@@ -424,6 +433,14 @@ class InvalidParameterValueError(EC2ClientError):
         super().__init__(
             "InvalidParameterValue",
             f"Value {parameter_value} is invalid for parameter.",
+        )
+
+
+class InvalidParameterValueErrorTagSpotFleetRequest(EC2ClientError):
+    def __init__(self, resource_type: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"The value for `ResourceType` must be `spot-fleet-request`, but got `{resource_type}` instead.",
         )
 
 

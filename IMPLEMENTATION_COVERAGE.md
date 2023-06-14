@@ -280,6 +280,55 @@
 - [X] update_vpc_link
 </details>
 
+## appconfig
+<details>
+<summary>34% implemented</summary>
+
+- [X] create_application
+- [X] create_configuration_profile
+- [ ] create_deployment_strategy
+- [ ] create_environment
+- [ ] create_extension
+- [ ] create_extension_association
+- [X] create_hosted_configuration_version
+- [X] delete_application
+- [X] delete_configuration_profile
+- [ ] delete_deployment_strategy
+- [ ] delete_environment
+- [ ] delete_extension
+- [ ] delete_extension_association
+- [X] delete_hosted_configuration_version
+- [X] get_application
+- [ ] get_configuration
+- [X] get_configuration_profile
+- [ ] get_deployment
+- [ ] get_deployment_strategy
+- [ ] get_environment
+- [ ] get_extension
+- [ ] get_extension_association
+- [X] get_hosted_configuration_version
+- [ ] list_applications
+- [X] list_configuration_profiles
+- [ ] list_deployment_strategies
+- [ ] list_deployments
+- [ ] list_environments
+- [ ] list_extension_associations
+- [ ] list_extensions
+- [ ] list_hosted_configuration_versions
+- [X] list_tags_for_resource
+- [ ] start_deployment
+- [ ] stop_deployment
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_application
+- [X] update_configuration_profile
+- [ ] update_deployment_strategy
+- [ ] update_environment
+- [ ] update_extension
+- [ ] update_extension_association
+- [ ] validate_configuration
+</details>
+
 ## application-autoscaling
 <details>
 <summary>69% implemented</summary>
@@ -301,9 +350,11 @@
 
 ## appsync
 <details>
-<summary>29% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] associate_api
+- [ ] associate_merged_graphql_api
+- [ ] associate_source_graphql_api
 - [ ] create_api_cache
 - [X] create_api_key
 - [ ] create_data_source
@@ -321,6 +372,8 @@
 - [ ] delete_resolver
 - [ ] delete_type
 - [ ] disassociate_api
+- [ ] disassociate_merged_graphql_api
+- [ ] disassociate_source_graphql_api
 - [ ] evaluate_code
 - [ ] evaluate_mapping_template
 - [ ] flush_api_cache
@@ -333,6 +386,7 @@
 - [ ] get_introspection_schema
 - [ ] get_resolver
 - [X] get_schema_creation_status
+- [ ] get_source_api_association
 - [X] get_type
 - [X] list_api_keys
 - [ ] list_data_sources
@@ -341,9 +395,12 @@
 - [X] list_graphql_apis
 - [ ] list_resolvers
 - [ ] list_resolvers_by_function
+- [ ] list_source_api_associations
 - [X] list_tags_for_resource
 - [ ] list_types
+- [ ] list_types_by_association
 - [X] start_schema_creation
+- [ ] start_schema_merge
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_api_cache
@@ -353,6 +410,7 @@
 - [ ] update_function
 - [X] update_graphql_api
 - [ ] update_resolver
+- [ ] update_source_api_association
 - [ ] update_type
 </details>
 
@@ -371,6 +429,7 @@
 - [X] create_prepared_statement
 - [ ] create_presigned_notebook_url
 - [X] create_work_group
+- [ ] delete_capacity_reservation
 - [ ] delete_data_catalog
 - [ ] delete_named_query
 - [ ] delete_notebook
@@ -788,7 +847,7 @@
 
 ## cloudtrail
 <details>
-<summary>36% implemented</summary>
+<summary>34% implemented</summary>
 
 - [X] add_tags
 - [ ] cancel_query
@@ -826,9 +885,11 @@
 - [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
+- [ ] start_event_data_store_ingestion
 - [ ] start_import
 - [X] start_logging
 - [ ] start_query
+- [ ] stop_event_data_store_ingestion
 - [ ] stop_import
 - [X] stop_logging
 - [ ] update_channel
@@ -1197,7 +1258,7 @@
 
 ## comprehend
 <details>
-<summary>9% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] batch_detect_dominant_language
 - [ ] batch_detect_entities
@@ -1235,9 +1296,9 @@
 - [ ] describe_topics_detection_job
 - [ ] detect_dominant_language
 - [ ] detect_entities
-- [ ] detect_key_phrases
-- [ ] detect_pii_entities
-- [ ] detect_sentiment
+- [X] detect_key_phrases
+- [X] detect_pii_entities
+- [X] detect_sentiment
 - [ ] detect_syntax
 - [ ] detect_targeted_sentiment
 - [ ] import_model
@@ -2036,7 +2097,7 @@
 - [X] describe_iam_instance_profile_associations
 - [ ] describe_id_format
 - [ ] describe_identity_id_format
-- [ ] describe_image_attribute
+- [X] describe_image_attribute
 - [X] describe_images
 - [ ] describe_import_image_tasks
 - [ ] describe_import_snapshot_tasks
@@ -3142,7 +3203,7 @@
 
 ## glue
 <details>
-<summary>30% implemented</summary>
+<summary>33% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3181,7 +3242,7 @@
 - [X] create_schema
 - [ ] create_script
 - [ ] create_security_configuration
-- [ ] create_session
+- [X] create_session
 - [X] create_table
 - [X] create_trigger
 - [ ] create_user_defined_function
@@ -3205,7 +3266,7 @@
 - [X] delete_schema
 - [ ] delete_schema_versions
 - [ ] delete_security_configuration
-- [ ] delete_session
+- [X] delete_session
 - [X] delete_table
 - [X] delete_table_version
 - [X] delete_trigger
@@ -3258,7 +3319,7 @@
 - [ ] get_schema_versions_diff
 - [ ] get_security_configuration
 - [ ] get_security_configurations
-- [ ] get_session
+- [X] get_session
 - [ ] get_statement
 - [X] get_table
 - [X] get_table_version
@@ -3291,7 +3352,7 @@
 - [X] list_registries
 - [ ] list_schema_versions
 - [ ] list_schemas
-- [ ] list_sessions
+- [X] list_sessions
 - [ ] list_statements
 - [X] list_triggers
 - [ ] list_workflows
@@ -3320,7 +3381,7 @@
 - [ ] start_workflow_run
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
-- [ ] stop_session
+- [X] stop_session
 - [X] stop_trigger
 - [ ] stop_workflow_run
 - [X] tag_resource
@@ -4614,7 +4675,7 @@
 
 ## opensearch
 <details>
-<summary>17% implemented</summary>
+<summary>16% implemented</summary>
 
 - [ ] accept_inbound_connection
 - [X] add_tags
@@ -4634,6 +4695,8 @@
 - [ ] describe_domain_auto_tunes
 - [ ] describe_domain_change_progress
 - [X] describe_domain_config
+- [ ] describe_domain_health
+- [ ] describe_domain_nodes
 - [ ] describe_domains
 - [ ] describe_dry_run_progress
 - [ ] describe_inbound_connections
@@ -5028,7 +5091,7 @@
 
 ## quicksight
 <details>
-<summary>10% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] cancel_ingestion
 - [ ] create_account_customization
@@ -5049,6 +5112,9 @@
 - [ ] create_template_alias
 - [ ] create_theme
 - [ ] create_theme_alias
+- [ ] create_topic
+- [ ] create_topic_refresh_schedule
+- [ ] create_vpc_connection
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
 - [ ] delete_analysis
@@ -5067,14 +5133,19 @@
 - [ ] delete_template_alias
 - [ ] delete_theme
 - [ ] delete_theme_alias
+- [ ] delete_topic
+- [ ] delete_topic_refresh_schedule
 - [X] delete_user
 - [ ] delete_user_by_principal_id
+- [ ] delete_vpc_connection
 - [ ] describe_account_customization
 - [ ] describe_account_settings
 - [ ] describe_account_subscription
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
+- [ ] describe_asset_bundle_export_job
+- [ ] describe_asset_bundle_import_job
 - [ ] describe_dashboard
 - [ ] describe_dashboard_definition
 - [ ] describe_dashboard_permissions
@@ -5100,12 +5171,19 @@
 - [ ] describe_theme
 - [ ] describe_theme_alias
 - [ ] describe_theme_permissions
+- [ ] describe_topic
+- [ ] describe_topic_permissions
+- [ ] describe_topic_refresh
+- [ ] describe_topic_refresh_schedule
 - [X] describe_user
+- [ ] describe_vpc_connection
 - [ ] generate_embed_url_for_anonymous_user
 - [ ] generate_embed_url_for_registered_user
 - [ ] get_dashboard_embed_url
 - [ ] get_session_embed_url
 - [ ] list_analyses
+- [ ] list_asset_bundle_export_jobs
+- [ ] list_asset_bundle_import_jobs
 - [ ] list_dashboard_versions
 - [ ] list_dashboards
 - [ ] list_data_sets
@@ -5126,8 +5204,11 @@
 - [ ] list_theme_aliases
 - [ ] list_theme_versions
 - [ ] list_themes
+- [ ] list_topic_refresh_schedules
+- [ ] list_topics
 - [ ] list_user_groups
 - [X] list_users
+- [ ] list_vpc_connections
 - [ ] put_data_set_refresh_properties
 - [X] register_user
 - [ ] restore_analysis
@@ -5137,6 +5218,8 @@
 - [ ] search_data_sources
 - [ ] search_folders
 - [ ] search_groups
+- [ ] start_asset_bundle_export_job
+- [ ] start_asset_bundle_import_job
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization
@@ -5163,7 +5246,11 @@
 - [ ] update_theme
 - [ ] update_theme_alias
 - [ ] update_theme_permissions
+- [ ] update_topic
+- [ ] update_topic_permissions
+- [ ] update_topic_refresh_schedule
 - [ ] update_user
+- [ ] update_vpc_connection
 </details>
 
 ## ram
@@ -5935,7 +6022,7 @@
 
 ## sagemaker
 <details>
-<summary>17% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -5989,7 +6076,7 @@
 - [ ] create_space
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
-- [ ] create_transform_job
+- [X] create_transform_job
 - [X] create_trial
 - [X] create_trial_component
 - [ ] create_user_profile
@@ -6093,7 +6180,7 @@
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
-- [ ] describe_transform_job
+- [X] describe_transform_job
 - [X] describe_trial
 - [X] describe_trial_component
 - [ ] describe_user_profile
@@ -6173,7 +6260,7 @@
 - [X] list_tags
 - [X] list_training_jobs
 - [ ] list_training_jobs_for_hyper_parameter_tuning_job
-- [ ] list_transform_jobs
+- [X] list_transform_jobs
 - [X] list_trial_components
 - [X] list_trials
 - [ ] list_user_profiles
@@ -6507,6 +6594,7 @@
 - [ ] put_configuration_set_tracking_options
 - [ ] put_configuration_set_vdm_options
 - [ ] put_dedicated_ip_in_pool
+- [ ] put_dedicated_ip_pool_scaling_attributes
 - [ ] put_dedicated_ip_warmup_attributes
 - [ ] put_deliverability_dashboard_option
 - [ ] put_email_identity_configuration_set_attributes
@@ -6554,11 +6642,11 @@
 
 ## sns
 <details>
-<summary>52% implemented</summary>
+<summary>78% implemented</summary>
 
 - [X] add_permission
-- [ ] check_if_phone_number_is_opted_out
-- [ ] confirm_subscription
+- [X] check_if_phone_number_is_opted_out
+- [X] confirm_subscription
 - [X] create_platform_application
 - [X] create_platform_endpoint
 - [ ] create_sms_sandbox_phone_number
@@ -6568,29 +6656,29 @@
 - [ ] delete_sms_sandbox_phone_number
 - [X] delete_topic
 - [ ] get_data_protection_policy
-- [ ] get_endpoint_attributes
-- [ ] get_platform_application_attributes
-- [ ] get_sms_attributes
+- [X] get_endpoint_attributes
+- [X] get_platform_application_attributes
+- [X] get_sms_attributes
 - [ ] get_sms_sandbox_account_status
 - [X] get_subscription_attributes
-- [ ] get_topic_attributes
+- [X] get_topic_attributes
 - [X] list_endpoints_by_platform_application
 - [ ] list_origination_numbers
-- [ ] list_phone_numbers_opted_out
+- [X] list_phone_numbers_opted_out
 - [X] list_platform_applications
 - [ ] list_sms_sandbox_phone_numbers
 - [X] list_subscriptions
-- [ ] list_subscriptions_by_topic
+- [X] list_subscriptions_by_topic
 - [X] list_tags_for_resource
 - [X] list_topics
-- [ ] opt_in_phone_number
+- [X] opt_in_phone_number
 - [X] publish
 - [X] publish_batch
 - [ ] put_data_protection_policy
 - [X] remove_permission
 - [X] set_endpoint_attributes
-- [ ] set_platform_application_attributes
-- [ ] set_sms_attributes
+- [X] set_platform_application_attributes
+- [X] set_sms_attributes
 - [X] set_subscription_attributes
 - [ ] set_topic_attributes
 - [X] subscribe
@@ -6861,7 +6949,7 @@
 
 ## support
 <details>
-<summary>35% implemented</summary>
+<summary>31% implemented</summary>
 
 - [ ] add_attachments_to_set
 - [ ] add_communication_to_case
@@ -6869,8 +6957,10 @@
 - [ ] describe_attachment
 - [X] describe_cases
 - [ ] describe_communications
+- [ ] describe_create_case_options
 - [ ] describe_services
 - [ ] describe_severity_levels
+- [ ] describe_supported_languages
 - [ ] describe_trusted_advisor_check_refresh_statuses
 - [ ] describe_trusted_advisor_check_result
 - [ ] describe_trusted_advisor_check_summaries
@@ -7013,7 +7103,7 @@
 
 ## wafv2
 <details>
-<summary>23% implemented</summary>
+<summary>22% implemented</summary>
 
 - [X] associate_web_acl
 - [ ] check_capacity
@@ -7029,6 +7119,8 @@
 - [ ] delete_regex_pattern_set
 - [ ] delete_rule_group
 - [X] delete_web_acl
+- [ ] describe_all_managed_products
+- [ ] describe_managed_products_by_vendor
 - [ ] describe_managed_rule_group
 - [X] disassociate_web_acl
 - [ ] generate_mobile_sdk_release_url
@@ -7078,7 +7170,6 @@
 - amplifybackend
 - amplifyuibuilder
 - apigatewaymanagementapi
-- appconfig
 - appconfigdata
 - appflow
 - appintegrations
@@ -7212,6 +7303,7 @@
 - marketplacecommerceanalytics
 - mediaconvert
 - mediapackage-vod
+- mediapackagev2
 - mediatailor
 - memorydb
 - mgh

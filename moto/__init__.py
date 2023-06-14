@@ -34,6 +34,7 @@ mock_acmpca = lazy_load(".acmpca", "mock_acmpca", boto3_name="acm-pca")
 mock_amp = lazy_load(".amp", "mock_amp")
 mock_apigateway = lazy_load(".apigateway", "mock_apigateway")
 mock_apigatewayv2 = lazy_load(".apigatewayv2", "mock_apigatewayv2")
+mock_appconfig = lazy_load(".appconfig", "mock_appconfig")
 mock_appsync = lazy_load(".appsync", "mock_appsync")
 mock_athena = lazy_load(".athena", "mock_athena")
 mock_applicationautoscaling = lazy_load(
@@ -210,7 +211,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "4.1.9.dev"
+__version__ = "4.1.12.dev"
 
 
 try:

@@ -1436,6 +1436,10 @@
   "Location": "ap-south-1"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "ap-south-1"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "ap-south-1"
  },

@@ -5,9 +5,16 @@ import warnings
 from functools import wraps
 from moto import settings, mock_s3
 from moto.dynamodb.models import DynamoDBBackend
-from moto.s3 import models as s3model
+from moto.s3 import models as s3model, s3_backends
 from moto.s3.responses import S3ResponseInstance
 from unittest import SkipTest, TestCase
+
+from tests import DEFAULT_ACCOUNT_ID
+
+
+TEST_BUCKET = "my-bucket"
+TEST_BUCKET_VERSIONED = "versioned-bucket"
+TEST_KEY = "my-key"
 
 
 def verify_zero_warnings(f):
@@ -39,10 +46,20 @@ class TestS3FileHandleClosures(TestCase):
     def setUp(self) -> None:
         if settings.TEST_SERVER_MODE:
             raise SkipTest("No point in testing ServerMode, we're not using boto3")
-        self.s3 = s3model.S3Backend("us-west-1", "1234")
-        self.s3.create_bucket("my-bucket", "us-west-1")
-        self.s3.create_bucket("versioned-bucket", "us-west-1")
-        self.s3.put_object("my-bucket", "my-key", "x" * 10_000_000)
+        self.s3 = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
+        self.s3.create_bucket(TEST_BUCKET, "us-west-1")
+        self.s3.create_bucket(TEST_BUCKET_VERSIONED, "us-west-1")
+        self.s3.put_object(TEST_BUCKET, TEST_KEY, "x" * 10_000_000)
+
+    def tearDown(self) -> None:
+        for bucket_name in (
+            TEST_BUCKET,
+            TEST_BUCKET_VERSIONED,
+        ):
+            keys = list(self.s3.get_bucket(bucket_name).keys.keys())
+            for key in keys:
+                self.s3.delete_object(bucket_name, key)
+            self.s3.delete_bucket(bucket_name)
 
     @verify_zero_warnings
     def test_upload_large_file(self):
@@ -52,28 +69,28 @@ class TestS3FileHandleClosures(TestCase):
 
     @verify_zero_warnings
     def test_delete_large_file(self):
-        self.s3.delete_object(bucket_name="my-bucket", key_name="my-key")
+        self.s3.delete_object(bucket_name=TEST_BUCKET, key_name=TEST_KEY)
 
     @verify_zero_warnings
     def test_overwriting_file(self):
-        self.s3.put_object("my-bucket", "my-key", "b" * 10_000_000)
+        self.s3.put_object(TEST_BUCKET, TEST_KEY, "b" * 10_000_000)
 
     @verify_zero_warnings
     def test_versioned_file(self):
-        self.s3.put_bucket_versioning("my-bucket", "Enabled")
-        self.s3.put_object("my-bucket", "my-key", "b" * 10_000_000)
+        self.s3.put_bucket_versioning(TEST_BUCKET, "Enabled")
+        self.s3.put_object(TEST_BUCKET, TEST_KEY, "b" * 10_000_000)
 
     @verify_zero_warnings
     def test_copy_object(self):
-        key = self.s3.get_object("my-bucket", "my-key")
+        key = self.s3.get_object(TEST_BUCKET, TEST_KEY)
         self.s3.copy_object(
-            src_key=key, dest_bucket_name="my-bucket", dest_key_name="key-2"
+            src_key=key, dest_bucket_name=TEST_BUCKET, dest_key_name="key-2"
         )
 
     @verify_zero_warnings
     def test_part_upload(self):
         multipart_id = self.s3.create_multipart_upload(
-            bucket_name="my-bucket",
+            bucket_name=TEST_BUCKET,
             key_name="mp-key",
             metadata={},
             storage_type="STANDARD",
@@ -83,7 +100,7 @@ class TestS3FileHandleClosures(TestCase):
             kms_key_id=None,
         )
         self.s3.upload_part(
-            bucket_name="my-bucket",
+            bucket_name=TEST_BUCKET,
             multipart_id=multipart_id,
             part_id=1,
             value="b" * 10_000_000,
@@ -92,7 +109,7 @@ class TestS3FileHandleClosures(TestCase):
     @verify_zero_warnings
     def test_overwriting_part_upload(self):
         multipart_id = self.s3.create_multipart_upload(
-            bucket_name="my-bucket",
+            bucket_name=TEST_BUCKET,
             key_name="mp-key",
             metadata={},
             storage_type="STANDARD",
@@ -102,13 +119,13 @@ class TestS3FileHandleClosures(TestCase):
             kms_key_id=None,
         )
         self.s3.upload_part(
-            bucket_name="my-bucket",
+            bucket_name=TEST_BUCKET,
             multipart_id=multipart_id,
             part_id=1,
             value="b" * 10_000_000,
         )
         self.s3.upload_part(
-            bucket_name="my-bucket",
+            bucket_name=TEST_BUCKET,
             multipart_id=multipart_id,
             part_id=1,
             value="c" * 10_000_000,
@@ -117,7 +134,7 @@ class TestS3FileHandleClosures(TestCase):
     @verify_zero_warnings
     def test_aborting_part_upload(self):
         multipart_id = self.s3.create_multipart_upload(
-            bucket_name="my-bucket",
+            bucket_name=TEST_BUCKET,
             key_name="mp-key",
             metadata={},
             storage_type="STANDARD",
@@ -127,19 +144,19 @@ class TestS3FileHandleClosures(TestCase):
             kms_key_id=None,
         )
         self.s3.upload_part(
-            bucket_name="my-bucket",
+            bucket_name=TEST_BUCKET,
             multipart_id=multipart_id,
             part_id=1,
             value="b" * 10_000_000,
         )
         self.s3.abort_multipart_upload(
-            bucket_name="my-bucket", multipart_id=multipart_id
+            bucket_name=TEST_BUCKET, multipart_id=multipart_id
         )
 
     @verify_zero_warnings
     def test_completing_part_upload(self):
         multipart_id = self.s3.create_multipart_upload(
-            bucket_name="my-bucket",
+            bucket_name=TEST_BUCKET,
             key_name="mp-key",
             metadata={},
             storage_type="STANDARD",
@@ -149,7 +166,7 @@ class TestS3FileHandleClosures(TestCase):
             kms_key_id=None,
         )
         etag = self.s3.upload_part(
-            bucket_name="my-bucket",
+            bucket_name=TEST_BUCKET,
             multipart_id=multipart_id,
             part_id=1,
             value="b" * 10_000_000,
@@ -158,36 +175,36 @@ class TestS3FileHandleClosures(TestCase):
         mp_body = f"""<CompleteMultipartUpload xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Part><ETag>{etag}</ETag><PartNumber>1</PartNumber></Part></CompleteMultipartUpload>"""
         body = S3ResponseInstance._complete_multipart_body(mp_body)
         self.s3.complete_multipart_upload(
-            bucket_name="my-bucket", multipart_id=multipart_id, body=body
+            bucket_name=TEST_BUCKET, multipart_id=multipart_id, body=body
         )
 
     @verify_zero_warnings
     def test_single_versioned_upload(self):
-        self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
+        self.s3.put_object(TEST_BUCKET_VERSIONED, TEST_KEY, "x" * 10_000_000)
 
     @verify_zero_warnings
     def test_overwrite_versioned_upload(self):
-        self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
-        self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
+        self.s3.put_object(TEST_BUCKET_VERSIONED, TEST_KEY, "x" * 10_000_000)
+        self.s3.put_object(TEST_BUCKET_VERSIONED, TEST_KEY, "x" * 10_000_000)
 
     @verify_zero_warnings
     def test_multiple_versions_upload(self):
-        self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
-        self.s3.put_object("versioned-bucket", "my-key", "y" * 10_000_000)
-        self.s3.put_object("versioned-bucket", "my-key", "z" * 10_000_000)
+        self.s3.put_object(TEST_BUCKET_VERSIONED, TEST_KEY, "x" * 10_000_000)
+        self.s3.put_object(TEST_BUCKET_VERSIONED, TEST_KEY, "y" * 10_000_000)
+        self.s3.put_object(TEST_BUCKET_VERSIONED, TEST_KEY, "z" * 10_000_000)
 
     @verify_zero_warnings
     def test_delete_versioned_upload(self):
-        self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
-        self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
-        self.s3.delete_object(bucket_name="my-bucket", key_name="my-key")
+        self.s3.put_object(TEST_BUCKET_VERSIONED, TEST_KEY, "x" * 10_000_000)
+        self.s3.put_object(TEST_BUCKET_VERSIONED, TEST_KEY, "x" * 10_000_000)
+        self.s3.delete_object(bucket_name=TEST_BUCKET, key_name=TEST_KEY)
 
     @verify_zero_warnings
     def test_delete_specific_version(self):
-        self.s3.put_object("versioned-bucket", "my-key", "x" * 10_000_000)
-        key = self.s3.put_object("versioned-bucket", "my-key", "y" * 10_000_000)
+        self.s3.put_object(TEST_BUCKET_VERSIONED, TEST_KEY, "x" * 10_000_000)
+        key = self.s3.put_object(TEST_BUCKET_VERSIONED, TEST_KEY, "y" * 10_000_000)
         self.s3.delete_object(
-            bucket_name="my-bucket", key_name="my-key", version_id=key._version_id
+            bucket_name=TEST_BUCKET, key_name=TEST_KEY, version_id=key._version_id
         )
 
     @verify_zero_warnings

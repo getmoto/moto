@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from botocore.exceptions import ClientError
@@ -42,8 +41,8 @@ def test_propogate_tags():
     instances = ec2.describe_instances()
 
     tags = instances["Reservations"][0]["Instances"][0]["Tags"]
-    tags.should.contain({"Value": "TestTagValue1", "Key": "TestTagKey1"})
-    tags.should.contain({"Value": "TestGroup1", "Key": "aws:autoscaling:groupName"})
+    assert {"Value": "TestTagValue1", "Key": "TestTagKey1"} in tags
+    assert {"Value": "TestGroup1", "Key": "aws:autoscaling:groupName"} in tags
 
 
 @mock_autoscaling
@@ -65,20 +64,14 @@ def test_create_autoscaling_group_from_instance():
         VPCZoneIdentifier=mocked_instance_with_networking["subnet1"],
         NewInstancesProtectedFromScaleIn=False,
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     describe_launch_configurations_response = client.describe_launch_configurations()
-    describe_launch_configurations_response[
-        "LaunchConfigurations"
-    ].should.have.length_of(1)
-    launch_configuration_from_instance = describe_launch_configurations_response[
-        "LaunchConfigurations"
-    ][0]
-    launch_configuration_from_instance["LaunchConfigurationName"].should.equal(
-        "test_asg"
-    )
-    launch_configuration_from_instance["ImageId"].should.equal(image_id)
-    launch_configuration_from_instance["InstanceType"].should.equal(instance_type)
+    assert len(describe_launch_configurations_response["LaunchConfigurations"]) == 1
+    config = describe_launch_configurations_response["LaunchConfigurations"][0]
+    assert config["LaunchConfigurationName"] == "test_asg"
+    assert config["ImageId"] == image_id
+    assert config["InstanceType"] == instance_type
 
 
 @mock_autoscaling
@@ -109,7 +102,7 @@ def test_create_autoscaling_group_from_instance_with_security_groups():
         NewInstancesProtectedFromScaleIn=False,
     )
     # Just verifying this works - used to throw an error when supplying a instance that belonged to an SG
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_autoscaling
@@ -128,11 +121,10 @@ def test_create_autoscaling_group_from_invalid_instance_id():
             VPCZoneIdentifier=mocked_networking["subnet1"],
             NewInstancesProtectedFromScaleIn=False,
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Code"].should.equal("ValidationError")
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Instance [{invalid_instance_id}] is invalid."
-    )
+    err = ex.value.response["Error"]
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == f"Instance [{invalid_instance_id}] is invalid."
 
 
 @mock_autoscaling
@@ -158,7 +150,7 @@ def test_create_autoscaling_group_from_template():
         VPCZoneIdentifier=mocked_networking["subnet1"],
         NewInstancesProtectedFromScaleIn=False,
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_ec2
@@ -186,11 +178,9 @@ def test_create_auto_scaling_from_template_version__latest():
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["name"])[
         "AutoScalingGroups"
     ][0]
-    response.should.have.key("LaunchTemplate")
-    response["LaunchTemplate"].should.have.key("LaunchTemplateName").equals(
-        launch_template_name
-    )
-    response["LaunchTemplate"].should.have.key("Version").equals("$Latest")
+    assert "LaunchTemplate" in response
+    assert response["LaunchTemplate"]["LaunchTemplateName"] == launch_template_name
+    assert response["LaunchTemplate"]["Version"] == "$Latest"
 
 
 @mock_ec2
@@ -223,11 +213,9 @@ def test_create_auto_scaling_from_template_version__default():
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["name"])[
         "AutoScalingGroups"
     ][0]
-    response.should.have.key("LaunchTemplate")
-    response["LaunchTemplate"].should.have.key("LaunchTemplateName").equals(
-        launch_template_name
-    )
-    response["LaunchTemplate"].should.have.key("Version").equals("$Default")
+    assert "LaunchTemplate" in response
+    assert response["LaunchTemplate"]["LaunchTemplateName"] == launch_template_name
+    assert response["LaunchTemplate"]["Version"] == "$Default"
 
 
 @mock_ec2
@@ -252,9 +240,9 @@ def test_create_auto_scaling_from_template_version__no_version():
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["name"])[
         "AutoScalingGroups"
     ][0]
-    response.should.have.key("LaunchTemplate")
+    assert "LaunchTemplate" in response
     # We never specified the version - and AWS will not return anything if we don't
-    response["LaunchTemplate"].shouldnt.have.key("Version")
+    assert "Version" not in response["LaunchTemplate"]
 
 
 @mock_autoscaling
@@ -279,10 +267,12 @@ def test_create_autoscaling_group_no_template_ref():
             VPCZoneIdentifier=mocked_networking["subnet1"],
             NewInstancesProtectedFromScaleIn=False,
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Code"].should.equal("ValidationError")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Valid requests must contain either launchTemplateId or LaunchTemplateName"
+    err = ex.value.response["Error"]
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "Valid requests must contain either launchTemplateId or LaunchTemplateName"
     )
 
 
@@ -312,10 +302,12 @@ def test_create_autoscaling_group_multiple_template_ref():
             VPCZoneIdentifier=mocked_networking["subnet1"],
             NewInstancesProtectedFromScaleIn=False,
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Code"].should.equal("ValidationError")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Valid requests must contain either launchTemplateId or LaunchTemplateName"
+    err = ex.value.response["Error"]
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "Valid requests must contain either launchTemplateId or LaunchTemplateName"
     )
 
 
@@ -332,11 +324,12 @@ def test_create_autoscaling_group_no_launch_configuration():
             VPCZoneIdentifier=mocked_networking["subnet1"],
             NewInstancesProtectedFromScaleIn=False,
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Code"].should.equal("ValidationError")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Valid requests must contain either LaunchTemplate, LaunchConfigurationName, "
-        "InstanceId or MixedInstancesPolicy parameter."
+    err = ex.value.response["Error"]
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "Valid requests must contain either LaunchTemplate, LaunchConfigurationName, InstanceId or MixedInstancesPolicy parameter."
     )
 
 
@@ -371,11 +364,12 @@ def test_create_autoscaling_group_multiple_launch_configurations():
             VPCZoneIdentifier=mocked_networking["subnet1"],
             NewInstancesProtectedFromScaleIn=False,
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Code"].should.equal("ValidationError")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Valid requests must contain either LaunchTemplate, LaunchConfigurationName, "
-        "InstanceId or MixedInstancesPolicy parameter."
+    err = ex.value.response["Error"]
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "Valid requests must contain either LaunchTemplate, LaunchConfigurationName, InstanceId or MixedInstancesPolicy parameter."
     )
 
 
@@ -405,20 +399,20 @@ def test_describe_autoscaling_groups_launch_template():
     }
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     group = response["AutoScalingGroups"][0]
-    group["AutoScalingGroupName"].should.equal("test_asg")
-    group["LaunchTemplate"].should.equal(expected_launch_template)
-    group.should_not.have.key("LaunchConfigurationName")
-    group["AvailabilityZones"].should.equal(["us-east-1a"])
-    group["VPCZoneIdentifier"].should.equal(mocked_networking["subnet1"])
-    group["NewInstancesProtectedFromScaleIn"].should.equal(True)
+    assert group["AutoScalingGroupName"] == "test_asg"
+    assert group["LaunchTemplate"] == expected_launch_template
+    assert "LaunchConfigurationName" not in group
+    assert group["AvailabilityZones"] == ["us-east-1a"]
+    assert group["VPCZoneIdentifier"] == mocked_networking["subnet1"]
+    assert group["NewInstancesProtectedFromScaleIn"] is True
     for instance in group["Instances"]:
-        instance["LaunchTemplate"].should.equal(expected_launch_template)
-        instance.should_not.have.key("LaunchConfigurationName")
-        instance["AvailabilityZone"].should.equal("us-east-1a")
-        instance["ProtectedFromScaleIn"].should.equal(True)
-        instance["InstanceType"].should.equal("t2.micro")
+        assert instance["LaunchTemplate"] == expected_launch_template
+        assert "LaunchConfigurationName" not in instance
+        assert instance["AvailabilityZone"] == "us-east-1a"
+        assert instance["ProtectedFromScaleIn"] is True
+        assert instance["InstanceType"] == "t2.micro"
 
 
 @mock_autoscaling
@@ -441,14 +435,14 @@ def test_describe_autoscaling_instances_launch_config():
     )
 
     response = client.describe_auto_scaling_instances()
-    len(response["AutoScalingInstances"]).should.equal(5)
+    assert len(response["AutoScalingInstances"]) == 5
     for instance in response["AutoScalingInstances"]:
-        instance["LaunchConfigurationName"].should.equal("test_launch_configuration")
-        instance.should_not.have.key("LaunchTemplate")
-        instance["AutoScalingGroupName"].should.equal("test_asg")
-        instance["AvailabilityZone"].should.equal("us-east-1a")
-        instance["ProtectedFromScaleIn"].should.equal(True)
-        instance["InstanceType"].should.equal("t2.micro")
+        assert instance["LaunchConfigurationName"] == "test_launch_configuration"
+        assert "LaunchTemplate" not in instance
+        assert instance["AutoScalingGroupName"] == "test_asg"
+        assert instance["AvailabilityZone"] == "us-east-1a"
+        assert instance["ProtectedFromScaleIn"] is True
+        assert instance["InstanceType"] == "t2.micro"
 
 
 @mock_autoscaling
@@ -477,14 +471,14 @@ def test_describe_autoscaling_instances_launch_template():
     }
 
     response = client.describe_auto_scaling_instances()
-    len(response["AutoScalingInstances"]).should.equal(5)
+    assert len(response["AutoScalingInstances"]) == 5
     for instance in response["AutoScalingInstances"]:
-        instance["LaunchTemplate"].should.equal(expected_launch_template)
-        instance.should_not.have.key("LaunchConfigurationName")
-        instance["AutoScalingGroupName"].should.equal("test_asg")
-        instance["AvailabilityZone"].should.equal("us-east-1a")
-        instance["ProtectedFromScaleIn"].should.equal(True)
-        instance["InstanceType"].should.equal("t2.micro")
+        assert instance["LaunchTemplate"] == expected_launch_template
+        assert "LaunchConfigurationName" not in instance
+        assert instance["AutoScalingGroupName"] == "test_asg"
+        assert instance["AvailabilityZone"] == "us-east-1a"
+        assert instance["ProtectedFromScaleIn"] is True
+        assert instance["InstanceType"] == "t2.micro"
 
 
 @mock_autoscaling
@@ -515,11 +509,11 @@ def test_describe_autoscaling_instances_instanceid_filter():
     response = client.describe_auto_scaling_instances(
         InstanceIds=instance_ids[0:2]
     )  # Filter by first 2 of 5
-    len(response["AutoScalingInstances"]).should.equal(2)
+    assert len(response["AutoScalingInstances"]) == 2
     for instance in response["AutoScalingInstances"]:
-        instance["AutoScalingGroupName"].should.equal("test_asg")
-        instance["AvailabilityZone"].should.equal("us-east-1a")
-        instance["ProtectedFromScaleIn"].should.equal(True)
+        assert instance["AutoScalingGroupName"] == "test_asg"
+        assert instance["AvailabilityZone"] == "us-east-1a"
+        assert instance["ProtectedFromScaleIn"] is True
 
 
 @mock_autoscaling
@@ -556,10 +550,10 @@ def test_update_autoscaling_group_launch_config():
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     group = response["AutoScalingGroups"][0]
-    group["LaunchConfigurationName"].should.equal("test_launch_configuration_new")
-    group["MinSize"].should.equal(1)
-    set(group["AvailabilityZones"]).should.equal({"us-east-1a", "us-east-1b"})
-    group["NewInstancesProtectedFromScaleIn"].should.equal(False)
+    assert group["LaunchConfigurationName"] == "test_launch_configuration_new"
+    assert group["MinSize"] == 1
+    assert set(group["AvailabilityZones"]) == {"us-east-1a", "us-east-1b"}
+    assert group["NewInstancesProtectedFromScaleIn"] is False
 
 
 @mock_autoscaling
@@ -608,10 +602,10 @@ def test_update_autoscaling_group_launch_template():
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     group = response["AutoScalingGroups"][0]
-    group["LaunchTemplate"].should.equal(expected_launch_template)
-    group["MinSize"].should.equal(1)
-    set(group["AvailabilityZones"]).should.equal({"us-east-1a", "us-east-1b"})
-    group["NewInstancesProtectedFromScaleIn"].should.equal(False)
+    assert group["LaunchTemplate"] == expected_launch_template
+    assert group["MinSize"] == 1
+    assert set(group["AvailabilityZones"]) == {"us-east-1a", "us-east-1b"}
+    assert group["NewInstancesProtectedFromScaleIn"] is False
 
 
 @mock_autoscaling
@@ -635,9 +629,9 @@ def test_update_autoscaling_group_min_size_desired_capacity_change():
     client.update_auto_scaling_group(AutoScalingGroupName="test_asg", MinSize=5)
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     group = response["AutoScalingGroups"][0]
-    group["DesiredCapacity"].should.equal(5)
-    group["MinSize"].should.equal(5)
-    group["Instances"].should.have.length_of(5)
+    assert group["DesiredCapacity"] == 5
+    assert group["MinSize"] == 5
+    assert len(group["Instances"]) == 5
 
 
 @mock_autoscaling
@@ -661,9 +655,9 @@ def test_update_autoscaling_group_max_size_desired_capacity_change():
     client.update_auto_scaling_group(AutoScalingGroupName="test_asg", MaxSize=5)
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     group = response["AutoScalingGroups"][0]
-    group["DesiredCapacity"].should.equal(5)
-    group["MaxSize"].should.equal(5)
-    group["Instances"].should.have.length_of(5)
+    assert group["DesiredCapacity"] == 5
+    assert group["MaxSize"] == 5
+    assert len(group["Instances"]) == 5
 
 
 @mock_autoscaling
@@ -713,31 +707,32 @@ def test_autoscaling_describe_policies():
     )
 
     response = client.describe_policies()
-    response["ScalingPolicies"].should.have.length_of(2)
+    assert len(response["ScalingPolicies"]) == 2
 
     response = client.describe_policies(AutoScalingGroupName="test_asg")
-    response["ScalingPolicies"].should.have.length_of(2)
+    assert len(response["ScalingPolicies"]) == 2
 
     response = client.describe_policies(PolicyTypes=["StepScaling"])
-    response["ScalingPolicies"].should.have.length_of(0)
+    assert len(response["ScalingPolicies"]) == 0
 
     response = client.describe_policies(
         AutoScalingGroupName="test_asg",
         PolicyNames=["test_policy_down"],
         PolicyTypes=["SimpleScaling"],
     )
-    response["ScalingPolicies"].should.have.length_of(1)
+    assert len(response["ScalingPolicies"]) == 1
     policy = response["ScalingPolicies"][0]
-    policy["PolicyType"].should.equal("SimpleScaling")
-    policy["MetricAggregationType"].should.equal("Minimum")
-    policy["AdjustmentType"].should.equal("PercentChangeInCapacity")
-    policy["ScalingAdjustment"].should.equal(-10)
-    policy["Cooldown"].should.equal(60)
-    policy["PolicyARN"].should.equal(
-        f"arn:aws:autoscaling:us-east-1:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/test_asg:policyName/test_policy_down"
+    assert policy["PolicyType"] == "SimpleScaling"
+    assert policy["MetricAggregationType"] == "Minimum"
+    assert policy["AdjustmentType"] == "PercentChangeInCapacity"
+    assert policy["ScalingAdjustment"] == -10
+    assert policy["Cooldown"] == 60
+    assert (
+        policy["PolicyARN"]
+        == f"arn:aws:autoscaling:us-east-1:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/test_asg:policyName/test_policy_down"
     )
-    policy["PolicyName"].should.equal("test_policy_down")
-    policy.shouldnt.have.key("TargetTrackingConfiguration")
+    assert policy["PolicyName"] == "test_policy_down"
+    assert "TargetTrackingConfiguration" not in policy
 
 
 @mock_autoscaling
@@ -771,26 +766,79 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
                 "PredefinedMetricType": "ASGAverageNetworkIn",
             },
             "TargetValue": 1000000.0,
+            "CustomizedMetricSpecification": {
+                "Metrics": [
+                    {
+                        "Label": "Get ASGAverageCPUUtilization",
+                        "Id": "cpu",
+                        "MetricStat": {
+                            "Metric": {
+                                "MetricName": "CPUUtilization",
+                                "Namespace": "AWS/EC2",
+                                "Dimensions": [
+                                    {"Name": "AutoScalingGroupName", "Value": asg_name}
+                                ],
+                            },
+                            "Stat": "Average",
+                        },
+                        "ReturnData": False,
+                    },
+                    {
+                        "Label": "Calculate square cpu",
+                        "Id": "load",
+                        "Expression": "cpu^2",
+                    },
+                ],
+            },
         },
     )
 
     resp = client.describe_policies(AutoScalingGroupName=asg_name)
     policy = resp["ScalingPolicies"][0]
-    policy.should.have.key("PolicyName").equals(configuration_name)
-    policy.should.have.key("PolicyARN").equals(
-        f"arn:aws:autoscaling:us-west-1:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{asg_name}:policyName/{configuration_name}"
+    assert policy["PolicyName"] == configuration_name
+    assert (
+        policy["PolicyARN"]
+        == f"arn:aws:autoscaling:us-west-1:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{asg_name}:policyName/{configuration_name}"
     )
-    policy.should.have.key("PolicyType").equals("TargetTrackingScaling")
-    policy.should.have.key("TargetTrackingConfiguration").should.equal(
-        {
-            "PredefinedMetricSpecification": {
-                "PredefinedMetricType": "ASGAverageNetworkIn",
-            },
-            "TargetValue": 1000000.0,
-        }
-    )
-    policy.shouldnt.have.key("ScalingAdjustment")
-    policy.shouldnt.have.key("Cooldown")
+    assert policy["PolicyType"] == "TargetTrackingScaling"
+    assert policy["TargetTrackingConfiguration"] == {
+        "PredefinedMetricSpecification": {
+            "PredefinedMetricType": "ASGAverageNetworkIn",
+        },
+        "CustomizedMetricSpecification": {
+            "MetricName": "None",
+            "Namespace": "None",
+            "Dimensions": [],
+            "Statistic": "None",
+            "Metrics": [
+                {
+                    "Label": "Get ASGAverageCPUUtilization",
+                    "Id": "cpu",
+                    "MetricStat": {
+                        "Metric": {
+                            "MetricName": "CPUUtilization",
+                            "Namespace": "AWS/EC2",
+                            "Dimensions": [
+                                {"Name": "AutoScalingGroupName", "Value": asg_name}
+                            ],
+                        },
+                        "Stat": "Average",
+                        "Unit": "None",
+                    },
+                    "ReturnData": False,
+                },
+                {
+                    "Label": "Calculate square cpu",
+                    "Id": "load",
+                    "Expression": "cpu^2",
+                    "ReturnData": True,
+                },
+            ],
+        },
+        "TargetValue": 1000000.0,
+    }
+    assert "ScalingAdjustment" not in policy
+    assert "Cooldown" not in policy
 
 
 @mock_autoscaling
@@ -829,23 +877,22 @@ def test_create_autoscaling_policy_with_policytype__stepscaling():
 
     resp = client.describe_policies(AutoScalingGroupName=asg_name)
     policy = resp["ScalingPolicies"][0]
-    policy.should.have.key("PolicyName").equals(launch_config_name)
-    policy.should.have.key("PolicyARN").equals(
-        f"arn:aws:autoscaling:eu-west-1:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{asg_name}:policyName/{launch_config_name}"
+    assert policy["PolicyName"] == launch_config_name
+    assert (
+        policy["PolicyARN"]
+        == f"arn:aws:autoscaling:eu-west-1:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{asg_name}:policyName/{launch_config_name}"
     )
-    policy.should.have.key("PolicyType").equals("StepScaling")
-    policy.should.have.key("StepAdjustments").equal(
-        [
-            {
-                "MetricIntervalLowerBound": 2,
-                "MetricIntervalUpperBound": 8,
-                "ScalingAdjustment": 1,
-            }
-        ]
-    )
-    policy.shouldnt.have.key("TargetTrackingConfiguration")
-    policy.shouldnt.have.key("ScalingAdjustment")
-    policy.shouldnt.have.key("Cooldown")
+    assert policy["PolicyType"] == "StepScaling"
+    assert policy["StepAdjustments"] == [
+        {
+            "MetricIntervalLowerBound": 2,
+            "MetricIntervalUpperBound": 8,
+            "ScalingAdjustment": 1,
+        }
+    ]
+    assert "TargetTrackingConfiguration" not in policy
+    assert "ScalingAdjustment" not in policy
+    assert "Cooldown" not in policy
 
 
 @mock_autoscaling
@@ -881,9 +928,10 @@ def test_create_autoscaling_policy_with_predictive_scaling_config():
 
     resp = client.describe_policies(AutoScalingGroupName=asg_name)
     policy = resp["ScalingPolicies"][0]
-    policy.should.have.key("PredictiveScalingConfiguration").equals(
-        {"MetricSpecifications": [{"TargetValue": 5.0}], "SchedulingBufferTime": 7}
-    )
+    assert policy["PredictiveScalingConfiguration"] == {
+        "MetricSpecifications": [{"TargetValue": 5.0}],
+        "SchedulingBufferTime": 7,
+    }
 
 
 @mock_autoscaling
@@ -916,29 +964,25 @@ def test_create_auto_scaling_group_with_mixed_instances_policy():
     # Assert we can describe MixedInstancesPolicy
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
     group = response["AutoScalingGroups"][0]
-    group.should.have.key("MixedInstancesPolicy").equals(
-        {
-            "LaunchTemplate": {
-                "LaunchTemplateSpecification": {
-                    "LaunchTemplateId": lt["LaunchTemplateId"],
-                    "LaunchTemplateName": "launchie",
-                    "Version": "$DEFAULT",
-                }
-            }
-        }
-    )
-
-    # Assert the LaunchTemplate is known for the resulting instances
-    response = client.describe_auto_scaling_instances()
-    len(response["AutoScalingInstances"]).should.equal(2)
-    for instance in response["AutoScalingInstances"]:
-        instance["LaunchTemplate"].should.equal(
-            {
+    assert group["MixedInstancesPolicy"] == {
+        "LaunchTemplate": {
+            "LaunchTemplateSpecification": {
                 "LaunchTemplateId": lt["LaunchTemplateId"],
                 "LaunchTemplateName": "launchie",
                 "Version": "$DEFAULT",
             }
-        )
+        }
+    }
+
+    # Assert the LaunchTemplate is known for the resulting instances
+    response = client.describe_auto_scaling_instances()
+    assert len(response["AutoScalingInstances"]) == 2
+    for instance in response["AutoScalingInstances"]:
+        assert instance["LaunchTemplate"] == {
+            "LaunchTemplateId": lt["LaunchTemplateId"],
+            "LaunchTemplateName": "launchie",
+            "Version": "$DEFAULT",
+        }
 
 
 @mock_autoscaling
@@ -977,23 +1021,21 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides():
     # Assert we can describe MixedInstancesPolicy
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
     group = response["AutoScalingGroups"][0]
-    group.should.have.key("MixedInstancesPolicy").equals(
-        {
-            "LaunchTemplate": {
-                "LaunchTemplateSpecification": {
-                    "LaunchTemplateId": lt["LaunchTemplateId"],
-                    "LaunchTemplateName": "launchie",
-                    "Version": "$DEFAULT",
-                },
-                "Overrides": [
-                    {
-                        "InstanceType": "t2.medium",
-                        "WeightedCapacity": "50",
-                    }
-                ],
-            }
+    assert group["MixedInstancesPolicy"] == {
+        "LaunchTemplate": {
+            "LaunchTemplateSpecification": {
+                "LaunchTemplateId": lt["LaunchTemplateId"],
+                "LaunchTemplateName": "launchie",
+                "Version": "$DEFAULT",
+            },
+            "Overrides": [
+                {
+                    "InstanceType": "t2.medium",
+                    "WeightedCapacity": "50",
+                }
+            ],
         }
-    )
+    }
 
 
 @mock_autoscaling
@@ -1030,9 +1072,7 @@ def test_set_instance_protection():
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     for instance in response["AutoScalingGroups"][0]["Instances"]:
-        instance["ProtectedFromScaleIn"].should.equal(
-            instance["InstanceId"] in protected
-        )
+        assert instance["ProtectedFromScaleIn"] is (instance["InstanceId"] in protected)
 
 
 @mock_autoscaling
@@ -1058,9 +1098,9 @@ def test_set_desired_capacity_up():
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instances = response["AutoScalingGroups"][0]["Instances"]
-    instances.should.have.length_of(10)
+    assert len(instances) == 10
     for instance in instances:
-        instance["ProtectedFromScaleIn"].should.equal(True)
+        assert instance["ProtectedFromScaleIn"] is True
 
 
 @mock_autoscaling
@@ -1099,10 +1139,11 @@ def test_set_desired_capacity_down():
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     group = response["AutoScalingGroups"][0]
-    group["DesiredCapacity"].should.equal(1)
+    assert group["DesiredCapacity"] == 1
     instance_ids = {instance["InstanceId"] for instance in group["Instances"]}
-    set(protected).should.equal(instance_ids)
-    set(unprotected).should_not.be.within(instance_ids)  # only unprotected killed
+    assert set(protected) == instance_ids
+    for x in unprotected:
+        assert x not in instance_ids  # only unprotected killed
 
 
 @mock_autoscaling
@@ -1137,7 +1178,7 @@ def test_terminate_instance_via_ec2_in_autoscaling_group():
         instance["InstanceId"]
         for instance in response["AutoScalingGroups"][0]["Instances"]
     )
-    replaced_instance_id.should_not.equal(original_instance_id)
+    assert replaced_instance_id != original_instance_id
 
 
 @mock_ec2
@@ -1174,11 +1215,11 @@ def test_attach_instances():
         InstanceIds=[fake_instance["InstanceId"]], AutoScalingGroupName="test_asg"
     )
     response = asg_client.describe_auto_scaling_instances()
-    len(response["AutoScalingInstances"]).should.equal(1)
+    assert len(response["AutoScalingInstances"]) == 1
     for instance in response["AutoScalingInstances"]:
-        instance["LaunchConfigurationName"].should.equal("test_launch_configuration")
-        instance["AutoScalingGroupName"].should.equal("test_asg")
-        instance["InstanceType"].should.equal("c4.2xlarge")
+        assert instance["LaunchConfigurationName"] == "test_launch_configuration"
+        assert instance["AutoScalingGroupName"] == "test_asg"
+        assert instance["InstanceType"] == "c4.2xlarge"
 
 
 @mock_autoscaling
@@ -1207,11 +1248,11 @@ def test_autoscaling_lifecyclehook():
     response = client.describe_lifecycle_hooks(
         AutoScalingGroupName="test_asg", LifecycleHookNames=["test-lifecyclehook"]
     )
-    len(response["LifecycleHooks"]).should.equal(1)
+    assert len(response["LifecycleHooks"]) == 1
     for hook in response["LifecycleHooks"]:
-        hook["LifecycleHookName"].should.equal("test-lifecyclehook")
-        hook["AutoScalingGroupName"].should.equal("test_asg")
-        hook["LifecycleTransition"].should.equal("autoscaling:EC2_INSTANCE_TERMINATING")
+        assert hook["LifecycleHookName"] == "test-lifecyclehook"
+        assert hook["AutoScalingGroupName"] == "test_asg"
+        assert hook["LifecycleTransition"] == "autoscaling:EC2_INSTANCE_TERMINATING"
 
     client.delete_lifecycle_hook(
         LifecycleHookName="test-lifecyclehook", AutoScalingGroupName="test_asg"
@@ -1221,7 +1262,7 @@ def test_autoscaling_lifecyclehook():
         AutoScalingGroupName="test_asg", LifecycleHookNames=["test-lifecyclehook"]
     )
 
-    len(response["LifecycleHooks"]).should.equal(0)
+    assert len(response["LifecycleHooks"]) == 0
 
 
 @pytest.mark.parametrize("original,new", [(2, 1), (2, 3), (1, 5), (1, 1)])
@@ -1246,18 +1287,18 @@ def test_set_desired_capacity_without_protection(original, new):
     )
 
     group = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-    group["DesiredCapacity"].should.equal(original)
+    assert group["DesiredCapacity"] == original
     instances = client.describe_auto_scaling_instances()["AutoScalingInstances"]
-    instances.should.have.length_of(original)
+    assert len(instances) == original
 
     client.update_auto_scaling_group(
         AutoScalingGroupName="tester_group", DesiredCapacity=new
     )
 
     group = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
-    group["DesiredCapacity"].should.equal(new)
+    assert group["DesiredCapacity"] == new
     instances = client.describe_auto_scaling_instances()["AutoScalingInstances"]
-    instances.should.have.length_of(new)
+    assert len(instances) == new
 
 
 @mock_autoscaling
@@ -1288,8 +1329,8 @@ def test_create_template_with_block_device():
     ec2_client = boto3.client("ec2", region_name="ap-southeast-2")
     volumes = ec2_client.describe_volumes()["Volumes"]
     # The standard root volume
-    volumes[0]["VolumeType"].should.equal("gp2")
-    volumes[0]["Size"].should.equal(8)
+    assert volumes[0]["VolumeType"] == "gp2"
+    assert volumes[0]["Size"] == 8
     # Our Ebs-volume
-    volumes[1]["VolumeType"].should.equal("gp3")
-    volumes[1]["Size"].should.equal(20)
+    assert volumes[1]["VolumeType"] == "gp3"
+    assert volumes[1]["Size"] == 20
