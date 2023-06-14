@@ -1,4 +1,5 @@
 """Handles incoming sesv2 requests, invokes methods, returns responses."""
+import base64
 import json
 
 from moto.core.responses import BaseResponse
@@ -23,9 +24,9 @@ class SESV2Response(BaseResponse):
     def send_email(self) -> str:
         """Piggy back on functionality from v1 mostly"""
 
-        params = get_params_dict(self.querystring)
+        params = json.loads(self.body)
         from_email_address = params.get("FromEmailAddress")
-        destination = params.get("Destination")
+        destination = params.get("Destination", {})
         content = params.get("Content")
         if "Raw" in content:
             all_destinations: List[str] = []
@@ -38,7 +39,7 @@ class SESV2Response(BaseResponse):
             message = self.sesv2_backend.send_raw_email(
                 source=from_email_address,
                 destinations=all_destinations,
-                raw_data=content["Raw"]["Data"],
+                raw_data=base64.b64decode(content["Raw"]["Data"]).decode("utf-8"),
             )
         elif "Simple" in content:
             message = self.sesv2_backend.send_email(  # type: ignore

@@ -32,7 +32,6 @@ RECIPIENT_LIMIT = 50
 
 
 class SESFeedback(BaseModel):
-
     BOUNCE = "Bounce"
     COMPLAINT = "Complaint"
     DELIVERY = "Delivery"
@@ -340,23 +339,20 @@ class SESBackend(BaseBackend):
                     f"Did not have authority to send from email {source_email_address}"
                 )
 
-        recipient_count = len(destinations)
         message = email.message_from_string(raw_data)
         if source is None:
             if message["from"] is None:
                 raise MessageRejectedError("Source not specified")
 
-            _, source_email_address = parseaddr(message["from"])
-            if not self._is_verified_address(source_email_address):
+            _, source = parseaddr(message["from"])
+            if not self._is_verified_address(source):
                 raise MessageRejectedError(
-                    f"Did not have authority to send from email {source_email_address}"
+                    f"Did not have authority to send from email {source}"
                 )
 
         for header in "TO", "CC", "BCC":
-            recipient_count += sum(
-                d.strip() and 1 or 0 for d in message.get(header, "").split(",")
-            )
-        if recipient_count > RECIPIENT_LIMIT:
+            destinations += [d.strip() for d in message.get(header, "").split(",") if d]
+        if len(destinations) > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many recipients.")
         for address in [addr for addr in [source, *destinations] if addr is not None]:
             msg = is_valid_address(address)
@@ -365,7 +361,7 @@ class SESBackend(BaseBackend):
 
         self.__process_sns_feedback__(source, destinations)
 
-        self.sent_message_count += recipient_count
+        self.sent_message_count += len(destinations)
         message_id = get_random_message_id()
         raw_message = RawMessage(message_id, source, destinations, raw_data)
         self.sent_messages.append(raw_message)
@@ -416,7 +412,6 @@ class SESBackend(BaseBackend):
     def create_configuration_set_event_destination(
         self, configuration_set_name: str, event_destination: Dict[str, Any]
     ) -> None:
-
         if self.config_set.get(configuration_set_name) is None:
             raise ConfigurationSetDoesNotExist("Invalid Configuration Set Name.")
 
