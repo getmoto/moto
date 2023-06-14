@@ -14,6 +14,7 @@ base_url = (
     if settings.TEST_SERVER_MODE
     else "http://motoapi.amazonaws.com"
 )
+data_url = f"{base_url}/moto-api/data.json"
 
 
 @mock_sqs
@@ -33,11 +34,22 @@ def test_data_api():
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
 
-    res = requests.post(f"{base_url}/moto-api/data.json")
-    queues = res.json()["sqs"]["Queue"]
+    queues = requests.post(data_url).json()["sqs"]["Queue"]
     len(queues).should.equal(1)
     queue = queues[0]
     queue["name"].should.equal("queue1")
+
+
+@mock_s3
+def test_overwriting_s3_object_still_returns_data():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("No point in testing this behaves the same in ServerMode")
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="test")
+    s3.put_object(Bucket="test", Body=b"t", Key="file.txt")
+    assert len(requests.post(data_url).json()["s3"]["FakeKey"]) == 1
+    s3.put_object(Bucket="test", Body=b"t", Key="file.txt")
+    assert len(requests.post(data_url).json()["s3"]["FakeKey"]) == 2
 
 
 @mock_autoscaling
