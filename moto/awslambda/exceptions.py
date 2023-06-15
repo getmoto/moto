@@ -1,4 +1,5 @@
 from moto.core.exceptions import JsonRESTError
+from typing import Any
 
 
 class LambdaClientError(JsonRESTError):
@@ -61,6 +62,16 @@ class UnknownLayerException(LambdaClientError):
 
     def __init__(self) -> None:
         super().__init__("ResourceNotFoundException", "Cannot find layer")
+
+
+class UnknownLayerVersionException(LambdaClientError):
+    code = 404
+
+    def __init__(self, arns: Any) -> None:
+        super().__init__(
+            "ResourceNotFoundException",
+            f"One or more LayerVersion does not exist {arns}",
+        )
 
 
 class UnknownPolicyException(LambdaClientError):
