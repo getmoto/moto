@@ -264,7 +264,7 @@ class NextBatch:
                 raise ValidationException(message="Unexpected format of next token")
 
     def next(
-        self, all_items: list[Any], max_allowed: int
+        self, all_items: List[Any], max_allowed: int
     ) -> Tuple[List[Any], Optional[str]]:
         start = 0
         if self.current:

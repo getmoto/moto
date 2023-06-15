@@ -9,8 +9,6 @@ import logging
 import random
 import string
 
-import sure  # noqa # pylint: disable=unused-import
-
 from moto import mock_identitystore
 from moto.moto_api._internal import mock_random
 

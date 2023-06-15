@@ -7,6 +7,7 @@ from tests.test_redshiftdata.test_redshiftdata_constants import (
     DEFAULT_ENCODING,
     HttpHeaders,
 )
+from tests.helpers import match_uuid4  # noqa # pylint: disable=unused-import
 
 CLIENT_ENDPOINT = "/"
 

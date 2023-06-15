@@ -29,6 +29,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.markers import requires_docker
 from tests.test_cloudformation.fixtures import fn_join, single_instance_with_ebs_volume
+from tests.helpers import containing_item_with_attributes  # noqa # pylint: disable=unused-import
 
 
 @mock_cloudformation
