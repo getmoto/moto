@@ -1,6 +1,5 @@
 from . import _get_clients, _setup
 
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs
 from uuid import uuid4
 
@@ -30,12 +29,12 @@ def test_create_job_queue_with_tags():
         computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
         tags={"k1": "v1", "k2": "v2"},
     )
-    resp.should.contain("jobQueueArn")
-    resp.should.contain("jobQueueName")
+    assert "jobQueueArn" in resp
+    assert "jobQueueName" in resp
     queue_arn = resp["jobQueueArn"]
 
     my_queue = batch_client.describe_job_queues(jobQueues=[queue_arn])["jobQueues"][0]
-    my_queue.should.have.key("tags").equals({"k1": "v1", "k2": "v2"})
+    assert my_queue["tags"] == {"k1": "v1", "k2": "v2"}
 
 
 @mock_ec2
@@ -63,12 +62,12 @@ def test_list_tags():
         computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
         tags={"k1": "v1", "k2": "v2"},
     )
-    resp.should.contain("jobQueueArn")
-    resp.should.contain("jobQueueName")
+    assert "jobQueueArn" in resp
+    assert "jobQueueName" in resp
     queue_arn = resp["jobQueueArn"]
 
     my_queue = batch_client.list_tags_for_resource(resourceArn=queue_arn)
-    my_queue.should.have.key("tags").equals({"k1": "v1", "k2": "v2"})
+    assert my_queue["tags"] == {"k1": "v1", "k2": "v2"}
 
 
 @mock_ec2
@@ -100,7 +99,7 @@ def test_tag_job_queue():
     batch_client.tag_resource(resourceArn=queue_arn, tags={"k1": "v1", "k2": "v2"})
 
     my_queue = batch_client.list_tags_for_resource(resourceArn=queue_arn)
-    my_queue.should.have.key("tags").equals({"k1": "v1", "k2": "v2"})
+    assert my_queue["tags"] == {"k1": "v1", "k2": "v2"}
 
 
 @mock_ec2
@@ -134,4 +133,4 @@ def test_untag_job_queue():
     batch_client.untag_resource(resourceArn=queue_arn, tagKeys=["k2"])
 
     my_queue = batch_client.list_tags_for_resource(resourceArn=queue_arn)
-    my_queue.should.have.key("tags").equals({"k1": "v1", "k3": "v3"})
+    assert my_queue["tags"] == {"k1": "v1", "k3": "v3"}

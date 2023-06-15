@@ -8,9 +8,10 @@ from tests import DEFAULT_ACCOUNT_ID
 def test_create_scheduling_policy():
     client = boto3.client("batch", "us-east-2")
     resp = client.create_scheduling_policy(name="test")
-    resp.should.have.key("name").equals("test")
-    resp.should.have.key("arn").equals(
-        f"arn:aws:batch:us-east-2:{DEFAULT_ACCOUNT_ID}:scheduling-policy/test"
+    assert resp["name"] == "test"
+    assert (
+        resp["arn"]
+        == f"arn:aws:batch:us-east-2:{DEFAULT_ACCOUNT_ID}:scheduling-policy/test"
     )
 
 
@@ -20,14 +21,16 @@ def test_describe_default_scheduling_policy():
     arn = client.create_scheduling_policy(name="test")["arn"]
 
     resp = client.describe_scheduling_policies(arns=[arn])
-    resp.should.have.key("schedulingPolicies").length_of(1)
+    assert len(resp["schedulingPolicies"]) == 1
 
     policy = resp["schedulingPolicies"][0]
-    policy["arn"].should.equal(arn)
-    policy["fairsharePolicy"].should.equal(
-        {"computeReservation": 0, "shareDecaySeconds": 0, "shareDistribution": []}
-    )
-    policy["tags"].should.equal({})
+    assert policy["arn"] == arn
+    assert policy["fairsharePolicy"] == {
+        "computeReservation": 0,
+        "shareDecaySeconds": 0,
+        "shareDistribution": [],
+    }
+    assert policy["tags"] == {}
 
 
 @mock_batch
@@ -43,23 +46,21 @@ def test_describe_scheduling_policy():
     )["arn"]
 
     resp = client.list_scheduling_policies()
-    resp.should.have.key("schedulingPolicies")
+    assert "schedulingPolicies" in resp
     arns = [a["arn"] for a in resp["schedulingPolicies"]]
-    arns.should.contain(arn)
+    assert arn in arns
 
     resp = client.describe_scheduling_policies(arns=[arn])
-    resp.should.have.key("schedulingPolicies").length_of(1)
+    assert len(resp["schedulingPolicies"]) == 1
 
     policy = resp["schedulingPolicies"][0]
-    policy["arn"].should.equal(arn)
-    policy["fairsharePolicy"].should.equal(
-        {
-            "computeReservation": 2,
-            "shareDecaySeconds": 1,
-            "shareDistribution": [{"shareIdentifier": "A", "weightFactor": 0.1}],
-        }
-    )
-    policy["tags"].should.equal({})
+    assert policy["arn"] == arn
+    assert policy["fairsharePolicy"] == {
+        "computeReservation": 2,
+        "shareDecaySeconds": 1,
+        "shareDistribution": [{"shareIdentifier": "A", "weightFactor": 0.1}],
+    }
+    assert policy["tags"] == {}
 
 
 @mock_batch
@@ -70,7 +71,7 @@ def test_delete_scheduling_policy():
     client.delete_scheduling_policy(arn=arn)
 
     resp = client.describe_scheduling_policies(arns=[arn])
-    resp.should.have.key("schedulingPolicies").length_of(0)
+    assert len(resp["schedulingPolicies"]) == 0
 
 
 @mock_batch
@@ -88,10 +89,12 @@ def test_update_scheduling_policy():
     )
 
     resp = client.describe_scheduling_policies(arns=[arn])
-    resp.should.have.key("schedulingPolicies").length_of(1)
+    assert len(resp["schedulingPolicies"]) == 1
 
     policy = resp["schedulingPolicies"][0]
-    policy["arn"].should.equal(arn)
-    policy["fairsharePolicy"].should.equal(
-        {"computeReservation": 5, "shareDecaySeconds": 10, "shareDistribution": []}
-    )
+    assert policy["arn"] == arn
+    assert policy["fairsharePolicy"] == {
+        "computeReservation": 5,
+        "shareDecaySeconds": 10,
+        "shareDistribution": [],
+    }

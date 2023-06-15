@@ -1,7 +1,6 @@
 from . import _get_clients, _setup
 
 import datetime
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
 import botocore.exceptions
 import pytest
@@ -74,17 +73,17 @@ def test_submit_job_by_name():
     resp = batch_client.submit_job(
         jobName="test1", jobQueue=queue_arn, jobDefinition=job_definition_name
     )
-    resp["ResponseMetadata"].should.have.key("RequestId")
+    assert "RequestId" in resp["ResponseMetadata"]
 
     job_id = resp["jobId"]
 
     resp_jobs = batch_client.describe_jobs(jobs=[job_id])
-    resp_jobs["ResponseMetadata"].should.have.key("RequestId")
+    assert "RequestId" in resp_jobs["ResponseMetadata"]
 
-    len(resp_jobs["jobs"]).should.equal(1)
-    resp_jobs["jobs"][0]["jobId"].should.equal(job_id)
-    resp_jobs["jobs"][0]["jobQueue"].should.equal(queue_arn)
-    resp_jobs["jobs"][0]["jobDefinition"].should.equal(job_definition_arn)
+    assert len(resp_jobs["jobs"]) == 1
+    assert resp_jobs["jobs"][0]["jobId"] == job_id
+    assert resp_jobs["jobs"][0]["jobQueue"] == queue_arn
+    assert resp_jobs["jobs"][0]["jobDefinition"] == job_definition_arn
 
 
 # SLOW TESTS
@@ -115,20 +114,20 @@ def test_submit_job():
     # github.com/getmoto/moto/issues/4364
     resp = batch_client.describe_jobs(jobs=[job_id])
     created_at = resp["jobs"][0]["createdAt"]
-    created_at.should.be.greater_than(start_time_milliseconds)
+    assert created_at > start_time_milliseconds
 
     _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
 
     resp = logs_client.describe_log_streams(
         logGroupName="/aws/batch/job", logStreamNamePrefix=job_def_name
     )
-    resp["logStreams"].should.have.length_of(1)
+    assert len(resp["logStreams"]) == 1
     ls_name = resp["logStreams"][0]["logStreamName"]
 
     resp = logs_client.get_log_events(
         logGroupName="/aws/batch/job", logStreamName=ls_name
     )
-    [event["message"] for event in resp["events"]].should.equal(["hello"])
+    assert [event["message"] for event in resp["events"]] == ["hello"]
 
     # Test that describe_jobs() returns timestamps in milliseconds
     # github.com/getmoto/moto/issues/4364
@@ -137,22 +136,20 @@ def test_submit_job():
     started_at = job["startedAt"]
     stopped_at = job["stoppedAt"]
 
-    created_at.should.be.greater_than(start_time_milliseconds)
-    started_at.should.be.greater_than(start_time_milliseconds)
-    stopped_at.should.be.greater_than(start_time_milliseconds)
+    assert created_at > start_time_milliseconds
+    assert started_at > start_time_milliseconds
+    assert stopped_at > start_time_milliseconds
 
     # Verify we track attempts
-    job.should.have.key("attempts").length_of(1)
+    assert len(job["attempts"]) == 1
     attempt = job["attempts"][0]
-    attempt.should.have.key("container")
-    attempt["container"].should.have.key("containerInstanceArn")
-    attempt["container"].should.have.key("logStreamName").equals(
-        job["container"]["logStreamName"]
-    )
-    attempt["container"].should.have.key("networkInterfaces")
-    attempt["container"].should.have.key("taskArn")
-    attempt.should.have.key("startedAt").equals(started_at)
-    attempt.should.have.key("stoppedAt").equals(stopped_at)
+    assert "container" in attempt
+    assert "containerInstanceArn" in attempt["container"]
+    assert attempt["container"]["logStreamName"] == job["container"]["logStreamName"]
+    assert "networkInterfaces" in attempt["container"]
+    assert "taskArn" in attempt["container"]
+    assert attempt["startedAt"] == started_at
+    assert attempt["stoppedAt"] == stopped_at
 
 
 @mock_logs
@@ -182,20 +179,20 @@ def test_submit_job_multinode():
     # github.com/getmoto/moto/issues/4364
     resp = batch_client.describe_jobs(jobs=[job_id])
     created_at = resp["jobs"][0]["createdAt"]
-    created_at.should.be.greater_than(start_time_milliseconds)
+    assert created_at > start_time_milliseconds
 
     _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
 
     resp = logs_client.describe_log_streams(
         logGroupName="/aws/batch/job", logStreamNamePrefix=job_def_name
     )
-    resp["logStreams"].should.have.length_of(1)
+    assert len(resp["logStreams"]) == 1
     ls_name = resp["logStreams"][0]["logStreamName"]
 
     resp = logs_client.get_log_events(
         logGroupName="/aws/batch/job", logStreamName=ls_name
     )
-    [event["message"] for event in resp["events"]].should.equal(["hello", "hello"])
+    assert [event["message"] for event in resp["events"]] == ["hello", "hello"]
 
     # Test that describe_jobs() returns timestamps in milliseconds
     # github.com/getmoto/moto/issues/4364
@@ -204,22 +201,20 @@ def test_submit_job_multinode():
     started_at = job["startedAt"]
     stopped_at = job["stoppedAt"]
 
-    created_at.should.be.greater_than(start_time_milliseconds)
-    started_at.should.be.greater_than(start_time_milliseconds)
-    stopped_at.should.be.greater_than(start_time_milliseconds)
+    assert created_at > start_time_milliseconds
+    assert started_at > start_time_milliseconds
+    assert stopped_at > start_time_milliseconds
 
     # Verify we track attempts
-    job.should.have.key("attempts").length_of(1)
+    assert len(job["attempts"]) == 1
     attempt = job["attempts"][0]
-    attempt.should.have.key("container")
-    attempt["container"].should.have.key("containerInstanceArn")
-    attempt["container"].should.have.key("logStreamName").equals(
-        job["container"]["logStreamName"]
-    )
-    attempt["container"].should.have.key("networkInterfaces")
-    attempt["container"].should.have.key("taskArn")
-    attempt.should.have.key("startedAt").equals(started_at)
-    attempt.should.have.key("stoppedAt").equals(stopped_at)
+    assert "container" in attempt
+    assert "containerInstanceArn" in attempt["container"]
+    assert attempt["container"]["logStreamName"] == job["container"]["logStreamName"]
+    assert "networkInterfaces" in attempt["container"]
+    assert "taskArn" in attempt["container"]
+    assert attempt["startedAt"] == started_at
+    assert attempt["stoppedAt"] == stopped_at
 
 
 @mock_logs
@@ -247,19 +242,22 @@ def test_list_jobs():
     job_id2 = resp["jobId"]
 
     all_jobs = batch_client.list_jobs(jobQueue=queue_arn)["jobSummaryList"]
-    all_jobs.should.have.length_of(2)
+    assert len(all_jobs) == 2
     for job in all_jobs:
-        job.should.have.key("createdAt")
-        job.should.have.key("jobDefinition")
-        job.should.have.key("jobName")
+        assert "createdAt" in job
+        assert "jobDefinition" in job
+        assert "jobName" in job
         # This is async, so we can't be sure where we are in the process
-        job.should.have.key("status").within(
-            ["SUBMITTED", "PENDING", "STARTING", "RUNNABLE", "RUNNING"]
-        )
+        assert job["status"] in [
+            "SUBMITTED",
+            "PENDING",
+            "STARTING",
+            "RUNNABLE",
+            "RUNNING",
+        ]
 
-    batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")[
-        "jobSummaryList"
-    ].should.have.length_of(0)
+    resp = batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")
+    assert len(resp["jobSummaryList"]) == 0
 
     # Wait only as long as it takes to run the jobs
     for job_id in [job_id1, job_id2]:
@@ -268,14 +266,14 @@ def test_list_jobs():
     succeeded_jobs = batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")[
         "jobSummaryList"
     ]
-    succeeded_jobs.should.have.length_of(2)
+    assert len(succeeded_jobs) == 2
     for job in succeeded_jobs:
-        job.should.have.key("createdAt")
-        job.should.have.key("jobDefinition")
-        job.should.have.key("jobName")
-        job.should.have.key("status").equals("SUCCEEDED")
-        job.should.have.key("stoppedAt")
-        job.should.have.key("container").should.have.key("exitCode").equals(0)
+        assert "createdAt" in job
+        assert "jobDefinition" in job
+        assert "jobName" in job
+        assert job["status"] == "SUCCEEDED"
+        assert "stoppedAt" in job
+        assert job["container"]["exitCode"] == 0
 
     filtered_jobs = batch_client.list_jobs(
         jobQueue=queue_arn,
@@ -286,8 +284,8 @@ def test_list_jobs():
             }
         ],
     )["jobSummaryList"]
-    filtered_jobs.should.have.length_of(1)
-    filtered_jobs[0]["jobName"].should.equal("test2")
+    assert len(filtered_jobs) == 1
+    assert filtered_jobs[0]["jobName"] == "test2"
 
 
 @mock_logs
@@ -316,10 +314,10 @@ def test_terminate_job():
     _wait_for_job_status(batch_client, job_id, "FAILED", seconds_to_wait=120)
 
     resp = batch_client.describe_jobs(jobs=[job_id])
-    resp["jobs"][0]["jobName"].should.equal("test1")
-    resp["jobs"][0]["status"].should.equal("FAILED")
-    resp["jobs"][0]["statusReason"].should.equal("test_terminate")
-    resp["jobs"][0]["container"].should.have.key("logStreamName")
+    assert resp["jobs"][0]["jobName"] == "test1"
+    assert resp["jobs"][0]["status"] == "FAILED"
+    assert resp["jobs"][0]["statusReason"] == "test_terminate"
+    assert "logStreamName" in resp["jobs"][0]["container"]
 
     ls_name = f"{job_def_name}/default/{job_id}"
 
@@ -328,8 +326,8 @@ def test_terminate_job():
     )
     # Events should only contain 'start' because we interrupted
     # the job before 'stop' was written to the logs.
-    resp["events"].should.have.length_of(1)
-    resp["events"][0]["message"].should.equal("start")
+    assert len(resp["events"]) == 1
+    assert resp["events"][0]["message"] == "start"
 
 
 @mock_batch
@@ -341,7 +339,7 @@ def test_terminate_nonexisting_job():
     resp = batch_client.terminate_job(
         jobId="nonexisting_job", reason="test_terminate_nonexisting_job"
     )
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_batch
@@ -392,9 +390,9 @@ def test_cancel_pending_job():
     _wait_for_job_status(batch_client, job_id, "FAILED", seconds_to_wait=30)
 
     resp = batch_client.describe_jobs(jobs=[job_id])
-    resp["jobs"][0]["jobName"].should.equal("test_job_name")
-    resp["jobs"][0]["statusReason"].should.equal("test_cancel")
-    resp["jobs"][0]["container"].shouldnt.have.key("logStreamName")
+    assert resp["jobs"][0]["jobName"] == "test_job_name"
+    assert resp["jobs"][0]["statusReason"] == "test_cancel"
+    assert "logStreamName" not in resp["jobs"][0]["container"]
 
 
 @mock_logs
@@ -427,9 +425,9 @@ def test_cancel_running_job():
     _wait_for_job_status(batch_client, job_id, "SUCCEEDED", seconds_to_wait=30)
 
     resp = batch_client.describe_jobs(jobs=[job_id])
-    resp["jobs"][0]["jobName"].should.equal("test_job_name")
-    resp["jobs"][0].shouldnt.have.key("statusReason")
-    resp["jobs"][0]["container"].should.have.key("logStreamName")
+    assert resp["jobs"][0]["jobName"] == "test_job_name"
+    assert "statusReason" not in resp["jobs"][0]
+    assert "logStreamName" in resp["jobs"][0]["container"]
 
 
 @mock_batch
@@ -441,7 +439,7 @@ def test_cancel_nonexisting_job():
     resp = batch_client.cancel_job(
         jobId="nonexisting_job", reason="test_cancel_nonexisting_job"
     )
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_batch
@@ -503,7 +501,7 @@ def test_failed_job():
         resp = batch_client.describe_jobs(jobs=[job_id])
 
         if resp["jobs"][0]["status"] == "FAILED":
-            resp["jobs"][0]["container"].should.have.key("logStreamName")
+            assert "logStreamName" in resp["jobs"][0]["container"]
             break
         if resp["jobs"][0]["status"] == "SUCCEEDED":
             raise RuntimeError("Batch job succeeded even though it had exit code 1")
@@ -580,10 +578,10 @@ def test_dependencies():
         resp = logs_client.get_log_events(
             logGroupName=log_stream_name, logStreamName=ls_name
         )
-        [event["message"] for event in resp["events"]].should.equal(["hello"])
+        assert [event["message"] for event in resp["events"]] == ["hello"]
 
         nr_logstreams_found = nr_logstreams_found + 1
-    nr_logstreams_found.should.equal(3)
+    assert nr_logstreams_found == 3
 
 
 def retrieve_all_streams(log_stream_name, logs_client):
@@ -685,11 +683,11 @@ def test_failed_dependencies():
         assert resp["jobs"][1]["status"] != "SUCCEEDED", "Job 3 cannot succeed"
 
         if resp["jobs"][1]["status"] == "FAILED":
-            assert resp["jobs"][0]["container"].should.have.key(
-                "logStreamName"
+            assert (
+                "logStreamName" in resp["jobs"][0]["container"]
             ), "Job 2 should have logStreamName because it FAILED but was in RUNNING state"
-            assert resp["jobs"][1]["container"].shouldnt.have.key(
-                "logStreamName"
+            assert (
+                "logStreamName" not in resp["jobs"][1]["container"]
             ), "Job 3 shouldn't have logStreamName because it was never in RUNNING state"
 
             break
@@ -803,32 +801,25 @@ def test_container_overrides():
                 key, value = tuple(event["message"].split("="))
                 env_var.append({"name": key, "value": value})
 
-    len(resp_jobs["jobs"]).should.equal(1)
-    resp_jobs["jobs"][0]["jobId"].should.equal(job_id)
-    resp_jobs["jobs"][0]["jobQueue"].should.equal(queue_arn)
-    resp_jobs["jobs"][0]["jobDefinition"].should.equal(job_definition_arn)
-    resp_jobs["jobs"][0]["container"]["vcpus"].should.equal(2)
-    resp_jobs["jobs"][0]["container"]["memory"].should.equal(1024)
-    resp_jobs["jobs"][0]["container"]["command"].should.equal(["printenv"])
+    assert len(resp_jobs["jobs"]) == 1
+    assert resp_jobs["jobs"][0]["jobId"] == job_id
+    assert resp_jobs["jobs"][0]["jobQueue"] == queue_arn
+    assert resp_jobs["jobs"][0]["jobDefinition"] == job_definition_arn
+    assert resp_jobs["jobs"][0]["container"]["vcpus"] == 2
+    assert resp_jobs["jobs"][0]["container"]["memory"] == 1024
+    assert resp_jobs["jobs"][0]["container"]["command"] == ["printenv"]
 
-    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
-        {"name": "TEST0", "value": "from job"}
-    )
-    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
-        {"name": "TEST1", "value": "from job definition"}
-    )
-    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
-        {"name": "TEST2", "value": "from job"}
-    )
-    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
-        {"name": "AWS_BATCH_JOB_ID", "value": job_id}
-    )
+    env = resp_jobs["jobs"][0]["container"]["environment"]
+    assert {"name": "TEST0", "value": "from job"} in env
+    assert {"name": "TEST1", "value": "from job definition"} in env
+    assert {"name": "TEST2", "value": "from job"} in env
+    assert {"name": "AWS_BATCH_JOB_ID", "value": job_id} in env
 
-    sure.expect(env_var).to.contain({"name": "TEST0", "value": "from job"})
-    sure.expect(env_var).to.contain({"name": "TEST1", "value": "from job definition"})
-    sure.expect(env_var).to.contain({"name": "TEST2", "value": "from job"})
+    assert {"name": "TEST0", "value": "from job"} in env_var
+    assert {"name": "TEST1", "value": "from job definition"} in env_var
+    assert {"name": "TEST2", "value": "from job"} in env_var
 
-    sure.expect(env_var).to.contain({"name": "AWS_BATCH_JOB_ID", "value": job_id})
+    assert {"name": "AWS_BATCH_JOB_ID", "value": job_id} in env_var
 
 
 def prepare_job(batch_client, commands, iam_arn, job_def_name):
@@ -943,14 +934,14 @@ def test_update_job_definition():
     job_defs = batch_client.describe_job_definitions(jobDefinitionName=job_def_name)[
         "jobDefinitions"
     ]
-    job_defs.should.have.length_of(2)
+    assert len(job_defs) == 2
 
-    job_defs[0]["containerProperties"]["memory"].should.equal(1024)
-    job_defs[0]["tags"].should.equal(tags[0])
-    job_defs[0].shouldnt.have.key("timeout")
+    assert job_defs[0]["containerProperties"]["memory"] == 1024
+    assert job_defs[0]["tags"] == tags[0]
+    assert "timeout" not in job_defs[0]
 
-    job_defs[1]["containerProperties"]["memory"].should.equal(2048)
-    job_defs[1]["tags"].should.equal(tags[1])
+    assert job_defs[1]["containerProperties"]["memory"] == 2048
+    assert job_defs[1]["tags"] == tags[1]
 
 
 @mock_batch
@@ -974,7 +965,7 @@ def test_register_job_definition_with_timeout():
 
     resp = batch_client.describe_job_definitions(jobDefinitionName=job_def_name)
     job_def = resp["jobDefinitions"][0]
-    job_def.should.have.key("timeout").equals({"attemptDurationSeconds": 3})
+    assert job_def["timeout"] == {"attemptDurationSeconds": 3}
 
 
 @mock_batch

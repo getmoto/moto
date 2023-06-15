@@ -1,10 +1,9 @@
 from ..test_batch import _get_clients, _setup
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch_simple, mock_iam, mock_ec2, mock_ecs, settings
 from uuid import uuid4
 
 
-# Copy of test_batch/test_batch_cloudformation
+# Copy of test_batch/test_batch_compute_envs
 # Except that we verify this behaviour still works without docker
 
 
@@ -38,8 +37,8 @@ def test_create_managed_compute_environment():
         },
         serviceRole=iam_arn,
     )
-    resp.should.contain("computeEnvironmentArn")
-    resp["computeEnvironmentName"].should.equal(compute_name)
+    assert "computeEnvironmentArn" in resp
+    assert resp["computeEnvironmentName"] == compute_name
 
     our_env = batch_client.describe_compute_environments(
         computeEnvironments=[compute_name]
@@ -49,12 +48,12 @@ def test_create_managed_compute_environment():
     if not settings.TEST_SERVER_MODE:
         # Can't verify this in ServerMode, as other tests may have created instances
         resp = ec2_client.describe_instances()
-        resp.should.contain("Reservations")
-        len(resp["Reservations"]).should.equal(3)
+        assert "Reservations" in resp
+        assert len(resp["Reservations"]) == 3
 
     # Should have created 1 ECS cluster
     all_clusters = ecs_client.list_clusters()["clusterArns"]
-    all_clusters.should.contain(our_env["ecsClusterArn"])
+    assert our_env["ecsClusterArn"] in all_clusters
 
 
 @mock_ec2
@@ -98,4 +97,4 @@ def test_create_managed_compute_environment_with_instance_family():
     our_env = batch_client.describe_compute_environments(
         computeEnvironments=[compute_name]
     )["computeEnvironments"][0]
-    our_env["computeResources"]["instanceTypes"].should.equal(["t2"])
+    assert our_env["computeResources"]["instanceTypes"] == ["t2"]
