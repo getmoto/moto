@@ -626,7 +626,7 @@ class Stage(BaseModel):
         self.tags = tags
         self.tracing_enabled = tracing_enabled
         self.access_log_settings: Optional[Dict[str, Any]] = None
-        self.web_acl_arn = None
+        self.web_acl_arn: Optional[str] = None
 
     def to_json(self) -> Dict[str, Any]:
         dct: Dict[str, Any] = {

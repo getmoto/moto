@@ -1,19 +1,20 @@
 import json
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
-from .models import GLOBAL_REGION, wafv2_backends
+from .models import GLOBAL_REGION, wafv2_backends, WAFV2Backend
 
 
 class WAFV2Response(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="wafv2")
 
     @property
-    def wafv2_backend(self):
+    def wafv2_backend(self) -> WAFV2Backend:
         return wafv2_backends[self.current_account][self.region]
 
     @amzn_request_id
-    def associate_web_acl(self):
+    def associate_web_acl(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         web_acl_arn = body["WebACLArn"]
         resource_arn = body["ResourceArn"]
@@ -21,14 +22,14 @@ class WAFV2Response(BaseResponse):
         return 200, {}, "{}"
 
     @amzn_request_id
-    def disassociate_web_acl(self):
+    def disassociate_web_acl(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         resource_arn = body["ResourceArn"]
         self.wafv2_backend.disassociate_web_acl(resource_arn)
         return 200, {}, "{}"
 
     @amzn_request_id
-    def get_web_acl_for_resource(self):
+    def get_web_acl_for_resource(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         resource_arn = body["ResourceArn"]
         web_acl = self.wafv2_backend.get_web_acl_for_resource(resource_arn)
@@ -37,7 +38,7 @@ class WAFV2Response(BaseResponse):
         return 200, response_headers, json.dumps(response)
 
     @amzn_request_id
-    def create_web_acl(self):
+    def create_web_acl(self) -> TYPE_RESPONSE:
         """https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html (response syntax section)"""
 
         scope = self._get_param("Scope")
@@ -62,7 +63,7 @@ class WAFV2Response(BaseResponse):
         return 200, response_headers, json.dumps(response)
 
     @amzn_request_id
-    def delete_web_acl(self):
+    def delete_web_acl(self) -> TYPE_RESPONSE:
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
@@ -73,7 +74,7 @@ class WAFV2Response(BaseResponse):
         return 200, response_headers, "{}"
 
     @amzn_request_id
-    def get_web_acl(self):
+    def get_web_acl(self) -> TYPE_RESPONSE:
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
@@ -85,7 +86,7 @@ class WAFV2Response(BaseResponse):
         return 200, response_headers, json.dumps(response)
 
     @amzn_request_id
-    def list_web_ac_ls(self):
+    def list_web_ac_ls(self) -> TYPE_RESPONSE:
         """https://docs.aws.amazon.com/waf/latest/APIReference/API_ListWebACLs.html (response syntax section)"""
 
         scope = self._get_param("Scope")
@@ -97,7 +98,7 @@ class WAFV2Response(BaseResponse):
         return 200, response_headers, json.dumps(response)
 
     @amzn_request_id
-    def list_rule_groups(self):
+    def list_rule_groups(self) -> TYPE_RESPONSE:
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
@@ -107,7 +108,7 @@ class WAFV2Response(BaseResponse):
         return 200, response_headers, json.dumps(response)
 
     @amzn_request_id
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> TYPE_RESPONSE:
         arn = self._get_param("ResourceARN")
         self.region = arn.split(":")[3]
         tags = self.wafv2_backend.list_tags_for_resource(arn)
@@ -116,7 +117,7 @@ class WAFV2Response(BaseResponse):
         return 200, response_headers, json.dumps(response)
 
     @amzn_request_id
-    def tag_resource(self):
+    def tag_resource(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         arn = body.get("ResourceARN")
         self.region = arn.split(":")[3]
@@ -125,7 +126,7 @@ class WAFV2Response(BaseResponse):
         return 200, {}, "{}"
 
     @amzn_request_id
-    def untag_resource(self):
+    def untag_resource(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         arn = body.get("ResourceARN")
         self.region = arn.split(":")[3]
@@ -134,7 +135,7 @@ class WAFV2Response(BaseResponse):
         return 200, {}, "{}"
 
     @amzn_request_id
-    def update_web_acl(self):
+    def update_web_acl(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         name = body.get("Name")
         _id = body.get("Id")

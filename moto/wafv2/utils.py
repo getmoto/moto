@@ -1,4 +1,6 @@
-def make_arn_for_wacl(name, account_id, region_name, wacl_id, scope):
+def make_arn_for_wacl(
+    name: str, account_id: str, region_name: str, wacl_id: str, scope: str
+) -> str:
     """https://docs.aws.amazon.com/waf/latest/developerguide/how-aws-waf-works.html - explains --scope (cloudfront vs regional)"""
 
     if scope == "REGIONAL":

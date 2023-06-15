@@ -1,49 +1,50 @@
 import json
 import datetime
+from typing import Any, Dict, Tuple, Union
 
 from moto.core.responses import BaseResponse
 from moto.core.exceptions import AWSError
 from urllib.parse import urlsplit
 
-from .models import xray_backends
+from .models import xray_backends, XRayBackend
 from .exceptions import BadSegmentException
 
 
 class XRayResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="xray")
 
-    def _error(self, code, message):
+    def _error(self, code: str, message: str) -> Tuple[str, Dict[str, int]]:
         return json.dumps({"__type": code, "message": message}), dict(status=400)
 
     @property
-    def xray_backend(self):
+    def xray_backend(self) -> XRayBackend:
         return xray_backends[self.current_account][self.region]
 
     @property
-    def request_params(self):
+    def request_params(self) -> Any:  # type: ignore[misc]
         try:
             return json.loads(self.body)
         except ValueError:
             return {}
 
-    def _get_param(self, param_name, if_none=None):
+    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         return self.request_params.get(param_name, if_none)
 
-    def _get_action(self):
+    def _get_action(self) -> str:
         # Amazon is just calling urls like /TelemetryRecords etc...
         # This uses the value after / as the camalcase action, which then
         # gets converted in call_action to find the following methods
         return urlsplit(self.uri).path.lstrip("/")
 
     # PutTelemetryRecords
-    def telemetry_records(self):
+    def telemetry_records(self) -> str:
         self.xray_backend.add_telemetry_records(self.request_params)
 
         return ""
 
     # PutTraceSegments
-    def trace_segments(self):
+    def trace_segments(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         docs = self._get_param("TraceSegmentDocuments")
 
         if docs is None:
@@ -71,7 +72,7 @@ class XRayResponse(BaseResponse):
         return json.dumps(result)
 
     # GetTraceSummaries
-    def trace_summaries(self):
+    def trace_summaries(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         start_time = self._get_param("StartTime")
         end_time = self._get_param("EndTime")
         if start_time is None:
@@ -119,7 +120,7 @@ class XRayResponse(BaseResponse):
         return json.dumps(result)
 
     # BatchGetTraces
-    def traces(self):
+    def traces(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         trace_ids = self._get_param("TraceIds")
 
         if trace_ids is None:
@@ -142,7 +143,7 @@ class XRayResponse(BaseResponse):
         return json.dumps(result)
 
     # GetServiceGraph - just a dummy response for now
-    def service_graph(self):
+    def service_graph(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         start_time = self._get_param("StartTime")
         end_time = self._get_param("EndTime")
         # next_token = self._get_param('NextToken')  # not implemented yet
@@ -164,7 +165,7 @@ class XRayResponse(BaseResponse):
         return json.dumps(result)
 
     # GetTraceGraph - just a dummy response for now
-    def trace_graph(self):
+    def trace_graph(self) -> Union[str, Tuple[str, Dict[str, int]]]:
         trace_ids = self._get_param("TraceIds")
         # next_token = self._get_param('NextToken')  # not implemented yet
 
@@ -175,5 +176,5 @@ class XRayResponse(BaseResponse):
                 dict(status=400),
             )
 
-        result = {"Services": []}
+        result: Dict[str, Any] = {"Services": []}
         return json.dumps(result)
