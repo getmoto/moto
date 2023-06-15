@@ -1,12 +1,13 @@
 import base64
 import boto3
-from botocore.exceptions import ClientError
-
+import os
 import pytest
 
-from moto import mock_autoscaling, mock_ec2
+from botocore.exceptions import ClientError
+from moto import mock_autoscaling, mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
+from unittest import mock, SkipTest
 
 
 @mock_autoscaling
@@ -130,9 +131,14 @@ def test_create_launch_configuration_additional_parameters():
     }
 
 
+# The default AMIs are not loaded for our test case, to speed things up
+# But we do need it for this specific test (and others in this file..)
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_autoscaling
 @mock_ec2
 def test_create_launch_configuration_without_public_ip():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     ec2 = boto3.resource("ec2", "us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/27")
@@ -288,9 +294,12 @@ def test_invalid_launch_configuration_request_raises_error(request_params):
     assert "Valid requests must contain" in ex.value.response["Error"]["Message"]
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_autoscaling
 @mock_ec2
 def test_launch_config_with_block_device_mappings__volumes_are_created():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     as_client = boto3.client("autoscaling", "us-east-2")
     ec2_client = boto3.client("ec2", "us-east-2")
     random_image_id = ec2_client.describe_images()["Images"][0]["ImageId"]

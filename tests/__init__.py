@@ -1,4 +1,5 @@
 import logging
+import os
 
 
 # Disable extra logging for tests
@@ -14,3 +15,6 @@ EXAMPLE_AMI_PARAVIRTUAL = "ami-fa7cdd89"
 EXAMPLE_AMI_WINDOWS = "ami-f4cf1d8d"
 
 DEFAULT_ACCOUNT_ID = "123456789012"
+
+# For the majority of tests we don't need the default AMI's
+os.environ["MOTO_EC2_LOAD_DEFAULT_AMIS"] = "false"

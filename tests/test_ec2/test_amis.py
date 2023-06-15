@@ -1,18 +1,24 @@
 import boto3
-from botocore.exceptions import ClientError
-
+import os
 import pytest
 import random
 
-from moto import mock_ec2
+from moto import mock_ec2, settings
 from moto.ec2.models.amis import AMIS
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from botocore.exceptions import ClientError
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
+from unittest import mock, SkipTest
 from uuid import uuid4
 
 
+# The default AMIs are not loaded for our test case, to speed things up
+# But we do need it for this specific test (and others in this file..)
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_snapshots_for_initial_amis():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     snapshots = ec2.describe_snapshots()["Snapshots"]
@@ -29,8 +35,11 @@ def test_snapshots_for_initial_amis():
         assert expected_description in snapshot_descs
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_ami_create_and_delete():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -182,8 +191,11 @@ def test_ami_copy_dryrun():
     )
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_ami_copy():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -271,8 +283,11 @@ def test_ami_copy_nonexisting_source_region():
     assert ex.value.response["Error"]["Code"] == "InvalidAMIID.NotFound"
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_copy_image_changes_owner_id():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     conn = boto3.client("ec2", region_name="us-east-1")
 
     # this source AMI ID is from moto/ec2/resources/amis.json
@@ -377,8 +392,11 @@ def test_ami_uses_account_id_if_valid_access_key_is_supplied():
     ]
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_ami_filters():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     image_name_A = f"test-ami-{str(uuid4())[0:6]}"
     kernel_value_A = f"k-{str(uuid4())[0:6]}"
     kernel_value_B = f"k-{str(uuid4())[0:6]}"
@@ -834,8 +852,11 @@ def test_ami_attribute_user_and_group_permissions():
     assert image.public is False
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_filter_description():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     # https://github.com/getmoto/moto/issues/4460
     client = boto3.client("ec2", region_name="us-west-2")
 
@@ -1006,8 +1027,11 @@ def test_ami_filter_wildcard():
     assert len(my_images) == 1
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_ami_filter_by_owner_id():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     client = boto3.client("ec2", region_name="us-east-1")
 
     ubuntu_id = "099720109477"
@@ -1164,8 +1188,11 @@ def test_ami_filter_by_empty_tag():
     assert len(client.describe_images(Filters=images_filter)["Images"]) == 3
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_ami_filter_by_ownerid():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     ec2_connection = boto3.client("ec2", region_name="us-east-1")
 
     images = ec2_connection.describe_images(
@@ -1237,8 +1264,11 @@ def test_delete_snapshot_from_create_image():
     assert exc.value.response["Error"]["Code"] == "InvalidSnapshot.NotFound"
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_ami_describe_image_attribute_product_codes():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     # Setup
     conn = boto3.client("ec2", region_name="us-east-1")
 
@@ -1262,8 +1292,11 @@ def test_ami_describe_image_attribute_product_codes():
     assert attributes["ProductCodes"] == expected_codes
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_ami_describe_image_attribute():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     # Setup
     conn = boto3.client("ec2", region_name="us-east-1")
 
@@ -1293,8 +1326,11 @@ def test_ami_describe_image_attribute():
     assert sriov["SriovNetSupport"]["Value"] == "simple"
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_ami_describe_image_attribute_block_device_fail():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     # Setup
     conn = boto3.client("ec2", region_name="us-east-1")
     test_image = conn.describe_images()
@@ -1314,8 +1350,11 @@ def test_ami_describe_image_attribute_block_device_fail():
     )
 
 
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_ami_describe_image_attribute_invalid_param():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     # Setup
     conn = boto3.client("ec2", region_name="us-east-1")
     test_image = conn.describe_images()

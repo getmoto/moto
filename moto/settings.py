@@ -69,6 +69,11 @@ def s3_allow_crossdomain_access() -> bool:
     return os.environ.get("MOTO_S3_ALLOW_CROSSACCOUNT_ACCESS", "true").lower() == "true"
 
 
+def ec2_load_default_amis() -> bool:
+    # True by default - only the value 'false' will return false
+    return os.environ.get("MOTO_EC2_LOAD_DEFAULT_AMIS", "true").lower() != "false"
+
+
 def ecs_new_arn_format() -> bool:
     # True by default - only the value 'false' will return false
     return os.environ.get("MOTO_ECS_NEW_ARN", "true").lower() != "false"
