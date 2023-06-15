@@ -18,7 +18,7 @@ def test_create_and_get_replication_task():
         ReplicationInstanceArn="replication-instance-arn",
         MigrationType="full-load",
         TableMappings='{"rules":[]}',
-        ReplicationTaskSettings='{"Logging":{} }'
+        ReplicationTaskSettings='{"Logging":{} }',
     )
 
     tasks = client.describe_replication_tasks(
