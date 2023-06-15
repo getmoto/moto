@@ -1,6 +1,6 @@
 """Handles incoming identitystore requests, invokes methods, returns responses."""
 import json
-from typing import NamedTuple
+from typing import NamedTuple, Any, Dict, Optional
 
 from moto.core.responses import BaseResponse
 from .models import identitystore_backends, IdentityStoreBackend
@@ -28,19 +28,24 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps(dict(GroupId=group_id, IdentityStoreId=identity_store_id))
 
-    def create_group_membership(self):
+    def create_group_membership(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
         group_id = self._get_param("GroupId")
         member_id = self._get_param("MemberId")
-        membership_id, identity_store_id = self.identitystore_backend.create_group_membership(
+        (
+            membership_id,
+            identity_store_id,
+        ) = self.identitystore_backend.create_group_membership(
             identity_store_id=identity_store_id,
             group_id=group_id,
             member_id=member_id,
         )
 
-        return json.dumps(dict(MembershipId=membership_id, IdentityStoreId=identity_store_id))
+        return json.dumps(
+            dict(MembershipId=membership_id, IdentityStoreId=identity_store_id)
+        )
 
-    def create_user(self):
+    def create_user(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
         user_name = self._get_param("UserName")
         name = self._get_param("Name")
@@ -55,7 +60,40 @@ class IdentityStoreResponse(BaseResponse):
         preferred_language = self._get_param("PreferredLanguage")
         locale = self._get_param("Locale")
         timezone = self._get_param("Timezone")
-        user_id, identity_store_id = self.identitystore_backend.create_user((
+        user_id, identity_store_id = self.identitystore_backend.create_user(
+            (
+                identity_store_id,
+                user_name,
+                name,
+                display_name,
+                nick_name,
+                profile_url,
+                emails,
+                addresses,
+                phone_numbers,
+                user_type,
+                title,
+                preferred_language,
+                locale,
+                timezone,
+            )
+        )
+        return json.dumps(dict(UserId=user_id, IdentityStoreId=identity_store_id))
+
+    def get_group_id(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        alternate_identifier = self._get_param("AlternateIdentifier")
+        group_id, identity_store_id = self.identitystore_backend.get_group_id(
+            identity_store_id=identity_store_id,
+            alternate_identifier=alternate_identifier,
+        )
+        return json.dumps(dict(GroupId=group_id, IdentityStoreId=identity_store_id))
+
+    def describe_user(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        user_id = self._get_param("UserId")
+        (
+            user_id,
             identity_store_id,
             user_name,
             name,
@@ -69,43 +107,52 @@ class IdentityStoreResponse(BaseResponse):
             title,
             preferred_language,
             locale,
-            timezone
-        ))
-        return json.dumps(dict(UserId=user_id, IdentityStoreId=identity_store_id))
-
-    def get_group_id(self):
-        identity_store_id = self._get_param("IdentityStoreId")
-        alternate_identifier = self._get_param("AlternateIdentifier")
-        group_id, identity_store_id = self.identitystore_backend.get_group_id(
-            identity_store_id=identity_store_id,
-            alternate_identifier=alternate_identifier,
-        )
-        return json.dumps(dict(GroupId=group_id, IdentityStoreId=identity_store_id))
-
-    def describe_user(self):
-        identity_store_id = self._get_param("IdentityStoreId")
-        user_id = self._get_param("UserId")
-        user_id, identity_store_id, user_name, name, display_name, nick_name, profile_url, emails, addresses, phone_numbers, user_type, title, preferred_language, locale, timezone = self.identitystore_backend.describe_user(
+            timezone,
+        ) = self.identitystore_backend.describe_user(
             identity_store_id=identity_store_id,
             user_id=user_id,
         )
-        return json.dumps(dict(UserName=user_name, UserId=user_id, ExternalIds=None, Name=self.named_tuple_to_dict(name), DisplayName=display_name, NickName=nick_name, ProfileUrl=profile_url, Emails=emails, Addresses=addresses, PhoneNumbers=phone_numbers, UserType=user_type, Title=title, PreferredLanguage=preferred_language, Locale=locale, Timezone=timezone, IdentityStoreId=identity_store_id))
+        return json.dumps(
+            dict(
+                UserName=user_name,
+                UserId=user_id,
+                ExternalIds=None,
+                Name=self.named_tuple_to_dict(name),
+                DisplayName=display_name,
+                NickName=nick_name,
+                ProfileUrl=profile_url,
+                Emails=emails,
+                Addresses=addresses,
+                PhoneNumbers=phone_numbers,
+                UserType=user_type,
+                Title=title,
+                PreferredLanguage=preferred_language,
+                Locale=locale,
+                Timezone=timezone,
+                IdentityStoreId=identity_store_id,
+            )
+        )
 
-    def list_group_memberships(self):
+    def list_group_memberships(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
         group_id = self._get_param("GroupId")
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
-        group_memberships, next_token = self.identitystore_backend.list_group_memberships(
+        (
+            group_memberships,
+            next_token,
+        ) = self.identitystore_backend.list_group_memberships(
             identity_store_id=identity_store_id,
             group_id=group_id,
             max_results=max_results,
             next_token=next_token,
         )
 
-        return json.dumps(dict(GroupMemberships=group_memberships, NextToken=next_token))
+        return json.dumps(
+            dict(GroupMemberships=group_memberships, NextToken=next_token)
+        )
 
-    def delete_group(self):
+    def delete_group(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
         group_id = self._get_param("GroupId")
         self.identitystore_backend.delete_group(
@@ -114,7 +161,7 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def delete_group_membership(self):
+    def delete_group_membership(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
         membership_id = self._get_param("MembershipId")
         self.identitystore_backend.delete_group_membership(
@@ -123,7 +170,7 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def delete_user(self):
+    def delete_user(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
         user_id = self._get_param("UserId")
         self.identitystore_backend.delete_user(
@@ -132,7 +179,7 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def named_tuple_to_dict(self, value: NamedTuple):
+    def named_tuple_to_dict(self, value: NamedTuple) -> Optional[Dict[str, Any]]:
         if value:
             return value._asdict()
         return None
