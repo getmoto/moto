@@ -1,6 +1,5 @@
 import logging
 
-# from . import helpers  # noqa #TODO: uncomment before PR
 
 # Disable extra logging for tests
 logging.getLogger("boto").setLevel(logging.CRITICAL)
