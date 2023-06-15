@@ -707,7 +707,7 @@ def test_federation_token_with_too_long_policy():
     )
 
 
-@pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1"])
+@pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"])
 @mock_sts
 def test_sts_regions(region):
     client = boto3.client("sts", region_name=region)
