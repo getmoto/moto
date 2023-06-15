@@ -55,13 +55,20 @@ class BaseBackend:
         urls = {}
         for url_base in url_bases:
             # The default URL_base will look like: http://service.[..].amazonaws.com/...
-            # This extension ensures support for the China regions
-            cn_url_base = re.sub(r"amazonaws\\?.com$", "amazonaws.com.cn", url_base)
+            # This extension ensures support for the China, ISO, & ISOB regions
+            alt_dns_suffixes = {
+                "cn": "amazonaws.com.cn",
+                "iso": "c2s.ic.gov",
+                "isob": "sc2s.sgov.gov",
+            }
+
             for url_path, handler in unformatted_paths.items():
                 url = url_path.format(url_base)
                 urls[url] = handler
-                cn_url = url_path.format(cn_url_base)
-                urls[cn_url] = handler
+                for dns_suffix in alt_dns_suffixes.values():
+                    alt_url_base = re.sub(r"amazonaws\\?.com$", dns_suffix, url_base)
+                    alt_url = url_path.format(alt_url_base)
+                    urls[alt_url] = handler
 
         return urls
 
