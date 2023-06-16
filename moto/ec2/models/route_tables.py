@@ -18,6 +18,7 @@ from ..exceptions import (
     InvalidRouteTableIdError,
     InvalidAssociationIdError,
     InvalidDestinationCIDRBlockParameterError,
+    InvalidParameterValueErrorReplaceRoute,
     RouteAlreadyExistsError,
     RouteNotSupportedError,
 )
@@ -451,7 +452,18 @@ class RouteBackend:
         route_id = generate_route_id(
             route_table.id, destination_cidr_block, destination_ipv6_cidr_block
         )
-        route = route_table.routes[route_id]
+        try:
+            route = route_table.routes[route_id]
+        except KeyError:
+            cidr = (
+                destination_cidr_block
+                if destination_cidr_block
+                else destination_ipv6_cidr_block
+            )
+            # This should be 'raise InvalidRouteError(route_table_id, cidr)' in
+            # line with the delete_route() equivalent, but for some reason AWS
+            # returns InvalidParameterValue instead in this case.
+            raise InvalidParameterValueErrorReplaceRoute(cidr) from None
 
         route.gateway = None
         route.nat_gateway = None
