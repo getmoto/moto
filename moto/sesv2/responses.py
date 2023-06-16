@@ -6,7 +6,7 @@ from moto.core.responses import BaseResponse
 from .models import sesv2_backends
 from ..ses.responses import SEND_EMAIL_RESPONSE
 from .models import SESV2Backend
-from typing import List, Dict, Any
+from typing import List
 from urllib.parse import unquote
 
 
@@ -56,7 +56,7 @@ class SESV2Response(BaseResponse):
         return template.render(message=message)
 
     def create_contact_list(self) -> str:
-        params = get_params_dict(self.data)
+        params = json.loads(self.body)
         self.sesv2_backend.create_contact_list(params)
         return json.dumps({})
 
@@ -76,7 +76,7 @@ class SESV2Response(BaseResponse):
 
     def create_contact(self) -> str:
         contact_list_name = self._get_param("ContactListName")
-        params = get_params_dict(self.data)
+        params = json.loads(self.body)
         self.sesv2_backend.create_contact(contact_list_name, params)
         return json.dumps({})
 
@@ -96,8 +96,3 @@ class SESV2Response(BaseResponse):
         contact_list_name = self._get_param("ContactListName")
         self.sesv2_backend.delete_contact(unquote(email), contact_list_name)
         return json.dumps({})
-
-
-def get_params_dict(odict: Dict[str, Any]) -> Any:
-    # parsing of these params is nasty, hopefully there is a tidier way
-    return json.loads(list(dict(odict.items()).keys())[0])

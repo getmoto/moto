@@ -2,7 +2,7 @@ import json
 import email
 import datetime
 from email.mime.base import MIMEBase
-from email.utils import parseaddr
+from email.utils import formataddr, getaddresses, parseaddr
 from email.mime.multipart import MIMEMultipart
 from email.encoders import encode_7or8bit
 from typing import Any, Dict, List, Optional
@@ -350,8 +350,12 @@ class SESBackend(BaseBackend):
                     f"Did not have authority to send from email {source}"
                 )
 
-        for header in "TO", "CC", "BCC":
-            destinations += [d.strip() for d in message.get(header, "").split(",") if d]
+        fieldvalues = [message.get(header, "") for header in ["TO", "CC", "BCC"]]
+        destinations += [
+            formataddr((realname, email_address))
+            for realname, email_address in getaddresses(fieldvalues)
+            if email_address
+        ]
         if len(destinations) > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many recipients.")
         for address in [addr for addr in [source, *destinations] if addr is not None]:

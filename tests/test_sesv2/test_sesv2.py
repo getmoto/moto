@@ -103,6 +103,41 @@ def test_send_raw_email__with_specific_message(
 
 
 @mock_sesv2
+def test_send_raw_email__with_to_address_display_name(
+    ses_v1,
+):  # pylint: disable=redefined-outer-name
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    message = get_raw_email()
+    # This particular message means that to-address with display-name which contains many ','
+    del message["To"]
+    display_name = ",".join(["c" for _ in range(50)])
+    message["To"] = f""""{display_name}" <to@example.com>, foo@example.com"""
+    kwargs = dict(
+        Content={"Raw": {"Data": message.as_bytes()}},
+    )
+
+    # Execute
+    ses_v1.verify_email_identity(EmailAddress="test@example.com")
+    conn.send_email(**kwargs)
+
+    # Verify
+    send_quota = ses_v1.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    assert sent_count == 2
+
+    if not settings.TEST_SERVER_MODE:
+        backend = ses_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+        msg: RawMessage = backend.sent_messages[0]
+        assert message.as_bytes() == msg.raw_data.encode("utf-8")
+        assert msg.source == "test@example.com"
+        assert msg.destinations == [
+            """"c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c" <to@example.com>""",
+            "foo@example.com",
+        ]
+
+
+@mock_sesv2
 def test_create_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -111,6 +146,30 @@ def test_create_contact_list():
     # Execute
     conn.create_contact_list(
         ContactListName=contact_list_name,
+    )
+    result = conn.list_contact_lists()
+
+    # Verify
+    assert len(result["ContactLists"]) == 1
+    assert result["ContactLists"][0]["ContactListName"] == contact_list_name
+
+
+@mock_sesv2
+def test_create_contact_list__with_topics():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test3"
+
+    # Execute
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+        Topics=[
+            {
+                "TopicName": "test-topic",
+                "DisplayName": "display=name",
+                "DefaultSubscriptionStatus": "OPT_OUT",
+            }
+        ],
     )
     result = conn.list_contact_lists()
 
