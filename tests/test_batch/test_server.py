@@ -1,5 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
-
 import moto.server as server
 from moto import mock_batch
 
@@ -14,4 +12,4 @@ def test_batch_list():
     test_client = backend.test_client()
 
     res = test_client.get("/v1/describecomputeenvironments")
-    res.status_code.should.equal(200)
+    assert res.status_code == 200

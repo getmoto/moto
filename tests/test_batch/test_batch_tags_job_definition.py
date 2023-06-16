@@ -1,6 +1,5 @@
 from . import _get_clients
 
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch
 from uuid import uuid4
 
@@ -26,7 +25,7 @@ def test_list_tags_with_job_definition():
     )["jobDefinitionArn"]
 
     my_queue = batch_client.list_tags_for_resource(resourceArn=job_def_arn)
-    my_queue.should.have.key("tags").equals({"foo": "123", "bar": "456"})
+    assert my_queue["tags"] == {"foo": "123", "bar": "456"}
 
 
 @mock_batch
@@ -44,7 +43,7 @@ def test_tag_job_definition():
     batch_client.tag_resource(resourceArn=job_def_arn, tags={"k1": "v1", "k2": "v2"})
 
     my_queue = batch_client.list_tags_for_resource(resourceArn=job_def_arn)
-    my_queue.should.have.key("tags").equals({"k1": "v1", "k2": "v2"})
+    assert my_queue["tags"] == {"k1": "v1", "k2": "v2"}
 
 
 @mock_batch
@@ -64,4 +63,4 @@ def test_untag_job_queue():
     batch_client.untag_resource(resourceArn=job_def_arn, tagKeys=["k2"])
 
     my_queue = batch_client.list_tags_for_resource(resourceArn=job_def_arn)
-    my_queue.should.have.key("tags").equals({"k1": "v1", "k3": "v3"})
+    assert my_queue["tags"] == {"k1": "v1", "k3": "v3"}

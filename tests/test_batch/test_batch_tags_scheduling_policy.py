@@ -11,4 +11,4 @@ def test_create_with_tags():
     resp = client.describe_scheduling_policies(arns=[arn])
 
     policy = resp["schedulingPolicies"][0]
-    policy["tags"].should.equal({"key": "val"})
+    assert policy["tags"] == {"key": "val"}

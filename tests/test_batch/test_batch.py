@@ -9,4 +9,4 @@ from moto import mock_batch
 def test_batch_regions(region):
     client = boto3.client("batch", region_name=region)
     resp = client.describe_jobs(jobs=[""])
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
