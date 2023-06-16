@@ -193,8 +193,8 @@ def test_create_add_additional_roles_to_instance_profile_error():
 
     # Verify
     err = exc.value.response["Error"]
-    err["Code"].should.equal("LimitExceeded")
-    err["Message"].should.equal(
+    assert err["Code"].should.equal("LimitExceeded")
+    assert err["Message"].should.equal(
         "Cannot exceed quota for InstanceSessionsPerInstanceProfile: 1"
     )
 
