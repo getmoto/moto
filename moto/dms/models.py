@@ -1,5 +1,3 @@
-import json
-
 from datetime import datetime
 from typing import Any, Dict, List, Iterable, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
@@ -142,8 +140,8 @@ class FakeReplicationTask(BaseModel):
             "TargetEndpointArn": self.target_endpoint_arn,
             "ReplicationInstanceArn": self.replication_instance_arn,
             "MigrationType": self.migration_type,
-            "TableMappings": json.dumps(self.table_mappings),
-            "ReplicationTaskSettings": json.dumps(self.replication_task_settings),
+            "TableMappings": self.table_mappings,
+            "ReplicationTaskSettings": self.replication_task_settings,
             "Status": self.status,
             "ReplicationTaskCreationDate": self.creation_date.isoformat(),
             "ReplicationTaskStartDate": start_date,

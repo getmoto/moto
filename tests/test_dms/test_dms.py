@@ -2,6 +2,7 @@ from botocore.exceptions import ClientError
 import boto3
 import sure  # noqa # pylint: disable=unused-import
 import pytest
+import json
 
 from moto import mock_dms
 
@@ -17,6 +18,7 @@ def test_create_and_get_replication_task():
         ReplicationInstanceArn="replication-instance-arn",
         MigrationType="full-load",
         TableMappings='{"rules":[]}',
+        ReplicationTaskSettings='{"Logging":{} }',
     )
 
     tasks = client.describe_replication_tasks(
@@ -31,6 +33,11 @@ def test_create_and_get_replication_task():
     task["ReplicationInstanceArn"].should.equal("replication-instance-arn")
     task["MigrationType"].should.equal("full-load")
     task["Status"].should.equal("creating")
+    task["TableMappings"].should.equal('{"rules":[]}')
+    json.loads(task["TableMappings"]).should.be.a(dict)
+
+    task["ReplicationTaskSettings"].should.equal('{"Logging":{} }')
+    json.loads(task["ReplicationTaskSettings"]).should.be.a(dict)
 
 
 @mock_dms
