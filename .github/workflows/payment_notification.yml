@@ -22,8 +22,7 @@ jobs:
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: |
-              Hi @${{ github.event.pull_request.user.login }},
+            body: `Hi @${{ github.event.pull_request.user.login }},
 
               Thank you for contributing to Moto!
 
@@ -33,5 +32,5 @@ jobs:
               https://payments.getmoto.org/
 
               This website is still in beta, but everything should work. Feel free to open a bug or discussion if you run into any problems:
-              https://github.com/getmoto/payments
+              https://github.com/getmoto/payments`
           })
