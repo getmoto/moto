@@ -2375,7 +2375,12 @@ class IAMBackend(BaseBackend):
     def add_role_to_instance_profile(self, profile_name: str, role_name: str) -> None:
         profile = self.get_instance_profile(profile_name)
         role = self.get_role(role_name)
-        profile.roles.append(role)
+        if not profile.roles:
+            profile.roles.append(role)
+        else:
+            raise IAMLimitExceededException(
+                "Cannot exceed quota for InstanceSessionsPerInstanceProfile: 1"
+            )
 
     def remove_role_from_instance_profile(
         self, profile_name: str, role_name: str

@@ -69,6 +69,23 @@ MOCK_POLICY_3 = """
 }
 """
 
+MOCK_STS_EC2_POLICY_DOCUMENT = """{
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Service": [
+              "ec2.amazonaws.com"
+            ]
+          },
+          "Action": [
+            "sts:AssumeRole"
+          ]
+        }
+      ]
+    }"""
+
 
 @mock_iam
 def test_get_role__should_throw__when_role_does_not_exist():
@@ -151,6 +168,35 @@ def test_create_instance_profile_should_throw_when_name_is_not_unique():
     conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
     with pytest.raises(ClientError):
         conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
+
+
+@mock_iam
+def test_create_add_additional_roles_to_instance_profile_error():
+
+    # Setup
+    iam = boto3.client("iam", region_name="us-east-1")
+    name = "test_profile"
+    role_name = "test_role"
+    role_name2 = "test_role2"
+    iam.create_instance_profile(InstanceProfileName=name)
+    iam.create_role(
+        RoleName=role_name, AssumeRolePolicyDocument=MOCK_STS_EC2_POLICY_DOCUMENT
+    )
+    iam.create_role(
+        RoleName=role_name2, AssumeRolePolicyDocument=MOCK_STS_EC2_POLICY_DOCUMENT
+    )
+    iam.add_role_to_instance_profile(InstanceProfileName=name, RoleName=role_name)
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        iam.add_role_to_instance_profile(InstanceProfileName=name, RoleName=role_name2)
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"].should.equal("LimitExceeded")
+    assert err["Message"].should.equal(
+        "Cannot exceed quota for InstanceSessionsPerInstanceProfile: 1"
+    )
 
 
 @mock_iam
@@ -420,20 +466,7 @@ def test_update_assume_role_valid_policy():
     conn.create_role(
         RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
     )
-    policy_document = """
-    {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Principal": {
-                    "Service": ["ec2.amazonaws.com"]
-                },
-                "Action": ["sts:AssumeRole"]
-            }
-        ]
-    }
-"""
+    policy_document = MOCK_STS_EC2_POLICY_DOCUMENT
     conn.update_assume_role_policy(RoleName="my-role", PolicyDocument=policy_document)
     role = conn.get_role(RoleName="my-role")["Role"]
     role["AssumeRolePolicyDocument"]["Statement"][0]["Action"][0].should.equal(
@@ -3381,21 +3414,7 @@ def test_list_user_tags():
 def test_delete_role_with_instance_profiles_present():
     iam = boto3.client("iam", region_name="us-east-1")
 
-    trust_policy = """
-    {
-      "Version": "2012-10-17",
-      "Statement": [
-        {
-          "Effect": "Allow",
-          "Principal": {
-            "Service": "ec2.amazonaws.com"
-          },
-          "Action": "sts:AssumeRole"
-        }
-      ]
-    }
-        """
-    trust_policy = trust_policy.strip()
+    trust_policy = MOCK_STS_EC2_POLICY_DOCUMENT.strip()
 
     iam.create_role(RoleName="Role1", AssumeRolePolicyDocument=trust_policy)
     iam.create_instance_profile(InstanceProfileName="IP1")
