@@ -195,14 +195,10 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
         self.regions = []
         if use_boto3_regions:
             sess = Session()
-            self.regions.extend(sess.get_available_regions(service_name))
             for partition in sess.get_available_partitions():
-                if partition != "aws":
-                    self.regions.extend(
-                        sess.get_available_regions(
-                            service_name, partition_name=partition
-                        )
-                    )
+                self.regions.extend(
+                    sess.get_available_regions(service_name, partition_name=partition)
+                )
         self.regions.extend(additional_regions or [])
         self._id = str(uuid4())
 
