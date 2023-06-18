@@ -2344,6 +2344,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "u-24tb1.112xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "us-west-2"
  },

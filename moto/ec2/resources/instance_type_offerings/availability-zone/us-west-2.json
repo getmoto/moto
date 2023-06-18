@@ -2304,6 +2304,14 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "u-18tb1.112xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "u-24tb1.112xlarge",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "us-west-2a"
  },
@@ -8861,6 +8869,10 @@
  },
  {
   "InstanceType": "u-18tb1.112xlarge",
+  "Location": "us-west-2d"
+ },
+ {
+  "InstanceType": "u-24tb1.112xlarge",
   "Location": "us-west-2d"
  },
  {
