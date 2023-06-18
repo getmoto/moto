@@ -1,11 +1,17 @@
 import importlib
 import sys
 from contextlib import ContextDecorator
-from typing import Any, Callable, List, Optional, TypeVar
 
-from moto.core.models import BaseMockAWS
+from moto.core.models import BaseMockAWS, base_decorator
+from typing import Any, Callable, List, Optional, TypeVar, Union, overload
+from typing import TYPE_CHECKING
+from typing_extensions import ParamSpec
 
-TEST_METHOD = TypeVar("TEST_METHOD", bound=Callable[..., Any])
+if TYPE_CHECKING:
+    from moto.xray import XRaySegment as xray_segment_type
+
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
 def lazy_load(
@@ -14,14 +20,35 @@ def lazy_load(
     boto3_name: Optional[str] = None,
     backend: Optional[str] = None,
 ) -> Callable[..., BaseMockAWS]:
-    def f(*args: Any, **kwargs: Any) -> Any:
+    @overload
+    def f() -> BaseMockAWS:
+        ...
+
+    @overload
+    def f(func: Callable[P, T]) -> Callable[P, T]:
+        ...
+
+    def f(func: Optional[Callable[P, T]] = None) -> Union[BaseMockAWS, Callable[P, T]]:
         module = importlib.import_module(module_name, "moto")
-        return getattr(module, element)(*args, **kwargs)
+        decorator: base_decorator = getattr(module, element)
+        return decorator(func)
 
     setattr(f, "name", module_name.replace(".", ""))
     setattr(f, "element", element)
     setattr(f, "boto3_name", boto3_name or f.name)  # type: ignore[attr-defined]
     setattr(f, "backend", backend or f"{f.name}_backends")  # type: ignore[attr-defined]
+    return f
+
+
+def load_xray_segment() -> Callable[[], "xray_segment_type"]:
+    def f() -> "xray_segment_type":
+        # We can't use `lazy_load` here
+        # XRaySegment will always be run as a context manager
+        # I.e.: no function is passed directly: `with XRaySegment()`
+        from moto.xray import XRaySegment as xray_segment
+
+        return xray_segment()
+
     return f
 
 
@@ -190,7 +217,7 @@ mock_timestreamwrite = lazy_load(
     ".timestreamwrite", "mock_timestreamwrite", boto3_name="timestream-write"
 )
 mock_transcribe = lazy_load(".transcribe", "mock_transcribe")
-XRaySegment = lazy_load(".xray", "XRaySegment")
+XRaySegment = load_xray_segment()
 mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")

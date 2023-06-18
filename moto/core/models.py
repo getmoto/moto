@@ -5,8 +5,9 @@ import os
 import re
 import unittest
 from types import FunctionType
-from typing import Any, Callable, Dict, Optional, Set, TypeVar, Union
+from typing import Any, Callable, Dict, Optional, Set, TypeVar, Union, overload
 from typing import ContextManager
+from typing_extensions import ParamSpec
 from unittest.mock import patch
 
 import boto3
@@ -27,7 +28,8 @@ from .custom_responses_mock import (
 from .model_instances import reset_model_data
 
 DEFAULT_ACCOUNT_ID = "123456789012"
-CALLABLE_RETURN = TypeVar("CALLABLE_RETURN")
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
 class BaseMockAWS(ContextManager["BaseMockAWS"]):
@@ -67,10 +69,10 @@ class BaseMockAWS(ContextManager["BaseMockAWS"]):
 
     def __call__(
         self,
-        func: Callable[..., "BaseMockAWS"],
+        func: Callable[P, T],
         reset: bool = True,
         remove_data: bool = True,
-    ) -> Callable[..., "BaseMockAWS"]:
+    ) -> Callable[P, T]:
         if inspect.isclass(func):
             return self.decorate_class(func)  # type: ignore
         return self.decorate_callable(func, reset, remove_data)
@@ -120,9 +122,9 @@ class BaseMockAWS(ContextManager["BaseMockAWS"]):
             self.disable_patching()  # type: ignore[attr-defined]
 
     def decorate_callable(
-        self, func: Callable[..., "BaseMockAWS"], reset: bool, remove_data: bool
-    ) -> Callable[..., "BaseMockAWS"]:
-        def wrapper(*args: Any, **kwargs: Any) -> "BaseMockAWS":
+        self, func: Callable[P, T], reset: bool, remove_data: bool
+    ) -> Callable[P, T]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             self.start(reset=reset)
             try:
                 result = func(*args, **kwargs)
@@ -513,13 +515,21 @@ class base_decorator:
     def __init__(self, backends: BackendDict):
         self.backends = backends
 
+    @overload
+    def __call__(self, func: None) -> BaseMockAWS:
+        ...
+
+    @overload
+    def __call__(self, func: Callable[P, T]) -> Callable[P, T]:
+        ...
+
     def __call__(
-        self, func: Optional[Callable[..., Any]] = None
-    ) -> Union[BaseMockAWS, Callable[..., BaseMockAWS]]:
+        self, func: Optional[Callable[P, T]] = None
+    ) -> Union[BaseMockAWS, Callable[P, T]]:
         if settings.test_proxy_mode():
             mocked_backend: BaseMockAWS = ProxyModeMockAWS(self.backends)
         elif settings.TEST_SERVER_MODE:
-            mocked_backend: BaseMockAWS = ServerModeMockAWS(self.backends)  # type: ignore
+            mocked_backend: BaseMockAWS = ServerModeMockAWS(self.backends)
         else:
             mocked_backend = self.mock_backend(self.backends)
 
