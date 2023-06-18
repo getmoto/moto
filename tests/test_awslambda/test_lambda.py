@@ -25,7 +25,7 @@ _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
 
 
-@pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1"])
+@pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"])
 @mock_lambda
 def test_lambda_regions(region):
     client = boto3.client("lambda", region_name=region)

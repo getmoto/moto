@@ -888,7 +888,9 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
     execution_history["events"].should.equal(expected_events)
 
 
-@pytest.mark.parametrize("test_region", ["us-west-2", "cn-northwest-1"])
+@pytest.mark.parametrize(
+    "test_region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"]
+)
 @mock_stepfunctions
 def test_stepfunction_regions(test_region):
     client = boto3.client("stepfunctions", region_name=test_region)
