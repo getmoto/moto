@@ -15,12 +15,18 @@ from pyparsing import (
     Suppress,
     Word,
     alphanums,
-    delimited_list,
     exceptions,
     infix_notation,
     one_of,
     pyparsing_common,
 )
+
+try:
+    # TODO import directly when depending on pyparsing>=3.1.0
+    from pyparsing import DelimitedList
+except ImportError:
+    # delimited_list is deprecated in favor of DelimitedList in pyparsing 3.1.0
+    from pyparsing import delimited_list as DelimitedList
 
 from .exceptions import (
     InvalidInputException,
@@ -279,7 +285,7 @@ class _PartitionFilterExpressionCache:
         string <<= QuotedString(quote_char="'", esc_quote="''") | lpar + string + rpar  # type: ignore
 
         literal = (number | string).set_name("literal")
-        literal_list = delimited_list(literal, min=1).set_name("list")
+        literal_list = DelimitedList(literal, min=1).set_name("list")
 
         bin_op = one_of("<> >= <= > < =").set_name("binary op")
 
