@@ -346,12 +346,11 @@ def test_get_partition_expression_warnings_and_exceptions():
 
     kwargs = {"DatabaseName": database_name, "TableName": table_name}
 
-    with pytest.warns(match="Expression filtering is experimental"):
-        response = client.get_partitions(**kwargs, Expression="string_col = 'test'")
-        partitions = response["Partitions"]
-        partitions.should.have.length_of(1)
-        partition = partitions[0]
-        partition["Values"].should.equal(["test", "int", "3.14"])
+    response = client.get_partitions(**kwargs, Expression="string_col = 'test'")
+    partitions = response["Partitions"]
+    partitions.should.have.length_of(1)
+    partition = partitions[0]
+    partition["Values"].should.equal(["test", "int", "3.14"])
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(**kwargs, Expression="float_col = 3.14")
