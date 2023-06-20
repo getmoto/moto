@@ -2465,17 +2465,19 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
             {% endif %}
         {% endif %}
         <Status>{{ rule.status }}</Status>
-        {% if rule.storage_class %}
-        <Transition>
-            {% if rule.transition_days %}
-               <Days>{{ rule.transition_days }}</Days>
-            {% endif %}
-            {% if rule.transition_date %}
-               <Date>{{ rule.transition_date }}</Date>
-            {% endif %}
-           <StorageClass>{{ rule.storage_class }}</StorageClass>
-        </Transition>
-        {% endif %}
+        {% for transition in rule.transitions %}
+            <Transition>
+                {% if transition.days %}
+                <Days>{{ transition.days }}</Days>
+                {% endif %}
+                {% if transition.date %}
+                <Date>{{ transition.date }}</Date>
+                {% endif %}
+                {% if transition.storage_class %}
+                <StorageClass>{{ transition.storage_class }}</StorageClass>
+                {% endif %}
+            </Transition>
+        {% endfor %}
         {% if rule.expiration_days or rule.expiration_date or rule.expired_object_delete_marker %}
         <Expiration>
             {% if rule.expiration_days %}
@@ -2489,12 +2491,19 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
             {% endif %}
         </Expiration>
         {% endif %}
-        {% if rule.nvt_noncurrent_days and rule.nvt_storage_class %}
-        <NoncurrentVersionTransition>
-           <NoncurrentDays>{{ rule.nvt_noncurrent_days }}</NoncurrentDays>
-           <StorageClass>{{ rule.nvt_storage_class }}</StorageClass>
-        </NoncurrentVersionTransition>
-        {% endif %}
+        {% for nvt in rule.noncurrent_version_transitions %}
+            <NoncurrentVersionTransition>
+                {% if nvt.newer_versions %}
+                <NewerNoncurrentVersions>{{ nvt.newer_versions }}</NewerNoncurrentVersions>
+                {% endif %}
+                {% if nvt.days %}
+                <NoncurrentDays>{{ nvt.days }}</NoncurrentDays>
+                {% endif %}
+                {% if nvt.storage_class %}
+                <StorageClass>{{ nvt.storage_class }}</StorageClass>
+                {% endif %}
+            </NoncurrentVersionTransition>
+        {% endfor %}
         {% if rule.nve_noncurrent_days %}
         <NoncurrentVersionExpiration>
            <NoncurrentDays>{{ rule.nve_noncurrent_days }}</NoncurrentDays>
