@@ -988,6 +988,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -1452,6 +1455,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -2540,6 +2552,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -3031,6 +3046,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -4830,6 +4854,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -5555,6 +5582,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -7200,6 +7236,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -7829,6 +7868,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -8727,6 +8775,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -9167,6 +9218,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -10659,6 +10719,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -11318,6 +11381,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -11980,6 +12052,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -12300,6 +12375,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpc": {
                 "Value": "vpc"
@@ -12770,6 +12854,15 @@
                 "Value": "cloudsearch",
                 "endpoint": {
                   "Value": "cloudsearch.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13972,6 +14065,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -14706,6 +14802,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -16516,6 +16621,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -17281,6 +17389,15 @@
               "verified-access": {
                 "Value": "verified-access"
               },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
               },
@@ -17624,6 +17741,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -17930,6 +18056,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -18106,6 +18241,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "notifications": {
+                "Value": "notifications"
               },
               "oam": {
                 "Value": "oam",
@@ -18499,6 +18637,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpc": {
                 "Value": "vpc"
@@ -19113,6 +19260,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -19424,6 +19574,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpc": {
                 "Value": "vpc"
@@ -20890,6 +21049,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -21543,6 +21705,15 @@
               },
               "verified-access": {
                 "Value": "verified-access"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -22938,6 +23109,15 @@
                 "Value": "accessanalyzer",
                 "endpoint": {
                   "Value": "access-analyzer.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "account": {
+                "Value": "account",
+                "endpoint": {
+                  "Value": "account.cn-northwest-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25901,6 +26081,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -26669,6 +26852,15 @@
               "verified-access": {
                 "Value": "verified-access"
               },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
               },
@@ -27386,6 +27578,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -27706,6 +27901,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpc": {
                 "Value": "vpc"
@@ -28069,6 +28273,15 @@
                 "Value": "cloudhsmv2",
                 "endpoint": {
                   "Value": "cloudhsmv2.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29022,6 +29235,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -29579,6 +29795,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -30595,6 +30820,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -31041,6 +31269,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -31685,6 +31922,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -32005,6 +32245,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpc": {
                 "Value": "vpc"
@@ -33813,6 +34062,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -34607,6 +34859,15 @@
               },
               "verified-access": {
                 "Value": "verified-access"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -36307,6 +36568,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -36964,6 +37228,15 @@
               "verified-access": {
                 "Value": "verified-access"
               },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
               },
@@ -37388,6 +37661,15 @@
                 "Value": "cloudhsmv2",
                 "endpoint": {
                   "Value": "cloudhsmv2.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38284,6 +38566,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -38531,6 +38816,15 @@
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38853,6 +39147,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -39596,6 +39899,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -39934,6 +40240,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpc": {
                 "Value": "vpc"
@@ -41010,6 +41325,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -41477,6 +41795,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -42781,6 +43108,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -43345,6 +43675,15 @@
               "verified-access": {
                 "Value": "verified-access"
               },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
               },
@@ -43490,6 +43829,15 @@
                 "Value": "accessanalyzer",
                 "endpoint": {
                   "Value": "access-analyzer.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "account": {
+                "Value": "account",
+                "endpoint": {
+                  "Value": "account.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -45484,6 +45832,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -46311,6 +46662,15 @@
               },
               "verified-access": {
                 "Value": "verified-access"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -48076,6 +48436,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -48816,6 +49179,15 @@
               },
               "verified-access": {
                 "Value": "verified-access"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -52990,6 +53362,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -53628,6 +54003,15 @@
               },
               "verified-access": {
                 "Value": "verified-access"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
@@ -55603,6 +55987,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -56427,6 +56814,15 @@
               },
               "verified-access": {
                 "Value": "verified-access"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vmwarecloudonaws": {
                 "Value": "vmwarecloudonaws"
