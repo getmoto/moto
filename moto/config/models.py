@@ -291,12 +291,16 @@ class RecordingGroup(ConfigEmptyDictable):
         all_supported: bool = True,
         include_global_resource_types: bool = False,
         resource_types: Optional[List[str]] = None,
+        exclusion_by_resource_types: Optional[Dict[str, List[str]]] = None,
+        recording_strategy: Optional[Dict[str, str]] = None,
     ):
         super().__init__()
 
         self.all_supported = all_supported
         self.include_global_resource_types = include_global_resource_types
         self.resource_types = resource_types
+        self.exclusion_by_resource_types = exclusion_by_resource_types
+        self.recording_strategy = recording_strategy
 
 
 class ConfigRecorder(ConfigEmptyDictable):
@@ -1189,7 +1193,13 @@ class ConfigBackend(BaseBackend):
 
         # Validate the Recording Group:
         if config_recorder.get("recordingGroup") is None:
-            recording_group = RecordingGroup()
+            recording_group = RecordingGroup(
+                all_supported=True,
+                include_global_resource_types=False,
+                resource_types=[],
+                exclusion_by_resource_types={"resourceTypes": []},
+                recording_strategy={"useOnly": "ALL_SUPPORTED_RESOURCE_TYPES"},
+            )
         else:
             rgroup = config_recorder["recordingGroup"]
 
@@ -1197,27 +1207,88 @@ class ConfigBackend(BaseBackend):
             if not rgroup:
                 raise InvalidRecordingGroupException()
 
-            # Can't have both the resource types specified and the other flags as True.
-            if rgroup.get("resourceTypes") and (
-                rgroup.get("allSupported", False)
-                or rgroup.get("includeGlobalResourceTypes", False)
-            ):
-                raise InvalidRecordingGroupException()
-
-            # Must supply resourceTypes if 'allSupported' is not supplied:
-            if not rgroup.get("allSupported") and not rgroup.get("resourceTypes"):
-                raise InvalidRecordingGroupException()
-
-            # Validate that the list provided is correct:
-            self._validate_resource_types(rgroup.get("resourceTypes", []))
-
-            recording_group = RecordingGroup(
-                all_supported=rgroup.get("allSupported", True),
-                include_global_resource_types=rgroup.get(
-                    "includeGlobalResourceTypes", False
-                ),
-                resource_types=rgroup.get("resourceTypes", []),
+            # Recording strategy must be one of the allowed enums:
+            recording_strategy = rgroup.get("recordingStrategy", {}).get(
+                "useOnly", None
             )
+            if recording_strategy not in {
+                None,
+                "ALL_SUPPORTED_RESOURCE_TYPES",
+                "INCLUSION_BY_RESOURCE_TYPES",
+                "EXCLUSION_BY_RESOURCE_TYPES",
+            }:
+                raise ValidationException(
+                    f"1 validation error detected: Value '{recording_strategy}' at 'configurationRecorder.recordingGroup.recordingStrategy.useOnly' failed to satisfy constraint:"
+                    f" Member must satisfy enum value set: [INCLUSION_BY_RESOURCE_TYPES, ALL_SUPPORTED_RESOURCE_TYPES, EXCLUSION_BY_RESOURCE_TYPES]"
+                )
+
+            # Validate the allSupported:
+            if rgroup.get("allSupported", False):
+                if (
+                    rgroup.get("resourceTypes", [])
+                    or rgroup.get("exclusionByResourceTypes", {})
+                    or recording_strategy not in {None, "ALL_SUPPORTED_RESOURCE_TYPES"}
+                ):
+                    raise InvalidRecordingGroupException()
+
+                recording_group = RecordingGroup(
+                    all_supported=True,
+                    include_global_resource_types=rgroup.get(
+                        "includeGlobalResourceTypes", False
+                    ),
+                    resource_types=[],
+                    exclusion_by_resource_types={"resourceTypes": []},
+                    recording_strategy={"useOnly": "ALL_SUPPORTED_RESOURCE_TYPES"},
+                )
+
+            # Validate the specifically passed in resource types:
+            elif rgroup.get("resourceTypes", []):
+                if (
+                    rgroup.get("includeGlobalResourceTypes", False)
+                    or rgroup.get("exclusionByResourceTypes", {})
+                    or recording_strategy not in {None, "INCLUSION_BY_RESOURCE_TYPES"}
+                ):
+                    raise InvalidRecordingGroupException()
+
+                # Validate that the resource list provided is correct:
+                self._validate_resource_types(rgroup["resourceTypes"])
+
+                recording_group = RecordingGroup(
+                    all_supported=False,
+                    include_global_resource_types=False,
+                    resource_types=rgroup["resourceTypes"],
+                    exclusion_by_resource_types={"resourceTypes": []},
+                    recording_strategy={"useOnly": "INCLUSION_BY_RESOURCE_TYPES"},
+                )
+
+            # Validate the excluded resource types:
+            elif rgroup.get("exclusionByResourceTypes", {}):
+                if not rgroup["exclusionByResourceTypes"].get("resourceTypes", []):
+                    raise InvalidRecordingGroupException()
+
+                # The recording strategy must be provided for exclusions.
+                if (
+                    rgroup.get("includeGlobalResourceTypes", False)
+                    or recording_strategy != "EXCLUSION_BY_RESOURCE_TYPES"
+                ):
+                    raise InvalidRecordingGroupException()
+
+                # Validate that the resource list provided is correct:
+                self._validate_resource_types(
+                    rgroup["exclusionByResourceTypes"]["resourceTypes"]
+                )
+
+                recording_group = RecordingGroup(
+                    all_supported=False,
+                    include_global_resource_types=False,
+                    resource_types=[],
+                    exclusion_by_resource_types=rgroup["exclusionByResourceTypes"],
+                    recording_strategy={"useOnly": "EXCLUSION_BY_RESOURCE_TYPES"},
+                )
+
+            # If the resourceTypes is an empty list, this will be reached:
+            else:
+                raise InvalidRecordingGroupException()
 
         self.recorders[config_recorder["name"]] = ConfigRecorder(
             config_recorder["roleARN"],

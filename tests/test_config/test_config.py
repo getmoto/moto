@@ -40,7 +40,7 @@ def test_put_configuration_recorder():
         in ce.value.response["Error"]["Message"]
     )
 
-    # With resource types and flags set to True:
+    # With a combination of bad things:
     bad_groups = [
         {
             "allSupported": True,
@@ -48,9 +48,33 @@ def test_put_configuration_recorder():
             "resourceTypes": ["item"],
         },
         {
+            "allSupported": True,
+            "includeGlobalResourceTypes": True,
+            "resourceTypes": ["item"],
+            "exclusionByResourceTypes": {"resourceTypes": ["item"]},
+        },
+        {
+            "allSupported": True,
+            "includeGlobalResourceTypes": True,
+            "exclusionByResourceTypes": {"resourceTypes": ["item"]},
+        },
+        {
+            "allSupported": True,
+            "includeGlobalResourceTypes": True,
+            "recordingStrategy": {"useOnly": "EXCLUSION_BY_RESOURCE_TYPES"},
+        },
+        {
             "allSupported": False,
             "includeGlobalResourceTypes": True,
             "resourceTypes": ["item"],
+        },
+        {
+            "resourceTypes": ["item"],
+            "exclusionByResourceTypes": {"resourceTypes": ["item"]},
+        },
+        {
+            "resourceTypes": ["item"],
+            "recordingStrategy": {"useOnly": "EXCLUSION_BY_RESOURCE_TYPES"},
         },
         {
             "allSupported": True,
@@ -58,13 +82,23 @@ def test_put_configuration_recorder():
             "resourceTypes": ["item"],
         },
         {
+            "allSupported": True,
+            "includeGlobalResourceTypes": False,
+            "exclusionByResourceTypes": {"resourceTypes": ["item"]},
+        },
+        {
             "allSupported": False,
             "includeGlobalResourceTypes": False,
             "resourceTypes": [],
         },
+        {
+            "exclusionByResourceTypes": {"resourceTypes": []},
+            "recordingStrategy": {"useOnly": "EXCLUSION_BY_RESOURCE_TYPES"},
+        },
         {"includeGlobalResourceTypes": False, "resourceTypes": []},
         {"includeGlobalResourceTypes": True},
         {"resourceTypes": []},
+        {"exclusionByResourceTypes": {"resourceTypes": ["AWS::EC2::Instance"]}},
         {},
     ]
 
@@ -108,6 +142,54 @@ def test_put_configuration_recorder():
     )
     assert "AWS::EC2::Instance" in ce.value.response["Error"]["Message"]
 
+    # ... and again with exclusions:
+    with pytest.raises(ClientError) as ce:
+        client.put_configuration_recorder(
+            ConfigurationRecorder={
+                "name": "default",
+                "roleARN": "somearn",
+                "recordingGroup": {
+                    "allSupported": False,
+                    "includeGlobalResourceTypes": False,
+                    # 2 good, and 2 bad:
+                    "exclusionByResourceTypes": {
+                        "resourceTypes": [
+                            "AWS::EC2::Volume",
+                            "LOLNO",
+                            "AWS::EC2::VPC",
+                            "LOLSTILLNO",
+                        ]
+                    },
+                    "recordingStrategy": {"useOnly": "EXCLUSION_BY_RESOURCE_TYPES"},
+                },
+            }
+        )
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
+    assert "2 validation error detected: Value '['LOLNO', 'LOLSTILLNO']" in str(
+        ce.value.response["Error"]["Message"]
+    )
+    assert "AWS::EC2::Instance" in ce.value.response["Error"]["Message"]
+
+    # With an invalid recording strategy:
+    with pytest.raises(ClientError) as ce:
+        client.put_configuration_recorder(
+            ConfigurationRecorder={
+                "name": "default",
+                "roleARN": "somearn",
+                "recordingGroup": {
+                    "allSupported": True,
+                    "includeGlobalResourceTypes": False,
+                    "recordingStrategy": {"useOnly": "LOLWUT"},
+                },
+            }
+        )
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        "1 validation error detected: Value 'LOLWUT' at 'configurationRecorder.recordingGroup.recordingStrategy.useOnly' failed to satisfy "
+        "constraint: Member must satisfy enum value set: [INCLUSION_BY_RESOURCE_TYPES, ALL_SUPPORTED_RESOURCE_TYPES, EXCLUSION_BY_RESOURCE_TYPES]"
+        in str(ce.value.response["Error"]["Message"])
+    )
+
     # Create a proper one:
     client.put_configuration_recorder(
         ConfigurationRecorder={
@@ -132,6 +214,9 @@ def test_put_configuration_recorder():
         "AWS::EC2::Volume" in result[0]["recordingGroup"]["resourceTypes"]
         and "AWS::EC2::VPC" in result[0]["recordingGroup"]["resourceTypes"]
     )
+    assert result[0]["recordingGroup"]["recordingStrategy"] == {
+        "useOnly": "INCLUSION_BY_RESOURCE_TYPES"
+    }
 
     # Now update the configuration recorder:
     client.put_configuration_recorder(
@@ -151,6 +236,50 @@ def test_put_configuration_recorder():
     assert result[0]["recordingGroup"]["allSupported"]
     assert result[0]["recordingGroup"]["includeGlobalResourceTypes"]
     assert len(result[0]["recordingGroup"]["resourceTypes"]) == 0
+    assert result[0]["recordingGroup"]["recordingStrategy"] == {
+        "useOnly": "ALL_SUPPORTED_RESOURCE_TYPES"
+    }
+
+    # Verify that it works with the strategy passed in:
+    client.put_configuration_recorder(
+        ConfigurationRecorder={
+            "name": "testrecorder",
+            "roleARN": "somearn",
+            "recordingGroup": {
+                "allSupported": True,
+                "includeGlobalResourceTypes": True,
+                "recordingStrategy": {"useOnly": "ALL_SUPPORTED_RESOURCE_TYPES"},
+            },
+        }
+    )
+    assert client.describe_configuration_recorders()["ConfigurationRecorders"][0][
+        "recordingGroup"
+    ]["allSupported"]
+
+    # Update again for exclusions:
+    client.put_configuration_recorder(
+        ConfigurationRecorder={
+            "name": "testrecorder",
+            "roleARN": "somearn",
+            "recordingGroup": {
+                "exclusionByResourceTypes": {"resourceTypes": ["AWS::EC2::Instance"]},
+                "recordingStrategy": {"useOnly": "EXCLUSION_BY_RESOURCE_TYPES"},
+            },
+        }
+    )
+    result = client.describe_configuration_recorders()["ConfigurationRecorders"]
+    assert len(result) == 1
+    assert result[0]["name"] == "testrecorder"
+    assert result[0]["roleARN"] == "somearn"
+    assert not result[0]["recordingGroup"]["allSupported"]
+    assert not result[0]["recordingGroup"]["includeGlobalResourceTypes"]
+    assert not result[0]["recordingGroup"]["resourceTypes"]
+    assert result[0]["recordingGroup"]["exclusionByResourceTypes"]["resourceTypes"] == [
+        "AWS::EC2::Instance"
+    ]
+    assert result[0]["recordingGroup"]["recordingStrategy"] == {
+        "useOnly": "EXCLUSION_BY_RESOURCE_TYPES"
+    }
 
     # With a default recording group (i.e. lacking one)
     client.put_configuration_recorder(
@@ -162,7 +291,11 @@ def test_put_configuration_recorder():
     assert result[0]["roleARN"] == "somearn"
     assert result[0]["recordingGroup"]["allSupported"]
     assert not result[0]["recordingGroup"]["includeGlobalResourceTypes"]
-    assert not result[0]["recordingGroup"].get("resourceTypes")
+    assert not result[0]["recordingGroup"]["resourceTypes"]
+    assert not result[0]["recordingGroup"]["exclusionByResourceTypes"]["resourceTypes"]
+    assert result[0]["recordingGroup"]["recordingStrategy"] == {
+        "useOnly": "ALL_SUPPORTED_RESOURCE_TYPES"
+    }
 
     # Can currently only have exactly 1 Config Recorder in an account/region:
     with pytest.raises(ClientError) as ce:
