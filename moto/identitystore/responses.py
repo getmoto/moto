@@ -46,37 +46,21 @@ class IdentityStoreResponse(BaseResponse):
         )
 
     def create_user(self) -> str:
-        identity_store_id = self._get_param("IdentityStoreId")
-        user_name = self._get_param("UserName")
-        name = self._get_param("Name")
-        display_name = self._get_param("DisplayName")
-        nick_name = self._get_param("NickName")
-        profile_url = self._get_param("ProfileUrl")
-        emails = self._get_param("Emails")
-        addresses = self._get_param("Addresses")
-        phone_numbers = self._get_param("PhoneNumbers")
-        user_type = self._get_param("UserType")
-        title = self._get_param("Title")
-        preferred_language = self._get_param("PreferredLanguage")
-        locale = self._get_param("Locale")
-        timezone = self._get_param("Timezone")
         user_id, identity_store_id = self.identitystore_backend.create_user(
-            (
-                identity_store_id,
-                user_name,
-                name,
-                display_name,
-                nick_name,
-                profile_url,
-                emails,
-                addresses,
-                phone_numbers,
-                user_type,
-                title,
-                preferred_language,
-                locale,
-                timezone,
-            )
+            self._get_param("IdentityStoreId"),
+            self._get_param("UserName"),
+            self._get_param("Name"),
+            self._get_param("DisplayName"),
+            self._get_param("NickName"),
+            self._get_param("ProfileUrl"),
+            self._get_param("Emails"),
+            self._get_param("Addresses"),
+            self._get_param("PhoneNumbers"),
+            self._get_param("UserType"),
+            self._get_param("Title"),
+            self._get_param("PreferredLanguage"),
+            self._get_param("Locale"),
+            self._get_param("Timezone"),
         )
         return json.dumps(dict(UserId=user_id, IdentityStoreId=identity_store_id))
 
@@ -179,7 +163,9 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def named_tuple_to_dict(self, value: NamedTuple) -> Optional[Dict[str, Any]]:
+    def named_tuple_to_dict(
+        self, value: Optional[NamedTuple]
+    ) -> Optional[Dict[str, Any]]:
         if value:
             return value._asdict()
         return None

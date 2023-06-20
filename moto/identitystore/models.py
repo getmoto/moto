@@ -1,6 +1,6 @@
 from typing import Dict, Tuple, List, Any, NamedTuple, Optional
 from typing_extensions import Self
-from uuid import UUID
+from moto.utilities.paginator import paginate
 
 from botocore.exceptions import ParamValidationError
 
@@ -11,9 +11,7 @@ from .exceptions import (
     ValidationException,
     ConflictException,
 )
-
-
-next_token_prefix = "cmgcRYIxlu3fx4F2EDMscv+davRdDC7qLmR87pgwgopNDNl7H+zQzsc7VrHK2nBBHaHaVYZOZwE5ZduPr0tAg2QW7s3t4KWK2sdd/s0Gw49M66wh+uCptmtei0HYmTVQ7KT87yETbeEn+9l+Q7STmuyKbtljY2HKW1sCoQd57q/3hBhtC1Jw7qzVhUME1mGrktbXdUqnHUyuFRqi24fsiisZLszMuUTR41c6sIoPH9zEK1H8lhtfL7GIOJbOsRwdTZnmdxarpXZYmYSkwdIuILzrG/NuLbyvQS7aC4VfJcxACPNS63nPmgwHRqzUI0TBfQ==:"
+import warnings
 
 
 class Name(NamedTuple):
@@ -29,12 +27,12 @@ class Name(NamedTuple):
         if not name_dict:
             return None
         return cls(
-            name_dict["Formatted"] if "Formatted" in name_dict else None,
-            name_dict["FamilyName"] if "FamilyName" in name_dict else None,
-            name_dict["GivenName"] if "GivenName" in name_dict else None,
-            name_dict["MiddleName"] if "MiddleName" in name_dict else None,
-            name_dict["HonorificPrefix"] if "HonorificPrefix" in name_dict else None,
-            name_dict["HonorificSuffix"] if "HonorificSuffix" in name_dict else None,
+            name_dict.get("Formatted"),
+            name_dict.get("FamilyName"),
+            name_dict.get("GivenName"),
+            name_dict.get("MiddleName"),
+            name_dict.get("HonorificPrefix"),
+            name_dict.get("HonorificSuffix"),
         )
 
 
@@ -42,7 +40,7 @@ class User(NamedTuple):
     UserId: str
     IdentityStoreId: str
     UserName: str
-    Name: Name
+    Name: Optional[Name]
     DisplayName: str
     NickName: str
     ProfileUrl: str
@@ -65,6 +63,15 @@ class IdentityStoreData:
 
 class IdentityStoreBackend(BaseBackend):
     """Implementation of IdentityStore APIs."""
+
+    PAGINATION_MODEL = {
+        "list_group_memberships": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "MembershipId",
+        },
+    }
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
@@ -113,7 +120,7 @@ class IdentityStoreBackend(BaseBackend):
                     ):
                         return g["GroupId"], identity_store_id
         elif "ExternalId" in alternate_identifier:
-            raise Exception("NotYetImplemented")
+            warnings.warn("ExternalId has not been implemented.")
 
         raise ResourceNotFoundException(
             message="GROUP not found.", resource_type="GROUP"
@@ -126,23 +133,46 @@ class IdentityStoreBackend(BaseBackend):
 
     def create_user(
         self,
-        user_tuple: Tuple[
-            str, str, Any, str, str, str, Any, Any, Any, str, str, str, str, str
-        ],
+        identity_store_id: str,
+        user_name: str,
+        name: Dict[str, str],
+        display_name: str,
+        nick_name: str,
+        profile_url: str,
+        emails: List[Dict[str, Any]],
+        addresses: List[Dict[str, Any]],
+        phone_numbers: List[Dict[str, Any]],
+        user_type: str,
+        title: str,
+        preferred_language: str,
+        locale: str,
+        timezone: str,
     ) -> Tuple[str, str]:
-        identity_store = self.__get_identity_store(user_tuple[0])
-        user_values = list(user_tuple)
-
+        identity_store = self.__get_identity_store(identity_store_id)
         user_id = str(mock_random.uuid4())
 
-        user_values[2] = Name.from_dict(user_tuple[2])
-
-        new_user = User(user_id, *user_values)
+        new_user = User(
+            user_id,
+            identity_store_id,
+            user_name,
+            Name.from_dict(name),
+            display_name,
+            nick_name,
+            profile_url,
+            emails,
+            addresses,
+            phone_numbers,
+            user_type,
+            title,
+            preferred_language,
+            locale,
+            timezone,
+        )
         self.__validate_create_user(new_user, identity_store)
 
         identity_store.users[user_id] = new_user
 
-        return user_id, user_tuple[0]
+        return user_id, identity_store_id
 
     def describe_user(self, identity_store_id: str, user_id: str) -> User:
         identity_store = self.__get_identity_store(identity_store_id)
@@ -183,22 +213,19 @@ class IdentityStoreBackend(BaseBackend):
 
         return membership_id, identity_store_id
 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_group_memberships(
-        self, identity_store_id: str, group_id: str, max_results: int, next_token: str
-    ) -> Tuple[List[Any], Optional[str]]:
+        self,
+        identity_store_id: str,
+        group_id: str,
+    ) -> List[Any]:  # type: ignore
         identity_store = self.__get_identity_store(identity_store_id)
 
-        members = [
+        return [
             m
             for m in identity_store.group_memberships.values()
             if m["GroupId"] == group_id
         ]
-
-        if not max_results:
-            max_results = len(members)
-
-        results = NextBatch(next_token)
-        return results.next(members, max_results)
 
     def delete_group_membership(
         self, identity_store_id: str, membership_id: str
@@ -247,44 +274,6 @@ class IdentityStoreBackend(BaseBackend):
             raise ConflictException(
                 message="Duplicate UserName", reason="UNIQUENESS_CONSTRAINT_VIOLATION"
             )
-
-
-class NextBatch:
-
-    current = None
-
-    def __init__(self, current_token: str) -> None:
-        if current_token:
-            try:
-                # Get the UUID from the end of the string
-                id_reversed = current_token.split("==:")[1]
-                self.current = NextBatch.__reverse_uuid(id_reversed)
-
-            except Exception:
-                raise ValidationException(message="Unexpected format of next token")
-
-    def next(
-        self, all_items: List[Any], max_allowed: int
-    ) -> Tuple[List[Any], Optional[str]]:
-        start = 0
-        if self.current:
-            for i in range(len(all_items)):
-                if all_items[i]["MemberId"]["UserId"] == self.current:
-                    start = i
-                    break
-
-        end = start + max_allowed
-        if end >= len(all_items):
-            return all_items[start:], None
-        else:
-            next_token = NextBatch.__reverse_uuid(all_items[end]["MemberId"]["UserId"])
-            return all_items[start:end], f"{next_token_prefix}{next_token}"
-
-    @staticmethod
-    def __reverse_uuid(id_str: str) -> str:
-        id_str = id_str[::-1]  # reverse it
-        id_str = id_str.replace("-", "")  # remove dashes
-        return str(UUID(id_str))  # form back into a UUID
 
 
 identitystore_backends = BackendDict(IdentityStoreBackend, "identitystore")

@@ -16,10 +16,8 @@ class IdentityStoreError(AWSError):
                 "__type": self.error_type,
                 "RequestId": request_id,
                 "Message": self.message,
-                "ResourceType": kwargs["resource_type"]
-                if "resource_type" in kwargs
-                else None,
-                "Reason": kwargs["reason"] if "reason" in kwargs else None,
+                "ResourceType": kwargs.get("resource_type"),
+                "Reason": kwargs.get("reason"),
             }
         )
 

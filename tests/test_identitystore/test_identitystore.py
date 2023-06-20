@@ -1,28 +1,28 @@
 """Unit tests for identitystore-supported APIs."""
-import sys
+import random
+import string
 from uuid import UUID, uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-import logging
-import random
-import string
 
 from moto import mock_identitystore
 from moto.moto_api._internal import mock_random
 
+
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
-identity_store_id = "d-9067028cf5"
-identity_store_id2 = "d-9067028dg6"
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
+def get_identity_store_id() -> str:
+    return f"d-{random.choices(string.ascii_lowercase, k=10)}"
 
 
 @mock_identitystore
 def test_create_group():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
     create_resp = client.create_group(
         IdentityStoreId=identity_store_id,
         DisplayName="test_group",
@@ -35,6 +35,7 @@ def test_create_group():
 @mock_identitystore
 def test_create_group_duplicate_name():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
     create_resp = client.create_group(
         IdentityStoreId=identity_store_id,
         DisplayName="test_group",
@@ -43,29 +44,30 @@ def test_create_group_duplicate_name():
     assert create_resp["IdentityStoreId"] == identity_store_id
     assert UUID(create_resp["GroupId"])
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.create_group(
             IdentityStoreId=identity_store_id,
             DisplayName="test_group",
             Description="description",
         )
-        assert False, "You should not be able to create duplicate group names"
-    except ClientError as e:
-        assert "ConflictException" in str(type(e))
-        assert (
-            str(e)
-            == "An error occurred (ConflictException) when calling the CreateGroup operation: Duplicate GroupDisplayName"
-        )
-        assert e.operation_name == "CreateGroup"
-        assert e.response["Error"]["Code"] == "ConflictException"
-        assert e.response["Error"]["Message"] == "Duplicate GroupDisplayName"
-        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-        assert e.response["Message"] == "Duplicate GroupDisplayName"
-        assert e.response["Reason"] == "UNIQUENESS_CONSTRAINT_VIOLATION"
+    err = exc.value
+    assert "ConflictException" in str(type(err))
+    assert (
+        str(err)
+        == "An error occurred (ConflictException) when calling the CreateGroup operation: Duplicate GroupDisplayName"
+    )
+    assert err.operation_name == "CreateGroup"
+    assert err.response["Error"]["Code"] == "ConflictException"
+    assert err.response["Error"]["Message"] == "Duplicate GroupDisplayName"
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err.response["Message"] == "Duplicate GroupDisplayName"
+    assert err.response["Reason"] == "UNIQUENESS_CONSTRAINT_VIOLATION"
 
 
 @mock_identitystore
 def test_group_multiple_identity_stores():
+    identity_store_id = get_identity_store_id()
+    identity_store_id2 = get_identity_store_id()
     client = boto3.client("identitystore", region_name="us-east-2")
     group1 = __create_test_group(client, store_id=identity_store_id)
     group2 = __create_test_group(client, store_id=identity_store_id2)
@@ -80,6 +82,7 @@ def test_group_multiple_identity_stores():
 @mock_identitystore
 def test_create_group_membership():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
 
     group_id = client.create_group(
         IdentityStoreId=identity_store_id,
@@ -87,7 +90,7 @@ def test_create_group_membership():
         Description="description",
     )["GroupId"]
 
-    user_id = __create_and_verify_sparse_user(client)
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)
 
     create_response = client.create_group_membership(
         IdentityStoreId=identity_store_id,
@@ -111,6 +114,7 @@ def test_create_group_membership():
 @mock_identitystore
 def test_create_duplicate_username():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
 
     # This should succeed
     client.create_user(
@@ -120,7 +124,7 @@ def test_create_duplicate_username():
         Name={"GivenName": "Givenname", "FamilyName": "Familyname"},
     )
 
-    try:
+    with pytest.raises(ClientError) as exc:
         # This should fail
         client.create_user(
             IdentityStoreId=identity_store_id,
@@ -128,71 +132,66 @@ def test_create_duplicate_username():
             DisplayName="deleteme_displayname",
             Name={"GivenName": "Givenname", "FamilyName": "Familyname"},
         )
-        assert (
-            False
-        ), "The call to create_user should have failed with a duplicate username"
-    except ClientError as e:
-        assert "ConflictException" in str(type(e))
-        assert (
-            str(e)
-            == "An error occurred (ConflictException) when calling the CreateUser operation: Duplicate UserName"
-        )
-        assert e.operation_name == "CreateUser"
-        assert e.response["Error"]["Code"] == "ConflictException"
-        assert e.response["Error"]["Message"] == "Duplicate UserName"
-        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-        assert e.response["Message"] == "Duplicate UserName"
-        assert e.response["Reason"] == "UNIQUENESS_CONSTRAINT_VIOLATION"
+    err = exc.value
+    assert "ConflictException" in str(type(err))
+    assert (
+        str(err)
+        == "An error occurred (ConflictException) when calling the CreateUser operation: Duplicate UserName"
+    )
+    assert err.operation_name == "CreateUser"
+    assert err.response["Error"]["Code"] == "ConflictException"
+    assert err.response["Error"]["Message"] == "Duplicate UserName"
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err.response["Message"] == "Duplicate UserName"
+    assert err.response["Reason"] == "UNIQUENESS_CONSTRAINT_VIOLATION"
 
 
 @mock_identitystore
 def test_create_username_no_username():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.create_user(IdentityStoreId=identity_store_id)
-        assert False, "The call to create_user should have failed without a username"
-    except ClientError as e:
-        assert "ValidationException" in str(type(e))
-        assert (
-            str(e)
-            == "An error occurred (ValidationException) when calling the CreateUser operation: userName is a required attribute"
-        )
-        assert e.operation_name == "CreateUser"
-        assert e.response["Error"]["Code"] == "ValidationException"
-        assert e.response["Error"]["Message"] == "userName is a required attribute"
-        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-        assert e.response["Message"] == "userName is a required attribute"
+    err = exc.value
+    assert "ValidationException" in str(type(err))
+    assert (
+        str(err)
+        == "An error occurred (ValidationException) when calling the CreateUser operation: userName is a required attribute"
+    )
+    assert err.operation_name == "CreateUser"
+    assert err.response["Error"]["Code"] == "ValidationException"
+    assert err.response["Error"]["Message"] == "userName is a required attribute"
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err.response["Message"] == "userName is a required attribute"
 
 
 @mock_identitystore
 def test_create_username_missing_required_attributes():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.create_user(
             IdentityStoreId=identity_store_id, UserName="username", Name={}
         )
-        assert (
-            False
-        ), "The call to create_user should have failed without required_attributes"
-    except ClientError as e:
-        assert "ValidationException" in str(type(e))
-        assert (
-            str(e)
-            == "An error occurred (ValidationException) when calling the CreateUser operation: displayname: The attribute displayname is required, name: The attribute name is required"
-        )
-        assert e.operation_name == "CreateUser"
-        assert e.response["Error"]["Code"] == "ValidationException"
-        assert (
-            e.response["Error"]["Message"]
-            == "displayname: The attribute displayname is required, name: The attribute name is required"
-        )
-        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-        assert (
-            e.response["Message"]
-            == "displayname: The attribute displayname is required, name: The attribute name is required"
-        )
+    err = exc.value
+    assert "ValidationException" in str(type(err))
+    assert (
+        str(err)
+        == "An error occurred (ValidationException) when calling the CreateUser operation: displayname: The attribute displayname is required, name: The attribute name is required"
+    )
+    assert err.operation_name == "CreateUser"
+    assert err.response["Error"]["Code"] == "ValidationException"
+    assert (
+        err.response["Error"]["Message"]
+        == "displayname: The attribute displayname is required, name: The attribute name is required"
+    )
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        err.response["Message"]
+        == "displayname: The attribute displayname is required, name: The attribute name is required"
+    )
 
 
 @mock_identitystore
@@ -201,38 +200,35 @@ def test_create_username_missing_required_attributes():
 )
 def test_create_username_missing_required_name_field(field, missing):
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.create_user(
             IdentityStoreId=identity_store_id,
             UserName="username",
             DisplayName="displayName",
             Name={field: field},
         )
-        assert (
-            False
-        ), "The call to create_user should have failed without required_attributes"
-    except ClientError as e:
-        assert "ValidationException" in str(type(e))
-        assert (
-            str(e)
-            == f"An error occurred (ValidationException) when calling the CreateUser operation: {missing}: The attribute {missing} is required"
-        )
-        assert e.operation_name == "CreateUser"
-        assert e.response["Error"]["Code"] == "ValidationException"
-        assert (
-            e.response["Error"]["Message"]
-            == f"{missing}: The attribute {missing} is required"
-        )
-        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-        assert (
-            e.response["Message"] == f"{missing}: The attribute {missing} is required"
-        )
+    err = exc.value
+    assert "ValidationException" in str(type(err))
+    assert (
+        str(err)
+        == f"An error occurred (ValidationException) when calling the CreateUser operation: {missing}: The attribute {missing} is required"
+    )
+    assert err.operation_name == "CreateUser"
+    assert err.response["Error"]["Code"] == "ValidationException"
+    assert (
+        err.response["Error"]["Message"]
+        == f"{missing}: The attribute {missing} is required"
+    )
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err.response["Message"] == f"{missing}: The attribute {missing} is required"
 
 
 @mock_identitystore
 def test_create_describe_sparse_user():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
     response = client.create_user(
         IdentityStoreId=identity_store_id,
         UserName="the_username",
@@ -255,6 +251,7 @@ def test_create_describe_sparse_user():
 @mock_identitystore
 def test_create_describe_full_user():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
     response = client.create_user(
         IdentityStoreId=identity_store_id,
         UserName="the_username",
@@ -349,30 +346,31 @@ def test_create_describe_full_user():
 @mock_identitystore
 def test_describe_user_doesnt_exist():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.describe_user(
             IdentityStoreId=identity_store_id, UserId=str(mock_random.uuid4())
         )
 
-        assert False, "This call should have thrown an exception"
-    except ClientError as e:
-        assert e.response["Error"]["Code"] == "ResourceNotFoundException"
-        assert e.response["Error"]["Message"] == "USER not found."
-        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-        assert e.response["ResourceType"] == "USER"
-        assert e.response["Message"] == "USER not found."
-        assert "RequestId" in e.response
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert err.response["Error"]["Message"] == "USER not found."
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err.response["ResourceType"] == "USER"
+    assert err.response["Message"] == "USER not found."
+    assert "RequestId" in err.response
 
 
 @mock_identitystore
 def test_get_group_id():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
     groups = {}
 
     # Create a bunch of groups
     for _ in range(1, 10):
-        group = __create_test_group(client)
+        group = __create_test_group(client, identity_store_id)
         groups[group[0]] = group[1]
 
     # Make sure we can get their ID
@@ -395,7 +393,8 @@ def test_get_group_id():
 @mock_identitystore
 def test_get_group_id_does_not_exist():
     client = boto3.client("identitystore", region_name="us-east-2")
-    try:
+    identity_store_id = get_identity_store_id()
+    with pytest.raises(ClientError) as exc:
         client.get_group_id(
             IdentityStoreId=identity_store_id,
             AlternateIdentifier={
@@ -405,19 +404,19 @@ def test_get_group_id_does_not_exist():
                 }
             },
         )
-        assert False, "This call should have thrown an exception"
-    except ClientError as e:
-        assert e.response["Error"]["Code"] == "ResourceNotFoundException"
-        assert e.response["Error"]["Message"] == "GROUP not found."
-        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-        assert e.response["ResourceType"] == "GROUP"
-        assert e.response["Message"] == "GROUP not found."
-        assert "RequestId" in e.response
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert err.response["Error"]["Message"] == "GROUP not found."
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err.response["ResourceType"] == "GROUP"
+    assert err.response["Message"] == "GROUP not found."
+    assert "RequestId" in err.response
 
 
 @mock_identitystore
 def test_list_group_memberships():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
 
     start = 0
     end = 5000
@@ -432,7 +431,7 @@ def test_list_group_memberships():
     )["GroupId"]
 
     for _ in range(end):
-        user_id = __create_and_verify_sparse_user(client)
+        user_id = __create_and_verify_sparse_user(client, identity_store_id)
         create_response = client.create_group_membership(
             IdentityStoreId=identity_store_id,
             GroupId=group_id,
@@ -480,20 +479,22 @@ def __check_membership_list_values(members, expected):
 @mock_identitystore
 def test_delete_group():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
 
-    test_group = __create_test_group(client)
-    assert __group_exists(client, test_group[0])
+    test_group = __create_test_group(client, identity_store_id)
+    assert __group_exists(client, test_group[0], identity_store_id)
 
     resp = client.delete_group(IdentityStoreId=identity_store_id, GroupId=test_group[1])
     assert "ResponseMetadata" in resp
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-    assert not __group_exists(client, test_group[0])
+    assert not __group_exists(client, test_group[0], identity_store_id)
 
 
 @mock_identitystore
 def test_delete_group_doesnt_exist():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
 
     bogus_id = str(uuid4())
 
@@ -501,14 +502,15 @@ def test_delete_group_doesnt_exist():
     assert "ResponseMetadata" in resp
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-    assert not __group_exists(client, bogus_id)
+    assert not __group_exists(client, bogus_id, identity_store_id)
 
 
 @mock_identitystore
 def test_delete_group_membership():
     client = boto3.client("identitystore", region_name="eu-west-1")
-    user_id = __create_and_verify_sparse_user(client)
-    _, group_id = __create_test_group(client)
+    identity_store_id = get_identity_store_id()
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)
+    _, group_id = __create_test_group(client, identity_store_id)
 
     membership = client.create_group_membership(
         IdentityStoreId=identity_store_id,
@@ -536,20 +538,21 @@ def test_delete_group_membership():
 @mock_identitystore
 def test_delete_user():
     client = boto3.client("identitystore", region_name="us-east-2")
-    user_id = __create_and_verify_sparse_user(client)
+    identity_store_id = get_identity_store_id()
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)
 
     client.delete_user(IdentityStoreId=identity_store_id, UserId=user_id)
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.describe_user(IdentityStoreId=identity_store_id, UserId=user_id)
-        assert False, "This should have raised an error"
-    except ClientError as e:
-        assert e.response["Error"]["Code"] == "ResourceNotFoundException"
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_identitystore
 def test_delete_user_doesnt_exist():
     client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
 
     # This test ensures that the delete_user call does not raise an error if the user ID does not exist
     client.delete_user(
@@ -557,7 +560,7 @@ def test_delete_user_doesnt_exist():
     )
 
 
-def __create_test_group(client, store_id=identity_store_id):
+def __create_test_group(client, store_id: str):
     rand = "".join(random.choices(string.ascii_lowercase, k=8))
     group_name = f"test_group_{rand}"
 
@@ -570,7 +573,7 @@ def __create_test_group(client, store_id=identity_store_id):
     return group_name, create_resp["GroupId"]
 
 
-def __group_exists(client, group_name: str, store_id=identity_store_id) -> bool:
+def __group_exists(client, group_name: str, store_id: str) -> bool:
     try:
         client.get_group_id(
             IdentityStoreId=store_id,
@@ -588,11 +591,11 @@ def __group_exists(client, group_name: str, store_id=identity_store_id) -> bool:
         raise e
 
 
-def __create_and_verify_sparse_user(client):
+def __create_and_verify_sparse_user(client, store_id: str):
     rand = random.choices(string.ascii_lowercase, k=8)
     username = f"the_username_{rand}"
     response = client.create_user(
-        IdentityStoreId=identity_store_id,
+        IdentityStoreId=store_id,
         UserName=username,
         DisplayName=f"display_name_{rand}",
         Name={"GivenName": f"given_name_{rand}", "FamilyName": f"family_name_{rand}"},
@@ -600,7 +603,7 @@ def __create_and_verify_sparse_user(client):
     assert UUID(response["UserId"])
 
     user_resp = client.describe_user(
-        IdentityStoreId=identity_store_id, UserId=response["UserId"]
+        IdentityStoreId=store_id, UserId=response["UserId"]
     )
 
     assert user_resp["UserName"] == username
