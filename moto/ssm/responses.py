@@ -453,3 +453,37 @@ class SimpleSystemManagerResponse(BaseResponse):
         window_id = self._get_param("WindowId")
         self.ssm_backend.delete_maintenance_window(window_id)
         return "{}"
+
+    def create_patch_baseline(self) -> str:
+        baseline_id = self.ssm_backend.create_patch_baseline(
+            name=self._get_param("Name"),
+            operating_system=self._get_param("OperatingSystem"),
+            global_filters=self._get_param("GlobalFilters", {}),
+            approval_rules=self._get_param("ApprovalRules", {}),
+            approved_patches=self._get_param("ApprovedPatches", []),
+            approved_patches_compliance_level=self._get_param(
+                "ApprovedPatchesComplianceLevel"
+            ),
+            approved_patches_enable_non_security=self._get_param(
+                "ApprovedPatchesEnableNonSecurity"
+            ),
+            rejected_patches=self._get_param("RejectedPatches", []),
+            rejected_patches_action=self._get_param("RejectedPatchesAction"),
+            description=self._get_param("Description"),
+            sources=self._get_param("Sources", []),
+            tags=self._get_param("Tags", []),
+        )
+        return json.dumps({"BaselineId": baseline_id})
+
+    def describe_patch_baselines(self) -> str:
+        filters = self._get_param("Filters", None)
+        baselines = [
+            baseline.to_json()
+            for baseline in self.ssm_backend.describe_patch_baselines(filters)
+        ]
+        return json.dumps({"BaselineIdentities": baselines})
+
+    def delete_patch_baseline(self) -> str:
+        baseline_id = self._get_param("BaselineId")
+        self.ssm_backend.delete_patch_baseline(baseline_id)
+        return "{}"
