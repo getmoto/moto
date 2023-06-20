@@ -1,7 +1,6 @@
 import abc
 import operator
 import re
-import warnings
 from datetime import date, datetime
 from itertools import repeat
 from typing import Any, Dict, List, Optional, Union
@@ -352,7 +351,6 @@ class PartitionFilter:
         if expression is None:
             return True
 
-        warnings.warn("Expression filtering is experimental")
         versions = list(self.fake_table.versions.values())
         return expression.eval(
             part_keys=versions[-1].get("PartitionKeys", []),
