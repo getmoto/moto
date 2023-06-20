@@ -26,7 +26,7 @@ try:
     from pyparsing import DelimitedList
 except ImportError:
     # delimited_list is deprecated in favor of DelimitedList in pyparsing 3.1.0
-    from pyparsing import delimited_list as DelimitedList
+    from pyparsing import delimited_list as DelimitedList  # type: ignore[assignment]
 
 from .exceptions import (
     InvalidInputException,
