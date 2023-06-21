@@ -274,3 +274,87 @@ def test_deregister_target_from_maintenance_window():
         WindowId=window_id,
     )
     resp.should.have.key("Targets").should.have.length_of(0)
+
+
+@mock_ssm
+def test_register_maintenance_window_task():
+    ssm = boto3.client("ssm", region_name="us-east-1")
+
+    resp = ssm.create_maintenance_window(
+        Name="simple-window",
+        Schedule="cron(15 12 * * ? *)",
+        Duration=2,
+        Cutoff=1,
+        AllowUnassociatedTargets=False,
+    )
+    window_id = resp["WindowId"]
+
+    resp = ssm.register_target_with_maintenance_window(
+        WindowId=window_id,
+        ResourceType="INSTANCE",
+        Targets=[{"Key": "tag:Name", "Values": ["my-instance"]}],
+    )
+    window_target_id = resp["WindowTargetId"]
+
+    resp = ssm.register_task_with_maintenance_window(
+        WindowId=window_id,
+        Targets=[{"Key": "WindowTargetIds", "Values": [window_target_id]}],
+        TaskArn="AWS-RunShellScript",
+        TaskType="RUN_COMMAND",
+        MaxConcurrency="1",
+        MaxErrors="1",
+    )
+
+    resp.should.have.key("WindowTaskId")
+    _id = resp["WindowTaskId"]
+
+    resp = ssm.describe_maintenance_window_tasks(
+        WindowId=window_id,
+    )
+    resp.should.have.key("Tasks").should.have.length_of(1)
+    resp["Tasks"][0].should.have.key("WindowTaskId").equal(_id)
+    resp["Tasks"][0].should.have.key("WindowId").equal(window_id)
+    resp["Tasks"][0].should.have.key("TaskArn").equal("AWS-RunShellScript")
+    resp["Tasks"][0].should.have.key("MaxConcurrency").equal("1")
+    resp["Tasks"][0].should.have.key("MaxErrors").equal("1")
+
+
+@mock_ssm
+def test_deregister_maintenance_window_task():
+    ssm = boto3.client("ssm", region_name="us-east-1")
+
+    resp = ssm.create_maintenance_window(
+        Name="simple-window",
+        Schedule="cron(15 12 * * ? *)",
+        Duration=2,
+        Cutoff=1,
+        AllowUnassociatedTargets=False,
+    )
+    window_id = resp["WindowId"]
+
+    resp = ssm.register_target_with_maintenance_window(
+        WindowId=window_id,
+        ResourceType="INSTANCE",
+        Targets=[{"Key": "tag:Name", "Values": ["my-instance"]}],
+    )
+    window_target_id = resp["WindowTargetId"]
+
+    resp = ssm.register_task_with_maintenance_window(
+        WindowId=window_id,
+        Targets=[{"Key": "WindowTargetIds", "Values": [window_target_id]}],
+        TaskArn="AWS-RunShellScript",
+        TaskType="RUN_COMMAND",
+        MaxConcurrency="1",
+        MaxErrors="1",
+    )
+    window_task_id = resp["WindowTaskId"]
+
+    ssm.deregister_task_from_maintenance_window(
+        WindowId=window_id,
+        WindowTaskId=window_task_id,
+    )
+
+    resp = ssm.describe_maintenance_window_tasks(
+        WindowId=window_id,
+    )
+    resp.should.have.key("Tasks").should.have.length_of(0)
