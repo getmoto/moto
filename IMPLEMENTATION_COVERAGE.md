@@ -6729,7 +6729,7 @@
 - [X] create_maintenance_window
 - [ ] create_ops_item
 - [ ] create_ops_metadata
-- [ ] create_patch_baseline
+- [X] create_patch_baseline
 - [ ] create_resource_data_sync
 - [ ] delete_activation
 - [ ] delete_association
@@ -6739,7 +6739,7 @@
 - [ ] delete_ops_metadata
 - [X] delete_parameter
 - [X] delete_parameters
-- [ ] delete_patch_baseline
+- [X] delete_patch_baseline
 - [ ] delete_resource_data_sync
 - [ ] delete_resource_policy
 - [ ] deregister_managed_instance
@@ -6773,7 +6773,7 @@
 - [ ] describe_maintenance_windows_for_target
 - [ ] describe_ops_items
 - [X] describe_parameters
-- [ ] describe_patch_baselines
+- [X] describe_patch_baselines
 - [ ] describe_patch_group_state
 - [ ] describe_patch_groups
 - [ ] describe_patch_properties

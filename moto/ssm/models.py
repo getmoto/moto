@@ -986,6 +986,58 @@ class FakeMaintenanceWindow:
         return "mw-" + "".join(str(random.choice(chars)) for _ in range(17))
 
 
+class FakePatchBaseline:
+    def __init__(
+        self,
+        name: str,
+        operating_system: str,
+        global_filters: Optional[Dict[str, Any]],
+        approval_rules: Optional[Dict[str, Any]],
+        approved_patches: Optional[List[str]],
+        approved_patches_compliance_level: Optional[str],
+        approved_patches_enable_non_security: Optional[bool],
+        rejected_patches: Optional[List[str]],
+        rejected_patches_action: Optional[str],
+        description: Optional[str],
+        sources: Optional[List[Dict[str, Any]]],
+    ):
+        self.id = FakePatchBaseline.generate_id()
+        self.operating_system = operating_system
+        self.name = name
+        self.global_filters = global_filters
+        self.approval_rules = approval_rules
+        self.approved_patches = approved_patches
+        self.approved_patches_compliance_level = approved_patches_compliance_level
+        self.approved_patches_enable_non_security = approved_patches_enable_non_security
+        self.rejected_patches = rejected_patches
+        self.rejected_patches_action = rejected_patches_action
+        self.description = description
+        self.sources = sources
+        self.default_baseline = False
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "BaselineId": self.id,
+            "OperatingSystem": self.operating_system,
+            "BaselineName": self.name,
+            "GlobalFilters": self.global_filters,
+            "ApprovalRules": self.approval_rules,
+            "ApprovedPatches": self.approved_patches,
+            "ApprovedPatchesComplianceLevel": self.approved_patches_compliance_level,
+            "ApprovedPatchesEnableNonSecurity": self.approved_patches_enable_non_security,
+            "RejectedPatches": self.rejected_patches,
+            "RejectedPatchesAction": self.rejected_patches_action,
+            "BaselineDescription": self.description,
+            "Sources": self.sources,
+            "DefaultBaseline": self.default_baseline,
+        }
+
+    @staticmethod
+    def generate_id() -> str:
+        chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
+        return "pb-" + "".join(str(random.choice(chars)) for _ in range(17))
+
+
 class SimpleSystemManagerBackend(BaseBackend):
     """
     Moto supports the following default parameters out of the box:
@@ -1010,6 +1062,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._documents: Dict[str, Documents] = {}
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
+        self.baselines: Dict[str, FakePatchBaseline] = dict()
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -2134,6 +2187,68 @@ class SimpleSystemManagerBackend(BaseBackend):
         Assumes the provided WindowId exists. No error handling has been implemented yet.
         """
         del self.windows[window_id]
+
+    def create_patch_baseline(
+        self,
+        name: str,
+        operating_system: str,
+        global_filters: Optional[Dict[str, Any]],
+        approval_rules: Optional[Dict[str, Any]],
+        approved_patches: Optional[List[str]],
+        approved_patches_compliance_level: Optional[str],
+        approved_patches_enable_non_security: Optional[bool],
+        rejected_patches: Optional[List[str]],
+        rejected_patches_action: Optional[str],
+        description: Optional[str],
+        sources: Optional[List[Dict[str, Any]]],
+        tags: Optional[List[Dict[str, str]]],
+    ) -> str:
+        """
+        Registers a patch baseline. No error handling or input validation has been implemented yet.
+        """
+        baseline = FakePatchBaseline(
+            name,
+            operating_system,
+            global_filters,
+            approval_rules,
+            approved_patches,
+            approved_patches_compliance_level,
+            approved_patches_enable_non_security,
+            rejected_patches,
+            rejected_patches_action,
+            description,
+            sources,
+        )
+        self.baselines[baseline.id] = baseline
+
+        if tags:
+            baseline_tags = {t["Key"]: t["Value"] for t in tags}
+            self.add_tags_to_resource("PatchBaseline", baseline.id, baseline_tags)
+
+        return baseline.id
+
+    def describe_patch_baselines(
+        self, filters: Optional[List[Dict[str, Any]]]
+    ) -> List[FakePatchBaseline]:
+        """
+        Returns all baselines. No pagination has been implemented yet.
+        """
+        baselines = [baseline for baseline in self.baselines.values()]
+        if filters:
+            for f in filters:
+                if f["Key"] == "NAME_PREFIX":
+                    baselines = [
+                        baseline
+                        for baseline in baselines
+                        if baseline.name in f["Values"]
+                    ]
+        return baselines
+
+    def delete_patch_baseline(self, baseline_id: str) -> None:
+        """
+        Assumes the provided BaselineId exists. No error handling has been implemented yet.
+        """
+        del self.baselines[baseline_id]
 
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")
