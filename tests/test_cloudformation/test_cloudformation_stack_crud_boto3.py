@@ -22,6 +22,7 @@ from moto.cloudformation import cloudformation_backends
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from tests import EXAMPLE_AMI_ID
+from tests.helpers import match_dict  # noqa # pylint: disable=unused-import
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
