@@ -95,6 +95,10 @@ def test_put_configuration_recorder():
             "exclusionByResourceTypes": {"resourceTypes": []},
             "recordingStrategy": {"useOnly": "EXCLUSION_BY_RESOURCE_TYPES"},
         },
+        {
+            "resourceTypes": ["AWS::S3::Bucket"],
+            "exclusionByResourceTypes": {"resourceTypes": ["AWS::S3::Bucket"]},
+        },
         {"includeGlobalResourceTypes": False, "resourceTypes": []},
         {"includeGlobalResourceTypes": True},
         {"resourceTypes": []},
@@ -199,6 +203,7 @@ def test_put_configuration_recorder():
                 "allSupported": False,
                 "includeGlobalResourceTypes": False,
                 "resourceTypes": ["AWS::EC2::Volume", "AWS::EC2::VPC"],
+                "exclusionByResourceTypes": {"resourceTypes": []},
             },
         }
     )
@@ -248,6 +253,24 @@ def test_put_configuration_recorder():
             "recordingGroup": {
                 "allSupported": True,
                 "includeGlobalResourceTypes": True,
+                "recordingStrategy": {"useOnly": "ALL_SUPPORTED_RESOURCE_TYPES"},
+            },
+        }
+    )
+    assert client.describe_configuration_recorders()["ConfigurationRecorders"][0][
+        "recordingGroup"
+    ]["allSupported"]
+
+    # Try this again, but this time, supply all the excess fields as empty:
+    client.put_configuration_recorder(
+        ConfigurationRecorder={
+            "name": "testrecorder",
+            "roleARN": "somearn",
+            "recordingGroup": {
+                "allSupported": True,
+                "includeGlobalResourceTypes": True,
+                "resourceTypes": [],
+                "exclusionByResourceTypes": {"resourceTypes": []},
                 "recordingStrategy": {"useOnly": "ALL_SUPPORTED_RESOURCE_TYPES"},
             },
         }
