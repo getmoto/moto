@@ -444,6 +444,14 @@ class InvalidParameterValueErrorTagSpotFleetRequest(EC2ClientError):
         )
 
 
+class InvalidParameterValueErrorReplaceRoute(EC2ClientError):
+    def __init__(self, cidr: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"There is no route defined for '{cidr}' in the route table. Use CreateRoute instead.",
+        )
+
+
 class EmptyTagSpecError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(

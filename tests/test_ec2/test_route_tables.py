@@ -643,6 +643,18 @@ def test_routes_replace():
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidRouteTableID.NotFound")
 
+    with pytest.raises(ClientError) as ex:
+        client.replace_route(
+            RouteTableId=main_route_table.id,
+            DestinationCidrBlock="1.1.1.1/32",
+            NetworkInterfaceId=eni.id,
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    # This should be 'InvalidRoute.NotFound' in line with the delete_route()
+    # equivalent, but for some reason AWS returns InvalidParameterValue instead.
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+
 
 @mock_ec2
 def test_routes_already_exist():
