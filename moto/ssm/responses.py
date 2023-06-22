@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict, Tuple, Union
 
 from moto.core.responses import BaseResponse
-from .exceptions import ValidationException
+from .exceptions import ValidationException, ParameterAlreadyExists
 from .models import ssm_backends, SimpleSystemManagerBackend
 
 
@@ -286,11 +286,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
 
         if result is None:
-            error = {
-                "__type": "ParameterAlreadyExists",
-                "message": f"Parameter {name} already exists.",
-            }
-            return json.dumps(error), dict(status=400)
+            raise ParameterAlreadyExists
 
         response = {"Version": result}
         return json.dumps(response)

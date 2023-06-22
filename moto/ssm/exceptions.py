@@ -139,3 +139,13 @@ class ParameterMaxVersionLimitExceeded(JsonRESTError):
 
     def __init__(self, message: str):
         super().__init__("ParameterMaxVersionLimitExceeded", message)
+
+
+class ParameterAlreadyExists(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "ParameterAlreadyExists",
+            "The parameter already exists. To overwrite this value, set the overwrite option in the request to true.",
+        )

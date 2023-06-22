@@ -253,7 +253,7 @@ def test_put_parameter(name):
     except botocore.exceptions.ClientError as err:
         err.operation_name.should.equal("PutParameter")
         err.response["Error"]["Message"].should.equal(
-            f"Parameter {name} already exists."
+            "The parameter already exists. To overwrite this value, set the overwrite option in the request to true."
         )
 
     response = client.get_parameters(Names=[name], WithDecryption=False)
@@ -428,6 +428,61 @@ def test_put_parameter_invalid_type():
     ex.response["Error"]["Code"].should.contain("ValidationException")
     ex.response["Error"]["Message"].should.equal(
         f"1 validation error detected: Value '{bad_type}' at 'type' failed to satisfy constraint: Member must satisfy enum value set: [SecureString, StringList, String]"
+    )
+
+
+@mock_ssm
+def test_update_parameter():
+    # Setup
+    client = boto3.client("ssm", "us-east-1")
+    param_name = "test_param"
+    updated_value = "UpdatedValue"
+    client.put_parameter(
+        Description="Description",
+        Name=param_name,
+        Type="String",
+        Value="Value",
+    )
+
+    # Execute
+    response = client.put_parameter(
+        Name=param_name,
+        Overwrite=True,
+        Value=updated_value,
+    )
+    new_param = client.get_parameter(Name=param_name)
+
+    # Verify
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert new_param["Parameter"]["Value"] == updated_value
+
+
+@mock_ssm
+def test_update_parameter_already_exists_error():
+    # Setup
+    client = boto3.client("ssm", "us-east-1")
+    client.put_parameter(
+        Description="Description",
+        Name="Name",
+        Type="String",
+        Value="Value",
+    )
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.put_parameter(
+            Name="Name",
+            Value="UpdatedValue",
+        )
+
+    # Verify
+    ex = exc.value
+    assert ex.operation_name.should.equal("PutParameter")
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.response["Error"]["Code"] == "ParameterAlreadyExists"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The parameter already exists. To overwrite this value, set the overwrite option in the request to true."
     )
 
 
