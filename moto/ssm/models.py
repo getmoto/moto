@@ -1,5 +1,4 @@
 import re
-import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Iterator, Optional, Tuple
 from typing import DefaultDict
@@ -973,7 +972,7 @@ class FakeMaintenanceWindowTarget:
 
     @staticmethod
     def generate_id() -> str:
-        return str(uuid.uuid4())
+        return str(random.uuid4())
 
 
 def _maintenance_window_target_filter_match(
