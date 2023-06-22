@@ -1899,7 +1899,11 @@ class SimpleSystemManagerBackend(BaseBackend):
                 )
             raise ValidationException(invalid_prefix_error)
 
-        if not _valid_parameter_type(parameter_type):
+        if (
+            not _valid_parameter_type(parameter_type)
+            and not overwrite
+            and name not in self._parameters
+        ):
             raise ValidationException(
                 f"1 validation error detected: Value '{parameter_type}' at 'type' failed to satisfy constraint: Member must satisfy enum value set: [SecureString, StringList, String]",
             )
