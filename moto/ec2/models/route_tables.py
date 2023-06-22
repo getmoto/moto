@@ -448,6 +448,11 @@ class RouteBackend:
         interface_id: Optional[str] = None,
         vpc_peering_connection_id: Optional[str] = None,
     ) -> Route:
+        cidr = destination_cidr_block
+        if destination_ipv6_cidr_block:
+            cidr = destination_ipv6_cidr_block
+        if destination_prefix_list_id:
+            cidr = destination_prefix_list_id
         route_table = self.get_route_table(route_table_id)
         route_id = generate_route_id(
             route_table.id, destination_cidr_block, destination_ipv6_cidr_block
@@ -455,11 +460,6 @@ class RouteBackend:
         try:
             route = route_table.routes[route_id]
         except KeyError:
-            cidr = (
-                destination_cidr_block
-                if destination_cidr_block
-                else destination_ipv6_cidr_block
-            )
             # This should be 'raise InvalidRouteError(route_table_id, cidr)' in
             # line with the delete_route() equivalent, but for some reason AWS
             # returns InvalidParameterValue instead in this case.
