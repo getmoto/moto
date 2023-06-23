@@ -212,3 +212,65 @@ def test_tags():
         ResourceType="MaintenanceWindow", ResourceId=mw_id
     )["TagList"]
     assert tags == [{"Key": "k2", "Value": "v2"}]
+
+
+@mock_ssm
+def test_register_maintenance_window_target():
+    ssm = boto3.client("ssm", region_name="us-east-1")
+
+    resp = ssm.create_maintenance_window(
+        Name="simple-window",
+        Schedule="cron(15 12 * * ? *)",
+        Duration=2,
+        Cutoff=1,
+        AllowUnassociatedTargets=False,
+    )
+    window_id = resp["WindowId"]
+
+    resp = ssm.register_target_with_maintenance_window(
+        WindowId=window_id,
+        ResourceType="INSTANCE",
+        Targets=[{"Key": "tag:Name", "Values": ["my-instance"]}],
+    )
+    resp.should.have.key("WindowTargetId")
+    _id = resp["WindowTargetId"]
+
+    resp = ssm.describe_maintenance_window_targets(
+        WindowId=window_id,
+    )
+    resp.should.have.key("Targets").should.have.length_of(1)
+    resp["Targets"][0].should.have.key("ResourceType").equal("INSTANCE")
+    resp["Targets"][0].should.have.key("WindowTargetId").equal(_id)
+    resp["Targets"][0]["Targets"][0].should.have.key("Key").equal("tag:Name")
+    resp["Targets"][0]["Targets"][0].should.have.key("Values").equal(["my-instance"])
+
+
+@mock_ssm
+def test_deregister_target_from_maintenance_window():
+    ssm = boto3.client("ssm", region_name="us-east-1")
+
+    resp = ssm.create_maintenance_window(
+        Name="simple-window",
+        Schedule="cron(15 12 * * ? *)",
+        Duration=2,
+        Cutoff=1,
+        AllowUnassociatedTargets=False,
+    )
+    window_id = resp["WindowId"]
+
+    resp = ssm.register_target_with_maintenance_window(
+        WindowId=window_id,
+        ResourceType="INSTANCE",
+        Targets=[{"Key": "tag:Name", "Values": ["my-instance"]}],
+    )
+    _id = resp["WindowTargetId"]
+
+    ssm.deregister_target_from_maintenance_window(
+        WindowId=window_id,
+        WindowTargetId=_id,
+    )
+
+    resp = ssm.describe_maintenance_window_targets(
+        WindowId=window_id,
+    )
+    resp.should.have.key("Targets").should.have.length_of(0)

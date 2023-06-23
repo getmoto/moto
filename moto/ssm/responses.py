@@ -437,6 +437,36 @@ class SimpleSystemManagerResponse(BaseResponse):
         window = self.ssm_backend.get_maintenance_window(window_id)
         return json.dumps(window.to_json())
 
+    def register_target_with_maintenance_window(self) -> str:
+        window_target_id = self.ssm_backend.register_target_with_maintenance_window(
+            window_id=self._get_param("WindowId"),
+            resource_type=self._get_param("ResourceType"),
+            targets=self._get_param("Targets"),
+            owner_information=self._get_param("OwnerInformation"),
+            name=self._get_param("Name"),
+            description=self._get_param("Description"),
+        )
+        return json.dumps({"WindowTargetId": window_target_id})
+
+    def describe_maintenance_window_targets(self) -> str:
+        window_id = self._get_param("WindowId")
+        filters = self._get_param("Filters", [])
+        targets = [
+            target.to_json()
+            for target in self.ssm_backend.describe_maintenance_window_targets(
+                window_id, filters
+            )
+        ]
+        return json.dumps({"Targets": targets})
+
+    def deregister_target_from_maintenance_window(self) -> str:
+        window_id = self._get_param("WindowId")
+        window_target_id = self._get_param("WindowTargetId")
+        self.ssm_backend.deregister_target_from_maintenance_window(
+            window_id, window_target_id
+        )
+        return "{}"
+
     def describe_maintenance_windows(self) -> str:
         filters = self._get_param("Filters", None)
         windows = [

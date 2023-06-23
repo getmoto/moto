@@ -941,6 +941,48 @@ def _valid_parameter_data_type(data_type: str) -> bool:
     return data_type in ("text", "aws:ec2:image")
 
 
+class FakeMaintenanceWindowTarget:
+    def __init__(
+        self,
+        window_id: str,
+        resource_type: str,
+        targets: List[Dict[str, Any]],
+        owner_information: Optional[str],
+        name: Optional[str],
+        description: Optional[str],
+    ):
+        self.window_id = window_id
+        self.window_target_id = self.generate_id()
+        self.resource_type = resource_type
+        self.targets = targets
+        self.name = name
+        self.description = description
+        self.owner_information = owner_information
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "WindowId": self.window_id,
+            "WindowTargetId": self.window_target_id,
+            "ResourceType": self.resource_type,
+            "Targets": self.targets,
+            "OwnerInformation": "",
+            "Name": self.name,
+            "Description": self.description,
+        }
+
+    @staticmethod
+    def generate_id() -> str:
+        return str(random.uuid4())
+
+
+def _maintenance_window_target_filter_match(
+    filters: Optional[List[Dict[str, Any]]], target: FakeMaintenanceWindowTarget
+) -> bool:
+    if not filters and target:
+        return True
+    return False
+
+
 class FakeMaintenanceWindow:
     def __init__(
         self,
@@ -964,6 +1006,7 @@ class FakeMaintenanceWindow:
         self.schedule_offset = schedule_offset
         self.start_date = start_date
         self.end_date = end_date
+        self.targets: Dict[str, FakeMaintenanceWindowTarget] = {}
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -2253,6 +2296,54 @@ class SimpleSystemManagerBackend(BaseBackend):
         Assumes the provided BaselineId exists. No error handling has been implemented yet.
         """
         del self.baselines[baseline_id]
+
+    def register_target_with_maintenance_window(
+        self,
+        window_id: str,
+        resource_type: str,
+        targets: List[Dict[str, Any]],
+        owner_information: Optional[str],
+        name: Optional[str],
+        description: Optional[str],
+    ) -> str:
+        """
+        Registers a target with a maintenance window. No error handling has been implemented yet.
+        """
+        window = self.get_maintenance_window(window_id)
+
+        target = FakeMaintenanceWindowTarget(
+            window_id,
+            resource_type,
+            targets,
+            owner_information=owner_information,
+            name=name,
+            description=description,
+        )
+        window.targets[target.window_target_id] = target
+        return target.window_target_id
+
+    def deregister_target_from_maintenance_window(
+        self, window_id: str, window_target_id: str
+    ) -> None:
+        """
+        Deregisters a target from a maintenance window. No error handling has been implemented yet.
+        """
+        window = self.get_maintenance_window(window_id)
+        del window.targets[window_target_id]
+
+    def describe_maintenance_window_targets(
+        self, window_id: str, filters: Optional[List[Dict[str, Any]]]
+    ) -> List[FakeMaintenanceWindowTarget]:
+        """
+        Describes all targets for a maintenance window. No error handling has been implemented yet.
+        """
+        window = self.get_maintenance_window(window_id)
+        targets = [
+            target
+            for target in window.targets.values()
+            if _maintenance_window_target_filter_match(filters, target)
+        ]
+        return targets
 
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

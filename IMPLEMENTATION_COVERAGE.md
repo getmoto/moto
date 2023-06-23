@@ -6744,7 +6744,7 @@
 - [ ] delete_resource_policy
 - [ ] deregister_managed_instance
 - [ ] deregister_patch_baseline_for_patch_group
-- [ ] deregister_target_from_maintenance_window
+- [X] deregister_target_from_maintenance_window
 - [ ] deregister_task_from_maintenance_window
 - [ ] describe_activations
 - [ ] describe_association
@@ -6767,7 +6767,7 @@
 - [ ] describe_maintenance_window_execution_tasks
 - [ ] describe_maintenance_window_executions
 - [ ] describe_maintenance_window_schedule
-- [ ] describe_maintenance_window_targets
+- [X] describe_maintenance_window_targets
 - [ ] describe_maintenance_window_tasks
 - [X] describe_maintenance_windows
 - [ ] describe_maintenance_windows_for_target
@@ -6828,7 +6828,7 @@
 - [ ] put_resource_policy
 - [ ] register_default_patch_baseline
 - [ ] register_patch_baseline_for_patch_group
-- [ ] register_target_with_maintenance_window
+- [X] register_target_with_maintenance_window
 - [ ] register_task_with_maintenance_window
 - [X] remove_tags_from_resource
 - [ ] reset_service_setting
