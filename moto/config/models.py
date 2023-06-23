@@ -1226,7 +1226,10 @@ class ConfigBackend(BaseBackend):
             if rgroup.get("allSupported", False):
                 if (
                     rgroup.get("resourceTypes", [])
-                    or rgroup.get("exclusionByResourceTypes", {})
+                    or (
+                        rgroup.get("exclusionByResourceTypes", {"resourceTypes": []})
+                        != {"resourceTypes": []}
+                    )
                     or recording_strategy not in {None, "ALL_SUPPORTED_RESOURCE_TYPES"}
                 ):
                     raise InvalidRecordingGroupException()
@@ -1245,7 +1248,10 @@ class ConfigBackend(BaseBackend):
             elif rgroup.get("resourceTypes", []):
                 if (
                     rgroup.get("includeGlobalResourceTypes", False)
-                    or rgroup.get("exclusionByResourceTypes", {})
+                    or (
+                        rgroup.get("exclusionByResourceTypes", {"resourceTypes": []})
+                        != {"resourceTypes": []}
+                    )
                     or recording_strategy not in {None, "INCLUSION_BY_RESOURCE_TYPES"}
                 ):
                     raise InvalidRecordingGroupException()
