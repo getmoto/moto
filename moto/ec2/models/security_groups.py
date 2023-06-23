@@ -558,8 +558,11 @@ class SecurityGroupBackend:
             )
         rules = []
         for group in matches:
-            rules.extend(group.ingress_rules)
-            rules.extend(group.egress_rules)
+            group_rules = {"group_id": group.group_id, "rules": []}
+            group_rules["rules"].extend(group.ingress_rules)
+            group_rules["rules"].extend(group.egress_rules)
+            if len(group_rules["rules"]) > 0:
+                rules.append(group_rules)
 
         return rules
 
