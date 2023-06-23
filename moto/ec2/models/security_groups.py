@@ -550,7 +550,7 @@ class SecurityGroupBackend:
 
     def describe_security_group_rules(
         self, group_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[SecurityRule]:
+    ) -> List[dict[str, List[SecurityRule]]]:
         matches = self.describe_security_groups(group_ids=group_ids, filters=filters)
         if not matches:
             raise InvalidSecurityGroupNotFoundError(
