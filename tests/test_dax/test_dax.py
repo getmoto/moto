@@ -149,9 +149,10 @@ def test_describe_clusters_invalid_name(name):
     with pytest.raises(ClientError) as exc:
         client.describe_clusters(ClusterNames=[name])
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValueException")
-    err["Message"].should.equal(
-        "Cluster ID specified is not a valid identifier. Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; and must not end with a hyphen or contain two consecutive hyphens."
+    assert err["Code"] == "InvalidParameterValueException"
+    assert (
+        err["Message"]
+        == "Cluster ID specified is not a valid identifier. Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; and must not end with a hyphen or contain two consecutive hyphens."
     )
 
 
@@ -265,9 +266,9 @@ def test_describe_clusters_returns_nodes_after_some_time():
     # Finished loading by now
     cluster = client.describe_clusters(ClusterNames=["daxcluster"])["Clusters"][0]
 
-    assert cluster["TotalNodes"].should.equal(3)
-    assert cluster["ActiveNodes"].should.equal(0)
-    assert cluster["Status"].should.equal("available")
+    assert cluster["TotalNodes"] == 3
+    assert cluster["ActiveNodes"] == 0
+    assert cluster["Status"] == "available"
 
     # Address Info is only available when the cluster is ready
     endpoint = cluster["ClusterDiscoveryEndpoint"]

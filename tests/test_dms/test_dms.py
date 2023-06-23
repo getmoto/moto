@@ -1,6 +1,5 @@
 from botocore.exceptions import ClientError
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 import json
 
@@ -25,19 +24,19 @@ def test_create_and_get_replication_task():
         Filters=[{"Name": "replication-task-id", "Values": ["test"]}]
     )
 
-    tasks["ReplicationTasks"].should.have.length_of(1)
+    assert len(tasks["ReplicationTasks"]) == 1
     task = tasks["ReplicationTasks"][0]
-    task["ReplicationTaskIdentifier"].should.equal("test")
-    task["SourceEndpointArn"].should.equal("source-endpoint-arn")
-    task["TargetEndpointArn"].should.equal("target-endpoint-arn")
-    task["ReplicationInstanceArn"].should.equal("replication-instance-arn")
-    task["MigrationType"].should.equal("full-load")
-    task["Status"].should.equal("creating")
-    task["TableMappings"].should.equal('{"rules":[]}')
-    json.loads(task["TableMappings"]).should.be.a(dict)
+    assert task["ReplicationTaskIdentifier"] == "test"
+    assert task["SourceEndpointArn"] == "source-endpoint-arn"
+    assert task["TargetEndpointArn"] == "target-endpoint-arn"
+    assert task["ReplicationInstanceArn"] == "replication-instance-arn"
+    assert task["MigrationType"] == "full-load"
+    assert task["Status"] == "creating"
+    assert task["TableMappings"] == '{"rules":[]}'
+    assert isinstance(json.loads(task["TableMappings"]), dict)
 
-    task["ReplicationTaskSettings"].should.equal('{"Logging":{} }')
-    json.loads(task["ReplicationTaskSettings"]).should.be.a(dict)
+    assert task["ReplicationTaskSettings"] == '{"Logging":{} }'
+    assert isinstance(json.loads(task["ReplicationTaskSettings"]), dict)
 
 
 @mock_dms
@@ -63,10 +62,11 @@ def test_create_existing_replication_task_throws_error():
             TableMappings='{"rules":[]}',
         )
 
-    ex.value.operation_name.should.equal("CreateReplicationTask")
-    ex.value.response["Error"]["Code"].should.equal("ResourceAlreadyExistsFault")
-    ex.value.response["Error"]["Message"].should.equal(
-        "The resource you are attempting to create already exists."
+    assert ex.value.operation_name == "CreateReplicationTask"
+    assert ex.value.response["Error"]["Code"] == "ResourceAlreadyExistsFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The resource you are attempting to create already exists."
     )
 
 
@@ -90,7 +90,7 @@ def test_start_replication_task():
         Filters=[{"Name": "replication-task-arn", "Values": [task_arn]}]
     )
 
-    tasks["ReplicationTasks"][0]["Status"].should.equal("running")
+    assert tasks["ReplicationTasks"][0]["Status"] == "running"
 
 
 @mock_dms
@@ -103,10 +103,10 @@ def test_start_replication_task_throws_resource_not_found_error():
             StartReplicationTaskType="start-replication",
         )
 
-    ex.value.operation_name.should.equal("StartReplicationTask")
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundFault")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Replication task could not be found."
+    assert ex.value.operation_name == "StartReplicationTask"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert (
+        ex.value.response["Error"]["Message"] == "Replication task could not be found."
     )
 
 
@@ -127,11 +127,9 @@ def test_stop_replication_task_throws_invalid_state_error():
     with pytest.raises(ClientError) as ex:
         client.stop_replication_task(ReplicationTaskArn=task_arn)
 
-    ex.value.operation_name.should.equal("StopReplicationTask")
-    ex.value.response["Error"]["Code"].should.equal("InvalidResourceStateFault")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Replication task is not running"
-    )
+    assert ex.value.operation_name == "StopReplicationTask"
+    assert ex.value.response["Error"]["Code"] == "InvalidResourceStateFault"
+    assert ex.value.response["Error"]["Message"] == "Replication task is not running"
 
 
 @mock_dms
@@ -141,10 +139,10 @@ def test_stop_replication_task_throws_resource_not_found_error():
     with pytest.raises(ClientError) as ex:
         client.stop_replication_task(ReplicationTaskArn="does-not-exist")
 
-    ex.value.operation_name.should.equal("StopReplicationTask")
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundFault")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Replication task could not be found."
+    assert ex.value.operation_name == "StopReplicationTask"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert (
+        ex.value.response["Error"]["Message"] == "Replication task could not be found."
     )
 
 
@@ -169,7 +167,7 @@ def test_stop_replication_task():
         Filters=[{"Name": "replication-task-arn", "Values": [task_arn]}]
     )
 
-    tasks["ReplicationTasks"][0]["Status"].should.equal("stopped")
+    assert tasks["ReplicationTasks"][0]["Status"] == "stopped"
 
 
 @mock_dms
@@ -190,7 +188,7 @@ def test_delete_replication_task():
         Filters=[{"Name": "replication-task-arn", "Values": [task_arn]}]
     )
 
-    tasks["ReplicationTasks"].should.have.length_of(0)
+    assert len(tasks["ReplicationTasks"]) == 0
 
 
 @mock_dms
@@ -200,8 +198,8 @@ def test_delete_replication_task_throws_resource_not_found_error():
     with pytest.raises(ClientError) as ex:
         client.delete_replication_task(ReplicationTaskArn="does-not-exist")
 
-    ex.value.operation_name.should.equal("DeleteReplicationTask")
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundFault")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Replication task could not be found."
+    assert ex.value.operation_name == "DeleteReplicationTask"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert (
+        ex.value.response["Error"]["Message"] == "Replication task could not be found."
     )
