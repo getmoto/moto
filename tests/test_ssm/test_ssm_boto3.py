@@ -432,15 +432,34 @@ def test_put_parameter_invalid_type():
 
 
 @mock_ssm
+def test_put_parameter_no_type():
+    client = boto3.client("ssm", "us-east-1")
+    with pytest.raises(ClientError) as e:
+        client.put_parameter(
+            Name="test_name",
+            Value="some_value",
+        )
+    ex = e.value
+    assert ex.operation_name == "PutParameter"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ValidationException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "A parameter type is required when you create a parameter."
+    )
+
+
+@mock_ssm
 def test_update_parameter():
     # Setup
     client = boto3.client("ssm", "us-east-1")
     param_name = "test_param"
+    param_type = "String"
     updated_value = "UpdatedValue"
     client.put_parameter(
         Description="Description",
         Name=param_name,
-        Type="String",
+        Type=param_type,
         Value="Value",
     )
 
@@ -454,6 +473,7 @@ def test_update_parameter():
 
     # Verify
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert new_param["Parameter"]["Type"] == param_type
     assert new_param["Parameter"]["Value"] == updated_value
 
 

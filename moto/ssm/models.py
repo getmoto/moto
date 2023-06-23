@@ -213,7 +213,7 @@ class Parameter(CloudFormationModel):
     ):
         self.account_id = account_id
         self.name = name
-        self.type = parameter_type
+        self.parameter_type = parameter_type
         self.description = description
         self.allowed_pattern = allowed_pattern
         self.keyid = keyid
@@ -224,7 +224,7 @@ class Parameter(CloudFormationModel):
         self.labels = labels or []
         self.source_result = source_result
 
-        if self.type == "SecureString":
+        if self.parameter_type == "SecureString":
             if not self.keyid:
                 self.keyid = "alias/aws/ssm"
 
@@ -236,7 +236,7 @@ class Parameter(CloudFormationModel):
         return f"kms:{self.keyid}:" + value
 
     def decrypt(self, value: str) -> Optional[str]:
-        if self.type != "SecureString":
+        if self.parameter_type != "SecureString":
             return value
 
         prefix = f"kms:{self.keyid or 'default'}:"
@@ -249,7 +249,7 @@ class Parameter(CloudFormationModel):
     ) -> Dict[str, Any]:
         r: Dict[str, Any] = {
             "Name": self.name,
-            "Type": self.type,
+            "Type": self.parameter_type,
             "Value": self.decrypt(self.value) if decrypt else self.value,
             "Version": self.version,
             "LastModifiedDate": round(self.last_modified_date, 3),
@@ -1507,7 +1507,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                                 break
                     elif _filter["Key"] == "Type":
                         for v in _filter["Values"]:
-                            if ssm_parameter.type == v:
+                            if ssm_parameter.parameter_type == v:
                                 result.append(ssm_parameter)
                                 break
                     elif _filter["Key"] == "KeyId":
@@ -1793,7 +1793,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                 what = "/" + parameter.name.lstrip("/")
                 values = ["/" + value.strip("/") for value in values]
             elif key == "Type":
-                what = parameter.type
+                what = parameter.parameter_type
             elif key == "Label":
                 what = parameter.labels
                 # Label filter can only have option="Equals" (also valid implicitly)
@@ -1994,7 +1994,10 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "formed as a mix of letters, numbers and the following 3 symbols .-_"
                 )
             raise ValidationException(invalid_prefix_error)
-
+        if not parameter_type and not overwrite and not self._parameters[name]:
+            raise ValidationException(
+                "A parameter type is required when you create a parameter."
+            )
         if (
             not _valid_parameter_type(parameter_type)
             and not overwrite
@@ -2022,6 +2025,9 @@ class SimpleSystemManagerBackend(BaseBackend):
 
             if not overwrite:
                 return None
+            # overwriting a parameter, Type is not included in boto3 call
+            if not parameter_type and overwrite:
+                parameter_type = previous_parameter.parameter_type
 
             if len(previous_parameter_versions) >= PARAMETER_VERSION_LIMIT:
                 self._check_for_parameter_version_limit_exception(name)
