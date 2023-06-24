@@ -687,11 +687,11 @@ class LifecycleRule(BaseModel):
         status: Optional[str] = None,
         expiration_days: Optional[str] = None,
         expiration_date: Optional[str] = None,
-        transitions: Optional[list[LifecycleTransition]] = None,
+        transitions: Optional[List[LifecycleTransition]] = None,
         expired_object_delete_marker: Optional[str] = None,
         nve_noncurrent_days: Optional[str] = None,
         noncurrent_version_transitions: Optional[
-            list[LifeCycleNoncurrentVersionTransition]
+            List[LifeCycleNoncurrentVersionTransition]
         ] = None,
         aimu_days: Optional[str] = None,
     ):
