@@ -59,6 +59,7 @@ emr
 - [X] list_steps
 - [ ] list_studio_session_mappings
 - [ ] list_studios
+- [ ] list_supported_instance_types
 - [X] modify_cluster
 - [ ] modify_instance_fleet
 - [X] modify_instance_groups

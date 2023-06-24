@@ -30,6 +30,7 @@ logs
 - [X] create_export_task
 - [X] create_log_group
 - [X] create_log_stream
+- [ ] delete_account_policy
 - [ ] delete_data_protection_policy
 - [ ] delete_destination
 - [X] delete_log_group
@@ -41,6 +42,7 @@ logs
 
 - [X] delete_retention_policy
 - [X] delete_subscription_filter
+- [ ] describe_account_policies
 - [ ] describe_destinations
 - [ ] describe_export_tasks
 - [X] describe_log_groups
@@ -71,6 +73,7 @@ logs
 - [ ] get_query_results
 - [ ] list_tags_for_resource
 - [X] list_tags_log_group
+- [ ] put_account_policy
 - [ ] put_data_protection_policy
 - [ ] put_destination
 - [ ] put_destination_policy

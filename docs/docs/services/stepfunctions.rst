@@ -27,8 +27,11 @@ stepfunctions
 
 - [ ] create_activity
 - [X] create_state_machine
+- [ ] create_state_machine_alias
 - [ ] delete_activity
 - [X] delete_state_machine
+- [ ] delete_state_machine_alias
+- [ ] delete_state_machine_version
 - [ ] describe_activity
 - [X] describe_execution
   
@@ -42,6 +45,7 @@ stepfunctions
 
 - [ ] describe_map_run
 - [X] describe_state_machine
+- [ ] describe_state_machine_alias
 - [ ] describe_state_machine_for_execution
 - [ ] get_activity_task
 - [X] get_execution_history
@@ -66,8 +70,11 @@ stepfunctions
         
 
 - [ ] list_map_runs
+- [ ] list_state_machine_aliases
+- [ ] list_state_machine_versions
 - [X] list_state_machines
 - [X] list_tags_for_resource
+- [ ] publish_state_machine_version
 - [ ] send_task_failure
 - [ ] send_task_heartbeat
 - [ ] send_task_success
@@ -78,4 +85,5 @@ stepfunctions
 - [X] untag_resource
 - [ ] update_map_run
 - [X] update_state_machine
+- [ ] update_state_machine_alias
 

@@ -2,6 +2,76 @@ Moto Changelog
 ==============
 
 
+4.1.12
+------
+Docker Digest for 4.1.12: <autopopulateddigest>
+
+    General:
+        * Support for ISO regions
+        * The official Docker image now comes with curl pre-installed
+
+    New Services:
+        * AppConfig:
+            * create_application()
+            * create_configuration_profile()
+            * create_hosted_configuration_version()
+            * delete_application()
+            * delete_configuration_profile()
+            * delete_hosted_configuration_version()
+            * get_application()
+            * get_configuration_profile()
+            * get_hosted_configuration_version()
+            * list_configuration_profiles()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_application()
+            * update_configuration_profile()
+
+    New Methods:
+        * IdentityStore:
+            * create_user()
+            * describe_user()
+            * delete_user()
+            * get_group_id()
+            * delete_group()
+            * create_group_membership()
+            * get_group_memberships()
+            * delete_group_membership()
+
+        * SSM:
+            * create_patch_baseline()
+            * describe_patch_baselines()
+            * delete_patch_baseline()
+            * register_target_with_maintenance_window()
+            * describe_maintenance_window_targets()
+            * deregister_target_from_maintenance_window()
+
+
+    Miscellaneous:
+        * Moto Dashboard no longer fails to load after an S3 file is overwritten
+        * CloudFormation: AWS:SSM::Parameter now exposes the PhysicalResourceId
+        * CloudFront: create_invalidation() now behaves correctly when supplying a single Path
+        * CloudWatch: get_metrics_data() now validates the provided start/end times
+        * CodeBuild: create_project() now accepts all ServiceRole ARN's, not just ARN's that end in /service-role/
+        * Config: put_configuration_recorder() now supports resource type exclusions
+        * DMS: describe_replication_tasks() now returns TableMappings and ReplicationTaskSettings in the correct format
+        * DynamoDB now supports ProjectionExpressions on (nested) lists
+        * EC2: New availability zones have been added for ap-south-1, sa-east-1, ca-central-1, us-west-2
+        * EC2: create_flow_logs() now allows different LogDestinations for a single ResourceId
+        * EC2: replace_route() now returns the appropriate error when called with missing route
+        * EC2: create_volume() now supports the Throughput-parameter
+        * ECR: put_image() now correctly overwrites tags on images with multiple tags
+        * IAM: add_role_to_instance_profile() now validates whether a role was already attached (only one is allowed)
+        * Lambda: delete_layer_version() now also accepts function ARNs
+        * MediaConnect: create_flow_payload() no longer requires the Entitlements-parameter
+        * RDS: Further improve Global Cluster behaviour
+        * S3: GET/PUT requests now return Access-Control headers, if a CORS configuration has been set
+        * S3: put_bucket_lifecycle_configuration() now supports multiple Transitions
+        * SESv2: create_contact_list() now correctly reads Topics with special characters
+        * SESv2: send_email() now correctly reads raw emails
+
+
 4.1.11
 ------
 Docker Digest for 4.1.11: _sha256:0ac1ec726e428bd3134c10c32639d72f814bbe002b9d2010420850aab8bc2550_
