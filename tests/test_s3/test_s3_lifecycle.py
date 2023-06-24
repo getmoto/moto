@@ -377,6 +377,76 @@ def test_lifecycle_with_nvt():
 
 
 @mock_s3
+def test_lifecycle_with_multiple_nvt():
+    client = boto3.client("s3")
+    client.create_bucket(
+        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
+
+    lfc = {
+        "Rules": [
+            {
+                "NoncurrentVersionTransitions": [
+                    {"NoncurrentDays": 30, "StorageClass": "ONEZONE_IA"},
+                    {"NoncurrentDays": 50, "StorageClass": "GLACIER"},
+                ],
+                "ID": "wholebucket",
+                "Filter": {"Prefix": ""},
+                "Status": "Enabled",
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(
+        Bucket="bucket", LifecycleConfiguration=lfc
+    )
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["NoncurrentVersionTransitions"][0] == {
+        "NoncurrentDays": 30,
+        "StorageClass": "ONEZONE_IA",
+    }
+    assert result["Rules"][0]["NoncurrentVersionTransitions"][1] == {
+        "NoncurrentDays": 50,
+        "StorageClass": "GLACIER",
+    }
+
+
+@mock_s3
+def test_lifecycle_with_multiple_transitions():
+    client = boto3.client("s3")
+    client.create_bucket(
+        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
+
+    lfc = {
+        "Rules": [
+            {
+                "Transitions": [
+                    {"Days": 30, "StorageClass": "ONEZONE_IA"},
+                    {"Days": 50, "StorageClass": "GLACIER"},
+                ],
+                "ID": "wholebucket",
+                "Filter": {"Prefix": ""},
+                "Status": "Enabled",
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(
+        Bucket="bucket", LifecycleConfiguration=lfc
+    )
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["Transitions"][0] == {
+        "Days": 30,
+        "StorageClass": "ONEZONE_IA",
+    }
+    assert result["Rules"][0]["Transitions"][1] == {
+        "Days": 50,
+        "StorageClass": "GLACIER",
+    }
+
+
+@mock_s3
 def test_lifecycle_with_aimu():
     client = boto3.client("s3")
     client.create_bucket(

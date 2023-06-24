@@ -637,6 +637,47 @@ class LifecycleAndFilter(BaseModel):
         return data
 
 
+class LifecycleTransition(BaseModel):
+    def __init__(
+        self,
+        date: Optional[str] = None,
+        days: Optional[int] = None,
+        storage_class: Optional[str] = None,
+    ):
+        self.date = date
+        self.days = days
+        self.storage_class = storage_class
+
+    def to_config_dict(self) -> Dict[str, Any]:
+        config: Dict[str, Any] = {}
+        if self.date is not None:
+            config["date"] = self.date
+        if self.days is not None:
+            config["days"] = self.days
+        if self.storage_class is not None:
+            config["storageClass"] = self.storage_class
+        return config
+
+
+class LifeCycleNoncurrentVersionTransition(BaseModel):
+    def __init__(
+        self, days: int, storage_class: str, newer_versions: Optional[int] = None
+    ):
+        self.newer_versions = newer_versions
+        self.days = days
+        self.storage_class = storage_class
+
+    def to_config_dict(self) -> Dict[str, Any]:
+        config: Dict[str, Any] = {}
+        if self.newer_versions is not None:
+            config["newerNoncurrentVersions"] = self.newer_versions
+        if self.days is not None:
+            config["noncurrentDays"] = self.days
+        if self.storage_class is not None:
+            config["storageClass"] = self.storage_class
+        return config
+
+
 class LifecycleRule(BaseModel):
     def __init__(
         self,
@@ -646,13 +687,12 @@ class LifecycleRule(BaseModel):
         status: Optional[str] = None,
         expiration_days: Optional[str] = None,
         expiration_date: Optional[str] = None,
-        transition_days: Optional[str] = None,
-        transition_date: Optional[str] = None,
-        storage_class: Optional[str] = None,
+        transitions: Optional[List[LifecycleTransition]] = None,
         expired_object_delete_marker: Optional[str] = None,
         nve_noncurrent_days: Optional[str] = None,
-        nvt_noncurrent_days: Optional[str] = None,
-        nvt_storage_class: Optional[str] = None,
+        noncurrent_version_transitions: Optional[
+            List[LifeCycleNoncurrentVersionTransition]
+        ] = None,
         aimu_days: Optional[str] = None,
     ):
         self.id = rule_id
@@ -661,21 +701,14 @@ class LifecycleRule(BaseModel):
         self.status = status
         self.expiration_days = expiration_days
         self.expiration_date = expiration_date
-        self.transition_days = transition_days
-        self.transition_date = transition_date
-        self.storage_class = storage_class
+        self.transitions = transitions
         self.expired_object_delete_marker = expired_object_delete_marker
         self.nve_noncurrent_days = nve_noncurrent_days
-        self.nvt_noncurrent_days = nvt_noncurrent_days
-        self.nvt_storage_class = nvt_storage_class
+        self.noncurrent_version_transitions = noncurrent_version_transitions
         self.aimu_days = aimu_days
 
     def to_config_dict(self) -> Dict[str, Any]:
         """Converts the object to the AWS Config data dict.
-
-        Note: The following are missing that should be added in the future:
-            - transitions (returns None for now)
-            - noncurrentVersionTransitions (returns None for now)
 
         :param kwargs:
         :return:
@@ -691,9 +724,21 @@ class LifecycleRule(BaseModel):
             "expiredObjectDeleteMarker": self.expired_object_delete_marker,
             "noncurrentVersionExpirationInDays": -1 or int(self.nve_noncurrent_days),  # type: ignore
             "expirationDate": self.expiration_date,
-            "transitions": None,  # Replace me with logic to fill in
-            "noncurrentVersionTransitions": None,  # Replace me with logic to fill in
         }
+
+        if self.transitions:
+            lifecycle_dict["transitions"] = [
+                t.to_config_dict() for t in self.transitions
+            ]
+        else:
+            lifecycle_dict["transitions"] = None
+
+        if self.noncurrent_version_transitions:
+            lifecycle_dict["noncurrentVersionTransitions"] = [
+                t.to_config_dict() for t in self.noncurrent_version_transitions
+            ]
+        else:
+            lifecycle_dict["noncurrentVersionTransitions"] = None
 
         if self.aimu_days:
             lifecycle_dict["abortIncompleteMultipartUpload"] = {
@@ -965,7 +1010,19 @@ class FakeBucket(CloudFormationModel):
         for rule in rules:
             # Extract and validate actions from Lifecycle rule
             expiration = rule.get("Expiration")
-            transition = rule.get("Transition")
+
+            transitions_input = rule.get("Transition", [])
+            if transitions_input and not isinstance(transitions_input, list):
+                transitions_input = [rule.get("Transition")]
+
+            transitions = [
+                LifecycleTransition(
+                    date=transition.get("Date"),
+                    days=transition.get("Days"),
+                    storage_class=transition.get("StorageClass"),
+                )
+                for transition in transitions_input
+            ]
 
             try:
                 top_level_prefix = (
@@ -982,17 +1039,21 @@ class FakeBucket(CloudFormationModel):
                     "NoncurrentDays"
                 ]
 
-            nvt_noncurrent_days = None
-            nvt_storage_class = None
-            if rule.get("NoncurrentVersionTransition") is not None:
-                if rule["NoncurrentVersionTransition"].get("NoncurrentDays") is None:
+            nv_transitions_input = rule.get("NoncurrentVersionTransition", [])
+            if nv_transitions_input and not isinstance(nv_transitions_input, list):
+                nv_transitions_input = [rule.get("NoncurrentVersionTransition")]
+
+            noncurrent_version_transitions = []
+            for nvt in nv_transitions_input:
+                if nvt.get("NoncurrentDays") is None or nvt.get("StorageClass") is None:
                     raise MalformedXML()
-                if rule["NoncurrentVersionTransition"].get("StorageClass") is None:
-                    raise MalformedXML()
-                nvt_noncurrent_days = rule["NoncurrentVersionTransition"][
-                    "NoncurrentDays"
-                ]
-                nvt_storage_class = rule["NoncurrentVersionTransition"]["StorageClass"]
+
+                transition = LifeCycleNoncurrentVersionTransition(
+                    newer_versions=nvt.get("NewerNoncurrentVersions"),
+                    days=nvt.get("NoncurrentDays"),
+                    storage_class=nvt.get("StorageClass"),
+                )
+                noncurrent_version_transitions.append(transition)
 
             aimu_days = None
             if rule.get("AbortIncompleteMultipartUpload") is not None:
@@ -1085,15 +1146,10 @@ class FakeBucket(CloudFormationModel):
                     status=rule["Status"],
                     expiration_days=expiration.get("Days") if expiration else None,
                     expiration_date=expiration.get("Date") if expiration else None,
-                    transition_days=transition.get("Days") if transition else None,
-                    transition_date=transition.get("Date") if transition else None,
-                    storage_class=transition.get("StorageClass")
-                    if transition
-                    else None,
+                    transitions=transitions,
                     expired_object_delete_marker=eodm,
                     nve_noncurrent_days=nve_noncurrent_days,
-                    nvt_noncurrent_days=nvt_noncurrent_days,
-                    nvt_storage_class=nvt_storage_class,
+                    noncurrent_version_transitions=noncurrent_version_transitions,
                     aimu_days=aimu_days,
                 )
             )
@@ -2317,7 +2373,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
-
                             if (
                                 hasattr(key, "is_locked")
                                 and key.is_locked

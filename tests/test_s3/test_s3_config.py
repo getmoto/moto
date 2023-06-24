@@ -12,7 +12,6 @@ s3_config_query_backend = s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
 
 @mock_s3
 def test_s3_public_access_block_to_config_dict():
-
     # With 1 bucket in us-west-2:
     s3_config_query_backend.create_bucket("bucket1", "us-west-2")
 
@@ -48,7 +47,6 @@ def test_s3_public_access_block_to_config_dict():
 
 @mock_s3
 def test_list_config_discovered_resources():
-
     # Without any buckets:
     assert s3_config_query.list_config_service_resources(
         "global", "global", None, None, 100, None
@@ -173,6 +171,18 @@ def test_s3_lifecycle_config_dict():
             "Filter": {"Prefix": ""},
             "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1},
         },
+        {
+            "ID": "rule5",
+            "Status": "Enabled",
+            "Filter": {"Prefix": ""},
+            "Transition": [{"Days": 10, "StorageClass": "GLACIER"}],
+            "NoncurrentVersionTransition": [
+                {
+                    "NoncurrentDays": 10,
+                    "StorageClass": "GLACIER",
+                }
+            ],
+        },
     ]
     s3_config_query_backend.put_bucket_lifecycle("bucket1", lifecycle)
 
@@ -251,6 +261,22 @@ def test_s3_lifecycle_config_dict():
         "noncurrentVersionTransitions": None,
         "abortIncompleteMultipartUpload": {"daysAfterInitiation": 1},
         "filter": {"predicate": {"type": "LifecyclePrefixPredicate", "prefix": ""}},
+    }
+
+    assert lifecycles[4] == {
+        "id": "rule5",
+        "prefix": None,
+        "status": "Enabled",
+        "expirationInDays": None,
+        "expiredObjectDeleteMarker": None,
+        "noncurrentVersionExpirationInDays": -1,
+        "expirationDate": None,
+        "abortIncompleteMultipartUpload": None,
+        "filter": {"predicate": {"type": "LifecyclePrefixPredicate", "prefix": ""}},
+        "transitions": [{"days": 10, "storageClass": "GLACIER"}],
+        "noncurrentVersionTransitions": [
+            {"noncurrentDays": 10, "storageClass": "GLACIER"}
+        ],
     }
 
 
