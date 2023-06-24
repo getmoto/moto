@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.12
 ------
-Docker Digest for 4.1.12: <autopopulateddigest>
+Docker Digest for 4.1.12: _sha256:38e34a1ee4042fd52f15703c2e750780fe0fd809b2745fd263b2d1de33566590_
 
     General:
         * Support for ISO regions
