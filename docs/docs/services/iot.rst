@@ -63,6 +63,8 @@ iot
 - [X] create_keys_and_certificate
 - [ ] create_mitigation_action
 - [ ] create_ota_update
+- [ ] create_package
+- [ ] create_package_version
 - [X] create_policy
 - [X] create_policy_version
 - [ ] create_provisioning_claim
@@ -93,6 +95,8 @@ iot
 - [ ] delete_job_template
 - [ ] delete_mitigation_action
 - [ ] delete_ota_update
+- [ ] delete_package
+- [ ] delete_package_version
 - [X] delete_policy
 - [X] delete_policy_version
 - [ ] delete_provisioning_template
@@ -164,6 +168,9 @@ iot
 - [X] get_job_document
 - [ ] get_logging_options
 - [ ] get_ota_update
+- [ ] get_package
+- [ ] get_package_configuration
+- [ ] get_package_version
 - [ ] get_percentiles
 - [X] get_policy
 - [X] get_policy_version
@@ -212,6 +219,8 @@ iot
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
 - [ ] list_outgoing_certificates
+- [ ] list_package_versions
+- [ ] list_packages
 - [X] list_policies
 - [X] list_policy_principals
 - [X] list_policy_versions
@@ -301,6 +310,9 @@ iot
 - [ ] update_indexing_configuration
 - [ ] update_job
 - [ ] update_mitigation_action
+- [ ] update_package
+- [ ] update_package_configuration
+- [ ] update_package_version
 - [ ] update_provisioning_template
 - [ ] update_role_alias
 - [ ] update_scheduled_audit

@@ -53,6 +53,7 @@ mq
 
 - [X] list_tags
 - [X] list_users
+- [ ] promote
 - [X] reboot_broker
 - [X] update_broker
 - [X] update_configuration

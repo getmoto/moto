@@ -663,8 +663,9 @@
 
 ## cloudformation
 <details>
-<summary>50% implemented</summary>
+<summary>47% implemented</summary>
 
+- [ ] activate_organizations_access
 - [ ] activate_type
 - [ ] batch_describe_type_configurations
 - [ ] cancel_update_stack
@@ -673,6 +674,7 @@
 - [X] create_stack
 - [X] create_stack_instances
 - [X] create_stack_set
+- [ ] deactivate_organizations_access
 - [ ] deactivate_type
 - [X] delete_change_set
 - [X] delete_stack
@@ -682,6 +684,7 @@
 - [ ] describe_account_limits
 - [X] describe_change_set
 - [ ] describe_change_set_hooks
+- [ ] describe_organizations_access
 - [ ] describe_publisher
 - [ ] describe_stack_drift_detection_status
 - [X] describe_stack_events
@@ -1912,6 +1915,7 @@
 - [X] create_flow_logs
 - [ ] create_fpga_image
 - [X] create_image
+- [ ] create_instance_connect_endpoint
 - [ ] create_instance_event_window
 - [ ] create_instance_export_task
 - [X] create_internet_gateway
@@ -1988,6 +1992,7 @@
 - [X] delete_fleets
 - [X] delete_flow_logs
 - [ ] delete_fpga_image
+- [ ] delete_instance_connect_endpoint
 - [ ] delete_instance_event_window
 - [X] delete_internet_gateway
 - [ ] delete_ipam
@@ -2102,6 +2107,7 @@
 - [ ] describe_import_image_tasks
 - [ ] describe_import_snapshot_tasks
 - [X] describe_instance_attribute
+- [ ] describe_instance_connect_endpoints
 - [X] describe_instance_credit_specifications
 - [ ] describe_instance_event_notification_attributes
 - [ ] describe_instance_event_windows
@@ -2853,7 +2859,7 @@
 
 ## emr
 <details>
-<summary>41% implemented</summary>
+<summary>40% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -2889,6 +2895,7 @@
 - [X] list_steps
 - [ ] list_studio_session_mappings
 - [ ] list_studios
+- [ ] list_supported_instance_types
 - [X] modify_cluster
 - [ ] modify_instance_fleet
 - [X] modify_instance_groups
@@ -3747,22 +3754,22 @@
 
 ## identitystore
 <details>
-<summary>5% implemented</summary>
+<summary>47% implemented</summary>
 
 - [X] create_group
-- [ ] create_group_membership
-- [ ] create_user
-- [ ] delete_group
-- [ ] delete_group_membership
-- [ ] delete_user
+- [X] create_group_membership
+- [X] create_user
+- [X] delete_group
+- [X] delete_group_membership
+- [X] delete_user
 - [ ] describe_group
 - [ ] describe_group_membership
-- [ ] describe_user
-- [ ] get_group_id
+- [X] describe_user
+- [X] get_group_id
 - [ ] get_group_membership_id
 - [ ] get_user_id
 - [ ] is_member_in_groups
-- [ ] list_group_memberships
+- [X] list_group_memberships
 - [ ] list_group_memberships_for_member
 - [ ] list_groups
 - [ ] list_users
@@ -3772,7 +3779,7 @@
 
 ## iot
 <details>
-<summary>33% implemented</summary>
+<summary>32% implemented</summary>
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
@@ -3804,6 +3811,8 @@
 - [X] create_keys_and_certificate
 - [ ] create_mitigation_action
 - [ ] create_ota_update
+- [ ] create_package
+- [ ] create_package_version
 - [X] create_policy
 - [X] create_policy_version
 - [ ] create_provisioning_claim
@@ -3834,6 +3843,8 @@
 - [ ] delete_job_template
 - [ ] delete_mitigation_action
 - [ ] delete_ota_update
+- [ ] delete_package
+- [ ] delete_package_version
 - [X] delete_policy
 - [X] delete_policy_version
 - [ ] delete_provisioning_template
@@ -3897,6 +3908,9 @@
 - [X] get_job_document
 - [ ] get_logging_options
 - [ ] get_ota_update
+- [ ] get_package
+- [ ] get_package_configuration
+- [ ] get_package_version
 - [ ] get_percentiles
 - [X] get_policy
 - [X] get_policy_version
@@ -3933,6 +3947,8 @@
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
 - [ ] list_outgoing_certificates
+- [ ] list_package_versions
+- [ ] list_packages
 - [X] list_policies
 - [X] list_policy_principals
 - [X] list_policy_versions
@@ -4002,6 +4018,9 @@
 - [ ] update_indexing_configuration
 - [ ] update_job
 - [ ] update_mitigation_action
+- [ ] update_package
+- [ ] update_package_configuration
+- [ ] update_package_version
 - [ ] update_provisioning_template
 - [ ] update_role_alias
 - [ ] update_scheduled_audit
@@ -4291,13 +4310,14 @@
 
 ## logs
 <details>
-<summary>52% implemented</summary>
+<summary>49% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
 - [X] create_export_task
 - [X] create_log_group
 - [X] create_log_stream
+- [ ] delete_account_policy
 - [ ] delete_data_protection_policy
 - [ ] delete_destination
 - [X] delete_log_group
@@ -4307,6 +4327,7 @@
 - [X] delete_resource_policy
 - [X] delete_retention_policy
 - [X] delete_subscription_filter
+- [ ] describe_account_policies
 - [ ] describe_destinations
 - [ ] describe_export_tasks
 - [X] describe_log_groups
@@ -4325,6 +4346,7 @@
 - [ ] get_query_results
 - [ ] list_tags_for_resource
 - [X] list_tags_log_group
+- [ ] put_account_policy
 - [ ] put_data_protection_policy
 - [ ] put_destination
 - [ ] put_destination_policy
@@ -4572,7 +4594,7 @@
 
 ## mq
 <details>
-<summary>86% implemented</summary>
+<summary>82% implemented</summary>
 
 - [X] create_broker
 - [X] create_configuration
@@ -4592,6 +4614,7 @@
 - [X] list_configurations
 - [X] list_tags
 - [X] list_users
+- [ ] promote
 - [X] reboot_broker
 - [X] update_broker
 - [X] update_configuration
@@ -5454,7 +5477,7 @@
 
 ## redshift
 <details>
-<summary>25% implemented</summary>
+<summary>24% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
 - [ ] add_partner
@@ -5473,6 +5496,7 @@
 - [X] create_cluster_security_group
 - [X] create_cluster_snapshot
 - [X] create_cluster_subnet_group
+- [ ] create_custom_domain_association
 - [ ] create_endpoint_access
 - [ ] create_event_subscription
 - [ ] create_hsm_client_certificate
@@ -5489,6 +5513,7 @@
 - [X] delete_cluster_security_group
 - [X] delete_cluster_snapshot
 - [X] delete_cluster_subnet_group
+- [ ] delete_custom_domain_association
 - [ ] delete_endpoint_access
 - [ ] delete_event_subscription
 - [ ] delete_hsm_client_certificate
@@ -5510,6 +5535,7 @@
 - [ ] describe_cluster_tracks
 - [ ] describe_cluster_versions
 - [X] describe_clusters
+- [ ] describe_custom_domain_associations
 - [ ] describe_data_shares
 - [ ] describe_data_shares_for_consumer
 - [ ] describe_data_shares_for_producer
@@ -5555,6 +5581,7 @@
 - [ ] modify_cluster_snapshot
 - [ ] modify_cluster_snapshot_schedule
 - [ ] modify_cluster_subnet_group
+- [ ] modify_custom_domain_association
 - [ ] modify_endpoint_access
 - [ ] modify_event_subscription
 - [ ] modify_scheduled_action
@@ -5595,8 +5622,9 @@
 
 ## rekognition
 <details>
-<summary>6% implemented</summary>
+<summary>5% implemented</summary>
 
+- [ ] associate_faces
 - [ ] compare_faces
 - [ ] copy_project_version
 - [ ] create_collection
@@ -5605,6 +5633,7 @@
 - [ ] create_project
 - [ ] create_project_version
 - [ ] create_stream_processor
+- [ ] create_user
 - [ ] delete_collection
 - [ ] delete_dataset
 - [ ] delete_faces
@@ -5612,6 +5641,7 @@
 - [ ] delete_project_policy
 - [ ] delete_project_version
 - [ ] delete_stream_processor
+- [ ] delete_user
 - [ ] describe_collection
 - [ ] describe_dataset
 - [ ] describe_project_versions
@@ -5623,6 +5653,7 @@
 - [ ] detect_moderation_labels
 - [ ] detect_protective_equipment
 - [ ] detect_text
+- [ ] disassociate_faces
 - [ ] distribute_dataset_entries
 - [ ] get_celebrity_info
 - [ ] get_celebrity_recognition
@@ -5642,10 +5673,13 @@
 - [ ] list_project_policies
 - [ ] list_stream_processors
 - [ ] list_tags_for_resource
+- [ ] list_users
 - [ ] put_project_policy
 - [ ] recognize_celebrities
 - [ ] search_faces
 - [ ] search_faces_by_image
+- [ ] search_users
+- [ ] search_users_by_image
 - [ ] start_celebrity_recognition
 - [ ] start_content_moderation
 - [ ] start_face_detection
@@ -6619,11 +6653,12 @@
 
 ## signer
 <details>
-<summary>23% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] add_profile_permission
 - [X] cancel_signing_profile
 - [ ] describe_signing_job
+- [ ] get_revocation_status
 - [ ] get_signing_platform
 - [X] get_signing_profile
 - [ ] list_profile_permissions
@@ -6635,6 +6670,7 @@
 - [ ] remove_profile_permission
 - [ ] revoke_signature
 - [ ] revoke_signing_profile
+- [ ] sign_payload
 - [ ] start_signing_job
 - [ ] tag_resource
 - [ ] untag_resource
@@ -6690,9 +6726,10 @@
 
 ## sqs
 <details>
-<summary>100% implemented</summary>
+<summary>86% implemented</summary>
 
 - [X] add_permission
+- [ ] cancel_message_move_task
 - [X] change_message_visibility
 - [X] change_message_visibility_batch
 - [X] create_queue
@@ -6702,6 +6739,7 @@
 - [X] get_queue_attributes
 - [X] get_queue_url
 - [X] list_dead_letter_source_queues
+- [ ] list_message_move_tasks
 - [X] list_queue_tags
 - [X] list_queues
 - [X] purge_queue
@@ -6710,13 +6748,14 @@
 - [X] send_message
 - [X] send_message_batch
 - [X] set_queue_attributes
+- [ ] start_message_move_task
 - [X] tag_queue
 - [X] untag_queue
 </details>
 
 ## ssm
 <details>
-<summary>20% implemented</summary>
+<summary>24% implemented</summary>
 
 - [X] add_tags_to_resource
 - [ ] associate_ops_item_related_item
@@ -6903,24 +6942,31 @@
 
 ## stepfunctions
 <details>
-<summary>50% implemented</summary>
+<summary>38% implemented</summary>
 
 - [ ] create_activity
 - [X] create_state_machine
+- [ ] create_state_machine_alias
 - [ ] delete_activity
 - [X] delete_state_machine
+- [ ] delete_state_machine_alias
+- [ ] delete_state_machine_version
 - [ ] describe_activity
 - [X] describe_execution
 - [ ] describe_map_run
 - [X] describe_state_machine
+- [ ] describe_state_machine_alias
 - [ ] describe_state_machine_for_execution
 - [ ] get_activity_task
 - [X] get_execution_history
 - [ ] list_activities
 - [X] list_executions
 - [ ] list_map_runs
+- [ ] list_state_machine_aliases
+- [ ] list_state_machine_versions
 - [X] list_state_machines
 - [X] list_tags_for_resource
+- [ ] publish_state_machine_version
 - [ ] send_task_failure
 - [ ] send_task_heartbeat
 - [ ] send_task_success
@@ -6931,6 +6977,7 @@
 - [X] untag_resource
 - [ ] update_map_run
 - [X] update_state_machine
+- [ ] update_state_machine_alias
 </details>
 
 ## sts
@@ -7205,6 +7252,7 @@
 - codecatalyst
 - codedeploy
 - codeguru-reviewer
+- codeguru-security
 - codeguruprofiler
 - codestar
 - codestar-connections
@@ -7325,6 +7373,8 @@
 - osis
 - outposts
 - panorama
+- payment-cryptography
+- payment-cryptography-data
 - personalize-events
 - personalize-runtime
 - pi
@@ -7380,6 +7430,7 @@
 - tnb
 - transfer
 - translate
+- verifiedpermissions
 - voice-id
 - vpc-lattice
 - waf

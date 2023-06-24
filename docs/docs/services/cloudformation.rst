@@ -27,6 +27,7 @@ cloudformation
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] activate_organizations_access
 - [ ] activate_type
 - [ ] batch_describe_type_configurations
 - [ ] cancel_update_stack
@@ -47,6 +48,7 @@ cloudformation
         The following parameters are not yet implemented: StackId, AdministrationRoleARN, AutoDeployment, ExecutionRoleName, CallAs, ClientRequestToken, ManagedExecution
         
 
+- [ ] deactivate_organizations_access
 - [ ] deactivate_type
 - [X] delete_change_set
 - [X] delete_stack
@@ -60,6 +62,7 @@ cloudformation
 - [ ] describe_account_limits
 - [X] describe_change_set
 - [ ] describe_change_set_hooks
+- [ ] describe_organizations_access
 - [ ] describe_publisher
 - [ ] describe_stack_drift_detection_status
 - [X] describe_stack_events

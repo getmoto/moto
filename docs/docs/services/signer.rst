@@ -30,6 +30,7 @@ signer
 - [ ] add_profile_permission
 - [X] cancel_signing_profile
 - [ ] describe_signing_job
+- [ ] get_revocation_status
 - [ ] get_signing_platform
 - [X] get_signing_profile
 - [ ] list_profile_permissions
@@ -49,6 +50,7 @@ signer
 - [ ] remove_profile_permission
 - [ ] revoke_signature
 - [ ] revoke_signing_profile
+- [ ] sign_payload
 - [ ] start_signing_job
 - [ ] tag_resource
 - [ ] untag_resource

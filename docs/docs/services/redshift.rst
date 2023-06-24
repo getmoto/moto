@@ -42,6 +42,7 @@ redshift
 - [X] create_cluster_security_group
 - [X] create_cluster_snapshot
 - [X] create_cluster_subnet_group
+- [ ] create_custom_domain_association
 - [ ] create_endpoint_access
 - [ ] create_event_subscription
 - [ ] create_hsm_client_certificate
@@ -58,6 +59,7 @@ redshift
 - [X] delete_cluster_security_group
 - [X] delete_cluster_snapshot
 - [X] delete_cluster_subnet_group
+- [ ] delete_custom_domain_association
 - [ ] delete_endpoint_access
 - [ ] delete_event_subscription
 - [ ] delete_hsm_client_certificate
@@ -79,6 +81,7 @@ redshift
 - [ ] describe_cluster_tracks
 - [ ] describe_cluster_versions
 - [X] describe_clusters
+- [ ] describe_custom_domain_associations
 - [ ] describe_data_shares
 - [ ] describe_data_shares_for_consumer
 - [ ] describe_data_shares_for_producer
@@ -124,6 +127,7 @@ redshift
 - [ ] modify_cluster_snapshot
 - [ ] modify_cluster_snapshot_schedule
 - [ ] modify_cluster_subnet_group
+- [ ] modify_custom_domain_association
 - [ ] modify_endpoint_access
 - [ ] modify_event_subscription
 - [ ] modify_scheduled_action

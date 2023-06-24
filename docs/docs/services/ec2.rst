@@ -97,6 +97,7 @@ ec2
 - [X] create_flow_logs
 - [ ] create_fpga_image
 - [X] create_image
+- [ ] create_instance_connect_endpoint
 - [ ] create_instance_event_window
 - [ ] create_instance_export_task
 - [X] create_internet_gateway
@@ -177,6 +178,7 @@ ec2
 - [X] delete_fleets
 - [X] delete_flow_logs
 - [ ] delete_fpga_image
+- [ ] delete_instance_connect_endpoint
 - [ ] delete_instance_event_window
 - [X] delete_internet_gateway
 - [ ] delete_ipam
@@ -299,6 +301,7 @@ ec2
 - [ ] describe_import_image_tasks
 - [ ] describe_import_snapshot_tasks
 - [X] describe_instance_attribute
+- [ ] describe_instance_connect_endpoints
 - [X] describe_instance_credit_specifications
 - [ ] describe_instance_event_notification_attributes
 - [ ] describe_instance_event_windows

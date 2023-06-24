@@ -28,19 +28,19 @@ identitystore
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_group
-- [ ] create_group_membership
-- [ ] create_user
-- [ ] delete_group
-- [ ] delete_group_membership
-- [ ] delete_user
+- [X] create_group_membership
+- [X] create_user
+- [X] delete_group
+- [X] delete_group_membership
+- [X] delete_user
 - [ ] describe_group
 - [ ] describe_group_membership
-- [ ] describe_user
-- [ ] get_group_id
+- [X] describe_user
+- [X] get_group_id
 - [ ] get_group_membership_id
 - [ ] get_user_id
 - [ ] is_member_in_groups
-- [ ] list_group_memberships
+- [X] list_group_memberships
 - [ ] list_group_memberships_for_member
 - [ ] list_groups
 - [ ] list_users

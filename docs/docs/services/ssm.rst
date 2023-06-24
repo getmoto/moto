@@ -42,7 +42,11 @@ ssm
 
 - [ ] create_ops_item
 - [ ] create_ops_metadata
-- [ ] create_patch_baseline
+- [X] create_patch_baseline
+  
+        Registers a patch baseline. No error handling or input validation has been implemented yet.
+        
+
 - [ ] create_resource_data_sync
 - [ ] delete_activation
 - [ ] delete_association
@@ -56,12 +60,20 @@ ssm
 - [ ] delete_ops_metadata
 - [X] delete_parameter
 - [X] delete_parameters
-- [ ] delete_patch_baseline
+- [X] delete_patch_baseline
+  
+        Assumes the provided BaselineId exists. No error handling has been implemented yet.
+        
+
 - [ ] delete_resource_data_sync
 - [ ] delete_resource_policy
 - [ ] deregister_managed_instance
 - [ ] deregister_patch_baseline_for_patch_group
-- [ ] deregister_target_from_maintenance_window
+- [X] deregister_target_from_maintenance_window
+  
+        Deregisters a target from a maintenance window. No error handling has been implemented yet.
+        
+
 - [ ] deregister_task_from_maintenance_window
 - [ ] describe_activations
 - [ ] describe_association
@@ -88,7 +100,11 @@ ssm
 - [ ] describe_maintenance_window_execution_tasks
 - [ ] describe_maintenance_window_executions
 - [ ] describe_maintenance_window_schedule
-- [ ] describe_maintenance_window_targets
+- [X] describe_maintenance_window_targets
+  
+        Describes all targets for a maintenance window. No error handling has been implemented yet.
+        
+
 - [ ] describe_maintenance_window_tasks
 - [X] describe_maintenance_windows
   
@@ -100,7 +116,11 @@ ssm
 - [ ] describe_maintenance_windows_for_target
 - [ ] describe_ops_items
 - [X] describe_parameters
-- [ ] describe_patch_baselines
+- [X] describe_patch_baselines
+  
+        Returns all baselines. No pagination has been implemented yet.
+        
+
 - [ ] describe_patch_group_state
 - [ ] describe_patch_groups
 - [ ] describe_patch_properties
@@ -166,7 +186,11 @@ ssm
 - [ ] put_resource_policy
 - [ ] register_default_patch_baseline
 - [ ] register_patch_baseline_for_patch_group
-- [ ] register_target_with_maintenance_window
+- [X] register_target_with_maintenance_window
+  
+        Registers a target with a maintenance window. No error handling has been implemented yet.
+        
+
 - [ ] register_task_with_maintenance_window
 - [X] remove_tags_from_resource
 - [ ] reset_service_setting
