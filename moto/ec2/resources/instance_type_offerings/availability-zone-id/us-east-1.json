@@ -4448,6 +4448,10 @@
   "Location": "use1-az2"
  },
  {
+  "InstanceType": "u-18tb1.112xlarge",
+  "Location": "use1-az2"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "use1-az2"
  },
@@ -5445,6 +5449,38 @@
  },
  {
   "InstanceType": "c7g.xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "c7gn.12xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "c7gn.16xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "c7gn.2xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "c7gn.4xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "c7gn.8xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "c7gn.large",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "c7gn.medium",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "c7gn.xlarge",
   "Location": "use1-az4"
  },
  {
@@ -7880,6 +7916,38 @@
   "Location": "use1-az5"
  },
  {
+  "InstanceType": "c7gn.12xlarge",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "c7gn.16xlarge",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "c7gn.2xlarge",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "c7gn.4xlarge",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "c7gn.8xlarge",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "c7gn.large",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "c7gn.medium",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "c7gn.xlarge",
+  "Location": "use1-az5"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "use1-az5"
  },
@@ -10016,6 +10084,38 @@
   "Location": "use1-az6"
  },
  {
+  "InstanceType": "c7gn.12xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "c7gn.16xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "c7gn.2xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "c7gn.4xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "c7gn.8xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "c7gn.large",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "c7gn.medium",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "c7gn.xlarge",
+  "Location": "use1-az6"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "use1-az6"
  },
@@ -10225,6 +10325,18 @@
  },
  {
   "InstanceType": "h1.8xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "hpc7g.16xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "hpc7g.4xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "hpc7g.8xlarge",
   "Location": "use1-az6"
  },
  {

@@ -774,5 +774,33 @@
  {
   "InstanceType": "t3.xlarge",
   "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "t4g.2xlarge",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "t4g.large",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "t4g.medium",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "t4g.micro",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "t4g.nano",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "t4g.small",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "t4g.xlarge",
+  "Location": "me-south-1"
  }
 ]

@@ -4044,6 +4044,10 @@
   "Location": "apse1-az2"
  },
  {
+  "InstanceType": "u-9tb1.112xlarge",
+  "Location": "apse1-az2"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "apse1-az2"
  },
