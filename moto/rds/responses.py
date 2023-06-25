@@ -312,7 +312,7 @@ class RDSResponse(BaseResponse):
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
         tags = self.unpack_list_params("Tags", "Tag")
         snapshot = self.backend.create_db_snapshot(
-            db_instance_identifier, db_snapshot_identifier, tags
+            db_instance_identifier, db_snapshot_identifier, tags=tags
         )
         template = self.response_template(CREATE_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
@@ -321,7 +321,7 @@ class RDSResponse(BaseResponse):
         source_snapshot_identifier = self._get_param("SourceDBSnapshotIdentifier")
         target_snapshot_identifier = self._get_param("TargetDBSnapshotIdentifier")
         tags = self.unpack_list_params("Tags", "Tag")
-        snapshot = self.backend.copy_database_snapshot(
+        snapshot = self.backend.copy_db_snapshot(
             source_snapshot_identifier, target_snapshot_identifier, tags
         )
         template = self.response_template(COPY_SNAPSHOT_TEMPLATE)
@@ -642,7 +642,7 @@ class RDSResponse(BaseResponse):
         db_snapshot_identifier = self._get_param("DBClusterSnapshotIdentifier")
         tags = self.unpack_list_params("Tags", "Tag")
         snapshot = self.backend.create_db_cluster_snapshot(
-            db_cluster_identifier, db_snapshot_identifier, tags
+            db_cluster_identifier, db_snapshot_identifier, tags=tags
         )
         template = self.response_template(CREATE_CLUSTER_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
@@ -655,7 +655,7 @@ class RDSResponse(BaseResponse):
             "TargetDBClusterSnapshotIdentifier"
         )
         tags = self.unpack_list_params("Tags", "Tag")
-        snapshot = self.backend.copy_cluster_snapshot(
+        snapshot = self.backend.copy_db_cluster_snapshot(
             source_snapshot_identifier, target_snapshot_identifier, tags
         )
         template = self.response_template(COPY_CLUSTER_SNAPSHOT_TEMPLATE)

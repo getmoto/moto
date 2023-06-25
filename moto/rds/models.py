@@ -436,13 +436,20 @@ class ClusterSnapshot(BaseModel):
         "db-cluster-snapshot-id": FilterDef(
             ["snapshot_id"], "DB Cluster Snapshot Identifiers"
         ),
-        "snapshot-type": FilterDef(None, "Snapshot Types"),
+        "snapshot-type": FilterDef(["snapshot_type"], "Snapshot Types"),
         "engine": FilterDef(["cluster.engine"], "Engine Names"),
     }
 
-    def __init__(self, cluster: Cluster, snapshot_id: str, tags: List[Dict[str, str]]):
+    def __init__(
+        self,
+        cluster: Cluster,
+        snapshot_id: str,
+        snapshot_type: str,
+        tags: List[Dict[str, str]],
+    ):
         self.cluster = cluster
         self.snapshot_id = snapshot_id
+        self.snapshot_type = snapshot_type
         self.tags = tags
         self.status = "available"
         self.created_at = iso_8601_datetime_with_milliseconds(
@@ -467,7 +474,7 @@ class ClusterSnapshot(BaseModel):
                 <Port>{{ cluster.port }}</Port>
                 <Engine>{{ cluster.engine }}</Engine>
                 <Status>{{ snapshot.status }}</Status>
-                <SnapshotType>manual</SnapshotType>
+                <SnapshotType>{{ snapshot.snapshot_type }}</SnapshotType>
                 <DBClusterSnapshotArn>{{ snapshot.snapshot_arn }}</DBClusterSnapshotArn>
                 <SourceRegion>{{ cluster.region }}</SourceRegion>
                 {% if cluster.iops %}
@@ -551,9 +558,7 @@ class Database(CloudFormationModel):
             )
         self.db_cluster_identifier: Optional[str] = kwargs.get("db_cluster_identifier")
         self.db_instance_identifier = kwargs.get("db_instance_identifier")
-        self.source_db_identifier: Optional[str] = kwargs.get(
-            "source_db_ide.db_cluster_identifierntifier"
-        )
+        self.source_db_identifier: Optional[str] = kwargs.get("source_db_identifier")
         self.db_instance_class = kwargs.get("db_instance_class")
         self.port = kwargs.get("port")
         if self.port is None:
@@ -1056,15 +1061,20 @@ class DatabaseSnapshot(BaseModel):
         ),
         "db-snapshot-id": FilterDef(["snapshot_id"], "DB Snapshot Identifiers"),
         "dbi-resource-id": FilterDef(["database.dbi_resource_id"], "Dbi Resource Ids"),
-        "snapshot-type": FilterDef(None, "Snapshot Types"),
+        "snapshot-type": FilterDef(["snapshot_type"], "Snapshot Types"),
         "engine": FilterDef(["database.engine"], "Engine Names"),
     }
 
     def __init__(
-        self, database: Database, snapshot_id: str, tags: List[Dict[str, str]]
+        self,
+        database: Database,
+        snapshot_id: str,
+        snapshot_type: str,
+        tags: List[Dict[str, str]],
     ):
         self.database = database
         self.snapshot_id = snapshot_id
+        self.snapshot_type = snapshot_type
         self.tags = tags
         self.status = "available"
         self.created_at = iso_8601_datetime_with_milliseconds(
@@ -1092,7 +1102,7 @@ class DatabaseSnapshot(BaseModel):
               <MasterUsername>{{ database.master_username }}</MasterUsername>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
               <LicenseModel>{{ database.license_model }}</LicenseModel>
-              <SnapshotType>manual</SnapshotType>
+              <SnapshotType>{{ snapshot.snapshot_type }}</SnapshotType>
               {% if database.iops %}
               <Iops>{{ database.iops }}</Iops>
               <StorageType>io1</StorageType>
@@ -1566,10 +1576,20 @@ class RDSBackend(BaseBackend):
         self.databases[database_id] = database
         return database
 
+    def create_auto_snapshot(
+        self,
+        db_instance_identifier: str,
+        db_snapshot_identifier: str,
+    ) -> DatabaseSnapshot:
+        return self.create_db_snapshot(
+            db_instance_identifier, db_snapshot_identifier, snapshot_type="automated"
+        )
+
     def create_db_snapshot(
         self,
         db_instance_identifier: str,
         db_snapshot_identifier: str,
+        snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> DatabaseSnapshot:
         database = self.databases.get(db_instance_identifier)
@@ -1585,11 +1605,13 @@ class RDSBackend(BaseBackend):
             tags = list()
         if database.copy_tags_to_snapshot and not tags:
             tags = database.get_tags()
-        snapshot = DatabaseSnapshot(database, db_snapshot_identifier, tags)
+        snapshot = DatabaseSnapshot(
+            database, db_snapshot_identifier, snapshot_type, tags
+        )
         self.database_snapshots[db_snapshot_identifier] = snapshot
         return snapshot
 
-    def copy_database_snapshot(
+    def copy_db_snapshot(
         self,
         source_snapshot_identifier: str,
         target_snapshot_identifier: str,
@@ -1597,24 +1619,17 @@ class RDSBackend(BaseBackend):
     ) -> DatabaseSnapshot:
         if source_snapshot_identifier not in self.database_snapshots:
             raise DBSnapshotNotFoundError(source_snapshot_identifier)
-        if target_snapshot_identifier in self.database_snapshots:
-            raise DBSnapshotAlreadyExistsError(target_snapshot_identifier)
-        if len(self.database_snapshots) >= int(
-            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
-        ):
-            raise SnapshotQuotaExceededError()
 
         source_snapshot = self.database_snapshots[source_snapshot_identifier]
         if tags is None:
             tags = source_snapshot.tags
         else:
             tags = self._merge_tags(source_snapshot.tags, tags)
-        target_snapshot = DatabaseSnapshot(
-            source_snapshot.database, target_snapshot_identifier, tags
+        return self.create_db_snapshot(
+            db_instance_identifier=source_snapshot.database.db_instance_identifier,  # type: ignore
+            db_snapshot_identifier=target_snapshot_identifier,
+            tags=tags,
         )
-        self.database_snapshots[target_snapshot_identifier] = target_snapshot
-
-        return target_snapshot
 
     def delete_db_snapshot(self, db_snapshot_identifier: str) -> DatabaseSnapshot:
         if db_snapshot_identifier not in self.database_snapshots:
@@ -1738,7 +1753,7 @@ class RDSBackend(BaseBackend):
         if database.status != "available":
             raise InvalidDBInstanceStateError(db_instance_identifier, "stop")
         if db_snapshot_identifier:
-            self.create_db_snapshot(db_instance_identifier, db_snapshot_identifier)
+            self.create_auto_snapshot(db_instance_identifier, db_snapshot_identifier)
         database.status = "stopped"
         return database
 
@@ -1771,7 +1786,7 @@ class RDSBackend(BaseBackend):
                     "Can't delete Instance with protection enabled"
                 )
             if db_snapshot_name:
-                self.create_db_snapshot(db_instance_identifier, db_snapshot_name)
+                self.create_auto_snapshot(db_instance_identifier, db_snapshot_name)
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_identifier)  # type: ignore
@@ -2197,10 +2212,18 @@ class RDSBackend(BaseBackend):
         cluster.replication_source_identifier = None
         return cluster
 
+    def create_auto_cluster_snapshot(
+        self, db_cluster_identifier: str, db_snapshot_identifier: str
+    ) -> ClusterSnapshot:
+        return self.create_db_cluster_snapshot(
+            db_cluster_identifier, db_snapshot_identifier, snapshot_type="automated"
+        )
+
     def create_db_cluster_snapshot(
         self,
         db_cluster_identifier: str,
         db_snapshot_identifier: str,
+        snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> ClusterSnapshot:
         cluster = self.clusters.get(db_cluster_identifier)
@@ -2216,11 +2239,11 @@ class RDSBackend(BaseBackend):
             tags = list()
         if cluster.copy_tags_to_snapshot:
             tags += cluster.get_tags()
-        snapshot = ClusterSnapshot(cluster, db_snapshot_identifier, tags)
+        snapshot = ClusterSnapshot(cluster, db_snapshot_identifier, snapshot_type, tags)
         self.cluster_snapshots[db_snapshot_identifier] = snapshot
         return snapshot
 
-    def copy_cluster_snapshot(
+    def copy_db_cluster_snapshot(
         self,
         source_snapshot_identifier: str,
         target_snapshot_identifier: str,
@@ -2228,22 +2251,17 @@ class RDSBackend(BaseBackend):
     ) -> ClusterSnapshot:
         if source_snapshot_identifier not in self.cluster_snapshots:
             raise DBClusterSnapshotNotFoundError(source_snapshot_identifier)
-        if target_snapshot_identifier in self.cluster_snapshots:
-            raise DBClusterSnapshotAlreadyExistsError(target_snapshot_identifier)
-        if len(self.cluster_snapshots) >= int(
-            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
-        ):
-            raise SnapshotQuotaExceededError()
+
         source_snapshot = self.cluster_snapshots[source_snapshot_identifier]
         if tags is None:
             tags = source_snapshot.tags
         else:
             tags = self._merge_tags(source_snapshot.tags, tags)  # type: ignore
-        target_snapshot = ClusterSnapshot(
-            source_snapshot.cluster, target_snapshot_identifier, tags
+        return self.create_db_cluster_snapshot(
+            db_cluster_identifier=source_snapshot.cluster.db_cluster_identifier,  # type: ignore
+            db_snapshot_identifier=target_snapshot_identifier,
+            tags=tags,
         )
-        self.cluster_snapshots[target_snapshot_identifier] = target_snapshot
-        return target_snapshot
 
     def delete_db_cluster_snapshot(
         self, db_snapshot_identifier: str
@@ -2303,7 +2321,7 @@ class RDSBackend(BaseBackend):
                 self.remove_from_global_cluster(global_id, cluster_identifier)
 
             if snapshot_name:
-                self.create_db_cluster_snapshot(cluster_identifier, snapshot_name)
+                self.create_auto_cluster_snapshot(cluster_identifier, snapshot_name)
             return self.clusters.pop(cluster_identifier)
         if cluster_identifier in self.neptune.clusters:
             return self.neptune.delete_db_cluster(cluster_identifier)  # type: ignore
