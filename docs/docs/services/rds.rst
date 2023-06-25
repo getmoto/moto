@@ -34,9 +34,9 @@ rds
 - [ ] backtrack_db_cluster
 - [X] cancel_export_task
 - [ ] copy_db_cluster_parameter_group
-- [ ] copy_db_cluster_snapshot
+- [X] copy_db_cluster_snapshot
 - [ ] copy_db_parameter_group
-- [ ] copy_db_snapshot
+- [X] copy_db_snapshot
 - [ ] copy_option_group
 - [ ] create_blue_green_deployment
 - [ ] create_custom_db_engine_version
