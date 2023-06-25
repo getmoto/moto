@@ -14065,6 +14065,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "nimble": {
+                "Value": "nimble",
+                "endpoint": {
+                  "Value": "nimble.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -26081,6 +26090,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "nimble": {
+                "Value": "nimble",
+                "endpoint": {
+                  "Value": "nimble.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -29230,6 +29248,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "nimble": {
+                "Value": "nimble",
+                "endpoint": {
+                  "Value": "nimble.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -34057,6 +34084,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "nimble": {
+                "Value": "nimble",
+                "endpoint": {
+                  "Value": "nimble.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48431,6 +48467,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "nimble": {
+                "Value": "nimble",
+                "endpoint": {
+                  "Value": "nimble.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
