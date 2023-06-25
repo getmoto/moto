@@ -484,6 +484,34 @@
   "Location": "eu-central-2"
  },
  {
+  "InstanceType": "t4g.2xlarge",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "t4g.large",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "t4g.medium",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "t4g.micro",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "t4g.nano",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "t4g.small",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "t4g.xlarge",
+  "Location": "eu-central-2"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "eu-central-2"
  },

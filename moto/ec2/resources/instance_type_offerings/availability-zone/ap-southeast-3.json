@@ -624,6 +624,34 @@
   "Location": "ap-southeast-3a"
  },
  {
+  "InstanceType": "t4g.2xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "t4g.large",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "t4g.medium",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "t4g.micro",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "t4g.nano",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "t4g.small",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "t4g.xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "ap-southeast-3a"
  },
@@ -1296,6 +1324,34 @@
   "Location": "ap-southeast-3b"
  },
  {
+  "InstanceType": "t4g.2xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "t4g.large",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "t4g.medium",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "t4g.micro",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "t4g.nano",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "t4g.small",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "t4g.xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "ap-southeast-3c"
  },
@@ -1917,6 +1973,34 @@
  },
  {
   "InstanceType": "t3.xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "t4g.2xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "t4g.large",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "t4g.medium",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "t4g.micro",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "t4g.nano",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "t4g.small",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "t4g.xlarge",
   "Location": "ap-southeast-3c"
  },
  {

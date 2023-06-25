@@ -516,6 +516,38 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "c7gn.12xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "c7gn.16xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "c7gn.2xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "c7gn.4xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "c7gn.8xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "c7gn.large",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "c7gn.medium",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "c7gn.xlarge",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "us-west-2a"
  },
@@ -3048,6 +3080,38 @@
   "Location": "us-west-2b"
  },
  {
+  "InstanceType": "c7gn.12xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "c7gn.16xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "c7gn.2xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "c7gn.4xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "c7gn.8xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "c7gn.large",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "c7gn.medium",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "c7gn.xlarge",
+  "Location": "us-west-2b"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "us-west-2b"
  },
@@ -5505,6 +5569,38 @@
  },
  {
   "InstanceType": "c7g.xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "c7gn.12xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "c7gn.16xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "c7gn.2xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "c7gn.4xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "c7gn.8xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "c7gn.large",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "c7gn.medium",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "c7gn.xlarge",
   "Location": "us-west-2c"
  },
  {
