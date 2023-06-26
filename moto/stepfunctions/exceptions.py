@@ -49,7 +49,6 @@ class ResourceNotFound(AWSError):
 
 class ValidationException(AWSError):
     TYPE = "ValidationException"
-    STATUS = 400
 
     def __init__(self, msg: str):
         super().__init__(msg)

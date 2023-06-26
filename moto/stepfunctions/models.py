@@ -534,7 +534,8 @@ class StepFunctionBackend(BaseBackend):
     def start_execution(
         self, state_machine_arn: str, name: str, execution_input: str
     ) -> Execution:
-        self._validate_name(name)
+        if name:
+            self._validate_name(name)
         state_machine = self.describe_state_machine(state_machine_arn)
         return state_machine.start_execution(
             region_name=self.region_name,
