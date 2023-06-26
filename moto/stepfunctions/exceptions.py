@@ -53,3 +53,11 @@ class ValidationException(AWSError):
 
     def __init__(self, msg: str):
         super().__init__(msg)
+
+
+class NameTooLongException(ValidationException):
+    def __init__(self, name: str):
+        super().__init__(
+            f"1 validation error detected: Value '{name}' at 'name' "
+            "failed to satisfy constraint: Member must have length less than or equal to 80"
+        )
