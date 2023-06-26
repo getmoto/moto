@@ -45,3 +45,11 @@ class ResourceNotFound(AWSError):
 
     def __init__(self, arn: str):
         super().__init__(f"Resource not found: '{arn}'")
+
+
+class ValidationException(AWSError):
+    TYPE = "ValidationException"
+    STATUS = 400
+
+    def __init__(self, msg: str):
+        super().__init__(msg)
