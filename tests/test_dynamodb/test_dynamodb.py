@@ -1754,6 +1754,38 @@ def test_delete_item():
 
 
 @mock_dynamodb
+def test_delete_item_error():
+    # Setup
+    client = boto3.resource("dynamodb", region_name="us-east-1")
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName="test1",
+        AttributeDefinitions=[
+            {"AttributeName": "client", "AttributeType": "S"},
+            {"AttributeName": "app", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "client", "KeyType": "HASH"},
+            {"AttributeName": "app", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table = client.Table("test1")
+    table.delete()
+
+    # Execute
+    with pytest.raises(ClientError) as ex:
+        table.delete_item(
+            Key={"client": "client1", "app": "app1"},
+        )
+
+    # Verify
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Requested resource not found"
+
+
+@mock_dynamodb
 def test_describe_limits():
     client = boto3.client("dynamodb", region_name="eu-central-1")
     resp = client.describe_limits()

@@ -13,7 +13,6 @@ from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 from .exceptions import (
     MockValidationException,
     ResourceNotFoundException,
-    ConditionalCheckFailed,
 )
 from moto.dynamodb.models import dynamodb_backends, Table, DynamoDBBackend
 from moto.dynamodb.models.utilities import dynamo_json_dump
@@ -806,12 +805,7 @@ class DynamoHandler(BaseResponse):
         if return_values not in ("ALL_OLD", "NONE"):
             raise MockValidationException("Return values set to invalid value")
 
-        try:
-            self.dynamodb_backend.get_table(name)
-        except ResourceNotFoundException:
-            raise ConditionalCheckFailed(
-                "A condition specified in the operation could not be evaluated."
-            )
+        self.dynamodb_backend.get_table(name)
 
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression
