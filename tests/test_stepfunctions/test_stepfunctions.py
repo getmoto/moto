@@ -959,5 +959,53 @@ def test_state_machine_get_execution_history_contains_expected_failure_events_wh
     assert exc["status"] == "FAILED"
 
 
+@mock_stepfunctions
+def test_state_machine_name_limits():
+    # Setup
+    client = boto3.client("stepfunctions", region_name=region)
+    long_name = "t" * 81
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.create_state_machine(
+            name=long_name,
+            definition=simple_definition,
+            roleArn=_get_default_role(),
+        )
+
+    # Verify
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"1 validation error detected: Value '{long_name}' at 'name' failed to satisfy constraint: "
+        "Member must have length less than or equal to 80"
+    )
+
+
+@mock_stepfunctions
+def test_state_machine_execution_name_limits():
+    # Setup
+    client = boto3.client("stepfunctions", region_name=region)
+    machine_name = "test_name"
+    long_name = "t" * 81
+    resp = client.create_state_machine(
+        name=machine_name,
+        definition=simple_definition,
+        roleArn=_get_default_role(),
+    )
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.start_execution(name=long_name, stateMachineArn=resp["stateMachineArn"])
+
+    # Verify
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"1 validation error detected: Value '{long_name}' at 'name' failed to satisfy constraint: "
+        "Member must have length less than or equal to 80"
+    )
+
+
 def _get_default_role():
     return "arn:aws:iam::" + ACCOUNT_ID + ":role/unknown_sf_role"

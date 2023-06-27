@@ -15,6 +15,7 @@ from .exceptions import (
     InvalidName,
     ResourceNotFound,
     StateMachineDoesNotExist,
+    NameTooLongException,
 )
 from .utils import api_to_cfn_tags, cfn_to_api_tags, PAGINATION_MODEL
 from moto import settings
@@ -533,6 +534,8 @@ class StepFunctionBackend(BaseBackend):
     def start_execution(
         self, state_machine_arn: str, name: str, execution_input: str
     ) -> Execution:
+        if name:
+            self._validate_name(name)
         state_machine = self.describe_state_machine(state_machine_arn)
         return state_machine.start_execution(
             region_name=self.region_name,
@@ -633,6 +636,9 @@ class StepFunctionBackend(BaseBackend):
 
         if any(name.find(char) >= 0 for char in self.invalid_unicodes_for_name):
             raise InvalidName("Invalid Name: '" + name + "'")
+
+        if len(name) > 80:
+            raise NameTooLongException(name)
 
     def _validate_role_arn(self, role_arn: str) -> None:
         self._validate_arn(
