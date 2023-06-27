@@ -276,6 +276,29 @@ def test_deregister_target_from_maintenance_window():
     resp.should.have.key("Targets").should.have.length_of(0)
 
 
+def test_describe_maintenance_window_with_no_task_or_targets():
+    ssm = boto3.client("ssm", region_name="us-east-1")
+
+    resp = ssm.create_maintenance_window(
+        Name="simple-window",
+        Schedule="cron(15 12 * * ? *)",
+        Duration=2,
+        Cutoff=1,
+        AllowUnassociatedTargets=False,
+    )
+    window_id = resp["WindowId"]
+
+    resp = ssm.describe_maintenance_window_tasks(
+        WindowId=window_id,
+    )
+    resp.should.have.key("Tasks").should.have.length_of(0)
+
+    resp = ssm.describe_maintenance_window_targets(
+        WindowId=window_id,
+    )
+    resp.should.have.key("Targets").should.have.length_of(0)
+
+
 @mock_ssm
 def test_register_maintenance_window_task():
     ssm = boto3.client("ssm", region_name="us-east-1")
