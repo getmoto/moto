@@ -1753,7 +1753,6 @@ def test_delete_item():
     assert response["Count"] == 0
 
 
-
 @mock_dynamodb
 def test_delete_item_error():
     client = boto3.resource("dynamodb", region_name="us-east-1")
