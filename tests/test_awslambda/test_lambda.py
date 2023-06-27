@@ -1,7 +1,7 @@
 import base64
 import json
 import os
-from unittest import SkipTest
+from unittest import SkipTest, mock
 import boto3
 import hashlib
 import pytest
@@ -25,6 +25,7 @@ _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
 
 
+@mock.patch.dict("os.environ", {"MOTO_ENABLE_ISO_REGIONS": "true"})
 @pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"])
 @mock_lambda
 def test_lambda_regions(region):

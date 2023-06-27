@@ -5,6 +5,7 @@ import boto3
 from botocore.client import ClientError
 from datetime import datetime
 from freezegun import freeze_time
+from unittest.mock import patch
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 
@@ -707,6 +708,7 @@ def test_federation_token_with_too_long_policy():
     )
 
 
+@patch.dict("os.environ", {"MOTO_ENABLE_ISO_REGIONS": "true"})
 @pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"])
 @mock_sts
 def test_sts_regions(region):

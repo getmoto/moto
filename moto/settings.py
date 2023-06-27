@@ -145,3 +145,7 @@ def get_docker_host() -> str:
 
 def get_cognito_idp_user_pool_id_strategy() -> Optional[str]:
     return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY")
+
+
+def enable_iso_regions() -> bool:
+    return os.environ.get("MOTO_ENABLE_ISO_REGIONS", "false").lower() == "true"
