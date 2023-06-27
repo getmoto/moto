@@ -806,12 +806,12 @@ class DynamoHandler(BaseResponse):
         if return_values not in ("ALL_OLD", "NONE"):
             raise MockValidationException("Return values set to invalid value")
 
-        try:
-            self.dynamodb_backend.get_table(name)
-        except ResourceNotFoundException:
-            raise ConditionalCheckFailed(
-                "A condition specified in the operation could not be evaluated."
-            )
+        # try:
+        self.dynamodb_backend.get_table(name)
+        # except ResourceNotFoundException:
+        #     raise ConditionalCheckFailed(
+        #         "A condition specified in the operation could not be evaluated."
+        #     )
 
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression

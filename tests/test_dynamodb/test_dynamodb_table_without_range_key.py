@@ -197,11 +197,9 @@ def test_delete_item_with_undeclared_table():
             TableName="messages", Key={"forum_name": {"S": "LOLCat Forum"}}
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ConditionalCheckFailedException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "A condition specified in the operation could not be evaluated."
-    )
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
