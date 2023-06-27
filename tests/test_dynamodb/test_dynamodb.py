@@ -1755,8 +1755,8 @@ def test_delete_item():
 
 @mock_dynamodb
 def test_delete_item_error():
+    # Setup
     client = boto3.resource("dynamodb", region_name="us-east-1")
-
     # Create the DynamoDB table.
     client.create_table(
         TableName="test1",
@@ -1770,16 +1770,16 @@ def test_delete_item_error():
         ],
         BillingMode="PAY_PER_REQUEST",
     )
-
     table = client.Table("test1")
-
     table.delete()
 
-    # Test ReturnValues validation
+    # Execute
     with pytest.raises(ClientError) as ex:
         table.delete_item(
             Key={"client": "client1", "app": "app1"},
         )
+
+    # Verify
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "Requested resource not found"
