@@ -586,6 +586,7 @@ def test_create_and_describe_security_grp_rule():
     assert rules[0]["IsEgress"] is True
     assert rules[0]["IpProtocol"] == "-1"
     assert rules[0]["CidrIpv4"] == "0.0.0.0/0"
+    assert "GroupId" in rules[0]
 
 
 @mock_ec2

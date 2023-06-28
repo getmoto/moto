@@ -254,8 +254,8 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
 <DescribeSecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
   <requestId>{{ request_id }}</requestId>
   <securityGroupRuleSet>
-    {% for group in rules %}
-        {% for rule in group.rules %}
+    {% for group, rule_list in rules.items() %}
+        {% for rule in rule_list %}
             <item>
                 {% if rule.from_port is not none %}
                 <fromPort>{{ rule.from_port }}</fromPort>
@@ -267,7 +267,7 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
                   <cidrIpv4>{{ rule.ip_ranges[0]['CidrIp'] }}</cidrIpv4>
                 {% endif %}
                 <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-                <groupId>{{ group.group_id }}</groupId>
+                <groupId>{{ group }}</groupId>
                 <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
                 <isEgress>{{ 'true' if rule.is_egress else 'false' }}</isEgress>
                 <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
