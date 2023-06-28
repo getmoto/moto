@@ -22,7 +22,55 @@ from .exceptions import (
     VpcLinkNotFound,
     DomainNameNotFound,
     DomainNameAlreadyExists,
+    StageNotFound,
 )
+
+
+class Stage(BaseModel):
+    def __init__(self, api: "Api", config: Dict[str, Any]):
+        self.config = config
+        self.name = config["stageName"]
+        if api.protocol_type == "HTTP":
+            self.default_route_settings = config.get(
+                "defaultRouteSettings", {"detailedMetricsEnabled": False}
+            )
+        elif api.protocol_type == "WEBSOCKET":
+            self.default_route_settings = config.get(
+                "defaultRouteSettings",
+                {
+                    "dataTraceEnabled": False,
+                    "detailedMetricsEnabled": False,
+                    "loggingLevel": "OFF",
+                },
+            )
+        self.access_log_settings = config.get("accessLogSettings")
+        self.auto_deploy = config.get("autoDeploy")
+        self.client_certificate_id = config.get("clientCertificateId")
+        self.description = config.get("description")
+        self.route_settings = config.get("routeSettings", {})
+        self.stage_variables = config.get("stageVariables", {})
+        self.tags = config.get("tags", {})
+        self.created = self.updated = unix_time()
+
+    def to_json(self) -> Dict[str, Any]:
+        dct = {
+            "stageName": self.name,
+            "defaultRouteSettings": self.default_route_settings,
+            "createdDate": self.created,
+            "lastUpdatedDate": self.updated,
+            "routeSettings": self.route_settings,
+            "stageVariables": self.stage_variables,
+            "tags": self.tags,
+        }
+        if self.access_log_settings:
+            dct["accessLogSettings"] = self.access_log_settings
+        if self.auto_deploy is not None:
+            dct["autoDeploy"] = self.auto_deploy
+        if self.client_certificate_id:
+            dct["clientCertificateId"] = self.client_certificate_id
+        if self.description:
+            dct["description"] = self.description
+        return dct
 
 
 class Authorizer(BaseModel):
@@ -541,6 +589,7 @@ class Api(BaseModel):
         self.integrations: Dict[str, Integration] = dict()
         self.models: Dict[str, Model] = dict()
         self.routes: Dict[str, Route] = dict()
+        self.stages: Dict[str, Stage] = dict()
 
         self.arn = f"arn:aws:apigateway:{region}::/apis/{self.api_id}"
         self.backend.tag_resource(self.arn, tags)
@@ -550,6 +599,7 @@ class Api(BaseModel):
         self.integrations.clear()
         self.models.clear()
         self.routes.clear()
+        self.stages.clear()
 
     def delete_cors_configuration(self) -> None:
         self.cors_configuration = None
@@ -961,6 +1011,19 @@ class Api(BaseModel):
     ) -> RouteResponse:
         route = self.get_route(route_id)
         return route.get_route_response(route_response_id)
+
+    def create_stage(self, config: Dict[str, Any]) -> Stage:
+        stage = Stage(api=self, config=config)
+        self.stages[stage.name] = stage
+        return stage
+
+    def get_stage(self, stage_name: str) -> Stage:
+        if stage_name not in self.stages:
+            raise StageNotFound
+        return self.stages[stage_name]
+
+    def delete_stage(self, stage_name: str) -> None:
+        self.stages.pop(stage_name, None)
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -1599,7 +1662,6 @@ class ApiGatewayV2Backend(BaseBackend):
         mutual_tls_authentication: Dict[str, str],
         tags: Dict[str, str],
     ) -> DomainName:
-
         if domain_name in self.domain_names.keys():
             raise DomainNameAlreadyExists
 
@@ -1700,6 +1762,22 @@ class ApiGatewayV2Backend(BaseBackend):
             )
 
         del self.api_mappings[api_mapping_id]
+
+    def create_stage(self, api_id: str, config: Dict[str, Any]) -> Stage:
+        api = self.get_api(api_id)
+        return api.create_stage(config)
+
+    def get_stage(self, api_id: str, stage_name: str) -> Stage:
+        api = self.get_api(api_id)
+        return api.get_stage(stage_name)
+
+    def delete_stage(self, api_id: str, stage_name: str) -> None:
+        api = self.get_api(api_id)
+        api.delete_stage(stage_name)
+
+    def get_stages(self, api_id: str) -> List[Stage]:
+        api = self.get_api(api_id)
+        return list(api.stages.values())
 
 
 apigatewayv2_backends = BackendDict(ApiGatewayV2Backend, "apigatewayv2")

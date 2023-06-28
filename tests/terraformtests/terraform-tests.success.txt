@@ -30,6 +30,9 @@ apigatewayv2:
   - TestAccAPIGatewayV2IntegrationResponse
   - TestAccAPIGatewayV2Model
   - TestAccAPIGatewayV2Route
+  - TestAccAPIGatewayV2Stage_basicHTTP
+  - TestAccAPIGatewayV2Stage_basicWebSocket
+  - TestAccAPIGatewayV2Stage_disappears
   - TestAccAPIGatewayV2VPCLink
 appconfig:
   - TestAccAppConfigConfigurationProfileDataSource_basic
