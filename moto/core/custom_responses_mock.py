@@ -23,6 +23,11 @@ class CallbackResponse(responses.CallbackResponse):
     Need to subclass so we can change a couple things
     """
 
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, CallbackResponse):
+            return self.method == other.method and self.url.pattern == other.url.pattern  # type: ignore
+        return super().__eq__(other)
+
     def get_response(self, request: Any) -> responses.HTTPResponse:
         """
         Need to override this so we can pass decode_content=False
