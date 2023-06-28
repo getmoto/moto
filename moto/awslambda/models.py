@@ -1204,7 +1204,7 @@ class LambdaStorage(object):
         description: str,
         routing_config: str,
     ) -> LambdaAlias:
-        fn = self.get_function_by_name_or_arn(function_name)
+        fn = self.get_function_by_name_or_arn(function_name, function_version)
         aliases = self._get_function_aliases(function_name)
         if name in aliases:
             arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
