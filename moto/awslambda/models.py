@@ -1231,6 +1231,10 @@ class LambdaStorage(object):
         routing_config: str,
     ) -> LambdaAlias:
         alias = self.get_alias(name, function_name)
+
+        # errors if new function version doesn't exist
+        self.get_function_by_name_or_arn(function_name, function_version)
+
         alias.update(description, function_version, routing_config)
         return alias
 
