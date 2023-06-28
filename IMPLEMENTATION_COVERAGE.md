@@ -738,7 +738,7 @@
 
 ## cloudfront
 <details>
-<summary>9% implemented</summary>
+<summary>14% implemented</summary>
 
 - [ ] associate_alias
 - [ ] copy_distribution
@@ -753,7 +753,7 @@
 - [X] create_invalidation
 - [ ] create_key_group
 - [ ] create_monitoring_subscription
-- [ ] create_origin_access_control
+- [X] create_origin_access_control
 - [ ] create_origin_request_policy
 - [ ] create_public_key
 - [ ] create_realtime_log_config
@@ -769,7 +769,7 @@
 - [ ] delete_function
 - [ ] delete_key_group
 - [ ] delete_monitoring_subscription
-- [ ] delete_origin_access_control
+- [X] delete_origin_access_control
 - [ ] delete_origin_request_policy
 - [ ] delete_public_key
 - [ ] delete_realtime_log_config
@@ -793,7 +793,7 @@
 - [ ] get_key_group
 - [ ] get_key_group_config
 - [ ] get_monitoring_subscription
-- [ ] get_origin_access_control
+- [X] get_origin_access_control
 - [ ] get_origin_access_control_config
 - [ ] get_origin_request_policy
 - [ ] get_origin_request_policy_config
@@ -820,7 +820,7 @@
 - [ ] list_functions
 - [X] list_invalidations
 - [ ] list_key_groups
-- [ ] list_origin_access_controls
+- [X] list_origin_access_controls
 - [ ] list_origin_request_policies
 - [ ] list_public_keys
 - [ ] list_realtime_log_configs
@@ -840,7 +840,7 @@
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
 - [ ] update_key_group
-- [ ] update_origin_access_control
+- [X] update_origin_access_control
 - [ ] update_origin_request_policy
 - [ ] update_public_key
 - [ ] update_realtime_log_config
