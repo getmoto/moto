@@ -1256,6 +1256,8 @@ class LambdaStorage(object):
             alias = aliases[qualifier]
             return self._get_version(name, alias.function_version)
 
+        return None
+
     def list_versions_by_function(self, name: str) -> Iterable[LambdaFunction]:
         if name not in self._functions:
             return []
