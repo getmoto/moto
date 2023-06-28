@@ -16,6 +16,7 @@ from .exceptions import (
     DistributionAlreadyExists,
     InvalidIfMatchVersion,
     NoSuchDistribution,
+    NoSuchOriginAccessControl,
 )
 
 
@@ -212,6 +213,29 @@ class Distribution(BaseModel, ManagedState):
         return f"https://cloudfront.amazonaws.com/2020-05-31/distribution/{self.distribution_id}"
 
 
+class OriginAccessControl(BaseModel):
+    def __init__(self, config_dict: Dict[str, str]):
+        self.id = Invalidation.random_id()
+        self.name = config_dict.get("Name")
+        self.description = config_dict.get("Description")
+        self.signing_protocol = config_dict.get("SigningProtocol")
+        self.signing_behaviour = config_dict.get("SigningBehavior")
+        self.origin_type = config_dict.get("OriginAccessControlOriginType")
+        self.etag = Invalidation.random_id()
+
+    def update(self, config: Dict[str, str]) -> None:
+        if "Name" in config:
+            self.name = config["Name"]
+        if "Description" in config:
+            self.description = config["Description"]
+        if "SigningProtocol" in config:
+            self.signing_protocol = config["SigningProtocol"]
+        if "SigningBehavior" in config:
+            self.signing_behaviour = config["SigningBehavior"]
+        if "OriginAccessControlOriginType" in config:
+            self.origin_type = config["OriginAccessControlOriginType"]
+
+
 class Invalidation(BaseModel):
     @staticmethod
     def random_id(uppercase: bool = True) -> str:
@@ -243,6 +267,7 @@ class CloudFrontBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.distributions: Dict[str, Distribution] = dict()
         self.invalidations: Dict[str, List[Invalidation]] = dict()
+        self.origin_access_controls: Dict[str, OriginAccessControl] = dict()
         self.tagger = TaggingService()
 
         state_manager.register_default_transition(
@@ -362,6 +387,40 @@ class CloudFrontBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource: str) -> Dict[str, List[Dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource)
+
+    def create_origin_access_control(
+        self, config_dict: Dict[str, str]
+    ) -> OriginAccessControl:
+        control = OriginAccessControl(config_dict)
+        self.origin_access_controls[control.id] = control
+        return control
+
+    def get_origin_access_control(self, control_id: str) -> OriginAccessControl:
+        if control_id not in self.origin_access_controls:
+            raise NoSuchOriginAccessControl
+        return self.origin_access_controls[control_id]
+
+    def update_origin_access_control(
+        self, control_id: str, config: Dict[str, str]
+    ) -> OriginAccessControl:
+        """
+        The IfMatch-parameter is not yet implemented
+        """
+        control = self.get_origin_access_control(control_id)
+        control.update(config)
+        return control
+
+    def list_origin_access_controls(self) -> Iterable[OriginAccessControl]:
+        """
+        Pagination is not yet implemented
+        """
+        return self.origin_access_controls.values()
+
+    def delete_origin_access_control(self, control_id: str) -> None:
+        """
+        The IfMatch-parameter is not yet implemented
+        """
+        self.origin_access_controls.pop(control_id)
 
 
 cloudfront_backends = BackendDict(

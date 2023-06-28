@@ -13,7 +13,6 @@ EXCEPTION_RESPONSE = """<?xml version="1.0"?>
 
 
 class CloudFrontException(RESTError):
-
     code = 400
 
     def __init__(self, error_type: str, message: str, **kwargs: Any):
@@ -23,7 +22,6 @@ class CloudFrontException(RESTError):
 
 
 class OriginDoesNotExist(CloudFrontException):
-
     code = 404
 
     def __init__(self) -> None:
@@ -66,10 +64,19 @@ class InvalidIfMatchVersion(CloudFrontException):
 
 
 class NoSuchDistribution(CloudFrontException):
-
     code = 404
 
     def __init__(self) -> None:
         super().__init__(
             "NoSuchDistribution", message="The specified distribution does not exist."
+        )
+
+
+class NoSuchOriginAccessControl(CloudFrontException):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__(
+            "NoSuchOriginAccessControl",
+            message="The specified origin access control does not exist.",
         )

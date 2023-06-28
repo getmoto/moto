@@ -85,6 +85,7 @@ cloudformation:
 cloudfront:
   - TestAccCloudFrontDistributionDataSource_basic
   - TestAccCloudFrontDistribution_isIPV6Enabled
+  - TestAccCloudFrontOriginAccessControl_
 cloudtrail:
   - TestAccCloudTrailServiceAccount
 cloudwatch:
