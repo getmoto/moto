@@ -1,7 +1,6 @@
 """Unit tests for ce-supported APIs."""
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_ce
@@ -21,10 +20,8 @@ def test_create_cost_category_definition():
             {"Value": "v", "Rule": {"CostCategories": {"Key": "k", "Values": ["v"]}}}
         ],
     )
-    resp.should.have.key("CostCategoryArn").match(
-        f"arn:aws:ce::{ACCOUNT_ID}:costcategory/"
-    )
-    resp.should.have.key("EffectiveStart")
+    assert resp["CostCategoryArn"].startswith(f"arn:aws:ce::{ACCOUNT_ID}:costcategory/")
+    assert "EffectiveStart" in resp
 
 
 @mock_ce
@@ -38,10 +35,8 @@ def test_create_cost_category_definition_with_effective_start():
         ],
         EffectiveStart="2022-11-01T00:00:00Z",
     )
-    resp.should.have.key("CostCategoryArn").match(
-        f"arn:aws:ce::{ACCOUNT_ID}:costcategory/"
-    )
-    resp.should.have.key("EffectiveStart").equals("2022-11-01T00:00:00Z")
+    assert resp["CostCategoryArn"].startswith(f"arn:aws:ce::{ACCOUNT_ID}:costcategory/")
+    assert resp["EffectiveStart"] == "2022-11-01T00:00:00Z"
 
 
 @mock_ce
@@ -58,13 +53,14 @@ def test_describe_cost_category_definition():
     resp = client.describe_cost_category_definition(CostCategoryArn=ccd_arn)[
         "CostCategory"
     ]
-    resp.should.have.key("Name").equals("ccd")
-    resp.should.have.key("CostCategoryArn").equals(ccd_arn)
-    resp.should.have.key("RuleVersion").equals("CostCategoryExpression.v1")
-    resp.should.have.key("Rules").length_of(1)
-    resp["Rules"][0].should.equal(
-        {"Value": "v", "Rule": {"CostCategories": {"Key": "k", "Values": ["v"]}}}
-    )
+    assert resp["Name"] == "ccd"
+    assert resp["CostCategoryArn"] == ccd_arn
+    assert resp["RuleVersion"] == "CostCategoryExpression.v1"
+    assert len(resp["Rules"]) == 1
+    assert resp["Rules"][0] == {
+        "Value": "v",
+        "Rule": {"CostCategories": {"Key": "k", "Values": ["v"]}},
+    }
 
 
 @mock_ce
@@ -84,8 +80,8 @@ def test_delete_cost_category_definition():
     with pytest.raises(ClientError) as exc:
         client.describe_cost_category_definition(CostCategoryArn=ccd_arn)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(f"No Cost Categories found with ID {ccd_id}")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"No Cost Categories found with ID {ccd_id}"
 
 
 @mock_ce
@@ -111,16 +107,19 @@ def test_update_cost_category_definition():
     resp = client.describe_cost_category_definition(CostCategoryArn=ccd_arn)[
         "CostCategory"
     ]
-    resp.should.have.key("Name").equals("ccd")
-    resp.should.have.key("CostCategoryArn").equals(ccd_arn)
-    resp.should.have.key("RuleVersion").equals("CostCategoryExpression.v1")
+    assert resp["Name"] == "ccd"
+    assert resp["CostCategoryArn"] == ccd_arn
+    assert resp["RuleVersion"] == "CostCategoryExpression.v1"
 
-    resp.should.have.key("Rules").length_of(1)
-    resp["Rules"][0].should.equal(
-        {"Value": "v", "Rule": {"CostCategories": {"Key": "k", "Values": ["v"]}}}
-    )
+    assert len(resp["Rules"]) == 1
+    assert resp["Rules"][0] == {
+        "Value": "v",
+        "Rule": {"CostCategories": {"Key": "k", "Values": ["v"]}},
+    }
 
-    resp.should.have.key("SplitChargeRules").length_of(1)
-    resp["SplitChargeRules"][0].should.equal(
-        {"Source": "s", "Targets": ["t1"], "Method": "EVEN"}
-    )
+    assert len(resp["SplitChargeRules"]) == 1
+    assert resp["SplitChargeRules"][0] == {
+        "Source": "s",
+        "Targets": ["t1"],
+        "Method": "EVEN",
+    }
