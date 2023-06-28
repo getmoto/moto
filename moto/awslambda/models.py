@@ -1177,7 +1177,7 @@ class LambdaStorage(object):
         for config in self._functions[name]["versions"]:
             if str(config.version) == version:
                 return config
-    
+
         return None
 
     def _get_function_aliases(self, function_name: str) -> Dict[str, LambdaAlias]:
@@ -1209,7 +1209,7 @@ class LambdaStorage(object):
         if name in aliases:
             arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
             raise ConflictException(f"Alias already exists: {arn}")
-    
+
         alias = LambdaAlias(
             account_id=self.account_id,
             region=self.region_name,
@@ -1233,7 +1233,7 @@ class LambdaStorage(object):
         alias = self.get_alias(name, function_name)
         alias.update(description, function_version, routing_config)
         return alias
-    
+
     def get_function_by_name(
         self, name: str, qualifier: Optional[str] = None
     ) -> Optional[LambdaFunction]:
@@ -1249,7 +1249,7 @@ class LambdaStorage(object):
         found_version = self._get_version(name, qualifier)
         if found_version:
             return found_version
-        
+
         aliases = self._get_function_aliases(name)
 
         if qualifier in aliases:
@@ -1376,9 +1376,8 @@ class LambdaStorage(object):
                     and not self._functions[name]["latest"]
                 ):
                     del self._functions[name]
-        
+
         self._aliases[function.function_arn] = {}
-        
 
     def all(self) -> Iterable[LambdaFunction]:
         result = []

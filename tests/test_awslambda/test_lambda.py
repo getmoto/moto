@@ -1013,13 +1013,12 @@ def test_list_aliases():
         Name="alias2",
         FunctionVersion=second_version,
     )
-    
+
     conn.create_alias(
         FunctionName=function_name,
         Name="alias0",
         FunctionVersion=second_version,
     )
-
 
     aliases = conn.list_aliases(FunctionName=function_name)
     assert len(aliases["Aliases"]) == 3
@@ -1029,28 +1028,19 @@ def test_list_aliases():
         aliases["Aliases"][0]["AliasArn"]
         == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:alias0"
     )
-    assert (
-        aliases["Aliases"][0]["FunctionVersion"]
-        == second_version
-    )
-    
+    assert aliases["Aliases"][0]["FunctionVersion"] == second_version
+
     assert (
         aliases["Aliases"][1]["AliasArn"]
         == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:alias1"
     )
-    assert (
-        aliases["Aliases"][1]["FunctionVersion"]
-        == first_version
-    )
-    
+    assert aliases["Aliases"][1]["FunctionVersion"] == first_version
+
     assert (
         aliases["Aliases"][2]["AliasArn"]
         == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:alias2"
     )
-    assert (
-        aliases["Aliases"][2]["FunctionVersion"]
-        == second_version
-    )
+    assert aliases["Aliases"][2]["FunctionVersion"] == second_version
 
     res = conn.publish_version(FunctionName=function_name2)
     conn.create_alias(
