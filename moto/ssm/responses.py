@@ -513,3 +513,42 @@ class SimpleSystemManagerResponse(BaseResponse):
         baseline_id = self._get_param("BaselineId")
         self.ssm_backend.delete_patch_baseline(baseline_id)
         return "{}"
+
+    def register_task_with_maintenance_window(self) -> str:
+        window_task_id = self.ssm_backend.register_task_with_maintenance_window(
+            window_id=self._get_param("WindowId"),
+            targets=self._get_param("Targets"),
+            task_arn=self._get_param("TaskArn"),
+            service_role_arn=self._get_param("ServiceRoleArn"),
+            task_type=self._get_param("TaskType"),
+            task_parameters=self._get_param("TaskParameters"),
+            task_invocation_parameters=self._get_param("TaskInvocationParameters"),
+            priority=self._get_param("Priority"),
+            max_concurrency=self._get_param("MaxConcurrency"),
+            max_errors=self._get_param("MaxErrors"),
+            logging_info=self._get_param("LoggingInfo"),
+            name=self._get_param("Name"),
+            description=self._get_param("Description"),
+            cutoff_behavior=self._get_param("CutoffBehavior"),
+            alarm_configurations=self._get_param("AlarmConfigurations"),
+        )
+        return json.dumps({"WindowTaskId": window_task_id})
+
+    def describe_maintenance_window_tasks(self) -> str:
+        window_id = self._get_param("WindowId")
+        filters = self._get_param("Filters", [])
+        tasks = [
+            task.to_json()
+            for task in self.ssm_backend.describe_maintenance_window_tasks(
+                window_id, filters
+            )
+        ]
+        return json.dumps({"Tasks": tasks})
+
+    def deregister_task_from_maintenance_window(self) -> str:
+        window_id = self._get_param("WindowId")
+        window_task_id = self._get_param("WindowTaskId")
+        self.ssm_backend.deregister_task_from_maintenance_window(
+            window_id, window_task_id
+        )
+        return "{}"
