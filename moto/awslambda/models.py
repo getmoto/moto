@@ -36,6 +36,7 @@ from moto.ecr.models import ecr_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
 from .exceptions import (
+    ConflictException,
     CrossAccountNotAllowed,
     FunctionUrlConfigNotFound,
     InvalidRoleFormat,
@@ -514,8 +515,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         self.tags = spec.get("Tags") or dict()
 
-        self._aliases: Dict[str, LambdaAlias] = dict()
-
     def __getstate__(self) -> Dict[str, Any]:
         return {
             k: v
@@ -954,43 +953,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def delete(self, account_id: str, region: str) -> None:
         lambda_backends[account_id][region].delete_function(self.function_name)
 
-    def delete_alias(self, name: str) -> None:
-        self._aliases.pop(name, None)
-
-    def get_alias(self, name: str) -> LambdaAlias:
-        if name in self._aliases:
-            return self._aliases[name]
-        arn = f"arn:aws:lambda:{self.region}:{self.account_id}:function:{self.function_name}:{name}"
-        raise UnknownAliasException(arn)
-
-    def has_alias(self, alias_name: str) -> bool:
-        try:
-            return self.get_alias(alias_name) is not None
-        except UnknownAliasException:
-            return False
-
-    def put_alias(
-        self, name: str, description: str, function_version: str, routing_config: str
-    ) -> LambdaAlias:
-        alias = LambdaAlias(
-            account_id=self.account_id,
-            region=self.region,
-            name=name,
-            function_name=self.function_name,
-            function_version=function_version,
-            description=description,
-            routing_config=routing_config,
-        )
-        self._aliases[name] = alias
-        return alias
-
-    def update_alias(
-        self, name: str, description: str, function_version: str, routing_config: str
-    ) -> LambdaAlias:
-        alias = self.get_alias(name)
-        alias.update(description, function_version, routing_config)
-        return alias
-
     def create_url_config(self, config: Dict[str, Any]) -> "FunctionUrlConfig":
         self.url_config = FunctionUrlConfig(function=self, config=config)
         return self.url_config  # type: ignore[return-value]
@@ -1205,22 +1167,34 @@ class LambdaStorage(object):
         self.region_name = region_name
         self.account_id = account_id
 
+        # function-arn -> alias -> LambdaAlias
+        self._aliases: Dict[str, Dict[str, LambdaAlias]] = defaultdict(lambda: {})
+
     def _get_latest(self, name: str) -> LambdaFunction:
         return self._functions[name]["latest"]
 
     def _get_version(self, name: str, version: str) -> Optional[LambdaFunction]:
         for config in self._functions[name]["versions"]:
-            if str(config.version) == version or config.has_alias(version):
+            if str(config.version) == version:
                 return config
+    
         return None
 
-    def delete_alias(self, name: str, function_name: str) -> None:
+    def _get_function_aliases(self, function_name: str) -> Dict[str, LambdaAlias]:
         fn = self.get_function_by_name_or_arn(function_name)
-        return fn.delete_alias(name)
+        return self._aliases[fn.function_arn]
+
+    def delete_alias(self, name: str, function_name: str) -> None:
+        aliases = self._get_function_aliases(function_name)
+        aliases.pop(name, None)
 
     def get_alias(self, name: str, function_name: str) -> LambdaAlias:
-        fn = self.get_function_by_name_or_arn(function_name)
-        return fn.get_alias(name)
+        aliases = self._get_function_aliases(function_name)
+        if name in aliases:
+            return aliases[name]
+
+        arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
+        raise UnknownAliasException(arn)
 
     def put_alias(
         self,
@@ -1231,7 +1205,22 @@ class LambdaStorage(object):
         routing_config: str,
     ) -> LambdaAlias:
         fn = self.get_function_by_name_or_arn(function_name)
-        return fn.put_alias(name, description, function_version, routing_config)
+        aliases = self._get_function_aliases(function_name)
+        if name in aliases:
+            arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
+            raise ConflictException(f"Alias already exists: {arn}")
+    
+        alias = LambdaAlias(
+            account_id=self.account_id,
+            region=self.region_name,
+            name=name,
+            function_name=fn.function_name,
+            function_version=function_version,
+            description=description,
+            routing_config=routing_config,
+        )
+        aliases[name] = alias
+        return alias
 
     def update_alias(
         self,
@@ -1241,9 +1230,10 @@ class LambdaStorage(object):
         description: str,
         routing_config: str,
     ) -> LambdaAlias:
-        fn = self.get_function_by_name_or_arn(function_name)
-        return fn.update_alias(name, description, function_version, routing_config)
-
+        alias = self.get_alias(name, function_name)
+        alias.update(description, function_version, routing_config)
+        return alias
+    
     def get_function_by_name(
         self, name: str, qualifier: Optional[str] = None
     ) -> Optional[LambdaFunction]:
@@ -1256,7 +1246,15 @@ class LambdaStorage(object):
         if qualifier.lower() == "$latest":
             return self._functions[name]["latest"]
 
-        return self._get_version(name, qualifier)
+        found_version = self._get_version(name, qualifier)
+        if found_version:
+            return found_version
+        
+        aliases = self._get_function_aliases(name)
+
+        if qualifier in aliases:
+            alias = aliases[qualifier]
+            return self._get_version(name, alias.function_version)
 
     def list_versions_by_function(self, name: str) -> Iterable[LambdaFunction]:
         if name not in self._functions:
@@ -1265,6 +1263,10 @@ class LambdaStorage(object):
         latest = copy.copy(self._functions[name]["latest"])
         latest.function_arn += ":$LATEST"
         return [latest] + self._functions[name]["versions"]
+
+    def list_aliases(self, function_name: str) -> Iterable[LambdaAlias]:
+        aliases = self._get_function_aliases(function_name)
+        return sorted(aliases.values(), key=lambda alias: alias.name)
 
     def get_arn(self, arn: str) -> Optional[LambdaFunction]:
         # Function ARN may contain an alias
@@ -1374,6 +1376,9 @@ class LambdaStorage(object):
                     and not self._functions[name]["latest"]
                 ):
                     del self._functions[name]
+        
+        self._aliases[function.function_arn] = {}
+        
 
     def all(self) -> Iterable[LambdaFunction]:
         result = []
@@ -1705,6 +1710,9 @@ class LambdaBackend(BaseBackend):
 
     def list_versions_by_function(self, function_name: str) -> Iterable[LambdaFunction]:
         return self._lambdas.list_versions_by_function(function_name)
+
+    def list_aliases(self, function_name: str) -> Iterable[LambdaAlias]:
+        return self._lambdas.list_aliases(function_name)
 
     def get_event_source_mapping(self, uuid: str) -> Optional[EventSourceMapping]:
         return self._event_source_mappings.get(uuid)
