@@ -276,6 +276,7 @@ def test_deregister_target_from_maintenance_window():
     resp.should.have.key("Targets").should.have.length_of(0)
 
 
+@mock_ssm
 def test_describe_maintenance_window_with_no_task_or_targets():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
