@@ -796,3 +796,52 @@ class SageMakerResponse(BaseResponse):
             desired_weights_and_capacities=desired_weights_and_capacities,
         )
         return 200, {}, json.dumps({"EndpointArn": endpoint_arn})
+    
+    def create_model_package_group(self):
+        params = self._get_params()
+        model_package_group_name = params.get("ModelPackageGroupName")
+        model_package_group_description = params.get("ModelPackageGroupDescription")
+        tags = params.get("Tags")
+        model_package_group_arn = self.sagemaker_backend.create_model_package_group(
+            model_package_group_name=model_package_group_name,
+            model_package_group_description=model_package_group_description,
+            tags=tags,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(modelPackageGroupArn=model_package_group_arn))
+    
+    def describe_model_package_group(self):
+        params = self._get_params()
+        model_package_group_name = params.get("ModelPackageGroupName")
+        model_package_group_name, model_package_group_arn, model_package_group_description, creation_time, created_by, model_package_group_status = self.sagemaker_backend.describe_model_package_group(
+            model_package_group_name=model_package_group_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(modelPackageGroupName=model_package_group_name, modelPackageGroupArn=model_package_group_arn, modelPackageGroupDescription=model_package_group_description, creationTime=creation_time, createdBy=created_by, modelPackageGroupStatus=model_package_group_status))
+    
+    def list_model_packages(self):
+        params = self._get_params()
+        creation_time_after = params.get("CreationTimeAfter")
+        creation_time_before = params.get("CreationTimeBefore")
+        max_results = params.get("MaxResults")
+        name_contains = params.get("NameContains")
+        model_approval_status = params.get("ModelApprovalStatus")
+        model_package_group_name = params.get("ModelPackageGroupName")
+        model_package_type = params.get("ModelPackageType")
+        next_token = params.get("NextToken")
+        sort_by = params.get("SortBy")
+        sort_order = params.get("SortOrder")
+        model_package_summary_list, next_token = self.sagemaker_backend.list_model_packages(
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            max_results=max_results,
+            name_contains=name_contains,
+            model_approval_status=model_approval_status,
+            model_package_group_name=model_package_group_name,
+            model_package_type=model_package_type,
+            next_token=next_token,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(modelPackageSummaryList=model_package_summary_list, nextToken=next_token))

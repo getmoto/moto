@@ -2665,6 +2665,18 @@ class SageMakerModelBackend(BaseBackend):
         endpoint.endpoint_status = "InService"
         return endpoint.endpoint_arn
 
+    def create_model_package_group(self, model_package_group_name, model_package_group_description, tags):
+        # implement here
+        return model_package_group_arn
+    
+    def describe_model_package_group(self, model_package_group_name):
+        # implement here
+        return model_package_group_name, model_package_group_arn, model_package_group_description, creation_time, created_by, model_package_group_status
+    
+    def list_model_packages(self, creation_time_after, creation_time_before, max_results, name_contains, model_approval_status, model_package_group_name, model_package_type, next_token, sort_by, sort_order):
+        # implement here
+        return model_package_summary_list, next_token
+    
 
 class FakeExperiment(BaseObject):
     def __init__(
