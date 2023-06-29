@@ -4,7 +4,8 @@ import random
 import string
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Iterable, Tuple, Union
-from typing_extensions import NotRequired, TypedDict
+
+# from typing_extensions import NotRequired, TypedDict
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
