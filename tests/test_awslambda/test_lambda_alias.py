@@ -296,11 +296,11 @@ def test_update_alias():
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
     )
-    
+
     client.create_alias(
         FunctionName=function_name, Name="alias1", FunctionVersion="$LATEST"
     )
-    
+
     client.update_function_code(
         FunctionName=function_name, ZipFile=get_test_zip_file2()
     )
@@ -322,6 +322,7 @@ def test_update_alias():
     assert resp["FunctionVersion"] == new_version
     assert resp["Description"] == "updated desc"
     assert "RevisionId" in resp
+
 
 @mock_lambda
 def test_update_alias_errors_if_version_doesnt_exist():
@@ -353,6 +354,7 @@ def test_update_alias_errors_if_version_doesnt_exist():
         err["Message"]
         == f"Function not found: arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{function_name}:1"
     )
+
 
 @mock_lambda
 def test_update_alias_routingconfig():
