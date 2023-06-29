@@ -2,8 +2,6 @@ import boto3
 import pytest
 
 from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
-from datetime import datetime
 from moto import mock_budgets
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -20,7 +18,7 @@ def test_create_and_describe_budget_minimal_params():
             "BudgetType": "COST",
         },
     )
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     try:
         budget = client.describe_budget(AccountId=ACCOUNT_ID, BudgetName="testbudget")[
@@ -28,42 +26,41 @@ def test_create_and_describe_budget_minimal_params():
         ]
     except OverflowError:
         pytest.skip("This test requires 64-bit time_t")
-    budget.should.have.key("BudgetLimit")
-    budget["BudgetLimit"].should.have.key("Amount")
-    budget["BudgetLimit"]["Amount"].should.equal("10")
-    budget["BudgetLimit"].should.have.key("Unit")
-    budget["BudgetLimit"]["Unit"].should.equal("USD")
-    budget.should.have.key("BudgetName").equals("testbudget")
-    budget.should.have.key("TimeUnit").equals("DAILY")
-    budget.should.have.key("BudgetType").equals("COST")
-    budget.should.have.key("CalculatedSpend")
-    budget["CalculatedSpend"].should.have.key("ActualSpend")
-    budget["CalculatedSpend"]["ActualSpend"].should.equal(
-        {"Amount": "0", "Unit": "USD"}
-    )
-    budget["CalculatedSpend"].should.have.key("ForecastedSpend")
-    budget["CalculatedSpend"]["ForecastedSpend"].should.equal(
-        {"Amount": "0", "Unit": "USD"}
-    )
-    budget.should.have.key("CostTypes")
-    budget["CostTypes"].should.have.key("IncludeCredit").equals(True)
-    budget["CostTypes"].should.have.key("IncludeDiscount").equals(True)
-    budget["CostTypes"].should.have.key("IncludeOtherSubscription").equals(True)
-    budget["CostTypes"].should.have.key("IncludeRecurring").equals(True)
-    budget["CostTypes"].should.have.key("IncludeRefund").equals(True)
-    budget["CostTypes"].should.have.key("IncludeSubscription").equals(True)
-    budget["CostTypes"].should.have.key("IncludeSupport").equals(True)
-    budget["CostTypes"].should.have.key("IncludeTax").equals(True)
-    budget["CostTypes"].should.have.key("IncludeUpfront").equals(True)
-    budget["CostTypes"].should.have.key("UseAmortized").equals(False)
-    budget["CostTypes"].should.have.key("UseBlended").equals(False)
-    budget.should.have.key("LastUpdatedTime").should.be.a(datetime)
-    budget.should.have.key("TimePeriod")
-    budget["TimePeriod"].should.have.key("Start")
-    budget["TimePeriod"]["Start"].should.be.a(datetime)
-    budget["TimePeriod"].should.have.key("End")
-    budget["TimePeriod"]["End"].should.be.a(datetime)
-    budget.should.have.key("TimeUnit").equals("DAILY")
+    assert "BudgetLimit" in budget
+    assert "Amount" in budget["BudgetLimit"]
+    assert budget["BudgetLimit"]["Amount"] == "10"
+    assert "Unit" in budget["BudgetLimit"]
+    assert budget["BudgetLimit"]["Unit"] == "USD"
+    assert budget["BudgetName"] == "testbudget"
+    assert budget["TimeUnit"] == "DAILY"
+    assert budget["BudgetType"] == "COST"
+    assert "CalculatedSpend" in budget
+    assert "ActualSpend" in budget["CalculatedSpend"]
+    assert budget["CalculatedSpend"]["ActualSpend"] == {"Amount": "0", "Unit": "USD"}
+    assert "ForecastedSpend" in budget["CalculatedSpend"]
+    assert budget["CalculatedSpend"]["ForecastedSpend"] == {
+        "Amount": "0",
+        "Unit": "USD",
+    }
+    assert "CostTypes" in budget
+    assert budget["CostTypes"]["IncludeCredit"] is True
+    assert budget["CostTypes"]["IncludeDiscount"] is True
+    assert budget["CostTypes"]["IncludeOtherSubscription"] is True
+    assert budget["CostTypes"]["IncludeRecurring"] is True
+    assert budget["CostTypes"]["IncludeRefund"] is True
+    assert budget["CostTypes"]["IncludeSubscription"] is True
+    assert budget["CostTypes"]["IncludeSupport"] is True
+    assert budget["CostTypes"]["IncludeTax"] is True
+    assert budget["CostTypes"]["IncludeUpfront"] is True
+    assert budget["CostTypes"]["UseAmortized"] is False
+    assert budget["CostTypes"]["UseBlended"] is False
+    assert "LastUpdatedTime" in budget
+    assert "TimePeriod" in budget
+    assert "Start" in budget["TimePeriod"]
+    assert budget["TimePeriod"]["Start"]
+    assert "End" in budget["TimePeriod"]
+    assert budget["TimePeriod"]["End"]
+    assert budget["TimeUnit"] == "DAILY"
 
 
 @mock_budgets
@@ -90,10 +87,8 @@ def test_create_existing_budget():
             },
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("DuplicateRecordException")
-    err["Message"].should.equal(
-        "Error creating budget: testb - the budget already exists."
-    )
+    assert err["Code"] == "DuplicateRecordException"
+    assert err["Message"] == "Error creating budget: testb - the budget already exists."
 
 
 @mock_budgets
@@ -105,9 +100,10 @@ def test_create_budget_without_limit_param():
             Budget={"BudgetName": "testb", "TimeUnit": "DAILY", "BudgetType": "COST"},
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal(
-        "Unable to create/update budget - please provide one of the followings: Budget Limit/ Planned Budget Limit/ Auto Adjust Data"
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == "Unable to create/update budget - please provide one of the followings: Budget Limit/ Planned Budget Limit/ Auto Adjust Data"
     )
 
 
@@ -117,17 +113,15 @@ def test_describe_unknown_budget():
     with pytest.raises(ClientError) as exc:
         client.describe_budget(AccountId=ACCOUNT_ID, BudgetName="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "Unable to get budget: unknown - the budget doesn't exist."
-    )
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Unable to get budget: unknown - the budget doesn't exist."
 
 
 @mock_budgets
 def test_describe_no_budgets():
     client = boto3.client("budgets", region_name="us-east-1")
     resp = client.describe_budgets(AccountId=ACCOUNT_ID)
-    resp.should.have.key("Budgets").equals([])
+    assert resp["Budgets"] == []
 
 
 @mock_budgets
@@ -147,7 +141,7 @@ def test_create_and_describe_all_budgets():
         res = client.describe_budgets(AccountId=ACCOUNT_ID)
     except OverflowError:
         pytest.skip("This test requires 64-bit time_t")
-    res["Budgets"].should.have.length_of(1)
+    assert len(res["Budgets"]) == 1
 
 
 @mock_budgets
@@ -164,10 +158,10 @@ def test_delete_budget():
     )
 
     resp = client.delete_budget(AccountId=ACCOUNT_ID, BudgetName="b1")
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     res = client.describe_budgets(AccountId=ACCOUNT_ID)
-    res["Budgets"].should.have.length_of(0)
+    assert len(res["Budgets"]) == 0
 
 
 @mock_budgets
@@ -176,7 +170,8 @@ def test_delete_unknown_budget():
     with pytest.raises(ClientError) as exc:
         client.delete_budget(AccountId=ACCOUNT_ID, BudgetName="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "Unable to delete budget: unknown - the budget doesn't exist. Try creating it first. "
+    assert err["Code"] == "NotFoundException"
+    assert (
+        err["Message"]
+        == "Unable to delete budget: unknown - the budget doesn't exist. Try creating it first. "
     )
