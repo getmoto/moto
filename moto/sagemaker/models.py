@@ -935,6 +935,7 @@ class ModelPackageGroup(BaseObject):
         creation_time: str,
         created_by: Any,
         model_package_group_status: str,
+        tags: Optional[List[Dict[str, str]]] = None,
     ) -> None:
         self.model_package_group_name = model_package_group_name
         self.model_package_group_arn = model_package_group_arn
@@ -942,6 +943,7 @@ class ModelPackageGroup(BaseObject):
         self.creation_time = creation_time
         self.created_by = created_by
         self.model_package_group_status = model_package_group_status
+        self.tags = tags
 
 
 class ModelPackage(BaseObject):
@@ -2757,7 +2759,7 @@ class SageMakerModelBackend(BaseBackend):
         return endpoint.endpoint_arn
 
     def create_model_package_group(
-        self, model_package_group_name: str, model_package_group_description: str, tags
+        self, model_package_group_name, model_package_group_description, tags
     ):
         model_package_group_arn = arn_formatter(
             region_name=self.region_name,
@@ -2784,6 +2786,7 @@ class SageMakerModelBackend(BaseBackend):
                 "DomainId": fake_domain_id,
             },
             model_package_group_status="Completed",
+            tags=tags,
         )
         return model_package_group_arn
 
@@ -2806,7 +2809,7 @@ class SageMakerModelBackend(BaseBackend):
         name_contains,
         model_approval_status,
         model_package_group_name,
-        model_package_type: str,
+        model_package_type,
         next_token,
         sort_by,
         sort_order,
