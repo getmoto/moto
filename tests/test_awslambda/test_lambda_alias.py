@@ -296,15 +296,21 @@ def test_update_alias():
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
     )
-
+    
     client.create_alias(
         FunctionName=function_name, Name="alias1", FunctionVersion="$LATEST"
     )
+    
+    client.update_function_code(
+        FunctionName=function_name, ZipFile=get_test_zip_file2()
+    )
+
+    new_version = client.publish_version(FunctionName=function_name)["Version"]
 
     resp = client.update_alias(
         FunctionName=function_name,
         Name="alias1",
-        FunctionVersion="1",
+        FunctionVersion=new_version,
         Description="updated desc",
     )
 
@@ -313,10 +319,40 @@ def test_update_alias():
         == f"arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{function_name}:alias1"
     )
     assert resp["Name"] == "alias1"
-    assert resp["FunctionVersion"] == "1"
+    assert resp["FunctionVersion"] == new_version
     assert resp["Description"] == "updated desc"
     assert "RevisionId" in resp
 
+@mock_lambda
+def test_update_alias_errors_if_version_doesnt_exist():
+    client = boto3.client("lambda", region_name="us-east-2")
+    function_name = str(uuid4())[0:6]
+
+    client.create_function(
+        FunctionName=function_name,
+        Runtime="python3.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_test_zip_file1()},
+    )
+
+    client.create_alias(
+        FunctionName=function_name, Name="alias1", FunctionVersion="$LATEST"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.update_alias(
+            FunctionName=function_name,
+            Name="alias1",
+            FunctionVersion="1",
+            Description="updated desc",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == f"Function not found: arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{function_name}:1"
+    )
 
 @mock_lambda
 def test_update_alias_routingconfig():
