@@ -32,6 +32,7 @@ url_paths = {
     r"{0}/(?P<api_version>[\d_-]+)/hostedzonecount": Route53().get_hosted_zone_count_response,
     r"{0}/(?P<api_version>[\d_-]+)/healthcheck$": Route53().health_check_response1,
     r"{0}/(?P<api_version>[\d_-]+)/healthcheck/(?P<health_check_id>[^/]+)$": Route53().health_check_response2,
+    r"{0}/(?P<api_version>[\d_-]+)/healthcheck/(?P<health_check_id>[^/]+)/status$": Route53().health_check_status_response,
     r"{0}/(?P<api_version>[\d_-]+)/tags/healthcheck/(?P<zone_id>[^/]+)$": tag_response1,
     r"{0}/(?P<api_version>[\d_-]+)/tags/hostedzone/(?P<zone_id>[^/]+)$": tag_response2,
     r"{0}/(?P<api_version>[\d_-]+)/trafficpolicyinstances/*": Route53().not_implemented_response,
