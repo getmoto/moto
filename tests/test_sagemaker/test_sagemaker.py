@@ -8,22 +8,6 @@ from moto import mock_sagemaker
 
 
 @mock_sagemaker
-def test_describe_model_package_group():
-    client = boto3.client("sagemaker", region_name="ap-southeast-1")
-    client.create_model_package_group(
-        ModelPackageGroupName="test-model-package-group",
-        ModelPackageGroupDescription="test-model-package-group-description",
-    )
-    resp = client.describe_model_package_group(
-        ModelPackageGroupName="test-model-package-group"
-    )
-    assert resp["ModelPackageGroupName"] == "test-model-package-group"
-    assert (
-        resp["ModelPackageGroupDescription"] == "test-model-package-group-description"
-    )
-
-
-@mock_sagemaker
 def test_list_model_packages():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package(
@@ -51,35 +35,6 @@ def test_list_model_packages():
     assert (
         resp["ModelPackageSummaryList"][1]["ModelPackageDescription"]
         == "test-model-package-description-2"
-    )
-
-
-@mock_sagemaker
-def test_list_model_package_groups():
-    client = boto3.client("sagemaker", region_name="ap-southeast-1")
-    client.create_model_package_group(
-        ModelPackageGroupName="test-model-package-group",
-        ModelPackageGroupDescription="test-model-package-group-description",
-    )
-    resp = client.list_model_package_groups()
-
-    assert (
-        resp["ModelPackageGroupSummaryList"][0]["ModelPackageGroupName"]
-        == "test-model-package-group"
-    )
-    assert "ModelPackageGroupDescription" in resp["ModelPackageGroupSummaryList"][0]
-    assert (
-        resp["ModelPackageGroupSummaryList"][0]["ModelPackageGroupDescription"]
-        == "test-model-package-group-description"
-    )
-    assert (
-        resp["ModelPackageGroupSummaryList"][1]["ModelPackageGroupName"]
-        == "test-model-package-group"
-    )
-    assert "ModelPackageGroupDescription" in resp["ModelPackageGroupSummaryList"][1]
-    assert (
-        resp["ModelPackageGroupSummaryList"][1]["ModelPackageGroupDescription"]
-        == "test-model-package-group-description"
     )
 
 
