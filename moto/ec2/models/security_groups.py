@@ -550,16 +550,19 @@ class SecurityGroupBackend:
 
     def describe_security_group_rules(
         self, group_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[SecurityRule]:
+    ) -> Dict[str, List[SecurityRule]]:
         matches = self.describe_security_groups(group_ids=group_ids, filters=filters)
         if not matches:
             raise InvalidSecurityGroupNotFoundError(
                 "No security groups found matching the filters provided."
             )
-        rules = []
+        rules = {}
         for group in matches:
-            rules.extend(group.ingress_rules)
-            rules.extend(group.egress_rules)
+            group_rules = []
+            group_rules.extend(group.ingress_rules)
+            group_rules.extend(group.egress_rules)
+            if group_rules:
+                rules[group.group_id] = group_rules
 
         return rules
 
