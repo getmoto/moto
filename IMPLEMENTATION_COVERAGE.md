@@ -204,7 +204,7 @@
 
 ## apigatewayv2
 <details>
-<summary>69% implemented</summary>
+<summary>75% implemented</summary>
 
 - [X] create_api
 - [X] create_api_mapping
@@ -216,7 +216,7 @@
 - [X] create_model
 - [X] create_route
 - [X] create_route_response
-- [ ] create_stage
+- [X] create_stage
 - [X] create_vpc_link
 - [ ] delete_access_log_settings
 - [X] delete_api
@@ -232,7 +232,7 @@
 - [X] delete_route_request_parameter
 - [X] delete_route_response
 - [ ] delete_route_settings
-- [ ] delete_stage
+- [X] delete_stage
 - [X] delete_vpc_link
 - [ ] export_api
 - [X] get_api
@@ -256,8 +256,8 @@
 - [X] get_route_response
 - [ ] get_route_responses
 - [X] get_routes
-- [ ] get_stage
-- [ ] get_stages
+- [X] get_stage
+- [X] get_stages
 - [X] get_tags
 - [X] get_vpc_link
 - [X] get_vpc_links
