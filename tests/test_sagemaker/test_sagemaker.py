@@ -45,3 +45,19 @@ def test_describe_model_package():
     resp = client.describe_model_package()
 
     raise Exception("NotYetImplemented")
+
+
+@mock_sagemaker
+def test_create_model_package():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    resp = client.create_model_package()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_sagemaker
+def test_create_model_package_group():
+    client = boto3.client("sagemaker", region_name="us-east-2")
+    resp = client.create_model_package_group()
+
+    raise Exception("NotYetImplemented")

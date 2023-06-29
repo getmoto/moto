@@ -51,9 +51,3 @@ def load_pipeline_definition_from_s3(
 
 def arn_formatter(_type: str, _id: str, account_id: str, region_name: str) -> str:
     return f"arn:aws:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
-
-
-def arn_package_group_formatter(
-    region_name: str, account_id: str, model_package_group: str
-) -> str:
-    return f"arn:aws:sagemaker:{region_name}:{account_id}:model-package-group/{model_package_group}"

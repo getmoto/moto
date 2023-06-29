@@ -4,6 +4,7 @@ import random
 import string
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Iterable, Tuple, Union
+from typing_extensions import NotRequired, TypedDict
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
@@ -19,11 +20,7 @@ from .utils import (
     get_pipeline_execution_from_arn,
     get_pipeline_name_from_execution_arn,
 )
-from .utils import (
-    load_pipeline_definition_from_s3,
-    arn_formatter,
-    arn_package_group_formatter,
-)
+from .utils import load_pipeline_definition_from_s3, arn_formatter
 
 
 PAGINATION_MODEL = {
@@ -915,20 +912,17 @@ class Model(BaseObject, CloudFormationModel):
         sagemaker_backends[account_id][region_name].delete_model(model_name)
 
 
-from typing_extensions import NotRequired, TypedDict
+# class IamIdentityArnPackageGroup(TypedDict):
+#     arn: str
+#     principal_id: str
+#     source_identity: str
 
 
-class IamIdentityArnPackageGroup(TypedDict):
-    arn: str
-    principal_id: str
-    source_identity: str
-
-
-class CreatedByModelPackageGroup(TypedDict):
-    user_profile_arn: str
-    user_profile_name: str
-    domain_id: str
-    iam_identity_arn: NotRequired[IamIdentityArnPackageGroup]
+# class CreatedByModelPackageGroup(TypedDict):
+#     user_profile_arn: str
+#     user_profile_name: str
+#     domain_id: str
+#     iam_identity_arn: NotRequired[IamIdentityArnPackageGroup]
 
 
 class ModelPackageGroup(BaseObject):
@@ -938,7 +932,7 @@ class ModelPackageGroup(BaseObject):
         model_package_group_arn: str,
         model_package_group_description: str,
         creation_time: str,
-        created_by: CreatedByModelPackageGroup,
+        created_by: Any,
         model_package_group_status: str,
     ) -> None:
         self.model_package_group_name = model_package_group_name
@@ -2764,8 +2758,19 @@ class SageMakerModelBackend(BaseBackend):
     def create_model_package_group(
         self, model_package_group_name: str, model_package_group_description: str, tags
     ):
-        model_package_group_arn = arn_package_group_formatter(
-            self.region_name, self.account_id, model_package_group_name
+        model_package_group_arn = arn_formatter(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            _type="model-package-group",
+            _id=model_package_group_name,
+        )
+        fake_user_profile_name = "fake-user-profile-name"
+        fake_domain_id = "fake-domain-id"
+        fake_user_profile_arn = arn_formatter(
+            _type="user-profile",
+            _id=f"{fake_domain_id}/{fake_user_profile_name}",
+            account_id=self.account_id,
+            region_name=self.region_name,
         )
         self.model_package_groups[model_package_group_name] = ModelPackageGroup(
             model_package_group_name=model_package_group_name,
@@ -2773,9 +2778,9 @@ class SageMakerModelBackend(BaseBackend):
             model_package_group_description=model_package_group_description,
             creation_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
             created_by={
-                "UserProfileArn": "arn:aws:sagemaker:us-east-1:123456789012:user-profile/dummy-user-profile",
-                "UserProfileName": "dummy-user-profile",
-                "DomainId": "123456789012",
+                "UserProfileArn": fake_user_profile_arn,
+                "UserProfileName": fake_user_profile_name,
+                "DomainId": fake_domain_id,
             },
             model_package_group_status="Completed",
         )
@@ -2888,6 +2893,57 @@ class SageMakerModelBackend(BaseBackend):
             sample_payload_url,
             additional_inference_specifications,
         )
+
+    def create_model_package(
+        self,
+        model_package_name,
+        model_package_group_name,
+        model_package_description,
+        inference_specification,
+        validation_specification,
+        source_algorithm_specification,
+        certify_for_marketplace,
+        tags,
+        model_approval_status,
+        metadata_properties,
+        model_metrics,
+        client_token,
+        customer_metadata_properties,
+        drift_check_baselines,
+        domain,
+        task,
+        sample_payload_url,
+        additional_inference_specifications,
+    ):
+        # implement here
+        model_package_arn = arn_formatter(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            _type="model-package",
+            _id=model_package_group_name,
+        )
+        model_package = ModelPackage(
+            model_package_name=model_package_name,
+            model_package_group_name=model_package_group_name,
+            model_package_arn=model_package_arn,
+            model_package_description=model_package_description,
+            inference_specification=inference_specification,
+            validation_specification=validation_specification,
+            source_algorithm_specification=source_algorithm_specification,
+            certify_for_marketplace=certify_for_marketplace,
+            tags=tags,
+            model_approval_status=model_approval_status,
+            metadata_properties=metadata_properties,
+            model_metrics=model_metrics,
+            customer_metadata_properties=customer_metadata_properties,
+            drift_check_baselines=drift_check_baselines,
+            domain=domain,
+            task=task,
+            sample_payload_url=sample_payload_url,
+            additional_inference_specifications=additional_inference_specifications,
+        )
+        self.model_packages[model_package_arn] = model_package
+        return model_package_arn
 
 
 class FakeExperiment(BaseObject):

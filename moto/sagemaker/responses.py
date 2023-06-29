@@ -906,3 +906,59 @@ class SageMakerResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(modelPackageName=model_package_name, modelPackageGroupName=model_package_group_name, modelPackageVersion=model_package_version, modelPackageArn=model_package_arn, modelPackageDescription=model_package_description, creationTime=creation_time, inferenceSpecification=inference_specification, sourceAlgorithmSpecification=source_algorithm_specification, validationSpecification=validation_specification, modelPackageStatus=model_package_status, modelPackageStatusDetails=model_package_status_details, certifyForMarketplace=certify_for_marketplace, modelApprovalStatus=model_approval_status, createdBy=created_by, metadataProperties=metadata_properties, modelMetrics=model_metrics, lastModifiedTime=last_modified_time, lastModifiedBy=last_modified_by, approvalDescription=approval_description, customerMetadataProperties=customer_metadata_properties, driftCheckBaselines=drift_check_baselines, domain=domain, task=task, samplePayloadUrl=sample_payload_url, additionalInferenceSpecifications=additional_inference_specifications))
+    
+    def create_model_package(self):
+        params = self._get_params()
+        model_package_name = params.get("ModelPackageName")
+        model_package_group_name = params.get("ModelPackageGroupName")
+        model_package_description = params.get("ModelPackageDescription")
+        inference_specification = params.get("InferenceSpecification")
+        validation_specification = params.get("ValidationSpecification")
+        source_algorithm_specification = params.get("SourceAlgorithmSpecification")
+        certify_for_marketplace = params.get("CertifyForMarketplace")
+        tags = params.get("Tags")
+        model_approval_status = params.get("ModelApprovalStatus")
+        metadata_properties = params.get("MetadataProperties")
+        model_metrics = params.get("ModelMetrics")
+        client_token = params.get("ClientToken")
+        customer_metadata_properties = params.get("CustomerMetadataProperties")
+        drift_check_baselines = params.get("DriftCheckBaselines")
+        domain = params.get("Domain")
+        task = params.get("Task")
+        sample_payload_url = params.get("SamplePayloadUrl")
+        additional_inference_specifications = params.get("AdditionalInferenceSpecifications")
+        model_package_arn = self.sagemaker_backend.create_model_package(
+            model_package_name=model_package_name,
+            model_package_group_name=model_package_group_name,
+            model_package_description=model_package_description,
+            inference_specification=inference_specification,
+            validation_specification=validation_specification,
+            source_algorithm_specification=source_algorithm_specification,
+            certify_for_marketplace=certify_for_marketplace,
+            tags=tags,
+            model_approval_status=model_approval_status,
+            metadata_properties=metadata_properties,
+            model_metrics=model_metrics,
+            client_token=client_token,
+            customer_metadata_properties=customer_metadata_properties,
+            drift_check_baselines=drift_check_baselines,
+            domain=domain,
+            task=task,
+            sample_payload_url=sample_payload_url,
+            additional_inference_specifications=additional_inference_specifications,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(modelPackageArn=model_package_arn))
+
+    def create_model_package_group(self):
+        params = self._get_params()
+        model_package_group_name = params.get("ModelPackageGroupName")
+        model_package_group_description = params.get("ModelPackageGroupDescription")
+        tags = params.get("Tags")
+        model_package_group_arn = self.sagemaker_backend.create_model_package_group(
+            model_package_group_name=model_package_group_name,
+            model_package_group_description=model_package_group_description,
+            tags=tags,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(modelPackageGroupArn=model_package_group_arn))
