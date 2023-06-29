@@ -186,6 +186,8 @@ mock_textract = lazy_load(".textract", "mock_textract")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker", boto3_name="sagemaker")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker", boto3_name="sagemaker")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker", boto3_name="sagemaker")
+mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker", boto3_name="sagemaker")
+mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker", boto3_name="sagemaker")
 
 
 class MockAll(ContextDecorator):

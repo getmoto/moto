@@ -3,7 +3,7 @@ import os
 import random
 import string
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Iterable, Union
+from typing import Any, Dict, List, Optional, Iterable, Tuple, Union
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
@@ -19,7 +19,11 @@ from .utils import (
     get_pipeline_execution_from_arn,
     get_pipeline_name_from_execution_arn,
 )
-from .utils import load_pipeline_definition_from_s3, arn_formatter
+from .utils import (
+    load_pipeline_definition_from_s3,
+    arn_formatter,
+    arn_package_group_formatter,
+)
 
 
 PAGINATION_MODEL = {
@@ -911,6 +915,96 @@ class Model(BaseObject, CloudFormationModel):
         sagemaker_backends[account_id][region_name].delete_model(model_name)
 
 
+from typing_extensions import NotRequired, TypedDict
+
+
+class IamIdentityArnPackageGroup(TypedDict):
+    arn: str
+    principal_id: str
+    source_identity: str
+
+
+class CreatedByModelPackageGroup(TypedDict):
+    user_profile_arn: str
+    user_profile_name: str
+    domain_id: str
+    iam_identity_arn: NotRequired[IamIdentityArnPackageGroup]
+
+
+class ModelPackageGroup(BaseObject):
+    def __init__(
+        self,
+        model_package_group_name: str,
+        model_package_group_arn: str,
+        model_package_group_description: str,
+        creation_time: str,
+        created_by: CreatedByModelPackageGroup,
+        model_package_group_status: str,
+    ) -> None:
+        self.model_package_group_name = model_package_group_name
+        self.model_package_group_arn = model_package_group_arn
+        self.model_package_group_description = model_package_group_description
+        self.creation_time = creation_time
+        self.created_by = created_by
+        self.model_package_group_status = model_package_group_status
+
+
+class ModelPackage(BaseObject):
+    def __init__(
+        self,
+        model_package_name: str,
+        model_package_group_name: str,
+        model_package_version: str,
+        model_package_arn: str,
+        model_package_description: str,
+        creation_time: datetime,
+        inference_specification: Any,
+        source_algorithm_specification: Any,
+        validation_specification: Any,
+        model_package_status: str,
+        model_package_status_details: str,
+        certify_for_marketplace: bool,
+        model_approval_status: str,
+        created_by: Any,
+        metadata_properties: Any,
+        model_metrics: Any,
+        last_modified_time: datetime,
+        last_modified_by: Any,
+        approval_description: str,
+        customer_metadata_properties: dict,
+        drift_check_baselines: Any,
+        domain: str,
+        task: str,
+        sample_payload_url: str,
+        additional_inference_specifications: list,
+    ):
+        self.model_package_name = model_package_name
+        self.model_package_group_name = model_package_group_name
+        self.model_package_version = model_package_version
+        self.model_package_arn = model_package_arn
+        self.model_package_description = model_package_description
+        self.creation_time = creation_time
+        self.inference_specification = inference_specification
+        self.source_algorithm_specification = source_algorithm_specification
+        self.validation_specification = validation_specification
+        self.model_package_status = model_package_status
+        self.model_package_status_details = model_package_status_details
+        self.certify_for_marketplace = certify_for_marketplace
+        self.model_approval_status = model_approval_status
+        self.created_by = created_by
+        self.metadata_properties = metadata_properties
+        self.model_metrics = model_metrics
+        self.last_modified_time = last_modified_time
+        self.last_modified_by = last_modified_by
+        self.approval_description = approval_description
+        self.customer_metadata_properties = customer_metadata_properties
+        self.drift_check_baselines = drift_check_baselines
+        self.domain = domain
+        self.task = task
+        self.sample_payload_url = sample_payload_url
+        self.additional_inference_specifications = additional_inference_specifications
+
+
 class VpcConfig(BaseObject):
     def __init__(self, security_group_ids: List[str], subnets: List[str]):
         self.security_group_ids = security_group_ids
@@ -1277,6 +1371,8 @@ class SageMakerModelBackend(BaseBackend):
         self.notebook_instance_lifecycle_configurations: Dict[
             str, FakeSageMakerNotebookInstanceLifecycleConfig
         ] = {}
+        self.model_package_groups: Dict[str, ModelPackageGroup] = {}
+        self.model_packages: Dict[str, ModelPackage] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -2665,18 +2761,134 @@ class SageMakerModelBackend(BaseBackend):
         endpoint.endpoint_status = "InService"
         return endpoint.endpoint_arn
 
-    def create_model_package_group(self, model_package_group_name, model_package_group_description, tags):
-        # implement here
+    def create_model_package_group(
+        self, model_package_group_name: str, model_package_group_description: str, tags
+    ):
+        model_package_group_arn = arn_package_group_formatter(
+            self.region_name, self.account_id, model_package_group_name
+        )
+        self.model_package_groups[model_package_group_name] = ModelPackageGroup(
+            model_package_group_name=model_package_group_name,
+            model_package_group_arn=model_package_group_arn,
+            model_package_group_description=model_package_group_description,
+            creation_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
+            created_by={
+                "UserProfileArn": "arn:aws:sagemaker:us-east-1:123456789012:user-profile/dummy-user-profile",
+                "UserProfileName": "dummy-user-profile",
+                "DomainId": "123456789012",
+            },
+            model_package_group_status="Completed",
+        )
         return model_package_group_arn
-    
-    def describe_model_package_group(self, model_package_group_name):
-        # implement here
-        return model_package_group_name, model_package_group_arn, model_package_group_description, creation_time, created_by, model_package_group_status
-    
-    def list_model_packages(self, creation_time_after, creation_time_before, max_results, name_contains, model_approval_status, model_package_group_name, model_package_type, next_token, sort_by, sort_order):
-        # implement here
-        return model_package_summary_list, next_token
-    
+
+    def list_model_packages(
+        self,
+        creation_time_after,
+        creation_time_before,
+        max_results,
+        name_contains,
+        model_approval_status,
+        model_package_group_name,
+        model_package_type,
+        next_token,
+        sort_by,
+        sort_order,
+    ) -> Tuple[List[ModelPackage], Optional[str]]:
+        model_package_summary_list = list(
+            filter(
+                lambda x: x.creation_time > creation_time_after
+                and x.creation_time < creation_time_before
+                and x.model_package_name.find(name_contains) != -1
+                and x.model_approval_status == model_approval_status
+                and x.model_package_group_name == model_package_group_name,
+                self.model_packages.values(),
+            )
+        )
+        starting_index = 0
+        if next_token is not None:
+            starting_index = int(next_token)
+            if starting_index >= len(model_package_summary_list):
+                raise AWSValidationException('Invalid pagination token because "{0}".')
+        if len(model_package_summary_list) == 0:
+            return [], None
+        model_package_summary_list = list(
+            sorted(
+                model_package_summary_list,
+                key={
+                    "Name": lambda x: x.model_package_name,
+                    "CreationTime": lambda x: x.creation_time,
+                }[sort_by],
+                reverse=sort_order == "Descending",
+            )
+        )
+        model_package_summary_list = model_package_summary_list[
+            starting_index : starting_index + max_results
+        ]
+        next_token = starting_index + max_results
+        return (
+            model_package_summary_list,
+            next_token if next_token < len(model_package_summary_list) else None,
+        )
+
+    def describe_model_package(self, model_package_name):
+        model_package = self.model_packages.get(model_package_name)
+        if model_package is None:
+            raise ValidationError(f"Model package {model_package_name} not found")
+        model_package_name = model_package.model_package_name
+        model_package_group_name = model_package.model_package_group_name
+        model_package_version = model_package.model_package_version
+        model_package_arn = model_package.model_package_arn
+        model_package_description = model_package.model_package_description
+        creation_time = model_package.creation_time
+        inference_specification = model_package.inference_specification
+        source_algorithm_specification = model_package.source_algorithm_specification
+        validation_specification = model_package.validation_specification
+        model_package_status = model_package.model_package_status
+        model_package_status_details = model_package.model_package_status_details
+        certify_for_marketplace = model_package.certify_for_marketplace
+        model_approval_status = model_package.model_approval_status
+        created_by = model_package.created_by
+        metadata_properties = model_package.metadata_properties
+        model_metrics = model_package.model_metrics
+        last_modified_time = model_package.last_modified_time
+        last_modified_by = model_package.last_modified_by
+        approval_description = model_package.approval_description
+        customer_metadata_properties = model_package.customer_metadata_properties
+        drift_check_baselines = model_package.drift_check_baselines
+        domain = model_package.domain
+        task = model_package.task
+        sample_payload_url = model_package.sample_payload_url
+        additional_inference_specifications = (
+            model_package.additional_inference_specifications
+        )
+        return (
+            model_package_name,
+            model_package_group_name,
+            model_package_version,
+            model_package_arn,
+            model_package_description,
+            creation_time,
+            inference_specification,
+            source_algorithm_specification,
+            validation_specification,
+            model_package_status,
+            model_package_status_details,
+            certify_for_marketplace,
+            model_approval_status,
+            created_by,
+            metadata_properties,
+            model_metrics,
+            last_modified_time,
+            last_modified_by,
+            approval_description,
+            customer_metadata_properties,
+            drift_check_baselines,
+            domain,
+            task,
+            sample_payload_url,
+            additional_inference_specifications,
+        )
+
 
 class FakeExperiment(BaseObject):
     def __init__(

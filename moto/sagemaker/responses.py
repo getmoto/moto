@@ -796,7 +796,7 @@ class SageMakerResponse(BaseResponse):
             desired_weights_and_capacities=desired_weights_and_capacities,
         )
         return 200, {}, json.dumps({"EndpointArn": endpoint_arn})
-    
+
     def create_model_package_group(self):
         params = self._get_params()
         model_package_group_name = params.get("ModelPackageGroupName")
@@ -809,16 +809,32 @@ class SageMakerResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(modelPackageGroupArn=model_package_group_arn))
-    
+
     def describe_model_package_group(self):
         params = self._get_params()
         model_package_group_name = params.get("ModelPackageGroupName")
-        model_package_group_name, model_package_group_arn, model_package_group_description, creation_time, created_by, model_package_group_status = self.sagemaker_backend.describe_model_package_group(
+        (
+            model_package_group_name,
+            model_package_group_arn,
+            model_package_group_description,
+            creation_time,
+            created_by,
+            model_package_group_status,
+        ) = self.sagemaker_backend.describe_model_package_group(
             model_package_group_name=model_package_group_name,
         )
         # TODO: adjust response
-        return json.dumps(dict(modelPackageGroupName=model_package_group_name, modelPackageGroupArn=model_package_group_arn, modelPackageGroupDescription=model_package_group_description, creationTime=creation_time, createdBy=created_by, modelPackageGroupStatus=model_package_group_status))
-    
+        return json.dumps(
+            dict(
+                modelPackageGroupName=model_package_group_name,
+                modelPackageGroupArn=model_package_group_arn,
+                modelPackageGroupDescription=model_package_group_description,
+                creationTime=creation_time,
+                createdBy=created_by,
+                modelPackageGroupStatus=model_package_group_status,
+            )
+        )
+
     def list_model_packages(self):
         params = self._get_params()
         creation_time_after = params.get("CreationTimeAfter")
@@ -831,7 +847,10 @@ class SageMakerResponse(BaseResponse):
         next_token = params.get("NextToken")
         sort_by = params.get("SortBy")
         sort_order = params.get("SortOrder")
-        model_package_summary_list, next_token = self.sagemaker_backend.list_model_packages(
+        (
+            model_package_summary_list,
+            next_token,
+        ) = self.sagemaker_backend.list_model_packages(
             creation_time_after=creation_time_after,
             creation_time_before=creation_time_before,
             max_results=max_results,
@@ -844,4 +863,46 @@ class SageMakerResponse(BaseResponse):
             sort_order=sort_order,
         )
         # TODO: adjust response
-        return json.dumps(dict(modelPackageSummaryList=model_package_summary_list, nextToken=next_token))
+        return json.dumps(
+            dict(
+                modelPackageSummaryList=model_package_summary_list, nextToken=next_token
+            )
+        )
+
+    def list_model_package_groups(self):
+        params = self._get_params()
+        creation_time_after = params.get("CreationTimeAfter")
+        creation_time_before = params.get("CreationTimeBefore")
+        max_results = params.get("MaxResults")
+        name_contains = params.get("NameContains")
+        next_token = params.get("NextToken")
+        sort_by = params.get("SortBy")
+        sort_order = params.get("SortOrder")
+        (
+            model_package_group_summary_list,
+            next_token,
+        ) = self.sagemaker_backend.list_model_package_groups(
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            max_results=max_results,
+            name_contains=name_contains,
+            next_token=next_token,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        # TODO: adjust response
+        return json.dumps(
+            dict(
+                modelPackageGroupSummaryList=model_package_group_summary_list,
+                nextToken=next_token,
+            )
+        )
+    
+    def describe_model_package(self):
+        params = self._get_params()
+        model_package_name = params.get("ModelPackageName")
+        model_package_name, model_package_group_name, model_package_version, model_package_arn, model_package_description, creation_time, inference_specification, source_algorithm_specification, validation_specification, model_package_status, model_package_status_details, certify_for_marketplace, model_approval_status, created_by, metadata_properties, model_metrics, last_modified_time, last_modified_by, approval_description, customer_metadata_properties, drift_check_baselines, domain, task, sample_payload_url, additional_inference_specifications = self.sagemaker_backend.describe_model_package(
+            model_package_name=model_package_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(modelPackageName=model_package_name, modelPackageGroupName=model_package_group_name, modelPackageVersion=model_package_version, modelPackageArn=model_package_arn, modelPackageDescription=model_package_description, creationTime=creation_time, inferenceSpecification=inference_specification, sourceAlgorithmSpecification=source_algorithm_specification, validationSpecification=validation_specification, modelPackageStatus=model_package_status, modelPackageStatusDetails=model_package_status_details, certifyForMarketplace=certify_for_marketplace, modelApprovalStatus=model_approval_status, createdBy=created_by, metadataProperties=metadata_properties, modelMetrics=model_metrics, lastModifiedTime=last_modified_time, lastModifiedBy=last_modified_by, approvalDescription=approval_description, customerMetadataProperties=customer_metadata_properties, driftCheckBaselines=drift_check_baselines, domain=domain, task=task, samplePayloadUrl=sample_payload_url, additionalInferenceSpecifications=additional_inference_specifications))
