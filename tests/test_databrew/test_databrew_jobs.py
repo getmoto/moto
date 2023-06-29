@@ -78,9 +78,9 @@ def test_create_profile_job_that_already_exists():
     with pytest.raises(ClientError) as exc:
         _create_test_profile_job(client, job_name=response["Name"])
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ConflictException")
-    err["Message"].should.equal(f"The job {job_name} profile job already exists.")
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+    assert err["Code"] == "ConflictException"
+    assert err["Message"] == f"The job {job_name} profile job already exists."
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
 
 
 @mock_databrew
@@ -92,9 +92,9 @@ def test_create_recipe_job_that_already_exists():
     with pytest.raises(ClientError) as exc:
         _create_test_recipe_job(client, job_name=response["Name"])
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ConflictException")
-    err["Message"].should.equal(f"The job {job_name} recipe job already exists.")
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+    assert err["Code"] == "ConflictException"
+    assert err["Message"] == f"The job {job_name} recipe job already exists."
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
 
 
 @mock_databrew
@@ -104,12 +104,12 @@ def test_create_recipe_job_with_invalid_encryption_mode():
     with pytest.raises(ClientError) as exc:
         _create_test_recipe_job(client, encryption_mode="INVALID")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value 'INVALID' at 'encryptionMode' failed to satisfy constraint: "
-        "Member must satisfy enum value set: [SSE-S3, SSE-KMS]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'INVALID' at 'encryptionMode' failed to satisfy constraint: Member must satisfy enum value set: [SSE-S3, SSE-KMS]"
     )
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_databrew
@@ -119,12 +119,12 @@ def test_create_recipe_job_with_invalid_log_subscription_value():
     with pytest.raises(ClientError) as exc:
         _create_test_recipe_job(client, log_subscription="INVALID")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value 'INVALID' at 'logSubscription' failed to satisfy constraint: "
-        "Member must satisfy enum value set: [ENABLE, DISABLE]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'INVALID' at 'logSubscription' failed to satisfy constraint: Member must satisfy enum value set: [ENABLE, DISABLE]"
     )
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_databrew
@@ -136,9 +136,9 @@ def test_create_recipe_job_with_same_name_as_profile_job():
     with pytest.raises(ClientError) as exc:
         _create_test_recipe_job(client, job_name=response["Name"])
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ConflictException")
-    err["Message"].should.equal(f"The job {job_name} profile job already exists.")
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+    assert err["Code"] == "ConflictException"
+    assert err["Message"] == f"The job {job_name} profile job already exists."
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
 
 
 @mock_databrew
@@ -148,12 +148,12 @@ def test_describe_recipe_job():
     response = _create_test_recipe_job(client)
     job_name = response["Name"]
     job = client.describe_job(Name=job_name)
-    job.should.have.key("Name").equal(response["Name"])
-    job.should.have.key("Type").equal("RECIPE")
-    job.should.have.key("ResourceArn").equal(
-        f"arn:aws:databrew:us-west-1:{ACCOUNT_ID}:job/{job_name}"
+    assert job["Name"] == response["Name"]
+    assert job["Type"] == "RECIPE"
+    assert (
+        job["ResourceArn"] == f"arn:aws:databrew:us-west-1:{ACCOUNT_ID}:job/{job_name}"
     )
-    job["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert job["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_databrew
@@ -163,9 +163,9 @@ def test_describe_job_that_does_not_exist():
     with pytest.raises(ClientError) as exc:
         client.describe_job(Name="DoesNotExist")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Job DoesNotExist wasn't found.")
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Job DoesNotExist wasn't found."
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_databrew
@@ -175,12 +175,12 @@ def test_describe_job_with_long_name():
     with pytest.raises(ClientError) as exc:
         client.describe_job(Name=name)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        f"1 validation error detected: Value '{name}' at 'name' failed to satisfy constraint: "
-        f"Member must have length less than or equal to 240"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == f"1 validation error detected: Value '{name}' at 'name' failed to satisfy constraint: Member must have length less than or equal to 240"
     )
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_databrew
@@ -195,13 +195,13 @@ def test_update_profile_job():
     update_response = client.update_profile_job(
         Name=job_name, RoleArn="a" * 20, OutputLocation={"Bucket": "b" * 20}
     )
-    update_response.should.have.key("Name").equals(job_name)
-    update_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert update_response["Name"] == job_name
+    assert update_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     # Describe the job to check that RoleArn was updated
     job = client.describe_job(Name=job_name)
-    job.should.have.key("Name").equal(response["Name"])
-    job.should.have.key("RoleArn").equal("a" * 20)
+    assert job["Name"] == response["Name"]
+    assert job["RoleArn"] == "a" * 20
 
 
 @mock_databrew
@@ -214,13 +214,13 @@ def test_update_recipe_job():
 
     # Update the job by changing RoleArn
     update_response = client.update_recipe_job(Name=job_name, RoleArn="a" * 20)
-    update_response.should.have.key("Name").equals(job_name)
-    update_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert update_response["Name"] == job_name
+    assert update_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     # Describe the job to check that RoleArn was updated
     job = client.describe_job(Name=job_name)
-    job.should.have.key("Name").equal(response["Name"])
-    job.should.have.key("RoleArn").equal("a" * 20)
+    assert job["Name"] == response["Name"]
+    assert job["RoleArn"] == "a" * 20
 
 
 @mock_databrew
@@ -232,9 +232,9 @@ def test_update_profile_job_does_not_exist():
             Name="DoesNotExist", RoleArn="a" * 20, OutputLocation={"Bucket": "b" * 20}
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("The job DoesNotExist wasn't found")
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The job DoesNotExist wasn't found"
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_databrew
@@ -244,9 +244,9 @@ def test_update_recipe_job_does_not_exist():
     with pytest.raises(ClientError) as exc:
         client.update_recipe_job(Name="DoesNotExist", RoleArn="a" * 20)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("The job DoesNotExist wasn't found")
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The job DoesNotExist wasn't found"
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_databrew
@@ -259,16 +259,16 @@ def test_delete_job():
 
     # Delete the job
     response = client.delete_job(Name=job_name)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response["Name"].should.equal(job_name)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["Name"] == job_name
 
     # Check the job does not exist anymore
     with pytest.raises(ClientError) as exc:
         client.describe_job(Name=job_name)
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(f"Job {job_name} wasn't found.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Job {job_name} wasn't found."
 
 
 @mock_databrew
@@ -278,11 +278,11 @@ def test_delete_job_does_not_exist():
     # Delete the job
     with pytest.raises(ClientError) as exc:
         client.delete_job(Name="DoesNotExist")
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("The job DoesNotExist wasn't found.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The job DoesNotExist wasn't found."
 
 
 @mock_databrew
@@ -292,12 +292,12 @@ def test_delete_job_with_long_name():
     with pytest.raises(ClientError) as exc:
         client.delete_job(Name=name)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        f"1 validation error detected: Value '{name}' at 'name' failed to satisfy constraint: "
-        f"Member must have length less than or equal to 240"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == f"1 validation error detected: Value '{name}' at 'name' failed to satisfy constraint: Member must have length less than or equal to 240"
     )
-    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_databrew
@@ -305,9 +305,8 @@ def test_job_list_when_empty():
     client = _create_databrew_client()
 
     response = client.list_jobs()
-    response.should.have.key("Jobs")
-    response["Jobs"].should.have.length_of(0)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert len(response["Jobs"]) == 0
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_databrew
@@ -316,9 +315,9 @@ def test_list_jobs_with_max_results():
 
     _create_test_recipe_jobs(client, 4)
     response = client.list_jobs(MaxResults=2)
-    response["Jobs"].should.have.length_of(2)
-    response.should.have.key("NextToken")
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert len(response["Jobs"]) == 2
+    assert "NextToken" in response
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_databrew
@@ -327,8 +326,8 @@ def test_list_jobs_from_next_token():
     _create_test_recipe_jobs(client, 10)
     first_response = client.list_jobs(MaxResults=3)
     response = client.list_jobs(NextToken=first_response["NextToken"])
-    response["Jobs"].should.have.length_of(7)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert len(response["Jobs"]) == 7
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_databrew
@@ -336,8 +335,8 @@ def test_list_jobs_with_max_results_greater_than_actual_results():
     client = _create_databrew_client()
     _create_test_recipe_jobs(client, 4)
     response = client.list_jobs(MaxResults=10)
-    response["Jobs"].should.have.length_of(4)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert len(response["Jobs"]) == 4
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_databrew
@@ -347,8 +346,8 @@ def test_list_jobs_recipe_and_profile():
     _create_test_recipe_jobs(client, 4)
     _create_test_profile_jobs(client, 2)
     response = client.list_jobs()
-    response["Jobs"].should.have.length_of(6)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert len(response["Jobs"]) == 6
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_databrew
@@ -361,8 +360,8 @@ def test_list_jobs_dataset_name_filter():
     _create_test_profile_jobs(client, 1)
 
     response = client.list_jobs(DatasetName="TEST")
-    response["Jobs"].should.have.length_of(7)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert len(response["Jobs"]) == 7
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_databrew
@@ -374,8 +373,8 @@ def test_list_jobs_project_name_filter():
     _create_test_profile_jobs(client, 1)
 
     response = client.list_jobs(ProjectName="TEST_PROJECT")
-    response["Jobs"].should.have.length_of(3)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert len(response["Jobs"]) == 3
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_databrew
@@ -391,5 +390,5 @@ def test_list_jobs_dataset_name_and_project_name_filter():
     _create_test_profile_jobs(client, 1)
 
     response = client.list_jobs(DatasetName="TEST", ProjectName="TEST_PROJECT")
-    response["Jobs"].should.have.length_of(10)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert len(response["Jobs"]) == 10
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200

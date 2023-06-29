@@ -99,8 +99,8 @@ def test_dataset_list_when_empty():
     client = _create_databrew_client()
 
     response = client.list_datasets()
-    response.should.have.key("Datasets")
-    response["Datasets"].should.have.length_of(0)
+    assert "Datasets" in response
+    assert len(response["Datasets"]) == 0
 
 
 @mock_databrew
@@ -109,9 +109,9 @@ def test_list_datasets_with_max_results():
 
     _create_test_datasets(client, 4)
     response = client.list_datasets(MaxResults=2)
-    response["Datasets"].should.have.length_of(2)
-    response["Datasets"][0].should.have.key("ResourceArn")
-    response.should.have.key("NextToken")
+    assert len(response["Datasets"]) == 2
+    assert "ResourceArn" in response["Datasets"][0]
+    assert "NextToken" in response
 
 
 @mock_databrew
@@ -120,7 +120,7 @@ def test_list_datasets_from_next_token():
     _create_test_datasets(client, 10)
     first_response = client.list_datasets(MaxResults=3)
     response = client.list_datasets(NextToken=first_response["NextToken"])
-    response["Datasets"].should.have.length_of(7)
+    assert len(response["Datasets"]) == 7
 
 
 @mock_databrew
@@ -128,7 +128,7 @@ def test_list_datasets_with_max_results_greater_than_actual_results():
     client = _create_databrew_client()
     _create_test_datasets(client, 4)
     response = client.list_datasets(MaxResults=10)
-    response["Datasets"].should.have.length_of(4)
+    assert len(response["Datasets"]) == 4
 
 
 @mock_databrew
@@ -138,16 +138,17 @@ def test_describe_dataset():
     # region basic test
     response = _create_test_dataset(client)
     dataset = client.describe_dataset(Name=response["Name"])
-    dataset["Name"].should.equal(response["Name"])
-    dataset.should.have.key("ResourceArn").equal(
-        f"arn:aws:databrew:us-west-1:{ACCOUNT_ID}:dataset/{response['Name']}"
+    assert dataset["Name"] == response["Name"]
+    assert (
+        dataset["ResourceArn"]
+        == f"arn:aws:databrew:us-west-1:{ACCOUNT_ID}:dataset/{response['Name']}"
     )
     # endregion
 
     # region JSON test
     response = _create_test_dataset(client, dataset_format="CSV")
     dataset = client.describe_dataset(Name=response["Name"])
-    dataset["Format"].should.equal("CSV")
+    assert dataset["Format"] == "CSV"
     # endregion
 
 
@@ -158,8 +159,8 @@ def test_describe_dataset_that_does_not_exist():
     with pytest.raises(ClientError) as exc:
         client.describe_dataset(Name="DoseNotExist")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("One or more resources can't be found.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "One or more resources can't be found."
 
 
 @mock_databrew
@@ -171,8 +172,8 @@ def test_create_dataset_that_already_exists():
     with pytest.raises(ClientError) as exc:
         _create_test_dataset(client, dataset_name=response["Name"])
     err = exc.value.response["Error"]
-    err["Code"].should.equal("AlreadyExistsException")
-    err["Message"].should.equal(f"{response['Name']} already exists.")
+    assert err["Code"] == "AlreadyExistsException"
+    assert err["Message"] == f"{response['Name']} already exists."
 
 
 @mock_databrew
@@ -182,7 +183,7 @@ def test_delete_dataset():
 
     # Check dataset exists
     dataset = client.describe_dataset(Name=response["Name"])
-    dataset["Name"].should.equal(response["Name"])
+    assert dataset["Name"] == response["Name"]
 
     # Delete the dataset
     client.delete_dataset(Name=response["Name"])
@@ -192,15 +193,15 @@ def test_delete_dataset():
         client.describe_dataset(Name=response["Name"])
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("One or more resources can't be found.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "One or more resources can't be found."
 
     # Check that a dataset that does not exist errors
     with pytest.raises(ClientError) as exc:
         client.delete_dataset(Name=response["Name"])
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("One or more resources can't be found.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "One or more resources can't be found."
 
 
 @mock_databrew
@@ -231,14 +232,15 @@ def test_update_dataset():
             },
         },
     )
-    dataset["Name"].should.equal(response["Name"])
+    assert dataset["Name"] == response["Name"]
 
     # Describe the dataset and check the changes
     dataset = client.describe_dataset(Name=response["Name"])
-    dataset["Name"].should.equal(response["Name"])
-    dataset["Format"].should.equal("TEST")
-    dataset.should.have.key("ResourceArn").equal(
-        f"arn:aws:databrew:us-west-1:{ACCOUNT_ID}:dataset/{response['Name']}"
+    assert dataset["Name"] == response["Name"]
+    assert dataset["Format"] == "TEST"
+    assert (
+        dataset["ResourceArn"]
+        == f"arn:aws:databrew:us-west-1:{ACCOUNT_ID}:dataset/{response['Name']}"
     )
 
 
@@ -272,5 +274,5 @@ def test_update_dataset_that_does_not_exist():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("One or more resources can't be found.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "One or more resources can't be found."
