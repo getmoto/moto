@@ -949,7 +949,7 @@ class ModelPackage(BaseObject):
         self,
         model_package_name: str,
         model_package_group_name: str,
-        model_package_version: str,
+        model_package_version: Optional[int],
         model_package_arn: str,
         model_package_description: str,
         creation_time: datetime,
@@ -2787,6 +2787,17 @@ class SageMakerModelBackend(BaseBackend):
         )
         return model_package_group_arn
 
+    def _get_versioned_or_not(
+        self, model_package_type: str, model_package_version: Optional[int]
+    ) -> bool:
+        if model_package_type == "Versioned":
+            return model_package_version is not None
+        elif model_package_type == "Unversioned":
+            return model_package_version is None
+        elif model_package_type == "Both":
+            return True
+        raise ValueError(f"Invalid model package type: {model_package_type}")
+
     def list_model_packages(
         self,
         creation_time_after,
@@ -2795,7 +2806,7 @@ class SageMakerModelBackend(BaseBackend):
         name_contains,
         model_approval_status,
         model_package_group_name,
-        model_package_type,
+        model_package_type: str,
         next_token,
         sort_by,
         sort_order,
@@ -2806,7 +2817,10 @@ class SageMakerModelBackend(BaseBackend):
                 and x.creation_time < creation_time_before
                 and x.model_package_name.find(name_contains) != -1
                 and x.model_approval_status == model_approval_status
-                and x.model_package_group_name == model_package_group_name,
+                and x.model_package_group_name == model_package_group_name
+                and self._get_versioned_or_not(
+                    model_package_type, x.model_package_version
+                ),
                 self.model_packages.values(),
             )
         )
