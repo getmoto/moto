@@ -211,6 +211,9 @@ class RDSResponse(BaseResponse):
             "replication_source_identifier": self._get_param(
                 "ReplicationSourceIdentifier"
             ),
+            "vpc_security_group_ids": self._get_multi_param(
+                "VpcSecurityGroupIds.VpcSecurityGroupId"
+            ),
         }
 
     def _get_export_task_kwargs(self) -> Dict[str, Any]:

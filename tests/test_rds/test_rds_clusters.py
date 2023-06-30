@@ -228,6 +228,7 @@ def test_create_db_cluster_additional_parameters():
         KmsKeyId="some:kms:arn",
         NetworkType="IPV4",
         DBSubnetGroupName="subnetgroupname",
+        VpcSecurityGroupIds=["sg-987234872uywd"],
         ScalingConfiguration={
             "MinCapacity": 5,
             "AutoPause": True,
@@ -247,6 +248,7 @@ def test_create_db_cluster_additional_parameters():
     assert cluster["NetworkType"] == "IPV4"
     assert cluster["DBSubnetGroup"] == "subnetgroupname"
     assert cluster["ScalingConfigurationInfo"] == {"MinCapacity": 5, "AutoPause": True}
+    assert cluster["VpcSecurityGroupIds"] == ["sg-987234872uywd"]
 
 
 @mock_rds
