@@ -3,7 +3,7 @@ import os
 import random
 import string
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Iterable, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Iterable, Tuple, Union
 
 # from typing_extensions import NotRequired, TypedDict
 
@@ -932,10 +932,10 @@ class ModelPackageGroup(BaseObject):
         model_package_group_name: str,
         model_package_group_arn: str,
         model_package_group_description: str,
-        creation_time: str,
+        creation_time: datetime,
         created_by: Any,
         model_package_group_status: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[List[Dict[Literal["Key", "Value"], str]]] = None,
     ) -> None:
         self.model_package_group_name = model_package_group_name
         self.model_package_group_arn = model_package_group_arn
@@ -974,6 +974,7 @@ class ModelPackage(BaseObject):
         task: str,
         sample_payload_url: str,
         additional_inference_specifications: list,
+        tags: Optional[List[Dict[str, str]]] = None,
     ):
         self.model_package_name = model_package_name
         self.model_package_group_name = model_package_group_name
@@ -1000,6 +1001,7 @@ class ModelPackage(BaseObject):
         self.task = task
         self.sample_payload_url = sample_payload_url
         self.additional_inference_specifications = additional_inference_specifications
+        self.tags = tags
 
 
 class VpcConfig(BaseObject):
@@ -1370,6 +1372,7 @@ class SageMakerModelBackend(BaseBackend):
         ] = {}
         self.model_package_groups: Dict[str, ModelPackageGroup] = {}
         self.model_packages: Dict[str, ModelPackage] = {}
+        self.model_package_name_mapping: Dict[str, str] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -2779,7 +2782,7 @@ class SageMakerModelBackend(BaseBackend):
             model_package_group_name=model_package_group_name,
             model_package_group_arn=model_package_group_arn,
             model_package_group_description=model_package_group_description,
-            creation_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
+            creation_time=datetime.now(),
             created_by={
                 "UserProfileArn": fake_user_profile_arn,
                 "UserProfileName": fake_user_profile_name,
@@ -2795,7 +2798,7 @@ class SageMakerModelBackend(BaseBackend):
     ) -> bool:
         if model_package_type == "Versioned":
             return model_package_version is not None
-        elif model_package_type == "Unversioned":
+        elif model_package_type == "Unversioned" or model_package_type is None:
             return model_package_version is None
         elif model_package_type == "Both":
             return True
@@ -2813,14 +2816,28 @@ class SageMakerModelBackend(BaseBackend):
         next_token,
         sort_by,
         sort_order,
-    ) -> Tuple[List[ModelPackage], Optional[str]]:
+    ) -> Tuple[List[ModelPackage], Optional[int]]:
         model_package_summary_list = list(
             filter(
-                lambda x: x.creation_time > creation_time_after
-                and x.creation_time < creation_time_before
-                and x.model_package_name.find(name_contains) != -1
-                and x.model_approval_status == model_approval_status
-                and x.model_package_group_name == model_package_group_name
+                lambda x: (
+                    creation_time_after is None or x.creation_time > creation_time_after
+                )
+                and (
+                    creation_time_before is None
+                    or x.creation_time < creation_time_before
+                )
+                and (
+                    name_contains is None
+                    or x.model_package_name.find(name_contains) != -1
+                )
+                and (
+                    model_approval_status is None
+                    or x.model_approval_status == model_approval_status
+                )
+                and (
+                    model_package_group_name is None
+                    or x.model_package_group_name == model_package_group_name
+                )
                 and self._get_versioned_or_not(
                     model_package_type, x.model_package_version
                 ),
@@ -2840,21 +2857,37 @@ class SageMakerModelBackend(BaseBackend):
                 key={
                     "Name": lambda x: x.model_package_name,
                     "CreationTime": lambda x: x.creation_time,
+                    None: lambda x: x.creation_time,
                 }[sort_by],
                 reverse=sort_order == "Descending",
             )
         )
-        model_package_summary_list = model_package_summary_list[
-            starting_index : starting_index + max_results
-        ]
-        next_token = starting_index + max_results
+        new_next_token = None
+        if max_results is not None:
+            try:
+                max_results = int(max_results)
+            except ValueError:
+                raise AWSValidationException(
+                    f"Invalid max results {max_results} is not an integer"
+                )
+            model_package_summary_list = model_package_summary_list[
+                starting_index : starting_index + max_results
+            ]
+            new_next_token = (
+                starting_index + max_results
+                if starting_index + max_results < len(model_package_summary_list)
+                else None
+            )
         return (
             model_package_summary_list,
-            next_token if next_token < len(model_package_summary_list) else None,
+            new_next_token,
         )
 
     def describe_model_package(self, model_package_name):
-        model_package = self.model_packages.get(model_package_name)
+        model_package_name_mapped = self.model_package_name_mapping.get(
+            model_package_name, model_package_name
+        )
+        model_package = self.model_packages.get(model_package_name_mapped)
         if model_package is None:
             raise ValidationError(f"Model package {model_package_name} not found")
         model_package_name = model_package.model_package_name
@@ -2938,7 +2971,28 @@ class SageMakerModelBackend(BaseBackend):
             region_name=self.region_name,
             account_id=self.account_id,
             _type="model-package",
-            _id=model_package_group_name,
+            _id=model_package_name,
+        )
+        model_package_version = None
+        if model_package_group_name is not None:
+            model_package_version = (
+                len(
+                    [
+                        x
+                        for x in self.model_packages.values()
+                        if x.model_package_group_name == model_package_group_name
+                    ]
+                )
+                + 1
+            )
+        datetime_now = datetime.now()
+        fake_user_profile_name = "fake-user-profile-name"
+        fake_domain_id = "fake-domain-id"
+        fake_user_profile_arn = arn_formatter(
+            _type="user-profile",
+            _id=f"{fake_domain_id}/{fake_user_profile_name}",
+            account_id=self.account_id,
+            region_name=self.region_name,
         )
         model_package = ModelPackage(
             model_package_name=model_package_name,
@@ -2959,7 +3013,38 @@ class SageMakerModelBackend(BaseBackend):
             task=task,
             sample_payload_url=sample_payload_url,
             additional_inference_specifications=additional_inference_specifications,
+            model_package_version=model_package_version,
+            creation_time=datetime_now,
+            model_package_status="Completed",
+            model_package_status_details={
+                "ValidationStatuses": [
+                    {
+                        "Name": model_package_arn,
+                        "Status": "Completed",
+                    }
+                ],
+                "ImageScanStatuses": [
+                    {
+                        "Name": model_package_arn,
+                        "Status": "Completed",
+                    }
+                ],
+            },
+            approval_description=model_approval_status,
+            last_modified_by={
+                "UserProfileArn": fake_user_profile_arn,
+                "UserProfileName": fake_user_profile_name,
+                "DomainId": fake_domain_id,
+            },
+            last_modified_time=datetime_now,
+            created_by={
+                "UserProfileArn": fake_user_profile_arn,
+                "UserProfileName": fake_user_profile_name,
+                "DomainId": fake_domain_id,
+            },
         )
+        self.model_package_name_mapping[model_package_name] = model_package_arn
+        self.model_package_name_mapping[model_package_arn] = model_package_arn
         self.model_packages[model_package_arn] = model_package
         return model_package_arn
 

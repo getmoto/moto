@@ -47,12 +47,16 @@ def test_describe_model_package():
     )
     resp = client.describe_model_package(ModelPackageName="test-model-package")
     assert resp["ModelPackageName"] == "test-model-package"
+    assert resp["ModelPackageDescription"] == "test-model-package-description"
 
 
 @mock_sagemaker
 def test_create_model_package():
     client = boto3.client("sagemaker", region_name="eu-west-1")
-    resp = client.create_model_package()
+    resp = client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageDescription="test-model-package-description",
+    )
     assert (
         resp["ModelPackageArn"]
         == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package"
@@ -65,6 +69,9 @@ def test_create_model_package_group():
     resp = client.create_model_package_group(
         ModelPackageGroupName="test-model-package-group",
         ModelPackageGroupDescription="test-model-package-group-description",
+        Tags=[
+            {"Key": "test-key", "Value": "test-value"},
+        ],
     )
     assert (
         resp["ModelPackageGroupArn"]
