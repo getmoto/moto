@@ -5,8 +5,6 @@ import string
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Iterable, Tuple, Union
 
-# from typing_extensions import NotRequired, TypedDict
-
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
@@ -911,19 +909,6 @@ class Model(BaseObject, CloudFormationModel):
         model_name = resource_name.split("/")[-1]
 
         sagemaker_backends[account_id][region_name].delete_model(model_name)
-
-
-# class IamIdentityArnPackageGroup(TypedDict):
-#     arn: str
-#     principal_id: str
-#     source_identity: str
-
-
-# class CreatedByModelPackageGroup(TypedDict):
-#     user_profile_arn: str
-#     user_profile_name: str
-#     domain_id: str
-#     iam_identity_arn: NotRequired[IamIdentityArnPackageGroup]
 
 
 class ModelPackageGroup(BaseObject):
