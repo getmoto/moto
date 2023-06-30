@@ -3,8 +3,6 @@ from jinja2 import DictLoader, Environment
 from typing import Any, List, Tuple, Optional
 import json
 
-# TODO: add "<Type>Sender</Type>" to error responses below?
-
 
 SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>
@@ -20,6 +18,9 @@ WRAPPED_SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <Error>
         <Code>{{error_type}}</Code>
         <Message><![CDATA[{{message}}]]></Message>
+        {% if sender_fault %}
+        <Type>Sender</Type>
+        {% endif %}
         {% block extra %}{% endblock %}
         <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
     </Error>
@@ -44,6 +45,9 @@ class RESTError(HTTPException):
     # most APIs use <RequestId>, but some APIs (including EC2, S3) use <RequestID>
     request_id_tag_name = "RequestId"
 
+    # When this field is set, the `Type` field will be included in the response
+    sender_fault = False
+
     templates = {
         "single_error": SINGLE_ERROR_RESPONSE,
         "wrapped_single_error": WRAPPED_SINGLE_ERROR_RESPONSE,
@@ -63,6 +67,7 @@ class RESTError(HTTPException):
                 error_type=error_type,
                 message=message,
                 request_id_tag=self.request_id_tag_name,
+                sender_fault=self.sender_fault,
                 **kwargs,
             )
             self.content_type = "application/xml"
