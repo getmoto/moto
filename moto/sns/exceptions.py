@@ -10,7 +10,6 @@ class SNSException(RESTError):
 
 class SNSNotFoundError(SNSException):
     code = 404
-    sender_fault = True
 
     def __init__(self, message: str, template: Optional[str] = None):
         super().__init__("NotFound", message, template=template)
@@ -23,7 +22,6 @@ class TopicNotFound(SNSNotFoundError):
 
 class ResourceNotFoundError(SNSException):
     code = 404
-    sender_fault = True
 
     def __init__(self) -> None:
         super().__init__("ResourceNotFound", "Resource does not exist")
@@ -31,7 +29,6 @@ class ResourceNotFoundError(SNSException):
 
 class DuplicateSnsEndpointError(SNSException):
     code = 400
-    sender_fault = True
 
     def __init__(self, message: str):
         super().__init__("DuplicateEndpoint", message)
@@ -39,7 +36,6 @@ class DuplicateSnsEndpointError(SNSException):
 
 class SnsEndpointDisabled(SNSException):
     code = 400
-    sender_fault = True
 
     def __init__(self, message: str):
         super().__init__("EndpointDisabled", message)
@@ -47,7 +43,6 @@ class SnsEndpointDisabled(SNSException):
 
 class SNSInvalidParameter(SNSException):
     code = 400
-    sender_fault = True
 
     def __init__(self, message: str):
         super().__init__("InvalidParameter", message)
@@ -55,7 +50,6 @@ class SNSInvalidParameter(SNSException):
 
 class InvalidParameterValue(SNSException):
     code = 400
-    sender_fault = True
 
     def __init__(self, message: str):
         super().__init__("InvalidParameterValue", message)
@@ -63,7 +57,6 @@ class InvalidParameterValue(SNSException):
 
 class TagLimitExceededError(SNSException):
     code = 400
-    sender_fault = True
 
     def __init__(self) -> None:
         super().__init__(
@@ -74,6 +67,7 @@ class TagLimitExceededError(SNSException):
 
 class InternalError(SNSException):
     code = 500
+    sender_fault = False
 
     def __init__(self, message: str):
         super().__init__("InternalFailure", message)
@@ -81,7 +75,6 @@ class InternalError(SNSException):
 
 class TooManyEntriesInBatchRequest(SNSException):
     code = 400
-    sender_fault = True
 
     def __init__(self) -> None:
         super().__init__(
@@ -92,7 +85,6 @@ class TooManyEntriesInBatchRequest(SNSException):
 
 class BatchEntryIdsNotDistinct(SNSException):
     code = 400
-    sender_fault = True
 
     def __init__(self) -> None:
         super().__init__(

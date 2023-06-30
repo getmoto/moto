@@ -46,7 +46,7 @@ class RESTError(HTTPException):
     request_id_tag_name = "RequestId"
 
     # When this field is set, the `Type` field will be included in the response
-    sender_fault = False
+    sender_fault = True
 
     templates = {
         "single_error": SINGLE_ERROR_RESPONSE,
