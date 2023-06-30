@@ -957,7 +957,6 @@ class SageMakerResponse(BaseResponse):
         return json.dumps(dict(ModelPackageArn=model_package_arn))
 
     def create_model_package_group(self):
-        params = self._get_params()
         model_package_group_name = self._get_param("ModelPackageGroupName")
         model_package_group_description = self._get_param("ModelPackageGroupDescription")
         tags = self._get_param("Tags")
