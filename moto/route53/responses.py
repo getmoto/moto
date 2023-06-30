@@ -1,5 +1,6 @@
 """Handles Route53 API requests, invokes method and returns response."""
 import datetime
+import re
 from urllib.parse import parse_qs, urlparse
 
 from jinja2 import Template
@@ -349,7 +350,10 @@ class Route53(BaseResponse):
 
         parsed_url = urlparse(full_url)
         method = request.method
-        health_check_id = parsed_url.path.removesuffix("/status").split("/")[-1]
+
+        health_check_id = re.search(
+            r"healthcheck/(?P<health_check_id>[^/]+)/status$", parsed_url.path
+        ).group("health_check_id")
 
         if method == "GET":
             self.backend.get_health_check(health_check_id)
