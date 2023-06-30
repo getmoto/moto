@@ -723,7 +723,7 @@ class SecretsManagerBackend(BaseBackend):
         force_delete_without_recovery: bool,
     ) -> Tuple[str, str, float]:
 
-        if recovery_window_in_days and (
+        if recovery_window_in_days is not None and (
             recovery_window_in_days < 7 or recovery_window_in_days > 30
         ):
             raise InvalidParameterException(
