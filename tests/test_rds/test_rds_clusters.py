@@ -228,7 +228,6 @@ def test_create_db_cluster_additional_parameters():
         KmsKeyId="some:kms:arn",
         NetworkType="IPV4",
         DBSubnetGroupName="subnetgroupname",
-        VpcSecurityGroupIds=["sg-987234872uywd"],
         ScalingConfiguration={
             "MinCapacity": 5,
             "AutoPause": True,
@@ -248,7 +247,6 @@ def test_create_db_cluster_additional_parameters():
     assert cluster["NetworkType"] == "IPV4"
     assert cluster["DBSubnetGroup"] == "subnetgroupname"
     assert cluster["ScalingConfigurationInfo"] == {"MinCapacity": 5, "AutoPause": True}
-    assert cluster["VpcSecurityGroupIds"] == ["sg-987234872uywd"]
 
 
 @mock_rds
@@ -905,3 +903,33 @@ def test_replicate_cluster():
     replica = us_west.describe_db_clusters()["DBClusters"][0]
     assert "ReplicationSourceIdentifier" not in replica
     assert replica["MultiAZ"] is False
+
+@mock_rds
+def test_create_db_cluster_vpc_sg_check():
+    client = boto3.client("rds", region_name="eu-north-1")
+
+    resp = client.create_db_cluster(
+        AvailabilityZones=["eu-north-1b"],
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora",
+        EngineVersion="8.0.mysql_aurora.3.01.0",
+        EngineMode="serverless",
+        MasterUsername="root",
+        MasterUserPassword="hunter2_",
+        Port=1234,
+        DeletionProtection=True,
+        EnableCloudwatchLogsExports=["audit"],
+        KmsKeyId="some:kms:arn",
+        NetworkType="IPV4",
+        DBSubnetGroupName="subnetgroupname",
+        VpcSecurityGroupIds=["sg-987234872uywd"],
+        ScalingConfiguration={
+            "MinCapacity": 5,
+            "AutoPause": True,
+        },
+    )
+
+    cluster = resp["DBCluster"]
+    print(cluster)
+
+    assert cluster["VpcSecurityGroupIds"] == ["sg-987234872uywd"]
