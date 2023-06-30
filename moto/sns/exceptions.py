@@ -1,10 +1,15 @@
 from typing import Any, Optional
 from moto.core.exceptions import RESTError
 
+SNS_ERROR_WITH_TYPE = """{% extends 'wrapped_single_error' %}
+{% block extra %}<Type>Sender</Type>{% endblock %}
+"""
+
 
 class SNSException(RESTError):
     def __init__(self, *args: Any, **kwargs: Any):
-        kwargs["template"] = "wrapped_single_error"
+        self.templates["sns_error_with_type"] = SNS_ERROR_WITH_TYPE
+        kwargs["template"] = "sns_error_with_type"
         super().__init__(*args, **kwargs)
 
 
