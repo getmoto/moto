@@ -395,3 +395,47 @@ def test_create_fargate_managed_compute_environment(compute_env_type):
     # Should have created 1 ECS cluster
     all_clusters = ecs_client.list_clusters()["clusterArns"]
     assert our_env["ecsClusterArn"] in all_clusters
+
+
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_create_ec2_managed_compute_environment__without_required_params():
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, subnet_id, _, iam_arn = _setup(ec2_client, iam_client)
+
+    with pytest.raises(ClientError) as exc:
+        batch_client.create_compute_environment(
+            computeEnvironmentName="ec2-env",
+            type="MANAGED",
+            state="ENABLED",
+            computeResources={"type": "EC2", "maxvCpus": 1, "subnets": [subnet_id]},
+            serviceRole=iam_arn,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ClientException"
+    assert (
+        "Error executing request, Exception : Instance role is required."
+        in err["Message"]
+    )
+
+    with pytest.raises(ClientError) as exc:
+        batch_client.create_compute_environment(
+            computeEnvironmentName="ec2-env",
+            type="MANAGED",
+            state="ENABLED",
+            computeResources={
+                "type": "EC2",
+                "maxvCpus": 1,
+                "subnets": [subnet_id],
+                "instanceRole": iam_arn.replace("role", "instance-profile"),
+            },
+            serviceRole=iam_arn,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ClientException"
+    assert (
+        "Error executing request, Exception : Resource minvCpus is required."
+        in err["Message"]
+    )
