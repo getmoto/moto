@@ -148,6 +148,8 @@ class DistributionConfig:
         self.aliases = ((config.get("Aliases") or {}).get("Items") or {}).get(
             "CNAME"
         ) or []
+        if isinstance(self.aliases, str):
+            self.aliases = [self.aliases]
         self.comment = config.get("Comment") or ""
         self.default_cache_behavior = DefaultCacheBehaviour(
             config["DefaultCacheBehavior"]
