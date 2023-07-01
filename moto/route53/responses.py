@@ -353,7 +353,9 @@ class Route53(BaseResponse):
 
         health_check_id = re.search(
             r"healthcheck/(?P<health_check_id>[^/]+)/status$", parsed_url.path
-        ).group("health_check_id")
+        ).group(  # type: ignore[union-attr]
+            "health_check_id"
+        )
 
         if method == "GET":
             self.backend.get_health_check(health_check_id)
