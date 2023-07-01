@@ -34,6 +34,13 @@ class PreconditionFailedException(JsonRESTError):
         super().__init__("PreconditionFailedException", message)
 
 
+class ConflictException(LambdaClientError):
+    code = 409
+
+    def __init__(self, message: str):
+        super().__init__("ConflictException", message)
+
+
 class UnknownAliasException(LambdaClientError):
     code = 404
 

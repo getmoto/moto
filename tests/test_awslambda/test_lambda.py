@@ -960,6 +960,107 @@ def test_list_versions_by_function():
 
 @mock_lambda
 @mock_s3
+def test_list_aliases():
+    bucket_name = str(uuid4())
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    function_name2 = str(uuid4())[0:6]
+
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    conn.create_function(
+        FunctionName=function_name2,
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    first_version = conn.publish_version(FunctionName=function_name)["Version"]
+
+    conn.create_alias(
+        FunctionName=function_name,
+        Name="alias1",
+        FunctionVersion=first_version,
+    )
+
+    conn.update_function_code(FunctionName=function_name, ZipFile=get_test_zip_file1())
+    second_version = conn.publish_version(FunctionName=function_name)["Version"]
+
+    conn.create_alias(
+        FunctionName=function_name,
+        Name="alias2",
+        FunctionVersion=second_version,
+    )
+
+    conn.create_alias(
+        FunctionName=function_name,
+        Name="alias0",
+        FunctionVersion=second_version,
+    )
+
+    aliases = conn.list_aliases(FunctionName=function_name)
+    assert len(aliases["Aliases"]) == 3
+
+    # should be ordered by their alias name (as per SDK response)
+    assert (
+        aliases["Aliases"][0]["AliasArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:alias0"
+    )
+    assert aliases["Aliases"][0]["FunctionVersion"] == second_version
+
+    assert (
+        aliases["Aliases"][1]["AliasArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:alias1"
+    )
+    assert aliases["Aliases"][1]["FunctionVersion"] == first_version
+
+    assert (
+        aliases["Aliases"][2]["AliasArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:alias2"
+    )
+    assert aliases["Aliases"][2]["FunctionVersion"] == second_version
+
+    res = conn.publish_version(FunctionName=function_name2)
+    conn.create_alias(
+        FunctionName=function_name2,
+        Name="alias1",
+        FunctionVersion=res["Version"],
+    )
+
+    aliases = conn.list_aliases(FunctionName=function_name2)
+
+    assert len(aliases["Aliases"]) == 1
+    assert (
+        aliases["Aliases"][0]["AliasArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name2}:alias1"
+    )
+
+
+@mock_lambda
+@mock_s3
 def test_create_function_with_already_exists():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)

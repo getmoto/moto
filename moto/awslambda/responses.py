@@ -46,8 +46,13 @@ class LambdaResponse(BaseResponse):
 
     def aliases(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
+
         if request.method == "POST":
             return self._create_alias()
+        elif request.method == "GET":
+            path = request.path if hasattr(request, "path") else path_url(request.url)
+            function_name = path.split("/")[-2]
+            return self._list_aliases(function_name)
 
     def alias(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
@@ -293,6 +298,16 @@ class LambdaResponse(BaseResponse):
         for fn in functions:
             json_data = fn.get_configuration()
             result["Versions"].append(json_data)
+
+        return 200, {}, json.dumps(result)
+
+    def _list_aliases(self, function_name: str) -> TYPE_RESPONSE:
+        result: Dict[str, Any] = {"Aliases": []}
+
+        aliases = self.backend.list_aliases(function_name)
+        for alias in aliases:
+            json_data = alias.to_json()
+            result["Aliases"].append(json_data)
 
         return 200, {}, json.dumps(result)
 
