@@ -287,12 +287,15 @@ def test_create_distribution_with_origins():
 @pytest.mark.parametrize("qs", [True, False])
 @pytest.mark.parametrize("smooth", [True, False])
 @pytest.mark.parametrize("ipv6", [True, False])
-def test_create_distribution_with_additional_fields(compress, qs, smooth, ipv6):
+@pytest.mark.parametrize("aliases", [["alias1", "alias2"], ["alias1"]])
+def test_create_distribution_with_additional_fields(
+    compress, qs, smooth, ipv6, aliases
+):
     client = boto3.client("cloudfront", region_name="us-west-1")
 
     config = scaffold.example_distribution_config("ref")
     config["IsIPV6Enabled"] = ipv6
-    config["Aliases"] = {"Quantity": 2, "Items": ["alias1", "alias2"]}
+    config["Aliases"] = {"Quantity": 2, "Items": aliases}
     config["DefaultCacheBehavior"]["ForwardedValues"]["Cookies"] = {
         "Forward": "whitelist",
         "WhitelistedNames": {"Quantity": 1, "Items": ["x-amz-header"]},
@@ -306,9 +309,7 @@ def test_create_distribution_with_additional_fields(compress, qs, smooth, ipv6):
     distribution = resp["Distribution"]
     distribution.should.have.key("DistributionConfig")
     config = distribution["DistributionConfig"]
-    config.should.have.key("Aliases").equals(
-        {"Items": ["alias1", "alias2"], "Quantity": 2}
-    )
+    assert config["Aliases"] == {"Items": aliases, "Quantity": len(aliases)}
 
     config.should.have.key("PriceClass").equals("PriceClass_100")
     config.should.have.key("IsIPV6Enabled").equals(ipv6)
