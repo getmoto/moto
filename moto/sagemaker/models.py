@@ -915,19 +915,35 @@ class ModelPackageGroup(BaseObject):
     def __init__(
         self,
         model_package_group_name: str,
-        model_package_group_arn: str,
         model_package_group_description: str,
-        creation_time: datetime,
-        created_by: Any,
-        model_package_group_status: str,
+        account_id: str,
+        region_name: str,
         tags: Optional[List[Dict[Literal["Key", "Value"], str]]] = None,
     ) -> None:
+        model_package_group_arn = arn_formatter(
+            region_name=region_name,
+            account_id=account_id,
+            _type="model-package-group",
+            _id=model_package_group_name,
+        )
+        fake_user_profile_name = "fake-user-profile-name"
+        fake_domain_id = "fake-domain-id"
+        fake_user_profile_arn = arn_formatter(
+            _type="user-profile",
+            _id=f"{fake_domain_id}/{fake_user_profile_name}",
+            account_id=account_id,
+            region_name=region_name,
+        )
         self.model_package_group_name = model_package_group_name
         self.model_package_group_arn = model_package_group_arn
         self.model_package_group_description = model_package_group_description
-        self.creation_time = creation_time
-        self.created_by = created_by
-        self.model_package_group_status = model_package_group_status
+        self.creation_time = datetime.now()
+        self.created_by = {
+            "UserProfileArn": fake_user_profile_arn,
+            "UserProfileName": fake_user_profile_name,
+            "DomainId": fake_domain_id,
+        }
+        self.model_package_group_status = "Completed"
         self.tags = tags
 
 
@@ -2749,34 +2765,14 @@ class SageMakerModelBackend(BaseBackend):
     def create_model_package_group(
         self, model_package_group_name, model_package_group_description, tags
     ):
-        model_package_group_arn = arn_formatter(
-            region_name=self.region_name,
-            account_id=self.account_id,
-            _type="model-package-group",
-            _id=model_package_group_name,
-        )
-        fake_user_profile_name = "fake-user-profile-name"
-        fake_domain_id = "fake-domain-id"
-        fake_user_profile_arn = arn_formatter(
-            _type="user-profile",
-            _id=f"{fake_domain_id}/{fake_user_profile_name}",
-            account_id=self.account_id,
-            region_name=self.region_name,
-        )
         self.model_package_groups[model_package_group_name] = ModelPackageGroup(
             model_package_group_name=model_package_group_name,
-            model_package_group_arn=model_package_group_arn,
             model_package_group_description=model_package_group_description,
-            creation_time=datetime.now(),
-            created_by={
-                "UserProfileArn": fake_user_profile_arn,
-                "UserProfileName": fake_user_profile_name,
-                "DomainId": fake_domain_id,
-            },
-            model_package_group_status="Completed",
+            account_id=self.account_id,
+            region_name=self.region_name,
             tags=tags,
         )
-        return model_package_group_arn
+        return self.model_package_groups[model_package_group_name].model_package_group_arn
 
     def _get_versioned_or_not(
         self, model_package_type: str, model_package_version: Optional[int]
