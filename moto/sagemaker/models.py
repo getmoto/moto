@@ -1011,6 +1011,23 @@ class ModelPackage(BaseObject):
         self.additional_inference_specifications = additional_inference_specifications
         self.tags = tags
 
+    def gen_response_object(self) -> Dict[str, Any]:
+        response_object = super().gen_response_object()
+        for k, v in response_object.items():
+            if isinstance(v, datetime):
+                response_object[k] = v.isoformat()
+        response_values = [
+            "ModelPackageName",
+            "ModelPackageGroupName",
+            "ModelPackageVersion",
+            "ModelPackageArn",
+            "ModelPackageDescription",
+            "CreationTime",
+            "ModelPackageStatus",
+            "ModelApprovalStatus",
+        ]
+        return {k: v for k, v in response_object.items() if k in response_values}
+
 
 class VpcConfig(BaseObject):
     def __init__(self, security_group_ids: List[str], subnets: List[str]):
@@ -2857,60 +2874,7 @@ class SageMakerModelBackend(BaseBackend):
         model_package = self.model_packages.get(model_package_name_mapped)
         if model_package is None:
             raise ValidationError(f"Model package {model_package_name} not found")
-        model_package_name = model_package.model_package_name
-        model_package_group_name = model_package.model_package_group_name
-        model_package_version = model_package.model_package_version
-        model_package_arn = model_package.model_package_arn
-        model_package_description = model_package.model_package_description
-        creation_time = model_package.creation_time
-        inference_specification = model_package.inference_specification
-        source_algorithm_specification = model_package.source_algorithm_specification
-        validation_specification = model_package.validation_specification
-        model_package_status = model_package.model_package_status
-        model_package_status_details = model_package.model_package_status_details
-        certify_for_marketplace = model_package.certify_for_marketplace
-        model_approval_status = model_package.model_approval_status
-        created_by = model_package.created_by
-        metadata_properties = model_package.metadata_properties
-        model_metrics = model_package.model_metrics
-        last_modified_time = model_package.last_modified_time
-        last_modified_by = model_package.last_modified_by
-        approval_description = model_package.approval_description
-        customer_metadata_properties = model_package.customer_metadata_properties
-        drift_check_baselines = model_package.drift_check_baselines
-        domain = model_package.domain
-        task = model_package.task
-        sample_payload_url = model_package.sample_payload_url
-        additional_inference_specifications = (
-            model_package.additional_inference_specifications
-        )
-        return (
-            model_package_name,
-            model_package_group_name,
-            model_package_version,
-            model_package_arn,
-            model_package_description,
-            creation_time,
-            inference_specification,
-            source_algorithm_specification,
-            validation_specification,
-            model_package_status,
-            model_package_status_details,
-            certify_for_marketplace,
-            model_approval_status,
-            created_by,
-            metadata_properties,
-            model_metrics,
-            last_modified_time,
-            last_modified_by,
-            approval_description,
-            customer_metadata_properties,
-            drift_check_baselines,
-            domain,
-            task,
-            sample_payload_url,
-            additional_inference_specifications,
-        )
+        return model_package
 
     def create_model_package(
         self,

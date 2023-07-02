@@ -824,92 +824,24 @@ class SageMakerResponse(BaseResponse):
             sort_order=sort_order,
         )
         # TODO: adjust response
-        response_values = [
-            "ModelPackageName",
-            "ModelPackageGroupName",
-            "ModelPackageVersion",
-            "ModelPackageArn",
-            "ModelPackageDescription",
-            "CreationTime",
-            "ModelPackageStatus",
-            "ModelApprovalStatus",
-        ]
         model_package_summary_list_response_object = [
             x.gen_response_object() for x in model_package_summary_list
         ]
-        model_package_summary_list_response_object_filtered = [
-            {key: x[key] for key in response_values}
-            for x in model_package_summary_list_response_object
-        ]
-        for response_object in model_package_summary_list_response_object_filtered:
-            response_object["CreationTime"] = response_object["CreationTime"].isoformat()
         return json.dumps(
             dict(
-                ModelPackageSummaryList=model_package_summary_list_response_object_filtered,
+                ModelPackageSummaryList=model_package_summary_list_response_object,
                 NextToken=next_token,
             )
         )
 
     def describe_model_package(self):
         model_package_name = self._get_param("ModelPackageName")
-        (
-            model_package_name,
-            model_package_group_name,
-            model_package_version,
-            model_package_arn,
-            model_package_description,
-            creation_time,
-            inference_specification,
-            source_algorithm_specification,
-            validation_specification,
-            model_package_status,
-            model_package_status_details,
-            certify_for_marketplace,
-            model_approval_status,
-            created_by,
-            metadata_properties,
-            model_metrics,
-            last_modified_time,
-            last_modified_by,
-            approval_description,
-            customer_metadata_properties,
-            drift_check_baselines,
-            domain,
-            task,
-            sample_payload_url,
-            additional_inference_specifications,
-        ) = self.sagemaker_backend.describe_model_package(
+        model_package = self.sagemaker_backend.describe_model_package(
             model_package_name=model_package_name,
         )
         # TODO: adjust response
         return json.dumps(
-            dict(
-                ModelPackageName=model_package_name,
-                ModelPackageGroupName=model_package_group_name,
-                ModelPackageVersion=model_package_version,
-                ModelPackageArn=model_package_arn,
-                ModelPackageDescription=model_package_description,
-                CreationTime=creation_time.isoformat(),
-                InferenceSpecification=inference_specification,
-                SourceAlgorithmSpecification=source_algorithm_specification,
-                ValidationSpecification=validation_specification,
-                ModelPackageStatus=model_package_status,
-                ModelPackageStatusDetails=model_package_status_details,
-                CertifyForMarketplace=certify_for_marketplace,
-                ModelApprovalStatus=model_approval_status,
-                CreatedBy=created_by,
-                MetadataProperties=metadata_properties,
-                ModelMetrics=model_metrics,
-                LastModifiedTime=last_modified_time.isoformat(),
-                LastModifiedBy=last_modified_by,
-                ApprovalDescription=approval_description,
-                CustomerMetadataProperties=customer_metadata_properties,
-                DriftCheckBaselines=drift_check_baselines,
-                Domain=domain,
-                Task=task,
-                SamplePayloadUrl=sample_payload_url,
-                AdditionalInferenceSpecifications=additional_inference_specifications,
-            )
+            model_package.gen_response_object(),
         )
 
     def create_model_package(self):
