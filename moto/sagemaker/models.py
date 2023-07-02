@@ -959,22 +959,15 @@ class ModelPackage(BaseObject):
         self,
         model_package_name: str,
         model_package_group_name: str,
-        model_package_version: Optional[int],
-        model_package_arn: str,
+        model_package_version: int,
         model_package_description: str,
-        creation_time: datetime,
         inference_specification: Any,
         source_algorithm_specification: Any,
         validation_specification: Any,
-        model_package_status: str,
-        model_package_status_details: str,
         certify_for_marketplace: bool,
         model_approval_status: str,
-        created_by: Any,
         metadata_properties: Any,
         model_metrics: Any,
-        last_modified_time: datetime,
-        last_modified_by: Any,
         approval_description: str,
         customer_metadata_properties: dict,
         drift_check_baselines: Any,
@@ -982,26 +975,60 @@ class ModelPackage(BaseObject):
         task: str,
         sample_payload_url: str,
         additional_inference_specifications: list,
+        region_name: str,
+        account_id: str,
         tags: Optional[List[Dict[str, str]]] = None,
     ):
+        fake_user_profile_name = "fake-user-profile-name"
+        fake_domain_id = "fake-domain-id"
+        fake_user_profile_arn = arn_formatter(
+            _type="user-profile",
+            _id=f"{fake_domain_id}/{fake_user_profile_name}",
+            account_id=account_id,
+            region_name=region_name,
+        )
+        model_package_arn = arn_formatter(
+            region_name=region_name,
+            account_id=account_id,
+            _type="model-package",
+            _id=model_package_name,
+        )
+        datetime_now = datetime.now()
         self.model_package_name = model_package_name
         self.model_package_group_name = model_package_group_name
         self.model_package_version = model_package_version
         self.model_package_arn = model_package_arn
         self.model_package_description = model_package_description
-        self.creation_time = creation_time
+        self.creation_time = datetime_now
         self.inference_specification = inference_specification
         self.source_algorithm_specification = source_algorithm_specification
         self.validation_specification = validation_specification
-        self.model_package_status = model_package_status
-        self.model_package_status_details = model_package_status_details
+        self.model_package_status_details = (
+            {
+                "ValidationStatuses": [
+                    {
+                        "Name": model_package_arn,
+                        "Status": "Completed",
+                    }
+                ],
+                "ImageScanStatuses": [
+                    {
+                        "Name": model_package_arn,
+                        "Status": "Completed",
+                    }
+                ],
+            },
+        )
         self.certify_for_marketplace = certify_for_marketplace
         self.model_approval_status = model_approval_status
-        self.created_by = created_by
+        self.created_by = {
+            "UserProfileArn": fake_user_profile_arn,
+            "UserProfileName": fake_user_profile_name,
+            "DomainId": fake_domain_id,
+        }
         self.metadata_properties = metadata_properties
         self.model_metrics = model_metrics
-        self.last_modified_time = last_modified_time
-        self.last_modified_by = last_modified_by
+        self.last_modified_time = datetime_now
         self.approval_description = approval_description
         self.customer_metadata_properties = customer_metadata_properties
         self.drift_check_baselines = drift_check_baselines
@@ -1010,6 +1037,12 @@ class ModelPackage(BaseObject):
         self.sample_payload_url = sample_payload_url
         self.additional_inference_specifications = additional_inference_specifications
         self.tags = tags
+        self.model_package_status = "Completed"
+        self.last_modified_by = {
+            "UserProfileArn": fake_user_profile_arn,
+            "UserProfileName": fake_user_profile_name,
+            "DomainId": fake_domain_id,
+        }
 
     def gen_response_object(self) -> Dict[str, Any]:
         response_object = super().gen_response_object()
@@ -2897,37 +2930,17 @@ class SageMakerModelBackend(BaseBackend):
         sample_payload_url,
         additional_inference_specifications,
     ):
-        model_package_arn = arn_formatter(
-            region_name=self.region_name,
-            account_id=self.account_id,
-            _type="model-package",
-            _id=model_package_name,
-        )
         model_package_version = None
         if model_package_group_name is not None:
-            model_package_version = (
-                len(
-                    [
-                        x
-                        for x in self.model_packages.values()
-                        if x.model_package_group_name == model_package_group_name
-                    ]
-                )
-                + 1
-            )
-        datetime_now = datetime.now()
-        fake_user_profile_name = "fake-user-profile-name"
-        fake_domain_id = "fake-domain-id"
-        fake_user_profile_arn = arn_formatter(
-            _type="user-profile",
-            _id=f"{fake_domain_id}/{fake_user_profile_name}",
-            account_id=self.account_id,
-            region_name=self.region_name,
-        )
+            model_packages_for_group = [
+                x
+                for x in self.model_packages.values()
+                if x.model_package_group_name == model_package_group_name
+            ]
+            model_package_version = len(model_packages_for_group) + 1
         model_package = ModelPackage(
             model_package_name=model_package_name,
             model_package_group_name=model_package_group_name,
-            model_package_arn=model_package_arn,
             model_package_description=model_package_description,
             inference_specification=inference_specification,
             validation_specification=validation_specification,
@@ -2944,39 +2957,14 @@ class SageMakerModelBackend(BaseBackend):
             sample_payload_url=sample_payload_url,
             additional_inference_specifications=additional_inference_specifications,
             model_package_version=model_package_version,
-            creation_time=datetime_now,
-            model_package_status="Completed",
-            model_package_status_details={
-                "ValidationStatuses": [
-                    {
-                        "Name": model_package_arn,
-                        "Status": "Completed",
-                    }
-                ],
-                "ImageScanStatuses": [
-                    {
-                        "Name": model_package_arn,
-                        "Status": "Completed",
-                    }
-                ],
-            },
             approval_description=model_approval_status,
-            last_modified_by={
-                "UserProfileArn": fake_user_profile_arn,
-                "UserProfileName": fake_user_profile_name,
-                "DomainId": fake_domain_id,
-            },
-            last_modified_time=datetime_now,
-            created_by={
-                "UserProfileArn": fake_user_profile_arn,
-                "UserProfileName": fake_user_profile_name,
-                "DomainId": fake_domain_id,
-            },
+            region_name=self.region_name,
+            account_id=self.account_id,
         )
-        self.model_package_name_mapping[model_package_name] = model_package_arn
-        self.model_package_name_mapping[model_package_arn] = model_package_arn
-        self.model_packages[model_package_arn] = model_package
-        return model_package_arn
+        self.model_package_name_mapping[model_package.model_package_name] = model_package.model_package_arn
+        self.model_package_name_mapping[model_package.model_package_arn] = model_package.model_package_arn
+        self.model_packages[model_package.model_package_arn] = model_package
+        return model_package.model_package_arn
 
 
 class FakeExperiment(BaseObject):
