@@ -823,7 +823,6 @@ class SageMakerResponse(BaseResponse):
             sort_by=sort_by,
             sort_order=sort_order,
         )
-        # TODO: adjust response
         model_package_summary_list_response_object = [
             x.gen_response_object() for x in model_package_summary_list
         ]
@@ -839,7 +838,6 @@ class SageMakerResponse(BaseResponse):
         model_package = self.sagemaker_backend.describe_model_package(
             model_package_name=model_package_name,
         )
-        # TODO: adjust response
         return json.dumps(
             model_package.gen_response_object(),
         )
@@ -885,7 +883,6 @@ class SageMakerResponse(BaseResponse):
             sample_payload_url=sample_payload_url,
             additional_inference_specifications=additional_inference_specifications,
         )
-        # TODO: adjust response
         return json.dumps(dict(ModelPackageArn=model_package_arn))
 
     def create_model_package_group(self):
@@ -897,5 +894,4 @@ class SageMakerResponse(BaseResponse):
             model_package_group_description=model_package_group_description,
             tags=tags,
         )
-        # TODO: adjust response
         return json.dumps(dict(ModelPackageGroupArn=model_package_group_arn))
