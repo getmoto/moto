@@ -1,5 +1,7 @@
 """Unit tests for sagemaker-supported APIs."""
 import boto3
+from freezegun import freeze_time
+from mypy_boto3_sagemaker import SageMakerClient
 
 from moto import mock_sagemaker
 
@@ -35,6 +37,157 @@ def test_list_model_packages():
     assert (
         resp["ModelPackageSummaryList"][1]["ModelPackageDescription"]
         == "test-model-package-description-2"
+    )
+
+
+@mock_sagemaker
+def test_list_model_packages_creation_time_before():
+    client: SageMakerClient = boto3.client("sagemaker", region_name="eu-west-1")
+    with freeze_time("2020-01-01 00:00:00"):
+        client.create_model_package(
+            ModelPackageName="test-model-package",
+            ModelPackageDescription="test-model-package-description",
+        )
+    with freeze_time("2021-01-01 00:00:00"):
+        client.create_model_package(
+            ModelPackageName="test-model-package-2",
+            ModelPackageDescription="test-model-package-description-2",
+        )
+    resp = client.list_model_packages(CreationTimeBefore="2020-01-01T00:00:00Z")
+
+    assert len(resp["ModelPackageSummaryList"]) == 1
+
+
+@mock_sagemaker
+def test_list_model_packages_creation_time_after():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    with freeze_time("2020-01-01 00:00:00"):
+        client.create_model_package(
+            ModelPackageName="test-model-package",
+            ModelPackageDescription="test-model-package-description",
+        )
+    with freeze_time("2021-01-01 00:00:00"):
+        client.create_model_package(
+            ModelPackageName="test-model-package-2",
+            ModelPackageDescription="test-model-package-description-2",
+        )
+    resp = client.list_model_packages(CreationTimeAfter="2020-01-01T00:00:00Z")
+
+    assert len(resp["ModelPackageSummaryList"]) == 1
+
+
+@mock_sagemaker
+def test_list_model_packages_name_contains():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageDescription="test-model-package-description",
+    )
+    client.create_model_package(
+        ModelPackageName="test-model-package-2",
+        ModelPackageDescription="test-model-package-description-2",
+    )
+    client.create_model_package(
+        ModelPackageName="another-model-package",
+        ModelPackageDescription="test-model-package-description-3",
+    )
+    resp = client.list_model_packages(NameContains="test-model-package")
+
+    assert len(resp["ModelPackageSummaryList"]) == 2
+
+
+@mock_sagemaker
+def test_list_model_packages_approval_status():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageDescription="test-model-package-description",
+        ModelApprovalStatus="Approved",
+    )
+    client.create_model_package(
+        ModelPackageName="test-model-package-2",
+        ModelPackageDescription="test-model-package-description-2",
+        ModelApprovalStatus="Rejected",
+    )
+    resp = client.list_model_packages(ModelApprovalStatus="Approved")
+
+    assert len(resp["ModelPackageSummaryList"]) == 1
+
+
+@mock_sagemaker
+def test_list_model_packages_model_package_group_name():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageDescription="test-model-package-description",
+        ModelPackageGroupName="test-model-package-group",
+    )
+    client.create_model_package(
+        ModelPackageName="test-model-package-2",
+        ModelPackageDescription="test-model-package-description-2",
+        ModelPackageGroupName="test-model-package-group",
+    )
+    resp = client.list_model_packages(ModelPackageGroupName="test-model-package-group")
+
+    assert len(resp["ModelPackageSummaryList"]) == 2
+
+
+@mock_sagemaker
+def test_list_model_packages_model_package_type():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageDescription="test-model-package-description",
+        ModelPackageGroupName="test-model-package-group",
+    )
+    client.create_model_package(
+        ModelPackageName="test-model-package-2",
+        ModelPackageDescription="test-model-package-description-2",
+    )
+    resp = client.list_model_packages(ModelPackageType="Versioned")
+
+    assert len(resp["ModelPackageSummaryList"]) == 1
+
+
+@mock_sagemaker
+def test_list_model_packages_sort_by():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageDescription="test-model-package-description",
+    )
+    client.create_model_package(
+        ModelPackageName="test-model-package-2",
+        ModelPackageDescription="test-model-package-description-2",
+    )
+    resp = client.list_model_packages(SortBy="CreationTime")
+
+    assert (
+        resp["ModelPackageSummaryList"][0]["ModelPackageName"] == "test-model-package"
+    )
+    assert (
+        resp["ModelPackageSummaryList"][1]["ModelPackageName"] == "test-model-package-2"
+    )
+
+
+@mock_sagemaker
+def test_list_model_packages_sort_order():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageDescription="test-model-package-description",
+    )
+    client.create_model_package(
+        ModelPackageName="test-model-package-2",
+        ModelPackageDescription="test-model-package-description-2",
+    )
+    resp = client.list_model_packages(SortOrder="Descending")
+
+    assert (
+        resp["ModelPackageSummaryList"][0]["ModelPackageName"] == "test-model-package-2"
+    )
+    assert (
+        resp["ModelPackageSummaryList"][1]["ModelPackageName"] == "test-model-package"
     )
 
 

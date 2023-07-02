@@ -2856,10 +2856,12 @@ class SageMakerModelBackend(BaseBackend):
         sort_by,
         sort_order,
     ) -> List[ModelPackage]:
-        if isinstance(creation_time_before, str):
-            creation_time_before = datetime.fromisoformat(creation_time_before)
-        if isinstance(creation_time_after, str):
-            creation_time_after = datetime.fromisoformat(creation_time_after)
+        if isinstance(creation_time_before, int):
+            creation_time_before = datetime.fromtimestamp(creation_time_before)
+        if isinstance(creation_time_after, int):
+            creation_time_after = datetime.fromtimestamp(creation_time_after)
+        if model_package_group_name is not None:
+            model_package_type = "Versioned"
         model_package_summary_list = list(
             filter(
                 lambda x: (
