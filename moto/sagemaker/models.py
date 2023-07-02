@@ -3,7 +3,7 @@ import os
 import random
 import string
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Iterable, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Iterable, Union
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
@@ -49,6 +49,13 @@ PAGINATION_MODEL = {
         "limit_key": "MaxResults",
         "limit_default": 50,
         "unique_attribute": "Key",
+        "fail_on_invalid_token": True,
+    },
+    "list_model_packages": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "ModelPackageArn",
         "fail_on_invalid_token": True,
     },
 }
@@ -2772,7 +2779,9 @@ class SageMakerModelBackend(BaseBackend):
             region_name=self.region_name,
             tags=tags,
         )
-        return self.model_package_groups[model_package_group_name].model_package_group_arn
+        return self.model_package_groups[
+            model_package_group_name
+        ].model_package_group_arn
 
     def _get_versioned_or_not(
         self, model_package_type: str, model_package_version: Optional[int]
@@ -2785,19 +2794,22 @@ class SageMakerModelBackend(BaseBackend):
             return True
         raise ValueError(f"Invalid model package type: {model_package_type}")
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_packages(
         self,
         creation_time_after,
         creation_time_before,
-        max_results,
         name_contains,
         model_approval_status,
         model_package_group_name,
         model_package_type,
-        next_token,
         sort_by,
         sort_order,
-    ) -> Tuple[List[ModelPackage], Optional[int]]:
+    ) -> List[ModelPackage]:
+        if isinstance(creation_time_before, str):
+            creation_time_before = datetime.fromisoformat(creation_time_before)
+        if isinstance(creation_time_after, str):
+            creation_time_after = datetime.fromisoformat(creation_time_after)
         model_package_summary_list = list(
             filter(
                 lambda x: (
@@ -2825,13 +2837,6 @@ class SageMakerModelBackend(BaseBackend):
                 self.model_packages.values(),
             )
         )
-        starting_index = 0
-        if next_token is not None:
-            starting_index = int(next_token)
-            if starting_index >= len(model_package_summary_list):
-                raise AWSValidationException('Invalid pagination token because "{0}".')
-        if len(model_package_summary_list) == 0:
-            return [], None
         model_package_summary_list = list(
             sorted(
                 model_package_summary_list,
@@ -2843,26 +2848,7 @@ class SageMakerModelBackend(BaseBackend):
                 reverse=sort_order == "Descending",
             )
         )
-        new_next_token = None
-        if max_results is not None:
-            try:
-                max_results = int(max_results)
-            except ValueError:
-                raise AWSValidationException(
-                    f"Invalid max results {max_results} is not an integer"
-                )
-            model_package_summary_list = model_package_summary_list[
-                starting_index : starting_index + max_results
-            ]
-            new_next_token = (
-                starting_index + max_results
-                if starting_index + max_results < len(model_package_summary_list)
-                else None
-            )
-        return (
-            model_package_summary_list,
-            new_next_token,
-        )
+        return model_package_summary_list
 
     def describe_model_package(self, model_package_name):
         model_package_name_mapped = self.model_package_name_mapping.get(

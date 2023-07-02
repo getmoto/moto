@@ -804,7 +804,7 @@ class SageMakerResponse(BaseResponse):
         name_contains = self._get_param("NameContains")
         model_approval_status = self._get_param("ModelApprovalStatus")
         model_package_group_name = self._get_param("ModelPackageGroupName")
-        model_package_type = self._get_param("ModelPackageType")
+        model_package_type = self._get_param("ModelPackageType", "Unversioned")
         next_token = self._get_param("NextToken")
         sort_by = self._get_param("SortBy")
         sort_order = self._get_param("SortOrder")
