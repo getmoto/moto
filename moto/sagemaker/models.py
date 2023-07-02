@@ -2951,7 +2951,6 @@ class SageMakerModelBackend(BaseBackend):
         sample_payload_url,
         additional_inference_specifications,
     ):
-        # implement here
         model_package_arn = arn_formatter(
             region_name=self.region_name,
             account_id=self.account_id,
