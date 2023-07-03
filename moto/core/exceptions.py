@@ -18,7 +18,7 @@ WRAPPED_SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <Error>
         <Code>{{error_type}}</Code>
         <Message><![CDATA[{{message}}]]></Message>
-        {% if sender_fault %}
+        {% if include_type_sender %}
         <Type>Sender</Type>
         {% endif %}
         {% block extra %}{% endblock %}
@@ -46,7 +46,8 @@ class RESTError(HTTPException):
     request_id_tag_name = "RequestId"
 
     # When this field is set, the `Type` field will be included in the response
-    sender_fault = True
+    # This indicates that the fault lies with the client
+    include_type_sender = True
 
     templates = {
         "single_error": SINGLE_ERROR_RESPONSE,
@@ -67,7 +68,7 @@ class RESTError(HTTPException):
                 error_type=error_type,
                 message=message,
                 request_id_tag=self.request_id_tag_name,
-                sender_fault=self.sender_fault,
+                include_type_sender=self.include_type_sender,
                 **kwargs,
             )
             self.content_type = "application/xml"

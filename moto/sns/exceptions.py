@@ -67,7 +67,7 @@ class TagLimitExceededError(SNSException):
 
 class InternalError(SNSException):
     code = 500
-    sender_fault = False
+    include_type_sender = False
 
     def __init__(self, message: str):
         super().__init__("InternalFailure", message)
