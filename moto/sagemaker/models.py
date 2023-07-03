@@ -975,6 +975,7 @@ class ModelPackage(BaseObject):
         task: str,
         sample_payload_url: str,
         additional_inference_specifications: list,
+        client_token: str,
         region_name: str,
         account_id: str,
         tags: Optional[List[Dict[str, str]]] = None,
@@ -1043,6 +1044,7 @@ class ModelPackage(BaseObject):
             "UserProfileName": fake_user_profile_name,
             "DomainId": fake_domain_id,
         }
+        self.client_token = client_token
 
     def gen_response_object(self) -> Dict[str, Any]:
         response_object = super().gen_response_object()
@@ -2962,9 +2964,14 @@ class SageMakerModelBackend(BaseBackend):
             approval_description=model_approval_status,
             region_name=self.region_name,
             account_id=self.account_id,
+            client_token=client_token,
         )
-        self.model_package_name_mapping[model_package.model_package_name] = model_package.model_package_arn
-        self.model_package_name_mapping[model_package.model_package_arn] = model_package.model_package_arn
+        self.model_package_name_mapping[
+            model_package.model_package_name
+        ] = model_package.model_package_arn
+        self.model_package_name_mapping[
+            model_package.model_package_arn
+        ] = model_package.model_package_arn
         self.model_packages[model_package.model_package_arn] = model_package
         return model_package.model_package_arn
 

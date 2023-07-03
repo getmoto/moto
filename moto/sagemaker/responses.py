@@ -875,19 +875,21 @@ class SageMakerResponse(BaseResponse):
             model_approval_status=model_approval_status,
             metadata_properties=metadata_properties,
             model_metrics=model_metrics,
-            client_token=client_token,
             customer_metadata_properties=customer_metadata_properties,
             drift_check_baselines=drift_check_baselines,
             domain=domain,
             task=task,
             sample_payload_url=sample_payload_url,
             additional_inference_specifications=additional_inference_specifications,
+            client_token=client_token,
         )
         return json.dumps(dict(ModelPackageArn=model_package_arn))
 
     def create_model_package_group(self):
         model_package_group_name = self._get_param("ModelPackageGroupName")
-        model_package_group_description = self._get_param("ModelPackageGroupDescription")
+        model_package_group_description = self._get_param(
+            "ModelPackageGroupDescription"
+        )
         tags = self._get_param("Tags")
         model_package_group_arn = self.sagemaker_backend.create_model_package_group(
             model_package_group_name=model_package_group_name,
