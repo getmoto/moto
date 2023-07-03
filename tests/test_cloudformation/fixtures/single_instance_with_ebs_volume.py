@@ -99,7 +99,6 @@ template = {
                                 "function error_exit\n",
                                 "{\n",
                                 '  /opt/aws/bin/cfn-signal -e 1 -r "$1" \'',
-                                {"Ref": "WaitHandle"},
                                 "'\n",
                                 "  exit 1\n",
                                 "}\n",
@@ -122,7 +121,6 @@ template = {
                                 "gollum --port 80 --host 0.0.0.0 &\n",
                                 "# If all is well so signal success\n",
                                 '/opt/aws/bin/cfn-signal -e $? -r "Rails application setup complete" \'',
-                                {"Ref": "WaitHandle"},
                                 "'\n",
                             ],
                         ]
@@ -185,16 +183,6 @@ template = {
                 "VolumeId": {"Ref": "DataVolume"},
             },
         },
-        "WaitCondition": {
-            "DependsOn": "MountPoint",
-            "Type": "AWS::CloudFormation::WaitCondition",
-            "Properties": {"Handle": {"Ref": "WaitHandle"}, "Timeout": "300"},
-            "Metadata": {
-                "Comment1": "Note that the WaitCondition is dependent on the volume mount point allowing the volume to be created and attached to the EC2 instance",
-                "Comment2": "The instance bootstrap script waits for the volume to be attached to the instance prior to installing Gollum and signalling completion",
-            },
-        },
-        "WaitHandle": {"Type": "AWS::CloudFormation::WaitConditionHandle"},
     },
     "Mappings": {
         "AWSInstanceType2Arch": {
