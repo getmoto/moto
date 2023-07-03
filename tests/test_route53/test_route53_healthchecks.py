@@ -296,3 +296,36 @@ def test_update_health_check():
     config.should.have.key("Disabled").equals(False)
     config.should.have.key("ChildHealthChecks").equals(["child"])
     config.should.have.key("Regions").equals(["us-east-1", "us-east-2", "us-west-1"])
+
+
+@mock_route53
+def test_health_check_status():
+    client = boto3.client("route53", region_name="us-east-1")
+
+    hc_id = client.create_health_check(
+        CallerReference="callref",
+        HealthCheckConfig={
+            "Type": "CALCULATED",
+            "Inverted": False,
+            "Disabled": False,
+            "HealthThreshold": 1,
+        },
+    )["HealthCheck"]["Id"]
+
+    resp = client.get_health_check_status(HealthCheckId=hc_id)
+    resp["HealthCheckObservations"].should.have.length_of(1)
+
+    observation = resp["HealthCheckObservations"][0]
+    observation.should.have.key("Region").being.equals("us-east-1")
+    observation.should.have.key("IPAddress").being.equals("127.0.13.37")
+    observation.should.have.key("StatusReport")
+    observation["StatusReport"].should.have.key("Status").being.equals(
+        "Success: HTTP Status Code: 200. Resolved IP: 127.0.13.37. OK"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.get_health_check_status(HealthCheckId="bad-id")
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchHealthCheck")
+    err["Message"].should.equal("A health check with id bad-id does not exist.")

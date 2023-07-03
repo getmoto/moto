@@ -65,7 +65,7 @@ route53
 - [X] get_health_check
 - [ ] get_health_check_count
 - [ ] get_health_check_last_failure_reason
-- [ ] get_health_check_status
+- [X] get_health_check_status
 - [X] get_hosted_zone
 - [X] get_hosted_zone_count
 - [ ] get_hosted_zone_limit
