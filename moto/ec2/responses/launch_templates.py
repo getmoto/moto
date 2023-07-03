@@ -182,7 +182,7 @@ class LaunchTemplates(EC2BaseResponse):
         versions_node = ElementTree.SubElement(tree, "launchTemplateVersionSet")
 
         ret_versions = []
-        if versions:
+        if versions and (name or template_id):
             for v in versions:
                 if str(v).lower() == "$latest" or "$default":
                     tv = template.get_version(v)
