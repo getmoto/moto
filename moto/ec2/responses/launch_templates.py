@@ -200,7 +200,7 @@ class LaunchTemplates(EC2BaseResponse):
         elif max_version:
             vMax = max_version
             ret_versions = template.versions[:vMax]
-        else:
+        elif name or template_id:
             ret_versions = template.versions
 
         ret_versions = ret_versions[:max_results]
