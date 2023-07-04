@@ -21,6 +21,7 @@ Install the required dependencies using:
 
     pip install moto[server]
 
+(If you see error like "no matches found: moto[server]", use ``pip install 'moto[server]'``.)
 
 You can then start it like this:
 
