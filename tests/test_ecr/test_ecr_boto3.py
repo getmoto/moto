@@ -157,6 +157,19 @@ def test_create_repository_error_already_exists():
 
 
 @mock_ecr
+def test_create_repository_error_name_validation():
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "tesT"
+
+    with pytest.raises(ClientError) as e:
+        client.create_repository(repositoryName=repo_name)
+
+    ex = e.value
+    ex.operation_name.should.equal("CreateRepository")
+    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+
+
+@mock_ecr
 def test_describe_repositories():
     client = boto3.client("ecr", region_name="us-east-1")
     _ = client.create_repository(repositoryName="test_repository1")
