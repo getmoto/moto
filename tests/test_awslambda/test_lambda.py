@@ -172,6 +172,7 @@ def test_create_function_from_zipfile():
     result.pop("LastModified")
 
     assert result == {
+        'Architectures': ['x86_64'],
         "FunctionName": function_name,
         "FunctionArn": f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}",
         "Runtime": "python2.7",
@@ -789,6 +790,7 @@ def test_list_create_list_get_delete_list():
             "Layers": [],
             "LastUpdateStatus": "Successful",
             "TracingConfig": {"Mode": "PassThrough"},
+            'Architectures': ['x86_64'],
         },
         "ResponseMetadata": {"HTTPStatusCode": 200},
     }

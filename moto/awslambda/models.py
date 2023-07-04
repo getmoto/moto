@@ -196,6 +196,20 @@ def _validate_s3_bucket_and_key(
     return key
 
 
+class ImageConfig(dict):
+    def __init__(self, cmd=[], entry_point=[], working_directory=""):
+        self.cmd = cmd
+        self.entry_point = entry_point
+        self.working_directory = working_directory
+
+    def response(self):
+        return dict({
+            "Command": self.cmd,
+            "EntryPoint": self.entry_point,
+            "WorkingDirectory": self.working_directory,
+        })
+
+
 class Permission(CloudFormationModel):
     def __init__(self, region: str):
         self.region = region
@@ -439,6 +453,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.signing_job_arn = spec.get("SigningJobArn")
         self.code_signing_config_arn = spec.get("CodeSigningConfigArn")
         self.tracing_config = spec.get("TracingConfig") or {"Mode": "PassThrough"}
+        self.architectures: list = [spec.get("Architectures", "x86_64")]
+        self.image_config: ImageConfig = ImageConfig(spec.get("ImageConfig"))
 
         self.logs_group_name = f"/aws/lambda/{self.function_name}"
 
@@ -582,6 +598,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             "SigningProfileVersionArn": self.signing_profile_version_arn,
             "SigningJobArn": self.signing_job_arn,
             "TracingConfig": self.tracing_config,
+            "Architectures": self.architectures,
+            "ImageConfig": {
+                "ImageConfigResponse":
+                    self.image_config.response(),
+            }
         }
         if not on_create:
             # Only return this variable after the first creation
