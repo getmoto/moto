@@ -148,6 +148,7 @@ def test_create_topic_in_multiple_regions():
     err = exc.value.response["Error"]
     assert err["Code"] == "NotFound"
     assert err["Message"] == "Topic does not exist"
+    assert err["Type"] == "Sender"
 
 
 @mock_sns
@@ -538,6 +539,7 @@ def test_create_fifo_topic():
             "Fifo Topic names must end with .fifo and must be made up of only uppercase and lowercase ASCII letters, "
             "numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
         )
+        err.response["Error"]["Type"].should.equal("Sender")
 
     try:
         conn.create_topic(Name="test_topic.fifo")
