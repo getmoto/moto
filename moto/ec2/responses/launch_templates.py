@@ -156,8 +156,10 @@ class LaunchTemplates(EC2BaseResponse):
         template_id = self._get_param("LaunchTemplateId")
         if name:
             template = self.ec2_backend.get_launch_template_by_name(name)
-        if template_id:
+        elif template_id:
             template = self.ec2_backend.get_launch_template(template_id)
+        else:
+            template = None
 
         max_results = self._get_int_param("MaxResults", 15)
         versions = self._get_multi_param("LaunchTemplateVersion")
@@ -182,7 +184,7 @@ class LaunchTemplates(EC2BaseResponse):
         versions_node = ElementTree.SubElement(tree, "launchTemplateVersionSet")
 
         ret_versions = []
-        if versions and (name or template_id):
+        if versions and template is not None:
             for v in versions:
                 if str(v).lower() == "$latest" or "$default":
                     tv = template.get_version(v)
@@ -200,7 +202,7 @@ class LaunchTemplates(EC2BaseResponse):
         elif max_version:
             vMax = max_version
             ret_versions = template.versions[:vMax]
-        elif name or template_id:
+        elif template is not None:
             ret_versions = template.versions
 
         ret_versions = ret_versions[:max_results]
