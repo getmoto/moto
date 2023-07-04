@@ -797,7 +797,7 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps({"EndpointArn": endpoint_arn})
 
-    def list_model_packages(self):
+    def list_model_packages(self) -> str:
         creation_time_after = self._get_param("CreationTimeAfter")
         creation_time_before = self._get_param("CreationTimeBefore")
         max_results = self._get_param("MaxResults")
@@ -833,7 +833,7 @@ class SageMakerResponse(BaseResponse):
             )
         )
 
-    def describe_model_package(self):
+    def describe_model_package(self) -> str:
         model_package_name = self._get_param("ModelPackageName")
         model_package = self.sagemaker_backend.describe_model_package(
             model_package_name=model_package_name,
@@ -842,7 +842,7 @@ class SageMakerResponse(BaseResponse):
             model_package.gen_response_object(),
         )
 
-    def create_model_package(self):
+    def create_model_package(self) -> str:
         model_package_name = self._get_param("ModelPackageName")
         model_package_group_name = self._get_param("ModelPackageGroupName")
         model_package_description = self._get_param("ModelPackageDescription")
@@ -885,7 +885,7 @@ class SageMakerResponse(BaseResponse):
         )
         return json.dumps(dict(ModelPackageArn=model_package_arn))
 
-    def create_model_package_group(self):
+    def create_model_package_group(self) -> str:
         model_package_group_name = self._get_param("ModelPackageGroupName")
         model_package_group_description = self._get_param(
             "ModelPackageGroupDescription"

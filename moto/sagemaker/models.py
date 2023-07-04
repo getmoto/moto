@@ -925,7 +925,7 @@ class ModelPackageGroup(BaseObject):
         model_package_group_description: str,
         account_id: str,
         region_name: str,
-        tags: Optional[List[Dict[Literal["Key", "Value"], str]]] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
     ) -> None:
         model_package_group_arn = arn_formatter(
             region_name=region_name,
@@ -958,9 +958,9 @@ class ModelPackage(BaseObject):
     def __init__(
         self,
         model_package_name: str,
-        model_package_group_name: str,
-        model_package_version: int,
-        model_package_description: str,
+        model_package_group_name: Optional[str],
+        model_package_version: Optional[int],
+        model_package_description: Optional[str],
         inference_specification: Any,
         source_algorithm_specification: Any,
         validation_specification: Any,
@@ -969,17 +969,17 @@ class ModelPackage(BaseObject):
         metadata_properties: Any,
         model_metrics: Any,
         approval_description: str,
-        customer_metadata_properties: dict,
+        customer_metadata_properties: Any,
         drift_check_baselines: Any,
         domain: str,
         task: str,
         sample_payload_url: str,
-        additional_inference_specifications: list,
+        additional_inference_specifications: list[Any],
         client_token: str,
         region_name: str,
         account_id: str,
         tags: Optional[List[Dict[str, str]]] = None,
-    ):
+    ) -> None:
         fake_user_profile_name = "fake-user-profile-name"
         fake_domain_id = "fake-domain-id"
         fake_user_profile_arn = arn_formatter(
@@ -2822,8 +2822,11 @@ class SageMakerModelBackend(BaseBackend):
         return endpoint.endpoint_arn
 
     def create_model_package_group(
-        self, model_package_group_name, model_package_group_description, tags
-    ):
+        self,
+        model_package_group_name: str,
+        model_package_group_description: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> str:
         self.model_package_groups[model_package_group_name] = ModelPackageGroup(
             model_package_group_name=model_package_group_name,
             model_package_group_description=model_package_group_description,
@@ -2836,7 +2839,7 @@ class SageMakerModelBackend(BaseBackend):
         ].model_package_group_arn
 
     def _get_versioned_or_not(
-        self, model_package_type: str, model_package_version: Optional[int]
+        self, model_package_type: Optional[str], model_package_version: Optional[int]
     ) -> bool:
         if model_package_type == "Versioned":
             return model_package_version is not None
@@ -2849,29 +2852,30 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_packages(
         self,
-        creation_time_after,
-        creation_time_before,
-        name_contains,
-        model_approval_status,
-        model_package_group_name,
-        model_package_type,
-        sort_by,
-        sort_order,
+        creation_time_after: Optional[int],
+        creation_time_before: Optional[int],
+        name_contains: Optional[str],
+        model_approval_status: Optional[str],
+        model_package_group_name: Optional[str],
+        model_package_type: Optional[str],
+        sort_by: Optional[str],
+        sort_order: Optional[str],
     ) -> List[ModelPackage]:
         if isinstance(creation_time_before, int):
-            creation_time_before = datetime.fromtimestamp(creation_time_before)
+            creation_time_before_datetime = datetime.fromtimestamp(creation_time_before)
         if isinstance(creation_time_after, int):
-            creation_time_after = datetime.fromtimestamp(creation_time_after)
+            creation_time_after_datetime = datetime.fromtimestamp(creation_time_after)
         if model_package_group_name is not None:
             model_package_type = "Versioned"
         model_package_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None or x.creation_time > creation_time_after
+                    creation_time_after is None
+                    or x.creation_time > creation_time_after_datetime
                 )
                 and (
                     creation_time_before is None
-                    or x.creation_time < creation_time_before
+                    or x.creation_time < creation_time_before_datetime
                 )
                 and (
                     name_contains is None
@@ -2904,7 +2908,7 @@ class SageMakerModelBackend(BaseBackend):
         )
         return model_package_summary_list
 
-    def describe_model_package(self, model_package_name):
+    def describe_model_package(self, model_package_name: str) -> ModelPackage:
         model_package_name_mapped = self.model_package_name_mapping.get(
             model_package_name, model_package_name
         )
@@ -2915,25 +2919,25 @@ class SageMakerModelBackend(BaseBackend):
 
     def create_model_package(
         self,
-        model_package_name,
-        model_package_group_name,
-        model_package_description,
-        inference_specification,
-        validation_specification,
-        source_algorithm_specification,
-        certify_for_marketplace,
-        tags,
-        model_approval_status,
-        metadata_properties,
-        model_metrics,
-        client_token,
-        customer_metadata_properties,
-        drift_check_baselines,
-        domain,
-        task,
-        sample_payload_url,
-        additional_inference_specifications,
-    ):
+        model_package_name: str,
+        model_package_group_name: Optional[str],
+        model_package_description: Optional[str],
+        inference_specification: Any,
+        validation_specification: Any,
+        source_algorithm_specification: Any,
+        certify_for_marketplace: Any,
+        tags: Any,
+        model_approval_status: str,
+        metadata_properties: Any,
+        model_metrics: Any,
+        client_token: Any,
+        customer_metadata_properties: Any,
+        drift_check_baselines: Any,
+        domain: Any,
+        task: Any,
+        sample_payload_url: Any,
+        additional_inference_specifications: Any,
+    ) -> str:
         model_package_version = None
         if model_package_group_name is not None:
             model_packages_for_group = [
