@@ -3,7 +3,7 @@ from moto.dynamodb.models.dynamo_type import serializer
 
 
 class TestFindNestedKeys:
-    def setup(self):
+    def setup_method(self):
         self.dct = {
             "simplestring": "val",
             "nesteddict": {
