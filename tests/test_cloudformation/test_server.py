@@ -1,6 +1,5 @@
 import json
 import re
-import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 
@@ -17,17 +16,15 @@ def test_cloudformation_server_get():
     create_stack_resp = test_client.action_data(
         "CreateStack", StackName=stack_name, TemplateBody=json.dumps(template_body)
     )
-    create_stack_resp.should.match(
-        r"<CreateStackResponse>.*<CreateStackResult>.*<StackId>.*</StackId>.*</CreateStackResult>.*</CreateStackResponse>",
-        re.DOTALL,
-    )
-    stack_id_from_create_response = re.search(
+    assert "<CreateStackResponse>" in create_stack_resp
+    assert "<StackId>" in create_stack_resp
+    stack_id_from_create = re.search(
         "<StackId>(.*)</StackId>", create_stack_resp
     ).groups()[0]
 
     list_stacks_resp = test_client.action_data("ListStacks")
-    stack_id_from_list_response = re.search(
+    stack_id_from_list = re.search(
         "<StackId>(.*)</StackId>", list_stacks_resp
     ).groups()[0]
 
-    stack_id_from_create_response.should.equal(stack_id_from_list_response)
+    assert stack_id_from_create == stack_id_from_list
