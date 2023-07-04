@@ -30,6 +30,9 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
 
 ECR_REPOSITORY_ARN_PATTERN = "^arn:(?P<partition>[^:]+):ecr:(?P<region>[^:]+):(?P<account_id>[^:]+):repository/(?P<repo_name>.*)$"
+ECR_REPOSITORY_NAME_PATTERN = (
+    "(?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*"
+)
 
 EcrRepositoryArn = namedtuple(
     "EcrRepositoryArn", ["partition", "region", "account_id", "repo_name"]
@@ -465,6 +468,12 @@ class ECRBackend(BaseBackend):
     ) -> Repository:
         if self.repositories.get(repository_name):
             raise RepositoryAlreadyExistsException(repository_name, self.account_id)
+
+        match = re.fullmatch(ECR_REPOSITORY_NAME_PATTERN, repository_name)
+        if not match:
+            raise InvalidParameterException(
+                f"Invalid parameter at 'repositoryName' failed to satisfy constraint: 'must satisfy regular expression '{ECR_REPOSITORY_NAME_PATTERN}'"
+            )
 
         repository = Repository(
             account_id=self.account_id,
