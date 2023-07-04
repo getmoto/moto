@@ -904,6 +904,7 @@ def test_replicate_cluster():
     assert "ReplicationSourceIdentifier" not in replica
     assert replica["MultiAZ"] is False
 
+
 @mock_rds
 def test_create_db_cluster_vpc_sg_check():
     client = boto3.client("rds", region_name="eu-north-1")
@@ -930,6 +931,4 @@ def test_create_db_cluster_vpc_sg_check():
     )
 
     cluster = resp["DBCluster"]
-    print(cluster)
-
     assert cluster["VpcSecurityGroupIds"] == ["sg-987234872uywd"]
