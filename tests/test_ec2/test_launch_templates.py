@@ -140,6 +140,14 @@ def test_describe_launch_template_versions_by_name_when_absent():
 
         cli.describe_launch_template_versions(LaunchTemplateName=template_name)
 
+    # test default response
+    resp = cli.describe_launch_template_versions()
+    assert resp["LaunchTemplateVersions"] == []
+
+    # test using $Latest version
+    resp = cli.describe_launch_template_versions(Versions=["$Latest"])
+    assert resp["LaunchTemplateVersions"] == []
+
 
 @mock_ec2
 def test_create_launch_template_version():
