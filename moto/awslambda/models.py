@@ -45,6 +45,7 @@ from .exceptions import (
     UnknownLayerVersionException,
     UnknownFunctionException,
     UnknownAliasException,
+    ValidationException,
 )
 from .utils import (
     make_function_arn,
@@ -196,18 +197,20 @@ def _validate_s3_bucket_and_key(
     return key
 
 
-class ImageConfig(dict):
-    def __init__(self, cmd=[], entry_point=[], working_directory=""):
-        self.cmd = cmd
-        self.entry_point = entry_point
-        self.working_directory = working_directory
+class ImageConfig:
+    def __init__(self, config: Dict[str, Any]) -> None:
+        self.cmd = config.get("Command", [])
+        self.entry_point = config.get("EntryPoint", [])
+        self.working_directory = config.get("WorkingDirectory", "")
 
-    def response(self):
-        return dict({
-            "Command": self.cmd,
-            "EntryPoint": self.entry_point,
-            "WorkingDirectory": self.working_directory,
-        })
+    def response(self) -> Dict[str, Any]:
+        return dict(
+            {
+                "Command": self.cmd,
+                "EntryPoint": self.entry_point,
+                "WorkingDirectory": self.working_directory,
+            }
+        )
 
 
 class Permission(CloudFormationModel):
@@ -453,8 +456,13 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.signing_job_arn = spec.get("SigningJobArn")
         self.code_signing_config_arn = spec.get("CodeSigningConfigArn")
         self.tracing_config = spec.get("TracingConfig") or {"Mode": "PassThrough"}
-        self.architectures: list = [spec.get("Architectures", "x86_64")]
-        self.image_config: ImageConfig = ImageConfig(spec.get("ImageConfig"))
+        self.architectures: List[str] = spec.get("Architectures", ["x86_64"])
+        self.image_config: ImageConfig = ImageConfig(spec.get("ImageConfig", {}))
+        _es = spec.get("EphemeralStorage")
+        if _es:
+            self.ephemeral_storage = _es["Size"]
+        else:
+            self.ephemeral_storage = 512
 
         self.logs_group_name = f"/aws/lambda/{self.function_name}"
 
@@ -548,6 +556,41 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         )
 
     @property
+    def architectures(self) -> List[str]:
+        return self._architectures
+
+    @architectures.setter
+    def architectures(self, architectures: List[str]) -> None:
+        if (
+            len(architectures) > 1
+            or not architectures
+            or architectures[0] not in ("x86_64", "arm64")
+        ):
+            raise ValidationException(
+                architectures,
+                "architectures",
+                "Member must satisfy constraint: "
+                "[Member must satisfy enum value set: [x86_64, arm64], Member must not be null]",
+            )
+        self._architectures = architectures
+
+    @property
+    def ephemeral_storage(self) -> int:
+        return self._ephemeral_storage
+
+    @ephemeral_storage.setter
+    def ephemeral_storage(self, ephemeral_storage: int) -> None:
+        if ephemeral_storage > 10240:
+            raise ValidationException(
+                ephemeral_storage,
+                "ephemeralStorage.size",
+                "Member must have value less than or equal to 10240",
+            )
+
+        # ephemeral_storage < 512 is handled by botocore 1.30.0
+        self._ephemeral_storage = ephemeral_storage
+
+    @property
     def vpc_config(self) -> Dict[str, Any]:  # type: ignore[misc]
         config = self._vpc_config.copy()
         if config["SecurityGroupIds"]:
@@ -599,11 +642,15 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             "SigningJobArn": self.signing_job_arn,
             "TracingConfig": self.tracing_config,
             "Architectures": self.architectures,
-            "ImageConfig": {
-                "ImageConfigResponse":
-                    self.image_config.response(),
-            }
+            "EphemeralStorage": {
+                "Size": str(self.ephemeral_storage),
+            },
+            "SnapStart": {"ApplyOn": "None", "OptimizationStatus": "Off"},
         }
+        if self.package_type == "Image":
+            config["ImageConfigResponse"] = {
+                "ImageConfig": self.image_config.response(),
+            }
         if not on_create:
             # Only return this variable after the first creation
             config["LastUpdateStatus"] = "Successful"
