@@ -8,8 +8,8 @@ def test_describe_filesystem_config__unknown(efs):
     with pytest.raises(ClientError) as exc_info:
         efs.describe_lifecycle_configuration(FileSystemId="unknown")
     err = exc_info.value.response["Error"]
-    err["Code"].should.equal("FileSystemNotFound")
-    err["Message"].should.equal("File system 'unknown' does not exist.")
+    assert err["Code"] == "FileSystemNotFound"
+    assert err["Message"] == "File system 'unknown' does not exist."
 
 
 def test_describe_filesystem_config__initial(efs):
@@ -17,7 +17,7 @@ def test_describe_filesystem_config__initial(efs):
     fs_id = create_fs_resp["FileSystemId"]
 
     resp = efs.describe_lifecycle_configuration(FileSystemId=fs_id)
-    resp.should.have.key("LifecyclePolicies").equals([])
+    assert resp["LifecyclePolicies"] == []
 
 
 def test_put_lifecycle_configuration(efs):
@@ -30,10 +30,10 @@ def test_put_lifecycle_configuration(efs):
     resp = efs.put_lifecycle_configuration(
         FileSystemId=fs_id, LifecyclePolicies=[{"TransitionToIA": "AFTER_30_DAYS"}]
     )
-    resp.should.have.key("LifecyclePolicies").length_of(1)
-    resp["LifecyclePolicies"][0].should.equal({"TransitionToIA": "AFTER_30_DAYS"})
+    assert len(resp["LifecyclePolicies"]) == 1
+    assert resp["LifecyclePolicies"][0] == {"TransitionToIA": "AFTER_30_DAYS"}
 
     # Describe the lifecycle configuration
     resp = efs.describe_lifecycle_configuration(FileSystemId=fs_id)
-    resp.should.have.key("LifecyclePolicies").length_of(1)
-    resp["LifecyclePolicies"][0].should.equal({"TransitionToIA": "AFTER_30_DAYS"})
+    assert len(resp["LifecyclePolicies"]) == 1
+    assert resp["LifecyclePolicies"][0] == {"TransitionToIA": "AFTER_30_DAYS"}

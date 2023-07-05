@@ -14,21 +14,21 @@ def fixture_file_system(efs):
 
 def test_describe_access_points__initial(efs):
     resp = efs.describe_access_points()
-    resp.should.have.key("AccessPoints").equals([])
+    assert resp["AccessPoints"] == []
 
 
 def test_create_access_point__simple(efs, file_system):
     fs_id = file_system["FileSystemId"]
 
     resp = efs.create_access_point(ClientToken="ct", FileSystemId=fs_id)
-    resp.should.have.key("ClientToken").equals("ct")
-    resp.should.have.key("AccessPointId")
-    resp.should.have.key("AccessPointArn")
-    resp.should.have.key("FileSystemId").equals(fs_id)
-    resp.should.have.key("OwnerId").equals(ACCOUNT_ID)
-    resp.should.have.key("LifeCycleState").equals("available")
+    assert resp["ClientToken"] == "ct"
+    assert "AccessPointId" in resp
+    assert "AccessPointArn" in resp
+    assert resp["FileSystemId"] == fs_id
+    assert resp["OwnerId"] == ACCOUNT_ID
+    assert resp["LifeCycleState"] == "available"
 
-    resp.should.have.key("RootDirectory").equals({"Path": "/"})
+    assert resp["RootDirectory"] == {"Path": "/"}
 
 
 def test_create_access_point__full(efs, file_system):
@@ -49,29 +49,26 @@ def test_create_access_point__full(efs, file_system):
         },
     )
 
-    resp.should.have.key("ClientToken").equals("ct")
-    resp.should.have.key("Name").equals("myname")
-    resp.should.have.key("Tags").equals(
-        [{"Key": "key", "Value": "value"}, {"Key": "Name", "Value": "myname"}]
-    )
-    resp.should.have.key("AccessPointId")
-    resp.should.have.key("AccessPointArn")
-    resp.should.have.key("FileSystemId").equals(fs_id)
-    resp.should.have.key("PosixUser").equals(
-        {"Uid": 123, "Gid": 123, "SecondaryGids": [124, 125]}
-    )
-    resp.should.have.key("RootDirectory").equals(
-        {
-            "Path": "/root/path",
-            "CreationInfo": {
-                "OwnerUid": 987,
-                "OwnerGid": 986,
-                "Permissions": "root_permissions",
-            },
-        }
-    )
-    resp.should.have.key("OwnerId").equals(ACCOUNT_ID)
-    resp.should.have.key("LifeCycleState").equals("available")
+    assert resp["ClientToken"] == "ct"
+    assert resp["Name"] == "myname"
+    assert resp["Tags"] == [
+        {"Key": "key", "Value": "value"},
+        {"Key": "Name", "Value": "myname"},
+    ]
+    assert "AccessPointId" in resp
+    assert "AccessPointArn" in resp
+    assert resp["FileSystemId"] == fs_id
+    assert resp["PosixUser"] == {"Uid": 123, "Gid": 123, "SecondaryGids": [124, 125]}
+    assert resp["RootDirectory"] == {
+        "Path": "/root/path",
+        "CreationInfo": {
+            "OwnerUid": 987,
+            "OwnerGid": 986,
+            "Permissions": "root_permissions",
+        },
+    }
+    assert resp["OwnerId"] == ACCOUNT_ID
+    assert resp["LifeCycleState"] == "available"
 
 
 def test_describe_access_point(efs, file_system):
@@ -82,15 +79,15 @@ def test_describe_access_point(efs, file_system):
     ]
 
     resp = efs.describe_access_points(AccessPointId=access_point_id)
-    resp.should.have.key("AccessPoints").length_of(1)
+    assert len(resp["AccessPoints"]) == 1
     access_point = resp["AccessPoints"][0]
 
-    access_point.should.have.key("ClientToken").equals("ct")
-    access_point.should.have.key("AccessPointId")
-    access_point.should.have.key("AccessPointArn")
-    access_point.should.have.key("FileSystemId").equals(fs_id)
-    access_point.should.have.key("OwnerId").equals(ACCOUNT_ID)
-    access_point.should.have.key("LifeCycleState").equals("available")
+    assert access_point["ClientToken"] == "ct"
+    assert "AccessPointId" in access_point
+    assert "AccessPointArn" in access_point
+    assert access_point["FileSystemId"] == fs_id
+    assert access_point["OwnerId"] == ACCOUNT_ID
+    assert access_point["LifeCycleState"] == "available"
 
 
 def test_describe_access_points__multiple(efs, file_system):
@@ -100,7 +97,7 @@ def test_describe_access_points__multiple(efs, file_system):
     efs.create_access_point(ClientToken="ct2", FileSystemId=fs_id)
 
     resp = efs.describe_access_points()
-    resp.should.have.key("AccessPoints").length_of(2)
+    assert len(resp["AccessPoints"]) == 2
 
 
 def test_delete_access_points(efs, file_system):
@@ -118,7 +115,7 @@ def test_delete_access_points(efs, file_system):
 
     # We can only find one
     resp = efs.describe_access_points()
-    resp.should.have.key("AccessPoints").length_of(1)
+    assert len(resp["AccessPoints"]) == 1
 
     # The first one still exists
     efs.describe_access_points(AccessPointId=ap_id1)
@@ -127,4 +124,4 @@ def test_delete_access_points(efs, file_system):
     with pytest.raises(ClientError) as exc_info:
         efs.describe_access_points(AccessPointId=ap_id2)
     err = exc_info.value.response["Error"]
-    err["Code"].should.equal("AccessPointNotFound")
+    assert err["Code"] == "AccessPointNotFound"

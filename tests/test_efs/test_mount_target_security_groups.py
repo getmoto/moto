@@ -22,8 +22,8 @@ def test_describe_mount_target_security_groups__unknown(efs):
     with pytest.raises(ClientError) as exc_info:
         efs.describe_mount_target_security_groups(MountTargetId="mt-asdf1234asdf")
     err = exc_info.value.response["Error"]
-    err["Code"].should.equal("MountTargetNotFound")
-    err["Message"].should.equal("Mount target 'mt-asdf1234asdf' does not exist.")
+    assert err["Code"] == "MountTargetNotFound"
+    assert err["Message"] == "Mount target 'mt-asdf1234asdf' does not exist."
 
 
 def test_describe_mount_target_security_groups(efs, ec2, file_system, subnet):
@@ -44,7 +44,7 @@ def test_describe_mount_target_security_groups(efs, ec2, file_system, subnet):
 
     # Describe it's Security Groups
     resp = efs.describe_mount_target_security_groups(MountTargetId=mount_target_id)
-    resp.should.have.key("SecurityGroups").equals([security_group_id])
+    assert resp["SecurityGroups"] == [security_group_id]
 
 
 def test_modify_mount_target_security_groups__unknown(efs):
@@ -53,8 +53,8 @@ def test_modify_mount_target_security_groups__unknown(efs):
             MountTargetId="mt-asdf1234asdf", SecurityGroups=[]
         )
     err = exc_info.value.response["Error"]
-    err["Code"].should.equal("MountTargetNotFound")
-    err["Message"].should.equal("Mount target 'mt-asdf1234asdf' does not exist.")
+    assert err["Code"] == "MountTargetNotFound"
+    assert err["Message"] == "Mount target 'mt-asdf1234asdf' does not exist."
 
 
 def test_modify_mount_target_security_groups(efs, ec2, file_system, subnet):
@@ -89,12 +89,13 @@ def test_modify_mount_target_security_groups(efs, ec2, file_system, subnet):
 
     # Describe it's Security Groups
     resp = efs.describe_mount_target_security_groups(MountTargetId=mount_target_id)
-    resp.should.have.key("SecurityGroups").equals([sg_id_2, sg_id_3])
+    assert resp["SecurityGroups"] == [sg_id_2, sg_id_3]
 
     # Verify EC2 reflects this change
     resp = ec2.describe_network_interfaces(NetworkInterfaceIds=[network_interface_id])
     network_interface = resp["NetworkInterfaces"][0]
-    network_interface["Groups"].should.have.length_of(2)
-    set([sg["GroupId"] for sg in network_interface["Groups"]]).should.equal(
-        {sg_id_2, sg_id_3}
-    )
+    assert len(network_interface["Groups"]) == 2
+    assert set([sg["GroupId"] for sg in network_interface["Groups"]]) == {
+        sg_id_2,
+        sg_id_3,
+    }
