@@ -6,7 +6,7 @@ def test_list_tags_for_resource__without_tags(efs):
     fs_id = file_system["FileSystemId"]
 
     resp = efs.list_tags_for_resource(ResourceId=fs_id)
-    resp.should.have.key("Tags").equals([])
+    assert resp["Tags"] == []
 
 
 def test_list_tags_for_resource__with_tags(efs):
@@ -17,9 +17,10 @@ def test_list_tags_for_resource__with_tags(efs):
     fs_id = file_system["FileSystemId"]
 
     resp = efs.list_tags_for_resource(ResourceId=fs_id)
-    resp.should.have.key("Tags").equals(
-        [{"Key": "key", "Value": "value"}, {"Key": "Name", "Value": "myname"}]
-    )
+    assert resp["Tags"] == [
+        {"Key": "key", "Value": "value"},
+        {"Key": "Name", "Value": "myname"},
+    ]
 
 
 def test_tag_resource(efs):
@@ -35,9 +36,10 @@ def test_tag_resource(efs):
     )
 
     resp = efs.list_tags_for_resource(ResourceId=fs_id)
-    resp.should.have.key("Tags").equals(
-        [{"Key": "key", "Value": "value"}, {"Key": "Name", "Value": "myname"}]
-    )
+    assert resp["Tags"] == [
+        {"Key": "key", "Value": "value"},
+        {"Key": "Name", "Value": "myname"},
+    ]
 
 
 def test_untag_resource(efs):
@@ -54,6 +56,7 @@ def test_untag_resource(efs):
     efs.untag_resource(ResourceId=fs_id, TagKeys=["key2"])
 
     resp = efs.list_tags_for_resource(ResourceId=fs_id)
-    resp.should.have.key("Tags").equals(
-        [{"Key": "key1", "Value": "val1"}, {"Key": "key3", "Value": "val3"}]
-    )
+    assert resp["Tags"] == [
+        {"Key": "key1", "Value": "val1"},
+        {"Key": "key3", "Value": "val3"},
+    ]
