@@ -446,6 +446,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
 
         # optional
+        self.ephemeral_storage: str
+        self.code_digest: str
+        self.code_bytes: bytes
+
         self.description = spec.get("Description", "")
         self.memory_size = spec.get("MemorySize", 128)
         self.package_type = spec.get("PackageType", None)
@@ -567,7 +571,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             or architectures[0] not in ("x86_64", "arm64")
         ):
             raise ValidationException(
-                architectures,
+                str(architectures),
                 "architectures",
                 "Member must satisfy constraint: "
                 "[Member must satisfy enum value set: [x86_64, arm64], Member must not be null]",
@@ -582,7 +586,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def ephemeral_storage(self, ephemeral_storage: int) -> None:
         if ephemeral_storage > 10240:
             raise ValidationException(
-                ephemeral_storage,
+                str(ephemeral_storage),
                 "ephemeralStorage.size",
                 "Member must have value less than or equal to 10240",
             )
