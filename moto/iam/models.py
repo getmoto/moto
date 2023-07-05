@@ -1823,7 +1823,13 @@ class IAMBackend(BaseBackend):
 
     def attach_role_policy(self, policy_arn: str, role_name: str) -> None:
         arns = dict((p.arn, p) for p in self.managed_policies.values())
-        policy = arns[policy_arn]
+        try:
+            policy = arns[policy_arn]
+        except KeyError:
+            raise IAMNotFoundException(
+                f"Policy {policy_arn} does not exist or is not attachable."
+            )
+
         policy.attach_to(self.get_role(role_name))
 
     def update_role_description(self, role_name: str, role_description: str) -> Role:
@@ -1891,7 +1897,9 @@ class IAMBackend(BaseBackend):
         try:
             policy = arns[policy_arn]
         except KeyError:
-            raise IAMNotFoundException(f"Policy {policy_arn} was not found.")
+            raise IAMNotFoundException(
+                f"Policy {policy_arn} does not exist or is not attachable."
+            )
         policy.attach_to(self.get_user(user_name))
 
     def detach_user_policy(self, policy_arn: str, user_name: str) -> None:

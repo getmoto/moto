@@ -2063,6 +2063,16 @@ def test_attach_detach_user_policy():
         Description="my user attached policy",
     )
 
+    # try a non-existent policy
+    non_existent_policy_arn = f"arn:aws:iam::{ACCOUNT_ID}:policy/not-existent"
+    with pytest.raises(ClientError) as exc:
+        client.attach_user_policy(UserName=user.name, PolicyArn=non_existent_policy_arn)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal(
+        f"Policy {non_existent_policy_arn} does not exist or is not attachable."
+    )
+
     client.attach_user_policy(UserName=user.name, PolicyArn=policy.arn)
 
     resp = client.list_attached_user_policies(UserName=user.name)
@@ -2074,6 +2084,45 @@ def test_attach_detach_user_policy():
     client.detach_user_policy(UserName=user.name, PolicyArn=policy.arn)
 
     resp = client.list_attached_user_policies(UserName=user.name)
+    resp["AttachedPolicies"].should.have.length_of(0)
+
+
+@mock_iam()
+def test_attach_detach_role_policy():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = boto3.client("iam", region_name="us-east-1")
+
+    role = iam.create_role(RoleName="test-role", AssumeRolePolicyDocument="{}")
+
+    policy_name = "RoleAttachedPolicy"
+    policy = iam.create_policy(
+        PolicyName=policy_name,
+        PolicyDocument=MOCK_POLICY,
+        Path="/mypolicy/",
+        Description="my role attached policy",
+    )
+
+    # try a non-existent policy
+    non_existent_policy_arn = f"arn:aws:iam::{ACCOUNT_ID}:policy/not-existent"
+    with pytest.raises(ClientError) as exc:
+        client.attach_role_policy(RoleName=role.name, PolicyArn=non_existent_policy_arn)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal(
+        f"Policy {non_existent_policy_arn} does not exist or is not attachable."
+    )
+
+    client.attach_role_policy(RoleName=role.name, PolicyArn=policy.arn)
+
+    resp = client.list_attached_role_policies(RoleName=role.name)
+    resp["AttachedPolicies"].should.have.length_of(1)
+    attached_policy = resp["AttachedPolicies"][0]
+    attached_policy["PolicyArn"].should.equal(policy.arn)
+    attached_policy["PolicyName"].should.equal(policy_name)
+
+    client.detach_role_policy(RoleName=role.name, PolicyArn=policy.arn)
+
+    resp = client.list_attached_role_policies(RoleName=role.name)
     resp["AttachedPolicies"].should.have.length_of(0)
 
 
