@@ -2062,7 +2062,11 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "formed as a mix of letters, numbers and the following 3 symbols .-_"
                 )
             raise ValidationException(invalid_prefix_error)
-        if not parameter_type and not overwrite and not (name in self._parameters and self._parameters[name]):
+        if (
+            not parameter_type
+            and not overwrite
+            and not (name in self._parameters and self._parameters[name])
+        ):
             raise ValidationException(
                 "A parameter type is required when you create a parameter."
             )
