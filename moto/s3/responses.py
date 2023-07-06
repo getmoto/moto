@@ -1923,7 +1923,7 @@ class S3Response(BaseResponse):
 
         tags = {}
         for tag in parsed_xml["Tagging"]["TagSet"]["Tag"]:
-            tags[tag["Key"]] = tag["Value"]
+            tags[tag["Key"]] = tag["Value"] or ""
 
         return tags
 
