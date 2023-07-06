@@ -11,7 +11,6 @@ from moto.settings import TEST_SERVER_MODE
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_device_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
         "Devices": [
@@ -26,22 +25,21 @@ def test_create_device_definition():
 
     device_name = "TestDevice"
     res = client.create_device_definition(InitialVersion=init_ver, Name=device_name)
-    res.should.have.key("Arn")
-    res.should.have.key("Id")
-    res.should.have.key("LatestVersion")
-    res.should.have.key("LatestVersionArn")
-    res.should.have.key("Name").equals(device_name)
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    assert "Arn" in res
+    assert "Id" in res
+    assert "LatestVersion" in res
+    assert "LatestVersionArn" in res
+    assert res["Name"] == device_name
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 201
 
     if not TEST_SERVER_MODE:
-        res.should.have.key("CreationTimestamp").equals("2022-06-01T12:00:00.000Z")
-        res.should.have.key("LastUpdatedTimestamp").equals("2022-06-01T12:00:00.000Z")
+        assert res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_list_device_definitions():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
         "Devices": [
@@ -58,27 +56,22 @@ def test_list_device_definitions():
     client.create_device_definition(InitialVersion=init_ver, Name=device_name)
 
     res = client.list_device_definitions()
-    res.should.have.key("Definitions")
+    assert "Definitions" in res
     device_definition = res["Definitions"][0]
 
-    device_definition.should.have.key("Name").equals(device_name)
-    device_definition.should.have.key("Arn")
-    device_definition.should.have.key("Id")
-    device_definition.should.have.key("LatestVersion")
-    device_definition.should.have.key("LatestVersionArn")
+    assert device_definition["Name"] == device_name
+    assert "Arn" in device_definition
+    assert "Id" in device_definition
+    assert "LatestVersion" in device_definition
+    assert "LatestVersionArn" in device_definition
     if not TEST_SERVER_MODE:
-        device_definition.should.have.key("CreationTimestamp").equal(
-            "2022-06-01T12:00:00.000Z"
-        )
-        device_definition.should.have.key("LastUpdatedTimestamp").equals(
-            "2022-06-01T12:00:00.000Z"
-        )
+        assert device_definition["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert device_definition["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_get_device_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
         "Devices": [
@@ -102,37 +95,32 @@ def test_get_device_definition():
 
     get_res = client.get_device_definition(DeviceDefinitionId=device_def_id)
 
-    get_res.should.have.key("Name").equals(device_name)
-    get_res.should.have.key("Arn").equals(arn)
-    get_res.should.have.key("Id").equals(device_def_id)
-    get_res.should.have.key("LatestVersion").equals(latest_version)
-    get_res.should.have.key("LatestVersionArn").equals(latest_version_arn)
+    assert get_res["Name"] == device_name
+    assert get_res["Arn"] == arn
+    assert get_res["Id"] == device_def_id
+    assert get_res["LatestVersion"] == latest_version
+    assert get_res["LatestVersionArn"] == latest_version_arn
 
     if not TEST_SERVER_MODE:
-        get_res.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
-        get_res.should.have.key("LastUpdatedTimestamp").equals(
-            "2022-06-01T12:00:00.000Z"
-        )
+        assert get_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert get_res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_get_device_definition_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
         client.get_device_definition(
             DeviceDefinitionId="b552443b-1888-469b-81f8-0ebc5ca92949"
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That Device List Definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That Device List Definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_device_definition_version():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     v1_devices = [
         {
@@ -161,19 +149,18 @@ def test_create_device_definition_version():
     device_def_ver_res = client.create_device_definition_version(
         DeviceDefinitionId=device_def_id, Devices=v2_devices
     )
-    device_def_ver_res.should.have.key("Arn")
-    device_def_ver_res.should.have.key("CreationTimestamp")
-    device_def_ver_res.should.have.key("Id").equals(device_def_id)
-    device_def_ver_res.should.have.key("Version")
+    assert "Arn" in device_def_ver_res
+    assert "CreationTimestamp" in device_def_ver_res
+    assert device_def_ver_res["Id"] == device_def_id
+    assert "Version" in device_def_ver_res
 
     if not TEST_SERVER_MODE:
-        device_def_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+        assert device_def_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_device_definition_version_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
         {
@@ -192,15 +179,13 @@ def test_create_device_definition_version_with_invalid_id():
         client.create_device_definition_version(
             DeviceDefinitionId="123", Devices=devices
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That devices definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That devices definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_delete_device_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
         {
@@ -217,27 +202,24 @@ def test_delete_device_definition():
 
     device_def_id = create_res["Id"]
     del_res = client.delete_device_definition(DeviceDefinitionId=device_def_id)
-    del_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert del_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_greengrass
 def test_delete_device_definition_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
         client.delete_device_definition(
             DeviceDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6"
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That devices definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That devices definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_update_device_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
         {
@@ -257,15 +239,14 @@ def test_update_device_definition():
     update_res = client.update_device_definition(
         DeviceDefinitionId=device_def_id, Name=updated_device_name
     )
-    update_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert update_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     get_res = client.get_device_definition(DeviceDefinitionId=device_def_id)
-    get_res.should.have.key("Name").equals(updated_device_name)
+    assert get_res["Name"] == updated_device_name
 
 
 @mock_greengrass
 def test_update_device_definition_with_empty_name():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
         {
@@ -284,33 +265,27 @@ def test_update_device_definition_with_empty_name():
 
     with pytest.raises(ClientError) as ex:
         client.update_device_definition(DeviceDefinitionId=device_def_id, Name="")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Input does not contain any attributes to be updated"
-    )
-    ex.value.response["Error"]["Code"].should.equal(
-        "InvalidContainerDefinitionException"
-    )
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Input does not contain any attributes to be updated"
+    assert err["Code"] == "InvalidContainerDefinitionException"
 
 
 @mock_greengrass
 def test_update_device_definition_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
         client.update_device_definition(
             DeviceDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6", Name="123"
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That devices definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That devices definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_list_device_definition_versions():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
         {
@@ -331,21 +306,20 @@ def test_list_device_definition_versions():
         DeviceDefinitionId=device_def_id
     )
 
-    device_def_vers_res.should.have.key("Versions")
+    assert "Versions" in device_def_vers_res
     device_def_ver = device_def_vers_res["Versions"][0]
-    device_def_ver.should.have.key("Arn")
-    device_def_ver.should.have.key("CreationTimestamp")
+    assert "Arn" in device_def_ver
+    assert "CreationTimestamp" in device_def_ver
 
     if not TEST_SERVER_MODE:
-        device_def_ver["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
-    device_def_ver.should.have.key("Id").equals(device_def_id)
-    device_def_ver.should.have.key("Version")
+        assert device_def_ver["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+    assert device_def_ver["Id"] == device_def_id
+    assert "Version" in device_def_ver
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_get_device_definition_version():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
         {
@@ -368,33 +342,30 @@ def test_get_device_definition_version():
         DeviceDefinitionId=device_def_id, DeviceDefinitionVersionId=device_def_ver_id
     )
 
-    core_def_ver_res.should.have.key("Arn")
-    core_def_ver_res.should.have.key("CreationTimestamp")
-    core_def_ver_res.should.have.key("Definition").should.equal(initial_version)
+    assert "Arn" in core_def_ver_res
+    assert "CreationTimestamp" in core_def_ver_res
+    assert core_def_ver_res["Definition"] == initial_version
     if not TEST_SERVER_MODE:
-        core_def_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
-    core_def_ver_res.should.have.key("Id").equals(device_def_id)
-    core_def_ver_res.should.have.key("Version")
+        assert core_def_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+    assert core_def_ver_res["Id"] == device_def_id
+    assert "Version" in core_def_ver_res
 
 
 @mock_greengrass
 def test_get_device_definition_version_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
         client.get_device_definition_version(
             DeviceDefinitionId="fe2392e9-e67f-4308-af1b-ff94a128b231",
             DeviceDefinitionVersionId="cd2ea6dc-6634-4e89-8441-8003500435f9",
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That devices definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That devices definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_get_device_definition_version_with_invalid_version_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
         {
@@ -417,7 +388,9 @@ def test_get_device_definition_version_with_invalid_version_id():
             DeviceDefinitionId=device_def_id,
             DeviceDefinitionVersionId=invalid_device_version_id,
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Version {invalid_device_version_id} of Device List Definition {device_def_id} does not exist."
+    err = ex.value.response["Error"]
+    assert (
+        err["Message"]
+        == f"Version {invalid_device_version_id} of Device List Definition {device_def_id} does not exist."
     )
-    ex.value.response["Error"]["Code"].should.equal("VersionNotFoundException")
+    assert err["Code"] == "VersionNotFoundException"

@@ -11,7 +11,6 @@ from moto.settings import TEST_SERVER_MODE
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_function_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
         "Functions": [
@@ -29,22 +28,21 @@ def test_create_function_definition():
     }
     func_name = "TestFunc"
     res = client.create_function_definition(InitialVersion=init_ver, Name=func_name)
-    res.should.have.key("Arn")
-    res.should.have.key("Id")
-    res.should.have.key("LatestVersion")
-    res.should.have.key("LatestVersionArn")
-    res.should.have.key("Name").equals(func_name)
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    assert "Arn" in res
+    assert "Id" in res
+    assert "LatestVersion" in res
+    assert "LatestVersionArn" in res
+    assert res["Name"] == func_name
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 201
 
     if not TEST_SERVER_MODE:
-        res.should.have.key("CreationTimestamp").equals("2022-06-01T12:00:00.000Z")
-        res.should.have.key("LastUpdatedTimestamp").equals("2022-06-01T12:00:00.000Z")
+        assert res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_list_function_definitions():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
         "Functions": [
@@ -66,22 +64,19 @@ def test_list_function_definitions():
     res = client.list_function_definitions()
     func_def = res["Definitions"][0]
 
-    func_def.should.have.key("Name").equals(func_name)
-    func_def.should.have.key("Arn")
-    func_def.should.have.key("Id")
-    func_def.should.have.key("LatestVersion")
-    func_def.should.have.key("LatestVersionArn")
+    assert func_def["Name"] == func_name
+    assert "Arn" in func_def
+    assert "Id" in func_def
+    assert "LatestVersion" in func_def
+    assert "LatestVersionArn" in func_def
     if not TEST_SERVER_MODE:
-        func_def.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
-        func_def.should.have.key("LastUpdatedTimestamp").equals(
-            "2022-06-01T12:00:00.000Z"
-        )
+        assert func_def["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert func_def["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_get_function_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
         "Functions": [
@@ -109,37 +104,32 @@ def test_get_function_definition():
 
     get_res = client.get_function_definition(FunctionDefinitionId=func_def_id)
 
-    get_res.should.have.key("Name").equals(func_name)
-    get_res.should.have.key("Arn").equals(arn)
-    get_res.should.have.key("Id").equals(func_def_id)
-    get_res.should.have.key("LatestVersion").equals(latest_version)
-    get_res.should.have.key("LatestVersionArn").equals(latest_version_arn)
-    get_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert get_res["Name"] == func_name
+    assert get_res["Arn"] == arn
+    assert get_res["Id"] == func_def_id
+    assert get_res["LatestVersion"] == latest_version
+    assert get_res["LatestVersionArn"] == latest_version_arn
+    assert get_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     if not TEST_SERVER_MODE:
-        get_res.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
-        get_res.should.have.key("LastUpdatedTimestamp").equals(
-            "2022-06-01T12:00:00.000Z"
-        )
+        assert get_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert get_res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_get_function_definition_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
         client.get_function_definition(
             FunctionDefinitionId="b552443b-1888-469b-81f8-0ebc5ca92949"
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That Lambda List Definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That Lambda List Definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_delete_function_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
         "Functions": [
@@ -161,27 +151,24 @@ def test_delete_function_definition():
 
     func_def_id = create_res["Id"]
     del_res = client.delete_function_definition(FunctionDefinitionId=func_def_id)
-    del_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert del_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_greengrass
 def test_delete_function_definition_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
         client.delete_function_definition(
             FunctionDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6"
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That lambdas definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That lambdas definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_update_function_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
         "Functions": [
@@ -206,15 +193,14 @@ def test_update_function_definition():
     update_res = client.update_function_definition(
         FunctionDefinitionId=func_def_id, Name=updated_func_name
     )
-    update_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert update_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     get_res = client.get_function_definition(FunctionDefinitionId=func_def_id)
-    get_res.should.have.key("Name").equals(updated_func_name)
+    assert get_res["Name"] == updated_func_name
 
 
 @mock_greengrass
 def test_update_function_definition_with_empty_name():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
         "Functions": [
@@ -238,33 +224,27 @@ def test_update_function_definition_with_empty_name():
 
     with pytest.raises(ClientError) as ex:
         client.update_function_definition(FunctionDefinitionId=func_def_id, Name="")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Input does not contain any attributes to be updated"
-    )
-    ex.value.response["Error"]["Code"].should.equal(
-        "InvalidContainerDefinitionException"
-    )
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Input does not contain any attributes to be updated"
+    assert err["Code"] == "InvalidContainerDefinitionException"
 
 
 @mock_greengrass
 def test_update_function_definition_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
         client.update_function_definition(
             FunctionDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6", Name="123"
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That lambdas definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    rr = ex.value.response["Error"]
+    assert rr["Message"] == "That lambdas definition does not exist."
+    assert rr["Code"] == "IdNotFoundException"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_function_definition_version():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     v1_functions = [
         {
@@ -301,18 +281,17 @@ def test_create_function_definition_version():
     func_def_ver_res = client.create_function_definition_version(
         FunctionDefinitionId=func_def_id, Functions=v2_functions
     )
-    func_def_ver_res.should.have.key("Arn")
-    func_def_ver_res.should.have.key("CreationTimestamp")
-    func_def_ver_res.should.have.key("Id").equals(func_def_id)
-    func_def_ver_res.should.have.key("Version")
+    assert "Arn" in func_def_ver_res
+    assert "CreationTimestamp" in func_def_ver_res
+    assert func_def_ver_res["Id"] == func_def_id
+    assert "Version" in func_def_ver_res
 
     if not TEST_SERVER_MODE:
-        func_def_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+        assert func_def_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_create_function_definition_version_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     functions = [
         {
@@ -331,14 +310,14 @@ def test_create_function_definition_version_with_invalid_id():
             FunctionDefinitionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c",
             Functions=functions,
         )
-    ex.value.response["Error"]["Message"].should.equal("That lambdas does not exist.")
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That lambdas does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_list_function_definition_versions():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     functions = [
         {
@@ -363,36 +342,33 @@ def test_list_function_definition_versions():
         FunctionDefinitionId=func_def_id
     )
 
-    func_def_vers_res.should.have.key("Versions")
+    assert "Versions" in func_def_vers_res
     device_def_ver = func_def_vers_res["Versions"][0]
-    device_def_ver.should.have.key("Arn")
-    device_def_ver.should.have.key("CreationTimestamp")
+    assert "Arn" in device_def_ver
+    assert "CreationTimestamp" in device_def_ver
 
     if not TEST_SERVER_MODE:
-        device_def_ver["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
-    device_def_ver.should.have.key("Id").equals(func_def_id)
-    device_def_ver.should.have.key("Version")
+        assert device_def_ver["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+    assert device_def_ver["Id"] == func_def_id
+    assert "Version" in device_def_ver
 
 
 @mock_greengrass
 def test_list_function_definition_versions_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
         client.list_function_definition_versions(
             FunctionDefinitionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c"
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That lambdas definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That lambdas definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_get_function_definition_version():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     functions = [
         {
@@ -419,19 +395,18 @@ def test_get_function_definition_version():
         FunctionDefinitionId=func_def_id, FunctionDefinitionVersionId=func_def_ver_id
     )
 
-    func_def_ver_res.should.have.key("Arn")
-    func_def_ver_res.should.have.key("CreationTimestamp")
-    func_def_ver_res.should.have.key("Definition").should.equal(initial_version)
-    func_def_ver_res.should.have.key("Id").equals(func_def_id)
-    func_def_ver_res.should.have.key("Version")
+    assert "Arn" in func_def_ver_res
+    assert "CreationTimestamp" in func_def_ver_res
+    assert func_def_ver_res["Definition"] == initial_version
+    assert func_def_ver_res["Id"] == func_def_id
+    assert "Version" in func_def_ver_res
 
     if not TEST_SERVER_MODE:
-        func_def_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+        assert func_def_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_get_function_definition_version_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
@@ -439,15 +414,13 @@ def test_get_function_definition_version_with_invalid_id():
             FunctionDefinitionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c",
             FunctionDefinitionVersionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c",
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That lambdas definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That lambdas definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_get_function_definition_version_with_invalid_version_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     functions = [
         {
@@ -475,7 +448,9 @@ def test_get_function_definition_version_with_invalid_version_id():
             FunctionDefinitionId=func_def_id,
             FunctionDefinitionVersionId=invalid_func_def_ver_id,
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Version {invalid_func_def_ver_id} of Lambda List Definition {func_def_id} does not exist."
+    err = ex.value.response["Error"]
+    assert (
+        err["Message"]
+        == f"Version {invalid_func_def_ver_id} of Lambda List Definition {func_def_id} does not exist."
     )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    assert err["Code"] == "IdNotFoundException"

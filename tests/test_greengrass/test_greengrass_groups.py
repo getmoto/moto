@@ -11,7 +11,6 @@ from moto.settings import TEST_SERVER_MODE
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_group():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_core_ver = {
         "Cores": [
@@ -32,27 +31,22 @@ def test_create_group():
 
     grp_name = "TestGroup"
     create_grp_res = client.create_group(Name=grp_name, InitialVersion=init_grp)
-    create_grp_res.should.have.key("Arn")
-    create_grp_res.should.have.key("Id")
-    create_grp_res.should.have.key("LastUpdatedTimestamp")
-    create_grp_res.should.have.key("LatestVersion")
-    create_grp_res.should.have.key("LatestVersionArn")
-    create_grp_res.should.have.key("Name").equals(grp_name)
-    create_grp_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    assert "Arn" in create_grp_res
+    assert "Id" in create_grp_res
+    assert "LastUpdatedTimestamp" in create_grp_res
+    assert "LatestVersion" in create_grp_res
+    assert "LatestVersionArn" in create_grp_res
+    assert create_grp_res["Name"] == grp_name
+    assert create_grp_res["ResponseMetadata"]["HTTPStatusCode"] == 201
 
     if not TEST_SERVER_MODE:
-        create_grp_res.should.have.key("CreationTimestamp").equals(
-            "2022-06-01T12:00:00.000Z"
-        )
-        create_grp_res.should.have.key("LastUpdatedTimestamp").equals(
-            "2022-06-01T12:00:00.000Z"
-        )
+        assert create_grp_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert create_grp_res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_list_groups():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     grp_name = "TestGroup"
     create_grp_res = client.create_group(Name=grp_name)
@@ -61,20 +55,19 @@ def test_list_groups():
     list_res = client.list_groups()
 
     group = list_res["Groups"][0]
-    group.should.have.key("Name").equals(grp_name)
-    group.should.have.key("Arn")
-    group.should.have.key("Id").equals(group_id)
-    group.should.have.key("LatestVersion")
-    group.should.have.key("LatestVersionArn")
+    assert group["Name"] == grp_name
+    assert "Arn" in group
+    assert group["Id"] == group_id
+    assert "LatestVersion" in group
+    assert "LatestVersionArn" in group
     if not TEST_SERVER_MODE:
-        group.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
-        group.should.have.key("LastUpdatedTimestamp").equals("2022-06-01T12:00:00.000Z")
+        assert group["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert group["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_get_group():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     grp_name = "TestGroup"
     create_res = client.create_group(Name=grp_name)
@@ -85,74 +78,65 @@ def test_get_group():
 
     get_res = client.get_group(GroupId=group_id)
 
-    get_res.should.have.key("Name").equals(grp_name)
-    get_res.should.have.key("Arn").equals(group_arn)
-    get_res.should.have.key("Id").equals(group_id)
-    get_res.should.have.key("LatestVersion").equals(latest_version)
-    get_res.should.have.key("LatestVersionArn").equals(latest_version_arn)
-    get_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert get_res["Name"] == grp_name
+    assert get_res["Arn"] == group_arn
+    assert get_res["Id"] == group_id
+    assert get_res["LatestVersion"] == latest_version
+    assert get_res["LatestVersionArn"] == latest_version_arn
+    assert get_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     if not TEST_SERVER_MODE:
-        get_res.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
-        get_res.should.have.key("LastUpdatedTimestamp").equals(
-            "2022-06-01T12:00:00.000Z"
-        )
+        assert get_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert get_res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_get_group_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
         client.get_group(GroupId="b552443b-1888-469b-81f8-0ebc5ca92949")
-    ex.value.response["Error"]["Message"].should.equal(
-        "That Group Definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That Group Definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_delete_group():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_res = client.create_group(Name="TestGroup")
 
     group_id = create_res["Id"]
     del_res = client.delete_group(GroupId=group_id)
-    del_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert del_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_greengrass
 def test_delete_group_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
         client.delete_group(GroupId="6fbffc21-989e-4d29-a793-a42f450a78c6")
-    ex.value.response["Error"]["Message"].should.equal(
-        "That group definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That group definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_update_group():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_res = client.create_group(Name="TestGroup")
 
     group_id = create_res["Id"]
     updated_group_name = "UpdatedGroup"
     update_res = client.update_group(GroupId=group_id, Name=updated_group_name)
-    update_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert update_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     get_res = client.get_group(GroupId=group_id)
-    get_res.should.have.key("Name").equals(updated_group_name)
+    assert get_res["Name"] == updated_group_name
 
 
 @mock_greengrass
 def test_update_group_with_empty_name():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_res = client.create_group(Name="TestGroup")
 
@@ -160,54 +144,48 @@ def test_update_group_with_empty_name():
 
     with pytest.raises(ClientError) as ex:
         client.update_group(GroupId=group_id, Name="")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Input does not contain any attributes to be updated"
-    )
-    ex.value.response["Error"]["Code"].should.equal(
-        "InvalidContainerDefinitionException"
-    )
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Input does not contain any attributes to be updated"
+    assert err["Code"] == "InvalidContainerDefinitionException"
 
 
 @mock_greengrass
 def test_update_group_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
         client.update_group(GroupId="6fbffc21-989e-4d29-a793-a42f450a78c6", Name="123")
-    ex.value.response["Error"]["Message"].should.equal(
-        "That group definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That group definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_group_version():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_grp_res = client.create_group(Name="TestGroup")
     group_id = create_grp_res["Id"]
 
     group_ver_res = client.create_group_version(GroupId=group_id)
-    group_ver_res.should.have.key("Arn")
-    group_ver_res.should.have.key("CreationTimestamp")
-    group_ver_res.should.have.key("Id").equals(group_id)
-    group_ver_res.should.have.key("Version")
+    assert "Arn" in group_ver_res
+    assert "CreationTimestamp" in group_ver_res
+    assert group_ver_res["Id"] == group_id
+    assert "Version" in group_ver_res
 
     if not TEST_SERVER_MODE:
-        group_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+        assert group_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_create_group_version_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
         client.create_group_version(GroupId="cd2ea6dc-6634-4e89-8441-8003500435f9")
 
-    ex.value.response["Error"]["Message"].should.equal("That group does not exist.")
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That group does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @pytest.mark.parametrize(
@@ -269,7 +247,6 @@ def test_create_group_version_with_invalid_id():
 def test_create_group_version_with_invalid_version_arn(
     def_ver_key_name, arn, error_message
 ):
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_grp_res = client.create_group(Name="TestGroup")
     group_id = create_grp_res["Id"]
@@ -279,50 +256,48 @@ def test_create_group_version_with_invalid_version_arn(
     with pytest.raises(ClientError) as ex:
         client.create_group_version(GroupId=group_id, **definition_versions)
 
-    ex.value.response["Error"]["Message"].should.equal(
-        f"The group is invalid or corrupted. (ErrorDetails: [{error_message}])"
+    err = ex.value.response["Error"]
+    assert (
+        err["Message"]
+        == f"The group is invalid or corrupted. (ErrorDetails: [{error_message}])"
     )
-    ex.value.response["Error"]["Code"].should.equal("400")
+    assert err["Code"] == "400"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_list_group_versions():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_res = client.create_group(Name="TestGroup")
     group_id = create_res["Id"]
 
     group_vers_res = client.list_group_versions(GroupId=group_id)
 
-    group_vers_res.should.have.key("Versions")
+    assert "Versions" in group_vers_res
     group_ver = group_vers_res["Versions"][0]
-    group_ver.should.have.key("Arn")
-    group_ver.should.have.key("CreationTimestamp")
-    group_ver.should.have.key("Id").equals(group_id)
-    group_ver.should.have.key("Version")
+    assert "Arn" in group_ver
+    assert "CreationTimestamp" in group_ver
+    assert group_ver["Id"] == group_id
+    assert "Version" in group_ver
 
     if not TEST_SERVER_MODE:
-        group_ver["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+        assert group_ver["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_list_group_versions_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
         client.list_group_versions(GroupId="7b0bdeae-54c7-47cf-9f93-561e672efd9c")
-    ex.value.response["Error"]["Message"].should.equal(
-        "That group definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That group definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_get_group_version():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_core_ver = {
         "Cores": [
@@ -427,19 +402,18 @@ def test_get_group_version():
         GroupId=group_id, GroupVersionId=group_ver_id
     )
 
-    group_ver_res.should.have.key("Arn")
-    group_ver_res.should.have.key("CreationTimestamp")
-    group_ver_res.should.have.key("Definition").should.equal(definition)
-    group_ver_res.should.have.key("Id").equals(group_id)
-    group_ver_res.should.have.key("Version").should.equal(group_ver_id)
+    assert "Arn" in group_ver_res
+    assert "CreationTimestamp" in group_ver_res
+    assert group_ver_res["Definition"] == definition
+    assert group_ver_res["Id"] == group_id
+    assert group_ver_res["Version"] == group_ver_id
 
     if not TEST_SERVER_MODE:
-        group_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+        assert group_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_get_group_version_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
@@ -447,15 +421,13 @@ def test_get_group_version_with_invalid_id():
             GroupId="7b0bdeae-54c7-47cf-9f93-561e672efd9c",
             GroupVersionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c",
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That group definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That group definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_get_group_version_with_invalid_version_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_res = client.create_group(Name="TestGroup")
 
@@ -467,61 +439,58 @@ def test_get_group_version_with_invalid_version_id():
             GroupId=group_id,
             GroupVersionId=invalid_group_ver_id,
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Version {invalid_group_ver_id} of Group Definition {group_id} does not exist."
+    err = ex.value.response["Error"]
+    assert (
+        err["Message"]
+        == f"Version {invalid_group_ver_id} of Group Definition {group_id} does not exist."
     )
-    ex.value.response["Error"]["Code"].should.equal("VersionNotFoundException")
+    assert err["Code"] == "VersionNotFoundException"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_associate_role_to_group():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     res = client.associate_role_to_group(
         GroupId="abc002c8-1093-485e-9324-3baadf38e582",
         RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/greengrass-role",
     )
 
-    res.should.have.key("AssociatedAt")
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert "AssociatedAt" in res
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_get_associated_role():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     group_id = "abc002c8-1093-485e-9324-3baadf38e582"
     role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/greengrass-role"
     client.associate_role_to_group(GroupId=group_id, RoleArn=role_arn)
 
     res = client.get_associated_role(GroupId=group_id)
-    res.should.have.key("AssociatedAt")
-    res.should.have.key("RoleArn").should.equal(role_arn)
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert "AssociatedAt" in res
+    assert res["RoleArn"] == role_arn
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     if not TEST_SERVER_MODE:
-        res["AssociatedAt"].should.equal("2022-06-01T12:00:00.000Z")
+        assert res["AssociatedAt"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_get_associated_role_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
         client.get_associated_role(GroupId="abc002c8-1093-485e-9324-3baadf38e582")
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "You need to attach an IAM role to this deployment group."
-    )
-    ex.value.response["Error"]["Code"].should.equal("404")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "You need to attach an IAM role to this deployment group."
+    assert err["Code"] == "404"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_disassociate_role_from_group():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     group_id = "abc002c8-1093-485e-9324-3baadf38e582"
     role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/greengrass-role"
@@ -529,30 +498,28 @@ def test_disassociate_role_from_group():
     client.get_associated_role(GroupId=group_id)
 
     res = client.disassociate_role_from_group(GroupId=group_id)
-    res.should.have.key("DisassociatedAt")
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert "DisassociatedAt" in res
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     if not TEST_SERVER_MODE:
-        res["DisassociatedAt"].should.equal("2022-06-01T12:00:00.000Z")
+        assert res["DisassociatedAt"] == "2022-06-01T12:00:00.000Z"
 
     with pytest.raises(ClientError) as ex:
         client.get_associated_role(GroupId=group_id)
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "You need to attach an IAM role to this deployment group."
-    )
-    ex.value.response["Error"]["Code"].should.equal("404")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "You need to attach an IAM role to this deployment group."
+    assert err["Code"] == "404"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_disassociate_role_from_group_with_none_exists_group_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     group_id = "abc002c8-1093-485e-9324-3baadf38e582"
     res = client.disassociate_role_from_group(GroupId=group_id)
-    res.should.have.key("DisassociatedAt")
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert "DisassociatedAt" in res
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     if not TEST_SERVER_MODE:
-        res["DisassociatedAt"].should.equal("2022-06-01T12:00:00.000Z")
+        assert res["DisassociatedAt"] == "2022-06-01T12:00:00.000Z"
