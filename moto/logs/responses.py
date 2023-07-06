@@ -191,16 +191,7 @@ class LogsResponse(BaseResponse):
         destination = self.logs_backend.put_destination(
             destination_name, role_arn, target_arn
         )
-        result = {
-            "destination": {
-                "accessPolicy": destination.access_policy or "",
-                "arn": destination.arn,
-                "creationTime": destination.creation_time,
-                "destinationName": destination.destination_name,
-                "roleArn": destination.role_arn,
-                "targetArn": destination.target_arn,
-            }
-        }
+        result = {"destination": destination.to_dict()}
         return json.dumps(result)
 
     def delete_destination(self) -> str:

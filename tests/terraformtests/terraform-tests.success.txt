@@ -366,7 +366,9 @@ lambda:
   - TestAccLambdaFunctionURL_basic
   - TestAccLambdaFunctionURL_TwoURLs
 logs:
-  - TestAccAWSCloudwatchLogDestination
+  - TestAccLogsDestination_disappears
+  - TestAccLogsDestination_basic
+  - TestAccLogsDestinationPolicy_basic
 meta:
   - TestAccMetaBillingServiceAccountDataSource
 mq:
