@@ -3,7 +3,7 @@ import os
 import random
 import string
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Iterable, Union
+from typing import Any, Dict, List, Optional, Iterable, Union
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.sagemaker import validators
