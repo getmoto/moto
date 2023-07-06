@@ -205,7 +205,7 @@ class LogsResponse(BaseResponse):
         next_token = self._get_param("nextToken")
 
         destinations, next_token = self.logs_backend.describe_destinations(
-            destination_name_prefix, limit, next_token
+            destination_name_prefix, int(limit), next_token
         )
 
         result = {"destinations": destinations, "nextToken": next_token}

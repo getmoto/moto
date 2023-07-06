@@ -35,7 +35,7 @@ class Destination(BaseModel):
         self.role_arn = role_arn
         self.target_arn = target_arn
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "accessPolicy": self.access_policy,
             "arn": self.arn,
@@ -735,13 +735,15 @@ class LogsBackend(BaseBackend):
 
         return groups
 
-    def get_destination(self, destination_name):
+    def get_destination(self, destination_name: str) -> Destination:
         for destination in self.destinations:
             if self.destinations[destination].destination_name == destination_name:
                 return self.destinations[destination]
         raise ResourceNotFoundException()
 
-    def put_destination(self, destination_name, role_arn, target_arn):
+    def put_destination(
+        self, destination_name: str, role_arn: str, target_arn: str
+    ) -> Destination:
         for _, destination in self.destinations.items():
             if destination.destination_name == destination_name:
                 if role_arn:
@@ -755,12 +757,14 @@ class LogsBackend(BaseBackend):
         self.destinations[destination.arn] = destination
         return destination
 
-    def delete_destination(self, destination_name):
+    def delete_destination(self, destination_name: str) -> None:
         destination = self.get_destination(destination_name)
         self.destinations.pop(destination.arn)
         return
 
-    def describe_destinations(self, destination_name_prefix, limit, next_token=None):
+    def describe_destinations(
+        self, destination_name_prefix: str, limit: int, next_token: Optional[int] = None
+    ) -> Tuple[List[Dict[str, Any]], Optional[int]]:
         if limit > 50:
             raise InvalidParameterException(
                 constraint="Member must have value less than or equal to 50",
@@ -772,7 +776,7 @@ class LogsBackend(BaseBackend):
         for destination in self.destinations:
             result.append(self.destinations[destination].to_dict())
         if next_token:
-            result = result[:next_token]
+            result = result[: int(next_token)]
         result = [
             destination
             for destination in result
@@ -780,7 +784,7 @@ class LogsBackend(BaseBackend):
         ]
         return result, next_token
 
-    def put_destination_policy(self, destination_name, access_policy):
+    def put_destination_policy(self, destination_name: str, access_policy: str) -> None:
         destination = self.get_destination(destination_name)
         destination.access_policy = access_policy
         return
