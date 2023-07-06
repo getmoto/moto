@@ -742,7 +742,7 @@ class LogsBackend(BaseBackend):
         raise ResourceNotFoundException()
 
     def put_destination(self, destination_name, role_arn, target_arn):
-        for key, destination in self.destinations.items():
+        for _, destination in self.destinations.items():
             if destination.destination_name == destination_name:
                 if role_arn:
                     destination.role_arn = role_arn
