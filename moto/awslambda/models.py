@@ -647,7 +647,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             "TracingConfig": self.tracing_config,
             "Architectures": self.architectures,
             "EphemeralStorage": {
-                "Size": str(self.ephemeral_storage),
+                "Size": self.ephemeral_storage,
             },
             "SnapStart": {"ApplyOn": "None", "OptimizationStatus": "Off"},
         }
