@@ -89,3 +89,9 @@ class UnknownPolicyException(LambdaClientError):
             "ResourceNotFoundException",
             "No policy is associated with the given resource.",
         )
+
+
+class ValidationException(LambdaClientError):
+    def __init__(self, value: str, property_name: str, specific_message: str):
+        message = f"1 validation error detected: Value '{value}' at '{property_name}' failed to satisfy constraint: {specific_message}"
+        super().__init__("ValidationException", message)

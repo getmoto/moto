@@ -6,7 +6,7 @@ import boto3
 import hashlib
 import pytest
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 from freezegun import freeze_time
 from tests.test_ecr.test_ecr_helpers import _create_image_manifest
 from moto import mock_lambda, mock_s3, mock_ecr, settings
@@ -172,6 +172,8 @@ def test_create_function_from_zipfile():
     result.pop("LastModified")
 
     assert result == {
+        "Architectures": ["x86_64"],
+        "EphemeralStorage": {"Size": 512},
         "FunctionName": function_name,
         "FunctionArn": f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}",
         "Runtime": "python2.7",
@@ -190,7 +192,120 @@ def test_create_function_from_zipfile():
         "State": "Active",
         "Layers": [],
         "TracingConfig": {"Mode": "PassThrough"},
+        "SnapStart": {"ApplyOn": "None", "OptimizationStatus": "Off"},
     }
+
+
+@mock_lambda
+def test_create_function_from_image():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+    image_config = {
+        "EntryPoint": [
+            "python",
+        ],
+        "Command": [
+            "/opt/app.py",
+        ],
+        "WorkingDirectory": "/opt",
+    }
+    conn.create_function(
+        FunctionName=function_name,
+        Role=get_role_name(),
+        Code={"ImageUri": image_uri},
+        Description="test lambda function",
+        ImageConfig=image_config,
+        PackageType="Image",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    result = conn.get_function(FunctionName=function_name)
+
+    assert "ImageConfigResponse" in result["Configuration"]
+    assert result["Configuration"]["ImageConfigResponse"]["ImageConfig"] == image_config
+
+
+@mock_lambda
+def test_create_function_error_bad_architecture():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+
+    with pytest.raises(ClientError) as exc:
+        conn.create_function(
+            Architectures=["foo"],
+            FunctionName=function_name,
+            Role=get_role_name(),
+            Code={"ImageUri": image_uri},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+        )
+
+    err = exc.value.response
+
+    assert err["Error"]["Code"] == "ValidationException"
+    assert (
+        err["Error"]["Message"]
+        == "1 validation error detected: Value '['foo']' at 'architectures' failed to satisfy"
+        " constraint: Member must satisfy constraint: [Member must satisfy enum value set: "
+        "[x86_64, arm64], Member must not be null]"
+    )
+
+
+@mock_lambda
+def test_create_function_error_ephemeral_too_big():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+
+    with pytest.raises(ClientError) as exc:
+        conn.create_function(
+            FunctionName=function_name,
+            Role=get_role_name(),
+            Code={"ImageUri": image_uri},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+            EphemeralStorage={"Size": 3000000},
+        )
+
+    err = exc.value.response
+
+    assert err["Error"]["Code"] == "ValidationException"
+    assert (
+        err["Error"]["Message"]
+        == "1 validation error detected: Value '3000000' at 'ephemeralStorage.size' "
+        "failed to satisfy constraint: "
+        "Member must have value less than or equal to 10240"
+    )
+
+
+@mock_lambda
+def test_create_function_error_ephemeral_too_small():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+
+    with pytest.raises(ParamValidationError) as exc:
+        conn.create_function(
+            FunctionName=function_name,
+            Role=get_role_name(),
+            Code={"ImageUri": image_uri},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+            EphemeralStorage={"Size": 200},
+        )
+
+    # this one is handled by botocore, not moto
+    assert exc.typename == "ParamValidationError"
 
 
 @mock_lambda
@@ -762,6 +877,7 @@ def test_list_create_list_get_delete_list():
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
         Description="test lambda function",
+        EphemeralStorage={"Size": 2500},
         Timeout=3,
         MemorySize=128,
         Publish=True,
@@ -789,6 +905,9 @@ def test_list_create_list_get_delete_list():
             "Layers": [],
             "LastUpdateStatus": "Successful",
             "TracingConfig": {"Mode": "PassThrough"},
+            "Architectures": ["x86_64"],
+            "EphemeralStorage": {"Size": 2500},
+            "SnapStart": {"ApplyOn": "None", "OptimizationStatus": "Off"},
         },
         "ResponseMetadata": {"HTTPStatusCode": 200},
     }
