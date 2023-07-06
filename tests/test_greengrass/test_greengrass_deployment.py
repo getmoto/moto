@@ -12,7 +12,6 @@ from moto.settings import TEST_SERVER_MODE
 
 @mock_greengrass
 def test_create_deployment():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -36,14 +35,13 @@ def test_create_deployment():
     res = client.create_deployment(
         GroupId=group_id, GroupVersionId=latest_grp_ver, DeploymentType="NewDeployment"
     )
-    res.should.have.key("DeploymentArn")
-    res.should.have.key("DeploymentId")
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert "DeploymentArn" in res
+    assert "DeploymentId" in res
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_greengrass
 def test_re_deployment_with_no_deployment_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -70,15 +68,16 @@ def test_re_deployment_with_no_deployment_id():
             GroupVersionId=latest_grp_ver,
             DeploymentType="Redeployment",
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "Your request is missing the following required parameter(s): {DeploymentId}."
+    err = ex.value.response["Error"]
+    assert (
+        err["Message"]
+        == "Your request is missing the following required parameter(s): {DeploymentId}."
     )
-    ex.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    assert err["Code"] == "InvalidInputException"
 
 
 @mock_greengrass
 def test_re_deployment_with_invalid_deployment_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -107,15 +106,13 @@ def test_re_deployment_with_invalid_deployment_id():
             DeploymentType="Redeployment",
             DeploymentId=deployment_id,
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Deployment ID '{deployment_id}' is invalid."
-    )
-    ex.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == f"Deployment ID '{deployment_id}' is invalid."
+    assert err["Code"] == "InvalidInputException"
 
 
 @mock_greengrass
 def test_create_deployment_with_no_core_group():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_group_res = client.create_group(Name="TestGroup")
     group_id = create_group_res["Id"]
@@ -128,20 +125,20 @@ def test_create_deployment_with_no_core_group():
             DeploymentType="NewDeployment",
         )
 
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Code"].should.equal("MissingCoreException")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["Error"]["Code"] == "MissingCoreException"
     err = json.loads(ex.value.response["Error"]["Message"])
     err_details = err["ErrorDetails"]
 
-    err_details[0].should.have.key("DetailedErrorCode").equals("GG-303")
-    err_details[0].should.have.key("DetailedErrorMessage").equals(
-        "You need a Greengrass Core in this Group before you can deploy."
+    assert err_details[0]["DetailedErrorCode"] == "GG-303"
+    assert (
+        err_details[0]["DetailedErrorMessage"]
+        == "You need a Greengrass Core in this Group before you can deploy."
     )
 
 
 @mock_greengrass
 def test_create_deployment_with_invalid_group_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
         client.create_deployment(
@@ -150,16 +147,15 @@ def test_create_deployment_with_invalid_group_id():
             DeploymentType="NewDeployment",
         )
 
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "That group definition does not exist."
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        ex.value.response["Error"]["Message"] == "That group definition does not exist."
     )
 
 
 @mock_greengrass
 def test_create_deployment_with_invalid_group_version_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -187,16 +183,16 @@ def test_create_deployment_with_invalid_group_version_id():
             DeploymentType="NewDeployment",
         )
 
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Version {group_version_id} of Group Definition {group_id} does not exist."
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Version {group_version_id} of Group Definition {group_id} does not exist."
     )
 
 
 @mock_greengrass
 def test_create_deployment_with_invalid_deployment_type():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_group_res = client.create_group(Name="TestGroup")
     group_id = create_group_res["Id"]
@@ -209,17 +205,18 @@ def test_create_deployment_with_invalid_deployment_type():
             DeploymentType="InvalidDeploymentType",
         )
 
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Code"].should.equal("InvalidInputException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "That deployment type is not valid.  Please specify one of the following types: {NewDeployment,Redeployment,ResetDeployment,ForceResetDeployment}."
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidInputException"
+    assert (
+        err["Message"]
+        == "That deployment type is not valid.  Please specify one of the following types: {NewDeployment,Redeployment,ResetDeployment,ForceResetDeployment}."
     )
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_list_deployments():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -246,23 +243,22 @@ def test_list_deployments():
     )
 
     res = client.list_deployments(GroupId=group_id)
-    res.should.have.key("Deployments")
+    assert "Deployments" in res
     deployments = res["Deployments"][0]
 
-    deployments.should.have.key("CreatedAt")
-    deployments.should.have.key("DeploymentArn")
-    deployments.should.have.key("DeploymentId")
-    deployments.should.have.key("DeploymentType").equals(deployment_type)
-    deployments.should.have.key("GroupArn").equals(latest_grp_ver_arn)
+    assert "CreatedAt" in deployments
+    assert "DeploymentArn" in deployments
+    assert "DeploymentId" in deployments
+    assert deployments["DeploymentType"] == deployment_type
+    assert deployments["GroupArn"] == latest_grp_ver_arn
 
     if not TEST_SERVER_MODE:
-        deployments.should.have.key("CreatedAt").equal("2022-06-01T12:00:00.000Z")
+        assert deployments["CreatedAt"] == "2022-06-01T12:00:00.000Z"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_get_deployment_status():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -290,18 +286,17 @@ def test_get_deployment_status():
     deployment_id = create_deployment_res["DeploymentId"]
     res = client.get_deployment_status(GroupId=group_id, DeploymentId=deployment_id)
 
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    res.should.have.key("DeploymentStatus").equal("InProgress")
-    res.should.have.key("DeploymentType").equal(deployment_type)
-    res.should.have.key("UpdatedAt")
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert res["DeploymentStatus"] == "InProgress"
+    assert res["DeploymentType"] == deployment_type
+    assert "UpdatedAt" in res
 
     if not TEST_SERVER_MODE:
-        res.should.have.key("UpdatedAt").equal("2022-06-01T12:00:00.000Z")
+        assert res["UpdatedAt"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_get_deployment_status_with_invalid_deployment_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_group_res = client.create_group(Name="TestGroup")
     group_id = create_group_res["Id"]
@@ -310,15 +305,13 @@ def test_get_deployment_status_with_invalid_deployment_id():
 
     with pytest.raises(ClientError) as ex:
         client.get_deployment_status(GroupId=group_id, DeploymentId=deployment_id)
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Deployment '{deployment_id}' does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == f"Deployment '{deployment_id}' does not exist."
+    assert err["Code"] == "InvalidInputException"
 
 
 @mock_greengrass
 def test_get_deployment_status_with_invalid_group_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -349,10 +342,9 @@ def test_get_deployment_status_with_invalid_group_id():
         client.get_deployment_status(
             GroupId="7b0bdeae-54c7-47cf-9f93-561e672efd9c", DeploymentId=deployment_id
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Deployment '{deployment_id}' does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == f"Deployment '{deployment_id}' does not exist."
+    assert err["Code"] == "InvalidInputException"
 
 
 @pytest.mark.skipif(
@@ -362,7 +354,6 @@ def test_get_deployment_status_with_invalid_group_id():
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_reset_deployments():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -389,20 +380,20 @@ def test_reset_deployments():
 
     reset_res = client.reset_deployments(GroupId=group_id)
 
-    reset_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    reset_res.should.have.key("DeploymentId")
-    reset_res.should.have.key("DeploymentArn")
+    assert reset_res["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "DeploymentId" in reset_res
+    assert "DeploymentArn" in reset_res
 
     list_res = client.list_deployments(GroupId=group_id)
     reset_deployment = list_res["Deployments"][1]
-    reset_deployment.should.have.key("CreatedAt")
-    reset_deployment.should.have.key("DeploymentArn")
-    reset_deployment.should.have.key("DeploymentId")
-    reset_deployment.should.have.key("DeploymentType").should.equal("ResetDeployment")
-    reset_deployment.should.have.key("GroupArn").should.equal(group_arn)
+    assert "CreatedAt" in reset_deployment
+    assert "DeploymentArn" in reset_deployment
+    assert "DeploymentId" in reset_deployment
+    assert reset_deployment["DeploymentType"] == "ResetDeployment"
+    assert reset_deployment["GroupArn"] == group_arn
 
     if not TEST_SERVER_MODE:
-        reset_deployment["CreatedAt"].should.equal("2022-06-01T12:00:00.000Z")
+        assert reset_deployment["CreatedAt"] == "2022-06-01T12:00:00.000Z"
 
 
 @pytest.mark.skipif(
@@ -411,15 +402,13 @@ def test_reset_deployments():
 )
 @mock_greengrass
 def test_reset_deployments_with_invalid_group_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
         client.reset_deployments(GroupId="7b0bdeae-54c7-47cf-9f93-561e672efd9c")
-    ex.value.response["Error"]["Message"].should.equal(
-        "That Group Definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That Group Definition does not exist."
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @pytest.mark.skipif(
@@ -428,7 +417,6 @@ def test_reset_deployments_with_invalid_group_id():
 )
 @mock_greengrass
 def test_reset_deployments_with_never_deployed_group():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -449,10 +437,12 @@ def test_reset_deployments_with_never_deployed_group():
 
     with pytest.raises(ClientError) as ex:
         client.reset_deployments(GroupId=group_id)
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Group id: {group_id} has not been deployed or has already been reset."
+    err = ex.value.response["Error"]
+    assert (
+        err["Message"]
+        == f"Group id: {group_id} has not been deployed or has already been reset."
     )
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @pytest.mark.skipif(
@@ -461,7 +451,6 @@ def test_reset_deployments_with_never_deployed_group():
 )
 @mock_greengrass
 def test_reset_deployments_with_already_reset_group():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -488,7 +477,9 @@ def test_reset_deployments_with_already_reset_group():
 
     with pytest.raises(ClientError) as ex:
         client.reset_deployments(GroupId=group_id)
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Group id: {group_id} has not been deployed or has already been reset."
+    err = ex.value.response["Error"]
+    assert (
+        err["Message"]
+        == f"Group id: {group_id} has not been deployed or has already been reset."
     )
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
