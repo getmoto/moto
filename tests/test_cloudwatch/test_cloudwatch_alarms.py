@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudwatch
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -29,29 +28,25 @@ def test_create_alarm():
     )
 
     alarms = cloudwatch.describe_alarms()["MetricAlarms"]
-    alarms.should.have.length_of(1)
+    assert len(alarms) == 1
     alarm = alarms[0]
-    alarm.should.have.key("AlarmName").equal("tester")
-    alarm.should.have.key("Namespace").equal("tester_namespace")
-    alarm.should.have.key("MetricName").equal("tester_metric")
-    alarm.should.have.key("ComparisonOperator").equal("GreaterThanOrEqualToThreshold")
-    alarm.should.have.key("Threshold").equal(2.0)
-    alarm.should.have.key("Period").equal(60)
-    alarm.should.have.key("EvaluationPeriods").equal(5)
-    alarm.should.have.key("Statistic").should.equal("Average")
-    alarm.should.have.key("AlarmDescription").equal("A test")
-    alarm.should.have.key("Dimensions").equal(
-        [{"Name": "InstanceId", "Value": "i-0123457"}]
-    )
-    alarm.should.have.key("AlarmActions").equal(["arn:alarm"])
-    alarm.should.have.key("OKActions").equal(["arn:ok"])
-    alarm.should.have.key("InsufficientDataActions").equal(["arn:insufficient"])
-    alarm.should.have.key("Unit").equal("Seconds")
-    alarm.should.have.key("AlarmArn").equal(
-        f"arn:aws:cloudwatch:{region}:{ACCOUNT_ID}:alarm:{name}"
-    )
+    assert alarm["AlarmName"] == "tester"
+    assert alarm["Namespace"] == "tester_namespace"
+    assert alarm["MetricName"] == "tester_metric"
+    assert alarm["ComparisonOperator"] == "GreaterThanOrEqualToThreshold"
+    assert alarm["Threshold"] == 2.0
+    assert alarm["Period"] == 60
+    assert alarm["EvaluationPeriods"] == 5
+    assert alarm["Statistic"] == "Average"
+    assert alarm["AlarmDescription"] == "A test"
+    assert alarm["Dimensions"] == [{"Name": "InstanceId", "Value": "i-0123457"}]
+    assert alarm["AlarmActions"] == ["arn:alarm"]
+    assert alarm["OKActions"] == ["arn:ok"]
+    assert alarm["InsufficientDataActions"] == ["arn:insufficient"]
+    assert alarm["Unit"] == "Seconds"
+    assert alarm["AlarmArn"] == f"arn:aws:cloudwatch:{region}:{ACCOUNT_ID}:alarm:{name}"
     # default value should be True
-    alarm.should.have.key("ActionsEnabled").equal(True)
+    assert alarm["ActionsEnabled"] is True
 
 
 @mock_cloudwatch
@@ -59,7 +54,7 @@ def test_delete_alarm():
     cloudwatch = boto3.client("cloudwatch", region_name="eu-central-1")
 
     alarms = cloudwatch.describe_alarms()["MetricAlarms"]
-    alarms.should.have.length_of(0)
+    assert len(alarms) == 0
 
     name = "tester"
     cloudwatch.put_metric_alarm(
@@ -80,12 +75,12 @@ def test_delete_alarm():
     )
 
     alarms = cloudwatch.describe_alarms()["MetricAlarms"]
-    alarms.should.have.length_of(1)
+    assert len(alarms) == 1
 
     cloudwatch.delete_alarms(AlarmNames=[name])
 
     alarms = cloudwatch.describe_alarms()["MetricAlarms"]
-    alarms.should.have.length_of(0)
+    assert len(alarms) == 0
 
 
 @mock_cloudwatch
@@ -112,10 +107,10 @@ def test_describe_alarms_for_metric():
         ActionsEnabled=True,
     )
     alarms = conn.describe_alarms_for_metric(MetricName="cpu", Namespace="blah")
-    alarms.get("MetricAlarms").should.have.length_of(1)
+    assert len(alarms.get("MetricAlarms")) == 1
     alarm = alarms.get("MetricAlarms")[0]
     assert "testalarm1" in alarm.get("AlarmArn")
-    alarm.should.have.key("ActionsEnabled").equal(True)
+    assert alarm["ActionsEnabled"] is True
 
 
 @mock_cloudwatch
@@ -177,7 +172,7 @@ def test_describe_alarms():
     )
     alarms = conn.describe_alarms()
     metric_alarms = alarms.get("MetricAlarms")
-    metric_alarms.should.have.length_of(2)
+    assert len(metric_alarms) == 2
     single_metric_alarm = [
         alarm for alarm in metric_alarms if alarm["AlarmName"] == "testalarm1"
     ][0]
@@ -185,23 +180,23 @@ def test_describe_alarms():
         alarm for alarm in metric_alarms if alarm["AlarmName"] == "testalarm2"
     ][0]
 
-    single_metric_alarm["MetricName"].should.equal("cpu")
-    single_metric_alarm.shouldnt.have.property("Metrics")
-    single_metric_alarm["Namespace"].should.equal("blah")
-    single_metric_alarm["Period"].should.equal(10)
-    single_metric_alarm["EvaluationPeriods"].should.equal(5)
-    single_metric_alarm["Statistic"].should.equal("Average")
-    single_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
-    single_metric_alarm["Threshold"].should.equal(2)
-    single_metric_alarm["ActionsEnabled"].should.equal(False)
+    assert single_metric_alarm["MetricName"] == "cpu"
+    assert "Metrics" not in single_metric_alarm
+    assert single_metric_alarm["Namespace"] == "blah"
+    assert single_metric_alarm["Period"] == 10
+    assert single_metric_alarm["EvaluationPeriods"] == 5
+    assert single_metric_alarm["Statistic"] == "Average"
+    assert single_metric_alarm["ComparisonOperator"] == "GreaterThanThreshold"
+    assert single_metric_alarm["Threshold"] == 2
+    assert single_metric_alarm["ActionsEnabled"] is False
 
-    multiple_metric_alarm.shouldnt.have.property("MetricName")
-    multiple_metric_alarm["EvaluationPeriods"].should.equal(1)
-    multiple_metric_alarm["DatapointsToAlarm"].should.equal(1)
-    multiple_metric_alarm["Metrics"].should.equal(metric_data_queries)
-    multiple_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
-    multiple_metric_alarm["Threshold"].should.equal(1.0)
-    multiple_metric_alarm["ActionsEnabled"].should.equal(True)
+    assert "MetricName" not in multiple_metric_alarm
+    assert multiple_metric_alarm["EvaluationPeriods"] == 1
+    assert multiple_metric_alarm["DatapointsToAlarm"] == 1
+    assert multiple_metric_alarm["Metrics"] == metric_data_queries
+    assert multiple_metric_alarm["ComparisonOperator"] == "GreaterThanThreshold"
+    assert multiple_metric_alarm["Threshold"] == 1.0
+    assert multiple_metric_alarm["ActionsEnabled"] is True
 
 
 @mock_cloudwatch
@@ -239,17 +234,17 @@ def test_alarm_state():
     )
 
     resp = client.describe_alarms(StateValue="ALARM")
-    len(resp["MetricAlarms"]).should.equal(1)
-    resp["MetricAlarms"][0]["AlarmName"].should.equal("testalarm1")
-    resp["MetricAlarms"][0]["StateValue"].should.equal("ALARM")
-    resp["MetricAlarms"][0]["ActionsEnabled"].should.equal(True)
+    assert len(resp["MetricAlarms"]) == 1
+    assert resp["MetricAlarms"][0]["AlarmName"] == "testalarm1"
+    assert resp["MetricAlarms"][0]["StateValue"] == "ALARM"
+    assert resp["MetricAlarms"][0]["ActionsEnabled"] is True
 
     resp = client.describe_alarms(StateValue="OK")
-    len(resp["MetricAlarms"]).should.equal(1)
-    resp["MetricAlarms"][0]["AlarmName"].should.equal("testalarm2")
-    resp["MetricAlarms"][0]["StateValue"].should.equal("OK")
-    resp["MetricAlarms"][0]["ActionsEnabled"].should.equal(True)
+    assert len(resp["MetricAlarms"]) == 1
+    assert resp["MetricAlarms"][0]["AlarmName"] == "testalarm2"
+    assert resp["MetricAlarms"][0]["StateValue"] == "OK"
+    assert resp["MetricAlarms"][0]["ActionsEnabled"] is True
 
     # Just for sanity
     resp = client.describe_alarms()
-    len(resp["MetricAlarms"]).should.equal(2)
+    assert len(resp["MetricAlarms"]) == 2

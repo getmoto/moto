@@ -3,7 +3,6 @@ from operator import itemgetter
 import boto3
 from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudwatch
 from moto.cloudwatch.utils import make_arn_for_alarm
@@ -40,7 +39,7 @@ def test_list_tags_for_resource():
     response = client.list_tags_for_resource(ResourceARN=arn)
 
     # then
-    response["Tags"].should.equal([{"Key": "key-1", "Value": "value-1"}])
+    assert response["Tags"] == [{"Key": "key-1", "Value": "value-1"}]
 
 
 @mock_cloudwatch
@@ -57,7 +56,7 @@ def test_list_tags_for_resource_with_unknown_resource():
     )
 
     # then
-    response["Tags"].should.equal([])
+    assert response["Tags"] == []
 
 
 @mock_cloudwatch
@@ -91,15 +90,10 @@ def test_tag_resource():
 
     # then
     response = client.list_tags_for_resource(ResourceARN=arn)
-    sorted(response["Tags"], key=itemgetter("Key")).should.equal(
-        sorted(
-            [
-                {"Key": "key-1", "Value": "value-1"},
-                {"Key": "key-2", "Value": "value-2"},
-            ],
-            key=itemgetter("Key"),
-        )
-    )
+    assert sorted(response["Tags"], key=itemgetter("Key")) == [
+        {"Key": "key-1", "Value": "value-1"},
+        {"Key": "key-2", "Value": "value-2"},
+    ]
 
 
 @mock_cloudwatch
@@ -117,7 +111,7 @@ def test_tag_resource_on_resource_without_tags():
     alarm_arn = alarms["MetricAlarms"][0]["AlarmArn"]
 
     # List 0 tags - none have been added
-    cw.list_tags_for_resource(ResourceARN=alarm_arn)["Tags"].should.equal([])
+    assert cw.list_tags_for_resource(ResourceARN=alarm_arn)["Tags"] == []
 
     # Tag the Alarm for the first time
     cw.tag_resource(ResourceARN=alarm_arn, Tags=[{"Key": "tk", "Value": "tv"}])
@@ -141,10 +135,10 @@ def test_tag_resource_error_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("TagResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal("Unknown")
+    assert ex.operation_name == "TagResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.response["Error"]["Message"] == "Unknown"
 
 
 @mock_cloudwatch
@@ -181,7 +175,7 @@ def test_untag_resource():
 
     # then
     response = client.list_tags_for_resource(ResourceARN=arn)
-    response["Tags"].should.equal([{"Key": "key-1", "Value": "value-1"}])
+    assert response["Tags"] == [{"Key": "key-1", "Value": "value-1"}]
 
 
 @mock_cloudwatch
@@ -201,7 +195,7 @@ def test_untag_resource_error_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("UntagResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal("Unknown")
+    assert ex.operation_name == "UntagResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.response["Error"]["Message"] == "Unknown"
