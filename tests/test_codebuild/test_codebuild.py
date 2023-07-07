@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_codebuild
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from botocore.exceptions import ClientError, ParamValidationError
@@ -30,33 +29,25 @@ def test_codebuild_create_project_s3_artifacts():
         f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
-    response = client.create_project(
+    project = client.create_project(
         name=name,
         source=source,
         artifacts=artifacts,
         environment=environment,
         serviceRole=service_role,
-    )
+    )["project"]
 
-    response.should.have.key("project")
-    response["project"].should.have.key("serviceRole")
-    response["project"].should.have.key("name").equals(name)
+    assert "serviceRole" in project
+    assert project["name"] == name
 
-    response["project"]["environment"].should.equal(
-        {
-            "computeType": "BUILD_GENERAL1_SMALL",
-            "image": "contents_not_validated",
-            "type": "LINUX_CONTAINER",
-        }
-    )
+    assert project["environment"] == {
+        "computeType": "BUILD_GENERAL1_SMALL",
+        "image": "contents_not_validated",
+        "type": "LINUX_CONTAINER",
+    }
 
-    response["project"]["source"].should.equal(
-        {"location": "bucketname/path/file.zip", "type": "S3"}
-    )
-
-    response["project"]["artifacts"].should.equal(
-        {"location": "bucketname", "type": "S3"}
-    )
+    assert project["source"] == {"location": "bucketname/path/file.zip", "type": "S3"}
+    assert project["artifacts"] == {"location": "bucketname", "type": "S3"}
 
 
 @mock_codebuild
@@ -79,31 +70,26 @@ def test_codebuild_create_project_no_artifacts():
         f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
-    response = client.create_project(
+    project = client.create_project(
         name=name,
         source=source,
         artifacts=artifacts,
         environment=environment,
         serviceRole=service_role,
-    )
+    )["project"]
 
-    response.should.have.key("project")
-    response["project"].should.have.key("serviceRole")
-    response["project"].should.have.key("name").equals(name)
+    assert "serviceRole" in project
+    assert project["name"] == name
 
-    response["project"]["environment"].should.equal(
-        {
-            "computeType": "BUILD_GENERAL1_SMALL",
-            "image": "contents_not_validated",
-            "type": "LINUX_CONTAINER",
-        }
-    )
+    assert project["environment"] == {
+        "computeType": "BUILD_GENERAL1_SMALL",
+        "image": "contents_not_validated",
+        "type": "LINUX_CONTAINER",
+    }
 
-    response["project"]["source"].should.equal(
-        {"location": "bucketname/path/file.zip", "type": "S3"}
-    )
+    assert project["source"] == {"location": "bucketname/path/file.zip", "type": "S3"}
 
-    response["project"]["artifacts"].should.equal({"type": "NO_ARTIFACTS"})
+    assert project["artifacts"] == {"type": "NO_ARTIFACTS"}
 
 
 @mock_codebuild
@@ -124,18 +110,18 @@ def test_codebuild_create_project_with_invalid_inputs():
     # Name too long
     with pytest.raises(client.exceptions.from_code("InvalidInputException")) as err:
         client.create_project(name=("some_project_" * 12), **_input)
-    err.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    assert err.value.response["Error"]["Code"] == "InvalidInputException"
 
     # Name invalid
     with pytest.raises(client.exceptions.from_code("InvalidInputException")) as err:
         client.create_project(name="!some_project_", **_input)
-    err.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    assert err.value.response["Error"]["Code"] == "InvalidInputException"
 
     # ServiceRole invalid
     _input["serviceRole"] = "arn:aws:iam::0000:role/service-role/my-role"
     with pytest.raises(client.exceptions.from_code("InvalidInputException")) as err:
         client.create_project(name="valid_name", **_input)
-    err.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    assert err.value.response["Error"]["Code"] == "InvalidInputException"
 
 
 @mock_codebuild
@@ -173,7 +159,7 @@ def test_codebuild_create_project_when_exists():
             environment=environment,
             serviceRole=service_role,
         )
-    err.value.response["Error"]["Code"].should.equal("ResourceAlreadyExistsException")
+    assert err.value.response["Error"]["Code"] == "ResourceAlreadyExistsException"
 
 
 @mock_codebuild
@@ -214,7 +200,7 @@ def test_codebuild_list_projects():
 
     projects = client.list_projects()
 
-    projects["projects"].should.equal(["project1", "project2"])
+    assert projects["projects"] == ["project1", "project2"]
 
 
 @mock_codebuild
@@ -246,7 +232,7 @@ def test_codebuild_list_builds_for_project_no_history():
     history = client.list_builds_for_project(projectName=name)
 
     # no build history if it's never started
-    history["ids"].should.equal([])
+    assert history["ids"] == []
 
 
 @mock_codebuild
@@ -278,7 +264,7 @@ def test_codebuild_list_builds_for_project_with_history():
     client.start_build(projectName=name)
     response = client.list_builds_for_project(projectName=name)
 
-    response["ids"].should.have.length_of(1)
+    assert len(response["ids"]) == 1
 
 
 # project never started
@@ -310,11 +296,11 @@ def test_codebuild_get_batch_builds_for_project_no_history():
     )
 
     response = client.list_builds_for_project(projectName=name)
-    response["ids"].should.equal([])
+    assert response["ids"] == []
 
     with pytest.raises(ParamValidationError) as err:
         client.batch_get_builds(ids=response["ids"])
-    err.typename.should.equal("ParamValidationError")
+    assert err.typename == "ParamValidationError"
 
 
 @mock_codebuild
@@ -325,7 +311,7 @@ def test_codebuild_start_build_no_project():
 
     with pytest.raises(client.exceptions.from_code("ResourceNotFoundException")) as err:
         client.start_build(projectName=name)
-    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert err.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_codebuild
@@ -356,8 +342,7 @@ def test_codebuild_start_build_no_overrides():
     )
     response = client.start_build(projectName=name)
 
-    response.should.have.key("build")
-    response["build"]["sourceVersion"].should.equal("refs/heads/main")
+    assert response["build"]["sourceVersion"] == "refs/heads/main"
 
 
 @mock_codebuild
@@ -391,7 +376,7 @@ def test_codebuild_start_build_multiple_times():
     client.start_build(projectName=name)
     client.start_build(projectName=name)
 
-    len(client.list_builds()["ids"]).should.equal(3)
+    assert len(client.list_builds()["ids"]) == 3
 
 
 @mock_codebuild
@@ -429,8 +414,7 @@ def test_codebuild_start_build_with_overrides():
         artifactsOverride=artifacts_override,
     )
 
-    response.should.have.key("build")
-    response["build"]["sourceVersion"].should.equal("fix/testing")
+    assert response["build"]["sourceVersion"] == "fix/testing"
 
 
 @mock_codebuild
@@ -464,11 +448,11 @@ def test_codebuild_batch_get_builds_1_project():
     history = client.list_builds_for_project(projectName=name)
     response = client.batch_get_builds(ids=history["ids"])
 
-    response.should.have.key("builds").length_of(1)
-    response["builds"][0]["currentPhase"].should.equal("COMPLETED")
-    response["builds"][0]["buildNumber"].should.be.a(int)
-    response["builds"][0].should.have.key("phases")
-    len(response["builds"][0]["phases"]).should.equal(11)
+    assert len(response["builds"]) == 1
+    assert response["builds"][0]["currentPhase"] == "COMPLETED"
+    assert isinstance(response["builds"][0]["buildNumber"], int)
+    assert "phases" in response["builds"][0]
+    assert len(response["builds"][0]["phases"]) == 11
 
 
 @mock_codebuild
@@ -508,16 +492,16 @@ def test_codebuild_batch_get_builds_2_projects():
     client.start_build(projectName="project-2")
 
     response = client.list_builds()
-    response["ids"].should.have.length_of(2)
+    assert len(response["ids"]) == 2
 
-    "project-1".should.be.within(response["ids"][0])
-    "project-2".should.be.within(response["ids"][1])
+    assert "project-1" in response["ids"][0]
+    assert "project-2" in response["ids"][1]
 
     metadata = client.batch_get_builds(ids=response["ids"])["builds"]
-    metadata.should.have.length_of(2)
+    assert len(metadata) == 2
 
-    "project-1".should.be.within(metadata[0]["id"])
-    "project-2".should.be.within(metadata[1]["id"])
+    assert "project-1" in metadata[0]["id"]
+    assert "project-2" in metadata[1]["id"]
 
 
 @mock_codebuild
@@ -526,7 +510,7 @@ def test_codebuild_batch_get_builds_invalid_build_id():
 
     with pytest.raises(client.exceptions.InvalidInputException) as err:
         client.batch_get_builds(ids=[f"some_project{uuid1()}"])
-    err.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    assert err.value.response["Error"]["Code"] == "InvalidInputException"
 
 
 @mock_codebuild
@@ -535,7 +519,7 @@ def test_codebuild_batch_get_builds_empty_build_id():
 
     with pytest.raises(ParamValidationError) as err:
         client.batch_get_builds(ids=[])
-    err.typename.should.equal("ParamValidationError")
+    assert err.typename == "ParamValidationError"
 
 
 @mock_codebuild
@@ -567,13 +551,13 @@ def test_codebuild_delete_project():
     client.start_build(projectName=name)
 
     response = client.list_builds_for_project(projectName=name)
-    response["ids"].should.have.length_of(1)
+    assert len(response["ids"]) == 1
 
     client.delete_project(name=name)
 
     with pytest.raises(ClientError) as err:
         client.list_builds_for_project(projectName=name)
-    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert err.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_codebuild
@@ -607,7 +591,7 @@ def test_codebuild_stop_build():
     builds = client.list_builds()
 
     response = client.stop_build(id=builds["ids"][0])
-    response["build"]["buildStatus"].should.equal("STOPPED")
+    assert response["build"]["buildStatus"] == "STOPPED"
 
 
 @mock_codebuild
@@ -616,7 +600,7 @@ def test_codebuild_stop_build_no_build():
 
     with pytest.raises(client.exceptions.ResourceNotFoundException) as err:
         client.stop_build(id=f"some_project:{uuid1()}")
-    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert err.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_codebuild
@@ -625,4 +609,4 @@ def test_codebuild_stop_build_bad_uid():
 
     with pytest.raises(client.exceptions.InvalidInputException) as err:
         client.stop_build(id=f"some_project{uuid1()}")
-    err.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    assert err.value.response["Error"]["Code"] == "InvalidInputException"
