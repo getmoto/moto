@@ -448,6 +448,9 @@ def test_put_parameter_no_type():
         == "A parameter type is required when you create a parameter."
     )
 
+    # Ensure backend state is consistent
+    assert client.describe_parameters()
+
 
 @mock_ssm
 def test_update_parameter():
