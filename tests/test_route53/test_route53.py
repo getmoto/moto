@@ -5,8 +5,9 @@ import sure  # noqa # pylint: disable=unused-import
 
 import botocore
 import pytest
+import requests
 
-from moto import mock_ec2, mock_route53
+from moto import mock_ec2, mock_route53, settings
 
 
 @mock_route53
@@ -27,6 +28,10 @@ def test_create_hosted_zone():
     delegation["NameServers"].should.contain("ns-2049.awsdns-65.net")
     delegation["NameServers"].should.contain("ns-2050.awsdns-66.org")
     delegation["NameServers"].should.contain("ns-2051.awsdns-67.co.uk")
+
+    location = response["Location"]
+    if not settings.TEST_SERVER_MODE:
+        assert "<Name>testdns.aws.com.</Name>" in requests.get(location).text
 
 
 @mock_route53
@@ -481,7 +486,6 @@ def test_list_or_change_tags_for_resource_request():
 @mock_ec2
 @mock_route53
 def test_list_hosted_zones_by_name():
-
     # Create mock VPC so we can get a VPC ID
     ec2c = boto3.client("ec2", region_name="us-east-1")
     vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc").get("VpcId")

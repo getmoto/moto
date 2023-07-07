@@ -81,6 +81,9 @@ class Route53(BaseResponse):
                 delegation_set_id=delegation_set_id,
             )
             template = Template(CREATE_HOSTED_ZONE_RESPONSE)
+            headers = {
+                "Location": f"https://route53.amazonaws.com/2013-04-01/hostedzone/{new_zone.id}"
+            }
             return 201, headers, template.render(zone=new_zone)
 
         elif request.method == "GET":
