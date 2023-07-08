@@ -1,6 +1,5 @@
 import boto3
 from unittest import mock
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from datetime import datetime
 import pytest
@@ -23,9 +22,10 @@ def test_create_identity_pool_invalid_name(name):
             IdentityPoolName=name, AllowUnauthenticatedIdentities=False
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        f"1 validation error detected: Value '{name}' at 'identityPoolName' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w\\s+=,.@-]+"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == f"1 validation error detected: Value '{name}' at 'identityPoolName' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w\\s+=,.@-]+"
     )
 
 
@@ -118,7 +118,7 @@ def test_update_identity_pool(key, initial_value, updated_value):
     )
 
     first = conn.describe_identity_pool(IdentityPoolId=res["IdentityPoolId"])
-    first[key].should.equal(initial_value)
+    assert first[key] == initial_value
 
     response = conn.update_identity_pool(
         IdentityPoolId=res["IdentityPoolId"],
@@ -126,10 +126,10 @@ def test_update_identity_pool(key, initial_value, updated_value):
         AllowUnauthenticatedIdentities=False,
         **dict({key: updated_value}),
     )
-    response[key].should.equal(updated_value)
+    assert response[key] == updated_value
 
     second = conn.describe_identity_pool(IdentityPoolId=res["IdentityPoolId"])
-    second[key].should.equal(response[key])
+    assert second[key] == response[key]
 
 
 @mock_cognitoidentity
@@ -138,17 +138,17 @@ def test_describe_identity_pool_with_invalid_id_raises_error():
     with pytest.raises(ClientError) as cm:
         conn.describe_identity_pool(IdentityPoolId="us-west-2_non-existent")
 
-    cm.value.operation_name.should.equal("DescribeIdentityPool")
-    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    cm.value.response["Error"]["Message"].should.equal("us-west-2_non-existent")
-    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert cm.value.operation_name == "DescribeIdentityPool"
+    assert cm.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert cm.value.response["Error"]["Message"] == "us-west-2_non-existent"
+    assert cm.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 # testing a helper function
 def test_get_random_identity_id():
     identity_id = get_random_identity_id("us-west-2")
     region, identity_id = identity_id.split(":")
-    region.should.equal("us-west-2")
+    assert region == "us-west-2"
     UUID(identity_id, version=4)  # Will throw an error if it's not a valid UUID
 
 
@@ -189,8 +189,8 @@ def test_get_credentials_for_identity():
     conn = boto3.client("cognito-identity", "us-west-2")
     result = conn.get_credentials_for_identity(IdentityId="12345")
 
-    result["Credentials"].get("Expiration").should.be.a(datetime)
-    result.get("IdentityId").should.equal("12345")
+    assert isinstance(result["Credentials"]["Expiration"], datetime)
+    assert result.get("IdentityId") == "12345"
 
 
 @mock_cognitoidentity

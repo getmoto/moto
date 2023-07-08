@@ -44,7 +44,7 @@ def test_sign_up_user_without_authentication():
             "Authorization": "AWS4-HMAC-SHA256 Credential=abcd/20010101/us-east-2/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=...",
         },
     )
-    json.loads(res.data)["UserPoolClients"].should.have.length_of(1)
+    assert len(json.loads(res.data)["UserPoolClients"]) == 1
 
     # Sign Up User
     data = {"ClientId": client_id, "Username": "test@gmail.com", "Password": "P2$Sword"}
@@ -53,8 +53,8 @@ def test_sign_up_user_without_authentication():
         data=json.dumps(data),
         headers={"X-Amz-Target": "AWSCognitoIdentityProviderService.SignUp"},
     )
-    res.status_code.should.equal(200)
-    json.loads(res.data).should.have.key("UserConfirmed").equals(False)
+    assert res.status_code == 200
+    assert json.loads(res.data)["UserConfirmed"] is False
 
     # Confirm Sign Up User
     data = {
@@ -79,7 +79,7 @@ def test_sign_up_user_without_authentication():
         data=json.dumps(data),
         headers={"X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth"},
     )
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
     access_token = json.loads(res.data)["AuthenticationResult"]["AccessToken"]
 
     # Get User
@@ -89,11 +89,11 @@ def test_sign_up_user_without_authentication():
         data=json.dumps(data),
         headers={"X-Amz-Target": "AWSCognitoIdentityProviderService.GetUser"},
     )
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
     data = json.loads(res.data)
-    data.should.have.key("UserPoolId").equals(user_pool_id)
-    data.should.have.key("Username").equals("test@gmail.com")
-    data.should.have.key("UserStatus").equals("CONFIRMED")
+    assert data["UserPoolId"] == user_pool_id
+    assert data["Username"] == "test@gmail.com"
+    assert data["UserStatus"] == "CONFIRMED"
 
 
 def test_admin_create_user_without_authentication():
@@ -142,7 +142,7 @@ def test_admin_create_user_without_authentication():
             "Authorization": "AWS4-HMAC-SHA256 Credential=abcd/20010101/us-east-2/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=...",
         },
     )
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
     # Initiate Auth
     data = {
@@ -174,9 +174,9 @@ def test_admin_create_user_without_authentication():
             "X-Amz-Target": "AWSCognitoIdentityProviderService.RespondToAuthChallenge"
         },
     )
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
     response = json.loads(res.data)
 
-    response.should.have.key("AuthenticationResult")
-    response["AuthenticationResult"].should.have.key("IdToken")
-    response["AuthenticationResult"].should.have.key("AccessToken")
+    assert "AuthenticationResult" in response
+    assert "IdToken" in response["AuthenticationResult"]
+    assert "AccessToken" in response["AuthenticationResult"]
