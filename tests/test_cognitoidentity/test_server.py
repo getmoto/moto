@@ -1,7 +1,5 @@
 import json
 
-import sure  # noqa # pylint: disable=unused-import
-
 import moto.server as server
 from moto import mock_cognitoidentity
 

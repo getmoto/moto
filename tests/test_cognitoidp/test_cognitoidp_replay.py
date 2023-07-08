@@ -2,7 +2,6 @@ import os
 
 import boto3
 import uuid
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 import requests
 
@@ -37,7 +36,7 @@ class TestCreateUserPoolWithPredeterminedID(TestCase):
             resp = requests.get(
                 "http://localhost:5000/moto-api/recorder/download-recording"
             )
-            resp.status_code.should.equal(200)
+            assert resp.status_code == 200
             return resp.content.decode("utf-8")
         else:
             return recorder.download_recording()
@@ -107,8 +106,8 @@ class TestCreateUserPoolWithPredeterminedID(TestCase):
         with pytest.raises(ClientError) as exc:
             self.client.describe_user_pool(UserPoolId=self.pool_id)
         err = exc.value.response["Error"]
-        err["Code"].should.equal("ResourceNotFoundException")
+        assert err["Code"] == "ResourceNotFoundException"
 
         # It is created - just with a different ID
         all_pools = self.client.list_user_pools(MaxResults=5)["UserPools"]
-        all_pools.should.have.length_of(1)
+        assert len(all_pools) == 1

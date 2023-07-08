@@ -1,4 +1,6 @@
 import base64
+import datetime
+
 import boto3
 import json
 import os
@@ -13,8 +15,6 @@ import hashlib
 import uuid
 
 
-# noinspection PyUnresolvedReferences
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError, ParamValidationError
 from jose import jws, jwt
 from unittest import SkipTest
@@ -33,12 +33,12 @@ def test_create_user_pool():
     value = str(uuid.uuid4())
     result = conn.create_user_pool(PoolName=name, LambdaConfig={"PreSignUp": value})
 
-    result["UserPool"]["Id"].should.match(r"[\w-]+_[0-9a-zA-Z]+")
-    result["UserPool"]["Arn"].should.equal(
-        f"arn:aws:cognito-idp:us-west-2:{ACCOUNT_ID}:userpool/{result['UserPool']['Id']}"
+    assert (
+        result["UserPool"]["Arn"]
+        == f"arn:aws:cognito-idp:us-west-2:{ACCOUNT_ID}:userpool/{result['UserPool']['Id']}"
     )
-    result["UserPool"]["Name"].should.equal(name)
-    result["UserPool"]["LambdaConfig"]["PreSignUp"].should.equal(value)
+    assert result["UserPool"]["Name"] == name
+    assert result["UserPool"]["LambdaConfig"]["PreSignUp"] == value
 
 
 @mock_cognitoidp
@@ -56,9 +56,9 @@ def test_create_user_pool__overwrite_template_messages():
         },
     )
     pool = resp["UserPool"]
-    pool.should.have.key("SmsVerificationMessage").equals("{####} baz")
-    pool.should.have.key("EmailVerificationSubject").equals("foobar {####}")
-    pool.should.have.key("EmailVerificationMessage").equals("foo {####} bar")
+    assert pool["SmsVerificationMessage"] == "{####} baz"
+    assert pool["EmailVerificationSubject"] == "foobar {####}"
+    assert pool["EmailVerificationMessage"] == "foo {####} bar"
 
 
 @mock_cognitoidp
@@ -82,18 +82,16 @@ def test_create_user_pool_should_have_all_default_attributes_in_schema():
             default_attr,
         ) in moto.cognitoidp.models.CognitoIdpUserPoolAttribute.STANDARD_SCHEMA.items():
             attribute = schema[default_attr_name]
-            attribute["Required"].should.equal(default_attr["Required"])
-            attribute["AttributeDataType"].should.equal(
-                default_attr["AttributeDataType"]
+            assert attribute["Required"] == default_attr["Required"]
+            assert attribute["AttributeDataType"] == default_attr["AttributeDataType"]
+            assert attribute["Mutable"] == default_attr["Mutable"]
+            assert attribute.get("StringAttributeConstraints") == default_attr.get(
+                "StringAttributeConstraints"
             )
-            attribute["Mutable"].should.equal(default_attr["Mutable"])
-            attribute.get("StringAttributeConstraints", None).should.equal(
-                default_attr.get("StringAttributeConstraints", None)
+            assert attribute.get("NumberAttributeConstraints") == default_attr.get(
+                "NumberAttributeConstraints"
             )
-            attribute.get("NumberAttributeConstraints", None).should.equal(
-                default_attr.get("NumberAttributeConstraints", None)
-            )
-            attribute["DeveloperOnlyAttribute"].should.equal(False)
+            assert attribute["DeveloperOnlyAttribute"] is False
 
 
 @mock_cognitoidp
@@ -109,11 +107,12 @@ def test_create_user_pool_unknown_attribute_data_type():
             Schema=[{"Name": "custom", "AttributeDataType": attribute_data_type}],
         )
 
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Validation error detected: Value '{attribute_data_type}' failed to satisfy constraint: Member must satisfy enum value set: [Boolean, Number, String, DateTime]"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Validation error detected: Value '{attribute_data_type}' failed to satisfy constraint: Member must satisfy enum value set: [Boolean, Number, String, DateTime]"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -122,11 +121,12 @@ def test_create_user_pool_custom_attribute_without_data_type():
     with pytest.raises(ClientError) as ex:
         conn.create_user_pool(PoolName=str(uuid.uuid4()), Schema=[{"Name": "custom"}])
 
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid AttributeDataType input, consider using the provided AttributeDataType enum."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid AttributeDataType input, consider using the provided AttributeDataType enum."
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -144,17 +144,17 @@ def test_create_user_pool_custom_attribute_defaults():
         for attr in res["UserPool"]["SchemaAttributes"]
         if attr["Name"] == "custom:string"
     )
-    string_attribute["DeveloperOnlyAttribute"].should.equal(False)
-    string_attribute["Mutable"].should.equal(True)
+    assert string_attribute["DeveloperOnlyAttribute"] is False
+    assert string_attribute["Mutable"] is True
 
     number_attribute = next(
         attr
         for attr in res["UserPool"]["SchemaAttributes"]
         if attr["Name"] == "custom:number"
     )
-    number_attribute["DeveloperOnlyAttribute"].should.equal(False)
-    number_attribute["Mutable"].should.equal(True)
-    number_attribute.shouldnt.have.key("NumberAttributeConstraints")
+    assert number_attribute["DeveloperOnlyAttribute"] is False
+    assert number_attribute["Mutable"] is True
+    assert "NumberAttributeConstraints" not in number_attribute
 
 
 @mock_cognitoidp
@@ -176,7 +176,7 @@ def test_create_user_pool_custom_attribute_developer_only():
         for attr in res["UserPool"]["SchemaAttributes"]
         if attr["Name"] == "dev:custom:banana"
     )
-    attribute["DeveloperOnlyAttribute"].should.equal(True)
+    assert attribute["DeveloperOnlyAttribute"] is True
 
 
 @mock_cognitoidp
@@ -190,11 +190,12 @@ def test_create_user_pool_custom_attribute_required():
                 {"Name": "banana", "AttributeDataType": "String", "Required": True},
             ],
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Required custom attributes are not supported currently."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Required custom attributes are not supported currently."
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -212,11 +213,12 @@ def test_create_user_pool_standard_attribute_with_changed_data_type_or_developer
     conn = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
         conn.create_user_pool(PoolName=str(uuid.uuid4()), Schema=[attribute])
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        f"You can not change AttributeDataType or set developerOnlyAttribute for standard schema attribute {attribute['Name']}"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"You can not change AttributeDataType or set developerOnlyAttribute for standard schema attribute {attribute['Name']}"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -250,28 +252,30 @@ def test_create_user_pool_attribute_with_schema():
         for attr in res["UserPool"]["SchemaAttributes"]
         if attr["Name"] == "custom:string"
     )
-    string_attribute["StringAttributeConstraints"].should.equal(
-        {"MinLength": "10", "MaxLength": "20"}
-    )
-    string_attribute.shouldnt.have.key("NumberAttributeConstraints")
+    assert string_attribute["StringAttributeConstraints"] == {
+        "MinLength": "10",
+        "MaxLength": "20",
+    }
+    assert "NumberAttributeConstraints" not in string_attribute
 
     number_attribute = next(
         attr
         for attr in res["UserPool"]["SchemaAttributes"]
         if attr["Name"] == "custom:number"
     )
-    number_attribute["NumberAttributeConstraints"].should.equal(
-        {"MinValue": "10", "MaxValue": "20"}
-    )
-    number_attribute.shouldnt.have.key("StringAttributeConstraints")
+    assert number_attribute["NumberAttributeConstraints"] == {
+        "MinValue": "10",
+        "MaxValue": "20",
+    }
+    assert "StringAttributeConstraints" not in number_attribute
 
     boolean_attribute = next(
         attr
         for attr in res["UserPool"]["SchemaAttributes"]
         if attr["Name"] == "custom:boolean"
     )
-    boolean_attribute.shouldnt.have.key("NumberAttributeConstraints")
-    boolean_attribute.shouldnt.have.key("StringAttributeConstraints")
+    assert "NumberAttributeConstraints" not in boolean_attribute
+    assert "StringAttributeConstraints" not in boolean_attribute
 
 
 @mock_cognitoidp
@@ -323,14 +327,14 @@ def test_create_user_pool_attribute_partial_schema():
         if attr["Name"] == "custom:number_no_max"
     )
 
-    string_no_min["StringAttributeConstraints"]["MaxLength"].should.equal("10")
-    string_no_min["StringAttributeConstraints"].shouldnt.have.key("MinLength")
-    string_no_max["StringAttributeConstraints"]["MinLength"].should.equal("10")
-    string_no_max["StringAttributeConstraints"].shouldnt.have.key("MaxLength")
-    number_no_min["NumberAttributeConstraints"]["MaxValue"].should.equal("10")
-    number_no_min["NumberAttributeConstraints"].shouldnt.have.key("MinValue")
-    number_no_max["NumberAttributeConstraints"]["MinValue"].should.equal("10")
-    number_no_max["NumberAttributeConstraints"].shouldnt.have.key("MaxValue")
+    assert string_no_min["StringAttributeConstraints"]["MaxLength"] == "10"
+    assert "MinLength" not in string_no_min["StringAttributeConstraints"]
+    assert string_no_max["StringAttributeConstraints"]["MinLength"] == "10"
+    assert "MaxLength" not in string_no_max["StringAttributeConstraints"]
+    assert number_no_min["NumberAttributeConstraints"]["MaxValue"] == "10"
+    assert "MinValue" not in number_no_min["NumberAttributeConstraints"]
+    assert number_no_max["NumberAttributeConstraints"]["MinValue"] == "10"
+    assert "MaxValue" not in number_no_max["NumberAttributeConstraints"]
 
 
 @mock_cognitoidp
@@ -381,11 +385,12 @@ def test_create_user_pool_invalid_schema_values(constraint_type, attribute):
     conn = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
         conn.create_user_pool(PoolName=str(uuid.uuid4()), Schema=[attribute])
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Invalid {constraint_type} for schema attribute {attribute['Name']}"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Invalid {constraint_type} for schema attribute {attribute['Name']}"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -409,11 +414,12 @@ def test_create_user_pool_string_schema_max_length_over_2048(attribute):
     conn = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
         conn.create_user_pool(PoolName=str(uuid.uuid4()), Schema=[attribute])
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        f"user.{attribute['Name']}: String attributes cannot have a length of more than 2048"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"user.{attribute['Name']}: String attributes cannot have a length of more than 2048"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -430,11 +436,12 @@ def test_create_user_pool_string_schema_min_bigger_than_max():
                 }
             ],
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "user.email: Max length cannot be less than min length."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "user.email: Max length cannot be less than min length."
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -451,11 +458,12 @@ def test_create_user_pool_number_schema_min_bigger_than_max():
                 }
             ],
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "user.updated_at: Max value cannot be less than min value."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "user.updated_at: Max value cannot be less than min value."
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -468,7 +476,7 @@ def test_add_custom_attributes():
     res = conn.add_custom_attributes(
         UserPoolId=pool_id, CustomAttributes=[custom_attribute]
     )
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     res = conn.describe_user_pool(UserPoolId=pool_id)
     described_attribute = next(
@@ -477,7 +485,7 @@ def test_add_custom_attributes():
         if attr["Name"] == "custom:banana"
     )
     # Skip verification - already covered by create_user_pool with custom attributes
-    described_attribute.should_not.equal(None)
+    assert described_attribute is not None
 
 
 @mock_cognitoidp
@@ -498,11 +506,12 @@ def test_add_custom_attributes_existing_attribute():
             UserPoolId=pool_id, CustomAttributes=[custom_attribute]
         )
 
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "custom:banana: Existing attribute already has name dev:custom:banana."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "custom:banana: Existing attribute already has name dev:custom:banana."
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -512,7 +521,7 @@ def test_create_user_pool_default_id_strategy():
     first_pool = conn.create_user_pool(PoolName=str("default-pool"))
     second_pool = conn.create_user_pool(PoolName=str("default-pool"))
 
-    first_pool["UserPool"]["Id"].should_not.equal(second_pool["UserPool"]["Id"])
+    assert first_pool["UserPool"]["Id"] != second_pool["UserPool"]["Id"]
 
 
 @mock_cognitoidp
@@ -526,7 +535,7 @@ def test_create_user_pool_hash_id_strategy_with_equal_pool_name():
     first_pool = conn.create_user_pool(PoolName=str("default-pool"))
     second_pool = conn.create_user_pool(PoolName=str("default-pool"))
 
-    first_pool["UserPool"]["Id"].should.equal(second_pool["UserPool"]["Id"])
+    assert first_pool["UserPool"]["Id"] == second_pool["UserPool"]["Id"]
 
 
 @mock_cognitoidp
@@ -540,7 +549,7 @@ def test_create_user_pool_hash_id_strategy_with_different_pool_name():
     first_pool = conn.create_user_pool(PoolName=str("first-pool"))
     second_pool = conn.create_user_pool(PoolName=str("second-pool"))
 
-    first_pool["UserPool"]["Id"].should_not.equal(second_pool["UserPool"]["Id"])
+    assert first_pool["UserPool"]["Id"] != second_pool["UserPool"]["Id"]
 
 
 @mock_cognitoidp
@@ -570,7 +579,7 @@ def test_create_user_pool_hash_id_strategy_with_different_attributes():
         ],
     )
 
-    first_pool["UserPool"]["Id"].should_not.equal(second_pool["UserPool"]["Id"])
+    assert first_pool["UserPool"]["Id"] != second_pool["UserPool"]["Id"]
 
 
 @mock_cognitoidp
@@ -580,8 +589,8 @@ def test_list_user_pools():
     name = str(uuid.uuid4())
     conn.create_user_pool(PoolName=name)
     result = conn.list_user_pools(MaxResults=10)
-    result["UserPools"].should.have.length_of(1)
-    result["UserPools"][0]["Name"].should.equal(name)
+    assert len(result["UserPools"]) == 1
+    assert result["UserPools"][0]["Name"] == name
 
 
 @mock_cognitoidp
@@ -595,12 +604,13 @@ def test_set_user_pool_mfa_config():
     with pytest.raises(ClientError) as ex:
         conn.set_user_pool_mfa_config(UserPoolId=user_pool_id, MfaConfiguration="ON")
 
-    ex.value.operation_name.should.equal("SetUserPoolMfaConfig")
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "At least one of [SmsMfaConfiguration] or [SoftwareTokenMfaConfiguration] must be provided."
+    assert ex.value.operation_name == "SetUserPoolMfaConfig"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "At least one of [SmsMfaConfiguration] or [SoftwareTokenMfaConfiguration] must be provided."
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
     # Test error for when sms config is missing `SmsConfiguration`
     with pytest.raises(ClientError) as ex:
@@ -608,11 +618,12 @@ def test_set_user_pool_mfa_config():
             UserPoolId=user_pool_id, SmsMfaConfiguration={}, MfaConfiguration="ON"
         )
 
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "[SmsConfiguration] is a required member of [SoftwareTokenMfaConfiguration]."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "[SmsConfiguration] is a required member of [SoftwareTokenMfaConfiguration]."
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
     # Test error for when `SmsConfiguration` is missing `SnsCaller`
     # This is asserted by boto3
@@ -631,11 +642,12 @@ def test_set_user_pool_mfa_config():
             MfaConfiguration="Invalid",
         )
 
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "[MfaConfiguration] must be one of 'ON', 'OFF', or 'OPTIONAL'."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "[MfaConfiguration] must be one of 'ON', 'OFF', or 'OPTIONAL'."
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
     # Enable software token MFA
     mfa_config = conn.set_user_pool_mfa_config(
@@ -644,26 +656,26 @@ def test_set_user_pool_mfa_config():
         MfaConfiguration="ON",
     )
 
-    mfa_config.shouldnt.have.key("SmsMfaConfiguration")
-    mfa_config["MfaConfiguration"].should.equal("ON")
-    mfa_config["SoftwareTokenMfaConfiguration"].should.equal({"Enabled": True})
+    assert "SmsMfaConfiguration" not in mfa_config
+    assert mfa_config["MfaConfiguration"] == "ON"
+    assert mfa_config["SoftwareTokenMfaConfiguration"] == {"Enabled": True}
 
     # Response from describe should match
     pool = conn.describe_user_pool(UserPoolId=user_pool_id)["UserPool"]
-    pool["MfaConfiguration"].should.equal("ON")
+    assert pool["MfaConfiguration"] == "ON"
 
     # Disable MFA
     mfa_config = conn.set_user_pool_mfa_config(
         UserPoolId=user_pool_id, MfaConfiguration="OFF"
     )
 
-    mfa_config.shouldnt.have.key("SmsMfaConfiguration")
-    mfa_config.shouldnt.have.key("SoftwareTokenMfaConfiguration")
-    mfa_config["MfaConfiguration"].should.equal("OFF")
+    assert "SmsMfaConfiguration" not in mfa_config
+    assert "SoftwareTokenMfaConfiguration" not in mfa_config
+    assert mfa_config["MfaConfiguration"] == "OFF"
 
     # Response from describe should match
     pool = conn.describe_user_pool(UserPoolId=user_pool_id)["UserPool"]
-    pool["MfaConfiguration"].should.equal("OFF")
+    assert pool["MfaConfiguration"] == "OFF"
 
     # `SnsCallerArn` needs to be at least 20 long
     sms_config = {"SmsConfiguration": {"SnsCallerArn": "01234567890123456789"}}
@@ -673,9 +685,9 @@ def test_set_user_pool_mfa_config():
         UserPoolId=user_pool_id, SmsMfaConfiguration=sms_config, MfaConfiguration="ON"
     )
 
-    mfa_config.shouldnt.have.key("SoftwareTokenMfaConfiguration")
-    mfa_config["SmsMfaConfiguration"].should.equal(sms_config)
-    mfa_config["MfaConfiguration"].should.equal("ON")
+    assert "SoftwareTokenMfaConfiguration" not in mfa_config
+    assert mfa_config["SmsMfaConfiguration"] == sms_config
+    assert mfa_config["MfaConfiguration"] == "ON"
 
 
 @mock_cognitoidp
@@ -689,8 +701,8 @@ def test_list_user_pools_returns_max_items():
 
     max_results = 5
     result = conn.list_user_pools(MaxResults=max_results)
-    result["UserPools"].should.have.length_of(max_results)
-    result.should.have.key("NextToken")
+    assert len(result["UserPools"]) == max_results
+    assert "NextToken" in result
 
 
 @mock_cognitoidp
@@ -704,13 +716,13 @@ def test_list_user_pools_returns_next_tokens():
 
     max_results = 5
     result = conn.list_user_pools(MaxResults=max_results)
-    result["UserPools"].should.have.length_of(max_results)
-    result.should.have.key("NextToken")
+    assert len(result["UserPools"]) == max_results
+    assert "NextToken" in result
 
     next_token = result["NextToken"]
     result_2 = conn.list_user_pools(MaxResults=max_results, NextToken=next_token)
-    result_2["UserPools"].should.have.length_of(max_results)
-    result_2.shouldnt.have.key("NextToken")
+    assert len(result_2["UserPools"]) == max_results
+    assert "NextToken" not in result_2
 
 
 @mock_cognitoidp
@@ -724,8 +736,8 @@ def test_list_user_pools_when_max_items_more_than_total_items():
 
     max_results = pool_count + 5
     result = conn.list_user_pools(MaxResults=max_results)
-    result["UserPools"].should.have.length_of(pool_count)
-    result.shouldnt.have.key("NextToken")
+    assert len(result["UserPools"]) == pool_count
+    assert "NextToken" not in result
 
 
 @mock_cognitoidp
@@ -734,22 +746,19 @@ def test_describe_user_pool():
 
     name = str(uuid.uuid4())
     value = str(uuid.uuid4())
+    recovery_mechanisms = [{"Name": "verified_email", "Priority": 1}]
     user_pool_details = conn.create_user_pool(
         PoolName=name,
         LambdaConfig={"PreSignUp": value},
-        AccountRecoverySetting={
-            "RecoveryMechanisms": [{"Name": "verified_email", "Priority": 1}]
-        },
+        AccountRecoverySetting={"RecoveryMechanisms": recovery_mechanisms},
     )
     result = conn.describe_user_pool(UserPoolId=user_pool_details["UserPool"]["Id"])
-    result["UserPool"]["Name"].should.equal(name)
-    result["UserPool"]["LambdaConfig"]["PreSignUp"].should.equal(value)
-    result["UserPool"]["AccountRecoverySetting"]["RecoveryMechanisms"][0][
-        "Name"
-    ].should.equal("verified_email")
-    result["UserPool"]["AccountRecoverySetting"]["RecoveryMechanisms"][0][
-        "Priority"
-    ].should.equal(1)
+    assert result["UserPool"]["Name"] == name
+    assert result["UserPool"]["LambdaConfig"]["PreSignUp"] == value
+    assert (
+        result["UserPool"]["AccountRecoverySetting"]["RecoveryMechanisms"]
+        == recovery_mechanisms
+    )
 
 
 @mock_cognitoidp
@@ -758,14 +767,14 @@ def test_describe_user_pool_estimated_number_of_users():
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
 
     result = conn.describe_user_pool(UserPoolId=user_pool_id)
-    result["UserPool"]["EstimatedNumberOfUsers"].should.equal(0)
+    assert result["UserPool"]["EstimatedNumberOfUsers"] == 0
 
     users_count = random.randint(2, 6)
     for _ in range(users_count):
         conn.admin_create_user(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
 
     result = conn.describe_user_pool(UserPoolId=user_pool_id)
-    result["UserPool"]["EstimatedNumberOfUsers"].should.equal(users_count)
+    assert result["UserPool"]["EstimatedNumberOfUsers"] == users_count
 
 
 @mock_cognitoidp
@@ -777,8 +786,8 @@ def test_describe_user_pool_resource_not_found():
         conn.describe_user_pool(UserPoolId=user_pool_id)
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(f"User pool {user_pool_id} does not exist.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"User pool {user_pool_id} does not exist."
 
 
 @mock_cognitoidp
@@ -815,7 +824,7 @@ def test_update_user_pool():
     updated_user_pool_details = conn.describe_user_pool(
         UserPoolId=user_pool_details["UserPool"]["Id"]
     )
-    updated_user_pool_details["UserPool"]["Policies"].should.equal(new_policies)
+    assert updated_user_pool_details["UserPool"]["Policies"] == new_policies
 
 
 @mock_cognitoidp
@@ -823,9 +832,9 @@ def test_delete_user_pool():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
-    conn.list_user_pools(MaxResults=10)["UserPools"].should.have.length_of(1)
+    assert len(conn.list_user_pools(MaxResults=10)["UserPools"]) == 1
     conn.delete_user_pool(UserPoolId=user_pool_id)
-    conn.list_user_pools(MaxResults=10)["UserPools"].should.have.length_of(0)
+    assert len(conn.list_user_pools(MaxResults=10)["UserPools"]) == 0
 
 
 @mock_cognitoidp
@@ -835,8 +844,8 @@ def test_create_user_pool_domain():
     domain = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     result = conn.create_user_pool_domain(UserPoolId=user_pool_id, Domain=domain)
-    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    result["CloudFrontDomain"].should_not.equal(None)
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert result["CloudFrontDomain"] is not None
 
 
 @mock_cognitoidp
@@ -851,8 +860,8 @@ def test_create_user_pool_domain_custom_domain_config():
     result = conn.create_user_pool_domain(
         UserPoolId=user_pool_id, Domain=domain, CustomDomainConfig=custom_domain_config
     )
-    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    result["CloudFrontDomain"].should.equal("e2c343b3293ee505.cloudfront.net")
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert result["CloudFrontDomain"] == "e2c343b3293ee505.cloudfront.net"
 
 
 @mock_cognitoidp
@@ -863,11 +872,11 @@ def test_describe_user_pool_domain():
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     conn.create_user_pool_domain(UserPoolId=user_pool_id, Domain=domain)
     result = conn.describe_user_pool_domain(Domain=domain)
-    result["DomainDescription"]["Domain"].should.equal(domain)
-    result["DomainDescription"]["UserPoolId"].should.equal(user_pool_id)
-    result["DomainDescription"]["AWSAccountId"].should_not.equal(None)
+    assert result["DomainDescription"]["Domain"] == domain
+    assert result["DomainDescription"]["UserPoolId"] == user_pool_id
+    assert result["DomainDescription"]["AWSAccountId"] is not None
     result = conn.describe_user_pool(UserPoolId=user_pool_id)
-    result["UserPool"]["Domain"].should.equal(domain)
+    assert result["UserPool"]["Domain"] == domain
 
 
 @mock_cognitoidp
@@ -878,12 +887,12 @@ def test_delete_user_pool_domain():
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     conn.create_user_pool_domain(UserPoolId=user_pool_id, Domain=domain)
     result = conn.delete_user_pool_domain(UserPoolId=user_pool_id, Domain=domain)
-    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
     result = conn.describe_user_pool_domain(Domain=domain)
     # This is a surprising behavior of the real service: describing a missing domain comes
     # back with status 200 and a DomainDescription of {}
-    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    result["DomainDescription"].keys().should.have.length_of(0)
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(result["DomainDescription"].keys()) == 0
 
 
 @mock_cognitoidp
@@ -899,8 +908,8 @@ def test_update_user_pool_domain():
     result = conn.update_user_pool_domain(
         UserPoolId=user_pool_id, Domain=domain, CustomDomainConfig=custom_domain_config
     )
-    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    result["CloudFrontDomain"].should.equal("e2c343b3293ee505.cloudfront.net")
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert result["CloudFrontDomain"] == "e2c343b3293ee505.cloudfront.net"
 
 
 @mock_cognitoidp
@@ -914,12 +923,12 @@ def test_create_user_pool_client():
         UserPoolId=user_pool_id, ClientName=client_name, CallbackURLs=[value]
     )
 
-    result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
-    bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"])).should.be.ok
-    result["UserPoolClient"]["ClientName"].should.equal(client_name)
-    result["UserPoolClient"].should_not.have.key("ClientSecret")
-    result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
-    result["UserPoolClient"]["CallbackURLs"][0].should.equal(value)
+    assert result["UserPoolClient"]["UserPoolId"] == user_pool_id
+    assert bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"]))
+    assert result["UserPoolClient"]["ClientName"] == client_name
+    assert "ClientSecret" not in result["UserPoolClient"]
+    assert len(result["UserPoolClient"]["CallbackURLs"]) == 1
+    assert result["UserPoolClient"]["CallbackURLs"][0] == value
 
 
 @mock_cognitoidp
@@ -936,12 +945,12 @@ def test_create_user_pool_client_returns_secret():
         CallbackURLs=[value],
     )
 
-    result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
-    bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"])).should.be.ok
-    result["UserPoolClient"]["ClientName"].should.equal(client_name)
-    result["UserPoolClient"]["ClientSecret"].should_not.equal(None)
-    result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
-    result["UserPoolClient"]["CallbackURLs"][0].should.equal(value)
+    assert result["UserPoolClient"]["UserPoolId"] == user_pool_id
+    assert bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"]))
+    assert result["UserPoolClient"]["ClientName"] == client_name
+    assert result["UserPoolClient"]["ClientSecret"] is not None
+    assert len(result["UserPoolClient"]["CallbackURLs"]) == 1
+    assert result["UserPoolClient"]["CallbackURLs"][0] == value
 
 
 @mock_cognitoidp
@@ -952,8 +961,8 @@ def test_list_user_pool_clients():
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     conn.create_user_pool_client(UserPoolId=user_pool_id, ClientName=client_name)
     result = conn.list_user_pool_clients(UserPoolId=user_pool_id, MaxResults=10)
-    result["UserPoolClients"].should.have.length_of(1)
-    result["UserPoolClients"][0]["ClientName"].should.equal(client_name)
+    assert len(result["UserPoolClients"]) == 1
+    assert result["UserPoolClients"][0]["ClientName"] == client_name
 
 
 @mock_cognitoidp
@@ -970,8 +979,8 @@ def test_list_user_pool_clients_returns_max_items():
     result = conn.list_user_pool_clients(
         UserPoolId=user_pool_id, MaxResults=max_results
     )
-    result["UserPoolClients"].should.have.length_of(max_results)
-    result.should.have.key("NextToken")
+    assert len(result["UserPoolClients"]) == max_results
+    assert "NextToken" in result
 
 
 @mock_cognitoidp
@@ -988,15 +997,15 @@ def test_list_user_pool_clients_returns_next_tokens():
     result = conn.list_user_pool_clients(
         UserPoolId=user_pool_id, MaxResults=max_results
     )
-    result["UserPoolClients"].should.have.length_of(max_results)
-    result.should.have.key("NextToken")
+    assert len(result["UserPoolClients"]) == max_results
+    assert "NextToken" in result
 
     next_token = result["NextToken"]
     result_2 = conn.list_user_pool_clients(
         UserPoolId=user_pool_id, MaxResults=max_results, NextToken=next_token
     )
-    result_2["UserPoolClients"].should.have.length_of(max_results)
-    result_2.shouldnt.have.key("NextToken")
+    assert len(result_2["UserPoolClients"]) == max_results
+    assert "NextToken" not in result_2
 
 
 @mock_cognitoidp
@@ -1013,8 +1022,8 @@ def test_list_user_pool_clients_when_max_items_more_than_total_items():
     result = conn.list_user_pool_clients(
         UserPoolId=user_pool_id, MaxResults=max_results
     )
-    result["UserPoolClients"].should.have.length_of(client_count)
-    result.shouldnt.have.key("NextToken")
+    assert len(result["UserPoolClients"]) == client_count
+    assert "NextToken" not in result
 
 
 @mock_cognitoidp
@@ -1032,9 +1041,9 @@ def test_describe_user_pool_client():
         UserPoolId=user_pool_id, ClientId=client_details["UserPoolClient"]["ClientId"]
     )
 
-    result["UserPoolClient"]["ClientName"].should.equal(client_name)
-    result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
-    result["UserPoolClient"]["CallbackURLs"][0].should.equal(value)
+    assert result["UserPoolClient"]["ClientName"] == client_name
+    assert len(result["UserPoolClient"]["CallbackURLs"]) == 1
+    assert result["UserPoolClient"]["CallbackURLs"][0] == value
 
 
 @mock_cognitoidp
@@ -1057,10 +1066,10 @@ def test_update_user_pool_client():
         CallbackURLs=[new_value],
     )
 
-    result["UserPoolClient"]["ClientName"].should.equal(new_client_name)
-    result["UserPoolClient"].should_not.have.key("ClientSecret")
-    result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
-    result["UserPoolClient"]["CallbackURLs"][0].should.equal(new_value)
+    assert result["UserPoolClient"]["ClientName"] == new_client_name
+    assert "ClientSecret" not in result["UserPoolClient"]
+    assert len(result["UserPoolClient"]["CallbackURLs"]) == 1
+    assert result["UserPoolClient"]["CallbackURLs"][0] == new_value
 
 
 @mock_cognitoidp
@@ -1087,10 +1096,10 @@ def test_update_user_pool_client_returns_secret():
         CallbackURLs=[new_value],
     )
 
-    result["UserPoolClient"]["ClientName"].should.equal(new_client_name)
-    result["UserPoolClient"]["ClientSecret"].should.equal(client_secret)
-    result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
-    result["UserPoolClient"]["CallbackURLs"][0].should.equal(new_value)
+    assert result["UserPoolClient"]["ClientName"] == new_client_name
+    assert result["UserPoolClient"]["ClientSecret"] == client_secret
+    assert len(result["UserPoolClient"]["CallbackURLs"]) == 1
+    assert result["UserPoolClient"]["CallbackURLs"][0] == new_value
 
 
 @mock_cognitoidp
@@ -1112,7 +1121,7 @@ def test_delete_user_pool_client():
             ClientId=client_details["UserPoolClient"]["ClientId"],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_cognitoidp
@@ -1130,10 +1139,10 @@ def test_create_identity_provider():
         ProviderDetails={"thing": value},
     )
 
-    result["IdentityProvider"]["UserPoolId"].should.equal(user_pool_id)
-    result["IdentityProvider"]["ProviderName"].should.equal(provider_name)
-    result["IdentityProvider"]["ProviderType"].should.equal(provider_type)
-    result["IdentityProvider"]["ProviderDetails"]["thing"].should.equal(value)
+    assert result["IdentityProvider"]["UserPoolId"] == user_pool_id
+    assert result["IdentityProvider"]["ProviderName"] == provider_name
+    assert result["IdentityProvider"]["ProviderType"] == provider_type
+    assert result["IdentityProvider"]["ProviderDetails"]["thing"] == value
 
 
 @mock_cognitoidp
@@ -1152,9 +1161,9 @@ def test_list_identity_providers():
 
     result = conn.list_identity_providers(UserPoolId=user_pool_id, MaxResults=10)
 
-    result["Providers"].should.have.length_of(1)
-    result["Providers"][0]["ProviderName"].should.equal(provider_name)
-    result["Providers"][0]["ProviderType"].should.equal(provider_type)
+    assert len(result["Providers"]) == 1
+    assert result["Providers"][0]["ProviderName"] == provider_name
+    assert result["Providers"][0]["ProviderType"] == provider_type
 
 
 @mock_cognitoidp
@@ -1178,8 +1187,8 @@ def test_list_identity_providers_returns_max_items():
     result = conn.list_identity_providers(
         UserPoolId=user_pool_id, MaxResults=max_results
     )
-    result["Providers"].should.have.length_of(max_results)
-    result.should.have.key("NextToken")
+    assert len(result["Providers"]) == max_results
+    assert "NextToken" in result
 
 
 @mock_cognitoidp
@@ -1203,15 +1212,15 @@ def test_list_identity_providers_returns_next_tokens():
     result = conn.list_identity_providers(
         UserPoolId=user_pool_id, MaxResults=max_results
     )
-    result["Providers"].should.have.length_of(max_results)
-    result.should.have.key("NextToken")
+    assert len(result["Providers"]) == max_results
+    assert "NextToken" in result
 
     next_token = result["NextToken"]
     result_2 = conn.list_identity_providers(
         UserPoolId=user_pool_id, MaxResults=max_results, NextToken=next_token
     )
-    result_2["Providers"].should.have.length_of(max_results)
-    result_2.shouldnt.have.key("NextToken")
+    assert len(result_2["Providers"]) == max_results
+    assert "NextToken" not in result_2
 
 
 @mock_cognitoidp
@@ -1235,8 +1244,8 @@ def test_list_identity_providers_when_max_items_more_than_total_items():
     result = conn.list_identity_providers(
         UserPoolId=user_pool_id, MaxResults=max_results
     )
-    result["Providers"].should.have.length_of(identity_provider_count)
-    result.shouldnt.have.key("NextToken")
+    assert len(result["Providers"]) == identity_provider_count
+    assert "NextToken" not in result
 
 
 @mock_cognitoidp
@@ -1258,10 +1267,10 @@ def test_describe_identity_providers():
         UserPoolId=user_pool_id, ProviderName=provider_name
     )
 
-    result["IdentityProvider"]["UserPoolId"].should.equal(user_pool_id)
-    result["IdentityProvider"]["ProviderName"].should.equal(provider_name)
-    result["IdentityProvider"]["ProviderType"].should.equal(provider_type)
-    result["IdentityProvider"]["ProviderDetails"]["thing"].should.equal(value)
+    assert result["IdentityProvider"]["UserPoolId"] == user_pool_id
+    assert result["IdentityProvider"]["ProviderName"] == provider_name
+    assert result["IdentityProvider"]["ProviderType"] == provider_type
+    assert result["IdentityProvider"]["ProviderDetails"]["thing"] == value
 
 
 @mock_cognitoidp
@@ -1287,11 +1296,11 @@ def test_update_identity_provider():
         AttributeMapping={"email": "email", "username": "sub"},
     )["IdentityProvider"]
 
-    result["UserPoolId"].should.equal(user_pool_id)
-    result["ProviderName"].should.equal(provider_name)
-    result["ProviderType"].should.equal(provider_type)
-    result["ProviderDetails"]["thing"].should.equal(new_value)
-    result["AttributeMapping"].should.equal({"email": "email", "username": "sub"})
+    assert result["UserPoolId"] == user_pool_id
+    assert result["ProviderName"] == provider_name
+    assert result["ProviderType"] == provider_type
+    assert result["ProviderDetails"]["thing"] == new_value
+    assert result["AttributeMapping"] == {"email": "email", "username": "sub"}
 
 
 @mock_cognitoidp
@@ -1305,9 +1314,9 @@ def test_update_identity_provider_no_user_pool():
             UserPoolId="foo", ProviderName="bar", ProviderDetails={"thing": new_value}
         )
 
-    cm.value.operation_name.should.equal("UpdateIdentityProvider")
-    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert cm.value.operation_name == "UpdateIdentityProvider"
+    assert cm.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert cm.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -1324,9 +1333,9 @@ def test_update_identity_provider_no_identity_provider():
             ProviderDetails={"thing": new_value},
         )
 
-    cm.value.operation_name.should.equal("UpdateIdentityProvider")
-    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert cm.value.operation_name == "UpdateIdentityProvider"
+    assert cm.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert cm.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -1351,7 +1360,7 @@ def test_delete_identity_providers():
             UserPoolId=user_pool_id, ProviderName=provider_name
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_cognitoidp
@@ -1372,13 +1381,13 @@ def test_create_group():
         Precedence=precedence,
     )
 
-    result["Group"]["GroupName"].should.equal(group_name)
-    result["Group"]["UserPoolId"].should.equal(user_pool_id)
-    result["Group"]["Description"].should.equal(description)
-    result["Group"]["RoleArn"].should.equal(role_arn)
-    result["Group"]["Precedence"].should.equal(precedence)
-    result["Group"]["LastModifiedDate"].should.be.a("datetime.datetime")
-    result["Group"]["CreationDate"].should.be.a("datetime.datetime")
+    assert result["Group"]["GroupName"] == group_name
+    assert result["Group"]["UserPoolId"] == user_pool_id
+    assert result["Group"]["Description"] == description
+    assert result["Group"]["RoleArn"] == role_arn
+    assert result["Group"]["Precedence"] == precedence
+    assert isinstance(result["Group"]["LastModifiedDate"], datetime.datetime)
+    assert isinstance(result["Group"]["CreationDate"], datetime.datetime)
 
 
 @mock_cognitoidp
@@ -1410,13 +1419,13 @@ def test_update_group():
         Precedence=precedence2,
     )
 
-    result["Group"]["GroupName"].should.equal(group_name)
-    result["Group"]["UserPoolId"].should.equal(user_pool_id)
-    result["Group"]["Description"].should.equal(description2)
-    result["Group"]["RoleArn"].should.equal(role_arn2)
-    result["Group"]["Precedence"].should.equal(precedence2)
-    result["Group"]["LastModifiedDate"].should.be.a("datetime.datetime")
-    result["Group"]["CreationDate"].should.be.a("datetime.datetime")
+    assert result["Group"]["GroupName"] == group_name
+    assert result["Group"]["UserPoolId"] == user_pool_id
+    assert result["Group"]["Description"] == description2
+    assert result["Group"]["RoleArn"] == role_arn2
+    assert result["Group"]["Precedence"] == precedence2
+    assert isinstance(result["Group"]["LastModifiedDate"], datetime.datetime)
+    assert isinstance(result["Group"]["CreationDate"], datetime.datetime)
 
 
 @mock_cognitoidp
@@ -1456,8 +1465,8 @@ def test_group_in_access_token():
     )
 
     # A newly created user is forced to set a new password
-    result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
-    result["Session"].should_not.equal(None)
+    assert result["ChallengeName"] == "NEW_PASSWORD_REQUIRED"
+    assert result["Session"] is not None
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = "P2$Sword"
@@ -1469,7 +1478,7 @@ def test_group_in_access_token():
     )
 
     claims = jwt.get_unverified_claims(result["AuthenticationResult"]["AccessToken"])
-    claims["cognito:groups"].should.equal([group_name])
+    assert claims["cognito:groups"] == [group_name]
 
 
 @mock_cognitoidp
@@ -1509,8 +1518,8 @@ def test_group_in_id_token():
     )
 
     # A newly created user is forced to set a new password
-    result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
-    result["Session"].should_not.equal(None)
+    assert result["ChallengeName"] == "NEW_PASSWORD_REQUIRED"
+    assert result["Session"] is not None
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = "P2$Sword"
@@ -1522,7 +1531,7 @@ def test_group_in_id_token():
     )
 
     claims = jwt.get_unverified_claims(result["AuthenticationResult"]["IdToken"])
-    claims["cognito:groups"].should.equal([group_name])
+    assert claims["cognito:groups"] == [group_name]
 
 
 @mock_cognitoidp
@@ -1536,9 +1545,9 @@ def test_create_group_with_duplicate_name_raises_error():
 
     with pytest.raises(ClientError) as cm:
         conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
-    cm.value.operation_name.should.equal("CreateGroup")
-    cm.value.response["Error"]["Code"].should.equal("GroupExistsException")
-    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert cm.value.operation_name == "CreateGroup"
+    assert cm.value.response["Error"]["Code"] == "GroupExistsException"
+    assert cm.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -1551,10 +1560,10 @@ def test_get_group():
 
     result = conn.get_group(GroupName=group_name, UserPoolId=user_pool_id)
 
-    result["Group"]["GroupName"].should.equal(group_name)
-    result["Group"]["UserPoolId"].should.equal(user_pool_id)
-    result["Group"]["LastModifiedDate"].should.be.a("datetime.datetime")
-    result["Group"]["CreationDate"].should.be.a("datetime.datetime")
+    assert result["Group"]["GroupName"] == group_name
+    assert result["Group"]["UserPoolId"] == user_pool_id
+    assert isinstance(result["Group"]["LastModifiedDate"], datetime.datetime)
+    assert isinstance(result["Group"]["CreationDate"], datetime.datetime)
 
 
 @mock_cognitoidp
@@ -1567,8 +1576,8 @@ def test_list_groups():
 
     result = conn.list_groups(UserPoolId=user_pool_id)
 
-    result["Groups"].should.have.length_of(1)
-    result["Groups"][0]["GroupName"].should.equal(group_name)
+    assert len(result["Groups"]) == 1
+    assert result["Groups"][0]["GroupName"] == group_name
 
 
 @mock_cognitoidp
@@ -1583,15 +1592,15 @@ def test_list_groups_returns_pagination_tokens():
 
     max_results = 5
     result = conn.list_groups(UserPoolId=user_pool_id, Limit=max_results)
-    result["Groups"].should.have.length_of(max_results)
-    result.should.have.key("NextToken")
+    assert len(result["Groups"]) == max_results
+    assert "NextToken" in result
 
     next_token = result["NextToken"]
     result_2 = conn.list_groups(
         UserPoolId=user_pool_id, Limit=max_results, NextToken=next_token
     )
-    result_2["Groups"].should.have.length_of(max_results)
-    result_2.shouldnt.have.key("NextToken")
+    assert len(result_2["Groups"]) == max_results
+    assert "NextToken" not in result_2
 
 
 @mock_cognitoidp
@@ -1606,8 +1615,8 @@ def test_list_groups_when_limit_more_than_total_items():
 
     max_results = group_count + 5
     result = conn.list_groups(UserPoolId=user_pool_id, Limit=max_results)
-    result["Groups"].should.have.length_of(group_count)
-    result.shouldnt.have.key("NextToken")
+    assert len(result["Groups"]) == group_count
+    assert "NextToken" not in result
 
 
 @mock_cognitoidp
@@ -1619,11 +1628,11 @@ def test_delete_group():
     conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
 
     result = conn.delete_group(GroupName=group_name, UserPoolId=user_pool_id)
-    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+    assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
 
     with pytest.raises(ClientError) as cm:
         conn.get_group(GroupName=group_name, UserPoolId=user_pool_id)
-    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert cm.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_cognitoidp
@@ -1640,7 +1649,7 @@ def test_admin_add_user_to_group():
     result = conn.admin_add_user_to_group(
         UserPoolId=user_pool_id, Username=username, GroupName=group_name
     )
-    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+    assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
 
 
 @mock_cognitoidp
@@ -1659,7 +1668,7 @@ def test_admin_add_user_to_group_with_username_attributes():
     result = conn.admin_add_user_to_group(
         UserPoolId=user_pool_id, Username=username, GroupName=group_name
     )
-    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+    assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
 
 
 @mock_cognitoidp
@@ -1679,7 +1688,6 @@ def test_admin_add_user_to_group_again_is_noop():
     conn.admin_add_user_to_group(
         UserPoolId=user_pool_id, Username=username, GroupName=group_name
     )
-    # should there be an assertion here?
 
 
 @mock_cognitoidp
@@ -1699,8 +1707,8 @@ def test_list_users_in_group():
 
     result = conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)
 
-    result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should.equal(username)
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["Username"] == username
 
 
 @mock_cognitoidp
@@ -1726,8 +1734,8 @@ def test_list_users_in_group_ignores_deleted_user():
 
     result = conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)
 
-    result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should.equal(username2)
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["Username"] == username2
 
 
 @mock_cognitoidp
@@ -1750,8 +1758,8 @@ def test_list_users_in_group_returns_pagination_tokens():
     result = conn.list_users_in_group(
         UserPoolId=user_pool_id, GroupName=group_name, Limit=max_results
     )
-    result["Users"].should.have.length_of(max_results)
-    result.should.have.key("NextToken")
+    assert len(result["Users"]) == max_results
+    assert "NextToken" in result
 
     next_token = result["NextToken"]
     result_2 = conn.list_users_in_group(
@@ -1760,8 +1768,8 @@ def test_list_users_in_group_returns_pagination_tokens():
         Limit=max_results,
         NextToken=next_token,
     )
-    result_2["Users"].should.have.length_of(max_results)
-    result_2.shouldnt.have.key("NextToken")
+    assert len(result_2["Users"]) == max_results
+    assert "NextToken" not in result_2
 
 
 @mock_cognitoidp
@@ -1784,8 +1792,8 @@ def test_list_users_in_group_when_limit_more_than_total_items():
     result = conn.list_users_in_group(
         UserPoolId=user_pool_id, GroupName=group_name, Limit=max_results
     )
-    result["Users"].should.have.length_of(len(usernames))
-    result.shouldnt.have.key("NextToken")
+    assert len(result["Users"]) == len(usernames)
+    assert "NextToken" not in result
 
 
 @mock_cognitoidp
@@ -1805,8 +1813,8 @@ def test_admin_list_groups_for_user():
 
     result = conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)
 
-    result["Groups"].should.have.length_of(1)
-    result["Groups"][0]["GroupName"].should.equal(group_name)
+    assert len(result["Groups"]) == 1
+    assert result["Groups"][0]["GroupName"] == group_name
 
 
 @mock_cognitoidp
@@ -1828,8 +1836,8 @@ def test_admin_list_groups_for_user_with_username_attribute():
 
     result = conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)
 
-    result["Groups"].should.have.length_of(1)
-    result["Groups"][0]["GroupName"].should.equal(group_name)
+    assert len(result["Groups"]) == 1
+    assert result["Groups"][0]["GroupName"] == group_name
 
 
 @mock_cognitoidp
@@ -1855,64 +1863,62 @@ def test_admin_list_groups_for_user_ignores_deleted_group():
 
     result = conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)
 
-    result["Groups"].should.have.length_of(1)
-    result["Groups"][0]["GroupName"].should.equal(group_name2)
+    assert len(result["Groups"]) == 1
+    assert result["Groups"][0]["GroupName"] == group_name2
 
 
 @mock_cognitoidp
 def test_admin_remove_user_from_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     group_name = str(uuid.uuid4())
-    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+    conn.create_group(GroupName=group_name, UserPoolId=pool_id)
 
-    username = str(uuid.uuid4())
-    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    uname = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=pool_id, Username=uname)
 
     conn.admin_add_user_to_group(
-        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+        UserPoolId=pool_id, Username=uname, GroupName=group_name
     )
 
     result = conn.admin_remove_user_from_group(
-        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+        UserPoolId=pool_id, Username=uname, GroupName=group_name
     )
-    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
-    conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)[
-        "Users"
-    ].should.have.length_of(0)
-    conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)[
-        "Groups"
-    ].should.have.length_of(0)
+    assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
+
+    resp = conn.list_users_in_group(UserPoolId=pool_id, GroupName=group_name)
+    assert resp["Users"] == []
+    resp = conn.admin_list_groups_for_user(Username=uname, UserPoolId=pool_id)
+    assert resp["Groups"] == []
 
 
 @mock_cognitoidp
 def test_admin_remove_user_from_group_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    user_pool_id = conn.create_user_pool(
+    pool_id = conn.create_user_pool(
         PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
     )["UserPool"]["Id"]
     group_name = str(uuid.uuid4())
-    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+    conn.create_group(GroupName=group_name, UserPoolId=pool_id)
 
-    username = "test@example.com"
-    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    uname = "test@example.com"
+    conn.admin_create_user(UserPoolId=pool_id, Username=uname)
 
     conn.admin_add_user_to_group(
-        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+        UserPoolId=pool_id, Username=uname, GroupName=group_name
     )
 
     result = conn.admin_remove_user_from_group(
-        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+        UserPoolId=pool_id, Username=uname, GroupName=group_name
     )
-    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
-    conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)[
-        "Users"
-    ].should.have.length_of(0)
-    conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)[
-        "Groups"
-    ].should.have.length_of(0)
+    assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
+
+    resp = conn.list_users_in_group(UserPoolId=pool_id, GroupName=group_name)
+    assert resp["Users"] == []
+    resp = conn.admin_list_groups_for_user(Username=uname, UserPoolId=pool_id)
+    assert resp["Groups"] == []
 
 
 @mock_cognitoidp
@@ -1947,17 +1953,17 @@ def test_admin_create_user():
         UserAttributes=[{"Name": "thing", "Value": value}],
     )
 
-    result["User"]["Username"].should.equal(username)
-    result["User"]["UserStatus"].should.equal("FORCE_CHANGE_PASSWORD")
-    result["User"]["Attributes"].should.have.length_of(2)
+    assert result["User"]["Username"] == username
+    assert result["User"]["UserStatus"] == "FORCE_CHANGE_PASSWORD"
+    assert len(result["User"]["Attributes"]) == 2
 
     def _verify_attribute(name, v):
         attr = [a for a in result["User"]["Attributes"] if a["Name"] == name]
-        attr.should.have.length_of(1)
-        attr[0]["Value"].should.equal(v)
+        assert len(attr) == 1
+        assert attr[0]["Value"] == v
 
     _verify_attribute("thing", value)
-    result["User"]["Enabled"].should.equal(True)
+    assert result["User"]["Enabled"] is True
 
 
 @mock_cognitoidp
@@ -1975,18 +1981,18 @@ def test_admin_create_user_with_username_attributes():
         UserAttributes=[{"Name": "thing", "Value": value}],
     )
 
-    result["User"]["Username"].should_not.equal(username)
-    result["User"]["UserStatus"].should.equal("FORCE_CHANGE_PASSWORD")
-    result["User"]["Attributes"].should.have.length_of(3)
+    assert result["User"]["Username"] != username
+    assert result["User"]["UserStatus"] == "FORCE_CHANGE_PASSWORD"
+    assert len(result["User"]["Attributes"]) == 3
 
     def _verify_attribute(name, v):
         attr = [a for a in result["User"]["Attributes"] if a["Name"] == name]
-        attr.should.have.length_of(1)
-        attr[0]["Value"].should.equal(v)
+        assert len(attr) == 1
+        assert attr[0]["Value"] == v
 
     _verify_attribute("thing", value)
     _verify_attribute("email", username)
-    result["User"]["Enabled"].should.equal(True)
+    assert result["User"]["Enabled"] is True
 
 
 @mock_cognitoidp
@@ -2006,8 +2012,8 @@ def test_admin_create_user_with_incorrect_username_attribute_type_fails():
             UserAttributes=[{"Name": "thing", "Value": value}],
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal("Username should be either an email or a phone number.")
+    assert err["Code"] == "InvalidParameterException"
+    assert err["Message"] == "Username should be either an email or a phone number."
 
 
 @mock_cognitoidp
@@ -2034,8 +2040,8 @@ def test_admin_create_user_with_existing_username_attribute_fails():
             UserAttributes=[{"Name": "thing", "Value": value}],
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("UsernameExistsException")
-    err["Message"].should.equal("test@example.com")
+    assert err["Code"] == "UsernameExistsException"
+    assert err["Message"] == "test@example.com"
 
 
 @mock_cognitoidp
@@ -2058,7 +2064,7 @@ def test_admin_create_existing_user():
             UserAttributes=[{"Name": "thing", "Value": value}],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("UsernameExistsException")
+    assert err["Code"] == "UsernameExistsException"
 
 
 @mock_cognitoidp
@@ -2076,12 +2082,12 @@ def test_admin_confirm_sign_up():
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
     user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
 
-    user["UserStatus"].should.equal("UNCONFIRMED")
+    assert user["UserStatus"] == "UNCONFIRMED"
 
     conn.admin_confirm_sign_up(UserPoolId=user_pool_id, Username=username)
     user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
 
-    user["UserStatus"].should.equal("CONFIRMED")
+    assert user["UserStatus"] == "CONFIRMED"
 
 
 @mock_cognitoidp
@@ -2097,8 +2103,8 @@ def test_admin_confirm_sign_up_non_existing_user():
         conn.admin_confirm_sign_up(UserPoolId=user_pool_id, Username=username)
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("UserNotFoundException")
-    err["Message"].should.equal("User does not exist.")
+    assert err["Code"] == "UserNotFoundException"
+    assert err["Message"] == "User does not exist."
 
 
 @mock_cognitoidp
@@ -2110,8 +2116,8 @@ def test_admin_confirm_sign_up_non_existing_pool():
         conn.admin_confirm_sign_up(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(f"User pool {user_pool_id} does not exist.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"User pool {user_pool_id} does not exist."
 
 
 @mock_cognitoidp
@@ -2152,8 +2158,8 @@ def test_admin_resend_invitation_missing_user():
             MessageAction="RESEND",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("UserNotFoundException")
-    err["Message"].should.equal("User does not exist.")
+    assert err["Code"] == "UserNotFoundException"
+    assert err["Message"] == "User does not exist."
 
 
 @mock_cognitoidp
@@ -2170,8 +2176,8 @@ def test_admin_get_user():
     )
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(2)
+    assert result["Username"] == username
+    assert len(result["UserAttributes"]) == 2
 
 
 @mock_cognitoidp
@@ -2193,13 +2199,13 @@ def test_admin_get_user_with_username_attributes():
     )
     # verify user can be queried by email
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    result["Username"].should_not.equal(username)
-    result["UserAttributes"].should.have.length_of(4)
+    assert result["Username"] != username
+    assert len(result["UserAttributes"]) == 4
 
     def _verify_attribute(name, v):
         attr = [a for a in result["UserAttributes"] if a["Name"] == name]
-        attr.should.have.length_of(1)
-        attr[0]["Value"].should.equal(v)
+        assert len(attr) == 1
+        assert attr[0]["Value"] == v
 
     _verify_attribute("phone_number", "+123456789")
     _verify_attribute("email", "test@example.com")
@@ -2207,8 +2213,8 @@ def test_admin_get_user_with_username_attributes():
     # verify user can be queried by phone number
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username="+123456789")
 
-    result["Username"].should_not.equal(username)
-    result["UserAttributes"].should.have.length_of(4)
+    assert result["Username"] != username
+    assert len(result["UserAttributes"]) == 4
     _verify_attribute("phone_number", "+123456789")
     _verify_attribute("email", "test@example.com")
 
@@ -2221,8 +2227,8 @@ def test_admin_get_user_with_username_attributes():
     # verify user should be queried by user sub
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=user_sub)
 
-    result["Username"].should_not.equal(username)
-    result["UserAttributes"].should.have.length_of(4)
+    assert result["Username"] != username
+    assert len(result["UserAttributes"]) == 4
     _verify_attribute("phone_number", "+123456789")
     _verify_attribute("email", "test@example.com")
 
@@ -2238,8 +2244,8 @@ def test_admin_get_missing_user():
         conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("UserNotFoundException")
-    err["Message"].should.equal("User does not exist.")
+    assert err["Code"] == "UserNotFoundException"
+    assert err["Message"] == "User does not exist."
 
 
 @mock_cognitoidp
@@ -2255,8 +2261,8 @@ def test_admin_get_missing_user_with_username_attributes():
         conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("UserNotFoundException")
-    err["Message"].should.equal("User does not exist.")
+    assert err["Code"] == "UserNotFoundException"
+    assert err["Message"] == "User does not exist."
 
 
 @mock_cognitoidp
@@ -2264,13 +2270,13 @@ def test_get_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
     result = conn.get_user(AccessToken=outputs["access_token"])
-    result["Username"].should.equal(outputs["username"])
-    result["UserAttributes"].should.have.length_of(2)
+    assert result["Username"] == outputs["username"]
+    assert len(result["UserAttributes"]) == 2
 
     def _verify_attribute(name, v):
         attr = [a for a in result["UserAttributes"] if a["Name"] == name]
-        attr.should.have.length_of(1)
-        attr[0]["Value"].should.equal(v)
+        assert len(attr) == 1
+        assert attr[0]["Value"] == v
 
     for key, value in outputs["additional_fields"].items():
         _verify_attribute(key, value)
@@ -2282,8 +2288,8 @@ def test_get_user_unknown_accesstoken():
     with pytest.raises(ClientError) as ex:
         conn.get_user(AccessToken="n/a")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
-    err["Message"].should.equal("Invalid token")
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Invalid token"
 
 
 @mock_cognitoidp
@@ -2294,8 +2300,8 @@ def test_list_users():
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
     result = conn.list_users(UserPoolId=user_pool_id)
-    result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should.equal(username)
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["Username"] == username
 
     username_bis = str(uuid.uuid4())
     conn.admin_create_user(
@@ -2306,15 +2312,15 @@ def test_list_users():
     result = conn.list_users(
         UserPoolId=user_pool_id, Filter='phone_number="+33666666666"'
     )
-    result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should.equal(username_bis)
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["Username"] == username_bis
 
     # checking Filter with space
     result = conn.list_users(
         UserPoolId=user_pool_id, Filter='phone_number = "+33666666666"'
     )
-    result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should.equal(username_bis)
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["Username"] == username_bis
 
     user0_username = "user0@example.com"
     conn.admin_create_user(
@@ -2325,12 +2331,12 @@ def test_list_users():
 
     # checking Filter with prefix operator
     result = conn.list_users(UserPoolId=user_pool_id, Filter='phone_number ^= "+48"')
-    result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should.equal(user0_username)
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["Username"] == user0_username
 
     # empty value Filter should also be supported
     result = conn.list_users(UserPoolId=user_pool_id, Filter='family_name=""')
-    result["Users"].should.have.length_of(0)
+    assert len(result["Users"]) == 0
 
 
 @mock_cognitoidp
@@ -2350,8 +2356,8 @@ def test_list_users_incorrect_filter():
 
 def _assert_filter_parsing_error(exc):
     err = exc.value.response["Error"]
-    assert err["Code"].should.equal("InvalidParameterException")
-    assert err["Message"].should.equal("Error while parsing filter")
+    assert err["Code"] == "InvalidParameterException"
+    assert err["Message"] == "Error while parsing filter"
 
 
 @mock_cognitoidp
@@ -2363,8 +2369,8 @@ def test_list_users_invalid_attributes():
     with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
         conn.list_users(UserPoolId=user_pool_id, Filter='custom:foo = "bar"')
     err = exc.value.response["Error"]
-    assert err["Code"].should.equal("InvalidParameterException")
-    assert err["Message"].should.equal("Invalid search attribute: custom:foo")
+    assert err["Code"] == "InvalidParameterException"
+    assert err["Message"] == "Invalid search attribute: custom:foo"
 
 
 @mock_cognitoidp
@@ -2377,13 +2383,13 @@ def test_list_users_with_username_attributes():
     )["UserPool"]["Id"]
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
     result = conn.list_users(UserPoolId=user_pool_id)
-    result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should_not.equal(username)
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["Username"] != username
 
     def _verify_attribute(name, v):
         attr = [a for a in result["Users"][0]["Attributes"] if a["Name"] == name]
-        attr.should.have.length_of(1)
-        attr[0]["Value"].should.equal(v)
+        assert len(attr) == 1
+        assert attr[0]["Value"] == v
 
     _verify_attribute("email", username)
 
@@ -2396,8 +2402,8 @@ def test_list_users_with_username_attributes():
     result = conn.list_users(
         UserPoolId=user_pool_id, Filter='phone_number="+33666666666"'
     )
-    result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should_not.equal(username_bis)
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["Username"] != username_bis
     uuid.UUID(result["Users"][0]["Username"])
 
     _verify_attribute("email", username_bis)
@@ -2406,8 +2412,8 @@ def test_list_users_with_username_attributes():
     result = conn.list_users(
         UserPoolId=user_pool_id, Filter='phone_number = "+33666666666"'
     )
-    result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should_not.equal(username_bis)
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["Username"] != username_bis
     _verify_attribute("email", username_bis)
 
 
@@ -2419,8 +2425,8 @@ def test_list_users_inherent_attributes():
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
     result = conn.list_users(UserPoolId=user_pool_id)
-    result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should.equal(username)
+    assert len(result["Users"]) == 1
+    assert result["Users"][0]["Username"] == username
 
     # create a confirmed disabled user
     client_id = conn.create_user_pool_client(
@@ -2444,8 +2450,8 @@ def test_list_users_inherent_attributes():
         result = conn.list_users(
             UserPoolId=user_pool_id, Filter=f'{name}="{filter_value}"'
         )
-        result["Users"].should.have.length_of(1)
-        result["Users"][0][response_field].should.equal(response_field_expected_value)
+        assert len(result["Users"]) == 1
+        assert result["Users"][0][response_field] == response_field_expected_value
 
 
 @mock_cognitoidp
@@ -2462,8 +2468,8 @@ def test_get_user_unconfirmed():
     with pytest.raises(ClientError) as ex:
         conn.get_user(AccessToken=outputs["access_token"])
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
-    err["Message"].should.equal("username")
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "username"
 
 
 @mock_cognitoidp
@@ -2477,8 +2483,8 @@ def test_list_users_returns_limit_items():
         conn.admin_create_user(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
     max_results = 5
     result = conn.list_users(UserPoolId=user_pool_id, Limit=max_results)
-    result["Users"].should.have.length_of(max_results)
-    result.should.have.key("PaginationToken")
+    assert len(result["Users"]) == max_results
+    assert "PaginationToken" in result
 
 
 @mock_cognitoidp
@@ -2493,15 +2499,15 @@ def test_list_users_returns_pagination_tokens():
 
     max_results = 5
     result = conn.list_users(UserPoolId=user_pool_id, Limit=max_results)
-    result["Users"].should.have.length_of(max_results)
-    result.should.have.key("PaginationToken")
+    assert len(result["Users"]) == max_results
+    assert "PaginationToken" in result
 
     next_token = result["PaginationToken"]
     result_2 = conn.list_users(
         UserPoolId=user_pool_id, Limit=max_results, PaginationToken=next_token
     )
-    result_2["Users"].should.have.length_of(max_results)
-    result_2.shouldnt.have.key("PaginationToken")
+    assert len(result_2["Users"]) == max_results
+    assert "PaginationToken" not in result_2
 
 
 @mock_cognitoidp
@@ -2516,8 +2522,8 @@ def test_list_users_when_limit_more_than_total_items():
 
     max_results = user_count + 5
     result = conn.list_users(UserPoolId=user_pool_id, Limit=max_results)
-    result["Users"].should.have.length_of(user_count)
-    result.shouldnt.have.key("PaginationToken")
+    assert len(result["Users"]) == user_count
+    assert "PaginationToken" not in result
 
 
 @mock_cognitoidp
@@ -2540,11 +2546,11 @@ def test_list_users_with_attributes_to_get():
         UserPoolId=user_pool_id, AttributesToGet=["given_name", "custom:foo", "unknown"]
     )
     users = result["Users"]
-    users.should.have.length_of(5)
+    assert len(users) == 5
     for user in users:
-        user["Attributes"].should.have.length_of(2)
-        user["Attributes"].should.contain({"Name": "given_name", "Value": "Jane"})
-        user["Attributes"].should.contain({"Name": "custom:foo", "Value": "bar"})
+        assert len(user["Attributes"]) == 2
+        assert {"Name": "given_name", "Value": "Jane"} in user["Attributes"]
+        assert {"Name": "custom:foo", "Value": "bar"} in user["Attributes"]
 
 
 @mock_cognitoidp
@@ -2556,11 +2562,12 @@ def test_admin_disable_user():
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
 
     result = conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
-    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+    assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
 
-    conn.admin_get_user(UserPoolId=user_pool_id, Username=username)[
-        "Enabled"
-    ].should.equal(False)
+    assert (
+        conn.admin_get_user(UserPoolId=user_pool_id, Username=username)["Enabled"]
+        is False
+    )
 
 
 @mock_cognitoidp
@@ -2574,11 +2581,12 @@ def test_admin_disable_user_with_username_attributes():
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
 
     result = conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
-    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+    assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
 
-    conn.admin_get_user(UserPoolId=user_pool_id, Username=username)[
-        "Enabled"
-    ].should.equal(False)
+    assert (
+        conn.admin_get_user(UserPoolId=user_pool_id, Username=username)["Enabled"]
+        is False
+    )
 
 
 @mock_cognitoidp
@@ -2591,11 +2599,9 @@ def test_admin_enable_user():
     conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
 
     result = conn.admin_enable_user(UserPoolId=user_pool_id, Username=username)
-    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+    assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
 
-    conn.admin_get_user(UserPoolId=user_pool_id, Username=username)[
-        "Enabled"
-    ].should.equal(True)
+    assert conn.admin_get_user(UserPoolId=user_pool_id, Username=username)["Enabled"]
 
 
 @mock_cognitoidp
@@ -2610,11 +2616,9 @@ def test_admin_enable_user_with_username_attributes():
     conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
 
     result = conn.admin_enable_user(UserPoolId=user_pool_id, Username=username)
-    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+    assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
 
-    conn.admin_get_user(UserPoolId=user_pool_id, Username=username)[
-        "Enabled"
-    ].should.equal(True)
+    assert conn.admin_get_user(UserPoolId=user_pool_id, Username=username)["Enabled"]
 
 
 @mock_cognitoidp
@@ -2630,7 +2634,7 @@ def test_admin_delete_user():
         conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("UserNotFoundException")
+    assert err["Code"] == "UserNotFoundException"
 
 
 @mock_cognitoidp
@@ -2648,7 +2652,7 @@ def test_admin_delete_user_with_username_attributes():
         conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("UserNotFoundException")
+    assert err["Code"] == "UserNotFoundException"
 
 
 def authentication_flow(conn, auth_flow):
@@ -2678,8 +2682,8 @@ def authentication_flow(conn, auth_flow):
     )
 
     # A newly created user is forced to set a new password
-    result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
-    result["Session"].should_not.equal(None)
+    assert result["ChallengeName"] == "NEW_PASSWORD_REQUIRED"
+    assert result["Session"] is not None
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = "P2$Sword"
@@ -2690,8 +2694,8 @@ def authentication_flow(conn, auth_flow):
         ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
     )
 
-    result["AuthenticationResult"]["IdToken"].should_not.equal(None)
-    result["AuthenticationResult"]["AccessToken"].should_not.equal(None)
+    assert result["AuthenticationResult"]["IdToken"] is not None
+    assert result["AuthenticationResult"]["AccessToken"] is not None
 
     return {
         "user_pool_id": user_pool_id,
@@ -2720,12 +2724,10 @@ def test_authentication_flow_invalid_flow():
         authentication_flow(conn, "NO_SUCH_FLOW")
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value 'NO_SUCH_FLOW' at 'authFlow' failed to satisfy constraint: "
-        "Member must satisfy enum value set: "
-        "['ADMIN_NO_SRP_AUTH', 'ADMIN_USER_PASSWORD_AUTH', 'USER_SRP_AUTH', 'REFRESH_TOKEN_AUTH', 'REFRESH_TOKEN', "
-        "'CUSTOM_AUTH', 'USER_PASSWORD_AUTH']"
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'NO_SUCH_FLOW' at 'authFlow' failed to satisfy constraint: Member must satisfy enum value set: ['ADMIN_NO_SRP_AUTH', 'ADMIN_USER_PASSWORD_AUTH', 'USER_SRP_AUTH', 'REFRESH_TOKEN_AUTH', 'REFRESH_TOKEN', 'CUSTOM_AUTH', 'USER_PASSWORD_AUTH']"
     )
 
 
@@ -2738,8 +2740,8 @@ def test_authentication_flow_invalid_user_flow():
         authentication_flow(conn, "USER_PASSWORD_AUTH")
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal("Initiate Auth method not supported")
+    assert err["Code"] == "InvalidParameterException"
+    assert err["Message"] == "Initiate Auth method not supported"
 
 
 def user_authentication_flow(conn):
@@ -2814,9 +2816,9 @@ def user_authentication_flow(conn):
         AuthParameters={"SECRET_HASH": secret_hash, "REFRESH_TOKEN": refresh_token},
     )
 
-    result["AuthenticationResult"]["IdToken"].should_not.equal(None)
-    result["AuthenticationResult"]["AccessToken"].should_not.equal(None)
-    result["AuthenticationResult"]["TokenType"].should.equal("Bearer")
+    assert result["AuthenticationResult"]["IdToken"] is not None
+    assert result["AuthenticationResult"]["AccessToken"] is not None
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
 
     # authenticate user once again this time with mfa token
     result = conn.initiate_auth(
@@ -2890,17 +2892,17 @@ def test_token_legitimacy():
             f"https://cognito-idp.us-west-2.amazonaws.com/{outputs['user_pool_id']}"
         )
         id_claims = json.loads(jws.verify(id_token, json_web_key, "RS256"))
-        id_claims["iss"].should.equal(issuer)
-        id_claims["aud"].should.equal(client_id)
-        id_claims["token_use"].should.equal("id")
-        id_claims["cognito:username"].should.equal(username)
+        assert id_claims["iss"] == issuer
+        assert id_claims["aud"] == client_id
+        assert id_claims["token_use"] == "id"
+        assert id_claims["cognito:username"] == username
         for k, v in outputs["additional_fields"].items():
-            id_claims[k].should.equal(v)
+            assert id_claims[k] == v
         access_claims = json.loads(jws.verify(access_token, json_web_key, "RS256"))
-        access_claims["iss"].should.equal(issuer)
-        access_claims["client_id"].should.equal(client_id)
-        access_claims["token_use"].should.equal("access")
-        access_claims["username"].should.equal(username)
+        assert access_claims["iss"] == issuer
+        assert access_claims["client_id"] == client_id
+        assert access_claims["token_use"] == "access"
+        assert access_claims["username"] == username
 
 
 @mock_cognitoidp
@@ -2930,7 +2932,7 @@ def test_change_password():
             },
         )
 
-        result["AuthenticationResult"].should_not.equal(None)
+        assert result["AuthenticationResult"] is not None
 
 
 @mock_cognitoidp
@@ -2966,7 +2968,7 @@ def test_change_password__using_custom_user_agent_header():
             },
         )
 
-        result["AuthenticationResult"].should_not.equal(None)
+        assert result["AuthenticationResult"] is not None
 
 
 @mock_cognitoidp
@@ -2977,9 +2979,9 @@ def test_forgot_password():
         UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
     )["UserPoolClient"]["ClientId"]
     result = conn.forgot_password(ClientId=client_id, Username=str(uuid.uuid4()))
-    result["CodeDeliveryDetails"]["Destination"].should_not.equal(None)
-    result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("SMS")
-    result["CodeDeliveryDetails"]["AttributeName"].should.equal("phone_number")
+    assert result["CodeDeliveryDetails"]["Destination"] is not None
+    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "SMS"
+    assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
 
 
 @mock_cognitoidp
@@ -2989,8 +2991,8 @@ def test_forgot_password_nonexistent_client_id():
         conn.forgot_password(ClientId=create_id(), Username=str(uuid.uuid4()))
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Username/client id combination not found.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Username/client id combination not found."
 
 
 @mock_cognitoidp
@@ -3010,8 +3012,8 @@ def test_forgot_password_admin_only_recovery():
         conn.forgot_password(ClientId=client_id, Username=str(uuid.uuid4()))
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
-    err["Message"].should.equal("Contact administrator to reset password.")
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Contact administrator to reset password."
 
 
 @mock_cognitoidp
@@ -3038,9 +3040,9 @@ def test_forgot_password_user_with_all_recovery_attributes():
 
     result = conn.forgot_password(ClientId=client_id, Username=username)
 
-    result["CodeDeliveryDetails"]["Destination"].should.equal("test@moto.com")
-    result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("EMAIL")
-    result["CodeDeliveryDetails"]["AttributeName"].should.equal("email")
+    assert result["CodeDeliveryDetails"]["Destination"] == "test@moto.com"
+    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "EMAIL"
+    assert result["CodeDeliveryDetails"]["AttributeName"] == "email"
 
     conn.update_user_pool(
         UserPoolId=user_pool_id,
@@ -3051,9 +3053,9 @@ def test_forgot_password_user_with_all_recovery_attributes():
 
     result = conn.forgot_password(ClientId=client_id, Username=username)
 
-    result["CodeDeliveryDetails"]["Destination"].should.equal("555555555")
-    result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("SMS")
-    result["CodeDeliveryDetails"]["AttributeName"].should.equal("phone_number")
+    assert result["CodeDeliveryDetails"]["Destination"] == "555555555"
+    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "SMS"
+    assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
 
 
 @mock_cognitoidp
@@ -3074,9 +3076,9 @@ def test_forgot_password_nonexistent_user_or_user_without_attributes():
     for user in user_without_attributes, nonexistent_user:
         result = conn.forgot_password(ClientId=client_id, Username=user)
 
-        result["CodeDeliveryDetails"]["Destination"].should.equal(user + "@h***.com")
-        result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("EMAIL")
-        result["CodeDeliveryDetails"]["AttributeName"].should.equal("email")
+        assert result["CodeDeliveryDetails"]["Destination"] == user + "@h***.com"
+        assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "EMAIL"
+        assert result["CodeDeliveryDetails"]["AttributeName"] == "email"
 
     conn.update_user_pool(
         UserPoolId=user_pool_id,
@@ -3088,9 +3090,9 @@ def test_forgot_password_nonexistent_user_or_user_without_attributes():
     for user in user_without_attributes, nonexistent_user:
         result = conn.forgot_password(ClientId=client_id, Username=user)
 
-        result["CodeDeliveryDetails"]["Destination"].should.equal("+*******9934")
-        result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("SMS")
-        result["CodeDeliveryDetails"]["AttributeName"].should.equal("phone_number")
+        assert result["CodeDeliveryDetails"]["Destination"] == "+*******9934"
+        assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "SMS"
+        assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
 
 
 @mock_cognitoidp
@@ -3115,7 +3117,7 @@ def test_confirm_forgot_password_legacy():
         Password=str(uuid.uuid4()),
     )
 
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_cognitoidp
@@ -3136,7 +3138,7 @@ def test_confirm_forgot_password_opt_in_verification():
     confirmation_code = res["ResponseMetadata"]["HTTPHeaders"][
         "x-moto-forgot-password-confirmation-code"
     ]
-    confirmation_code.should.match(r"moto-confirmation-code:[0-9]{6}", re.I)
+    assert "moto-confirmation-code" in confirmation_code
 
     res = conn.confirm_forgot_password(
         ClientId=client_id,
@@ -3145,7 +3147,7 @@ def test_confirm_forgot_password_opt_in_verification():
         Password=str(uuid.uuid4()),
     )
 
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_cognitoidp
@@ -3169,8 +3171,8 @@ def test_confirm_forgot_password_opt_in_verification_invalid_confirmation_code()
             Password=str(uuid.uuid4()),
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ExpiredCodeException")
-    err["Message"].should.equal("Invalid code provided, please request a code again.")
+    assert err["Code"] == "ExpiredCodeException"
+    assert err["Message"] == "Invalid code provided, please request a code again."
 
 
 @mock_cognitoidp
@@ -3192,8 +3194,8 @@ def test_admin_user_global_sign_out():
             },
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
-    err["Message"].should.equal("Refresh Token has been revoked")
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Refresh Token has been revoked"
 
 
 @mock_cognitoidp
@@ -3219,8 +3221,8 @@ def test_admin_user_global_sign_out_twice():
             },
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
-    err["Message"].should.equal("Refresh Token has been revoked")
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Refresh Token has been revoked"
 
 
 @mock_cognitoidp
@@ -3230,7 +3232,7 @@ def test_admin_user_global_sign_out_unknown_userpool():
     with pytest.raises(ClientError) as ex:
         conn.admin_user_global_sign_out(UserPoolId="n/a", Username=result["username"])
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_cognitoidp
@@ -3242,8 +3244,8 @@ def test_admin_user_global_sign_out_unknown_user():
             UserPoolId=result["user_pool_id"], Username="n/a"
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("UserNotFoundException")
-    err["Message"].should.equal("User does not exist.")
+    assert err["Code"] == "UserNotFoundException"
+    assert err["Message"] == "User does not exist."
 
 
 @mock_cognitoidp
@@ -3263,14 +3265,14 @@ def test_global_sign_out():
             },
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
-    err["Message"].should.equal("Refresh Token has been revoked")
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Refresh Token has been revoked"
 
     with pytest.raises(ClientError) as ex:
         conn.get_user(AccessToken=result["access_token"])
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
+    assert err["Code"] == "NotAuthorizedException"
 
 
 @mock_cognitoidp
@@ -3279,7 +3281,7 @@ def test_global_sign_out_unknown_accesstoken():
     with pytest.raises(ClientError) as ex:
         conn.global_sign_out(AccessToken="n/a")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
+    assert err["Code"] == "NotAuthorizedException"
 
 
 @mock_cognitoidp
@@ -3309,13 +3311,12 @@ def test_admin_update_user_attributes():
 
     user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     attributes = user["UserAttributes"]
-    attributes.should.be.a(list)
     for attr in attributes:
         val = attr["Value"]
         if attr["Name"] == "family_name":
-            val.should.equal("Doe")
+            assert val == "Doe"
         elif attr["Name"] == "given_name":
-            val.should.equal("Jane")
+            assert val == "Jane"
 
 
 @mock_cognitoidp
@@ -3354,11 +3355,11 @@ def test_admin_delete_user_attributes():
 
     user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
 
-    user["UserAttributes"].should.have.length_of(3)  # family_name, given_name and sub
-    user["UserAttributes"].should.contain({"Name": "family_name", "Value": "Doe"})
-    user["UserAttributes"].should.contain({"Name": "given_name", "Value": "John"})
-    user["UserAttributes"].should_not.contain({"Name": "nickname", "Value": "Joe"})
-    user["UserAttributes"].should_not.contain({"Name": "custom:foo", "Value": "bar"})
+    assert len(user["UserAttributes"]) == 3  # family_name, given_name and sub
+    assert {"Name": "family_name", "Value": "Doe"} in user["UserAttributes"]
+    assert {"Name": "given_name", "Value": "John"} in user["UserAttributes"]
+    assert {"Name": "nickname", "Value": "Joe"} not in user["UserAttributes"]
+    assert {"Name": "custom:foo", "Value": "bar"} not in user["UserAttributes"]
 
 
 @mock_cognitoidp
@@ -3385,9 +3386,10 @@ def test_admin_delete_user_attributes_non_existing_attribute():
             UserAttributeNames=["nickname", "custom:foo"],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal(
-        "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema.\n"
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema.\n"
     )
 
     with pytest.raises(ClientError) as exc:
@@ -3397,9 +3399,10 @@ def test_admin_delete_user_attributes_non_existing_attribute():
             UserAttributeNames=["nickname", "custom:foo", "custom:bar"],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal(
-        "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema.\nuser.custom:bar: Attribute does not exist in the schema.\n"
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema.\nuser.custom:bar: Attribute does not exist in the schema.\n"
     )
 
 
@@ -3417,8 +3420,8 @@ def test_admin_delete_user_attributes_non_existing_user():
             UserAttributeNames=["nickname", "custom:foo"],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("UserNotFoundException")
-    err["Message"].should.equal("User does not exist.")
+    assert err["Code"] == "UserNotFoundException"
+    assert err["Message"] == "User does not exist."
 
 
 @mock_cognitoidp
@@ -3434,8 +3437,8 @@ def test_admin_delete_user_attributes_non_existing_pool():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(f"User pool {user_pool_id} does not exist.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"User pool {user_pool_id} does not exist."
 
 
 @mock_cognitoidp
@@ -3458,8 +3461,8 @@ def test_update_user_attributes():
     user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     attributes = user["UserAttributes"]
 
-    attributes.should.contain({"Name": "family_name", "Value": "Doe"})
-    attributes.should.contain({"Name": "given_name", "Value": "Jane"})
+    assert {"Name": "family_name", "Value": "Doe"} in attributes
+    assert {"Name": "given_name", "Value": "Jane"} in attributes
 
 
 @mock_cognitoidp
@@ -3470,12 +3473,11 @@ def test_update_user_attributes_unknown_accesstoken():
             AccessToken="n/a", UserAttributes=[{"Name": "a", "Value": "b"}]
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
+    assert err["Code"] == "NotAuthorizedException"
 
 
 @mock_cognitoidp
 def test_resource_server():
-
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
     res = client.create_user_pool(PoolName=name)
@@ -3492,22 +3494,23 @@ def test_resource_server():
         UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
     )
 
-    res["ResourceServer"]["UserPoolId"].should.equal(user_pool_id)
-    res["ResourceServer"]["Identifier"].should.equal(identifier)
-    res["ResourceServer"]["Name"].should.equal(name)
-    res["ResourceServer"]["Scopes"].should.equal(scopes)
+    assert res["ResourceServer"]["UserPoolId"] == user_pool_id
+    assert res["ResourceServer"]["Identifier"] == identifier
+    assert res["ResourceServer"]["Name"] == name
+    assert res["ResourceServer"]["Scopes"] == scopes
 
     with pytest.raises(ClientError) as ex:
         client.create_resource_server(
             UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
         )
 
-    ex.value.operation_name.should.equal("CreateResourceServer")
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.value.response["Error"]["Message"].should.equal(
-        f"{identifier} already exists in user pool {user_pool_id}."
+    assert ex.value.operation_name == "CreateResourceServer"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"{identifier} already exists in user pool {user_pool_id}."
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_cognitoidp
@@ -3520,8 +3523,8 @@ def test_sign_up():
     username = str(uuid.uuid4())
     password = "P2$Sword"
     result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
-    result["UserConfirmed"].should.equal(False)
-    result["UserSub"].should_not.equal(None)
+    assert result["UserConfirmed"] is False
+    assert result["UserSub"] is not None
 
 
 @mock_cognitoidp
@@ -3537,7 +3540,7 @@ def test_sign_up_with_invalid_password(password):
     with pytest.raises(ClientError) as exc:
         conn.sign_up(ClientId=client_id, Username=username, Password=password)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidPasswordException")
+    assert err["Code"] == "InvalidPasswordException"
 
 
 @mock_cognitoidp
@@ -3554,18 +3557,18 @@ def test_sign_up_with_username_attributes():
     with pytest.raises(ClientError) as err:
         # Attempt to add user again
         conn.sign_up(ClientId=client_id, Username=username, Password=password)
-    err.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    assert err.value.response["Error"]["Code"] == "InvalidParameterException"
 
     username = "test@example.com"
     result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
-    result["UserConfirmed"].should.equal(False)
-    result["UserSub"].should_not.equal(None)
+    assert result["UserConfirmed"] is False
+    assert result["UserSub"] is not None
     username = "+123456789"
     result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
-    result["UserConfirmed"].should.equal(False)
-    result["UserSub"].should_not.equal(None)
+    assert result["UserConfirmed"] is False
+    assert result["UserSub"] is not None
 
 
 @mock_cognitoidp
@@ -3585,7 +3588,7 @@ def test_sign_up_existing_user():
         # Attempt to add user again
         conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
-    err.value.response["Error"]["Code"].should.equal("UsernameExistsException")
+    assert err.value.response["Error"]["Code"] == "UsernameExistsException"
 
 
 @mock_cognitoidp
@@ -3604,7 +3607,7 @@ def test_confirm_sign_up():
     )
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    result["UserStatus"].should.equal("CONFIRMED")
+    assert result["UserStatus"] == "CONFIRMED"
 
 
 @mock_cognitoidp
@@ -3625,7 +3628,7 @@ def test_confirm_sign_up_with_username_attributes():
     )
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    result["UserStatus"].should.equal("CONFIRMED")
+    assert result["UserStatus"] == "CONFIRMED"
 
 
 @mock_cognitoidp
@@ -3660,8 +3663,8 @@ def test_initiate_auth_USER_SRP_AUTH():
         },
     )
 
-    result["ChallengeName"].should.equal("PASSWORD_VERIFIER")
-    result["ChallengeParameters"]["USERNAME"].should.equal(username)
+    assert result["ChallengeName"] == "PASSWORD_VERIFIER"
+    assert result["ChallengeParameters"]["USERNAME"] == username
 
 
 @mock_cognitoidp
@@ -3698,7 +3701,7 @@ def test_initiate_auth_USER_SRP_AUTH_with_username_attributes():
         },
     )
 
-    result["ChallengeName"].should.equal("PASSWORD_VERIFIER")
+    assert result["ChallengeName"] == "PASSWORD_VERIFIER"
 
 
 @mock_cognitoidp
@@ -3714,7 +3717,7 @@ def test_initiate_auth_REFRESH_TOKEN():
         },
     )
 
-    result["AuthenticationResult"]["AccessToken"].should_not.equal(None)
+    assert result["AuthenticationResult"]["AccessToken"] is not None
 
 
 @mock_cognitoidp
@@ -3727,10 +3730,10 @@ def test_initiate_auth_USER_PASSWORD_AUTH():
         AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
     )
 
-    result["AuthenticationResult"]["AccessToken"].should_not.equal(None)
-    result["AuthenticationResult"]["IdToken"].should_not.equal(None)
-    result["AuthenticationResult"]["RefreshToken"].should_not.equal(None)
-    result["AuthenticationResult"]["TokenType"].should.equal("Bearer")
+    assert result["AuthenticationResult"]["AccessToken"] is not None
+    assert result["AuthenticationResult"]["IdToken"] is not None
+    assert result["AuthenticationResult"]["RefreshToken"] is not None
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
 
 
 @mock_cognitoidp
@@ -3751,11 +3754,10 @@ def test_initiate_auth_invalid_auth_flow():
         )
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value 'NO_SUCH_FLOW' at 'authFlow' failed to satisfy constraint: "
-        "Member must satisfy enum value set: ['ADMIN_NO_SRP_AUTH', 'ADMIN_USER_PASSWORD_AUTH', 'USER_SRP_AUTH', "
-        "'REFRESH_TOKEN_AUTH', 'REFRESH_TOKEN', 'CUSTOM_AUTH', 'USER_PASSWORD_AUTH']"
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'NO_SUCH_FLOW' at 'authFlow' failed to satisfy constraint: Member must satisfy enum value set: ['ADMIN_NO_SRP_AUTH', 'ADMIN_USER_PASSWORD_AUTH', 'USER_SRP_AUTH', 'REFRESH_TOKEN_AUTH', 'REFRESH_TOKEN', 'CUSTOM_AUTH', 'USER_PASSWORD_AUTH']"
     )
 
 
@@ -3778,8 +3780,8 @@ def test_initiate_auth_invalid_admin_auth_flow():
         )
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal("Initiate Auth method not supported")
+    assert err["Code"] == "InvalidParameterException"
+    assert err["Message"] == "Initiate Auth method not supported"
 
 
 @mock_cognitoidp
@@ -3813,9 +3815,9 @@ def test_initiate_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status():
         AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
     )
 
-    result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
-    result["ChallengeParameters"]["USERNAME"].should.equal(username)
-    result["Session"].should_not.equal("")
+    assert result["ChallengeName"] == "NEW_PASSWORD_REQUIRED"
+    assert result["ChallengeParameters"]["USERNAME"] == username
+    assert result["Session"] != ""
     assert result.get("AuthenticationResult") is None
 
     new_password = "P2$Sword2"
@@ -3829,8 +3831,8 @@ def test_initiate_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status():
         },
     )
 
-    result["AuthenticationResult"]["IdToken"].should_not.equal("")
-    result["AuthenticationResult"]["AccessToken"].should_not.equal("")
+    assert result["AuthenticationResult"]["IdToken"] != ""
+    assert result["AuthenticationResult"]["AccessToken"] != ""
 
 
 @mock_cognitoidp
@@ -3844,7 +3846,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_user_not_found():
             AuthParameters={"USERNAME": "INVALIDUSER", "PASSWORD": result["password"]},
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("UserNotFoundException")
+    assert err["Code"] == "UserNotFoundException"
 
 
 @mock_cognitoidp
@@ -3861,7 +3863,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_user_incorrect_password():
             },
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
+    assert err["Code"] == "NotAuthorizedException"
 
 
 @mock_cognitoidp
@@ -3882,7 +3884,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_unconfirmed_user():
             AuthParameters={"USERNAME": username, "PASSWORD": password},
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("UserNotConfirmedException")
+    assert err["Code"] == "UserNotConfirmedException"
 
 
 @mock_cognitoidp
@@ -3915,7 +3917,7 @@ def test_initiate_auth_for_unconfirmed_user():
             },
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("UserNotConfirmedException")
+    assert err["Code"] == "UserNotConfirmedException"
 
 
 @mock_cognitoidp
@@ -3946,7 +3948,7 @@ def test_initiate_auth_with_invalid_secret_hash():
             },
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
+    assert err["Code"] == "NotAuthorizedException"
 
 
 @mock_cognitoidp
@@ -3967,8 +3969,8 @@ def test_setting_mfa():
             UserPoolId=result["user_pool_id"], Username=result["username"]
         )
 
-        result["UserMFASettingList"].should.have.length_of(1)
-        result["PreferredMfaSetting"].should.equal("SOFTWARE_TOKEN_MFA")
+        assert len(result["UserMFASettingList"]) == 1
+        assert result["PreferredMfaSetting"] == "SOFTWARE_TOKEN_MFA"
 
 
 @mock_cognitoidp
@@ -3985,7 +3987,7 @@ def test_setting_mfa_when_token_not_verified():
                 SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
             )
         err = exc.value.response["Error"]
-        err["Code"].should.equal("InvalidParameterException")
+        assert err["Code"] == "InvalidParameterException"
 
 
 @mock_cognitoidp
@@ -4004,8 +4006,8 @@ def test_admin_setting_mfa():
         SMSMfaSettings={"Enabled": True, "PreferredMfa": True},
     )
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    result["UserMFASettingList"].should.have.length_of(1)
-    result["PreferredMfaSetting"].should.equal("SMS_MFA")
+    assert len(result["UserMFASettingList"]) == 1
+    assert result["PreferredMfaSetting"] == "SMS_MFA"
 
 
 @mock_cognitoidp
@@ -4067,7 +4069,7 @@ def test_respond_to_auth_challenge_with_invalid_secret_hash():
             },
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
+    assert err["Code"] == "NotAuthorizedException"
 
 
 @mock_cognitoidp
@@ -4087,13 +4089,13 @@ def test_admin_set_user_password():
         UserPoolId=user_pool_id, Username=username, Password=password, Permanent=True
     )
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(2)
+    assert result["Username"] == username
+    assert len(result["UserAttributes"]) == 2
 
     def _verify_attribute(name, v):
         attr = [a for a in result["UserAttributes"] if a["Name"] == name]
-        attr.should.have.length_of(1)
-        attr[0]["Value"].should.equal(v)
+        assert len(attr) == 1
+        assert attr[0]["Value"] == v
 
     _verify_attribute("thing", value)
 
@@ -4119,7 +4121,7 @@ def test_admin_set_invalid_user_password(password):
             Permanent=True,
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidPasswordException")
+    assert err["Code"] == "InvalidPasswordException"
 
 
 @mock_cognitoidp
@@ -4154,7 +4156,7 @@ def test_admin_set_invalid_user_password__custom_policy_provided(password):
             Permanent=True,
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidPasswordException")
+    assert err["Code"] == "InvalidPasswordException"
 
     # We can set a plain password, as long as it's 12 characters long
     conn.admin_set_user_password(
@@ -4174,7 +4176,7 @@ def test_change_password_with_invalid_token_raises_error():
             PreviousPassword="previous_password",
             ProposedPassword="newer_password",
         )
-    ex.value.response["Error"]["Code"].should.equal("NotAuthorizedException")
+    assert ex.value.response["Error"]["Code"] == "NotAuthorizedException"
 
 
 @mock_cognitoidp
@@ -4187,7 +4189,7 @@ def test_confirm_forgot_password_with_non_existent_client_id_raises_error():
             ConfirmationCode=str(uuid.uuid4()),
             Password=str(uuid.uuid4()),
         )
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_cognitoidp
@@ -4216,7 +4218,7 @@ def test_admin_reset_password_and_change_password():
     # User should be in RESET_REQUIRED state after reset
     client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
     result = client.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    result["UserStatus"].should.equal("RESET_REQUIRED")
+    assert result["UserStatus"] == "RESET_REQUIRED"
 
     # Return to CONFIRMED status after NEW_PASSWORD_REQUIRED auth challenge
     auth_result = client.admin_initiate_auth(
@@ -4233,7 +4235,7 @@ def test_admin_reset_password_and_change_password():
         ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": password},
     )
     result = client.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    result["UserStatus"].should.equal("CONFIRMED")
+    assert result["UserStatus"] == "CONFIRMED"
 
     # Return to CONFIRMED after user-initated password change
     client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
@@ -4243,7 +4245,7 @@ def test_admin_reset_password_and_change_password():
         ProposedPassword="Admin1234!",
     )
     result = client.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    result["UserStatus"].should.equal("CONFIRMED")
+    assert result["UserStatus"] == "CONFIRMED"
 
 
 @mock_cognitoidp
@@ -4296,8 +4298,8 @@ def test_admin_reset_password_disabled_user():
     with pytest.raises(ClientError) as ex:
         client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
-    err["Message"].should.equal("User is disabled")
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "User is disabled"
 
 
 @mock_cognitoidp
@@ -4314,8 +4316,8 @@ def test_admin_reset_password_unconfirmed_user():
     with pytest.raises(ClientError) as ex:
         client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("NotAuthorizedException")
-    err["Message"].should.equal("User password cannot be reset in the current state.")
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "User password cannot be reset in the current state."
 
 
 @mock_cognitoidp
@@ -4338,9 +4340,10 @@ def test_admin_reset_password_no_verified_notification_channel():
     with pytest.raises(ClientError) as ex:
         client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal(
-        "Cannot reset password for the user as there is no registered/verified email or phone_number"
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == "Cannot reset password for the user as there is no registered/verified email or phone_number"
     )
 
 
@@ -4367,12 +4370,9 @@ def test_admin_reset_password_multiple_invocations():
     )
 
     for _ in range(3):
-        try:
-            client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
-            user = client.admin_get_user(UserPoolId=user_pool_id, Username=username)
-            user["UserStatus"].should.equal("RESET_REQUIRED")
-        except ClientError:
-            pytest.fail("Shouldn't throw error on consecutive invocations")
+        client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
+        user = client.admin_get_user(UserPoolId=user_pool_id, Username=username)
+        assert user["UserStatus"] == "RESET_REQUIRED"
 
 
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
