@@ -3,7 +3,6 @@ from copy import deepcopy
 from datetime import datetime
 
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -68,8 +67,8 @@ def test_create_pipeline():
 
     response = create_basic_codepipeline(client, "test-pipeline")
 
-    response["pipeline"].should.equal(expected_pipeline_details)
-    response["tags"].should.equal([{"key": "key", "value": "value"}])
+    assert response["pipeline"] == expected_pipeline_details
+    assert response["tags"] == [{"key": "key", "value": "value"}]
 
 
 @mock_codepipeline
@@ -82,11 +81,12 @@ def test_create_pipeline_errors():
     with pytest.raises(ClientError) as e:
         create_basic_codepipeline(client, "test-pipeline")
     ex = e.value
-    ex.operation_name.should.equal("CreatePipeline")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidStructureException")
-    ex.response["Error"]["Message"].should.equal(
-        "A pipeline with the name 'test-pipeline' already exists in account '123456789012'"
+    assert ex.operation_name == "CreatePipeline"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidStructureException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "A pipeline with the name 'test-pipeline' already exists in account '123456789012'"
     )
 
     with pytest.raises(ClientError) as e:
@@ -118,11 +118,12 @@ def test_create_pipeline_errors():
             }
         )
     ex = e.value
-    ex.operation_name.should.equal("CreatePipeline")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidStructureException")
-    ex.response["Error"]["Message"].should.equal(
-        "CodePipeline is not authorized to perform AssumeRole on role arn:aws:iam::123456789012:role/not-existing"
+    assert ex.operation_name == "CreatePipeline"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidStructureException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "CodePipeline is not authorized to perform AssumeRole on role arn:aws:iam::123456789012:role/not-existing"
     )
 
     wrong_role_arn = client_iam.create_role(
@@ -170,11 +171,12 @@ def test_create_pipeline_errors():
             }
         )
     ex = e.value
-    ex.operation_name.should.equal("CreatePipeline")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidStructureException")
-    ex.response["Error"]["Message"].should.equal(
-        "CodePipeline is not authorized to perform AssumeRole on role arn:aws:iam::123456789012:role/wrong-role"
+    assert ex.operation_name == "CreatePipeline"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidStructureException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "CodePipeline is not authorized to perform AssumeRole on role arn:aws:iam::123456789012:role/wrong-role"
     )
 
     with pytest.raises(ClientError) as e:
@@ -206,11 +208,12 @@ def test_create_pipeline_errors():
             }
         )
     ex = e.value
-    ex.operation_name.should.equal("CreatePipeline")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidStructureException")
-    ex.response["Error"]["Message"].should.equal(
-        "Pipeline has only 1 stage(s). There should be a minimum of 2 stages in a pipeline"
+    assert ex.operation_name == "CreatePipeline"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidStructureException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Pipeline has only 1 stage(s). There should be a minimum of 2 stages in a pipeline"
     )
 
 
@@ -221,12 +224,13 @@ def test_get_pipeline():
 
     response = client.get_pipeline(name="test-pipeline")
 
-    response["pipeline"].should.equal(expected_pipeline_details)
-    response["metadata"]["pipelineArn"].should.equal(
-        "arn:aws:codepipeline:us-east-1:123456789012:test-pipeline"
+    assert response["pipeline"] == expected_pipeline_details
+    assert (
+        response["metadata"]["pipelineArn"]
+        == "arn:aws:codepipeline:us-east-1:123456789012:test-pipeline"
     )
-    response["metadata"]["created"].should.be.a(datetime)
-    response["metadata"]["updated"].should.be.a(datetime)
+    assert isinstance(response["metadata"]["created"], datetime)
+    assert isinstance(response["metadata"]["updated"], datetime)
 
 
 @mock_codepipeline
@@ -236,11 +240,12 @@ def test_get_pipeline_errors():
     with pytest.raises(ClientError) as e:
         client.get_pipeline(name="not-existing")
     ex = e.value
-    ex.operation_name.should.equal("GetPipeline")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("PipelineNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "Account '123456789012' does not have a pipeline with name 'not-existing'"
+    assert ex.operation_name == "GetPipeline"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "PipelineNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Account '123456789012' does not have a pipeline with name 'not-existing'"
     )
 
 
@@ -299,62 +304,60 @@ def test_update_pipeline():
         }
     )
 
-    response["pipeline"].should.equal(
-        {
-            "name": "test-pipeline",
-            "roleArn": "arn:aws:iam::123456789012:role/test-role",
-            "artifactStore": {
-                "type": "S3",
-                "location": "codepipeline-us-east-1-123456789012",
+    assert response["pipeline"] == {
+        "name": "test-pipeline",
+        "roleArn": "arn:aws:iam::123456789012:role/test-role",
+        "artifactStore": {
+            "type": "S3",
+            "location": "codepipeline-us-east-1-123456789012",
+        },
+        "stages": [
+            {
+                "name": "Stage-1",
+                "actions": [
+                    {
+                        "name": "Action-1",
+                        "actionTypeId": {
+                            "category": "Source",
+                            "owner": "AWS",
+                            "provider": "S3",
+                            "version": "1",
+                        },
+                        "runOrder": 1,
+                        "configuration": {
+                            "S3Bucket": "different-bucket",
+                            "S3ObjectKey": "test-object",
+                        },
+                        "outputArtifacts": [{"name": "artifact"}],
+                        "inputArtifacts": [],
+                    }
+                ],
             },
-            "stages": [
-                {
-                    "name": "Stage-1",
-                    "actions": [
-                        {
-                            "name": "Action-1",
-                            "actionTypeId": {
-                                "category": "Source",
-                                "owner": "AWS",
-                                "provider": "S3",
-                                "version": "1",
-                            },
-                            "runOrder": 1,
-                            "configuration": {
-                                "S3Bucket": "different-bucket",
-                                "S3ObjectKey": "test-object",
-                            },
-                            "outputArtifacts": [{"name": "artifact"}],
-                            "inputArtifacts": [],
-                        }
-                    ],
-                },
-                {
-                    "name": "Stage-2",
-                    "actions": [
-                        {
-                            "name": "Action-1",
-                            "actionTypeId": {
-                                "category": "Approval",
-                                "owner": "AWS",
-                                "provider": "Manual",
-                                "version": "1",
-                            },
-                            "runOrder": 1,
-                            "configuration": {},
-                            "outputArtifacts": [],
-                            "inputArtifacts": [],
-                        }
-                    ],
-                },
-            ],
-            "version": 2,
-        }
-    )
+            {
+                "name": "Stage-2",
+                "actions": [
+                    {
+                        "name": "Action-1",
+                        "actionTypeId": {
+                            "category": "Approval",
+                            "owner": "AWS",
+                            "provider": "Manual",
+                            "version": "1",
+                        },
+                        "runOrder": 1,
+                        "configuration": {},
+                        "outputArtifacts": [],
+                        "inputArtifacts": [],
+                    }
+                ],
+            },
+        ],
+        "version": 2,
+    }
 
     metadata = client.get_pipeline(name="test-pipeline")["metadata"]
-    metadata["created"].should.equal(created_time)
-    metadata["updated"].should.be.greater_than(updated_time)
+    assert metadata["created"] == created_time
+    assert metadata["updated"] > updated_time
 
 
 @mock_codepipeline
@@ -408,11 +411,12 @@ def test_update_pipeline_errors():
             }
         )
     ex = e.value
-    ex.operation_name.should.equal("UpdatePipeline")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
+    assert ex.operation_name == "UpdatePipeline"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
     )
 
 
@@ -426,15 +430,15 @@ def test_list_pipelines():
 
     response = client.list_pipelines()
 
-    response["pipelines"].should.have.length_of(2)
-    response["pipelines"][0]["name"].should.equal(name_1)
-    response["pipelines"][0]["version"].should.equal(1)
-    response["pipelines"][0]["created"].should.be.a(datetime)
-    response["pipelines"][0]["updated"].should.be.a(datetime)
-    response["pipelines"][1]["name"].should.equal(name_2)
-    response["pipelines"][1]["version"].should.equal(1)
-    response["pipelines"][1]["created"].should.be.a(datetime)
-    response["pipelines"][1]["updated"].should.be.a(datetime)
+    assert len(response["pipelines"]) == 2
+    assert response["pipelines"][0]["name"] == name_1
+    assert response["pipelines"][0]["version"] == 1
+    assert isinstance(response["pipelines"][0]["created"], datetime)
+    assert isinstance(response["pipelines"][0]["updated"], datetime)
+    assert response["pipelines"][1]["name"] == name_2
+    assert response["pipelines"][1]["version"] == 1
+    assert isinstance(response["pipelines"][1]["created"], datetime)
+    assert isinstance(response["pipelines"][1]["updated"], datetime)
 
 
 @mock_codepipeline
@@ -442,11 +446,11 @@ def test_delete_pipeline():
     client = boto3.client("codepipeline", region_name="us-east-1")
     name = "test-pipeline"
     create_basic_codepipeline(client, name)
-    client.list_pipelines()["pipelines"].should.have.length_of(1)
+    assert len(client.list_pipelines()["pipelines"]) == 1
 
     client.delete_pipeline(name=name)
 
-    client.list_pipelines()["pipelines"].should.have.length_of(0)
+    assert len(client.list_pipelines()["pipelines"]) == 0
 
     # deleting a not existing pipeline, should raise no exception
     client.delete_pipeline(name=name)
@@ -461,7 +465,7 @@ def test_list_tags_for_resource():
     response = client.list_tags_for_resource(
         resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}"
     )
-    response["tags"].should.equal([{"key": "key", "value": "value"}])
+    assert response["tags"] == [{"key": "key", "value": "value"}]
 
 
 @mock_codepipeline
@@ -473,11 +477,12 @@ def test_list_tags_for_resource_errors():
             resourceArn="arn:aws:codepipeline:us-east-1:123456789012:not-existing"
         )
     ex = e.value
-    ex.operation_name.should.equal("ListTagsForResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
+    assert ex.operation_name == "ListTagsForResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
     )
 
 
@@ -495,9 +500,10 @@ def test_tag_resource():
     response = client.list_tags_for_resource(
         resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}"
     )
-    response["tags"].should.equal(
-        [{"key": "key", "value": "value"}, {"key": "key-2", "value": "value-2"}]
-    )
+    assert response["tags"] == [
+        {"key": "key", "value": "value"},
+        {"key": "key-2", "value": "value-2"},
+    ]
 
 
 @mock_codepipeline
@@ -512,11 +518,12 @@ def test_tag_resource_errors():
             tags=[{"key": "key-2", "value": "value-2"}],
         )
     ex = e.value
-    ex.operation_name.should.equal("TagResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
+    assert ex.operation_name == "TagResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
     )
 
     with pytest.raises(ClientError) as e:
@@ -525,13 +532,12 @@ def test_tag_resource_errors():
             tags=[{"key": "aws:key", "value": "value"}],
         )
     ex = e.value
-    ex.operation_name.should.equal("TagResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidTagsException")
-    ex.response["Error"]["Message"].should.equal(
-        "Not allowed to modify system tags. "
-        "System tags start with 'aws:'. "
-        "msg=[Caller is an end user and not allowed to mutate system tags]"
+    assert ex.operation_name == "TagResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidTagsException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Not allowed to modify system tags. System tags start with 'aws:'. msg=[Caller is an end user and not allowed to mutate system tags]"
     )
 
     with pytest.raises(ClientError) as e:
@@ -540,11 +546,12 @@ def test_tag_resource_errors():
             tags=[{"key": f"key-{i}", "value": f"value-{i}"} for i in range(50)],
         )
     ex = e.value
-    ex.operation_name.should.equal("TagResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("TooManyTagsException")
-    ex.response["Error"]["Message"].should.equal(
-        f"Tag limit exceeded for resource [arn:aws:codepipeline:us-east-1:123456789012:{name}]."
+    assert ex.operation_name == "TagResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "TooManyTagsException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Tag limit exceeded for resource [arn:aws:codepipeline:us-east-1:123456789012:{name}]."
     )
 
 
@@ -557,7 +564,7 @@ def test_untag_resource():
     response = client.list_tags_for_resource(
         resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}"
     )
-    response["tags"].should.equal([{"key": "key", "value": "value"}])
+    assert response["tags"] == [{"key": "key", "value": "value"}]
 
     client.untag_resource(
         resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}",
@@ -567,7 +574,7 @@ def test_untag_resource():
     response = client.list_tags_for_resource(
         resourceArn=f"arn:aws:codepipeline:us-east-1:123456789012:{name}"
     )
-    response["tags"].should.have.length_of(0)
+    assert len(response["tags"]) == 0
 
     # removing a not existing tag should raise no exception
     client.untag_resource(
@@ -586,11 +593,12 @@ def test_untag_resource_errors():
             tagKeys=["key"],
         )
     ex = e.value
-    ex.operation_name.should.equal("UntagResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
+    assert ex.operation_name == "UntagResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
     )
 
 
@@ -702,8 +710,8 @@ def test_create_pipeline_with_extended_trust_policy():
     extended_pipeline_details = deepcopy(expected_pipeline_details)
     extended_pipeline_details["roleArn"] = role_arn
 
-    response["pipeline"].should.equal(extended_pipeline_details)
-    response["tags"].should.equal([{"key": "key", "value": "value"}])
+    assert response["pipeline"] == extended_pipeline_details
+    assert response["tags"] == [{"key": "key", "value": "value"}]
 
 
 @mock_codepipeline
@@ -712,5 +720,5 @@ def test_create_pipeline_without_tags():
 
     response = create_basic_codepipeline(client, "test-pipeline", tags=[])
 
-    response["pipeline"].should.equal(expected_pipeline_details)
-    response["tags"].should.equal([])
+    assert response["pipeline"] == expected_pipeline_details
+    assert response["tags"] == []

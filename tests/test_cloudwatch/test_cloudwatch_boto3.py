@@ -611,7 +611,7 @@ def test_custom_timestamp():
         ],
     )
 
-    cw.get_metric_statistics(
+    resp = cw.get_metric_statistics(
         Namespace="tester",
         MetricName="metric",
         StartTime=utc_now - timedelta(seconds=60),
@@ -619,7 +619,7 @@ def test_custom_timestamp():
         Period=60,
         Statistics=["SampleCount", "Sum"],
     )
-    # TODO: What are we actually testing here?
+    assert resp["Datapoints"] == []
 
 
 @mock_cloudwatch

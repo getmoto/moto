@@ -1,6 +1,5 @@
 import boto3
 
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_codecommit
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from botocore.exceptions import ClientError
@@ -10,57 +9,57 @@ import pytest
 @mock_codecommit
 def test_create_repository():
     client = boto3.client("codecommit", region_name="eu-central-1")
-    response = client.create_repository(
+    metadata = client.create_repository(
         repositoryName="repository_one", repositoryDescription="description repo one"
-    )
+    )["repositoryMetadata"]
 
-    response.should_not.be.none
-    response["repositoryMetadata"].should_not.be.none
-    response["repositoryMetadata"]["creationDate"].should_not.be.none
-    response["repositoryMetadata"]["lastModifiedDate"].should_not.be.none
-    response["repositoryMetadata"]["repositoryId"].should_not.be.empty
-    response["repositoryMetadata"]["repositoryName"].should.equal("repository_one")
-    response["repositoryMetadata"]["repositoryDescription"].should.equal(
-        "description repo one"
+    assert metadata["creationDate"] is not None
+    assert metadata["lastModifiedDate"] is not None
+    assert metadata["repositoryId"] is not None
+    assert metadata["repositoryName"] == "repository_one"
+    assert metadata["repositoryDescription"] == "description repo one"
+    assert (
+        metadata["cloneUrlSsh"]
+        == "ssh://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
     )
-    response["repositoryMetadata"]["cloneUrlSsh"].should.equal(
-        "ssh://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
+    assert (
+        metadata["cloneUrlHttp"]
+        == "https://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
     )
-    response["repositoryMetadata"]["cloneUrlHttp"].should.equal(
-        "https://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
+    assert (
+        metadata["Arn"]
+        == f"arn:aws:codecommit:eu-central-1:{ACCOUNT_ID}:repository_one"
     )
-    response["repositoryMetadata"]["Arn"].should.equal(
-        f"arn:aws:codecommit:eu-central-1:{ACCOUNT_ID}:repository_one"
-    )
-    response["repositoryMetadata"]["accountId"].should.equal(ACCOUNT_ID)
+    assert metadata["accountId"] == ACCOUNT_ID
 
 
 @mock_codecommit
 def test_create_repository_without_description():
     client = boto3.client("codecommit", region_name="eu-central-1")
 
-    response = client.create_repository(repositoryName="repository_two")
+    metadata = client.create_repository(repositoryName="repository_two")[
+        "repositoryMetadata"
+    ]
 
-    response.should_not.be.none
-    response.get("repositoryMetadata").should_not.be.none
-    response.get("repositoryMetadata").get("repositoryName").should.equal(
-        "repository_two"
+    assert metadata.get("repositoryName") == "repository_two"
+    assert metadata.get("repositoryDescription") is None
+
+    assert metadata["creationDate"] is not None
+    assert metadata["lastModifiedDate"] is not None
+    assert metadata["repositoryId"] is not None
+    assert (
+        metadata["cloneUrlSsh"]
+        == "ssh://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_two"
     )
-    response.get("repositoryMetadata").get("repositoryDescription").should.be.none
-    response["repositoryMetadata"].should_not.be.none
-    response["repositoryMetadata"]["creationDate"].should_not.be.none
-    response["repositoryMetadata"]["lastModifiedDate"].should_not.be.none
-    response["repositoryMetadata"]["repositoryId"].should_not.be.empty
-    response["repositoryMetadata"]["cloneUrlSsh"].should.equal(
-        "ssh://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_two"
+    assert (
+        metadata["cloneUrlHttp"]
+        == "https://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_two"
     )
-    response["repositoryMetadata"]["cloneUrlHttp"].should.equal(
-        "https://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_two"
+    assert (
+        metadata["Arn"]
+        == f"arn:aws:codecommit:eu-central-1:{ACCOUNT_ID}:repository_two"
     )
-    response["repositoryMetadata"]["Arn"].should.equal(
-        f"arn:aws:codecommit:eu-central-1:{ACCOUNT_ID}:repository_two"
-    )
-    response["repositoryMetadata"]["accountId"].should.equal(ACCOUNT_ID)
+    assert metadata["accountId"] == ACCOUNT_ID
 
 
 @mock_codecommit
@@ -75,11 +74,12 @@ def test_create_repository_repository_name_exists():
             repositoryDescription="description repo two",
         )
     ex = e.value
-    ex.operation_name.should.equal("CreateRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNameExistsException")
-    ex.response["Error"]["Message"].should.equal(
-        "Repository named repository_two already exists"
+    assert ex.operation_name == "CreateRepository"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNameExistsException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Repository named repository_two already exists"
     )
 
 
@@ -90,15 +90,12 @@ def test_create_repository_invalid_repository_name():
     with pytest.raises(ClientError) as e:
         client.create_repository(repositoryName="in_123_valid_@#$_characters")
     ex = e.value
-    ex.operation_name.should.equal("CreateRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
-    ex.response["Error"]["Message"].should.equal(
-        "The repository name is not valid. Repository names can be any valid "
-        "combination of letters, numbers, "
-        "periods, underscores, and dashes between 1 and 100 characters in "
-        "length. Names are case sensitive. "
-        "For more information, see Limits in the AWS CodeCommit User Guide. "
+    assert ex.operation_name == "CreateRepository"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidRepositoryNameException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The repository name is not valid. Repository names can be any valid combination of letters, numbers, periods, underscores, and dashes between 1 and 100 characters in length. Names are case sensitive. For more information, see Limits in the AWS CodeCommit User Guide. "
     )
 
 
@@ -112,39 +109,38 @@ def test_get_repository():
         repositoryName=repository_name, repositoryDescription="description repo one"
     )
 
-    response = client.get_repository(repositoryName=repository_name)
+    metadata = client.get_repository(repositoryName=repository_name)[
+        "repositoryMetadata"
+    ]
 
-    response.should_not.be.none
-    response.get("repositoryMetadata").should_not.be.none
-    response.get("repositoryMetadata").get("creationDate").should_not.be.none
-    response.get("repositoryMetadata").get("lastModifiedDate").should_not.be.none
-    response.get("repositoryMetadata").get("repositoryId").should_not.be.empty
-    response.get("repositoryMetadata").get("repositoryName").should.equal(
-        repository_name
+    assert metadata["creationDate"] is not None
+    assert metadata["lastModifiedDate"] is not None
+    assert metadata["repositoryId"] is not None
+    assert metadata["repositoryName"] == repository_name
+    assert metadata["repositoryDescription"] == "description repo one"
+    assert (
+        metadata["cloneUrlSsh"]
+        == "ssh://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
     )
-    response.get("repositoryMetadata").get("repositoryDescription").should.equal(
-        "description repo one"
+    assert (
+        metadata["cloneUrlHttp"]
+        == "https://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
     )
-    response.get("repositoryMetadata").get("cloneUrlSsh").should.equal(
-        "ssh://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
+    assert (
+        metadata["Arn"]
+        == f"arn:aws:codecommit:eu-central-1:{ACCOUNT_ID}:repository_one"
     )
-    response.get("repositoryMetadata").get("cloneUrlHttp").should.equal(
-        "https://git-codecommit.eu-central-1.amazonaws.com/v1/repos/repository_one"
-    )
-    response.get("repositoryMetadata").get("Arn").should.equal(
-        f"arn:aws:codecommit:eu-central-1:{ACCOUNT_ID}:repository_one"
-    )
-    response.get("repositoryMetadata").get("accountId").should.equal(ACCOUNT_ID)
+    assert metadata["accountId"] == ACCOUNT_ID
 
     client = boto3.client("codecommit", region_name="us-east-1")
 
     with pytest.raises(ClientError) as e:
         client.get_repository(repositoryName=repository_name)
     ex = e.value
-    ex.operation_name.should.equal("GetRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryDoesNotExistException")
-    ex.response["Error"]["Message"].should.equal(f"{repository_name} does not exist")
+    assert ex.operation_name == "GetRepository"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryDoesNotExistException"
+    assert ex.response["Error"]["Message"] == f"{repository_name} does not exist"
 
 
 @mock_codecommit
@@ -154,14 +150,11 @@ def test_get_repository_invalid_repository_name():
     with pytest.raises(ClientError) as e:
         client.get_repository(repositoryName="repository_one-@#@")
     ex = e.value
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
-    ex.response["Error"]["Message"].should.equal(
-        "The repository name is not valid. Repository names can be any valid "
-        "combination of letters, numbers, "
-        "periods, underscores, and dashes between 1 and 100 characters in "
-        "length. Names are case sensitive. "
-        "For more information, see Limits in the AWS CodeCommit User Guide. "
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidRepositoryNameException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The repository name is not valid. Repository names can be any valid combination of letters, numbers, periods, underscores, and dashes between 1 and 100 characters in length. Names are case sensitive. For more information, see Limits in the AWS CodeCommit User Guide. "
     )
 
 
@@ -175,12 +168,12 @@ def test_delete_repository():
 
     response = client.delete_repository(repositoryName="repository_one")
 
-    response.get("repositoryId").should_not.be.none
-    repository_id_create.should.equal(response.get("repositoryId"))
+    assert response.get("repositoryId") is not None
+    assert repository_id_create == response.get("repositoryId")
 
     response = client.delete_repository(repositoryName="unknown_repository")
 
-    response.get("repositoryId").should.be.none
+    assert response.get("repositoryId") is None
 
 
 @mock_codecommit
@@ -190,13 +183,10 @@ def test_delete_repository_invalid_repository_name():
     with pytest.raises(ClientError) as e:
         client.delete_repository(repositoryName="_rep@ository_one")
     ex = e.value
-    ex.operation_name.should.equal("DeleteRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
-    ex.response["Error"]["Message"].should.equal(
-        "The repository name is not valid. Repository names can be any valid "
-        "combination of letters, numbers, "
-        "periods, underscores, and dashes between 1 and 100 characters in "
-        "length. Names are case sensitive. "
-        "For more information, see Limits in the AWS CodeCommit User Guide. "
+    assert ex.operation_name == "DeleteRepository"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidRepositoryNameException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The repository name is not valid. Repository names can be any valid combination of letters, numbers, periods, underscores, and dashes between 1 and 100 characters in length. Names are case sensitive. For more information, see Limits in the AWS CodeCommit User Guide. "
     )
