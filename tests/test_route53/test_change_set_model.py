@@ -1,5 +1,4 @@
 import copy
-import sure  # noqa # pylint: disable=unused-import
 from moto.route53.models import ChangeList
 
 
@@ -25,10 +24,10 @@ def test_last_dot_in_name_is_ignored():
     change_list.append(change1)
     change_list.append(change2)
 
-    change_list.should.contain(change1)
-    change_list.should.contain(change1_alt)
-    change_list.should.contain(change2)
-    change_list.should.contain(change2_alt)
+    assert change1 in change_list
+    assert change1_alt in change_list
+    assert change2 in change_list
+    assert change2_alt in change_list
 
 
 def test_last_dot_is_not_stored():
@@ -44,7 +43,7 @@ def test_last_dot_is_not_stored():
     change_list = ChangeList()
     change_list.append(change1)
 
-    change_list[0]["ResourceRecordSet"]["Name"].should.equal("test.google.com")
+    assert change_list[0]["ResourceRecordSet"]["Name"] == "test.google.com"
 
 
 def test_optional_fields():
@@ -55,4 +54,4 @@ def test_optional_fields():
     change_list = ChangeList()
     change_list.append(change)
 
-    change_list.should.equal([change])
+    assert change_list == [change]
