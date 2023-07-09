@@ -13,8 +13,6 @@ from moto import mock_s3
 from moto.config import mock_config
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-import sure  # noqa # pylint: disable=unused-import
-
 
 @mock_config
 def test_put_configuration_recorder():
@@ -2008,9 +2006,10 @@ def test_put_evaluations():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {"FailedEvaluations": [], "ResponseMetadata": {"HTTPStatusCode": 200}}
-    )
+    assert response == {
+        "FailedEvaluations": [],
+        "ResponseMetadata": {"HTTPStatusCode": 200},
+    }
 
 
 @mock_config
@@ -2027,8 +2026,8 @@ def test_put_organization_conformance_pack():
 
     # then
     arn = response["OrganizationConformancePackArn"]
-    arn.should.match(
-        r"arn:aws:config:us-east-1:\d{12}:organization-conformance-pack/test-pack-\w{8}"
+    assert arn.startswith(
+        f"arn:aws:config:us-east-1:{ACCOUNT_ID}:organization-conformance-pack/test-pack-"
     )
 
     # putting an organization conformance pack with the same name should result in an update
@@ -2040,7 +2039,7 @@ def test_put_organization_conformance_pack():
     )
 
     # then
-    response["OrganizationConformancePackArn"].should.equal(arn)
+    assert response["OrganizationConformancePackArn"] == arn
 
 
 @mock_config
@@ -2057,10 +2056,10 @@ def test_put_organization_conformance_pack_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutOrganizationConformancePack")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ValidationException")
-    ex.response["Error"]["Message"].should.equal("Template body is invalid")
+    assert ex.operation_name == "PutOrganizationConformancePack"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ValidationException"
+    assert ex.response["Error"]["Message"] == "Template body is invalid"
 
     # when
     with pytest.raises(ClientError) as e:
@@ -2072,14 +2071,12 @@ def test_put_organization_conformance_pack_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutOrganizationConformancePack")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ValidationException")
-    ex.response["Error"]["Message"].should.equal(
-        "1 validation error detected: "
-        "Value 'invalid-s3-uri' at 'templateS3Uri' failed to satisfy constraint: "
-        "Member must satisfy regular expression pattern: "
-        "s3://.*"
+    assert ex.operation_name == "PutOrganizationConformancePack"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ValidationException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "1 validation error detected: Value 'invalid-s3-uri' at 'templateS3Uri' failed to satisfy constraint: Member must satisfy regular expression pattern: s3://.*"
     )
 
 
@@ -2099,14 +2096,14 @@ def test_describe_organization_conformance_packs():
     )
 
     # then
-    response["OrganizationConformancePacks"].should.have.length_of(1)
+    assert len(response["OrganizationConformancePacks"]) == 1
     pack = response["OrganizationConformancePacks"][0]
-    pack["OrganizationConformancePackName"].should.equal("test-pack")
-    pack["OrganizationConformancePackArn"].should.equal(arn)
-    pack["DeliveryS3Bucket"].should.equal("awsconfigconforms-test-bucket")
-    pack["ConformancePackInputParameters"].should.have.length_of(0)
-    pack["ExcludedAccounts"].should.have.length_of(0)
-    pack["LastUpdateTime"].should.be.a("datetime.datetime")
+    assert pack["OrganizationConformancePackName"] == "test-pack"
+    assert pack["OrganizationConformancePackArn"] == arn
+    assert pack["DeliveryS3Bucket"] == "awsconfigconforms-test-bucket"
+    assert len(pack["ConformancePackInputParameters"]) == 0
+    assert len(pack["ExcludedAccounts"]) == 0
+    assert isinstance(pack["LastUpdateTime"], datetime)
 
 
 @mock_config
@@ -2122,14 +2119,12 @@ def test_describe_organization_conformance_packs_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DescribeOrganizationConformancePacks")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain(
-        "NoSuchOrganizationConformancePackException"
-    )
-    ex.response["Error"]["Message"].should.equal(
-        "One or more organization conformance packs with specified names are not present. "
-        "Ensure your names are correct and try your request again later."
+    assert ex.operation_name == "DescribeOrganizationConformancePacks"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "NoSuchOrganizationConformancePackException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "One or more organization conformance packs with specified names are not present. Ensure your names are correct and try your request again later."
     )
 
 
@@ -2149,22 +2144,22 @@ def test_describe_organization_conformance_pack_statuses():
     )
 
     # then
-    response["OrganizationConformancePackStatuses"].should.have.length_of(1)
+    assert len(response["OrganizationConformancePackStatuses"]) == 1
     status = response["OrganizationConformancePackStatuses"][0]
-    status["OrganizationConformancePackName"].should.equal("test-pack")
-    status["Status"].should.equal("CREATE_SUCCESSFUL")
+    assert status["OrganizationConformancePackName"] == "test-pack"
+    assert status["Status"] == "CREATE_SUCCESSFUL"
     update_time = status["LastUpdateTime"]
-    update_time.should.be.a("datetime.datetime")
+    assert isinstance(update_time, datetime)
 
     # when
     response = client.describe_organization_conformance_pack_statuses()
 
     # then
-    response["OrganizationConformancePackStatuses"].should.have.length_of(1)
+    assert len(response["OrganizationConformancePackStatuses"]) == 1
     status = response["OrganizationConformancePackStatuses"][0]
-    status["OrganizationConformancePackName"].should.equal("test-pack")
-    status["Status"].should.equal("CREATE_SUCCESSFUL")
-    status["LastUpdateTime"].should.equal(update_time)
+    assert status["OrganizationConformancePackName"] == "test-pack"
+    assert status["Status"] == "CREATE_SUCCESSFUL"
+    assert status["LastUpdateTime"] == update_time
 
     # when
     time.sleep(1)
@@ -2178,11 +2173,11 @@ def test_describe_organization_conformance_pack_statuses():
     response = client.describe_organization_conformance_pack_statuses(
         OrganizationConformancePackNames=["test-pack"]
     )
-    response["OrganizationConformancePackStatuses"].should.have.length_of(1)
+    assert len(response["OrganizationConformancePackStatuses"]) == 1
     status = response["OrganizationConformancePackStatuses"][0]
-    status["OrganizationConformancePackName"].should.equal("test-pack")
-    status["Status"].should.equal("UPDATE_SUCCESSFUL")
-    status["LastUpdateTime"].should.be.greater_than(update_time)
+    assert status["OrganizationConformancePackName"] == "test-pack"
+    assert status["Status"] == "UPDATE_SUCCESSFUL"
+    assert status["LastUpdateTime"] > update_time
 
 
 @mock_config
@@ -2198,14 +2193,12 @@ def test_describe_organization_conformance_pack_statuses_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DescribeOrganizationConformancePackStatuses")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain(
-        "NoSuchOrganizationConformancePackException"
-    )
-    ex.response["Error"]["Message"].should.equal(
-        "One or more organization conformance packs with specified names are not present. "
-        "Ensure your names are correct and try your request again later."
+    assert ex.operation_name == "DescribeOrganizationConformancePackStatuses"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "NoSuchOrganizationConformancePackException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "One or more organization conformance packs with specified names are not present. Ensure your names are correct and try your request again later."
     )
 
 
@@ -2225,15 +2218,15 @@ def test_get_organization_conformance_pack_detailed_status():
     )
 
     # then
-    response["OrganizationConformancePackDetailedStatuses"].should.have.length_of(1)
+    assert len(response["OrganizationConformancePackDetailedStatuses"]) == 1
     status = response["OrganizationConformancePackDetailedStatuses"][0]
-    status["AccountId"].should.equal(ACCOUNT_ID)
-    status["ConformancePackName"].should.equal(
-        f"OrgConformsPack-{arn[arn.rfind('/') + 1 :]}"
+    assert status["AccountId"] == ACCOUNT_ID
+    assert (
+        status["ConformancePackName"] == f"OrgConformsPack-{arn[arn.rfind('/') + 1 :]}"
     )
-    status["Status"].should.equal("CREATE_SUCCESSFUL")
+    assert status["Status"] == "CREATE_SUCCESSFUL"
     update_time = status["LastUpdateTime"]
-    update_time.should.be.a("datetime.datetime")
+    assert isinstance(update_time, datetime)
 
     # when
     time.sleep(1)
@@ -2247,14 +2240,14 @@ def test_get_organization_conformance_pack_detailed_status():
     response = client.get_organization_conformance_pack_detailed_status(
         OrganizationConformancePackName="test-pack"
     )
-    response["OrganizationConformancePackDetailedStatuses"].should.have.length_of(1)
+    assert len(response["OrganizationConformancePackDetailedStatuses"]) == 1
     status = response["OrganizationConformancePackDetailedStatuses"][0]
-    status["AccountId"].should.equal(ACCOUNT_ID)
-    status["ConformancePackName"].should.equal(
-        f"OrgConformsPack-{arn[arn.rfind('/') + 1 :]}"
+    assert status["AccountId"] == ACCOUNT_ID
+    assert (
+        status["ConformancePackName"] == f"OrgConformsPack-{arn[arn.rfind('/') + 1 :]}"
     )
-    status["Status"].should.equal("UPDATE_SUCCESSFUL")
-    status["LastUpdateTime"].should.be.greater_than(update_time)
+    assert status["Status"] == "UPDATE_SUCCESSFUL"
+    assert status["LastUpdateTime"] > update_time
 
 
 @mock_config
@@ -2270,14 +2263,12 @@ def test_get_organization_conformance_pack_detailed_status_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetOrganizationConformancePackDetailedStatus")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain(
-        "NoSuchOrganizationConformancePackException"
-    )
-    ex.response["Error"]["Message"].should.equal(
-        "One or more organization conformance packs with specified names are not present. "
-        "Ensure your names are correct and try your request again later."
+    assert ex.operation_name == "GetOrganizationConformancePackDetailedStatus"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "NoSuchOrganizationConformancePackException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "One or more organization conformance packs with specified names are not present. Ensure your names are correct and try your request again later."
     )
 
 
@@ -2298,7 +2289,7 @@ def test_delete_organization_conformance_pack():
 
     # then
     response = client.describe_organization_conformance_pack_statuses()
-    response["OrganizationConformancePackStatuses"].should.have.length_of(0)
+    assert len(response["OrganizationConformancePackStatuses"]) == 0
 
 
 @mock_config
@@ -2314,13 +2305,12 @@ def test_delete_organization_conformance_pack_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DeleteOrganizationConformancePack")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain(
-        "NoSuchOrganizationConformancePackException"
-    )
-    ex.response["Error"]["Message"].should.equal(
-        "Could not find an OrganizationConformancePack for given request with resourceName not-existing"
+    assert ex.operation_name == "DeleteOrganizationConformancePack"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "NoSuchOrganizationConformancePackException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Could not find an OrganizationConformancePack for given request with resourceName not-existing"
     )
 
 
