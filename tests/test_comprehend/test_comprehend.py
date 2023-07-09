@@ -1,7 +1,6 @@
 """Unit tests for comprehend-supported APIs."""
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_comprehend
 from moto.comprehend.models import (
@@ -30,7 +29,7 @@ def test_list_entity_recognizers():
     client = boto3.client("comprehend", region_name="us-east-2")
 
     resp = client.list_entity_recognizers()
-    resp.should.have.key("EntityRecognizerPropertiesList").equals([])
+    assert resp["EntityRecognizerPropertiesList"] == []
 
     client.create_entity_recognizer(
         DataAccessRoleArn="iam_role_with_20_chars",
@@ -41,10 +40,10 @@ def test_list_entity_recognizers():
     )
 
     resp = client.list_entity_recognizers(Filter={"RecognizerName": "unknown"})
-    resp.should.have.key("EntityRecognizerPropertiesList").equals([])
+    assert resp["EntityRecognizerPropertiesList"] == []
 
     resp = client.list_entity_recognizers(Filter={"RecognizerName": "myname"})
-    resp.should.have.key("EntityRecognizerPropertiesList").length_of(1)
+    assert len(resp["EntityRecognizerPropertiesList"]) == 1
 
     client.create_entity_recognizer(
         DataAccessRoleArn="iam_role_with_20_chars",
@@ -55,7 +54,7 @@ def test_list_entity_recognizers():
     )
 
     resp = client.list_entity_recognizers(Filter={"RecognizerName": "myname"})
-    resp.should.have.key("EntityRecognizerPropertiesList").length_of(2)
+    assert len(resp["EntityRecognizerPropertiesList"]) == 2
 
 
 @mock_comprehend
@@ -69,7 +68,7 @@ def test_create_entity_recognizer():
         VersionName="terraform-20221003201727469000000002",
     )
 
-    resp.should.have.key("EntityRecognizerArn")
+    assert "EntityRecognizerArn" in resp
 
 
 @mock_comprehend
@@ -82,9 +81,10 @@ def test_create_entity_recognizer_without_version():
         RecognizerName="tf-acc-test-1726651689102157637",
     )
 
-    resp.should.have.key("EntityRecognizerArn")
-    resp["EntityRecognizerArn"].should.equal(
-        "arn:aws:comprehend:ap-southeast-1:123456789012:entity-recognizer/tf-acc-test-1726651689102157637"
+    assert "EntityRecognizerArn" in resp
+    assert (
+        resp["EntityRecognizerArn"]
+        == "arn:aws:comprehend:ap-southeast-1:123456789012:entity-recognizer/tf-acc-test-1726651689102157637"
     )
 
 
@@ -100,8 +100,8 @@ def test_create_entity_recognizer_with_tags():
     )["EntityRecognizerArn"]
 
     resp = client.list_tags_for_resource(ResourceArn=arn)
-    resp.should.have.key("ResourceArn").equals(arn)
-    resp.should.have.key("Tags").equals([{"Key": "k1", "Value": "v1"}])
+    assert resp["ResourceArn"] == arn
+    assert resp["Tags"] == [{"Key": "k1", "Value": "v1"}]
 
 
 @mock_comprehend
@@ -116,15 +116,15 @@ def test_describe_entity_recognizer():
     )["EntityRecognizerArn"]
 
     resp = client.describe_entity_recognizer(EntityRecognizerArn=arn)
-    resp.should.have.key("EntityRecognizerProperties")
+    assert "EntityRecognizerProperties" in resp
     props = resp["EntityRecognizerProperties"]
 
-    props.should.have.key("EntityRecognizerArn").equals(arn)
-    props.should.have.key("LanguageCode").equals("en")
-    props.should.have.key("Status").equals("TRAINED")
-    props.should.have.key("InputDataConfig").equals(INPUT_DATA_CONFIG)
-    props.should.have.key("DataAccessRoleArn").equals("iam_role_with_20_chars")
-    props.should.have.key("VersionName").equals("terraform-20221003201727469000000002")
+    assert props["EntityRecognizerArn"] == arn
+    assert props["LanguageCode"] == "en"
+    assert props["Status"] == "TRAINED"
+    assert props["InputDataConfig"] == INPUT_DATA_CONFIG
+    assert props["DataAccessRoleArn"] == "iam_role_with_20_chars"
+    assert props["VersionName"] == "terraform-20221003201727469000000002"
 
 
 @mock_comprehend
@@ -134,10 +134,8 @@ def test_describe_unknown_recognizer():
     with pytest.raises(ClientError) as exc:
         client.describe_entity_recognizer(EntityRecognizerArn="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(
-        "RESOURCE_NOT_FOUND: Could not find specified resource."
-    )
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."
 
 
 @mock_comprehend
@@ -155,7 +153,7 @@ def test_stop_training_entity_recognizer():
     props = client.describe_entity_recognizer(EntityRecognizerArn=arn)[
         "EntityRecognizerProperties"
     ]
-    props.should.have.key("Status").equals("TRAINED")
+    assert props["Status"] == "TRAINED"
 
 
 @mock_comprehend
@@ -170,17 +168,17 @@ def test_list_tags_for_resource():
     )["EntityRecognizerArn"]
 
     resp = client.list_tags_for_resource(ResourceArn=arn)
-    resp.should.have.key("ResourceArn").equals(arn)
-    resp.should.have.key("Tags").equals([])
+    assert resp["ResourceArn"] == arn
+    assert resp["Tags"] == []
 
     client.tag_resource(ResourceArn=arn, Tags=[{"Key": "k1", "Value": "v1"}])
 
     resp = client.list_tags_for_resource(ResourceArn=arn)
-    resp.should.have.key("Tags").equals([{"Key": "k1", "Value": "v1"}])
+    assert resp["Tags"] == [{"Key": "k1", "Value": "v1"}]
 
     client.untag_resource(ResourceArn=arn, TagKeys=["k1"])
     resp = client.list_tags_for_resource(ResourceArn=arn)
-    resp.should.have.key("Tags").equals([])
+    assert resp["Tags"] == []
 
 
 @mock_comprehend
@@ -199,10 +197,8 @@ def test_delete_entity_recognizer():
     with pytest.raises(ClientError) as exc:
         client.describe_entity_recognizer(EntityRecognizerArn=arn)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(
-        "RESOURCE_NOT_FOUND: Could not find specified resource."
-    )
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."
 
 
 @mock_comprehend
