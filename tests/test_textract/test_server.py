@@ -1,6 +1,4 @@
 """Test different server responses."""
-import sure  # noqa # pylint: disable=unused-import
-
 import json
 import moto.server as server
 from moto import mock_textract
@@ -20,8 +18,8 @@ def test_textract_start_text_detection():
 
     resp = test_client.post("/", headers=headers, json=request_body)
     data = json.loads(resp.data.decode("utf-8"))
-    resp.status_code.should.equal(200)
-    data["JobId"].should.be.an(str)
+    assert resp.status_code == 200
+    assert isinstance(data["JobId"], str)
 
 
 @mock_textract
@@ -32,10 +30,11 @@ def test_textract_start_text_detection_without_document_location():
     headers = {"X-Amz-Target": "X-Amz-Target=Textract.StartDocumentTextDetection"}
     resp = test_client.post("/", headers=headers, json={})
     data = json.loads(resp.data.decode("utf-8"))
-    resp.status_code.should.equal(400)
-    data["__type"].should.equal("InvalidParameterException")
-    data["message"].should.equal(
-        "An input parameter violated a constraint. For example, in synchronous operations, an InvalidParameterException exception occurs when neither of the S3Object or Bytes values are supplied in the Document request parameter. Validate your parameter before calling the API operation again."
+    assert resp.status_code == 400
+    assert data["__type"] == "InvalidParameterException"
+    assert (
+        data["message"]
+        == "An input parameter violated a constraint. For example, in synchronous operations, an InvalidParameterException exception occurs when neither of the S3Object or Bytes values are supplied in the Document request parameter. Validate your parameter before calling the API operation again."
     )
 
 
@@ -59,9 +58,9 @@ def test_textract_get_text_detection():
         "JobId": start_job_data["JobId"],
     }
     resp = test_client.post("/", headers=headers, json=request_body)
-    resp.status_code.should.equal(200)
+    assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
-    data["JobStatus"].should.equal("SUCCEEDED")
+    assert data["JobStatus"] == "SUCCEEDED"
 
 
 @mock_textract
@@ -74,7 +73,7 @@ def test_textract_get_text_detection_without_job_id():
         "JobId": "invalid_job_id",
     }
     resp = test_client.post("/", headers=headers, json=request_body)
-    resp.status_code.should.equal(400)
+    assert resp.status_code == 400
     data = json.loads(resp.data.decode("utf-8"))
-    data["__type"].should.equal("InvalidJobIdException")
-    data["message"].should.equal("An invalid job identifier was passed.")
+    assert data["__type"] == "InvalidJobIdException"
+    assert data["message"] == "An invalid job identifier was passed."
