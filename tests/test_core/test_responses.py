@@ -1,6 +1,5 @@
 import datetime
 from unittest import SkipTest, mock
-import sure  # noqa # pylint: disable=unused-import
 
 from collections import OrderedDict
 
@@ -46,17 +45,21 @@ def test_flatten_json_request_body():
     }
 
     flat = flatten_json_request_body("", body, spec)
-    flat["Name"].should.equal(body["Name"])
-    flat["Instances.Ec2KeyName"].should.equal(body["Instances"]["Ec2KeyName"])
+    assert flat["Name"] == body["Name"]
+    assert flat["Instances.Ec2KeyName"] == body["Instances"]["Ec2KeyName"]
     for idx in range(2):
-        flat[
-            "Instances.InstanceGroups.member." + str(idx + 1) + ".InstanceRole"
-        ].should.equal(body["Instances"]["InstanceGroups"][idx]["InstanceRole"])
-        flat[
-            "Instances.InstanceGroups.member." + str(idx + 1) + ".InstanceType"
-        ].should.equal(body["Instances"]["InstanceGroups"][idx]["InstanceType"])
-    flat["Instances.Placement.AvailabilityZone"].should.equal(
-        body["Instances"]["Placement"]["AvailabilityZone"]
+        inst = body["Instances"]["InstanceGroups"][idx]
+        assert (
+            flat[f"Instances.InstanceGroups.member.{(idx + 1)}.InstanceRole"]
+            == inst["InstanceRole"]
+        )
+        assert (
+            flat[f"Instances.InstanceGroups.member.{(idx + 1)}.InstanceType"]
+            == inst["InstanceType"]
+        )
+    assert (
+        flat["Instances.Placement.AvailabilityZone"]
+        == body["Instances"]["Placement"]["AvailabilityZone"]
     )
 
     for idx in range(1):
@@ -64,21 +67,19 @@ def test_flatten_json_request_body():
         step = body["Steps"][idx]["HadoopJarStep"]
         i = 0
         while prefix + ".Properties.member." + str(i + 1) + ".Key" in flat:
-            flat[prefix + ".Properties.member." + str(i + 1) + ".Key"].should.equal(
-                step["Properties"][i]["Key"]
-            )
-            flat[prefix + ".Properties.member." + str(i + 1) + ".Value"].should.equal(
-                step["Properties"][i]["Value"]
-            )
+            prop = step["Properties"][i]
+            assert flat[f"{prefix}.Properties.member.{(i + 1)}.Key"] == prop["Key"]
+            assert flat[f"{prefix}.Properties.member.{(i + 1)}.Value"] == prop["Value"]
             i += 1
         i = 0
         while prefix + ".Args.member." + str(i + 1) in flat:
-            flat[prefix + ".Args.member." + str(i + 1)].should.equal(step["Args"][i])
+            assert flat[f"{prefix}.Args.member.{(i + 1)}"] == step["Args"][i]
             i += 1
 
     for idx in range(2):
-        flat["Configurations.member." + str(idx + 1) + ".Classification"].should.equal(
-            body["Configurations"][idx]["Classification"]
+        assert (
+            flat["Configurations.member." + str(idx + 1) + ".Classification"]
+            == body["Configurations"][idx]["Classification"]
         )
 
         props = {}
@@ -89,7 +90,7 @@ def test_flatten_json_request_body():
             props[flat[key + ".key"]] = flat[key + ".value"]
             i += 1
             key = keyfmt.format(idx + 1, i)
-        props.should.equal(body["Configurations"][idx]["Properties"])
+        assert props == body["Configurations"][idx]["Properties"]
 
 
 def test_parse_qs_unicode_decode_error():
@@ -123,32 +124,30 @@ def test_get_params():
 
     result = subject._get_params()
 
-    result.should.equal(
-        {
-            "Action": "CreateRule",
-            "Version": "2015-12-01",
-            "ListenerArn": "arn:aws:elasticloadbalancing:us-east-1:1:listener/my-lb/50dc6c495c0c9188/80139731473870416",
-            "Priority": "100",
-            "Conditions": [
-                {
-                    "Field": "http-header",
-                    "HttpHeaderConfig": {
-                        "HttpHeaderName": "User-Agent",
-                        "Values": ["Mozilla", "curl"],
-                    },
-                }
-            ],
-            "Actions": [
-                {
-                    "Type": "fixed-response",
-                    "FixedResponseConfig": {
-                        "StatusCode": "200",
-                        "ContentType": "text/plain",
-                    },
-                }
-            ],
-        }
-    )
+    assert result == {
+        "Action": "CreateRule",
+        "Version": "2015-12-01",
+        "ListenerArn": "arn:aws:elasticloadbalancing:us-east-1:1:listener/my-lb/50dc6c495c0c9188/80139731473870416",
+        "Priority": "100",
+        "Conditions": [
+            {
+                "Field": "http-header",
+                "HttpHeaderConfig": {
+                    "HttpHeaderName": "User-Agent",
+                    "Values": ["Mozilla", "curl"],
+                },
+            }
+        ],
+        "Actions": [
+            {
+                "Type": "fixed-response",
+                "FixedResponseConfig": {
+                    "StatusCode": "200",
+                    "ContentType": "text/plain",
+                },
+            }
+        ],
+    }
 
 
 def test_get_dict_list_params():
@@ -166,7 +165,7 @@ def test_get_dict_list_params():
     # TODO: extend test and logic such that we can call subject._get_params() directly here
     result = subject._get_multi_param_dict("VpcSecurityGroupIds")
 
-    result.should.equal({"VpcSecurityGroupId": ["sg-123", "sg-456", "sg-789"]})
+    assert result == {"VpcSecurityGroupId": ["sg-123", "sg-456", "sg-789"]}
 
 
 def test_response_environment_preserved_by_type():

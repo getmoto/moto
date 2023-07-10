@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_s3
 from moto import settings
 from unittest import SkipTest
@@ -25,7 +24,7 @@ def test_mock_works_with_client_created_inside(
     client = boto3.client("s3", region_name="us-east-1")
 
     b = client.list_buckets()
-    b["Buckets"].should.equal([])
+    assert b["Buckets"] == []
     m.stop()
 
 
@@ -45,7 +44,7 @@ def test_mock_works_with_client_created_outside(
     patch_client(outside_client)
 
     b = outside_client.list_buckets()
-    b["Buckets"].should.equal([])
+    assert b["Buckets"] == []
     m.stop()
 
 
@@ -65,7 +64,7 @@ def test_mock_works_with_resource_created_outside(
     patch_resource(outside_resource)
 
     b = list(outside_resource.buckets.all())
-    b.should.equal([])
+    assert b == []
     m.stop()
 
 
@@ -118,7 +117,6 @@ class ImportantBusinessLogic:
 def test_mock_works_when_replacing_client(
     aws_credentials,
 ):  # pylint: disable=unused-argument
-
     logic = ImportantBusinessLogic()
 
     m = mock_s3()
@@ -133,6 +131,6 @@ def test_mock_works_when_replacing_client(
     client_initialized_after_mock = boto3.client("s3", region_name="us-east-1")
     logic._s3 = client_initialized_after_mock
     # This will work, as we now use a properly mocked client
-    logic.do_important_things().should.equal([])
+    assert logic.do_important_things() == []
 
     m.stop()

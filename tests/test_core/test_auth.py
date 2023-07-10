@@ -1,7 +1,6 @@
 import json
 
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 import pytest
@@ -179,11 +178,10 @@ def test_invalid_client_token_id():
     )
     with pytest.raises(ClientError) as ex:
         client.get_user()
-    ex.value.response["Error"]["Code"].should.equal("InvalidClientTokenId")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal(
-        "The security token included in the request is invalid."
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidClientTokenId"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert err["Message"] == "The security token included in the request is invalid."
 
 
 @set_initial_no_auth_action_count(0)
@@ -197,10 +195,11 @@ def test_auth_failure():
     )
     with pytest.raises(ClientError) as ex:
         client.describe_instances()
-    ex.value.response["Error"]["Code"].should.equal("AuthFailure")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(401)
-    ex.value.response["Error"]["Message"].should.equal(
-        "AWS was not able to validate the provided access credentials"
+    err = ex.value.response["Error"]
+    assert err["Code"] == "AuthFailure"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 401
+    assert (
+        err["Message"] == "AWS was not able to validate the provided access credentials"
     )
 
 
@@ -216,10 +215,11 @@ def test_signature_does_not_match():
     )
     with pytest.raises(ClientError) as ex:
         client.get_user()
-    ex.value.response["Error"]["Code"].should.equal("SignatureDoesNotMatch")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal(
-        "The request signature we calculated does not match the signature you provided. Check your AWS Secret Access Key and signing method. Consult the service documentation for details."
+    assert ex.value.response["Error"]["Code"] == "SignatureDoesNotMatch"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The request signature we calculated does not match the signature you provided. Check your AWS Secret Access Key and signing method. Consult the service documentation for details."
     )
 
 
@@ -235,10 +235,11 @@ def test_auth_failure_with_valid_access_key_id():
     )
     with pytest.raises(ClientError) as ex:
         client.describe_instances()
-    ex.value.response["Error"]["Code"].should.equal("AuthFailure")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(401)
-    ex.value.response["Error"]["Message"].should.equal(
-        "AWS was not able to validate the provided access credentials"
+    assert ex.value.response["Error"]["Code"] == "AuthFailure"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 401
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "AWS was not able to validate the provided access credentials"
     )
 
 
@@ -255,10 +256,11 @@ def test_access_denied_with_no_policy():
     )
     with pytest.raises(ClientError) as ex:
         client.describe_instances()
-    ex.value.response["Error"]["Code"].should.equal("AccessDenied")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal(
-        f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:DescribeInstances"
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:DescribeInstances"
     )
 
 
@@ -281,10 +283,11 @@ def test_access_denied_with_not_allowing_policy():
     )
     with pytest.raises(ClientError) as ex:
         client.describe_instances()
-    ex.value.response["Error"]["Code"].should.equal("AccessDenied")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal(
-        f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:DescribeInstances"
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:DescribeInstances"
     )
 
 
@@ -313,10 +316,11 @@ def test_access_denied_for_run_instances():
     )
     with pytest.raises(ClientError) as ex:
         client.run_instances(MaxCount=1, MinCount=1)
-    ex.value.response["Error"]["Code"].should.equal("AccessDenied")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal(
-        f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:RunInstances"
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:RunInstances"
     )
 
 
@@ -342,10 +346,11 @@ def test_access_denied_with_denying_policy():
     )
     with pytest.raises(ClientError) as ex:
         client.create_vpc(CidrBlock="10.0.0.0/16")
-    ex.value.response["Error"]["Code"].should.equal("AccessDenied")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal(
-        f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:CreateVpc"
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:CreateVpc"
     )
 
 
@@ -368,7 +373,10 @@ def test_get_caller_identity_allowed_with_denying_policy():
         aws_access_key_id=access_key["AccessKeyId"],
         aws_secret_access_key=access_key["SecretAccessKey"],
     )
-    client.get_caller_identity().should.be.a(dict)
+    assert (
+        client.get_caller_identity()["Arn"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:user/{user_name}"
+    )
 
 
 @set_initial_no_auth_action_count(3)
@@ -388,7 +396,7 @@ def test_allowed_with_wildcard_action():
         aws_access_key_id=access_key["AccessKeyId"],
         aws_secret_access_key=access_key["SecretAccessKey"],
     )
-    client.describe_tags()["Tags"].should.be.empty
+    assert client.describe_tags()["Tags"] == []
 
 
 @set_initial_no_auth_action_count(4)
@@ -408,7 +416,7 @@ def test_allowed_with_explicit_action_in_attached_policy():
         aws_access_key_id=access_key["AccessKeyId"],
         aws_secret_access_key=access_key["SecretAccessKey"],
     )
-    client.list_groups()["Groups"].should.be.empty
+    assert client.list_groups()["Groups"] == []
 
 
 @set_initial_no_auth_action_count(8)
@@ -440,9 +448,9 @@ def test_s3_access_denied_with_denying_attached_group_policy():
     )
     with pytest.raises(ClientError) as ex:
         client.list_buckets()
-    ex.value.response["Error"]["Code"].should.equal("AccessDenied")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal("Access Denied")
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert ex.value.response["Error"]["Message"] == "Access Denied"
 
 
 @set_initial_no_auth_action_count(6)
@@ -474,9 +482,9 @@ def test_s3_access_denied_with_denying_inline_group_policy():
     client.create_bucket(Bucket=bucket_name)
     with pytest.raises(ClientError) as ex:
         client.get_object(Bucket=bucket_name, Key="sdfsdf")
-    ex.value.response["Error"]["Code"].should.equal("AccessDenied")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal("Access Denied")
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert ex.value.response["Error"]["Message"] == "Access Denied"
 
 
 @set_initial_no_auth_action_count(10)
@@ -520,10 +528,11 @@ def test_access_denied_with_many_irrelevant_policies():
     )
     with pytest.raises(ClientError) as ex:
         client.create_key_pair(KeyName="TestKey")
-    ex.value.response["Error"]["Code"].should.equal("AccessDenied")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal(
-        f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:CreateKeyPair"
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: ec2:CreateKeyPair"
     )
 
 
@@ -573,11 +582,10 @@ def test_allowed_with_temporary_credentials():
         aws_session_token=credentials["SessionToken"],
     )
     subnets = ec2_client.describe_subnets()["Subnets"]
-    len(subnets).should.be.greater_than(1)
-    elbv2_client.create_load_balancer(
-        Name="test-load-balancer",
-        Subnets=[subnets[0]["SubnetId"], subnets[1]["SubnetId"]],
-    )["LoadBalancers"].should.have.length_of(1)
+    assert len(subnets) > 1
+    subnet_ids = [subnets[0]["SubnetId"], subnets[1]["SubnetId"]]
+    resp = elbv2_client.create_load_balancer(Name="lb", Subnets=subnet_ids)
+    assert len(resp["LoadBalancers"]) == 1
 
 
 @set_initial_no_auth_action_count(3)
@@ -617,10 +625,11 @@ def test_access_denied_with_temporary_credentials():
             DBInstanceClass="db.t3",
             Engine="aurora-postgresql",
         )
-    ex.value.response["Error"]["Code"].should.equal("AccessDenied")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal(
-        f"User: arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name} is not authorized to perform: rds:CreateDBInstance"
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"User: arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name} is not authorized to perform: rds:CreateDBInstance"
     )
 
 
@@ -641,7 +650,7 @@ def test_get_user_from_credentials():
         aws_access_key_id=access_key["AccessKeyId"],
         aws_secret_access_key=access_key["SecretAccessKey"],
     )
-    client.get_user()["User"]["UserName"].should.equal(user_name)
+    assert client.get_user()["User"]["UserName"] == user_name
 
 
 @set_initial_no_auth_action_count(0)
@@ -655,10 +664,11 @@ def test_s3_invalid_access_key_id():
     )
     with pytest.raises(ClientError) as ex:
         client.list_buckets()
-    ex.value.response["Error"]["Code"].should.equal("InvalidAccessKeyId")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal(
-        "The AWS Access Key Id you provided does not exist in our records."
+    assert ex.value.response["Error"]["Code"] == "InvalidAccessKeyId"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The AWS Access Key Id you provided does not exist in our records."
     )
 
 
@@ -677,10 +687,11 @@ def test_s3_signature_does_not_match():
     client.create_bucket(Bucket=bucket_name)
     with pytest.raises(ClientError) as ex:
         client.put_object(Bucket=bucket_name, Key="abc")
-    ex.value.response["Error"]["Code"].should.equal("SignatureDoesNotMatch")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal(
-        "The request signature we calculated does not match the signature you provided. Check your key and signing method."
+    assert ex.value.response["Error"]["Code"] == "SignatureDoesNotMatch"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The request signature we calculated does not match the signature you provided. Check your key and signing method."
     )
 
 
@@ -713,9 +724,9 @@ def test_s3_access_denied_not_action():
     client.create_bucket(Bucket=bucket_name)
     with pytest.raises(ClientError) as ex:
         client.delete_object(Bucket=bucket_name, Key="sdfsdf")
-    ex.value.response["Error"]["Code"].should.equal("AccessDenied")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.value.response["Error"]["Message"].should.equal("Access Denied")
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert ex.value.response["Error"]["Message"] == "Access Denied"
 
 
 @set_initial_no_auth_action_count(4)
@@ -751,8 +762,7 @@ def test_s3_invalid_token_with_temporary_credentials():
     client.create_bucket(Bucket=bucket_name)
     with pytest.raises(ClientError) as ex:
         client.list_bucket_metrics_configurations(Bucket=bucket_name)
-    ex.value.response["Error"]["Code"].should.equal("InvalidToken")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "The provided token is malformed or otherwise invalid."
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidToken"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err["Message"] == "The provided token is malformed or otherwise invalid."

@@ -1,6 +1,5 @@
 import requests
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 import boto3
 from moto import mock_s3, mock_sts, mock_sqs, settings
@@ -49,4 +48,4 @@ def test_decorator_ordering() -> None:
     )
 
     resp = requests.get(presigned_url)
-    resp.status_code.should.equal(200)  # type: ignore[attr-defined]
+    assert resp.status_code == 200  # type: ignore[attr-defined]
