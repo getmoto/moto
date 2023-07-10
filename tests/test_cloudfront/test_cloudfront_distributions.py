@@ -446,11 +446,35 @@ def test_create_distribution_custom_config():
 
     assert custom_config["HTTPPort"] == 80
     assert custom_config["HTTPSPort"] == 443
+    assert custom_config["OriginReadTimeout"] == 15
+    assert custom_config["OriginKeepaliveTimeout"] == 10
     assert custom_config["OriginProtocolPolicy"] == "http-only"
     assert custom_config["OriginSslProtocols"] == {
         "Items": ["TLSv1", "SSLv3"],
         "Quantity": 2,
     }
+
+
+@mock_cloudfront
+def test_create_distribution_minimal_custom_config():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.minimal_dist_custom_config("ref")
+
+    dist = client.create_distribution(DistributionConfig=config)["Distribution"]
+    dist_config = dist["DistributionConfig"]
+    assert len(dist_config["Origins"]["Items"]) == 1
+    custom_config = dist_config["Origins"]["Items"][0]["CustomOriginConfig"]
+
+    assert custom_config["HTTPPort"] == 80
+    assert custom_config["HTTPSPort"] == 443
+    assert custom_config["OriginReadTimeout"] == 30
+    assert custom_config["OriginKeepaliveTimeout"] == 5
+    assert custom_config["OriginProtocolPolicy"] == "http-only"
+
+    dist = client.get_distribution(Id=dist["Id"])["Distribution"]
+    dist_config = dist["DistributionConfig"]
+    get_custom_config = dist_config["Origins"]["Items"][0]["CustomOriginConfig"]
+    assert custom_config == get_custom_config
 
 
 @mock_cloudfront
