@@ -5128,6 +5128,38 @@
   "Location": "eu-west-1c"
  },
  {
+  "InstanceType": "c5ad.12xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "c5ad.16xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "c5ad.24xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "c5ad.2xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "c5ad.4xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "c5ad.8xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "c5ad.large",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "c5ad.xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
   "InstanceType": "c5d.12xlarge",
   "Location": "eu-west-1c"
  },

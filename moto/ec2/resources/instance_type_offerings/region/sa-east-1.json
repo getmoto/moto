@@ -468,6 +468,38 @@
   "Location": "sa-east-1"
  },
  {
+  "InstanceType": "g5.12xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g5.16xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g5.24xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g5.2xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g5.48xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g5.4xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g5.8xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g5.xlarge",
+  "Location": "sa-east-1"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "sa-east-1"
  },

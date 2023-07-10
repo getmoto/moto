@@ -108,6 +108,38 @@
   "Location": "me-central-1"
  },
  {
+  "InstanceType": "g5.12xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "g5.16xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "g5.24xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "g5.2xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "g5.48xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "g5.4xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "g5.8xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "g5.xlarge",
+  "Location": "me-central-1"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "me-central-1"
  },

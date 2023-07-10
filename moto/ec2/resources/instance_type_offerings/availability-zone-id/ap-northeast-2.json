@@ -356,6 +356,38 @@
   "Location": "apne2-az1"
  },
  {
+  "InstanceType": "g5.12xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "g5.16xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "g5.24xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "g5.2xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "g5.48xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "g5.4xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "g5.8xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "g5.xlarge",
+  "Location": "apne2-az1"
+ },
+ {
   "InstanceType": "g5g.16xlarge",
   "Location": "apne2-az1"
  },
@@ -4069,6 +4101,38 @@
  },
  {
   "InstanceType": "c6i.xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "g5.12xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "g5.16xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "g5.24xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "g5.2xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "g5.48xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "g5.4xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "g5.8xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "g5.xlarge",
   "Location": "apne2-az4"
  },
  {
