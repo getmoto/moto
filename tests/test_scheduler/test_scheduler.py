@@ -3,6 +3,7 @@ import boto3
 import pytest
 
 from botocore.client import ClientError
+from datetime import datetime
 from moto import mock_scheduler
 from moto.core import DEFAULT_ACCOUNT_ID
 
@@ -44,6 +45,9 @@ def test_create_get_schedule():
         "RoleArn": "n/a",
         "RetryPolicy": {"MaximumEventAgeInSeconds": 86400, "MaximumRetryAttempts": 185},
     }
+    assert isinstance(resp["CreationDate"], datetime)
+    assert isinstance(resp["LastModificationDate"], datetime)
+    assert resp["CreationDate"] == resp["LastModificationDate"]
 
 
 @mock_scheduler
@@ -134,6 +138,10 @@ def test_update_schedule(extra_kwargs):
         "RoleArn": "n/a",
         "RetryPolicy": {"MaximumEventAgeInSeconds": 86400, "MaximumRetryAttempts": 185},
     }
+
+    assert isinstance(schedule["CreationDate"], datetime)
+    assert isinstance(schedule["LastModificationDate"], datetime)
+    assert schedule["CreationDate"] != schedule["LastModificationDate"]
 
 
 @mock_scheduler
