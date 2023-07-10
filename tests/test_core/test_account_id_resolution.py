@@ -28,29 +28,29 @@ class TestAccountIdResolution:
     def test_environment_variable_takes_precedence(self):
         # Verify ACCOUNT ID is standard
         resp = self._get_caller_identity()
-        self._get_account_id(resp).should.equal(ACCOUNT_ID)
+        assert self._get_account_id(resp) == ACCOUNT_ID
 
         # Specify environment variable, and verify this becomes the new ACCOUNT ID
         os.environ["MOTO_ACCOUNT_ID"] = "111122223333"
         resp = self._get_caller_identity()
-        self._get_account_id(resp).should.equal("111122223333")
+        assert self._get_account_id(resp) == "111122223333"
 
         # Specify special request header - the environment variable should still take precedence
         resp = self._get_caller_identity(
             extra_headers={"x-moto-account-id": "333344445555"}
         )
-        self._get_account_id(resp).should.equal("111122223333")
+        assert self._get_account_id(resp) == "111122223333"
 
         # Remove the environment variable - the Request Header should now take precedence
         del os.environ["MOTO_ACCOUNT_ID"]
         resp = self._get_caller_identity(
             extra_headers={"x-moto-account-id": "333344445555"}
         )
-        self._get_account_id(resp).should.equal("333344445555")
+        assert self._get_account_id(resp) == "333344445555"
 
         # Without Header, we're back to the regular account ID
         resp = self._get_caller_identity()
-        self._get_account_id(resp).should.equal(ACCOUNT_ID)
+        assert self._get_account_id(resp) == ACCOUNT_ID
 
     def _get_caller_identity(self, extra_headers=None):
         data = "Action=GetCallerIdentity&Version=2011-06-15"

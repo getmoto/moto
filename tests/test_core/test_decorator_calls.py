@@ -199,7 +199,7 @@ class TestWithPublicMethod(unittest.TestCase):
         self.ensure_bucket_exists()
 
         s3 = boto3.client("s3", region_name="us-east-1")
-        s3.head_bucket(Bucket="mybucket").shouldnt.equal(None)
+        assert s3.head_bucket(Bucket="mybucket") is not None
 
     def test_should_not_find_bucket(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
@@ -216,7 +216,7 @@ class TestWithPseudoPrivateMethod(unittest.TestCase):
     def test_should_find_bucket(self) -> None:
         self._ensure_bucket_exists()
         s3 = boto3.client("s3", region_name="us-east-1")
-        s3.head_bucket(Bucket="mybucket").shouldnt.equal(None)
+        assert s3.head_bucket(Bucket="mybucket") is not None
 
     def test_should_not_find_bucket(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
@@ -241,7 +241,7 @@ class Baseclass(unittest.TestCase):
 class TestSetUpInBaseClass(Baseclass):
     def test_a_thing(self) -> None:
         # Verify that we can 'see' the setUp-method in the parent class
-        self.client.head_bucket(Bucket="testbucket").shouldnt.equal(None)
+        assert self.client.head_bucket(Bucket="testbucket") is not None
 
 
 @mock_s3
