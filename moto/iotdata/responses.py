@@ -1,12 +1,18 @@
 from moto.core.responses import BaseResponse
 from .models import iotdata_backends, IoTDataPlaneBackend
 import json
+from typing import Any
 from urllib.parse import unquote
 
 
 class IoTDataPlaneResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="iot-data")
+
+    def setup_class(
+        self, request: Any, full_url: str, headers: Any, use_raw_body: bool = False
+    ) -> None:
+        super().setup_class(request, full_url, headers, use_raw_body=True)
 
     def _get_action(self) -> str:
         if self.path and self.path.startswith("/topics/"):
