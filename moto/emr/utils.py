@@ -33,15 +33,23 @@ def steps_from_query_string(
     steps = []
     for step in querystring_dict:
         step["jar"] = step.pop("hadoop_jar_step._jar")
-        step["properties"] = dict(
-            (o["Key"], o["Value"]) for o in step.get("properties", [])
-        )
         step["args"] = []
         idx = 1
         keyfmt = "hadoop_jar_step._args.member.{0}"
         while keyfmt.format(idx) in step:
             step["args"].append(step.pop(keyfmt.format(idx)))
             idx += 1
+
+        idx = 1
+        keyfmt_prop = "hadoop_jar_step._properties.member.{0}._key"
+        properties = {}
+        while keyfmt_prop.format(idx) in step:
+            key = keyfmt_prop.format(idx)
+            value = key.replace("_key", "_value")
+            properties[step.pop(key)] = step.pop(value)
+            idx += 1
+
+        step["properties"] = properties
         steps.append(step)
     return steps
 
