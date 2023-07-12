@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_dynamodb
 
 
@@ -27,6 +26,7 @@ def test_update_different_map_elements_in_single_request():
         ExpressionAttributeValues={":h": "H", ":w": "W"},
         ReturnValues="ALL_NEW",
     )
-    updated["Attributes"].should.equal(
-        {"id": "example_id", "d": {"hello": "H", "world": "W"}}
-    )
+    assert updated["Attributes"] == {
+        "id": "example_id",
+        "d": {"hello": "H", "world": "W"},
+    }

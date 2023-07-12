@@ -15,9 +15,9 @@ class TestHashKey:
             schema=self.schema,
             expression_attribute_names=dict(),
         )
-        desired_hash_key.should.equal(eav[":id"])
-        comparison.should.equal(None)
-        range_values.should.equal([])
+        assert desired_hash_key == eav[":id"]
+        assert comparison is None
+        assert range_values == []
 
     def test_unknown_hash_key(self):
         kce = "wrongName = :id"
@@ -29,9 +29,7 @@ class TestHashKey:
                 schema=self.schema,
                 expression_attribute_names=dict(),
             )
-        exc.value.message.should.equal(
-            "Query condition missed key schema element: job_id"
-        )
+        assert exc.value.message == "Query condition missed key schema element: job_id"
 
     def test_unknown_hash_value(self):
         # TODO: is this correct? I'd assume that this should throw an error instead
@@ -44,9 +42,9 @@ class TestHashKey:
             schema=self.schema,
             expression_attribute_names=dict(),
         )
-        desired_hash_key.should.equal({"S": ":unknown"})
-        comparison.should.equal(None)
-        range_values.should.equal([])
+        assert desired_hash_key == {"S": ":unknown"}
+        assert comparison is None
+        assert range_values == []
 
 
 class TestHashAndRangeKey:
@@ -65,9 +63,7 @@ class TestHashAndRangeKey:
                 schema=self.schema,
                 expression_attribute_names=dict(),
             )
-        exc.value.message.should.equal(
-            "Query condition missed key schema element: job_id"
-        )
+        assert exc.value.message == "Query condition missed key schema element: job_id"
 
     @pytest.mark.parametrize(
         "expr",
@@ -86,8 +82,8 @@ class TestHashAndRangeKey:
                 schema=self.schema,
                 expression_attribute_names=dict(),
             )
-        exc.value.message.should.equal(
-            "Query condition missed key schema element: start_date"
+        assert (
+            exc.value.message == "Query condition missed key schema element: start_date"
         )
 
     @pytest.mark.parametrize(
@@ -108,9 +104,9 @@ class TestHashAndRangeKey:
             schema=self.schema,
             expression_attribute_names=dict(),
         )
-        desired_hash_key.should.equal("pk")
-        comparison.should.equal("BEGINS_WITH")
-        range_values.should.equal(["19"])
+        assert desired_hash_key == "pk"
+        assert comparison == "BEGINS_WITH"
+        assert range_values == ["19"]
 
     @pytest.mark.parametrize("fn", ["Begins_with", "Begins_With", "BEGINS_WITH"])
     def test_begin_with__wrong_case(self, fn):
@@ -122,8 +118,9 @@ class TestHashAndRangeKey:
                 schema=self.schema,
                 expression_attribute_names=dict(),
             )
-        exc.value.message.should.equal(
-            f"Invalid KeyConditionExpression: Invalid function name; function: {fn}"
+        assert (
+            exc.value.message
+            == f"Invalid KeyConditionExpression: Invalid function name; function: {fn}"
         )
 
     @pytest.mark.parametrize(
@@ -142,9 +139,9 @@ class TestHashAndRangeKey:
             schema=self.schema,
             expression_attribute_names=dict(),
         )
-        desired_hash_key.should.equal("pk")
-        comparison.should.equal("BETWEEN")
-        range_values.should.equal(["19", "21"])
+        assert desired_hash_key == "pk"
+        assert comparison == "BETWEEN"
+        assert range_values == ["19", "21"]
 
     @pytest.mark.parametrize("operator", [" < ", " <=", "= ", ">", ">="])
     def test_numeric_comparisons(self, operator):
@@ -156,9 +153,9 @@ class TestHashAndRangeKey:
             schema=self.schema,
             expression_attribute_names=dict(),
         )
-        desired_hash_key.should.equal("pk")
-        comparison.should.equal(operator.strip())
-        range_values.should.equal(["19"])
+        assert desired_hash_key == "pk"
+        assert comparison == operator.strip()
+        assert range_values == ["19"]
 
     @pytest.mark.parametrize(
         "expr",
@@ -177,7 +174,7 @@ class TestHashAndRangeKey:
             schema=self.schema,
             expression_attribute_names=dict(),
         )
-        desired_hash_key.should.equal("pk")
+        assert desired_hash_key == "pk"
 
     @pytest.mark.parametrize(
         "expr",
@@ -195,7 +192,7 @@ class TestHashAndRangeKey:
             schema=self.schema,
             expression_attribute_names=dict(),
         )
-        desired_hash_key.should.equal("pk")
+        assert desired_hash_key == "pk"
 
 
 class TestNamesAndValues:
@@ -211,6 +208,6 @@ class TestNamesAndValues:
             schema=self.schema,
             expression_attribute_names=ean,
         )
-        desired_hash_key.should.equal(eav[":id"])
-        comparison.should.equal(None)
-        range_values.should.equal([])
+        assert desired_hash_key == eav[":id"]
+        assert comparison is None
+        assert range_values == []
