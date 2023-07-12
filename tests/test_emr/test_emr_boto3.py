@@ -944,6 +944,9 @@ def test_steps():
                     "aggregate",
                 ],
                 "Jar": "command-runner.jar",
+                "Properties": [
+                    {"Key": "mapred.tasktracker.map.tasks.maximum", "Value": "2"}
+                ],
             },
             "Name": "My wordcount example",
         },
@@ -963,6 +966,10 @@ def test_steps():
                     "aggregate",
                 ],
                 "Jar": "command-runner.jar",
+                "Properties": [
+                    {"Key": "mapred.reduce.tasks", "Value": "0"},
+                    {"Key": "stream.map.output.field.separator", "Value": "."},
+                ],
             },
             "Name": "My wordcount example2",
         },
