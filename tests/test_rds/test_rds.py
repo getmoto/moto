@@ -2572,8 +2572,7 @@ def test_create_db_instance_with_availability_zone():
 
 @mock_rds
 def test_validate_db_identifier():
-    region = "us-east-1"
-    client = boto3.client("rds", region_name=region)
+    client = boto3.client("rds", region_name=DEFAULT_REGION)
     invalid_db_instance_identifier = "arn:aws:rds:eu-west-1:123456789012:db:mydb"
 
     with pytest.raises(ClientError) as exc:
