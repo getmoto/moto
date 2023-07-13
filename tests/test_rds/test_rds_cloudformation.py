@@ -144,7 +144,7 @@ def test_rds_db_parameter_groups():
         Parameters=[
             {"ParameterKey": key, "ParameterValue": value}
             for key, value in [
-                ("DBInstanceIdentifier", "master_db"),
+                ("DBInstanceIdentifier", "master-db"),
                 ("DBName", "my_db"),
                 ("DBUser", "my_user"),
                 ("DBPassword", "my_password"),
@@ -188,11 +188,12 @@ def test_rds_mysql_with_read_replica():
 
     template_json = json.dumps(rds_mysql_with_read_replica.template)
     cf = boto3.client("cloudformation", "us-west-1")
+    db_identifier = "master-db"
     cf.create_stack(
         StackName="test_stack",
         TemplateBody=template_json,
         Parameters=[
-            {"ParameterKey": "DBInstanceIdentifier", "ParameterValue": "master_db"},
+            {"ParameterKey": "DBInstanceIdentifier", "ParameterValue": db_identifier},
             {"ParameterKey": "DBName", "ParameterValue": "my_db"},
             {"ParameterKey": "DBUser", "ParameterValue": "my_user"},
             {"ParameterKey": "DBPassword", "ParameterValue": "my_password"},
@@ -205,27 +206,27 @@ def test_rds_mysql_with_read_replica():
 
     rds = boto3.client("rds", region_name="us-west-1")
 
-    primary = rds.describe_db_instances(DBInstanceIdentifier="master_db")[
+    primary = rds.describe_db_instances(DBInstanceIdentifier=db_identifier)[
         "DBInstances"
     ][0]
-    primary.should.have.key("MasterUsername").equal("my_user")
-    primary.should.have.key("AllocatedStorage").equal(20)
-    primary.should.have.key("DBInstanceClass").equal("db.m1.medium")
-    primary.should.have.key("MultiAZ").equal(True)
-    primary.should.have.key("ReadReplicaDBInstanceIdentifiers").being.length_of(1)
+    assert primary["MasterUsername"] == "my_user"
+    assert primary["AllocatedStorage"] == 20
+    assert primary["DBInstanceClass"] == "db.m1.medium"
+    assert primary["MultiAZ"]
+    assert len(primary["ReadReplicaDBInstanceIdentifiers"]) == 1
     replica_id = primary["ReadReplicaDBInstanceIdentifiers"][0]
 
     replica = rds.describe_db_instances(DBInstanceIdentifier=replica_id)["DBInstances"][
         0
     ]
-    replica.should.have.key("DBInstanceClass").equal("db.m1.medium")
+    assert replica["DBInstanceClass"] == "db.m1.medium"
 
     security_group_name = primary["DBSecurityGroups"][0]["DBSecurityGroupName"]
     security_group = rds.describe_db_security_groups(
         DBSecurityGroupName=security_group_name
     )["DBSecurityGroups"][0]
-    security_group["EC2SecurityGroups"][0]["EC2SecurityGroupName"].should.equal(
-        "application"
+    assert (
+        security_group["EC2SecurityGroups"][0]["EC2SecurityGroupName"] == "application"
     )
 
 
@@ -235,11 +236,12 @@ def test_rds_mysql_with_read_replica():
 def test_rds_mysql_with_read_replica_in_vpc():
     template_json = json.dumps(rds_mysql_with_read_replica.template)
     cf = boto3.client("cloudformation", "eu-central-1")
+    db_identifier = "master-db"
     cf.create_stack(
         StackName="test_stack",
         TemplateBody=template_json,
         Parameters=[
-            {"ParameterKey": "DBInstanceIdentifier", "ParameterValue": "master_db"},
+            {"ParameterKey": "DBInstanceIdentifier", "ParameterValue": db_identifier},
             {"ParameterKey": "DBName", "ParameterValue": "my_db"},
             {"ParameterKey": "DBUser", "ParameterValue": "my_user"},
             {"ParameterKey": "DBPassword", "ParameterValue": "my_password"},
@@ -250,7 +252,7 @@ def test_rds_mysql_with_read_replica_in_vpc():
     )
 
     rds = boto3.client("rds", region_name="eu-central-1")
-    primary = rds.describe_db_instances(DBInstanceIdentifier="master_db")[
+    primary = rds.describe_db_instances(DBInstanceIdentifier=db_identifier)[
         "DBInstances"
     ][0]
 

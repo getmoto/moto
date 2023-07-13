@@ -1,6 +1,7 @@
 import copy
 import datetime
 import os
+import re
 import string
 
 from collections import defaultdict
@@ -33,6 +34,7 @@ from .exceptions import (
     InvalidParameterValue,
     InvalidParameterCombination,
     InvalidDBClusterStateFault,
+    InvalidDBInstanceIdentifier,
     InvalidGlobalClusterStateFault,
     ExportTaskNotFoundError,
     ExportTaskAlreadyExistsError,
@@ -921,7 +923,7 @@ class Database(CloudFormationModel):
             "availability_zone": properties.get("AvailabilityZone"),
             "backup_retention_period": properties.get("BackupRetentionPeriod"),
             "db_instance_class": properties.get("DBInstanceClass"),
-            "db_instance_identifier": resource_name,
+            "db_instance_identifier": resource_name.replace("_", "-"),
             "db_name": properties.get("DBName"),
             "preferred_backup_window": properties.get(
                 "PreferredBackupWindow", "13:14-13:44"
@@ -1562,6 +1564,7 @@ class RDSBackend(BaseBackend):
 
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> Database:
         database_id = db_kwargs["db_instance_identifier"]
+        self._validate_db_identifier(database_id)
         database = Database(**db_kwargs)
 
         cluster_id = database.db_cluster_identifier
@@ -1742,6 +1745,7 @@ class RDSBackend(BaseBackend):
     def stop_db_instance(
         self, db_instance_identifier: str, db_snapshot_identifier: Optional[str] = None
     ) -> Database:
+        self._validate_db_identifier(db_instance_identifier)
         database = self.describe_db_instances(db_instance_identifier)[0]
         # todo: certain rds types not allowed to be stopped at this time.
         # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html#USER_StopInstance.Limitations
@@ -1758,6 +1762,7 @@ class RDSBackend(BaseBackend):
         return database
 
     def start_db_instance(self, db_instance_identifier: str) -> Database:
+        self._validate_db_identifier(db_instance_identifier)
         database = self.describe_db_instances(db_instance_identifier)[0]
         # todo: bunch of different error messages to be generated from this api call
         if database.status != "stopped":
@@ -1780,6 +1785,7 @@ class RDSBackend(BaseBackend):
     def delete_db_instance(
         self, db_instance_identifier: str, db_snapshot_name: Optional[str] = None
     ) -> Database:
+        self._validate_db_identifier(db_instance_identifier)
         if db_instance_identifier in self.databases:
             if self.databases[db_instance_identifier].deletion_protection:
                 raise InvalidParameterValue(
@@ -2587,6 +2593,19 @@ class RDSBackend(BaseBackend):
         tags_dict.update({d["Key"]: d["Value"] for d in old_tags})
         tags_dict.update({d["Key"]: d["Value"] for d in new_tags})
         return [{"Key": k, "Value": v} for k, v in tags_dict.items()]
+
+    @staticmethod
+    def _validate_db_identifier(db_identifier: str) -> None:
+        # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
+        # Constraints:
+        # # Must contain from 1 to 63 letters, numbers, or hyphens.
+        # # First character must be a letter.
+        # # Can't end with a hyphen or contain two consecutive hyphens.
+        if re.match(
+            "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+        ):
+            return
+        raise InvalidDBInstanceIdentifier
 
     def describe_orderable_db_instance_options(
         self, engine: str, engine_version: str
