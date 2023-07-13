@@ -1,3 +1,5 @@
+import pytest
+
 from moto.dynamodb.exceptions import (
     InvalidTokenException,
     InvalidExpressionAttributeNameKey,
@@ -108,12 +110,10 @@ def test_expression_tokenizer_single_set_action_with_underscore_in_identifier():
 def test_expression_tokenizer_leading_underscore_in_attribute_name_expression():
     """Leading underscore is not allowed for an attribute name"""
     set_action = "SET attrName = _idid"
-    try:
+    with pytest.raises(InvalidTokenException) as te:
         ExpressionTokenizer.make_list(set_action)
-        assert False, "Exception not raised correctly"
-    except InvalidTokenException as te:
-        assert te.token == "_"
-        assert te.near == "= _idid"
+    assert te.value.token == "_"
+    assert te.value.near == "= _idid"
 
 
 def test_expression_tokenizer_leading_underscore_in_attribute_value_expression():
@@ -188,11 +188,9 @@ def test_expression_tokenizer_single_set_action_attribute_name_invalid_key():
     ExpressionAttributeNames contains invalid key: Syntax error; key: "#va#l2"
     """
     set_action = "SET #va#l2 = 3"
-    try:
+    with pytest.raises(InvalidExpressionAttributeNameKey) as e:
         ExpressionTokenizer.make_list(set_action)
-        assert False, "Exception not raised correctly"
-    except InvalidExpressionAttributeNameKey as e:
-        assert e.key == "#va#l2"
+    assert e.value.key == "#va#l2"
 
 
 def test_expression_tokenizer_single_set_action_attribute_name_invalid_key_double_hash():
@@ -200,11 +198,9 @@ def test_expression_tokenizer_single_set_action_attribute_name_invalid_key_doubl
     ExpressionAttributeNames contains invalid key: Syntax error; key: "#va#l"
     """
     set_action = "SET #va#l = 3"
-    try:
+    with pytest.raises(InvalidExpressionAttributeNameKey) as e:
         ExpressionTokenizer.make_list(set_action)
-        assert False, "Exception not raised correctly"
-    except InvalidExpressionAttributeNameKey as e:
-        assert e.key == "#va#l"
+    assert e.value.key == "#va#l"
 
 
 def test_expression_tokenizer_single_set_action_attribute_name_valid_key():
@@ -245,39 +241,31 @@ def test_expression_tokenizer_single_set_action_attribute_name_leading_underscor
 
 def test_expression_tokenizer_just_a_pipe():
     set_action = "|"
-    try:
+    with pytest.raises(InvalidTokenException) as te:
         ExpressionTokenizer.make_list(set_action)
-        assert False, "Exception not raised correctly"
-    except InvalidTokenException as te:
-        assert te.token == "|"
-        assert te.near == "|"
+    assert te.value.token == "|"
+    assert te.value.near == "|"
 
 
 def test_expression_tokenizer_just_a_pipe_with_leading_white_spaces():
     set_action = "   |"
-    try:
+    with pytest.raises(InvalidTokenException) as te:
         ExpressionTokenizer.make_list(set_action)
-        assert False, "Exception not raised correctly"
-    except InvalidTokenException as te:
-        assert te.token == "|"
-        assert te.near == "   |"
+    assert te.value.token == "|"
+    assert te.value.near == "   |"
 
 
 def test_expression_tokenizer_just_a_pipe_for_set_expression():
     set_action = "SET|"
-    try:
+    with pytest.raises(InvalidTokenException) as te:
         ExpressionTokenizer.make_list(set_action)
-        assert False, "Exception not raised correctly"
-    except InvalidTokenException as te:
-        assert te.token == "|"
-        assert te.near == "SET|"
+    assert te.value.token == "|"
+    assert te.value.near == "SET|"
 
 
 def test_expression_tokenizer_just_an_attribute_and_a_pipe_for_set_expression():
     set_action = "SET a|"
-    try:
+    with pytest.raises(InvalidTokenException) as te:
         ExpressionTokenizer.make_list(set_action)
-        assert False, "Exception not raised correctly"
-    except InvalidTokenException as te:
-        assert te.token == "|"
-        assert te.near == "a|"
+    assert te.value.token == "|"
+    assert te.value.near == "a|"

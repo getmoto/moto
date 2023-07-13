@@ -1,6 +1,5 @@
 import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudformation, mock_dynamodb
 
@@ -40,11 +39,11 @@ def test_delete_stack_dynamo_template_boto3():
         StackName="test_stack", TemplateBody=json.dumps(template_create_table)
     )
     table_desc = dynamodb_client.list_tables()
-    len(table_desc.get("TableNames")).should.equal(1)
+    assert len(table_desc.get("TableNames")) == 1
 
     conn.delete_stack(StackName="test_stack")
     table_desc = dynamodb_client.list_tables()
-    len(table_desc.get("TableNames")).should.equal(0)
+    assert len(table_desc.get("TableNames")) == 0
 
     conn.create_stack(
         StackName="test_stack", TemplateBody=json.dumps(template_create_table)
