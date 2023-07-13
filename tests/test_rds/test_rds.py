@@ -2603,6 +2603,12 @@ def test_validate_db_identifier():
         )
     validation_helper(exc)
 
+    with pytest.raises(ClientError) as exc:
+        client.delete_db_instance(
+            DBInstanceIdentifier="valid-1-id" * 10,
+        )
+    validation_helper(exc)
+
 
 def validation_helper(exc):
     err = exc.value.response["Error"]

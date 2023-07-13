@@ -2601,9 +2601,9 @@ class RDSBackend(BaseBackend):
         # # Must contain from 1 to 63 letters, numbers, or hyphens.
         # # First character must be a letter.
         # # Can't end with a hyphen or contain two consecutive hyphens.
-        if len(db_identifier) > 63 or len(db_identifier) < 1:
-            raise InvalidDBInstanceIdentifier
-        if re.match("^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]+[a-zA-Z0-9])$", db_identifier):
+        if re.match(
+            "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+        ):
             return
         raise InvalidDBInstanceIdentifier
 
