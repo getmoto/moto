@@ -195,7 +195,7 @@ class InvalidGlobalClusterStateFault(RDSClientError):
 
 
 class InvalidDBInstanceIdentifier(InvalidParameterValue):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "The parameter DBInstanceIdentifier is not a valid identifier. "
             "Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; "
