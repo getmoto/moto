@@ -482,6 +482,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         depends_on: Optional[List[Dict[str, str]]],
         all_jobs: Dict[str, "Job"],
         timeout: Optional[Dict[str, int]],
+        array_properties: Optional[Dict[str, Any]]
     ):
         threading.Thread.__init__(self)
         DockerModel.__init__(self)
@@ -505,6 +506,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.depends_on = depends_on
         self.timeout = timeout
         self.all_jobs = all_jobs
+        self.array_properties: dict = array_properties
+        self.child_jobs: list = []
 
         self.arn = make_arn_for_job(
             job_def.backend.account_id, self.job_id, job_def._region
@@ -523,6 +526,14 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
         self.attempts: List[Dict[str, Any]] = []
         self.latest_attempt: Optional[Dict[str, Any]] = None
+
+        # # add child jobs if requested
+        # if array_properties:
+        #     for index in range(0, array_properties["size"]):
+        #         child_job = self
+        #         child_job.arn = f"{self.arn}{index}"
+        #         child_job.job_id = f"{self.job_id}{index}"
+        #         self.child_jobs.append(child_job)
 
     def describe_short(self) -> Dict[str, Any]:
         result = {
@@ -560,6 +571,20 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         if self.timeout:
             result["timeout"] = self.timeout
         result["attempts"] = self.attempts
+        if self.array_properties:
+            size = self.array_properties["size"]
+            result["arrayProperties"] = {
+                "statusSummary": {
+                    "STARTING": 0,
+                    "FAILED": 0,
+                    "RUNNING": 0,
+                    "SUCCEEDED": self.array_properties["size"],
+                    "RUNNABLE": 0,
+                    "SUBMITTED": 0,
+                    "PENDING": 0
+                },
+                "size": self.array_properties["size"]
+            }
         return result
 
     def _container_details(self) -> Dict[str, Any]:
@@ -1707,6 +1732,7 @@ class BatchBackend(BaseBackend):
         depends_on: Optional[List[Dict[str, str]]] = None,
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
+        array_properties: Optional[Dict[str, int]] = {}
     ) -> Tuple[str, str]:
         """
         Parameters RetryStrategy and Parameters are not yet implemented.
@@ -1724,20 +1750,28 @@ class BatchBackend(BaseBackend):
             raise ClientException(f"Job queue {job_queue} does not exist")
 
         job = Job(
-            job_name,
-            job_def,
-            queue,
-            log_backend=self.logs_backend,
-            container_overrides=container_overrides,
-            depends_on=depends_on,
-            all_jobs=self._jobs,
-            timeout=timeout,
-        )
+                job_name,
+                job_def,
+                queue,
+                log_backend=self.logs_backend,
+                container_overrides=container_overrides,
+                depends_on=depends_on,
+                all_jobs=self._jobs,
+                timeout=timeout,
+                array_properties=array_properties
+            )
         self._jobs[job.job_id] = job
+
+        # add child jobs if requested
+        if array_properties:
+                for index in range(0, array_properties["size"]):
+                    child_job = Job(job)
+                    child_job.arn = f"{job.arn}{index}"
+                    child_job.job_id = f"{job.job_id}{index}"
+                    self._jobs[child_job.job_id] = child_job
 
         # Here comes the fun
         job.start()
-
         return job_name, job.job_id
 
     def describe_jobs(self, jobs: Optional[List[str]]) -> List[Dict[str, Any]]:
