@@ -35,6 +35,20 @@ json_policy_doc = json.dumps(
     }
 )
 
+access_policy_doc = json.dumps(
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {"AWS": "logs.us-east-1.amazonaws.com"},
+                "Action": "logs:PutSubscriptionFilter",
+                "Resource": "destination_arn",
+            }
+        ],
+    }
+)
+
 
 @mock_logs
 def test_describe_metric_filters_happy_prefix():
@@ -253,6 +267,82 @@ def test_delete_metric_filter_invalid_log_group_name(
         f"Value '{log_group_name}' at 'logGroupName' failed to satisfy constraint"
     )
     response["Error"]["Message"].should.contain(failing_constraint)
+
+
+@mock_logs
+def test_destinations():
+    conn = boto3.client("logs", "us-west-2")
+    destination_name = "test-destination"
+    role_arn = "arn:aws:iam::123456789012:role/my-subscription-role"
+    target_arn = "arn:aws:kinesis:us-east-1:123456789012:stream/my-kinesis-stream"
+    role_arn_updated = "arn:aws:iam::123456789012:role/my-subscription-role-updated"
+    target_arn_updated = (
+        "arn:aws:kinesis:us-east-1:123456789012:stream/my-kinesis-stream-updated"
+    )
+
+    response = conn.describe_destinations(DestinationNamePrefix=destination_name)
+    assert len(response["destinations"]) == 0
+
+    response = conn.put_destination(
+        destinationName=destination_name,
+        targetArn=target_arn,
+        roleArn=role_arn,
+        tags={"Name": destination_name},
+    )
+    assert response["destination"]["destinationName"] == destination_name
+    assert response["destination"]["targetArn"] == target_arn
+    assert response["destination"]["roleArn"] == role_arn
+
+    response = conn.describe_destinations(DestinationNamePrefix=destination_name)
+    assert len(response["destinations"]) == 1
+    assert response["destinations"][0]["destinationName"] == destination_name
+    assert response["destinations"][0]["targetArn"] == target_arn
+    assert response["destinations"][0]["roleArn"] == role_arn
+
+    response = conn.put_destination(
+        destinationName=destination_name,
+        targetArn=target_arn_updated,
+        roleArn=role_arn_updated,
+        tags={"Name": destination_name},
+    )
+    assert response["destination"]["destinationName"] == destination_name
+    assert response["destination"]["targetArn"] == target_arn_updated
+    assert response["destination"]["roleArn"] == role_arn_updated
+
+    response = conn.describe_destinations(DestinationNamePrefix=destination_name)
+    assert len(response["destinations"]) == 1
+    assert response["destinations"][0]["destinationName"] == destination_name
+    assert response["destinations"][0]["targetArn"] == target_arn_updated
+    assert response["destinations"][0]["roleArn"] == role_arn_updated
+
+    response = conn.put_destination_policy(
+        destinationName=destination_name, accessPolicy=access_policy_doc
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_destinations(DestinationNamePrefix=destination_name)
+    assert response["destinations"][0]["accessPolicy"] == access_policy_doc
+
+    conn.put_destination(
+        destinationName=f"{destination_name}-1",
+        targetArn=target_arn,
+        roleArn=role_arn,
+        tags={"Name": destination_name},
+    )
+    response = conn.describe_destinations(DestinationNamePrefix=destination_name)
+    assert len(response["destinations"]) == 2
+
+    response = conn.describe_destinations(DestinationNamePrefix=f"{destination_name}-1")
+    assert len(response["destinations"]) == 1
+
+    response = conn.delete_destination(destinationName=f"{destination_name}-1")
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_destinations(DestinationNamePrefix=destination_name)
+    assert len(response["destinations"]) == 1
+
+    response = conn.delete_destination(destinationName=destination_name)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 def put_metric_filter(conn, count=1):
