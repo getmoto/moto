@@ -23,7 +23,7 @@ def test_submit_job_by_name():
     )
 
     resp = batch_client.submit_job(
-        jobName="test1", jobQueue=queue_arn, jobDefinition=job_definition_name
+        jobName="test1", jobQueue=queue_arn, jobDefinition=job_definition_name, arrayProperties={"size": 2}
     )
     job_id = resp["jobId"]
 

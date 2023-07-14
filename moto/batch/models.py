@@ -1,13 +1,15 @@
+import datetime
+import dateutil.parser
+import logging
 import re
+import threading
+import time
+
+from sys import platform
+from copy import copy
 from itertools import cycle
 from time import sleep
 from typing import Any, Dict, List, Tuple, Optional, Set
-import datetime
-import time
-import logging
-import threading
-import dateutil.parser
-from sys import platform
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.iam.models import iam_backends, IAMBackend
@@ -1765,9 +1767,9 @@ class BatchBackend(BaseBackend):
         # add child jobs if requested
         if array_properties:
                 for index in range(0, array_properties["size"]):
-                    child_job = Job(job)
-                    child_job.arn = f"{job.arn}{index}"
-                    child_job.job_id = f"{job.job_id}{index}"
+                    child_job = copy(job)
+                    child_job.arn = f"{job.arn}:{index}"
+                    child_job.job_id = f"{job.job_id}:{index}"
                     self._jobs[child_job.job_id] = child_job
 
         # Here comes the fun
