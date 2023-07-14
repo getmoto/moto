@@ -69,6 +69,7 @@ def test_put_bucket_tagging():
             "TagSet": [
                 {"Key": "TagOne", "Value": "ValueOne"},
                 {"Key": "TagTwo", "Value": "ValueTwo"},
+                {"Key": "TagThree", "Value": ""},
             ]
         },
     )
@@ -222,6 +223,7 @@ def test_put_object_tagging():
             "TagSet": [
                 {"Key": "item1", "Value": "foo"},
                 {"Key": "item2", "Value": "bar"},
+                {"Key": "item3", "Value": ""},
             ]
         },
     )
