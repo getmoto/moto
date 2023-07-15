@@ -803,6 +803,9 @@ class Route53Backend(BaseBackend):
             raise NoSuchHealthCheck(health_check_id)
         return health_check
 
+    def get_health_check_status(self) -> None:
+        pass  # Logic implemented in responses.py
+
     @staticmethod
     def _validate_arn(region: str, arn: str) -> None:
         match = re.match(rf"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)

@@ -4238,7 +4238,7 @@
 
 ## lambda
 <details>
-<summary>53% implemented</summary>
+<summary>54% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
@@ -4276,7 +4276,7 @@
 - [X] invoke
 - [ ] invoke_async
 - [ ] invoke_with_response_stream
-- [ ] list_aliases
+- [X] list_aliases
 - [ ] list_code_signing_configs
 - [X] list_event_source_mappings
 - [ ] list_function_event_invoke_configs
@@ -5738,7 +5738,7 @@
 
 ## route53
 <details>
-<summary>40% implemented</summary>
+<summary>41% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [X] associate_vpc_with_hosted_zone
@@ -6755,7 +6755,7 @@
 
 ## ssm
 <details>
-<summary>24% implemented</summary>
+<summary>26% implemented</summary>
 
 - [X] add_tags_to_resource
 - [ ] associate_ops_item_related_item
