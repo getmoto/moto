@@ -2,6 +2,62 @@ Moto Changelog
 ==============
 
 
+4.1.13
+------
+Docker Digest for 4.1.13: <autopopulateddigest>
+
+    General:
+        * The ISO-regions introduced in 4.1.12 are now locked behind an environment variable: `MOTO_ENABLE_ISO_REGIONS`
+        * General performance improvements in the URL matching logic - especially `mock_all` users should notice improvements
+
+    New Methods:
+        * APIGatewayV2:
+            * create_stage()
+            * delete_stage()
+            * get_stage()
+            * get_stages()
+
+        * CloudFront:
+            * create_origin_access_control()
+            * delete_origin_access_control()
+            * get_origin_access_control()
+            * list_origin_access_controls()
+            * update_origin_access_control()
+
+        * Lambda:
+            * list_aliases()
+
+        * Logs:
+            * delete_destination()
+            * describe_destinations()
+            * get_destination()
+            * put_destination()
+            * put_destination_policy()
+
+        * Route53:
+            * get_health_check_status()
+
+        * SSM:
+            * deregister_task_from_maintenance_window()
+            * describe_maintenance_window_tasks()
+            * register_task_with_maintenance_window()
+
+    Miscellaneous:
+        * Batch: create_compute_environment() now validates instanceRole and minvCpu
+        * CloudFront: create_distribution() now correctly handles a single alias
+        * CloudFront - CustomOrigins now have default timeouts if not supplied
+        * DynamoDB: delete_item() now throws the correct error when the table is not found
+        * EC2: describe_security_group_rules() now returns the GroupId
+        * ECR: create_repository() now validates the repositoryName-parameter
+        * Lambda: create_function() now returns the ImageConfigResponse and EphemeralStorage parameters
+        * IOTData: publish() can now handle non-Unicode bytes
+        * RDS: Automated snapshots now have the appropriate SnapshotType
+        * Route53: create_hosted_zone() now returns the Location
+        * Scheduler: get_schedule() now returns the CreationDate and LastModificationDate
+        * SecretsManager: delete_secret() now throws an error when setting the Recovery to 0 days
+        * StepFunctions: start_execution() now validates the name-length
+
+
 4.1.12
 ------
 Docker Digest for 4.1.12: _sha256:38e34a1ee4042fd52f15703c2e750780fe0fd809b2745fd263b2d1de33566590_
