@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2
 from botocore.exceptions import ClientError
@@ -18,8 +17,8 @@ def test_attach_unknown_vpn_gateway():
     with pytest.raises(ClientError) as ex:
         ec2.attach_vpn_gateway(VpcId=vpc["VpcId"], VpnGatewayId="?")
     err = ex.value.response["Error"]
-    err["Message"].should.equal("The virtual private gateway ID '?' does not exist")
-    err["Code"].should.equal("InvalidVpnGatewayID.NotFound")
+    assert err["Message"] == "The virtual private gateway ID '?' does not exist"
+    assert err["Code"] == "InvalidVpnGatewayID.NotFound"
 
 
 @mock_ec2
@@ -31,8 +30,8 @@ def test_delete_unknown_vpn_gateway():
     with pytest.raises(ClientError) as ex:
         ec2.delete_vpn_gateway(VpnGatewayId="?")
     err = ex.value.response["Error"]
-    err["Message"].should.equal("The virtual private gateway ID '?' does not exist")
-    err["Code"].should.equal("InvalidVpnGatewayID.NotFound")
+    assert err["Message"] == "The virtual private gateway ID '?' does not exist"
+    assert err["Code"] == "InvalidVpnGatewayID.NotFound"
 
 
 @mock_ec2
@@ -46,8 +45,8 @@ def test_detach_unknown_vpn_gateway():
     with pytest.raises(ClientError) as ex:
         ec2.detach_vpn_gateway(VpcId=vpc["VpcId"], VpnGatewayId="?")
     err = ex.value.response["Error"]
-    err["Message"].should.equal("The virtual private gateway ID '?' does not exist")
-    err["Code"].should.equal("InvalidVpnGatewayID.NotFound")
+    assert err["Message"] == "The virtual private gateway ID '?' does not exist"
+    assert err["Code"] == "InvalidVpnGatewayID.NotFound"
 
 
 @mock_ec2
@@ -67,11 +66,11 @@ def test_describe_vpn_connections_attachment_vpc_id_filter():
         Filters=[{"Name": "attachment.vpc-id", "Values": [vpc_id]}]
     )
 
-    gateways["VpnGateways"].should.have.length_of(1)
-    gateways["VpnGateways"][0]["VpnGatewayId"].should.equal(gateway_id)
-    gateways["VpnGateways"][0]["VpcAttachments"].should.contain(
-        {"State": "attached", "VpcId": vpc_id}
-    )
+    assert len(gateways["VpnGateways"]) == 1
+    assert gateways["VpnGateways"][0]["VpnGatewayId"] == gateway_id
+    assert {"State": "attached", "VpcId": vpc_id} in gateways["VpnGateways"][0][
+        "VpcAttachments"
+    ]
 
 
 @mock_ec2
@@ -91,9 +90,9 @@ def test_describe_vpn_connections_state_filter_attached():
         ec2, [{"Name": "attachment.state", "Values": ["attached"]}]
     )
 
-    [gw["VpnGatewayId"] for gw in all_gateways].should.contain(gateway_id)
+    assert gateway_id in [gw["VpnGatewayId"] for gw in all_gateways]
     my_gateway = [gw for gw in all_gateways if gw["VpnGatewayId"] == gateway_id][0]
-    my_gateway["VpcAttachments"].should.contain({"State": "attached", "VpcId": vpc_id})
+    assert {"State": "attached", "VpcId": vpc_id} in my_gateway["VpcAttachments"]
 
 
 @mock_ec2
@@ -104,10 +103,10 @@ def test_virtual_private_gateways_boto3():
         Type="ipsec.1", AvailabilityZone="us-east-1a"
     )["VpnGateway"]
 
-    vpn_gateway["VpnGatewayId"].should.match(r"vgw-\w+")
-    vpn_gateway["Type"].should.equal("ipsec.1")
-    vpn_gateway["State"].should.equal("available")
-    vpn_gateway["AvailabilityZone"].should.equal("us-east-1a")
+    assert vpn_gateway["VpnGatewayId"].startswith("vgw-")
+    assert vpn_gateway["Type"] == "ipsec.1"
+    assert vpn_gateway["State"] == "available"
+    assert vpn_gateway["AvailabilityZone"] == "us-east-1a"
 
 
 @mock_ec2
@@ -120,15 +119,15 @@ def test_describe_vpn_gateway_boto3():
     vgws = client.describe_vpn_gateways(VpnGatewayIds=[vpn_gateway["VpnGatewayId"]])[
         "VpnGateways"
     ]
-    vgws.should.have.length_of(1)
+    assert len(vgws) == 1
 
     gateway = vgws[0]
-    gateway["VpnGatewayId"].should.match(r"vgw-\w+")
-    gateway["VpnGatewayId"].should.equal(vpn_gateway["VpnGatewayId"])
+    assert gateway["VpnGatewayId"].startswith("vgw-")
+    assert gateway["VpnGatewayId"] == vpn_gateway["VpnGatewayId"]
     # TODO: fixme. This currently returns the ID
-    # gateway["Type"].should.equal("ipsec.1")
-    gateway["State"].should.equal("available")
-    gateway["AvailabilityZone"].should.equal("us-east-1a")
+    # assert gateway["Type"] == "ipsec.1"
+    assert gateway["State"] == "available"
+    assert gateway["AvailabilityZone"] == "us-east-1a"
 
 
 @mock_ec2
@@ -148,7 +147,7 @@ def test_describe_vpn_connections_state_filter_deatched():
         Filters=[{"Name": "attachment.state", "Values": ["detached"]}]
     )
 
-    gateways["VpnGateways"].should.have.length_of(0)
+    assert len(gateways["VpnGateways"]) == 0
 
 
 @mock_ec2
@@ -164,8 +163,8 @@ def test_describe_vpn_connections_id_filter_match():
         Filters=[{"Name": "vpn-gateway-id", "Values": [gateway_id]}]
     )
 
-    gateways["VpnGateways"].should.have.length_of(1)
-    gateways["VpnGateways"][0]["VpnGatewayId"].should.equal(gateway_id)
+    assert len(gateways["VpnGateways"]) == 1
+    assert gateways["VpnGateways"][0]["VpnGatewayId"] == gateway_id
 
 
 @mock_ec2
@@ -180,7 +179,7 @@ def test_describe_vpn_connections_id_filter_miss():
         Filters=[{"Name": "vpn-gateway-id", "Values": ["unknown_gateway_id"]}]
     )
 
-    gateways["VpnGateways"].should.have.length_of(0)
+    assert len(gateways["VpnGateways"]) == 0
 
 
 @mock_ec2
@@ -194,7 +193,7 @@ def test_describe_vpn_connections_type_filter_match():
 
     my_gateways = retrieve_all(ec2, [{"Name": "type", "Values": ["ipsec.1"]}])
 
-    [gw["VpnGatewayId"] for gw in my_gateways].should.contain(gateway_id)
+    assert gateway_id in [gw["VpnGatewayId"] for gw in my_gateways]
 
 
 @mock_ec2
@@ -209,7 +208,7 @@ def test_describe_vpn_connections_type_filter_miss():
         Filters=[{"Name": "type", "Values": ["unknown_type"]}]
     )
 
-    gateways["VpnGateways"].should.have.length_of(0)
+    assert len(gateways["VpnGateways"]) == 0
 
 
 @mock_ec2
@@ -226,7 +225,7 @@ def test_vpn_gateway_vpc_attachment_boto3():
 
     gateway = client.describe_vpn_gateways(VpnGatewayIds=[vpng_id])["VpnGateways"][0]
     attachments = gateway["VpcAttachments"]
-    attachments.should.equal([{"State": "attached", "VpcId": vpc.id}])
+    assert attachments == [{"State": "attached", "VpcId": vpc.id}]
 
 
 @mock_ec2
@@ -239,8 +238,8 @@ def test_delete_vpn_gateway_boto3():
 
     client.delete_vpn_gateway(VpnGatewayId=vpng_id)
     gateways = client.describe_vpn_gateways(VpnGatewayIds=[vpng_id])["VpnGateways"]
-    gateways.should.have.length_of(1)
-    gateways[0].should.have.key("State").equal("deleted")
+    assert len(gateways) == 1
+    assert gateways[0]["State"] == "deleted"
 
 
 @mock_ec2
@@ -256,12 +255,12 @@ def test_vpn_gateway_tagging_boto3():
 
     all_tags = retrieve_all_tagged(client)
     ours = [a for a in all_tags if a["ResourceId"] == vpn_gateway["VpnGatewayId"]][0]
-    ours.should.have.key("Key").equal("a key")
-    ours.should.have.key("Value").equal("some value")
+    assert ours["Key"] == "a key"
+    assert ours["Value"] == "some value"
 
     vpn_gateway = client.describe_vpn_gateways()["VpnGateways"][0]
     # TODO: Fixme: Tags is currently empty
-    # vpn_gateway["Tags"].should.equal([{'Key': 'a key', 'Value': 'some value'}])
+    # assert vpn_gateway["Tags"] == [{'Key': 'a key', 'Value': 'some value'}]
 
 
 @mock_ec2
@@ -280,13 +279,13 @@ def test_detach_vpn_gateway_boto3():
 
     gateway = client.describe_vpn_gateways(VpnGatewayIds=[vpng_id])["VpnGateways"][0]
     attachments = gateway["VpcAttachments"]
-    attachments.should.equal([{"State": "attached", "VpcId": vpc.id}])
+    assert attachments == [{"State": "attached", "VpcId": vpc.id}]
 
     client.detach_vpn_gateway(VpnGatewayId=vpng_id, VpcId=vpc.id)
 
     gateway = client.describe_vpn_gateways(VpnGatewayIds=[vpng_id])["VpnGateways"][0]
     attachments = gateway["VpcAttachments"]
-    attachments.should.equal([{"State": "detached", "VpcId": vpc.id}])
+    assert attachments == [{"State": "detached", "VpcId": vpc.id}]
 
 
 def retrieve_all(client, filters=[]):  # pylint: disable=W0102

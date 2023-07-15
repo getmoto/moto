@@ -1,12 +1,10 @@
+import boto3
 import copy
 import json
+import pytest
 import unittest
 
-import pytest
-
-import boto3
 from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID
@@ -23,31 +21,32 @@ def test_create_and_describe_security_group():
 
     with pytest.raises(ClientError) as ex:
         client.create_security_group(GroupName="test", Description="test", DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
 
     sec_name = str(uuid4())
     security_group = ec2.create_security_group(GroupName=sec_name, Description="test")
 
-    security_group.group_name.should.equal(sec_name)
-    security_group.description.should.equal("test")
+    assert security_group.group_name == sec_name
+    assert security_group.description == "test"
 
     # Trying to create another group with the same name should throw an error
     with pytest.raises(ClientError) as ex:
         client.create_security_group(GroupName=sec_name, Description="n/a")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidGroup.Duplicate")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.Duplicate"
 
     all_groups = retrieve_all_sgs(client)
     # The default group gets created automatically
-    [g["GroupId"] for g in all_groups].should.contain(security_group.id)
+    assert security_group.id in [g["GroupId"] for g in all_groups]
     group_names = set([group["GroupName"] for group in all_groups])
-    group_names.should.contain("default")
-    group_names.should.contain(sec_name)
+    assert "default" in group_names
+    assert sec_name in group_names
 
 
 @mock_ec2
@@ -56,16 +55,16 @@ def test_create_security_group_without_description_raises_error():
 
     with pytest.raises(ClientError) as ex:
         ec2.create_security_group(GroupName="test security group", Description="")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
 
 
 @mock_ec2
 def test_default_security_group():
     client = boto3.client("ec2", "us-west-1")
     groups = retrieve_all_sgs(client)
-    [g["GroupName"] for g in groups].should.contain("default")
+    assert "default" in [g["GroupName"] for g in groups]
 
 
 @mock_ec2
@@ -79,18 +78,18 @@ def test_create_and_describe_vpc_security_group():
         GroupName=name, Description="test", VpcId=vpc_id
     )
 
-    group_with.vpc_id.should.equal(vpc_id)
+    assert group_with.vpc_id == vpc_id
 
-    group_with.group_name.should.equal(name)
-    group_with.description.should.equal("test")
+    assert group_with.group_name == name
+    assert group_with.description == "test"
 
     # Trying to create another group with the same name in the same VPC should
     # throw an error
     with pytest.raises(ClientError) as ex:
         ec2.create_security_group(GroupName=name, Description="n/a", VpcId=vpc_id)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidGroup.Duplicate")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.Duplicate"
 
     # Trying to create another group in the same name without VPC should pass
     group_without = ec2.create_security_group(
@@ -98,16 +97,16 @@ def test_create_and_describe_vpc_security_group():
     )
 
     all_groups = retrieve_all_sgs(client)
-    [a["GroupId"] for a in all_groups].should.contain(group_with.id)
-    [a["GroupId"] for a in all_groups].should.contain(group_without.id)
+    assert group_with.id in [a["GroupId"] for a in all_groups]
+    assert group_without.id in [a["GroupId"] for a in all_groups]
 
     all_groups = client.describe_security_groups(
         Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
     )["SecurityGroups"]
 
-    all_groups.should.have.length_of(1)
-    all_groups[0]["VpcId"].should.equal(vpc_id)
-    all_groups[0]["GroupName"].should.equal(name)
+    assert len(all_groups) == 1
+    assert all_groups[0]["VpcId"] == vpc_id
+    assert all_groups[0]["GroupName"] == name
 
 
 @mock_ec2
@@ -124,11 +123,11 @@ def test_create_two_security_groups_with_same_name_in_different_vpc():
 
     all_groups = retrieve_all_sgs(client)
     group_ids = [group["GroupId"] for group in all_groups]
-    group_ids.should.contain(sg1.id)
-    group_ids.should.contain(sg2.id)
+    assert sg1.id in group_ids
+    assert sg2.id in group_ids
 
     group_names = [group["GroupName"] for group in all_groups]
-    group_names.should.contain(name)
+    assert name in group_names
 
 
 @mock_ec2
@@ -141,7 +140,7 @@ def test_create_two_security_groups_in_vpc_with_ipv6_enabled():
     )
 
     # The security group must have two defaul egress rules (one for ipv4 and aonther for ipv6)
-    security_group.ip_permissions_egress.should.have.length_of(2)
+    assert len(security_group.ip_permissions_egress) == 2
 
 
 @mock_ec2
@@ -154,36 +153,37 @@ def test_deleting_security_groups():
     group2 = ec2.create_security_group(GroupName=sg_name2, Description="test desc 2")
 
     all_groups = retrieve_all_sgs(client)
-    [g["GroupId"] for g in all_groups].should.contain(group1.id)
-    [g["GroupId"] for g in all_groups].should.contain(group2.id)
+    assert group1.id in [g["GroupId"] for g in all_groups]
+    assert group2.id in [g["GroupId"] for g in all_groups]
 
     # Deleting a group that doesn't exist should throw an error
     with pytest.raises(ClientError) as ex:
         client.delete_security_group(GroupName="foobar")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidGroup.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
 
     # Delete by name
     with pytest.raises(ClientError) as ex:
         client.delete_security_group(GroupName=sg_name2, DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DeleteSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the DeleteSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.delete_security_group(GroupName=sg_name2)
 
     all_groups = retrieve_all_sgs(client)
-    [g["GroupId"] for g in all_groups].should.contain(group1.id)
-    [g["GroupId"] for g in all_groups].shouldnt.contain(group2.id)
+    assert group1.id in [g["GroupId"] for g in all_groups]
+    assert group2.id not in [g["GroupId"] for g in all_groups]
 
     # Delete by group id
     client.delete_security_group(GroupId=group1.id)
 
     all_groups = retrieve_all_sgs(client)
-    [g["GroupId"] for g in all_groups].shouldnt.contain(group1.id)
+    assert group1.id not in [g["GroupId"] for g in all_groups]
 
 
 @mock_ec2
@@ -196,13 +196,13 @@ def test_delete_security_group_in_vpc():
     )
 
     all_groups = retrieve_all_sgs(client)
-    [g["GroupId"] for g in all_groups].should.contain(group.id)
+    assert group.id in [g["GroupId"] for g in all_groups]
 
     # this should not throw an exception
     client.delete_security_group(GroupId=group.id)
 
     all_groups = retrieve_all_sgs(client)
-    [g["GroupId"] for g in all_groups].shouldnt.contain(group.id)
+    assert group.id not in [g["GroupId"] for g in all_groups]
 
 
 @mock_ec2
@@ -221,10 +221,11 @@ def test_authorize_ip_range_and_revoke():
             CidrIp="123.123.123.123/32",
             DryRun=True,
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the AuthorizeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the AuthorizeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     ingress_permissions = [
@@ -238,34 +239,35 @@ def test_authorize_ip_range_and_revoke():
 
     security_group.authorize_ingress(IpPermissions=ingress_permissions)
 
-    security_group.ip_permissions.should.have.length_of(1)
-    security_group.ip_permissions[0]["ToPort"].should.equal(2222)
-    security_group.ip_permissions[0]["IpProtocol"].should.equal("tcp")
-    security_group.ip_permissions[0]["IpRanges"].should.equal(
-        [{"CidrIp": "123.123.123.123/32"}]
-    )
+    assert len(security_group.ip_permissions) == 1
+    assert security_group.ip_permissions[0]["ToPort"] == 2222
+    assert security_group.ip_permissions[0]["IpProtocol"] == "tcp"
+    assert security_group.ip_permissions[0]["IpRanges"] == [
+        {"CidrIp": "123.123.123.123/32"}
+    ]
 
     # Wrong Cidr should throw error
     with pytest.raises(ClientError) as ex:
         wrong_permissions = copy.deepcopy(ingress_permissions)
         wrong_permissions[0]["IpRanges"][0]["CidrIp"] = "123.123.123.122/32"
         security_group.revoke_ingress(IpPermissions=wrong_permissions)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidPermission.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidPermission.NotFound"
 
     # Actually revoke
     with pytest.raises(ClientError) as ex:
         security_group.revoke_ingress(IpPermissions=ingress_permissions, DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     security_group.revoke_ingress(IpPermissions=ingress_permissions)
 
-    security_group.ip_permissions.should.have.length_of(0)
+    assert len(security_group.ip_permissions) == 0
 
     # Test for egress as well
     egress_security_group = ec2.create_security_group(
@@ -284,46 +286,48 @@ def test_authorize_ip_range_and_revoke():
         egress_security_group.authorize_egress(
             IpPermissions=egress_permissions, DryRun=True
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the AuthorizeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the AuthorizeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     egress_security_group.authorize_egress(IpPermissions=egress_permissions)
 
-    egress_security_group.ip_permissions_egress[0]["FromPort"].should.equal(22)
-    egress_security_group.ip_permissions_egress[0]["IpProtocol"].should.equal("tcp")
-    egress_security_group.ip_permissions_egress[0]["ToPort"].should.equal(2222)
-    egress_security_group.ip_permissions_egress[0]["IpRanges"].should.equal(
-        [{"CidrIp": "123.123.123.123/32"}]
-    )
+    assert egress_security_group.ip_permissions_egress[0]["FromPort"] == 22
+    assert egress_security_group.ip_permissions_egress[0]["IpProtocol"] == "tcp"
+    assert egress_security_group.ip_permissions_egress[0]["ToPort"] == 2222
+    assert egress_security_group.ip_permissions_egress[0]["IpRanges"] == [
+        {"CidrIp": "123.123.123.123/32"}
+    ]
 
     # Wrong Cidr should throw error
     with pytest.raises(ClientError) as ex:
         wrong_permissions = copy.deepcopy(egress_permissions)
         wrong_permissions[0]["IpRanges"][0]["CidrIp"] = "123.123.123.122/32"
         security_group.revoke_egress(IpPermissions=wrong_permissions)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidPermission.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidPermission.NotFound"
 
     # Actually revoke
     with pytest.raises(ClientError) as ex:
         egress_security_group.revoke_egress(
             IpPermissions=egress_permissions, DryRun=True
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     egress_security_group.revoke_egress(IpPermissions=egress_permissions)
 
     egress_security_group = client.describe_security_groups()["SecurityGroups"][0]
     # There is still the default outbound rule
-    egress_security_group["IpPermissionsEgress"].should.have.length_of(1)
+    assert len(egress_security_group["IpPermissionsEgress"]) == 1
 
 
 @mock_ec2
@@ -359,9 +363,10 @@ def test_authorize_other_group_and_revoke():
     found_sec_group = client.describe_security_groups(GroupNames=[sg_name])[
         "SecurityGroups"
     ][0]
-    found_sec_group["IpPermissions"][0]["ToPort"].should.equal(2222)
-    found_sec_group["IpPermissions"][0]["UserIdGroupPairs"][0]["GroupId"].should.equal(
-        other_security_group.id
+    assert found_sec_group["IpPermissions"][0]["ToPort"] == 2222
+    assert (
+        found_sec_group["IpPermissions"][0]["UserIdGroupPairs"][0]["GroupId"]
+        == other_security_group.id
     )
 
     # Wrong source group should throw error
@@ -369,9 +374,9 @@ def test_authorize_other_group_and_revoke():
         wrong_permissions = copy.deepcopy(permissions)
         wrong_permissions[0]["UserIdGroupPairs"][0]["GroupId"] = "unknown"
         security_group.revoke_ingress(IpPermissions=wrong_permissions)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidGroup.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
 
     # Actually revoke
     security_group.revoke_ingress(IpPermissions=permissions)
@@ -379,7 +384,7 @@ def test_authorize_other_group_and_revoke():
     found_sec_group = client.describe_security_groups(GroupNames=[sg_name])[
         "SecurityGroups"
     ][0]
-    found_sec_group["IpPermissions"].should.have.length_of(0)
+    assert len(found_sec_group["IpPermissions"]) == 0
 
 
 @mock_ec2
@@ -410,11 +415,11 @@ def test_authorize_other_group_egress_and_revoke():
     ip_permission["UserIdGroupPairs"][0].pop("GroupName")
 
     sg01.authorize_egress(IpPermissions=[org_ip_permission])
-    sg01.ip_permissions_egress.should.have.length_of(2)
-    sg01.ip_permissions_egress.should.contain(ip_permission)
+    assert len(sg01.ip_permissions_egress) == 2
+    assert ip_permission in sg01.ip_permissions_egress
 
     sg01.revoke_egress(IpPermissions=[org_ip_permission])
-    sg01.ip_permissions_egress.should.have.length_of(1)
+    assert len(sg01.ip_permissions_egress) == 1
 
 
 @mock_ec2
@@ -453,9 +458,10 @@ def test_authorize_group_in_vpc():
     found_sec_group = client.describe_security_groups(GroupNames=[sec_name1])[
         "SecurityGroups"
     ][0]
-    found_sec_group["IpPermissions"][0]["ToPort"].should.equal(2222)
-    found_sec_group["IpPermissions"][0]["UserIdGroupPairs"][0]["GroupId"].should.equal(
-        other_security_group.id
+    assert found_sec_group["IpPermissions"][0]["ToPort"] == 2222
+    assert (
+        found_sec_group["IpPermissions"][0]["UserIdGroupPairs"][0]["GroupId"]
+        == other_security_group.id
     )
 
     # Now remove the rule
@@ -465,7 +471,7 @@ def test_authorize_group_in_vpc():
     found_sec_group = client.describe_security_groups(GroupNames=[sec_name1])[
         "SecurityGroups"
     ][0]
-    found_sec_group["IpPermissions"].should.have.length_of(0)
+    assert len(found_sec_group["IpPermissions"]) == 0
 
 
 @mock_ec2
@@ -479,31 +485,31 @@ def test_describe_security_groups():
     sg2 = ec2.create_security_group(GroupName=str(uuid4()), Description="test desc 2")
 
     resp = client.describe_security_groups(GroupNames=[name_1])["SecurityGroups"]
-    resp.should.have.length_of(1)
-    resp[0].should.have.key("GroupId").equal(sg1.id)
+    assert len(resp) == 1
+    assert resp[0]["GroupId"] == sg1.id
 
     with pytest.raises(ClientError) as ex:
         client.describe_security_groups(GroupNames=["does_not_exist"])
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidGroup.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
 
     resp = client.describe_security_groups(
         Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
     )["SecurityGroups"]
-    resp.should.have.length_of(1)
-    resp[0].should.have.key("GroupId").equal(sg1.id)
+    assert len(resp) == 1
+    assert resp[0]["GroupId"] == sg1.id
 
     resp = client.describe_security_groups(
         Filters=[{"Name": "description", "Values": [desc_1]}]
     )["SecurityGroups"]
-    resp.should.have.length_of(1)
-    resp[0].should.have.key("GroupId").equal(sg1.id)
+    assert len(resp) == 1
+    assert resp[0]["GroupId"] == sg1.id
 
     all_sgs = retrieve_all_sgs(client)
     sg_ids = [sg["GroupId"] for sg in all_sgs]
-    sg_ids.should.contain(sg1.id)
-    sg_ids.should.contain(sg2.id)
+    assert sg1.id in sg_ids
+    assert sg2.id in sg_ids
 
 
 @mock_ec2
@@ -520,9 +526,9 @@ def test_authorize_bad_cidr_throws_invalid_parameter_value():
             }
         ]
         sec_group.authorize_ingress(IpPermissions=permissions)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
 
 
 @mock_ec2
@@ -537,12 +543,12 @@ def test_security_group_tag_filtering():
     groups = client.describe_security_groups(
         Filters=[{"Name": f"tag:{tag_name}", "Values": [tag_val]}]
     )["SecurityGroups"]
-    groups.should.have.length_of(1)
+    assert len(groups) == 1
 
     groups = client.describe_security_groups(
         Filters=[{"Name": f"tag:{tag_name}", "Values": ["unknown"]}]
     )["SecurityGroups"]
-    groups.should.have.length_of(0)
+    assert len(groups) == 0
 
 
 @mock_ec2
@@ -557,10 +563,10 @@ def test_authorize_all_protocols_with_no_port_specification():
 
     sg = client.describe_security_groups(GroupNames=[sg_name])["SecurityGroups"][0]
     permission = sg["IpPermissions"][0]
-    permission.should.have.key("IpProtocol").equal("-1")
-    permission.should.have.key("IpRanges").equal([{"CidrIp": "0.0.0.0/0"}])
-    permission.shouldnt.have.key("FromPort")
-    permission.shouldnt.have.key("ToPort")
+    assert permission["IpProtocol"] == "-1"
+    assert permission["IpRanges"] == [{"CidrIp": "0.0.0.0/0"}]
+    assert "FromPort" not in permission
+    assert "ToPort" not in permission
 
 
 @mock_ec2
@@ -621,12 +627,10 @@ def test_sec_group_rule_limit(use_vpc):
         client.authorize_security_group_ingress(
             GroupId=sg.id, IpPermissions=ip_permissions
         )
-    ex.value.response["Error"]["Code"].should.equal(
-        "RulesPerSecurityGroupLimitExceeded"
-    )
+    assert ex.value.response["Error"]["Code"] == "RulesPerSecurityGroupLimitExceeded"
 
     sg.reload()
-    sg.ip_permissions.should.equal([])
+    assert sg.ip_permissions == []
     # authorize a rule targeting a different sec group (because this count too)
     other_permissions = [
         {
@@ -657,17 +661,13 @@ def test_sec_group_rule_limit(use_vpc):
         client.authorize_security_group_ingress(
             GroupId=sg.id, IpPermissions=permissions
         )
-    ex.value.response["Error"]["Code"].should.equal(
-        "RulesPerSecurityGroupLimitExceeded"
-    )
+    assert ex.value.response["Error"]["Code"] == "RulesPerSecurityGroupLimitExceeded"
     # verify that we cannot authorize past the limit for a different sec group
     with pytest.raises(ClientError) as ex:
         client.authorize_security_group_ingress(
             GroupId=sg.id, IpPermissions=other_permissions
         )
-    ex.value.response["Error"]["Code"].should.equal(
-        "RulesPerSecurityGroupLimitExceeded"
-    )
+    assert ex.value.response["Error"]["Code"] == "RulesPerSecurityGroupLimitExceeded"
 
     # EGRESS
     # authorize a rule targeting a different sec group (because this count too)
@@ -688,17 +688,13 @@ def test_sec_group_rule_limit(use_vpc):
     with pytest.raises(ClientError) as ex:
         permissions = [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "101.0.0.0/0"}]}]
         client.authorize_security_group_egress(GroupId=sg.id, IpPermissions=permissions)
-    ex.value.response["Error"]["Code"].should.equal(
-        "RulesPerSecurityGroupLimitExceeded"
-    )
+    assert ex.value.response["Error"]["Code"] == "RulesPerSecurityGroupLimitExceeded"
     # verify that we cannot authorize past the limit for a different sec group
     with pytest.raises(ClientError) as ex:
         client.authorize_security_group_egress(
             GroupId=sg.id, IpPermissions=other_permissions
         )
-    ex.value.response["Error"]["Code"].should.equal(
-        "RulesPerSecurityGroupLimitExceeded"
-    )
+    assert ex.value.response["Error"]["Code"] == "RulesPerSecurityGroupLimitExceeded"
 
 
 @mock_ec2
@@ -723,10 +719,7 @@ def test_add_same_rule_twice_throws_error():
 
     with pytest.raises(ClientError) as ex:
         sg.authorize_ingress(IpPermissions=ip_permissions)
-    ex.value.response["Error"]["Code"].should.equal("InvalidPermission.Duplicate")
-    ex.value.response["Error"]["Message"].should.match(
-        r"^.* specified rule.*already exists$"
-    )
+    assert ex.value.response["Error"]["Code"] == "InvalidPermission.Duplicate"
 
     # Egress
     ip_permissions = [
@@ -741,10 +734,7 @@ def test_add_same_rule_twice_throws_error():
 
     with pytest.raises(ClientError) as ex:
         sg.authorize_egress(IpPermissions=ip_permissions)
-    ex.value.response["Error"]["Code"].should.equal("InvalidPermission.Duplicate")
-    ex.value.response["Error"]["Message"].should.match(
-        r"^.* specified rule.*already exists$"
-    )
+    assert ex.value.response["Error"]["Code"] == "InvalidPermission.Duplicate"
 
 
 @mock_ec2
@@ -809,10 +799,11 @@ def test_security_group_tagging():
             Tags=[{"Key": "Test", "Value": "Tag"}],
             DryRun=True,
         )
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
     tag_val = str(uuid4())
@@ -823,8 +814,8 @@ def test_security_group_tagging():
         Filters=[{"Name": "tag-value", "Values": [tag_val]}]
     )
     tag = describe["SecurityGroups"][0]["Tags"][0]
-    tag["Value"].should.equal(tag_val)
-    tag["Key"].should.equal("Test")
+    assert tag["Value"] == tag_val
+    assert tag["Key"] == "Test"
 
 
 @mock_ec2
@@ -842,8 +833,8 @@ def test_security_group_wildcard_tag_filter():
     )
 
     tag = describe["SecurityGroups"][0]["Tags"][0]
-    tag["Value"].should.equal(tag_val)
-    tag["Key"].should.equal("Test")
+    assert tag["Value"] == tag_val
+    assert tag["Key"] == "Test"
 
 
 @mock_ec2
@@ -872,9 +863,9 @@ def test_security_group_filter_ip_permission():
 
     filters = [{"Name": "ip-permission.from-port", "Values": [f"{from_port}"]}]
     describe = retrieve_all_sgs(conn, filters)
-    describe.should.have.length_of(1)
+    assert len(describe) == 1
 
-    describe[0]["GroupName"].should.equal(sg_name)
+    assert describe[0]["GroupName"] == sg_name
 
 
 def retrieve_all_sgs(conn, filters=[]):  # pylint: disable=W0102
@@ -1006,30 +997,30 @@ def test_authorize_and_revoke_in_bulk():
     sg01.authorize_ingress(IpPermissions=org_ip_permissions)
     # Due to drift property of the Security Group,
     # rules with same Ip protocol, FromPort and ToPort will be merged together
-    sg01.ip_permissions.should.have.length_of(4)
+    assert len(sg01.ip_permissions) == 4
     sorted_sg01_ip_permissions = json.dumps(sg01.ip_permissions, sort_keys=True)
     for ip_permission in expected_ip_permissions:
-        sorted_sg01_ip_permissions.should.contain(ip_permission)
+        assert ip_permission in sorted_sg01_ip_permissions
 
     sg01.revoke_ingress(IpPermissions=ip_permissions)
-    sg01.ip_permissions.should.equal([])
+    assert sg01.ip_permissions == []
     for ip_permission in expected_ip_permissions:
-        sg01.ip_permissions.shouldnt.contain(ip_permission)
+        assert ip_permission not in sg01.ip_permissions
 
     sg01.authorize_egress(IpPermissions=org_ip_permissions)
     # Due to drift property of the Security Group,
     # rules with same Ip protocol, FromPort and ToPort will be merged together
-    sg01.ip_permissions_egress.should.have.length_of(5)
+    assert len(sg01.ip_permissions_egress) == 5
     sorted_sg01_ip_permissions_egress = json.dumps(
         sg01.ip_permissions_egress, sort_keys=True
     )
     for ip_permission in expected_ip_permissions:
-        sorted_sg01_ip_permissions_egress.should.contain(ip_permission)
+        assert ip_permission in sorted_sg01_ip_permissions_egress
 
     sg01.revoke_egress(IpPermissions=ip_permissions)
-    sg01.ip_permissions_egress.should.have.length_of(1)
+    assert len(sg01.ip_permissions_egress) == 1
     for ip_permission in expected_ip_permissions:
-        sg01.ip_permissions_egress.shouldnt.contain(ip_permission)
+        assert ip_permission not in sg01.ip_permissions_egress
 
 
 @mock_ec2
@@ -1080,19 +1071,19 @@ def test_get_all_security_groups_filter_with_same_vpc_id():
         GroupName=str(uuid4()), Description="test2", VpcId=vpc_id
     )
 
-    security_group.vpc_id.should.equal(vpc_id)
-    security_group2.vpc_id.should.equal(vpc_id)
+    assert security_group.vpc_id == vpc_id
+    assert security_group2.vpc_id == vpc_id
 
     security_groups = client.describe_security_groups(
         GroupIds=[security_group.id], Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
     )["SecurityGroups"]
-    security_groups.should.have.length_of(1)
+    assert len(security_groups) == 1
 
     with pytest.raises(ClientError) as ex:
         client.describe_security_groups(GroupIds=["does_not_exist"])
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidGroup.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
 
 
 @mock_ec2
@@ -1103,17 +1094,15 @@ def test_revoke_security_group_egress():
         Description="Test SG", GroupName=str(uuid4()), VpcId=vpc.id
     )
 
-    sg.ip_permissions_egress.should.equal(
-        [
-            {
-                "IpProtocol": "-1",
-                "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
-                "UserIdGroupPairs": [],
-                "Ipv6Ranges": [],
-                "PrefixListIds": [],
-            }
-        ]
-    )
+    assert sg.ip_permissions_egress == [
+        {
+            "IpProtocol": "-1",
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+            "UserIdGroupPairs": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+        }
+    ]
 
     sg.revoke_egress(
         IpPermissions=[
@@ -1128,7 +1117,7 @@ def test_revoke_security_group_egress():
     )
 
     sg.reload()
-    sg.ip_permissions_egress.should.have.length_of(0)
+    assert len(sg.ip_permissions_egress) == 0
 
 
 @mock_ec2
@@ -1171,8 +1160,8 @@ def test_update_security_group_rule_descriptions_egress():
     ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
         "IpPermissionsEgress"
     ][0]["IpRanges"]
-    ip_ranges.should.have.length_of(1)
-    ip_ranges[0].should.equal({"CidrIp": "0.0.0.0/0"})
+    assert len(ip_ranges) == 1
+    assert ip_ranges[0] == {"CidrIp": "0.0.0.0/0"}
 
     client.update_security_group_rule_descriptions_egress(
         GroupName=sg_name,
@@ -1190,8 +1179,8 @@ def test_update_security_group_rule_descriptions_egress():
     ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
         "IpPermissionsEgress"
     ][0]["IpRanges"]
-    ip_ranges.should.have.length_of(1)
-    ip_ranges[0].should.equal({"CidrIp": "0.0.0.0/0", "Description": "my d3scription"})
+    assert len(ip_ranges) == 1
+    assert ip_ranges[0] == {"CidrIp": "0.0.0.0/0", "Description": "my d3scription"}
 
 
 @mock_ec2
@@ -1218,8 +1207,8 @@ def test_update_security_group_rule_descriptions_ingress():
     ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
         "IpPermissions"
     ][0]["IpRanges"]
-    ip_ranges.should.have.length_of(1)
-    ip_ranges[0].should.equal({"CidrIp": "1.2.3.4/32", "Description": "first desc"})
+    assert len(ip_ranges) == 1
+    assert ip_ranges[0] == {"CidrIp": "1.2.3.4/32", "Description": "first desc"}
 
     client.update_security_group_rule_descriptions_ingress(
         GroupName=sg_name,
@@ -1236,8 +1225,8 @@ def test_update_security_group_rule_descriptions_ingress():
     ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
         "IpPermissions"
     ][0]["IpRanges"]
-    ip_ranges.should.have.length_of(1)
-    ip_ranges[0].should.equal({"CidrIp": "1.2.3.4/32", "Description": "second desc"})
+    assert len(ip_ranges) == 1
+    assert ip_ranges[0] == {"CidrIp": "1.2.3.4/32", "Description": "second desc"}
 
 
 @mock_ec2
@@ -1252,8 +1241,8 @@ def test_non_existent_security_group_raises_error_on_authorize():
     for authorize_func in authorize_funcs:
         with pytest.raises(ClientError) as ex:
             authorize_func(GroupId=non_existent_sg, IpPermissions=[{}])
-        ex.value.response["Error"]["Code"].should.equal("InvalidGroup.NotFound")
-        ex.value.response["Error"]["Message"].should.equal(expected_error)
+        assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
+        assert ex.value.response["Error"]["Message"] == expected_error
 
 
 @mock_ec2
@@ -1470,8 +1459,8 @@ def test_filter_egress__ip_permission__from_port():
     security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
-    [s.group_id for s in security_groups].should.contain(sg1.group_id)
-    [s.group_id for s in security_groups].shouldnt.contain(sg2.group_id)
+    assert sg1.group_id in [s.group_id for s in security_groups]
+    assert sg2.group_id not in [s.group_id for s in security_groups]
 
 
 @mock_ec2
@@ -1671,8 +1660,8 @@ def test_filter_egress__ip_permission__protocol():
     security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     group_ids = [sg.group_id for sg in security_groups]
-    group_ids.should.contain(sg1.group_id)
-    group_ids.shouldnt.contain(sg2.group_id)
+    assert sg1.group_id in group_ids
+    assert sg2.group_id not in group_ids
 
 
 @mock_ec2
@@ -1715,8 +1704,8 @@ def test_filter_egress__ip_permission__to_port():
     security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
-    [s.group_id for s in security_groups].should.contain(sg1.group_id)
-    [s.group_id for s in security_groups].shouldnt.contain(sg2.group_id)
+    assert sg1.group_id in [s.group_id for s in security_groups]
+    assert sg2.group_id not in [s.group_id for s in security_groups]
 
 
 @mock_ec2

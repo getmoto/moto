@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_ec2
@@ -71,25 +70,25 @@ def test_create_spot_fleet_with_lowest_price():
     )
 
     fleet_id = fleet_res["FleetId"]
-    fleet_id.should.be.a(str)
-    fleet_id.should.have.length_of(42)
+    assert isinstance(fleet_id, str)
+    assert len(fleet_id) == 42
 
     fleets_res = conn.describe_fleets(FleetIds=[fleet_id])
-    fleets_res.should.have.key("Fleets")
+    assert "Fleets" in fleets_res
     fleets = fleets_res["Fleets"]
 
     fleet = fleets[0]
-    fleet["FleetState"].should.equal("active")
+    assert fleet["FleetState"] == "active"
     fleet_config = fleet["LaunchTemplateConfigs"][0]
 
     launch_template_spec = fleet_config["LaunchTemplateSpecification"]
 
-    launch_template_spec["LaunchTemplateId"].should.equal(launch_template_id)
-    launch_template_spec["Version"].should.equal("1")
+    assert launch_template_spec["LaunchTemplateId"] == launch_template_id
+    assert launch_template_spec["Version"] == "1"
 
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
-    len(instances).should.equal(1)
+    assert len(instances) == 1
 
 
 @mock_ec2
@@ -122,25 +121,25 @@ def test_create_on_demand_fleet():
     )
 
     fleet_id = fleet_res["FleetId"]
-    fleet_id.should.be.a(str)
-    fleet_id.should.have.length_of(42)
+    assert isinstance(fleet_id, str)
+    assert len(fleet_id) == 42
 
     fleets_res = conn.describe_fleets(FleetIds=[fleet_id])
-    fleets_res.should.have.key("Fleets")
+    assert "Fleets" in fleets_res
     fleets = fleets_res["Fleets"]
 
     fleet = fleets[0]
-    fleet["FleetState"].should.equal("active")
+    assert fleet["FleetState"] == "active"
     fleet_config = fleet["LaunchTemplateConfigs"][0]
 
     launch_template_spec = fleet_config["LaunchTemplateSpecification"]
 
-    launch_template_spec["LaunchTemplateId"].should.equal(launch_template_id)
-    launch_template_spec["Version"].should.equal("1")
+    assert launch_template_spec["LaunchTemplateId"] == launch_template_id
+    assert launch_template_spec["Version"] == "1"
 
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
-    len(instances).should.equal(1)
+    assert len(instances) == 1
 
 
 @mock_ec2
@@ -182,10 +181,10 @@ def test_create_diversified_spot_fleet():
 
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
-    len(instances).should.equal(2)
+    assert len(instances) == 2
     instance_types = set([instance["InstanceType"] for instance in instances])
-    instance_types.should.equal(set(["t2.small", "t2.large"]))
-    instances[0]["InstanceId"].should.contain("i-")
+    assert instance_types == set(["t2.small", "t2.large"])
+    assert "i-" in instances[0]["InstanceId"]
 
 
 @mock_ec2
@@ -205,7 +204,6 @@ def test_create_diversified_spot_fleet():
 def test_request_fleet_using_launch_template_config__name(
     spot_allocation_strategy, on_demand_allocation_strategy
 ):
-
     conn = boto3.client("ec2", region_name="us-east-2")
 
     _, launch_template_name = get_launch_template(conn, instance_type="t2.medium")
@@ -240,10 +238,10 @@ def test_request_fleet_using_launch_template_config__name(
 
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
-    len(instances).should.equal(3)
+    assert len(instances) == 3
     instance_types = set([instance["InstanceType"] for instance in instances])
-    instance_types.should.equal(set(["t2.medium"]))
-    instances[0]["InstanceId"].should.contain("i-")
+    assert instance_types == set(["t2.medium"])
+    assert "i-" in instances[0]["InstanceId"]
 
 
 @mock_ec2
@@ -292,7 +290,7 @@ def test_create_fleet_request_with_tags():
     fleet_id = fleet_res["FleetId"]
     fleets = conn.describe_fleets(FleetIds=[fleet_id])["Fleets"]
 
-    fleets[0]["Tags"].should.equal(tags)
+    assert fleets[0]["Tags"] == tags
 
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = conn.describe_instances(
@@ -300,12 +298,11 @@ def test_create_fleet_request_with_tags():
     )
     for instance in instances["Reservations"][0]["Instances"]:
         for tag in tags_instance:
-            instance["Tags"].should.contain(tag)
+            assert tag in instance["Tags"]
 
 
 @mock_ec2
 def test_create_fleet_using_launch_template_config__overrides():
-
     conn = boto3.client("ec2", region_name="us-east-2")
     subnet_id = get_subnet_id(conn)
 
@@ -348,13 +345,13 @@ def test_create_fleet_using_launch_template_config__overrides():
 
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
-    instances.should.have.length_of(1)
-    instances[0].should.have.key("InstanceType").equals("t2.nano")
+    assert len(instances) == 1
+    assert instances[0]["InstanceType"] == "t2.nano"
 
     instance = conn.describe_instances(
         InstanceIds=[i["InstanceId"] for i in instances]
     )["Reservations"][0]["Instances"][0]
-    instance.should.have.key("SubnetId").equals(subnet_id)
+    assert instance["SubnetId"] == subnet_id
 
 
 @mock_ec2
@@ -390,23 +387,24 @@ def test_delete_fleet():
 
     delete_fleet_out = conn.delete_fleets(FleetIds=[fleet_id], TerminateInstances=True)
 
-    delete_fleet_out["SuccessfulFleetDeletions"].should.have.length_of(1)
-    delete_fleet_out["SuccessfulFleetDeletions"][0]["FleetId"].should.equal(fleet_id)
-    delete_fleet_out["SuccessfulFleetDeletions"][0]["CurrentFleetState"].should.equal(
-        "deleted"
+    assert len(delete_fleet_out["SuccessfulFleetDeletions"]) == 1
+    assert delete_fleet_out["SuccessfulFleetDeletions"][0]["FleetId"] == fleet_id
+    assert (
+        delete_fleet_out["SuccessfulFleetDeletions"][0]["CurrentFleetState"]
+        == "deleted"
     )
 
     fleets = conn.describe_fleets(FleetIds=[fleet_id])["Fleets"]
-    len(fleets).should.equal(1)
+    assert len(fleets) == 1
 
     target_capacity_specification = fleets[0]["TargetCapacitySpecification"]
-    target_capacity_specification.should.have.key("TotalTargetCapacity").equals(0)
-    fleets[0]["FleetState"].should.equal("deleted")
+    assert target_capacity_specification["TotalTargetCapacity"] == 0
+    assert fleets[0]["FleetState"] == "deleted"
 
     # Instances should be terminated
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
-    len(instances).should.equal(0)
+    assert len(instances) == 0
 
 
 @mock_ec2
@@ -442,18 +440,18 @@ def test_describe_fleet_instences_api():
     fleet_id = fleet_res["FleetId"]
     fleet_res = conn.describe_fleet_instances(FleetId=fleet_id)
 
-    fleet_res["FleetId"].should.equal(fleet_id)
-    fleet_res["ActiveInstances"].should.have.length_of(3)
+    assert fleet_res["FleetId"] == fleet_id
+    assert len(fleet_res["ActiveInstances"]) == 3
 
     instance_ids = [i["InstanceId"] for i in fleet_res["ActiveInstances"]]
     for instance_id in instance_ids:
-        instance_id.startswith("i-").should.be.true
+        assert instance_id.startswith("i-") is True
 
     instance_types = [i["InstanceType"] for i in fleet_res["ActiveInstances"]]
-    instance_types.should.equal(["t2.micro", "t2.micro", "t2.micro"])
+    assert instance_types == ["t2.micro", "t2.micro", "t2.micro"]
 
     instance_healths = [i["InstanceHealth"] for i in fleet_res["ActiveInstances"]]
-    instance_healths.should.equal(["healthy", "healthy", "healthy"])
+    assert instance_healths == ["healthy", "healthy", "healthy"]
 
 
 @mock_ec2
@@ -486,22 +484,22 @@ def test_create_fleet_api():
         ValidUntil="2020-12-31T00:00:00Z",
     )
 
-    fleet_res.should.have.key("FleetId")
-    fleet_res["FleetId"].startswith("fleet-").should.be.true
+    assert "FleetId" in fleet_res
+    assert fleet_res["FleetId"].startswith("fleet-") is True
 
-    fleet_res.should.have.key("Instances")
-    fleet_res["Instances"].should.have.length_of(3)
+    assert "Instances" in fleet_res
+    assert len(fleet_res["Instances"]) == 3
 
     instance_ids = [i["InstanceIds"] for i in fleet_res["Instances"]]
     for instance_id in instance_ids:
-        instance_id[0].startswith("i-").should.be.true
+        assert instance_id[0].startswith("i-") is True
 
     instance_types = [i["InstanceType"] for i in fleet_res["Instances"]]
-    instance_types.should.equal(["t2.micro", "t2.micro", "t2.micro"])
+    assert instance_types == ["t2.micro", "t2.micro", "t2.micro"]
 
     lifecycle = [i["Lifecycle"] for i in fleet_res["Instances"]]
-    lifecycle.should.contain("spot")
-    lifecycle.should.contain("on-demand")
+    assert "spot" in lifecycle
+    assert "on-demand" in lifecycle
 
 
 @mock_ec2
@@ -614,50 +612,42 @@ def test_create_fleet_api_response():
     fleet_id = fleet_res["FleetId"]
 
     fleet_res = conn.describe_fleets(FleetIds=[fleet_id])["Fleets"]
-    fleet_res.should.have.length_of(1)
-    fleet_res[0].should.have.key("FleetId").equals(fleet_id)
-    fleet_res[0].should.have.key("ExcessCapacityTerminationPolicy").equals(
-        "no-termination"
-    )
-    fleet_res[0].should.have.key("LaunchTemplateConfigs").equals([lt_config])
-    fleet_res[0].should.have.key("TargetCapacitySpecification").equals(
-        {
-            "DefaultTargetCapacityType": "on-demand",
-            "OnDemandTargetCapacity": 10,
-            "SpotTargetCapacity": 10,
-            "TotalTargetCapacity": 30,
-        }
-    )
-    fleet_res[0].should.have.key("SpotOptions").equals(
-        {
-            "AllocationStrategy": "lowest-price",
-            "InstanceInterruptionBehavior": "terminate",
-            "InstancePoolsToUseCount": 1,
-            "MaintenanceStrategies": {
-                "CapacityRebalance": {
-                    "ReplacementStrategy": "launch-before-terminate",
-                    "TerminationDelay": 120,
-                },
+    assert len(fleet_res) == 1
+    assert fleet_res[0]["FleetId"] == fleet_id
+    assert fleet_res[0]["ExcessCapacityTerminationPolicy"] == "no-termination"
+    assert fleet_res[0]["LaunchTemplateConfigs"] == [lt_config]
+    assert fleet_res[0]["TargetCapacitySpecification"] == {
+        "DefaultTargetCapacityType": "on-demand",
+        "OnDemandTargetCapacity": 10,
+        "SpotTargetCapacity": 10,
+        "TotalTargetCapacity": 30,
+    }
+    assert fleet_res[0]["SpotOptions"] == {
+        "AllocationStrategy": "lowest-price",
+        "InstanceInterruptionBehavior": "terminate",
+        "InstancePoolsToUseCount": 1,
+        "MaintenanceStrategies": {
+            "CapacityRebalance": {
+                "ReplacementStrategy": "launch-before-terminate",
+                "TerminationDelay": 120,
             },
-            "MaxTotalPrice": "50",
-            "MinTargetCapacity": 1,
-            "SingleAvailabilityZone": True,
-            "SingleInstanceType": True,
-        }
-    )
-    fleet_res[0].should.have.key("OnDemandOptions").equals(
-        {
-            "AllocationStrategy": "lowest-price",
-            "MaxTotalPrice": "50",
-            "MinTargetCapacity": 1,
-            "SingleAvailabilityZone": True,
-            "SingleInstanceType": True,
-        }
-    )
-    fleet_res[0].should.have.key("ReplaceUnhealthyInstances").equals(True)
-    fleet_res[0].should.have.key("TerminateInstancesWithExpiration").equals(True)
-    fleet_res[0].should.have.key("Type").equals("maintain")
-    fleet_res[0].should.have.key("ValidFrom")
-    fleet_res[0]["ValidFrom"].isoformat().should.equal("2020-01-01T00:00:00+00:00")
-    fleet_res[0].should.have.key("ValidUntil")
-    fleet_res[0]["ValidUntil"].isoformat().should.equal("2020-12-31T00:00:00+00:00")
+        },
+        "MaxTotalPrice": "50",
+        "MinTargetCapacity": 1,
+        "SingleAvailabilityZone": True,
+        "SingleInstanceType": True,
+    }
+    assert fleet_res[0]["OnDemandOptions"] == {
+        "AllocationStrategy": "lowest-price",
+        "MaxTotalPrice": "50",
+        "MinTargetCapacity": 1,
+        "SingleAvailabilityZone": True,
+        "SingleInstanceType": True,
+    }
+    assert fleet_res[0]["ReplaceUnhealthyInstances"] is True
+    assert fleet_res[0]["TerminateInstancesWithExpiration"] is True
+    assert fleet_res[0]["Type"] == "maintain"
+    assert "ValidFrom" in fleet_res[0]
+    assert fleet_res[0]["ValidFrom"].isoformat() == "2020-01-01T00:00:00+00:00"
+    assert "ValidUntil" in fleet_res[0]
+    assert fleet_res[0]["ValidUntil"].isoformat() == "2020-12-31T00:00:00+00:00"
