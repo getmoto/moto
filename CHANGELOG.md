@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.13
 ------
-Docker Digest for 4.1.13: <autopopulateddigest>
+Docker Digest for 4.1.13: _sha256:ec471bcfbf66def946466398f002e8edfbb667bde7b1d8033aedbdd4453fbb8e_
 
     General:
         * The ISO-regions introduced in 4.1.12 are now locked behind an environment variable: `MOTO_ENABLE_ISO_REGIONS`
