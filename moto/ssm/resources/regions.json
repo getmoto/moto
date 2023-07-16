@@ -8664,6 +8664,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ap-northeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -8770,6 +8779,15 @@
                 "Value": "marketplace",
                 "endpoint": {
                   "Value": "marketplace.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediaconnect": {
+                "Value": "mediaconnect",
+                "endpoint": {
+                  "Value": "mediaconnect.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -12035,6 +12053,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ap-south-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -18245,6 +18272,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ap-southeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -18534,6 +18570,15 @@
                 "Value": "sagemaker",
                 "endpoint": {
                   "Value": "api.sagemaker.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-featurestore-runtime": {
+                "Value": "sagemaker-featurestore-runtime",
+                "endpoint": {
+                  "Value": "featurestore-runtime.sagemaker.ap-southeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19297,6 +19342,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.ap-southeast-4.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -21097,6 +21151,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "managedblockchain": {
+                "Value": "managedblockchain",
+                "endpoint": {
+                  "Value": "managedblockchain.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "managedservices": {
                 "Value": "managedservices",
                 "endpoint": {
@@ -21140,6 +21203,15 @@
                 "Value": "medialive",
                 "endpoint": {
                   "Value": "medialive.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediapackage": {
+                "Value": "mediapackage",
+                "endpoint": {
+                  "Value": "mediapackage.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27728,6 +27800,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.eu-central-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -32112,6 +32193,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.eu-south-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40092,6 +40182,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "internetmonitor": {
+                "Value": "internetmonitor",
+                "endpoint": {
+                  "Value": "internetmonitor.me-central-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
