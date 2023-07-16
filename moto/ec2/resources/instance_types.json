@@ -58511,7 +58511,7 @@
    "EncryptionSupport": "supported",
    "NvmeSupport": "unsupported"
   },
-  "FreeTierEligible": true,
+  "FreeTierEligible": false,
   "HibernationSupported": false,
   "Hypervisor": "xen",
   "InstanceStorageSupported": false,
