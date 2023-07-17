@@ -1,6 +1,5 @@
 import boto3
 
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2, settings
 from unittest import SkipTest
 
@@ -13,7 +12,7 @@ def test_describe_nat_gateways():
 
     response = conn.describe_nat_gateways()
 
-    response["NatGateways"].should.have.length_of(0)
+    assert len(response["NatGateways"]) == 0
 
 
 @mock_ec2
@@ -29,9 +28,9 @@ def test_create_nat_gateway():
 
     response = conn.create_nat_gateway(SubnetId=subnet_id, AllocationId=allocation_id)
 
-    response["NatGateway"]["VpcId"].should.equal(vpc_id)
-    response["NatGateway"]["SubnetId"].should.equal(subnet_id)
-    response["NatGateway"]["State"].should.equal("available")
+    assert response["NatGateway"]["VpcId"] == vpc_id
+    assert response["NatGateway"]["SubnetId"] == subnet_id
+    assert response["NatGateway"]["State"] == "available"
 
 
 @mock_ec2
@@ -60,7 +59,7 @@ def test_describe_nat_gateway_tags():
     )["NatGateway"]
 
     describe_all = retrieve_all_gateways(conn)
-    [gw["VpcId"] for gw in describe_all].should.contain(vpc_id)
+    assert vpc_id in [gw["VpcId"] for gw in describe_all]
     describe_gateway = [gw for gw in describe_all if gw["VpcId"] == vpc_id]
 
     assert describe_gateway[0]["NatGatewayId"] == gateway["NatGatewayId"]
@@ -91,15 +90,13 @@ def test_delete_nat_gateway():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "NatGatewayId": nat_gateway_id,
-            "ResponseMetadata": {
-                "HTTPStatusCode": 200,
-                "RequestId": "741fc8ab-6ebe-452b-b92b-example",
-            },
-        }
-    )
+    assert response == {
+        "NatGatewayId": nat_gateway_id,
+        "ResponseMetadata": {
+            "HTTPStatusCode": 200,
+            "RequestId": "741fc8ab-6ebe-452b-b92b-example",
+        },
+    }
 
 
 @mock_ec2
@@ -127,17 +124,17 @@ def test_create_and_describe_nat_gateway():
 
     describe = conn.describe_nat_gateways(NatGatewayIds=[nat_gateway_id])["NatGateways"]
 
-    describe.should.have.length_of(1)
-    describe[0]["NatGatewayId"].should.equal(nat_gateway_id)
-    describe[0]["State"].should.equal("available")
-    describe[0]["SubnetId"].should.equal(subnet_id)
-    describe[0]["VpcId"].should.equal(vpc_id)
-    describe[0]["NatGatewayAddresses"][0]["AllocationId"].should.equal(allocation_id)
-    describe[0]["NatGatewayAddresses"][0]["NetworkInterfaceId"].should.equal(
-        net_interface_id
+    assert len(describe) == 1
+    assert describe[0]["NatGatewayId"] == nat_gateway_id
+    assert describe[0]["State"] == "available"
+    assert describe[0]["SubnetId"] == subnet_id
+    assert describe[0]["VpcId"] == vpc_id
+    assert describe[0]["NatGatewayAddresses"][0]["AllocationId"] == allocation_id
+    assert (
+        describe[0]["NatGatewayAddresses"][0]["NetworkInterfaceId"] == net_interface_id
     )
     assert describe[0]["NatGatewayAddresses"][0]["PrivateIp"].startswith("10.")
-    describe[0]["NatGatewayAddresses"][0]["PublicIp"].should.equal(public_ip)
+    assert describe[0]["NatGatewayAddresses"][0]["PublicIp"] == public_ip
 
 
 @mock_ec2
@@ -162,7 +159,7 @@ def test_describe_nat_gateway_filter_by_net_gateway_id_and_state():
             {"Name": "state", "Values": ["available"]},
         ]
     )
-    describe_response["NatGateways"].should.have.length_of(0)
+    assert len(describe_response["NatGateways"]) == 0
 
     describe_response = conn.describe_nat_gateways(
         Filters=[
@@ -171,14 +168,15 @@ def test_describe_nat_gateway_filter_by_net_gateway_id_and_state():
         ]
     )
 
-    describe_response["NatGateways"].should.have.length_of(1)
-    describe_response["NatGateways"][0]["NatGatewayId"].should.equal(nat_gateway_id)
-    describe_response["NatGateways"][0]["State"].should.equal("available")
-    describe_response["NatGateways"][0]["SubnetId"].should.equal(subnet_id)
-    describe_response["NatGateways"][0]["VpcId"].should.equal(vpc_id)
-    describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
-        "AllocationId"
-    ].should.equal(allocation_id)
+    assert len(describe_response["NatGateways"]) == 1
+    assert describe_response["NatGateways"][0]["NatGatewayId"] == nat_gateway_id
+    assert describe_response["NatGateways"][0]["State"] == "available"
+    assert describe_response["NatGateways"][0]["SubnetId"] == subnet_id
+    assert describe_response["NatGateways"][0]["VpcId"] == vpc_id
+    assert (
+        describe_response["NatGateways"][0]["NatGatewayAddresses"][0]["AllocationId"]
+        == allocation_id
+    )
 
 
 @mock_ec2
@@ -207,19 +205,20 @@ def test_describe_nat_gateway_filter_by_subnet_id():
 
     all_gws = retrieve_all_gateways(conn)
     all_gw_ids = [gw["NatGatewayId"] for gw in all_gws]
-    all_gw_ids.should.contain(nat_gateway_id_1)
+    assert nat_gateway_id_1 in all_gw_ids
 
     describe_response = conn.describe_nat_gateways(
         Filters=[{"Name": "subnet-id", "Values": [subnet_id_1]}]
     )
-    describe_response["NatGateways"].should.have.length_of(1)
-    describe_response["NatGateways"][0]["NatGatewayId"].should.equal(nat_gateway_id_1)
-    describe_response["NatGateways"][0]["State"].should.equal("available")
-    describe_response["NatGateways"][0]["SubnetId"].should.equal(subnet_id_1)
-    describe_response["NatGateways"][0]["VpcId"].should.equal(vpc_id)
-    describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
-        "AllocationId"
-    ].should.equal(allocation_id_1)
+    assert len(describe_response["NatGateways"]) == 1
+    assert describe_response["NatGateways"][0]["NatGatewayId"] == nat_gateway_id_1
+    assert describe_response["NatGateways"][0]["State"] == "available"
+    assert describe_response["NatGateways"][0]["SubnetId"] == subnet_id_1
+    assert describe_response["NatGateways"][0]["VpcId"] == vpc_id
+    assert (
+        describe_response["NatGateways"][0]["NatGatewayAddresses"][0]["AllocationId"]
+        == allocation_id_1
+    )
 
 
 @mock_ec2
@@ -249,14 +248,15 @@ def test_describe_nat_gateway_filter_vpc_id():
     describe_response = conn.describe_nat_gateways(
         Filters=[{"Name": "vpc-id", "Values": [vpc_id_1]}]
     )
-    describe_response["NatGateways"].should.have.length_of(1)
-    describe_response["NatGateways"][0]["NatGatewayId"].should.equal(nat_gateway_id_1)
-    describe_response["NatGateways"][0]["State"].should.equal("available")
-    describe_response["NatGateways"][0]["SubnetId"].should.equal(subnet_id_1)
-    describe_response["NatGateways"][0]["VpcId"].should.equal(vpc_id_1)
-    describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
-        "AllocationId"
-    ].should.equal(allocation_id_1)
+    assert len(describe_response["NatGateways"]) == 1
+    assert describe_response["NatGateways"][0]["NatGatewayId"] == nat_gateway_id_1
+    assert describe_response["NatGateways"][0]["State"] == "available"
+    assert describe_response["NatGateways"][0]["SubnetId"] == subnet_id_1
+    assert describe_response["NatGateways"][0]["VpcId"] == vpc_id_1
+    assert (
+        describe_response["NatGateways"][0]["NatGatewayAddresses"][0]["AllocationId"]
+        == allocation_id_1
+    )
 
 
 def retrieve_all_gateways(client, filters=[]):  # pylint: disable=W0102

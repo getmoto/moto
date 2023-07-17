@@ -3,7 +3,6 @@ import random
 
 import boto3
 from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -22,10 +21,11 @@ def test_elastic_network_interfaces():
 
     with pytest.raises(ClientError) as ex:
         ec2.create_network_interface(SubnetId=subnet.id, DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
     eni_id = ec2.create_network_interface(SubnetId=subnet.id).id
@@ -33,40 +33,37 @@ def test_elastic_network_interfaces():
     my_enis = client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
         "NetworkInterfaces"
     ]
-    my_enis.should.have.length_of(1)
+    assert len(my_enis) == 1
     eni = my_enis[0]
-    eni["Groups"].should.have.length_of(1)
-    eni["PrivateIpAddresses"].should.have.length_of(1)
-    eni["PrivateIpAddresses"][0]["PrivateIpAddress"].startswith("10.").should.be.true
+    assert len(eni["Groups"]) == 1
+    assert len(eni["PrivateIpAddresses"]) == 1
+    assert eni["PrivateIpAddresses"][0]["PrivateIpAddress"].startswith("10.") is True
 
     with pytest.raises(ClientError) as ex:
         client.delete_network_interface(NetworkInterfaceId=eni_id, DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DeleteNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the DeleteNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.delete_network_interface(NetworkInterfaceId=eni_id)
 
     all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    [eni["NetworkInterfaceId"] for eni in all_enis].shouldnt.contain(eni_id)
+    assert eni_id not in [eni["NetworkInterfaceId"] for eni in all_enis]
 
     with pytest.raises(ClientError) as ex:
         client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal(
-        "InvalidNetworkInterfaceID.NotFound"
-    )
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidNetworkInterfaceID.NotFound"
 
     with pytest.raises(ClientError) as ex:
         client.delete_network_interface(NetworkInterfaceId=eni_id)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal(
-        "InvalidNetworkInterfaceID.NotFound"
-    )
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidNetworkInterfaceID.NotFound"
 
 
 @mock_ec2
@@ -75,9 +72,9 @@ def test_elastic_network_interfaces_subnet_validation():
 
     with pytest.raises(ClientError) as ex:
         client.create_network_interface(SubnetId="subnet-abcd1234")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidSubnetID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidSubnetID.NotFound"
 
 
 @mock_ec2
@@ -92,17 +89,17 @@ def test_elastic_network_interfaces_with_private_ip():
     eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
 
     all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(eni.id)
+    assert eni.id in [eni["NetworkInterfaceId"] for eni in all_enis]
 
     my_enis = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])[
         "NetworkInterfaces"
     ]
 
     eni = my_enis[0]
-    eni["Groups"].should.have.length_of(1)
+    assert len(eni["Groups"]) == 1
 
-    eni["PrivateIpAddresses"].should.have.length_of(1)
-    eni["PrivateIpAddresses"][0]["PrivateIpAddress"].should.equal(private_ip)
+    assert len(eni["PrivateIpAddresses"]) == 1
+    assert eni["PrivateIpAddresses"][0]["PrivateIpAddress"] == private_ip
 
 
 @mock_ec2
@@ -118,24 +115,26 @@ def test_elastic_network_interfaces_with_groups():
     my_eni = subnet.create_network_interface(Groups=[sec_group1.id, sec_group2.id])
 
     all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(my_eni.id)
+    assert my_eni.id in [eni["NetworkInterfaceId"] for eni in all_enis]
 
     my_eni_description = [
         eni for eni in all_enis if eni["NetworkInterfaceId"] == my_eni.id
     ][0]
-    my_eni_description["Groups"].should.have.length_of(2)
-    set([group["GroupId"] for group in my_eni_description["Groups"]]).should.equal(
-        set([sec_group1.id, sec_group2.id])
-    )
+    assert len(my_eni_description["Groups"]) == 2
+    assert set([group["GroupId"] for group in my_eni_description["Groups"]]) == {
+        sec_group1.id,
+        sec_group2.id,
+    }
 
     eni_groups_attribute = client.describe_network_interface_attribute(
         NetworkInterfaceId=my_eni.id, Attribute="groupSet"
     ).get("Groups")
 
-    eni_groups_attribute.should.have.length_of(2)
-    set([group["GroupId"] for group in eni_groups_attribute]).should.equal(
-        set([sec_group1.id, sec_group2.id])
-    )
+    assert len(eni_groups_attribute) == 2
+    assert set([group["GroupId"] for group in eni_groups_attribute]) == {
+        sec_group1.id,
+        sec_group2.id,
+    }
 
 
 @mock_ec2
@@ -150,11 +149,11 @@ def test_elastic_network_interfaces_without_group():
     my_eni = subnet.create_network_interface()
 
     all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(my_eni.id)
+    assert my_eni.id in [eni["NetworkInterfaceId"] for eni in all_enis]
 
     my_eni = [eni for eni in all_enis if eni["NetworkInterfaceId"] == my_eni.id][0]
-    my_eni["Groups"].should.have.length_of(1)
-    my_eni["Groups"][0]["GroupName"].should.equal("default")
+    assert len(my_eni["Groups"]) == 1
+    assert my_eni["Groups"][0]["GroupName"] == "default"
 
 
 @mock_ec2
@@ -172,17 +171,18 @@ def test_elastic_network_interfaces_modify_attribute():
         "NetworkInterfaces"
     ][0]
 
-    my_eni["Groups"].should.have.length_of(1)
-    my_eni["Groups"][0]["GroupId"].should.equal(sec_group1.id)
+    assert len(my_eni["Groups"]) == 1
+    assert my_eni["Groups"][0]["GroupId"] == sec_group1.id
 
     with pytest.raises(ClientError) as ex:
         client.modify_network_interface_attribute(
             NetworkInterfaceId=eni_id, Groups=[sec_group2.id], DryRun=True
         )
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyNetworkInterfaceAttribute operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the ModifyNetworkInterfaceAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.modify_network_interface_attribute(
@@ -192,8 +192,8 @@ def test_elastic_network_interfaces_modify_attribute():
     my_eni = client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
         "NetworkInterfaces"
     ][0]
-    my_eni["Groups"].should.have.length_of(1)
-    my_eni["Groups"][0]["GroupId"].should.equal(sec_group2.id)
+    assert len(my_eni["Groups"]) == 1
+    assert my_eni["Groups"][0]["GroupId"] == sec_group2.id
 
 
 @mock_ec2
@@ -212,32 +212,33 @@ def test_elastic_network_interfaces_filtering():
     eni3 = subnet.create_network_interface(Description=str(uuid4()))
 
     all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(eni1.id)
-    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(eni2.id)
-    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(eni3.id)
+    assert eni1.id in [eni["NetworkInterfaceId"] for eni in all_enis]
+    assert eni2.id in [eni["NetworkInterfaceId"] for eni in all_enis]
+    assert eni3.id in [eni["NetworkInterfaceId"] for eni in all_enis]
 
     # Filter by NetworkInterfaceId
     enis_by_id = client.describe_network_interfaces(NetworkInterfaceIds=[eni1.id])[
         "NetworkInterfaces"
     ]
-    enis_by_id.should.have.length_of(1)
-    set([eni["NetworkInterfaceId"] for eni in enis_by_id]).should.equal(set([eni1.id]))
+    assert len(enis_by_id) == 1
+    assert [eni["NetworkInterfaceId"] for eni in enis_by_id] == [eni1.id]
 
     # Filter by ENI ID
     enis_by_id = client.describe_network_interfaces(
         Filters=[{"Name": "network-interface-id", "Values": [eni1.id]}]
     )["NetworkInterfaces"]
-    enis_by_id.should.have.length_of(1)
-    set([eni["NetworkInterfaceId"] for eni in enis_by_id]).should.equal(set([eni1.id]))
+    assert len(enis_by_id) == 1
+    assert [eni["NetworkInterfaceId"] for eni in enis_by_id] == [eni1.id]
 
     # Filter by Security Group
     enis_by_group = client.describe_network_interfaces(
         Filters=[{"Name": "group-id", "Values": [sec_group1.id]}]
     )["NetworkInterfaces"]
-    enis_by_group.should.have.length_of(2)
-    set([eni["NetworkInterfaceId"] for eni in enis_by_group]).should.equal(
-        set([eni1.id, eni2.id])
-    )
+    assert len(enis_by_group) == 2
+    assert set([eni["NetworkInterfaceId"] for eni in enis_by_group]) == {
+        eni1.id,
+        eni2.id,
+    }
 
     # Filter by ENI ID and Security Group
     enis_by_group = client.describe_network_interfaces(
@@ -246,25 +247,22 @@ def test_elastic_network_interfaces_filtering():
             {"Name": "group-id", "Values": [sec_group1.id]},
         ]
     )["NetworkInterfaces"]
-    enis_by_group.should.have.length_of(1)
-    set([eni["NetworkInterfaceId"] for eni in enis_by_group]).should.equal(
-        set([eni1.id])
-    )
+    assert len(enis_by_group) == 1
+    assert [eni["NetworkInterfaceId"] for eni in enis_by_group] == [eni1.id]
 
     # Filter by Description
     enis_by_description = client.describe_network_interfaces(
         Filters=[{"Name": "description", "Values": [eni3.description]}]
     )["NetworkInterfaces"]
-    enis_by_description.should.have.length_of(1)
-    enis_by_description[0]["Description"].should.equal(eni3.description)
+    assert len(enis_by_description) == 1
+    assert enis_by_description[0]["Description"] == eni3.description
 
     # Unsupported filter
     if not settings.TEST_SERVER_MODE:
         # ServerMode will just throw a generic 500
-        filters = [{"Name": "not-implemented-filter", "Values": ["foobar"]}]
-        client.describe_network_interfaces.when.called_with(
-            Filters=filters
-        ).should.throw(NotImplementedError)
+        with pytest.raises(NotImplementedError):
+            filters = [{"Name": "not-implemented-filter", "Values": ["foobar"]}]
+            client.describe_network_interfaces(Filters=filters)
 
 
 @mock_ec2
@@ -283,10 +281,11 @@ def test_elastic_network_interfaces_get_by_tag_name():
 
     with pytest.raises(ClientError) as ex:
         eni1.create_tags(Tags=[{"Key": "Name", "Value": "eni1"}], DryRun=True)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
     tag_value = str(uuid4())
@@ -298,11 +297,11 @@ def test_elastic_network_interfaces_get_by_tag_name():
 
     filters = [{"Name": "tag:Name", "Values": [tag_value]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(1)
+    assert len(enis) == 1
 
     filters = [{"Name": "tag:Name", "Values": ["wrong-name"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(0)
+    assert len(enis) == 0
 
 
 @mock_ec2
@@ -333,13 +332,13 @@ def test_elastic_network_interfaces_get_by_availability_zone():
 
     filters = [{"Name": "availability-zone", "Values": ["us-west-2a"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    [eni.id for eni in enis].should.contain(eni1.id)
-    [eni.id for eni in enis].shouldnt.contain(eni2.id)
+    assert eni1.id in [eni.id for eni in enis]
+    assert eni2.id not in [eni.id for eni in enis]
 
     filters = [{"Name": "availability-zone", "Values": ["us-west-2c"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    [eni.id for eni in enis].shouldnt.contain(eni1.id)
-    [eni.id for eni in enis].shouldnt.contain(eni2.id)
+    assert eni1.id not in [eni.id for eni in enis]
+    assert eni2.id not in [eni.id for eni in enis]
 
 
 @mock_ec2
@@ -361,19 +360,19 @@ def test_elastic_network_interfaces_get_by_private_ip():
 
     filters = [{"Name": "private-ip-address", "Values": [random_ip]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(1)
+    assert len(enis) == 1
 
     filters = [{"Name": "private-ip-address", "Values": ["10.0.10.10"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(0)
+    assert len(enis) == 0
 
     filters = [{"Name": "addresses.private-ip-address", "Values": [random_ip]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(1)
+    assert len(enis) == 1
 
     filters = [{"Name": "addresses.private-ip-address", "Values": ["10.0.10.10"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(0)
+    assert len(enis) == 0
 
 
 @mock_ec2
@@ -396,11 +395,11 @@ def test_elastic_network_interfaces_get_by_vpc_id():
 
     filters = [{"Name": "vpc-id", "Values": [subnet.vpc_id]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(1)
+    assert len(enis) == 1
 
     filters = [{"Name": "vpc-id", "Values": ["vpc-aaaa1111"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(0)
+    assert len(enis) == 0
 
 
 @mock_ec2
@@ -423,11 +422,11 @@ def test_elastic_network_interfaces_get_by_subnet_id():
 
     filters = [{"Name": "subnet-id", "Values": [subnet.id]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(1)
+    assert len(enis) == 1
 
     filters = [{"Name": "subnet-id", "Values": ["subnet-aaaa1111"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(0)
+    assert len(enis) == 0
 
 
 @mock_ec2
@@ -451,11 +450,11 @@ def test_elastic_network_interfaces_get_by_description():
 
     filters = [{"Name": "description", "Values": [eni1.description]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(1)
+    assert len(enis) == 1
 
     filters = [{"Name": "description", "Values": ["bad description"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(0)
+    assert len(enis) == 0
 
 
 @mock_ec2
@@ -480,7 +479,7 @@ def test_elastic_network_interfaces_get_by_attachment_instance_id():
     # we should have one ENI attached to our ec2 instance by default
     filters = [{"Name": "attachment.instance-id", "Values": [instance.id]}]
     enis = ec2_client.describe_network_interfaces(Filters=filters)
-    enis.get("NetworkInterfaces").should.have.length_of(1)
+    assert len(enis.get("NetworkInterfaces")) == 1
 
     # attach another ENI to our existing instance, total should be 2
     eni1 = ec2_resource.create_network_interface(
@@ -492,12 +491,12 @@ def test_elastic_network_interfaces_get_by_attachment_instance_id():
 
     filters = [{"Name": "attachment.instance-id", "Values": [instance.id]}]
     enis = ec2_client.describe_network_interfaces(Filters=filters)
-    enis.get("NetworkInterfaces").should.have.length_of(2)
+    assert len(enis.get("NetworkInterfaces")) == 2
 
     # we shouldn't find any ENIs that are attached to this fake instance ID
     filters = [{"Name": "attachment.instance-id", "Values": ["this-doesnt-match-lol"]}]
     enis = ec2_client.describe_network_interfaces(Filters=filters)
-    enis.get("NetworkInterfaces").should.have.length_of(0)
+    assert len(enis.get("NetworkInterfaces")) == 0
 
 
 @mock_ec2
@@ -529,7 +528,7 @@ def test_elastic_network_interfaces_get_by_attachment_instance_owner_id():
     filters = [{"Name": "attachment.instance-owner-id", "Values": [ACCOUNT_ID]}]
     enis = ec2_client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"]
     eni_ids = [eni["NetworkInterfaceId"] for eni in enis]
-    eni_ids.should.contain(eni1.id)
+    assert eni1.id in eni_ids
 
 
 @mock_ec2
@@ -562,72 +561,70 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
     response = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "network-interface-id", "Values": [eni1.id]}]
     )
-    response["NetworkInterfaces"].should.have.length_of(1)
-    response["NetworkInterfaces"][0]["NetworkInterfaceId"].should.equal(eni1.id)
-    response["NetworkInterfaces"][0]["PrivateIpAddress"].should.equal(
-        eni1.private_ip_address
-    )
-    response["NetworkInterfaces"][0]["Description"].should.equal(eni1.description)
+    assert len(response["NetworkInterfaces"]) == 1
+    interface = response["NetworkInterfaces"][0]
+    assert interface["NetworkInterfaceId"] == eni1.id
+    assert interface["PrivateIpAddress"] == eni1.private_ip_address
+    assert interface["Description"] == eni1.description
 
     # Filter by network-interface-id
     response = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "group-id", "Values": [sg_id]}]
     )
-    response["NetworkInterfaces"].should.have.length_of(1)
-    response["NetworkInterfaces"][0]["NetworkInterfaceId"].should.equal(eni1.id)
+    assert len(response["NetworkInterfaces"]) == 1
+    assert response["NetworkInterfaces"][0]["NetworkInterfaceId"] == eni1.id
 
     response = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "network-interface-id", "Values": ["bad-id"]}]
     )
-    response["NetworkInterfaces"].should.have.length_of(0)
+    assert len(response["NetworkInterfaces"]) == 0
 
     # Filter by private-ip-address
     response = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "private-ip-address", "Values": [eni1.private_ip_address]}]
     )
-    response["NetworkInterfaces"].should.have.length_of(1)
-    response["NetworkInterfaces"][0]["NetworkInterfaceId"].should.equal(eni1.id)
-    response["NetworkInterfaces"][0]["PrivateIpAddress"].should.equal(
-        eni1.private_ip_address
-    )
-    response["NetworkInterfaces"][0]["Description"].should.equal(eni1.description)
+    assert len(response["NetworkInterfaces"]) == 1
+    interface = response["NetworkInterfaces"][0]
+    assert interface["NetworkInterfaceId"] == eni1.id
+    assert interface["PrivateIpAddress"] == eni1.private_ip_address
+    assert interface["Description"] == eni1.description
 
     response = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "private-ip-address", "Values": ["11.11.11.11"]}]
     )
-    response["NetworkInterfaces"].should.have.length_of(0)
+    assert len(response["NetworkInterfaces"]) == 0
 
     # Filter by sunet-id
     response = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "subnet-id", "Values": [eni1.subnet.id]}]
     )
-    response["NetworkInterfaces"].should.have.length_of(1)
-    response["NetworkInterfaces"][0]["NetworkInterfaceId"].should.equal(eni1.id)
-    response["NetworkInterfaces"][0]["PrivateIpAddress"].should.equal(
-        eni1.private_ip_address
+    assert len(response["NetworkInterfaces"]) == 1
+    assert response["NetworkInterfaces"][0]["NetworkInterfaceId"] == eni1.id
+    assert (
+        response["NetworkInterfaces"][0]["PrivateIpAddress"] == eni1.private_ip_address
     )
-    response["NetworkInterfaces"][0]["Description"].should.equal(eni1.description)
+    assert response["NetworkInterfaces"][0]["Description"] == eni1.description
 
     response = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "subnet-id", "Values": ["sn-bad-id"]}]
     )
-    response["NetworkInterfaces"].should.have.length_of(0)
+    assert len(response["NetworkInterfaces"]) == 0
 
     # Filter by description
     response = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "description", "Values": [eni1.description]}]
     )
-    response["NetworkInterfaces"].should.have.length_of(1)
-    response["NetworkInterfaces"][0]["NetworkInterfaceId"].should.equal(eni1.id)
-    response["NetworkInterfaces"][0]["PrivateIpAddress"].should.equal(
-        eni1.private_ip_address
+    assert len(response["NetworkInterfaces"]) == 1
+    assert response["NetworkInterfaces"][0]["NetworkInterfaceId"] == eni1.id
+    assert (
+        response["NetworkInterfaces"][0]["PrivateIpAddress"] == eni1.private_ip_address
     )
-    response["NetworkInterfaces"][0]["Description"].should.equal(eni1.description)
+    assert response["NetworkInterfaces"][0]["Description"] == eni1.description
 
     response = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "description", "Values": ["bad description"]}]
     )
-    response["NetworkInterfaces"].should.have.length_of(0)
+    assert len(response["NetworkInterfaces"]) == 0
 
     # Filter by multiple filters
     response = ec2_client.describe_network_interfaces(
@@ -637,12 +634,12 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
             {"Name": "subnet-id", "Values": [eni1.subnet.id]},
         ]
     )
-    response["NetworkInterfaces"].should.have.length_of(1)
-    response["NetworkInterfaces"][0]["NetworkInterfaceId"].should.equal(eni1.id)
-    response["NetworkInterfaces"][0]["PrivateIpAddress"].should.equal(
-        eni1.private_ip_address
+    assert len(response["NetworkInterfaces"]) == 1
+    assert response["NetworkInterfaces"][0]["NetworkInterfaceId"] == eni1.id
+    assert (
+        response["NetworkInterfaces"][0]["PrivateIpAddress"] == eni1.private_ip_address
     )
-    response["NetworkInterfaces"][0]["Description"].should.equal(eni1.description)
+    assert response["NetworkInterfaces"][0]["Description"] == eni1.description
 
 
 @mock_ec2
@@ -689,24 +686,24 @@ def test_elastic_network_interfaces_filter_by_tag():
     resp = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "tag:environment", "Values": ["staging"]}]
     )
-    resp["NetworkInterfaces"].should.have.length_of(0)
+    assert len(resp["NetworkInterfaces"]) == 0
 
     resp = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "tag:environment", "Values": [dev_env]}]
     )
-    resp["NetworkInterfaces"].should.have.length_of(1)
-    resp["NetworkInterfaces"][0]["Description"].should.equal("dev interface")
+    assert len(resp["NetworkInterfaces"]) == 1
+    assert resp["NetworkInterfaces"][0]["Description"] == "dev interface"
 
     resp = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "tag:environment", "Values": [prod_env]}]
     )
-    resp["NetworkInterfaces"].should.have.length_of(1)
-    resp["NetworkInterfaces"][0]["Description"].should.equal("prod interface")
+    assert len(resp["NetworkInterfaces"]) == 1
+    assert resp["NetworkInterfaces"][0]["Description"] == "prod interface"
 
     resp = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "tag:environment", "Values": [dev_env, prod_env]}]
     )
-    resp["NetworkInterfaces"].should.have.length_of(2)
+    assert len(resp["NetworkInterfaces"]) == 2
 
 
 @mock_ec2
@@ -729,10 +726,10 @@ def test_elastic_network_interfaces_auto_create_securitygroup():
 
     sgs = ec2_client.describe_security_groups()["SecurityGroups"]
     found_sg = [sg for sg in sgs if sg["GroupId"] == "testgroup"]
-    found_sg.should.have.length_of(1)
+    assert len(found_sg) == 1
 
-    found_sg[0]["GroupName"].should.equal("testgroup")
-    found_sg[0]["Description"].should.equal("testgroup")
+    assert found_sg[0]["GroupName"] == "testgroup"
+    assert found_sg[0]["Description"] == "testgroup"
 
 
 @mock_ec2
@@ -749,10 +746,10 @@ def test_assign_private_ip_addresses__by_address():
 
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     resp_eni = resp["NetworkInterfaces"][0]
-    resp_eni.should.have.key("PrivateIpAddress").equals(primary_ip)
-    resp_eni.should.have.key("PrivateIpAddresses").equals(
-        [{"Primary": True, "PrivateIpAddress": primary_ip}]
-    )
+    assert resp_eni["PrivateIpAddress"] == primary_ip
+    assert resp_eni["PrivateIpAddresses"] == [
+        {"Primary": True, "PrivateIpAddress": primary_ip}
+    ]
 
     # Pass IP address to assign rather than SecondaryPrivateIpAddressCount.
     client.assign_private_ip_addresses(
@@ -762,13 +759,11 @@ def test_assign_private_ip_addresses__by_address():
     # Verify secondary IP address is now present.
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     resp_eni = resp["NetworkInterfaces"][0]
-    resp_eni.should.have.key("PrivateIpAddress").equals(primary_ip)
-    resp_eni.should.have.key("PrivateIpAddresses").equals(
-        [
-            {"Primary": True, "PrivateIpAddress": primary_ip},
-            {"Primary": False, "PrivateIpAddress": secondary_ip},
-        ]
-    )
+    assert resp_eni["PrivateIpAddress"] == primary_ip
+    assert resp_eni["PrivateIpAddresses"] == [
+        {"Primary": True, "PrivateIpAddress": primary_ip},
+        {"Primary": False, "PrivateIpAddress": secondary_ip},
+    ]
 
     # Assign the same IP address, this time via the ENI object.
     eni.assign_private_ip_addresses(PrivateIpAddresses=[secondary_ip])
@@ -776,13 +771,11 @@ def test_assign_private_ip_addresses__by_address():
     # Verify nothing changes.
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     resp_eni = resp["NetworkInterfaces"][0]
-    resp_eni.should.have.key("PrivateIpAddress").equals(primary_ip)
-    resp_eni.should.have.key("PrivateIpAddresses").equals(
-        [
-            {"Primary": True, "PrivateIpAddress": primary_ip},
-            {"Primary": False, "PrivateIpAddress": secondary_ip},
-        ]
-    )
+    assert resp_eni["PrivateIpAddress"] == primary_ip
+    assert resp_eni["PrivateIpAddresses"] == [
+        {"Primary": True, "PrivateIpAddress": primary_ip},
+        {"Primary": False, "PrivateIpAddress": secondary_ip},
+    ]
 
 
 @mock_ec2
@@ -804,14 +797,14 @@ def test_assign_private_ip_addresses__with_secondary_count():
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]
 
-    my_eni.should.have.key("PrivateIpAddress").equals("54.0.0.1")
-    my_eni.should.have.key("PrivateIpAddresses").should.have.length_of(3)
-    my_eni.should.have.key("PrivateIpAddresses").contain(
-        {"Primary": True, "PrivateIpAddress": "54.0.0.1"}
-    )
+    assert my_eni["PrivateIpAddress"] == "54.0.0.1"
+    assert len(my_eni["PrivateIpAddresses"]) == 3
+    assert {"Primary": True, "PrivateIpAddress": "54.0.0.1"} in my_eni[
+        "PrivateIpAddresses"
+    ]
 
     # Not as ipv6 addresses though
-    my_eni.should.have.key("Ipv6Addresses").equals([])
+    assert my_eni["Ipv6Addresses"] == []
 
 
 @mock_ec2
@@ -833,20 +826,20 @@ def test_unassign_private_ip_addresses():
     ips_before = [addr["PrivateIpAddress"] for addr in my_eni["PrivateIpAddresses"]]
 
     # Remove IP
-    resp = client.unassign_private_ip_addresses(
+    client.unassign_private_ip_addresses(
         NetworkInterfaceId=eni.id, PrivateIpAddresses=[ips_before[1]]
     )
 
     # Verify it's gone
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]
-    my_eni.should.have.key("PrivateIpAddresses").should.have.length_of(2)
-    my_eni.should.have.key("PrivateIpAddresses").contain(
-        {"Primary": True, "PrivateIpAddress": "54.0.0.1"}
-    )
-    my_eni.should.have.key("PrivateIpAddresses").contain(
-        {"Primary": False, "PrivateIpAddress": ips_before[2]}
-    )
+    assert len(my_eni["PrivateIpAddresses"]) == 2
+    assert {"Primary": True, "PrivateIpAddress": "54.0.0.1"} in my_eni[
+        "PrivateIpAddresses"
+    ]
+    assert {"Primary": False, "PrivateIpAddress": ips_before[2]} in my_eni[
+        "PrivateIpAddresses"
+    ]
 
 
 @mock_ec2
@@ -868,26 +861,26 @@ def test_unassign_private_ip_addresses__multiple():
     ips_before = [addr["PrivateIpAddress"] for addr in my_eni["PrivateIpAddresses"]]
 
     # Remove IP
-    resp = client.unassign_private_ip_addresses(
+    client.unassign_private_ip_addresses(
         NetworkInterfaceId=eni.id, PrivateIpAddresses=[ips_before[1], ips_before[2]]
     )
 
     # Verify it's gone
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]
-    my_eni.should.have.key("PrivateIpAddresses").should.have.length_of(4)
-    my_eni.should.have.key("PrivateIpAddresses").contain(
-        {"Primary": True, "PrivateIpAddress": "54.0.0.1"}
-    )
-    my_eni.should.have.key("PrivateIpAddresses").contain(
-        {"Primary": False, "PrivateIpAddress": ips_before[3]}
-    )
-    my_eni.should.have.key("PrivateIpAddresses").contain(
-        {"Primary": False, "PrivateIpAddress": ips_before[4]}
-    )
-    my_eni.should.have.key("PrivateIpAddresses").contain(
-        {"Primary": False, "PrivateIpAddress": ips_before[5]}
-    )
+    assert len(my_eni["PrivateIpAddresses"]) == 4
+    assert {"Primary": True, "PrivateIpAddress": "54.0.0.1"} in my_eni[
+        "PrivateIpAddresses"
+    ]
+    assert {"Primary": False, "PrivateIpAddress": ips_before[3]} in my_eni[
+        "PrivateIpAddresses"
+    ]
+    assert {"Primary": False, "PrivateIpAddress": ips_before[4]} in my_eni[
+        "PrivateIpAddresses"
+    ]
+    assert {"Primary": False, "PrivateIpAddress": ips_before[5]} in my_eni[
+        "PrivateIpAddresses"
+    ]
 
 
 @mock_ec2
@@ -906,7 +899,7 @@ def test_assign_ipv6_addresses__by_address():
     )
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]
-    my_eni.should.have.key("Ipv6Addresses").equals([{"Ipv6Address": ipv6_orig}])
+    assert my_eni["Ipv6Addresses"] == [{"Ipv6Address": ipv6_orig}]
 
     client.assign_ipv6_addresses(
         NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2, ipv6_3]
@@ -914,10 +907,10 @@ def test_assign_ipv6_addresses__by_address():
 
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]
-    my_eni.should.have.key("Ipv6Addresses").length_of(3)
-    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_orig})
-    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_2})
-    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_3})
+    assert len(my_eni["Ipv6Addresses"]) == 3
+    assert {"Ipv6Address": ipv6_orig} in my_eni["Ipv6Addresses"]
+    assert {"Ipv6Address": ipv6_2} in my_eni["Ipv6Addresses"]
+    assert {"Ipv6Address": ipv6_3} in my_eni["Ipv6Addresses"]
 
 
 @mock_ec2
@@ -939,8 +932,8 @@ def test_assign_ipv6_addresses__by_count():
 
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]
-    my_eni.should.have.key("Ipv6Addresses").length_of(4)
-    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_orig})
+    assert len(my_eni["Ipv6Addresses"]) == 4
+    assert {"Ipv6Address": ipv6_orig} in my_eni["Ipv6Addresses"]
 
 
 @mock_ec2
@@ -967,10 +960,10 @@ def test_assign_ipv6_addresses__by_address_and_count():
 
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]
-    my_eni.should.have.key("Ipv6Addresses").length_of(5)
-    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_orig})
-    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_2})
-    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_3})
+    assert len(my_eni["Ipv6Addresses"]) == 5
+    assert {"Ipv6Address": ipv6_orig} in my_eni["Ipv6Addresses"]
+    assert {"Ipv6Address": ipv6_2} in my_eni["Ipv6Addresses"]
+    assert {"Ipv6Address": ipv6_3} in my_eni["Ipv6Addresses"]
 
 
 @mock_ec2
@@ -998,9 +991,9 @@ def test_unassign_ipv6_addresses():
 
     resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]
-    my_eni.should.have.key("Ipv6Addresses").length_of(2)
-    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_orig})
-    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_3})
+    assert len(my_eni["Ipv6Addresses"]) == 2
+    assert {"Ipv6Address": ipv6_orig} in my_eni["Ipv6Addresses"]
+    assert {"Ipv6Address": ipv6_3} in my_eni["Ipv6Addresses"]
 
 
 @mock_ec2
@@ -1022,35 +1015,37 @@ def test_elastic_network_interfaces_describe_attachment():
     my_eni_attachment = client.describe_network_interface_attribute(
         NetworkInterfaceId=eni_id, Attribute="attachment"
     ).get("Attachment")
-    my_eni_attachment["InstanceId"].should.equal(instance_id)
-    my_eni_attachment["DeleteOnTermination"].should.equal(False)
+    assert my_eni_attachment["InstanceId"] == instance_id
+    assert my_eni_attachment["DeleteOnTermination"] is False
 
     with pytest.raises(ClientError) as ex:
         client.describe_network_interface_attribute(
             NetworkInterfaceId=eni_id, Attribute="attach"
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "Value (attach) for parameter attribute is invalid. Unknown attribute."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Value (attach) for parameter attribute is invalid. Unknown attribute."
     )
 
     with pytest.raises(ClientError) as ex:
         client.describe_network_interface_attribute(
             NetworkInterfaceId=eni_id, Attribute="attachment", DryRun=True
         )
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DescribeNetworkInterfaceAttribute operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the DescribeNetworkInterfaceAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
     my_eni_description = client.describe_network_interface_attribute(
         NetworkInterfaceId=eni_id, Attribute="description"
     ).get("Description")
-    my_eni_description["Value"].should.be.equal("A network interface")
+    assert my_eni_description["Value"] == "A network interface"
 
     my_eni_source_dest_check = client.describe_network_interface_attribute(
         NetworkInterfaceId=eni_id, Attribute="sourceDestCheck"
     ).get("SourceDestCheck")
-    my_eni_source_dest_check["Value"].should.be.equal(True)
+    assert my_eni_source_dest_check["Value"] is True

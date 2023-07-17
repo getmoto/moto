@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from botocore.exceptions import ClientError
@@ -20,16 +19,17 @@ def test_instance_create_tags():
         instance.create_tags(
             Tags=[{"Key": "a key", "Value": "some value"}], DryRun=True
         )
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
     instance.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
     existing_instances = retrieve_all_instances(client)
     ours = [i for i in existing_instances if i["InstanceId"] == instance.id][0]
-    ours["Tags"].should.equal([{"Key": "a key", "Value": "some value"}])
+    assert ours["Tags"] == [{"Key": "a key", "Value": "some value"}]
 
 
 @mock_ec2
@@ -40,37 +40,31 @@ def test_instance_delete_tags():
 
     instance.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
 
-    tags = client.describe_tags(
-        Filters=[{"Name": "resource-id", "Values": [instance.id]}]
-    )["Tags"]
+    instance_filters = [{"Name": "resource-id", "Values": [instance.id]}]
+    tags = client.describe_tags(Filters=instance_filters)["Tags"]
     tag = tags[0]
-    tag.should.have.key("Key").equal("a key")
-    tag.should.have.key("Value").equal("some value")
+    assert tag["Key"] == "a key"
+    assert tag["Value"] == "some value"
 
     with pytest.raises(ClientError) as ex:
         instance.delete_tags(DryRun=True)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DeleteTags operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the DeleteTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
     # Specifying key only
     instance.delete_tags(Tags=[{"Key": "a key"}])
-    client.describe_tags(Filters=[{"Name": "resource-id", "Values": [instance.id]}])[
-        "Tags"
-    ].should.have.length_of(0)
+    assert len(client.describe_tags(Filters=instance_filters)["Tags"]) == 0
 
     instance.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
-    client.describe_tags(Filters=[{"Name": "resource-id", "Values": [instance.id]}])[
-        "Tags"
-    ].should.have.length_of(1)
+    assert len(client.describe_tags(Filters=instance_filters)["Tags"]) == 1
 
     # Specifying key and value
     instance.delete_tags(Tags=[{"Key": "a key", "Value": "some value"}])
-    client.describe_tags(Filters=[{"Name": "resource-id", "Values": [instance.id]}])[
-        "Tags"
-    ].should.have.length_of(0)
+    assert len(client.describe_tags(Filters=instance_filters)["Tags"]) == 0
 
 
 @mock_ec2
@@ -85,8 +79,8 @@ def test_get_all_tags_with_special_characters():
     tag = client.describe_tags(Filters=[{"Name": "key", "Values": [tag_key]}])["Tags"][
         0
     ]
-    tag.should.have.key("Key").equal(tag_key)
-    tag.should.have.key("Value").equal("some<> value")
+    assert tag["Key"] == tag_key
+    assert tag["Value"] == "some<> value"
 
 
 @mock_ec2
@@ -102,26 +96,25 @@ def test_create_tags():
 
     with pytest.raises(ClientError) as ex:
         client.create_tags(Resources=[instance.id], Tags=tag_list, DryRun=True)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.create_tags(Resources=[instance.id], Tags=tag_list)
     tags = client.describe_tags(
         Filters=[{"Name": "resource-id", "Values": [instance.id]}]
     )["Tags"]
-    tags.should.have.length_of(3)
+    assert len(tags) == 3
     for expected_tag in tag_list:
-        tags.should.contain(
-            {
-                "Key": expected_tag["Key"],
-                "ResourceId": instance.id,
-                "ResourceType": "instance",
-                "Value": expected_tag["Value"],
-            }
-        )
+        assert {
+            "Key": expected_tag["Key"],
+            "ResourceId": instance.id,
+            "ResourceType": "instance",
+            "Value": expected_tag["Value"],
+        } in tags
 
 
 @mock_ec2
@@ -135,23 +128,23 @@ def test_tag_limit_exceeded():
 
     with pytest.raises(ClientError) as ex:
         client.create_tags(Resources=[instance.id], Tags=tag_list)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("TagLimitExceeded")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "TagLimitExceeded"
 
     instance.create_tags(Tags=[{"Key": "a key", "Value": "a value"}])
     with pytest.raises(ClientError) as ex:
         client.create_tags(Resources=[instance.id], Tags=tag_list)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("TagLimitExceeded")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "TagLimitExceeded"
 
     tags = client.describe_tags(
         Filters=[{"Name": "resource-id", "Values": [instance.id]}]
     )["Tags"]
-    tags.should.have.length_of(1)
-    tags[0].should.have.key("Key").equal("a key")
-    tags[0].should.have.key("Value").equal("a value")
+    assert len(tags) == 1
+    assert tags[0]["Key"] == "a key"
+    assert tags[0]["Value"] == "a value"
 
 
 @mock_ec2
@@ -161,17 +154,17 @@ def test_invalid_id():
         client.create_tags(
             Resources=["ami-blah"], Tags=[{"Key": "key", "Value": "tag"}]
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidID")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidID"
 
     with pytest.raises(ClientError) as ex:
         client.create_tags(
             Resources=["blah-blah"], Tags=[{"Key": "key", "Value": "tag"}]
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidID")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidID"
 
 
 @mock_ec2
@@ -195,15 +188,15 @@ def test_get_all_tags_resource_filter():
     our_tags = client.describe_tags(
         Filters=[{"Name": "resource-id", "Values": [instance.id]}]
     )["Tags"]
-    our_tags.should.equal([expected])
+    assert our_tags == [expected]
     instances = client.describe_tags(
         Filters=[{"Name": "resource-type", "Values": ["instance"]}]
     )["Tags"]
-    instances.should.contain(expected)
+    assert expected in instances
     tags = client.describe_tags(Filters=[{"Name": "key", "Values": [inst_tag_key]}])[
         "Tags"
     ]
-    tags.should.equal([expected])
+    assert tags == [expected]
 
     expected = {
         "Key": "an image key",
@@ -214,16 +207,16 @@ def test_get_all_tags_resource_filter():
     my_image = client.describe_tags(
         Filters=[{"Name": "resource-id", "Values": [image.id]}]
     )["Tags"]
-    my_image.should.equal([expected])
+    assert my_image == [expected]
     all_images = client.describe_tags(
         Filters=[{"Name": "resource-type", "Values": ["image"]}]
     )["Tags"]
-    all_images.should.contain(expected)
+    assert expected in all_images
 
     tags = client.describe_tags(
         Filters=[{"Name": "resource-type", "Values": ["unknown"]}]
     )["Tags"]
-    tags.should.equal([])
+    assert tags == []
 
 
 @mock_ec2
@@ -253,7 +246,7 @@ def test_get_all_tags_value_filter():
         tags = retrieve_all_tagged(client, filters)
         actual = set([t["ResourceId"] for t in tags])
         for e in expected:
-            actual.should.contain(e)
+            assert e in actual
 
     filter_by_value("some value", [instance_a.id, image.id])
     filter_by_value("some*value", [instance_a.id, instance_b.id, image.id])
@@ -276,9 +269,9 @@ def test_retrieved_instances_must_contain_their_tags():
 
     all_instances = retrieve_all_instances(client)
     ours = [i for i in all_instances if i["InstanceId"] == instance.id]
-    ours.should.have.length_of(1)
-    ours[0]["InstanceId"].should.equal(instance.id)
-    ours[0].shouldnt.have.key("Tags")
+    assert len(ours) == 1
+    assert ours[0]["InstanceId"] == instance.id
+    assert "Tags" not in ours[0]
 
     client.create_tags(Resources=[instance.id], Tags=[tags_to_be_set])
 
@@ -287,7 +280,7 @@ def test_retrieved_instances_must_contain_their_tags():
     retrieved_tags = ours[0]["Tags"]
 
     # Check whether tag is present with correct value
-    retrieved_tags.should.equal([{"Key": tag_key, "Value": tag_value}])
+    assert retrieved_tags == [{"Key": tag_key, "Value": tag_value}]
 
 
 @mock_ec2
@@ -299,12 +292,12 @@ def test_retrieved_volumes_must_contain_their_tags():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     volume = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
-    volume.tags.should.equal(None)
+    assert volume.tags is None
 
     client.create_tags(Resources=[volume.id], Tags=[tags_to_be_set])
 
     volume.reload()
-    volume.tags.should.equal([{"Key": tag_key, "Value": tag_value}])
+    assert volume.tags == [{"Key": tag_key, "Value": tag_value}]
 
 
 @mock_ec2
@@ -321,7 +314,7 @@ def test_retrieved_snapshots_must_contain_their_tags():
     client.create_tags(Resources=[snapshot.id], Tags=[tags_to_be_set])
 
     snapshot = client.describe_snapshots(SnapshotIds=[snapshot.id])["Snapshots"][0]
-    snapshot["Tags"].should.equal([{"Key": tag_key, "Value": tag_value}])
+    assert snapshot["Tags"] == [{"Key": tag_key, "Value": tag_value}]
 
 
 @mock_ec2
@@ -338,20 +331,20 @@ def test_filter_instances_by_wildcard_tags():
     res = client.describe_instances(
         Filters=[{"Name": "tag:Key1", "Values": ["Value*"]}]
     )
-    res["Reservations"][0]["Instances"].should.have.length_of(2)
+    assert len(res["Reservations"][0]["Instances"]) == 2
 
     res = client.describe_instances(Filters=[{"Name": "tag-key", "Values": ["Key*"]}])
-    res["Reservations"][0]["Instances"].should.have.length_of(2)
+    assert len(res["Reservations"][0]["Instances"]) == 2
 
     res = client.describe_instances(
         Filters=[{"Name": "tag-value", "Values": ["Value*"]}]
     )
-    res["Reservations"][0]["Instances"].should.have.length_of(2)
+    assert len(res["Reservations"][0]["Instances"]) == 2
 
     res = client.describe_instances(
         Filters=[{"Name": "tag-value", "Values": ["Value2*"]}]
     )
-    res["Reservations"][0]["Instances"].should.have.length_of(1)
+    assert len(res["Reservations"][0]["Instances"]) == 1
 
 
 @mock_ec2
@@ -417,8 +410,8 @@ def test_create_volume_without_tags():
             ],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal("Tag specification must have at least one tag")
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == "Tag specification must have at least one tag"
 
 
 @mock_ec2
@@ -428,9 +421,10 @@ def test_create_tag_empty_resource():
     # create tag with empty resource
     with pytest.raises(ClientError) as ex:
         client.create_tags(Resources=[], Tags=[{"Key": "Value"}])
-    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
-    ex.value.response["Error"]["Message"].should.equal(
-        "The request must contain the parameter resourceIdSet"
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The request must contain the parameter resourceIdSet"
     )
 
 
@@ -441,9 +435,10 @@ def test_delete_tag_empty_resource():
     # delete tag with empty resource
     with pytest.raises(ClientError) as ex:
         client.delete_tags(Resources=[], Tags=[{"Key": "Value"}])
-    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
-    ex.value.response["Error"]["Message"].should.equal(
-        "The request must contain the parameter resourceIdSet"
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The request must contain the parameter resourceIdSet"
     )
 
 
@@ -468,9 +463,9 @@ def test_retrieve_resource_with_multiple_tags():
         ],
     )
     green_instances = list(ec2.instances.filter(Filters=(get_filter(tag_val2))))
-    green_instances.should.equal([green])
+    assert green_instances == [green]
     blue_instances = list(ec2.instances.filter(Filters=(get_filter(tag_val1))))
-    blue_instances.should.equal([blue])
+    assert blue_instances == [blue]
 
 
 def get_filter(tag_val):

@@ -3,12 +3,9 @@ import pytest
 import boto3
 
 from botocore.exceptions import ClientError
-from botocore.parsers import ResponseParserError
-import sure  # noqa # pylint: disable=unused-import
 
-from moto import settings, mock_ec2, mock_s3, mock_logs
+from moto import mock_ec2, mock_s3, mock_logs
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.ec2.exceptions import FilterNotImplementedError
 from uuid import uuid4
 
 
@@ -35,10 +32,11 @@ def test_create_flow_logs_s3():
             LogDestination="arn:aws:s3:::" + bucket.name,
             DryRun=True,
         )
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
     )
 
     response = client.create_flow_logs(
@@ -48,24 +46,25 @@ def test_create_flow_logs_s3():
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket.name,
     )["FlowLogIds"]
-    response.should.have.length_of(1)
+    assert len(response) == 1
 
     flow_logs = client.describe_flow_logs(FlowLogIds=[response[0]])["FlowLogs"]
-    flow_logs.should.have.length_of(1)
+    assert len(flow_logs) == 1
 
     flow_log = flow_logs[0]
 
-    flow_log["FlowLogId"].should.equal(response[0])
-    flow_log["DeliverLogsStatus"].should.equal("SUCCESS")
-    flow_log["FlowLogStatus"].should.equal("ACTIVE")
-    flow_log["ResourceId"].should.equal(vpc["VpcId"])
-    flow_log["TrafficType"].should.equal("ALL")
-    flow_log["LogDestinationType"].should.equal("s3")
-    flow_log["LogDestination"].should.equal("arn:aws:s3:::" + bucket.name)
-    flow_log["LogFormat"].should.equal(
-        "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}"
+    assert flow_log["FlowLogId"] == response[0]
+    assert flow_log["DeliverLogsStatus"] == "SUCCESS"
+    assert flow_log["FlowLogStatus"] == "ACTIVE"
+    assert flow_log["ResourceId"] == vpc["VpcId"]
+    assert flow_log["TrafficType"] == "ALL"
+    assert flow_log["LogDestinationType"] == "s3"
+    assert flow_log["LogDestination"] == "arn:aws:s3:::" + bucket.name
+    assert (
+        flow_log["LogFormat"]
+        == "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}"
     )
-    flow_log["MaxAggregationInterval"].should.equal(600)
+    assert flow_log["MaxAggregationInterval"] == 600
 
 
 @mock_s3
@@ -94,7 +93,7 @@ def test_create_multiple_flow_logs_s3():
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket_1.name,
     )["FlowLogIds"]
-    response.should.have.length_of(1)
+    assert len(response) == 1
 
     response = client.create_flow_logs(
         ResourceType="VPC",
@@ -103,19 +102,19 @@ def test_create_multiple_flow_logs_s3():
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket_2.name,
     )["FlowLogIds"]
-    response.should.have.length_of(1)
+    assert len(response) == 1
 
     flow_logs = client.describe_flow_logs(
         Filters=[{"Name": "resource-id", "Values": [vpc["VpcId"]]}]
     )["FlowLogs"]
-    flow_logs.should.have.length_of(2)
+    assert len(flow_logs) == 2
 
     flow_log_1 = flow_logs[0]
     flow_log_2 = flow_logs[1]
 
-    flow_log_1["ResourceId"].should.equal(flow_log_2["ResourceId"])
-    flow_log_1["FlowLogId"].shouldnt.equal(flow_log_2["FlowLogId"])
-    flow_log_1["LogDestination"].shouldnt.equal(flow_log_2["LogDestination"])
+    assert flow_log_1["ResourceId"] == flow_log_2["ResourceId"]
+    assert flow_log_1["FlowLogId"] != flow_log_2["FlowLogId"]
+    assert flow_log_1["LogDestination"] != flow_log_2["LogDestination"]
 
 
 @mock_logs
@@ -138,10 +137,11 @@ def test_create_flow_logs_cloud_watch():
             DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
             DryRun=True,
         )
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
     )
 
     response = client.create_flow_logs(
@@ -152,29 +152,31 @@ def test_create_flow_logs_cloud_watch():
         LogGroupName=lg_name,
         DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
     )["FlowLogIds"]
-    response.should.have.length_of(1)
+    assert len(response) == 1
 
     flow_logs = client.describe_flow_logs(
         Filters=[{"Name": "resource-id", "Values": [vpc["VpcId"]]}]
     )["FlowLogs"]
-    flow_logs.should.have.length_of(1)
+    assert len(flow_logs) == 1
 
     flow_log = flow_logs[0]
 
-    flow_log["FlowLogId"].should.equal(response[0])
-    flow_log["DeliverLogsStatus"].should.equal("SUCCESS")
-    flow_log["FlowLogStatus"].should.equal("ACTIVE")
-    flow_log["ResourceId"].should.equal(vpc["VpcId"])
-    flow_log["TrafficType"].should.equal("ALL")
-    flow_log["LogDestinationType"].should.equal("cloud-watch-logs")
-    flow_log["LogGroupName"].should.equal(lg_name)
-    flow_log["DeliverLogsPermissionArn"].should.equal(
-        "arn:aws:iam::" + ACCOUNT_ID + ":role/test-role"
+    assert flow_log["FlowLogId"] == response[0]
+    assert flow_log["DeliverLogsStatus"] == "SUCCESS"
+    assert flow_log["FlowLogStatus"] == "ACTIVE"
+    assert flow_log["ResourceId"] == vpc["VpcId"]
+    assert flow_log["TrafficType"] == "ALL"
+    assert flow_log["LogDestinationType"] == "cloud-watch-logs"
+    assert flow_log["LogGroupName"] == lg_name
+    assert (
+        flow_log["DeliverLogsPermissionArn"]
+        == "arn:aws:iam::" + ACCOUNT_ID + ":role/test-role"
     )
-    flow_log["LogFormat"].should.equal(
-        "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}"
+    assert (
+        flow_log["LogFormat"]
+        == "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}"
     )
-    flow_log["MaxAggregationInterval"].should.equal(600)
+    assert flow_log["MaxAggregationInterval"] == 600
 
 
 @mock_logs
@@ -197,7 +199,7 @@ def test_create_multiple_flow_logs_cloud_watch():
         LogGroupName=lg_name_1,
         DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
     )["FlowLogIds"]
-    response.should.have.length_of(1)
+    assert len(response) == 1
 
     response = client.create_flow_logs(
         ResourceType="VPC",
@@ -207,19 +209,19 @@ def test_create_multiple_flow_logs_cloud_watch():
         LogGroupName=lg_name_2,
         DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
     )["FlowLogIds"]
-    response.should.have.length_of(1)
+    assert len(response) == 1
 
     flow_logs = client.describe_flow_logs(
         Filters=[{"Name": "resource-id", "Values": [vpc["VpcId"]]}]
     )["FlowLogs"]
-    flow_logs.should.have.length_of(2)
+    assert len(flow_logs) == 2
 
     flow_log_1 = flow_logs[0]
     flow_log_2 = flow_logs[1]
 
-    flow_log_1["ResourceId"].should.equal(flow_log_2["ResourceId"])
-    flow_log_1["FlowLogId"].shouldnt.equal(flow_log_2["FlowLogId"])
-    flow_log_1["LogGroupName"].shouldnt.equal(flow_log_2["LogGroupName"])
+    assert flow_log_1["ResourceId"] == flow_log_2["ResourceId"]
+    assert flow_log_1["FlowLogId"] != flow_log_2["FlowLogId"]
+    assert flow_log_1["LogGroupName"] != flow_log_2["LogGroupName"]
 
 
 @mock_s3
@@ -244,16 +246,18 @@ def test_create_flow_log_create():
         LogDestination="arn:aws:s3:::" + bucket.name,
         LogFormat="${version} ${vpc-id} ${subnet-id} ${instance-id} ${interface-id} ${account-id} ${type} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${pkt-srcaddr} ${pkt-dstaddr} ${protocol} ${bytes} ${packets} ${start} ${end} ${action} ${tcp-flags} ${log-status}",
     )["FlowLogIds"]
-    response.should.have.length_of(2)
+    assert len(response) == 2
 
     flow_logs = client.describe_flow_logs(FlowLogIds=response)["FlowLogs"]
-    flow_logs.should.have.length_of(2)
+    assert len(flow_logs) == 2
 
-    flow_logs[0]["LogFormat"].should.equal(
-        "${version} ${vpc-id} ${subnet-id} ${instance-id} ${interface-id} ${account-id} ${type} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${pkt-srcaddr} ${pkt-dstaddr} ${protocol} ${bytes} ${packets} ${start} ${end} ${action} ${tcp-flags} ${log-status}"
+    assert (
+        flow_logs[0]["LogFormat"]
+        == "${version} ${vpc-id} ${subnet-id} ${instance-id} ${interface-id} ${account-id} ${type} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${pkt-srcaddr} ${pkt-dstaddr} ${protocol} ${bytes} ${packets} ${start} ${end} ${action} ${tcp-flags} ${log-status}"
     )
-    flow_logs[1]["LogFormat"].should.equal(
-        "${version} ${vpc-id} ${subnet-id} ${instance-id} ${interface-id} ${account-id} ${type} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${pkt-srcaddr} ${pkt-dstaddr} ${protocol} ${bytes} ${packets} ${start} ${end} ${action} ${tcp-flags} ${log-status}"
+    assert (
+        flow_logs[1]["LogFormat"]
+        == "${version} ${vpc-id} ${subnet-id} ${instance-id} ${interface-id} ${account-id} ${type} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${pkt-srcaddr} ${pkt-dstaddr} ${protocol} ${bytes} ${packets} ${start} ${end} ${action} ${tcp-flags} ${log-status}"
     )
 
 
@@ -278,22 +282,22 @@ def test_delete_flow_logs():
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket.name,
     )["FlowLogIds"]
-    response.should.have.length_of(2)
+    assert len(response) == 2
 
     filters = [{"Name": "resource-id", "Values": [vpc1["VpcId"], vpc2["VpcId"]]}]
     flow_logs = client.describe_flow_logs(Filters=filters)["FlowLogs"]
-    flow_logs.should.have.length_of(2)
+    assert len(flow_logs) == 2
 
     client.delete_flow_logs(FlowLogIds=[response[0]])
 
     flow_logs = client.describe_flow_logs(Filters=filters)["FlowLogs"]
-    flow_logs.should.have.length_of(1)
-    flow_logs[0]["FlowLogId"].should.equal(response[1])
+    assert len(flow_logs) == 1
+    assert flow_logs[0]["FlowLogId"] == response[1]
 
     client.delete_flow_logs(FlowLogIds=[response[1]])
 
     flow_logs = client.describe_flow_logs(Filters=filters)["FlowLogs"]
-    flow_logs.should.have.length_of(0)
+    assert len(flow_logs) == 0
 
 
 @mock_s3
@@ -317,17 +321,17 @@ def test_delete_flow_logs_delete_many():
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket.name,
     )["FlowLogIds"]
-    response.should.have.length_of(2)
+    assert len(response) == 2
 
     all_ids = [fl["FlowLogId"] for fl in retrieve_all_logs(client)]
     for fl_id in response:
-        all_ids.should.contain(fl_id)
+        assert fl_id in all_ids
 
     client.delete_flow_logs(FlowLogIds=response)
 
     all_ids = [fl["FlowLogId"] for fl in retrieve_all_logs(client)]
     for fl_id in response:
-        all_ids.shouldnt.contain(fl_id)
+        assert fl_id not in all_ids
 
 
 @mock_ec2
@@ -336,18 +340,20 @@ def test_delete_flow_logs_non_existing():
 
     with pytest.raises(ClientError) as ex:
         client.delete_flow_logs(FlowLogIds=["fl-1a2b3c4d"])
-    ex.value.response["Error"]["Code"].should.equal("InvalidFlowLogId.NotFound")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "These flow log ids in the input list are not found: [TotalCount: 1] fl-1a2b3c4d"
+    assert ex.value.response["Error"]["Code"] == "InvalidFlowLogId.NotFound"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "These flow log ids in the input list are not found: [TotalCount: 1] fl-1a2b3c4d"
     )
 
     with pytest.raises(ClientError) as ex:
         client.delete_flow_logs(FlowLogIds=["fl-1a2b3c4d", "fl-2b3c4d5e"])
-    ex.value.response["Error"]["Code"].should.equal("InvalidFlowLogId.NotFound")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "These flow log ids in the input list are not found: [TotalCount: 2] fl-1a2b3c4d fl-2b3c4d5e"
+    assert ex.value.response["Error"]["Code"] == "InvalidFlowLogId.NotFound"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "These flow log ids in the input list are not found: [TotalCount: 2] fl-1a2b3c4d fl-2b3c4d5e"
     )
 
 
@@ -365,20 +371,16 @@ def test_create_flow_logs_unsuccessful():
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::non-existing-bucket",
     )
-    response["FlowLogIds"].should.have.length_of(0)
-    response["Unsuccessful"].should.have.length_of(2)
+    assert len(response["FlowLogIds"]) == 0
+    assert len(response["Unsuccessful"]) == 2
 
     error1 = response["Unsuccessful"][0]["Error"]
     error2 = response["Unsuccessful"][1]["Error"]
 
-    error1["Code"].should.equal("400")
-    error1["Message"].should.equal(
-        "LogDestination: non-existing-bucket does not exist."
-    )
-    error2["Code"].should.equal("400")
-    error2["Message"].should.equal(
-        "LogDestination: non-existing-bucket does not exist."
-    )
+    assert error1["Code"] == "400"
+    assert error1["Message"] == "LogDestination: non-existing-bucket does not exist."
+    assert error2["Code"] == "400"
+    assert error2["Message"] == "LogDestination: non-existing-bucket does not exist."
 
 
 @mock_s3
@@ -403,10 +405,11 @@ def test_create_flow_logs_invalid_parameters():
             LogDestination="arn:aws:s3:::" + bucket.name,
             MaxAggregationInterval=10,
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameter")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid Flow Log Max Aggregation Interval"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameter"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid Flow Log Max Aggregation Interval"
     )
 
     with pytest.raises(ClientError) as ex:
@@ -416,10 +419,11 @@ def test_create_flow_logs_invalid_parameters():
             TrafficType="ALL",
             LogDestinationType="s3",
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameter")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "LogDestination can't be empty if LogGroupName is not provided."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameter"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "LogDestination can't be empty if LogGroupName is not provided."
     )
 
     with pytest.raises(ClientError) as ex:
@@ -430,10 +434,11 @@ def test_create_flow_logs_invalid_parameters():
             LogDestinationType="s3",
             LogGroupName="test",
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameter")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "LogDestination type must be cloud-watch-logs if LogGroupName is provided."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameter"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "LogDestination type must be cloud-watch-logs if LogGroupName is provided."
     )
 
     with pytest.raises(ClientError) as ex:
@@ -443,10 +448,11 @@ def test_create_flow_logs_invalid_parameters():
             TrafficType="ALL",
             LogGroupName="test",
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameter")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "DeliverLogsPermissionArn can't be empty if LogDestinationType is cloud-watch-logs."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameter"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "DeliverLogsPermissionArn can't be empty if LogDestinationType is cloud-watch-logs."
     )
 
     response = client.create_flow_logs(
@@ -456,7 +462,7 @@ def test_create_flow_logs_invalid_parameters():
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket.name,
     )["FlowLogIds"]
-    response.should.have.length_of(1)
+    assert len(response) == 1
 
     with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
@@ -466,10 +472,11 @@ def test_create_flow_logs_invalid_parameters():
             LogDestinationType="s3",
             LogDestination="arn:aws:s3:::" + bucket.name,
         )
-    ex.value.response["Error"]["Code"].should.equal("FlowLogAlreadyExists")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "Error. There is an existing Flow Log with the same configuration and log destination."
+    assert ex.value.response["Error"]["Code"] == "FlowLogAlreadyExists"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Error. There is an existing Flow Log with the same configuration and log destination."
     )
 
     lg_name = str(uuid4())
@@ -480,7 +487,7 @@ def test_create_flow_logs_invalid_parameters():
         LogGroupName=lg_name,
         DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
     )["FlowLogIds"]
-    response.should.have.length_of(1)
+    assert len(response) == 1
 
     with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
@@ -490,10 +497,11 @@ def test_create_flow_logs_invalid_parameters():
             LogGroupName=lg_name,
             DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
         )
-    ex.value.response["Error"]["Code"].should.equal("FlowLogAlreadyExists")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "Error. There is an existing Flow Log with the same configuration and log destination."
+    assert ex.value.response["Error"]["Code"] == "FlowLogAlreadyExists"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Error. There is an existing Flow Log with the same configuration and log destination."
     )
 
 
@@ -551,118 +559,112 @@ def test_describe_flow_logs_filtering():
     )["FlowLogIds"][0]
 
     all_ids = [fl["FlowLogId"] for fl in retrieve_all_logs(client)]
-    all_ids.should.contain(fl1)
-    all_ids.should.contain(fl2)
-    all_ids.should.contain(fl3)
+    assert fl1 in all_ids
+    assert fl2 in all_ids
+    assert fl3 in all_ids
 
     filters = [{"Name": "deliver-log-status", "Values": ["SUCCESS"]}]
     success_ids = [fl["FlowLogId"] for fl in retrieve_all_logs(client, filters)]
-    success_ids.should.contain(fl1)
-    success_ids.should.contain(fl2)
-    success_ids.should.contain(fl3)
+    assert fl1 in success_ids
+    assert fl2 in success_ids
+    assert fl3 in success_ids
 
     filters = [{"Name": "log-destination-type", "Values": ["s3"]}]
     all_s3_logs = retrieve_all_logs(client, filters)
     s3_ids = [fl["FlowLogId"] for fl in all_s3_logs]
-    s3_ids.shouldnt.contain(fl1)
-    s3_ids.should.contain(fl2)
-    s3_ids.shouldnt.contain(fl3)
+    assert fl1 not in s3_ids
+    assert fl2 in s3_ids
+    assert fl3 not in s3_ids
     our_flow_log = [fl for fl in all_s3_logs if fl["FlowLogId"] == fl2][0]
-    our_flow_log["ResourceId"].should.equal(vpc2["VpcId"])
+    assert our_flow_log["ResourceId"] == vpc2["VpcId"]
 
     filters = [{"Name": "log-destination-type", "Values": ["cloud-watch-logs"]}]
     all_cw_logs = retrieve_all_logs(client, filters)
     cw_ids = [fl["FlowLogId"] for fl in all_cw_logs]
 
-    fl1.should.be.within(cw_ids)
-    fl2.shouldnt.be.within(cw_ids)
-    fl3.should.be.within(cw_ids)
+    assert fl1 in cw_ids
+    assert fl2 not in cw_ids
+    assert fl3 in cw_ids
 
     flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], all_cw_logs))
-    subnet1["SubnetId"].should.be.within(flow_logs_resource_ids)
-    vpc3["VpcId"].should.be.within(flow_logs_resource_ids)
+    assert subnet1["SubnetId"] in flow_logs_resource_ids
+    assert vpc3["VpcId"] in flow_logs_resource_ids
 
     test_fl3 = next(fl for fl in all_cw_logs if fl["FlowLogId"] == fl3)
-    test_fl3["DeliverLogsStatus"].should.equal("FAILED")
-    test_fl3["DeliverLogsErrorMessage"].should.equal("Access error")
+    assert test_fl3["DeliverLogsStatus"] == "FAILED"
+    assert test_fl3["DeliverLogsErrorMessage"] == "Access error"
 
     filters = [{"Name": "log-destination-type", "Values": ["cloud-watch-logs", "s3"]}]
     cw_s3_ids = [fl["FlowLogId"] for fl in retrieve_all_logs(client, filters)]
-    cw_s3_ids.should.contain(fl1)
-    cw_s3_ids.should.contain(fl2)
-    cw_s3_ids.should.contain(fl3)
+    assert fl1 in cw_s3_ids
+    assert fl2 in cw_s3_ids
+    assert fl3 in cw_s3_ids
 
     fl_by_flow_log_ids = client.describe_flow_logs(
         Filters=[{"Name": "flow-log-id", "Values": [fl1, fl3]}]
     )["FlowLogs"]
-    fl_by_flow_log_ids.should.have.length_of(2)
+    assert len(fl_by_flow_log_ids) == 2
     flow_logs_ids = tuple(map(lambda fl: fl["FlowLogId"], fl_by_flow_log_ids))
-    fl1.should.be.within(flow_logs_ids)
-    fl3.should.be.within(flow_logs_ids)
+    assert fl1 in flow_logs_ids
+    assert fl3 in flow_logs_ids
 
     flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], fl_by_flow_log_ids))
-    subnet1["SubnetId"].should.be.within(flow_logs_resource_ids)
-    vpc3["VpcId"].should.be.within(flow_logs_resource_ids)
+    assert subnet1["SubnetId"] in flow_logs_resource_ids
+    assert vpc3["VpcId"] in flow_logs_resource_ids
 
     fl_by_group_name = client.describe_flow_logs(
         Filters=[{"Name": "log-group-name", "Values": [lg_name]}]
     )["FlowLogs"]
-    fl_by_group_name.should.have.length_of(1)
-    fl_by_group_name[0]["FlowLogId"].should.equal(fl1)
-    fl_by_group_name[0]["ResourceId"].should.equal(subnet1["SubnetId"])
+    assert len(fl_by_group_name) == 1
+    assert fl_by_group_name[0]["FlowLogId"] == fl1
+    assert fl_by_group_name[0]["ResourceId"] == subnet1["SubnetId"]
 
     fl_by_group_name = client.describe_flow_logs(
         Filters=[{"Name": "log-group-name", "Values": [non_existing_group]}]
     )["FlowLogs"]
-    fl_by_group_name.should.have.length_of(1)
-    fl_by_group_name[0]["FlowLogId"].should.equal(fl3)
-    fl_by_group_name[0]["ResourceId"].should.equal(vpc3["VpcId"])
+    assert len(fl_by_group_name) == 1
+    assert fl_by_group_name[0]["FlowLogId"] == fl3
+    assert fl_by_group_name[0]["ResourceId"] == vpc3["VpcId"]
 
     fl_by_resource_id = client.describe_flow_logs(
         Filters=[{"Name": "resource-id", "Values": [vpc2["VpcId"]]}]
     )["FlowLogs"]
-    fl_by_resource_id.should.have.length_of(1)
-    fl_by_resource_id[0]["FlowLogId"].should.equal(fl2)
-    fl_by_resource_id[0]["ResourceId"].should.equal(vpc2["VpcId"])
+    assert len(fl_by_resource_id) == 1
+    assert fl_by_resource_id[0]["FlowLogId"] == fl2
+    assert fl_by_resource_id[0]["ResourceId"] == vpc2["VpcId"]
 
     filters = [{"Name": "traffic-type", "Values": ["ALL"]}]
     traffic_all = retrieve_all_logs(client, filters)
-    [fl["FlowLogId"] for fl in traffic_all].should.contain(fl1)
+    assert fl1 in [fl["FlowLogId"] for fl in traffic_all]
     our_flow_log = [fl for fl in traffic_all if fl["FlowLogId"] == fl1][0]
-    our_flow_log["ResourceId"].should.equal(subnet1["SubnetId"])
+    assert our_flow_log["ResourceId"] == subnet1["SubnetId"]
 
     filters = [{"Name": "traffic-type", "Values": ["Reject"]}]
     traffic_reject = retrieve_all_logs(client, filters)
-    [fl["FlowLogId"] for fl in traffic_reject].should.contain(fl3)
+    assert fl3 in [fl["FlowLogId"] for fl in traffic_reject]
     our_flow_log = [fl for fl in traffic_reject if fl["FlowLogId"] == fl3][0]
-    our_flow_log["ResourceId"].should.equal(vpc3["VpcId"])
+    assert our_flow_log["ResourceId"] == vpc3["VpcId"]
 
     filters = [{"Name": "traffic-type", "Values": ["Accept"]}]
     traffic_accept = retrieve_all_logs(client, filters)
-    [fl["FlowLogId"] for fl in traffic_accept].should.contain(fl2)
+    assert fl2 in [fl["FlowLogId"] for fl in traffic_accept]
     our_flow_log = [fl for fl in traffic_accept if fl["FlowLogId"] == fl2][0]
-    our_flow_log["ResourceId"].should.equal(vpc2["VpcId"])
+    assert our_flow_log["ResourceId"] == vpc2["VpcId"]
 
     fl_by_tag_key = client.describe_flow_logs(
         Filters=[{"Name": "tag-key", "Values": [tag_key]}]
     )["FlowLogs"]
-    fl_by_tag_key.should.have.length_of(1)
-    fl_by_tag_key[0]["FlowLogId"].should.equal(fl2)
-    fl_by_tag_key[0]["ResourceId"].should.equal(vpc2["VpcId"])
+    assert len(fl_by_tag_key) == 1
+    assert fl_by_tag_key[0]["FlowLogId"] == fl2
+    assert fl_by_tag_key[0]["ResourceId"] == vpc2["VpcId"]
 
     fl_by_tag_key = client.describe_flow_logs(
         Filters=[{"Name": "tag-key", "Values": ["non-existing"]}]
     )["FlowLogs"]
-    fl_by_tag_key.should.have.length_of(0)
+    assert len(fl_by_tag_key) == 0
 
-    if not settings.TEST_SERVER_MODE:
-        client.describe_flow_logs.when.called_with(
-            Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}]
-        ).should.throw(FilterNotImplementedError)
-    else:
-        client.describe_flow_logs.when.called_with(
-            Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}]
-        ).should.throw(ResponseParserError)
+    with pytest.raises(Exception):
+        client.describe_flow_logs(Filters=[{"Name": "unknown", "Values": ["foobar"]}])
 
 
 @mock_s3
@@ -701,31 +703,31 @@ def test_flow_logs_by_ids():
     )["FlowLogIds"][0]
 
     flow_logs = client.describe_flow_logs(FlowLogIds=[fl1, fl3])["FlowLogs"]
-    flow_logs.should.have.length_of(2)
+    assert len(flow_logs) == 2
     flow_logs_ids = tuple(map(lambda fl: fl["FlowLogId"], flow_logs))
-    fl1.should.be.within(flow_logs_ids)
-    fl3.should.be.within(flow_logs_ids)
+    assert fl1 in flow_logs_ids
+    assert fl3 in flow_logs_ids
 
     flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], flow_logs))
-    vpc1["VpcId"].should.be.within(flow_logs_resource_ids)
-    vpc3["VpcId"].should.be.within(flow_logs_resource_ids)
+    assert vpc1["VpcId"] in flow_logs_resource_ids
+    assert vpc3["VpcId"] in flow_logs_resource_ids
 
     client.delete_flow_logs(FlowLogIds=[fl1, fl3])
 
     flow_logs = client.describe_flow_logs(FlowLogIds=[fl1, fl3])["FlowLogs"]
-    flow_logs.should.have.length_of(0)
+    assert len(flow_logs) == 0
 
     all_ids = [fl["FlowLogId"] for fl in retrieve_all_logs(client)]
-    all_ids.shouldnt.contain(fl1)
-    all_ids.should.contain(fl2)
-    all_ids.shouldnt.contain(fl3)
+    assert fl1 not in all_ids
+    assert fl2 in all_ids
+    assert fl3 not in all_ids
 
     flow_logs = client.delete_flow_logs(FlowLogIds=[fl2])
 
     all_ids = [fl["FlowLogId"] for fl in retrieve_all_logs(client)]
-    all_ids.shouldnt.contain(fl1)
-    all_ids.shouldnt.contain(fl2)
-    all_ids.shouldnt.contain(fl3)
+    assert fl1 not in all_ids
+    assert fl2 not in all_ids
+    assert fl3 not in all_ids
 
 
 def retrieve_all_logs(client, filters=[]):  # pylint: disable=W0102

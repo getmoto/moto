@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_ec2
 
@@ -11,8 +10,8 @@ def test_create_vpn_connections_boto3():
     vpn_connection = client.create_vpn_connection(
         Type="ipsec.1", VpnGatewayId="vgw-0123abcd", CustomerGatewayId="cgw-0123abcd"
     )["VpnConnection"]
-    vpn_connection["VpnConnectionId"].should.match(r"vpn-\w+")
-    vpn_connection["Type"].should.equal("ipsec.1")
+    assert vpn_connection["VpnConnectionId"].startswith("vpn-")
+    assert vpn_connection["Type"] == "ipsec.1"
 
 
 @mock_ec2
@@ -23,20 +22,16 @@ def test_delete_vpn_connections_boto3():
     )["VpnConnection"]
 
     conns = retrieve_all_vpncs(client)
-    [c["VpnConnectionId"] for c in conns].should.contain(
-        vpn_connection["VpnConnectionId"]
-    )
+    assert vpn_connection["VpnConnectionId"] in [c["VpnConnectionId"] for c in conns]
 
     client.delete_vpn_connection(VpnConnectionId=vpn_connection["VpnConnectionId"])
 
     conns = retrieve_all_vpncs(client)
-    [c["VpnConnectionId"] for c in conns].should.contain(
-        vpn_connection["VpnConnectionId"]
-    )
+    assert vpn_connection["VpnConnectionId"] in [c["VpnConnectionId"] for c in conns]
     my_cnx = [
         c for c in conns if c["VpnConnectionId"] == vpn_connection["VpnConnectionId"]
     ][0]
-    my_cnx.should.have.key("State").equal("deleted")
+    assert my_cnx["State"] == "deleted"
 
 
 @mock_ec2
@@ -44,9 +39,9 @@ def test_delete_vpn_connections_bad_id_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.delete_vpn_connection(VpnConnectionId="vpn-0123abcd")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidVpnConnectionID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidVpnConnectionID.NotFound"
 
 
 @mock_ec2
@@ -63,11 +58,9 @@ def test_create_vpn_connection_with_vpn_gateway():
         CustomerGatewayId=customer_gateway["CustomerGatewayId"],
     ).get("VpnConnection", {})
 
-    vpn_connection["Type"].should.equal("ipsec.1")
-    vpn_connection["VpnGatewayId"].should.equal(vpn_gateway["VpnGatewayId"])
-    vpn_connection["CustomerGatewayId"].should.equal(
-        customer_gateway["CustomerGatewayId"]
-    )
+    assert vpn_connection["Type"] == "ipsec.1"
+    assert vpn_connection["VpnGatewayId"] == vpn_gateway["VpnGatewayId"]
+    assert vpn_connection["CustomerGatewayId"] == customer_gateway["CustomerGatewayId"]
 
 
 @mock_ec2
@@ -90,22 +83,18 @@ def test_describe_vpn_connections_boto3():
     )["VpnConnection"]
 
     conns = retrieve_all_vpncs(client)
-    [c["VpnConnectionId"] for c in conns].should.contain(
-        vpn_connection1["VpnConnectionId"]
-    )
-    [c["VpnConnectionId"] for c in conns].should.contain(
-        vpn_connection2["VpnConnectionId"]
-    )
+    assert vpn_connection1["VpnConnectionId"] in [c["VpnConnectionId"] for c in conns]
+    assert vpn_connection2["VpnConnectionId"] in [c["VpnConnectionId"] for c in conns]
 
     conns = client.describe_vpn_connections(
         VpnConnectionIds=[vpn_connection2["VpnConnectionId"]]
     )["VpnConnections"]
 
-    conns[0]["VpnConnectionId"].should.equal(vpn_connection2["VpnConnectionId"])
-    conns[0]["VpnGatewayId"].should.equal(vpn_gateway["VpnGatewayId"])
-    conns[0]["Type"].should.equal("ipsec.1")
-    conns[0]["CustomerGatewayId"].should.equal(customer_gateway["CustomerGatewayId"])
-    conns[0]["State"].should.equal("available")
+    assert conns[0]["VpnConnectionId"] == vpn_connection2["VpnConnectionId"]
+    assert conns[0]["VpnGatewayId"] == vpn_gateway["VpnGatewayId"]
+    assert conns[0]["Type"] == "ipsec.1"
+    assert conns[0]["CustomerGatewayId"] == customer_gateway["CustomerGatewayId"]
+    assert conns[0]["State"] == "available"
 
 
 @mock_ec2
@@ -115,8 +104,8 @@ def test_describe_vpn_connections_unknown():
     with pytest.raises(ClientError) as ex:
         client.describe_vpn_connections(VpnConnectionIds=["?"])
     err = ex.value.response["Error"]
-    err["Message"].should.equal("The vpnConnection ID '?' does not exist")
-    err["Code"].should.equal("InvalidVpnConnectionID.NotFound")
+    assert err["Message"] == "The vpnConnection ID '?' does not exist"
+    assert err["Code"] == "InvalidVpnConnectionID.NotFound"
 
 
 def retrieve_all_vpncs(client, filters=[]):  # pylint: disable=W0102

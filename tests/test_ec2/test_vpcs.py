@@ -3,7 +3,6 @@ from botocore.exceptions import ClientError
 
 import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
 import random
 
 from moto import mock_ec2, settings
@@ -28,8 +27,8 @@ def test_creating_a_vpc_in_empty_region_does_not_make_this_vpc_the_default():
     client.create_vpc(CidrBlock="10.0.0.0/16")
     # verify this is not the default
     all_vpcs = retrieve_all_vpcs(client)
-    all_vpcs.should.have.length_of(1)
-    all_vpcs[0].should.have.key("IsDefault").equals(False)
+    assert len(all_vpcs) == 1
+    assert all_vpcs[0]["IsDefault"] is False
 
 
 @mock_ec2
@@ -45,8 +44,8 @@ def test_create_default_vpc():
     client.create_default_vpc()
     # verify this is the default
     all_vpcs = retrieve_all_vpcs(client)
-    all_vpcs.should.have.length_of(1)
-    all_vpcs[0].should.have.key("IsDefault").equals(True)
+    assert len(all_vpcs) == 1
+    assert all_vpcs[0]["IsDefault"] is True
 
 
 @mock_ec2
@@ -55,9 +54,10 @@ def test_create_multiple_default_vpcs():
     with pytest.raises(ClientError) as exc:
         client.create_default_vpc()
     err = exc.value.response["Error"]
-    err["Code"].should.equal("DefaultVpcAlreadyExists")
-    err["Message"].should.equal(
-        "A Default VPC already exists for this account in this region."
+    assert err["Code"] == "DefaultVpcAlreadyExists"
+    assert (
+        err["Message"]
+        == "A Default VPC already exists for this account in this region."
     )
 
 
@@ -66,21 +66,21 @@ def test_create_and_delete_vpc():
     ec2 = boto3.resource("ec2", region_name="eu-north-1")
     client = boto3.client("ec2", region_name="eu-north-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    vpc.cidr_block.should.equal("10.0.0.0/16")
+    assert vpc.cidr_block == "10.0.0.0/16"
 
     all_vpcs = retrieve_all_vpcs(client)
-    [v["VpcId"] for v in all_vpcs].should.contain(vpc.id)
+    assert vpc.id in [v["VpcId"] for v in all_vpcs]
 
     vpc.delete()
 
     all_vpcs = retrieve_all_vpcs(client)
-    [v["VpcId"] for v in all_vpcs].shouldnt.contain(vpc.id)
+    assert vpc.id not in [v["VpcId"] for v in all_vpcs]
 
     with pytest.raises(ClientError) as ex:
         client.delete_vpc(VpcId="vpc-1234abcd")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidVpcID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidVpcID.NotFound"
 
 
 @mock_ec2
@@ -91,21 +91,13 @@ def test_vpc_defaults():
 
     filters = [{"Name": "vpc-id", "Values": [vpc.id]}]
 
-    client.describe_route_tables(Filters=filters)["RouteTables"].should.have.length_of(
-        1
-    )
-    client.describe_security_groups(Filters=filters)[
-        "SecurityGroups"
-    ].should.have.length_of(1)
+    assert len(client.describe_route_tables(Filters=filters)["RouteTables"]) == 1
+    assert len(client.describe_security_groups(Filters=filters)["SecurityGroups"]) == 1
 
     vpc.delete()
 
-    client.describe_route_tables(Filters=filters)["RouteTables"].should.have.length_of(
-        0
-    )
-    client.describe_security_groups(Filters=filters)[
-        "SecurityGroups"
-    ].should.have.length_of(0)
+    assert len(client.describe_route_tables(Filters=filters)["RouteTables"]) == 0
+    assert len(client.describe_security_groups(Filters=filters)["SecurityGroups"]) == 0
 
 
 @mock_ec2
@@ -113,15 +105,17 @@ def test_vpc_isdefault_filter():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    client.describe_vpcs(Filters=[{"Name": "isDefault", "Values": ["true"]}])[
-        "Vpcs"
-    ].should.have.length_of(1)
+    default_vpcs = client.describe_vpcs(
+        Filters=[{"Name": "isDefault", "Values": ["true"]}]
+    )["Vpcs"]
+    assert len(default_vpcs) == 1
 
     vpc.delete()
 
-    client.describe_vpcs(Filters=[{"Name": "isDefault", "Values": ["true"]}])[
-        "Vpcs"
-    ].should.have.length_of(1)
+    default_vpcs = client.describe_vpcs(
+        Filters=[{"Name": "isDefault", "Values": ["true"]}]
+    )["Vpcs"]
+    assert len(default_vpcs) == 1
 
 
 @mock_ec2
@@ -134,7 +128,7 @@ def test_multiple_vpcs_default_filter():
     default_vpcs = retrieve_all_vpcs(
         client, [{"Name": "isDefault", "Values": ["true"]}]
     )
-    [v["CidrBlock"] for v in default_vpcs].should.contain("172.31.0.0/16")
+    assert "172.31.0.0/16" in [v["CidrBlock"] for v in default_vpcs]
 
 
 @mock_ec2
@@ -145,14 +139,14 @@ def test_vpc_state_available_filter():
     vpc2 = ec2.create_vpc(CidrBlock="10.1.0.0/16")
 
     available = retrieve_all_vpcs(client, [{"Name": "state", "Values": ["available"]}])
-    [v["VpcId"] for v in available].should.contain(vpc1.id)
-    [v["VpcId"] for v in available].should.contain(vpc2.id)
+    assert vpc1.id in [v["VpcId"] for v in available]
+    assert vpc2.id in [v["VpcId"] for v in available]
 
     vpc1.delete()
 
     available = retrieve_all_vpcs(client, [{"Name": "state", "Values": ["available"]}])
-    [v["VpcId"] for v in available].shouldnt.contain(vpc1.id)
-    [v["VpcId"] for v in available].should.contain(vpc2.id)
+    assert vpc1.id not in [v["VpcId"] for v in available]
+    assert vpc2.id in [v["VpcId"] for v in available]
 
 
 def retrieve_all_vpcs(client, filters=[]):  # pylint: disable=W0102
@@ -176,12 +170,12 @@ def test_vpc_tagging():
 
     all_tags = retrieve_all_tagged(client)
     ours = [t for t in all_tags if t["ResourceId"] == vpc.id][0]
-    ours.should.have.key("Key").equal("a key")
-    ours.should.have.key("Value").equal("some value")
+    assert ours["Key"] == "a key"
+    assert ours["Value"] == "some value"
 
     # Refresh the vpc
     vpc = client.describe_vpcs(VpcIds=[vpc.id])["Vpcs"][0]
-    vpc["Tags"].should.equal([{"Key": "a key", "Value": "some value"}])
+    assert vpc["Tags"] == [{"Key": "a key", "Value": "some value"}]
 
 
 @mock_ec2
@@ -193,16 +187,16 @@ def test_vpc_get_by_id():
     ec2.create_vpc(CidrBlock="10.0.0.0/16")
 
     vpcs = client.describe_vpcs(VpcIds=[vpc1.id, vpc2.id])["Vpcs"]
-    vpcs.should.have.length_of(2)
+    assert len(vpcs) == 2
     vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
+    assert vpc1.id in vpc_ids
+    assert vpc2.id in vpc_ids
 
     with pytest.raises(ClientError) as ex:
         client.describe_vpcs(VpcIds=["vpc-does_not_exist"])
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidVpcID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidVpcID.NotFound"
 
 
 @mock_ec2
@@ -218,7 +212,7 @@ def test_vpc_get_by_cidr_block():
     vpcs = client.describe_vpcs(Filters=[{"Name": "cidr", "Values": [random_cidr]}])[
         "Vpcs"
     ]
-    set([vpc["VpcId"] for vpc in vpcs]).should.equal(set([vpc1.id, vpc2.id]))
+    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
 
 
 @mock_ec2
@@ -241,10 +235,10 @@ def test_vpc_get_by_dhcp_options_id():
     vpcs = client.describe_vpcs(
         Filters=[{"Name": "dhcp-options-id", "Values": [dhcp_options.id]}]
     )["Vpcs"]
-    vpcs.should.have.length_of(2)
+    assert len(vpcs) == 2
     vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
+    assert vpc1.id in vpc_ids
+    assert vpc2.id in vpc_ids
 
 
 @mock_ec2
@@ -263,8 +257,8 @@ def test_vpc_get_by_tag():
     vpcs = client.describe_vpcs(Filters=[{"Name": "tag:Name", "Values": [value1]}])[
         "Vpcs"
     ]
-    vpcs.should.have.length_of(2)
-    set([vpc["VpcId"] for vpc in vpcs]).should.equal(set([vpc1.id, vpc2.id]))
+    assert len(vpcs) == 2
+    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
 
 
 @mock_ec2
@@ -285,8 +279,8 @@ def test_vpc_get_by_tag_key_superset():
     vpcs = client.describe_vpcs(Filters=[{"Name": "tag-key", "Values": [tag_key]}])[
         "Vpcs"
     ]
-    vpcs.should.have.length_of(2)
-    set([vpc["VpcId"] for vpc in vpcs]).should.equal(set([vpc1.id, vpc2.id]))
+    assert len(vpcs) == 2
+    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
 
 
 @mock_ec2
@@ -308,8 +302,8 @@ def test_vpc_get_by_tag_key_subset():
     vpcs = client.describe_vpcs(
         Filters=[{"Name": "tag-key", "Values": [tag_key1, tag_key2]}]
     )["Vpcs"]
-    vpcs.should.have.length_of(2)
-    set([vpc["VpcId"] for vpc in vpcs]).should.equal(set([vpc1.id, vpc2.id]))
+    assert len(vpcs) == 2
+    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
 
 
 @mock_ec2
@@ -330,8 +324,8 @@ def test_vpc_get_by_tag_value_superset():
     vpcs = client.describe_vpcs(Filters=[{"Name": "tag-value", "Values": [tag_value]}])[
         "Vpcs"
     ]
-    vpcs.should.have.length_of(2)
-    set([vpc["VpcId"] for vpc in vpcs]).should.equal(set([vpc1.id, vpc2.id]))
+    assert len(vpcs) == 2
+    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
 
 
 @mock_ec2
@@ -352,10 +346,10 @@ def test_vpc_get_by_tag_value_subset():
     vpcs = client.describe_vpcs(
         Filters=[{"Name": "tag-value", "Values": [value1, value2]}]
     )["Vpcs"]
-    vpcs.should.have.length_of(2)
+    assert len(vpcs) == 2
     vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
+    assert vpc1.id in vpc_ids
+    assert vpc2.id in vpc_ids
 
 
 @mock_ec2
@@ -364,25 +358,25 @@ def test_default_vpc():
 
     # Create the default VPC
     default_vpc = list(ec2.vpcs.all())[0]
-    default_vpc.cidr_block.should.equal("172.31.0.0/16")
-    default_vpc.instance_tenancy.should.equal("default")
+    assert default_vpc.cidr_block == "172.31.0.0/16"
+    assert default_vpc.instance_tenancy == "default"
     default_vpc.reload()
-    default_vpc.is_default.should.equal(True)
+    assert default_vpc.is_default is True
 
     # Test default values for VPC attributes
     response = default_vpc.describe_attribute(Attribute="enableDnsSupport")
     attr = response.get("EnableDnsSupport")
-    attr.get("Value").should.equal(True)
+    assert attr.get("Value") is True
 
     response = default_vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
-    attr.get("Value").should.equal(True)
+    assert attr.get("Value") is True
 
     response = default_vpc.describe_attribute(
         Attribute="enableNetworkAddressUsageMetrics"
     )
     attr = response.get("EnableNetworkAddressUsageMetrics")
-    attr.get("Value").should.equal(False)
+    assert attr.get("Value") is False
 
 
 @mock_ec2
@@ -395,29 +389,29 @@ def test_non_default_vpc():
     # Create the non default VPC
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     vpc.reload()
-    vpc.is_default.should.equal(False)
+    assert vpc.is_default is False
 
     # Test default instance_tenancy
-    vpc.instance_tenancy.should.equal("default")
+    assert vpc.instance_tenancy == "default"
 
     # Test default values for VPC attributes
     response = vpc.describe_attribute(Attribute="enableDnsSupport")
     attr = response.get("EnableDnsSupport")
-    attr.get("Value").should.equal(True)
+    assert attr.get("Value") is True
 
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
-    attr.get("Value").should.equal(False)
+    assert attr.get("Value") is False
 
     response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
     attr = response.get("EnableNetworkAddressUsageMetrics")
-    attr.get("Value").should.equal(False)
+    assert attr.get("Value") is False
 
     # Check Primary CIDR Block Associations
     cidr_block_association_set = next(iter(vpc.cidr_block_association_set), None)
-    cidr_block_association_set["CidrBlockState"]["State"].should.equal("associated")
-    cidr_block_association_set["CidrBlock"].should.equal(vpc.cidr_block)
-    cidr_block_association_set["AssociationId"].should.contain("vpc-cidr-assoc")
+    assert cidr_block_association_set["CidrBlockState"]["State"] == "associated"
+    assert cidr_block_association_set["CidrBlock"] == vpc.cidr_block
+    assert "vpc-cidr-assoc" in cidr_block_association_set["AssociationId"]
 
 
 @mock_ec2
@@ -430,9 +424,9 @@ def test_vpc_dedicated_tenancy():
     # Create the non default VPC
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16", InstanceTenancy="dedicated")
     vpc.reload()
-    vpc.is_default.should.equal(False)
+    assert vpc.is_default is False
 
-    vpc.instance_tenancy.should.equal("dedicated")
+    assert vpc.instance_tenancy == "dedicated"
 
 
 @mock_ec2
@@ -445,19 +439,19 @@ def test_vpc_modify_tenancy_unknown():
 
     # Create the non default VPC
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16", InstanceTenancy="dedicated")
-    vpc.instance_tenancy.should.equal("dedicated")
+    assert vpc.instance_tenancy == "dedicated"
 
     with pytest.raises(ClientError) as ex:
         ec2_client.modify_vpc_tenancy(VpcId=vpc.id, InstanceTenancy="unknown")
     err = ex.value.response["Error"]
-    err["Message"].should.equal("The tenancy value unknown is not supported.")
-    err["Code"].should.equal("UnsupportedTenancy")
+    assert err["Message"] == "The tenancy value unknown is not supported."
+    assert err["Code"] == "UnsupportedTenancy"
 
     ec2_client.modify_vpc_tenancy(VpcId=vpc.id, InstanceTenancy="default")
 
     vpc.reload()
 
-    vpc.instance_tenancy.should.equal("default")
+    assert vpc.instance_tenancy == "default"
 
 
 @mock_ec2
@@ -472,13 +466,13 @@ def test_vpc_modify_enable_dns_support():
     # Test default values for VPC attributes
     response = vpc.describe_attribute(Attribute="enableDnsSupport")
     attr = response.get("EnableDnsSupport")
-    attr.get("Value").should.be.ok
+    assert attr.get("Value") is not None
 
     vpc.modify_attribute(EnableDnsSupport={"Value": False})
 
     response = vpc.describe_attribute(Attribute="enableDnsSupport")
     attr = response.get("EnableDnsSupport")
-    attr.get("Value").shouldnt.be.ok
+    assert attr.get("Value") is False
 
 
 @mock_ec2
@@ -492,13 +486,13 @@ def test_vpc_modify_enable_dns_hostnames():
     # Test default values for VPC attributes
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
-    attr.get("Value").shouldnt.be.ok
+    assert attr.get("Value") is False
 
     vpc.modify_attribute(EnableDnsHostnames={"Value": True})
 
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
-    attr.get("Value").should.be.ok
+    assert attr.get("Value") is not None
 
 
 @mock_ec2
@@ -512,13 +506,13 @@ def test_vpc_modify_enable_network_address_usage_metrics():
     # Test default values for VPC attributes
     response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
     attr = response.get("EnableNetworkAddressUsageMetrics")
-    attr.get("Value").shouldnt.be.ok
+    assert attr.get("Value") is False
 
     vpc.modify_attribute(EnableNetworkAddressUsageMetrics={"Value": True})
 
     response = vpc.describe_attribute(Attribute="enableNetworkAddressUsageMetrics")
     attr = response.get("EnableNetworkAddressUsageMetrics")
-    attr.get("Value").should.equal(True)
+    assert attr.get("Value") is True
 
 
 @mock_ec2
@@ -536,7 +530,7 @@ def test_vpc_associate_dhcp_options():
     client.associate_dhcp_options(DhcpOptionsId=dhcp_options.id, VpcId=vpc.id)
 
     vpc.reload()
-    dhcp_options.id.should.equal(vpc.dhcp_options_id)
+    assert dhcp_options.id == vpc.dhcp_options_id
 
 
 @mock_ec2
@@ -550,32 +544,26 @@ def test_associate_vpc_ipv4_cidr_block():
         response = ec2.meta.client.associate_vpc_cidr_block(
             VpcId=vpc.id, CidrBlock=f"10.10.{i}.0/24"
         )
-        response["CidrBlockAssociation"]["CidrBlockState"]["State"].should.equal(
-            "associating"
+        assert (
+            response["CidrBlockAssociation"]["CidrBlockState"]["State"] == "associating"
         )
-        response["CidrBlockAssociation"]["CidrBlock"].should.equal(f"10.10.{i}.0/24")
-        response["CidrBlockAssociation"]["AssociationId"].should.contain(
-            "vpc-cidr-assoc"
-        )
+        assert response["CidrBlockAssociation"]["CidrBlock"] == f"10.10.{i}.0/24"
+        assert "vpc-cidr-assoc" in response["CidrBlockAssociation"]["AssociationId"]
 
     # Check all associations exist
     vpc = ec2.Vpc(vpc.id)
-    vpc.cidr_block_association_set.should.have.length_of(5)
-    vpc.cidr_block_association_set[2]["CidrBlockState"]["State"].should.equal(
-        "associated"
-    )
-    vpc.cidr_block_association_set[4]["CidrBlockState"]["State"].should.equal(
-        "associated"
-    )
+    assert len(vpc.cidr_block_association_set) == 5
+    assert vpc.cidr_block_association_set[2]["CidrBlockState"]["State"] == "associated"
+    assert vpc.cidr_block_association_set[4]["CidrBlockState"]["State"] == "associated"
 
     # Check error on adding 6th association.
     with pytest.raises(ClientError) as ex:
         response = ec2.meta.client.associate_vpc_cidr_block(
             VpcId=vpc.id, CidrBlock="10.10.50.0/22"
         )
-    str(ex.value).should.equal(
-        "An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock "
-        f"operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 5"
+    assert (
+        str(ex.value)
+        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 5"
     )
 
 
@@ -601,14 +589,16 @@ def test_disassociate_vpc_ipv4_cidr_block():
     response = ec2.meta.client.disassociate_vpc_cidr_block(
         AssociationId=non_default_assoc_cidr_block["AssociationId"]
     )
-    response["CidrBlockAssociation"]["CidrBlockState"]["State"].should.equal(
-        "disassociating"
+    assert (
+        response["CidrBlockAssociation"]["CidrBlockState"]["State"] == "disassociating"
     )
-    response["CidrBlockAssociation"]["CidrBlock"].should.equal(
-        non_default_assoc_cidr_block["CidrBlock"]
+    assert (
+        response["CidrBlockAssociation"]["CidrBlock"]
+        == non_default_assoc_cidr_block["CidrBlock"]
     )
-    response["CidrBlockAssociation"]["AssociationId"].should.equal(
-        non_default_assoc_cidr_block["AssociationId"]
+    assert (
+        response["CidrBlockAssociation"]["AssociationId"]
+        == non_default_assoc_cidr_block["AssociationId"]
     )
 
     # Error attempting to delete a non-existent CIDR_BLOCK association
@@ -616,10 +606,9 @@ def test_disassociate_vpc_ipv4_cidr_block():
         response = ec2.meta.client.disassociate_vpc_cidr_block(
             AssociationId="vpc-cidr-assoc-BORING123"
         )
-    str(ex.value).should.equal(
-        "An error occurred (InvalidVpcCidrBlockAssociationIdError.NotFound) when calling the "
-        "DisassociateVpcCidrBlock operation: The vpc CIDR block association ID "
-        "'vpc-cidr-assoc-BORING123' does not exist"
+    assert (
+        str(ex.value)
+        == "An error occurred (InvalidVpcCidrBlockAssociationIdError.NotFound) when calling the DisassociateVpcCidrBlock operation: The vpc CIDR block association ID 'vpc-cidr-assoc-BORING123' does not exist"
     )
 
     # Error attempting to delete Primary CIDR BLOCK association
@@ -635,13 +624,12 @@ def test_disassociate_vpc_ipv4_cidr_block():
     )["AssociationId"]
 
     with pytest.raises(ClientError) as ex:
-        response = ec2.meta.client.disassociate_vpc_cidr_block(
+        ec2.meta.client.disassociate_vpc_cidr_block(
             AssociationId=vpc_base_cidr_assoc_id
         )
-    str(ex.value).should.equal(
-        "An error occurred (OperationNotPermitted) when calling the DisassociateVpcCidrBlock operation: "
-        f"The vpc CIDR block with association ID {vpc_base_cidr_assoc_id} may not be disassociated. It is the primary "
-        "IPv4 CIDR block of the VPC"
+    assert (
+        str(ex.value)
+        == f"An error occurred (OperationNotPermitted) when calling the DisassociateVpcCidrBlock operation: The vpc CIDR block with association ID {vpc_base_cidr_assoc_id} may not be disassociated. It is the primary IPv4 CIDR block of the VPC"
     )
 
 
@@ -669,9 +657,9 @@ def test_cidr_block_association_filters():
             ]
         )
     )
-    [vpc.id for vpc in filtered_vpcs].shouldnt.contain(vpc1.id)
-    [vpc.id for vpc in filtered_vpcs].should.contain(vpc2.id)
-    [vpc.id for vpc in filtered_vpcs].shouldnt.contain(vpc3.id)
+    assert vpc1.id not in [vpc.id for vpc in filtered_vpcs]
+    assert vpc2.id in [vpc.id for vpc in filtered_vpcs]
+    assert vpc3.id not in [vpc.id for vpc in filtered_vpcs]
 
     # Test filter for association id in VPCs
     association_id = vpc3_assoc_response["CidrBlockAssociation"]["AssociationId"]
@@ -685,8 +673,8 @@ def test_cidr_block_association_filters():
             ]
         )
     )
-    filtered_vpcs.should.be.length_of(1)
-    filtered_vpcs[0].id.should.equal(vpc3.id)
+    assert len(filtered_vpcs) == 1
+    assert filtered_vpcs[0].id == vpc3.id
 
     # Test filter for association state in VPC - this will never show anything in this test
     filtered_vpcs = list(
@@ -696,7 +684,7 @@ def test_cidr_block_association_filters():
             ]
         )
     )
-    filtered_vpcs.should.be.length_of(0)
+    assert len(filtered_vpcs) == 0
 
 
 @mock_ec2
@@ -705,41 +693,33 @@ def test_vpc_associate_ipv6_cidr_block():
 
     # Test create VPC with IPV6 cidr range
     vpc = ec2.create_vpc(CidrBlock="10.10.42.0/24", AmazonProvidedIpv6CidrBlock=True)
-    ipv6_cidr_block_association_set = next(
-        iter(vpc.ipv6_cidr_block_association_set), None
-    )
-    ipv6_cidr_block_association_set["Ipv6CidrBlockState"]["State"].should.equal(
-        "associated"
-    )
-    ipv6_cidr_block_association_set["Ipv6CidrBlock"].should.contain("::/56")
-    ipv6_cidr_block_association_set["AssociationId"].should.contain("vpc-cidr-assoc")
+    assoc_set = next(iter(vpc.ipv6_cidr_block_association_set), None)
+    assert assoc_set["Ipv6CidrBlockState"]["State"] == "associated"
+    assert "::/56" in assoc_set["Ipv6CidrBlock"]
+    assert "vpc-cidr-assoc" in assoc_set["AssociationId"]
 
     # Test Fail on adding 2nd IPV6 association - AWS only allows 1 at this time!
     with pytest.raises(ClientError) as ex:
-        response = ec2.meta.client.associate_vpc_cidr_block(
+        ec2.meta.client.associate_vpc_cidr_block(
             VpcId=vpc.id, AmazonProvidedIpv6CidrBlock=True
         )
-    str(ex.value).should.equal(
-        "An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock "
-        f"operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 1"
+    assert (
+        str(ex.value)
+        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 1"
     )
 
     # Test associate ipv6 cidr block after vpc created
     vpc = ec2.create_vpc(CidrBlock="10.10.50.0/24")
-    response = ec2.meta.client.associate_vpc_cidr_block(
+    cidr_block = ec2.meta.client.associate_vpc_cidr_block(
         VpcId=vpc.id, AmazonProvidedIpv6CidrBlock=True
-    )
-    response["Ipv6CidrBlockAssociation"]["Ipv6CidrBlockState"]["State"].should.equal(
-        "associating"
-    )
-    response["Ipv6CidrBlockAssociation"]["Ipv6CidrBlock"].should.contain("::/56")
-    response["Ipv6CidrBlockAssociation"]["AssociationId"].should.contain(
-        "vpc-cidr-assoc-"
-    )
+    )["Ipv6CidrBlockAssociation"]
+    assert cidr_block["Ipv6CidrBlockState"]["State"] == "associating"
+    assert "::/56" in cidr_block["Ipv6CidrBlock"]
+    assert "vpc-cidr-assoc-" in cidr_block["AssociationId"]
 
     # Check on describe vpc that has ipv6 cidr block association
     vpc = ec2.Vpc(vpc.id)
-    vpc.ipv6_cidr_block_association_set.should.be.length_of(1)
+    assert len(vpc.ipv6_cidr_block_association_set) == 1
 
 
 @mock_ec2
@@ -750,12 +730,12 @@ def test_vpc_disassociate_ipv6_cidr_block():
     vpc = ec2.create_vpc(CidrBlock="10.10.42.0/24", AmazonProvidedIpv6CidrBlock=True)
     # Test disassociating the only IPV6
     assoc_id = vpc.ipv6_cidr_block_association_set[0]["AssociationId"]
-    response = ec2.meta.client.disassociate_vpc_cidr_block(AssociationId=assoc_id)
-    response["Ipv6CidrBlockAssociation"]["Ipv6CidrBlockState"]["State"].should.equal(
-        "disassociating"
-    )
-    response["Ipv6CidrBlockAssociation"]["Ipv6CidrBlock"].should.contain("::/56")
-    response["Ipv6CidrBlockAssociation"]["AssociationId"].should.equal(assoc_id)
+    cidr = ec2.meta.client.disassociate_vpc_cidr_block(AssociationId=assoc_id)[
+        "Ipv6CidrBlockAssociation"
+    ]
+    assert cidr["Ipv6CidrBlockState"]["State"] == "disassociating"
+    assert "::/56" in cidr["Ipv6CidrBlock"]
+    assert cidr["AssociationId"] == assoc_id
 
 
 @mock_ec2
@@ -788,8 +768,8 @@ def test_ipv6_cidr_block_association_filters():
             ]
         )
     )
-    filtered_vpcs.should.be.length_of(1)
-    filtered_vpcs[0].id.should.equal(vpc3.id)
+    assert len(filtered_vpcs) == 1
+    assert filtered_vpcs[0].id == vpc3.id
 
     # Test filter for association id in VPCs
     filtered_vpcs = list(
@@ -802,8 +782,8 @@ def test_ipv6_cidr_block_association_filters():
             ]
         )
     )
-    filtered_vpcs.should.be.length_of(1)
-    filtered_vpcs[0].id.should.equal(vpc2.id)
+    assert len(filtered_vpcs) == 1
+    assert filtered_vpcs[0].id == vpc2.id
 
     # Test filter for association state in VPC - this will never show anything in this test
     assoc_vpcs = [
@@ -814,10 +794,10 @@ def test_ipv6_cidr_block_association_filters():
             ]
         )
     ]
-    assoc_vpcs.shouldnt.contain(vpc1.id)
-    assoc_vpcs.should.contain(vpc2.id)
-    assoc_vpcs.should.contain(vpc3.id)
-    assoc_vpcs.shouldnt.contain(vpc4.id)
+    assert vpc1.id not in assoc_vpcs
+    assert vpc2.id in assoc_vpcs
+    assert vpc3.id in assoc_vpcs
+    assert vpc4.id not in assoc_vpcs
 
 
 @mock_ec2
@@ -827,9 +807,9 @@ def test_create_vpc_with_invalid_cidr_block_parameter():
     vpc_cidr_block = "1000.1.0.0/20"
     with pytest.raises(ClientError) as ex:
         ec2.create_vpc(CidrBlock=vpc_cidr_block)
-    str(ex.value).should.equal(
-        "An error occurred (InvalidParameterValue) when calling the CreateVpc "
-        f"operation: Value ({vpc_cidr_block}) for parameter cidrBlock is invalid. This is not a valid CIDR block."
+    assert (
+        str(ex.value)
+        == f"An error occurred (InvalidParameterValue) when calling the CreateVpc operation: Value ({vpc_cidr_block}) for parameter cidrBlock is invalid. This is not a valid CIDR block."
     )
 
 
@@ -840,9 +820,9 @@ def test_create_vpc_with_invalid_cidr_range():
     vpc_cidr_block = "10.1.0.0/29"
     with pytest.raises(ClientError) as ex:
         ec2.create_vpc(CidrBlock=vpc_cidr_block)
-    str(ex.value).should.equal(
-        "An error occurred (InvalidVpc.Range) when calling the CreateVpc "
-        f"operation: The CIDR '{vpc_cidr_block}' is invalid."
+    assert (
+        str(ex.value)
+        == f"An error occurred (InvalidVpc.Range) when calling the CreateVpc operation: The CIDR '{vpc_cidr_block}' is invalid."
     )
 
 
@@ -867,7 +847,7 @@ def test_enable_vpc_classic_link():
     vpc = ec2.create_vpc(CidrBlock="10.1.0.0/16")
 
     response = ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
-    assert response.get("Return").should.equal(True)
+    assert response.get("Return") is True
 
 
 @mock_ec2
@@ -878,7 +858,7 @@ def test_enable_vpc_classic_link_failure():
     vpc = ec2.create_vpc(CidrBlock="10.90.0.0/16")
 
     response = ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
-    assert response.get("Return").should.be.false
+    assert response.get("Return") is False
 
 
 @mock_ec2
@@ -890,7 +870,7 @@ def test_disable_vpc_classic_link():
 
     ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
     response = ec2.meta.client.disable_vpc_classic_link(VpcId=vpc.id)
-    assert response.get("Return").should.be.false
+    assert response.get("Return") is False
 
 
 @mock_ec2
@@ -902,7 +882,7 @@ def test_describe_classic_link_enabled():
 
     ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
     response = ec2.meta.client.describe_vpc_classic_link(VpcIds=[vpc.id])
-    assert response.get("Vpcs")[0].get("ClassicLinkEnabled").should.equal(True)
+    assert response.get("Vpcs")[0].get("ClassicLinkEnabled") is True
 
 
 @mock_ec2
@@ -913,7 +893,7 @@ def test_describe_classic_link_disabled():
     vpc = ec2.create_vpc(CidrBlock="10.90.0.0/16")
 
     response = ec2.meta.client.describe_vpc_classic_link(VpcIds=[vpc.id])
-    assert response.get("Vpcs")[0].get("ClassicLinkEnabled").should.be.false
+    assert response.get("Vpcs")[0].get("ClassicLinkEnabled") is False
 
 
 @mock_ec2
@@ -945,7 +925,7 @@ def test_enable_vpc_classic_link_dns_support():
     vpc = ec2.create_vpc(CidrBlock="10.1.0.0/16")
 
     response = ec2.meta.client.enable_vpc_classic_link_dns_support(VpcId=vpc.id)
-    assert response.get("Return").should.equal(True)
+    assert response.get("Return") is True
 
 
 @mock_ec2
@@ -957,7 +937,7 @@ def test_disable_vpc_classic_link_dns_support():
 
     ec2.meta.client.enable_vpc_classic_link_dns_support(VpcId=vpc.id)
     response = ec2.meta.client.disable_vpc_classic_link_dns_support(VpcId=vpc.id)
-    assert response.get("Return").should.be.false
+    assert response.get("Return") is False
 
 
 @mock_ec2
@@ -969,7 +949,7 @@ def test_describe_classic_link_dns_support_enabled():
 
     ec2.meta.client.enable_vpc_classic_link_dns_support(VpcId=vpc.id)
     response = ec2.meta.client.describe_vpc_classic_link_dns_support(VpcIds=[vpc.id])
-    assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported").should.equal(True)
+    assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported") is True
 
 
 @mock_ec2
@@ -980,7 +960,7 @@ def test_describe_classic_link_dns_support_disabled():
     vpc = ec2.create_vpc(CidrBlock="10.90.0.0/16")
 
     response = ec2.meta.client.describe_vpc_classic_link_dns_support(VpcIds=[vpc.id])
-    assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported").should.be.false
+    assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported") is False
 
 
 @mock_ec2
@@ -1023,8 +1003,8 @@ def test_create_vpc_endpoint__policy():
         VpcEndpointType="Gateway",
     )["VpcEndpoint"]
 
-    vpc_end_point.should.have.key("PolicyDocument")
-    json.loads(vpc_end_point["PolicyDocument"]).should.equal(default_policy)
+    assert "PolicyDocument" in vpc_end_point
+    assert json.loads(vpc_end_point["PolicyDocument"]) == default_policy
 
     # create with policy --> verify the passed policy is returned
     vpc_end_point = ec2.create_vpc_endpoint(
@@ -1033,7 +1013,7 @@ def test_create_vpc_endpoint__policy():
         PolicyDocument="my policy document",
         VpcEndpointType="Gateway",
     )["VpcEndpoint"]
-    vpc_end_point.should.have.key("PolicyDocument").equals("my policy document")
+    assert vpc_end_point["PolicyDocument"] == "my policy document"
 
 
 @mock_ec2
@@ -1051,37 +1031,37 @@ def test_describe_vpc_gateway_end_points():
     our_id = vpc_end_point["VpcEndpointId"]
 
     all_endpoints = retrieve_all_endpoints(ec2)
-    [e["VpcEndpointId"] for e in all_endpoints].should.contain(our_id)
+    assert our_id in [e["VpcEndpointId"] for e in all_endpoints]
     our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
-    vpc_end_point["PrivateDnsEnabled"].should.equal(True)
-    our_endpoint["PrivateDnsEnabled"].should.equal(True)
+    assert vpc_end_point["PrivateDnsEnabled"] is True
+    assert our_endpoint["PrivateDnsEnabled"] is True
 
-    our_endpoint["VpcId"].should.equal(vpc["VpcId"])
-    our_endpoint["RouteTableIds"].should.equal([route_table["RouteTableId"]])
+    assert our_endpoint["VpcId"] == vpc["VpcId"]
+    assert our_endpoint["RouteTableIds"] == [route_table["RouteTableId"]]
 
-    our_endpoint.should.have.key("VpcEndpointType").equal("Gateway")
-    our_endpoint.should.have.key("ServiceName").equal("com.amazonaws.us-east-1.s3")
-    our_endpoint.should.have.key("State").equal("available")
+    assert our_endpoint["VpcEndpointType"] == "Gateway"
+    assert our_endpoint["ServiceName"] == "com.amazonaws.us-east-1.s3"
+    assert our_endpoint["State"] == "available"
 
     endpoint_by_id = ec2.describe_vpc_endpoints(VpcEndpointIds=[our_id])[
         "VpcEndpoints"
     ][0]
-    endpoint_by_id["VpcEndpointId"].should.equal(our_id)
-    endpoint_by_id["VpcId"].should.equal(vpc["VpcId"])
-    endpoint_by_id["RouteTableIds"].should.equal([route_table["RouteTableId"]])
-    endpoint_by_id["VpcEndpointType"].should.equal("Gateway")
-    endpoint_by_id["ServiceName"].should.equal("com.amazonaws.us-east-1.s3")
-    endpoint_by_id["State"].should.equal("available")
+    assert endpoint_by_id["VpcEndpointId"] == our_id
+    assert endpoint_by_id["VpcId"] == vpc["VpcId"]
+    assert endpoint_by_id["RouteTableIds"] == [route_table["RouteTableId"]]
+    assert endpoint_by_id["VpcEndpointType"] == "Gateway"
+    assert endpoint_by_id["ServiceName"] == "com.amazonaws.us-east-1.s3"
+    assert endpoint_by_id["State"] == "available"
 
     gateway_endpoints = ec2.describe_vpc_endpoints(
         Filters=[{"Name": "vpc-endpoint-type", "Values": ["Gateway"]}]
     )["VpcEndpoints"]
-    [e["VpcEndpointId"] for e in gateway_endpoints].should.contain(our_id)
+    assert our_id in [e["VpcEndpointId"] for e in gateway_endpoints]
 
     with pytest.raises(ClientError) as ex:
         ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidVpcEndpointId.NotFound")
+    assert err["Code"] == "InvalidVpcEndpointId.NotFound"
 
 
 @mock_ec2
@@ -1099,42 +1079,40 @@ def test_describe_vpc_interface_end_points():
     )["VpcEndpoint"]
     our_id = vpc_end_point["VpcEndpointId"]
 
-    vpc_end_point["DnsEntries"].should.have.length_of(1)
-    vpc_end_point["DnsEntries"][0].should.have.key("DnsName").should.match(
-        r".*com\.tester\.my-test-endpoint$"
-    )
-    vpc_end_point["DnsEntries"][0].should.have.key("HostedZoneId")
+    assert len(vpc_end_point["DnsEntries"]) == 1
+    assert "com.tester.my-test-endpoint" in vpc_end_point["DnsEntries"][0]["DnsName"]
+    assert "HostedZoneId" in vpc_end_point["DnsEntries"][0]
 
     all_endpoints = retrieve_all_endpoints(ec2)
-    [e["VpcEndpointId"] for e in all_endpoints].should.contain(our_id)
+    assert our_id in [e["VpcEndpointId"] for e in all_endpoints]
     our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
-    vpc_end_point["PrivateDnsEnabled"].should.equal(True)
-    our_endpoint["PrivateDnsEnabled"].should.equal(True)
+    assert vpc_end_point["PrivateDnsEnabled"] is True
+    assert our_endpoint["PrivateDnsEnabled"] is True
 
-    our_endpoint["VpcId"].should.equal(vpc["VpcId"])
-    our_endpoint.should_not.have.key("RouteTableIds")
+    assert our_endpoint["VpcId"] == vpc["VpcId"]
+    assert "RouteTableIds" not in our_endpoint
 
-    our_endpoint["DnsEntries"].should.equal(vpc_end_point["DnsEntries"])
+    assert our_endpoint["DnsEntries"] == vpc_end_point["DnsEntries"]
 
-    our_endpoint.should.have.key("VpcEndpointType").equal("interface")
-    our_endpoint.should.have.key("ServiceName").equal("com.tester.my-test-endpoint")
-    our_endpoint.should.have.key("State").equal("available")
+    assert our_endpoint["VpcEndpointType"] == "interface"
+    assert our_endpoint["ServiceName"] == "com.tester.my-test-endpoint"
+    assert our_endpoint["State"] == "available"
 
     endpoint_by_id = ec2.describe_vpc_endpoints(VpcEndpointIds=[our_id])[
         "VpcEndpoints"
     ][0]
-    endpoint_by_id["VpcEndpointId"].should.equal(our_id)
-    endpoint_by_id["VpcId"].should.equal(vpc["VpcId"])
-    endpoint_by_id.should_not.have.key("RouteTableIds")
-    endpoint_by_id["VpcEndpointType"].should.equal("interface")
-    endpoint_by_id["ServiceName"].should.equal("com.tester.my-test-endpoint")
-    endpoint_by_id["State"].should.equal("available")
-    endpoint_by_id["DnsEntries"].should.equal(vpc_end_point["DnsEntries"])
+    assert endpoint_by_id["VpcEndpointId"] == our_id
+    assert endpoint_by_id["VpcId"] == vpc["VpcId"]
+    assert "RouteTableIds" not in endpoint_by_id
+    assert endpoint_by_id["VpcEndpointType"] == "interface"
+    assert endpoint_by_id["ServiceName"] == "com.tester.my-test-endpoint"
+    assert endpoint_by_id["State"] == "available"
+    assert endpoint_by_id["DnsEntries"] == vpc_end_point["DnsEntries"]
 
     with pytest.raises(ClientError) as ex:
         ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidVpcEndpointId.NotFound")
+    assert err["Code"] == "InvalidVpcEndpointId.NotFound"
 
 
 def retrieve_all_endpoints(ec2):
@@ -1174,22 +1152,22 @@ def test_modify_vpc_endpoint():
     )
 
     endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
-    endpoint["SubnetIds"].should.equal([subnet_id1, subnet_id2])
+    assert endpoint["SubnetIds"] == [subnet_id1, subnet_id2]
 
     ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, AddRouteTableIds=[rt_id])
     endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
-    endpoint.should.have.key("RouteTableIds").equals([rt_id])
+    assert endpoint["RouteTableIds"] == [rt_id]
 
     ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, RemoveRouteTableIds=[rt_id])
     endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
-    endpoint.shouldnt.have.key("RouteTableIds")
+    assert "RouteTableIds" not in endpoint
 
     ec2.modify_vpc_endpoint(
         VpcEndpointId=vpc_id,
         PolicyDocument="doc",
     )
     endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
-    endpoint.should.have.key("PolicyDocument").equals("doc")
+    assert endpoint["PolicyDocument"] == "doc"
 
 
 @mock_ec2
@@ -1213,25 +1191,25 @@ def test_delete_vpc_end_points():
 
     vpc_endpoints = retrieve_all_endpoints(ec2)
     all_ids = [e["VpcEndpointId"] for e in vpc_endpoints]
-    all_ids.should.contain(vpc_end_point1["VpcEndpointId"])
-    all_ids.should.contain(vpc_end_point2["VpcEndpointId"])
+    assert vpc_end_point1["VpcEndpointId"] in all_ids
+    assert vpc_end_point2["VpcEndpointId"] in all_ids
 
     ec2.delete_vpc_endpoints(VpcEndpointIds=[vpc_end_point1["VpcEndpointId"]])
 
     vpc_endpoints = retrieve_all_endpoints(ec2)
     all_ids = [e["VpcEndpointId"] for e in vpc_endpoints]
-    all_ids.should.contain(vpc_end_point1["VpcEndpointId"])
-    all_ids.should.contain(vpc_end_point2["VpcEndpointId"])
+    assert vpc_end_point1["VpcEndpointId"] in all_ids
+    assert vpc_end_point2["VpcEndpointId"] in all_ids
 
     ep1 = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_end_point1["VpcEndpointId"]])[
         "VpcEndpoints"
     ][0]
-    ep1["State"].should.equal("deleted")
+    assert ep1["State"] == "deleted"
 
     ep2 = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_end_point2["VpcEndpointId"]])[
         "VpcEndpoints"
     ][0]
-    ep2["State"].should.equal("available")
+    assert ep2["State"] == "available"
 
 
 @mock_ec2
@@ -1240,10 +1218,11 @@ def test_describe_vpcs_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_vpcs(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DescribeVpcs operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the DescribeVpcs operation: Request would have succeeded, but DryRun flag is set"
     )
 
 
