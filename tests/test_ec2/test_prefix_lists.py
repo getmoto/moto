@@ -96,7 +96,7 @@ def test_describe_managed_prefix_lists_with_tags():
         Filters=[{"Name": "tag:key", "Values": ["value"]}]
     )["PrefixLists"]
     assert tagged_pl_id in [pl["PrefixListId"] for pl in tagged_lists]
-    [pl["PrefixListId"] for pl in tagged_lists].should_not.contain(untagged_pl_id)
+    assert untagged_pl_id not in [pl["PrefixListId"] for pl in tagged_lists]
 
 
 @mock_ec2

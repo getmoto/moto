@@ -13,7 +13,7 @@ def test_console_output():
     instances = conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
 
     output = instances[0].console_output()
-    output.get("Output").should_not.equal(None)
+    assert output.get("Output") is not None
 
 
 @mock_ec2

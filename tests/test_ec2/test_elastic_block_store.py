@@ -573,9 +573,7 @@ def test_modify_snapshot_attribute():
     ], "This snapshot should have public group permissions."
 
     # Add is idempotent
-    ec2_client.modify_snapshot_attribute.when.called_with(
-        **ADD_GROUP_ARGS
-    ).should_not.throw(ClientError)
+    ec2_client.modify_snapshot_attribute(**ADD_GROUP_ARGS)
     assert attributes["CreateVolumePermissions"] == [
         {"Group": "all"}
     ], "This snapshot should have public group permissions."
@@ -599,9 +597,7 @@ def test_modify_snapshot_attribute():
     ], "This snapshot should have no permissions."
 
     # Remove is idempotent
-    ec2_client.modify_snapshot_attribute.when.called_with(
-        **REMOVE_GROUP_ARGS
-    ).should_not.throw(ClientError)
+    ec2_client.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
     assert not attributes[
         "CreateVolumePermissions"
     ], "This snapshot should have no permissions."
@@ -920,10 +916,10 @@ def test_kms_key_id_property_hidden_when_volume_not_encrypted():
     client = boto3.client("ec2", region_name="us-east-1")
     resp = client.create_volume(AvailabilityZone="us-east-1a", Encrypted=False, Size=10)
     assert resp["Encrypted"] is False
-    resp.should_not.have.key("KmsKeyId")
+    assert "KmsKeyId" not in resp
     resp = client.describe_volumes(VolumeIds=[resp["VolumeId"]])
     assert resp["Volumes"][0]["Encrypted"] is False
-    resp["Volumes"][0].should_not.have.key("KmsKeyId")
+    assert "KmsKeyId" not in resp["Volumes"][0]
     resource = boto3.resource("ec2", region_name="us-east-1")
     volume = resource.create_volume(
         AvailabilityZone="us-east-1a", Encrypted=False, Size=10

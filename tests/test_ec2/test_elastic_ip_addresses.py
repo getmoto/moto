@@ -252,9 +252,9 @@ def test_eip_vpc_association():
     )
     instance.load()
     address.reload()
-    address.association_id.should_not.equal(None)
-    instance.public_ip_address.should_not.equal(None)
-    instance.public_dns_name.should_not.equal(None)
+    assert address.association_id is not None
+    assert instance.public_ip_address is not None
+    assert instance.public_dns_name is not None
     assert address.network_interface_id == instance.network_interfaces_attribute[0].get(
         "NetworkInterfaceId"
     )

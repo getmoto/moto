@@ -1,6 +1,5 @@
 from botocore.exceptions import ClientError
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ecs
 import pytest
@@ -44,18 +43,18 @@ def test_create_task_set():
     service_arn = client.describe_services(
         cluster=cluster_name, services=[service_name]
     )["services"][0]["serviceArn"]
-    task_set["clusterArn"].should.equal(cluster_arn)
-    task_set["serviceArn"].should.equal(service_arn)
-    task_set["taskDefinition"].should.match(f"{task_def_name}:1$")
-    task_set["scale"].should.equal({"value": 100.0, "unit": "PERCENT"})
-    task_set["loadBalancers"][0]["targetGroupArn"].should.equal(
-        "arn:aws:elasticloadbalancing:us-east-1:01234567890:targetgroup/"
-        "c26b93c1bc35466ba792d5b08fe6a5bc/ec39113f8831453a"
+    assert task_set["clusterArn"] == cluster_arn
+    assert task_set["serviceArn"] == service_arn
+    assert task_set["taskDefinition"].endswith(f"{task_def_name}:1")
+    assert task_set["scale"] == {"value": 100.0, "unit": "PERCENT"}
+    assert (
+        task_set["loadBalancers"][0]["targetGroupArn"]
+        == "arn:aws:elasticloadbalancing:us-east-1:01234567890:targetgroup/c26b93c1bc35466ba792d5b08fe6a5bc/ec39113f8831453a"
     )
-    task_set["loadBalancers"][0]["containerPort"].should.equal(8080)
-    task_set["loadBalancers"][0]["containerName"].should.equal("hello_world")
-    task_set["launchType"].should.equal("EC2")
-    task_set["platformVersion"].should.equal("LATEST")
+    assert task_set["loadBalancers"][0]["containerPort"] == 8080
+    assert task_set["loadBalancers"][0]["containerName"] == "hello_world"
+    assert task_set["launchType"] == "EC2"
+    assert task_set["platformVersion"] == "LATEST"
 
 
 @mock_ecs
@@ -84,11 +83,11 @@ def test_create_task_set_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("CreateTaskSet")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ClientException")
-    ex.response["Error"]["Message"].should.equal(
-        "launch type should be one of [EC2,FARGATE]"
+    assert ex.operation_name == "CreateTaskSet"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ClientException"
+    assert (
+        ex.response["Error"]["Message"] == "launch type should be one of [EC2,FARGATE]"
     )
 
 
@@ -136,21 +135,21 @@ def test_describe_task_sets():
         cluster=cluster_name, services=[service_name]
     )["services"][0]["serviceArn"]
 
-    task_sets.should.have.length_of(1)
-    task_sets[0].should.have.key("tags")
-    task_sets[0]["taskDefinition"].should.match(f"{task_def_name}:1$")
-    task_sets[0]["clusterArn"].should.equal(cluster_arn)
-    task_sets[0]["serviceArn"].should.equal(service_arn)
-    task_sets[0]["serviceArn"].should.match(f"{service_name}$")
-    task_sets[0]["scale"].should.equal({"value": 100.0, "unit": "PERCENT"})
-    task_sets[0]["taskSetArn"].should.match(f"{task_sets[0]['id']}$")
-    task_sets[0]["loadBalancers"][0]["targetGroupArn"].should.equal(
-        "arn:aws:elasticloadbalancing:us-east-1:01234567890:targetgroup/"
-        "c26b93c1bc35466ba792d5b08fe6a5bc/ec39113f8831453a"
+    assert len(task_sets) == 1
+    assert "tags" in task_sets[0]
+    assert task_sets[0]["taskDefinition"].endswith(f"{task_def_name}:1")
+    assert task_sets[0]["clusterArn"] == cluster_arn
+    assert task_sets[0]["serviceArn"] == service_arn
+    assert task_sets[0]["serviceArn"].endswith(f"{service_name}")
+    assert task_sets[0]["scale"] == {"value": 100.0, "unit": "PERCENT"}
+    assert task_sets[0]["taskSetArn"].endswith(f"{task_sets[0]['id']}")
+    assert (
+        task_sets[0]["loadBalancers"][0]["targetGroupArn"]
+        == "arn:aws:elasticloadbalancing:us-east-1:01234567890:targetgroup/c26b93c1bc35466ba792d5b08fe6a5bc/ec39113f8831453a"
     )
-    task_sets[0]["loadBalancers"][0]["containerPort"].should.equal(8080)
-    task_sets[0]["loadBalancers"][0]["containerName"].should.equal("hello_world")
-    task_sets[0]["launchType"].should.equal("EC2")
+    assert task_sets[0]["loadBalancers"][0]["containerPort"] == 8080
+    assert task_sets[0]["loadBalancers"][0]["containerName"] == "hello_world"
+    assert task_sets[0]["launchType"] == "EC2"
 
 
 @mock_ecs
@@ -194,7 +193,7 @@ def test_delete_task_set():
     assert len(task_sets) == 0
 
     with pytest.raises(ClientError):
-        _ = client.delete_task_set(
+        client.delete_task_set(
             cluster=cluster_name, service=service_name, taskSet=task_set["taskSetArn"]
         )
 
@@ -248,7 +247,7 @@ def test_update_service_primary_task_set():
         cluster=cluster_name, service=service_name, taskDefinition=task_def_name
     )["taskSet"]
 
-    service = client.describe_services(cluster=cluster_name, services=[service_name],)[
+    service = client.describe_services(cluster=cluster_name, services=[service_name])[
         "services"
     ][0]
 
@@ -258,7 +257,7 @@ def test_update_service_primary_task_set():
         primaryTaskSet=task_set["taskSetArn"],
     )
 
-    service = client.describe_services(cluster=cluster_name, services=[service_name],)[
+    service = client.describe_services(cluster=cluster_name, services=[service_name])[
         "services"
     ][0]
     assert service["taskSets"][0]["status"] == "PRIMARY"
@@ -267,7 +266,7 @@ def test_update_service_primary_task_set():
     another_task_set = client.create_task_set(
         cluster=cluster_name, service=service_name, taskDefinition=task_def_name
     )["taskSet"]
-    service = client.describe_services(cluster=cluster_name, services=[service_name],)[
+    service = client.describe_services(cluster=cluster_name, services=[service_name])[
         "services"
     ][0]
     assert service["taskSets"][1]["status"] == "ACTIVE"
@@ -277,7 +276,7 @@ def test_update_service_primary_task_set():
         service=service_name,
         primaryTaskSet=another_task_set["taskSetArn"],
     )
-    service = client.describe_services(cluster=cluster_name, services=[service_name],)[
+    service = client.describe_services(cluster=cluster_name, services=[service_name])[
         "services"
     ][0]
     assert service["taskSets"][0]["status"] == "ACTIVE"
@@ -353,9 +352,10 @@ def test_create_task_sets_with_tags():
     task_set = client.describe_task_sets(
         cluster=cluster_name, service=service_name, include=["TAGS"]
     )["taskSets"][0]
-    task_set.should.have.key("tags").equals(
-        [{"key": "k1", "value": "v1"}, {"key": "k2", "value": "v2"}]
-    )
+    assert task_set["tags"] == [
+        {"key": "k1", "value": "v1"},
+        {"key": "k2", "value": "v2"},
+    ]
 
     client.tag_resource(
         resourceArn=task_set["taskSetArn"], tags=[{"key": "k3", "value": "v3"}]
@@ -364,19 +364,17 @@ def test_create_task_sets_with_tags():
     task_set = client.describe_task_sets(
         cluster=cluster_name, service=service_name, include=["TAGS"]
     )["taskSets"][0]
-    task_set.should.have.key("tags")
-    task_set["tags"].should.have.length_of(3)
-    task_set["tags"].should.contain({"key": "k1", "value": "v1"})
-    task_set["tags"].should.contain({"key": "k2", "value": "v2"})
-    task_set["tags"].should.contain({"key": "k3", "value": "v3"})
+    assert len(task_set["tags"]) == 3
+    assert {"key": "k1", "value": "v1"} in task_set["tags"]
+    assert {"key": "k2", "value": "v2"} in task_set["tags"]
+    assert {"key": "k3", "value": "v3"} in task_set["tags"]
 
     client.untag_resource(resourceArn=task_set["taskSetArn"], tagKeys=["k2"])
 
     resp = client.list_tags_for_resource(resourceArn=task_set["taskSetArn"])
-    resp.should.have.key("tags")
-    resp["tags"].should.have.length_of(2)
-    resp["tags"].should.contain({"key": "k1", "value": "v1"})
-    resp["tags"].should.contain({"key": "k3", "value": "v3"})
+    assert len(resp["tags"]) == 2
+    assert {"key": "k1", "value": "v1"} in resp["tags"]
+    assert {"key": "k3", "value": "v3"} in resp["tags"]
 
 
 def create_task_def(client):

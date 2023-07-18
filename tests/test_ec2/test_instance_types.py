@@ -100,7 +100,7 @@ def test_describe_instance_types_filter_by_vcpus():
     assert "t2.nano" in types
 
     # not contain
-    types.should_not.contain("m5d.xlarge")
+    assert "m5d.xlarge" not in types
 
 
 @mock_ec2
@@ -117,7 +117,7 @@ def test_describe_instance_types_filter_by_memory():
     assert "t4g.nano" in types
 
     # not contain
-    types.should_not.contain("m5d.xlarge")
+    assert "m5d.xlarge" not in types
 
 
 @mock_ec2
@@ -134,7 +134,7 @@ def test_describe_instance_types_filter_by_bare_metal():
     assert "a1.metal" in types
 
     # not contain
-    types.should_not.contain("t1.micro")
+    assert "t1.micro" not in types
 
 
 @mock_ec2
@@ -151,7 +151,7 @@ def test_describe_instance_types_filter_by_burstable_performance_supported():
     assert "t2.micro" in types
 
     # not contain
-    types.should_not.contain("t1.micro")
+    assert "t1.micro" not in types
 
 
 @mock_ec2
@@ -168,7 +168,7 @@ def test_describe_instance_types_filter_by_current_generation():
     assert "t2.micro" in types
 
     # not contain
-    types.should_not.contain("t1.micro")
+    assert "t1.micro" not in types
 
 
 @mock_ec2
