@@ -59,7 +59,11 @@ class FakeThing(BaseModel):
             return self.attributes.get(k) == v
         return query_string in self.thing_name
 
-    def to_dict(self, include_default_client_id: bool = False) -> Dict[str, Any]:
+    def to_dict(
+        self,
+        include_default_client_id: bool = False,
+        include_connectivity: bool = False,
+    ) -> Dict[str, Any]:
         obj = {
             "thingName": self.thing_name,
             "thingArn": self.arn,
@@ -70,6 +74,11 @@ class FakeThing(BaseModel):
             obj["thingTypeName"] = self.thing_type.thing_type_name
         if include_default_client_id:
             obj["defaultClientId"] = self.thing_name
+        if include_connectivity:
+            obj["connectivity"] = {
+                "connected": True,
+                "timestamp": time.mktime(datetime.utcnow().timetuple()),
+            }
         return obj
 
 
@@ -1855,7 +1864,7 @@ class IoTBackend(BaseBackend):
         things = [
             thing for thing in self.things.values() if thing.matches(query_string)
         ]
-        return [t.to_dict() for t in things]
+        return [t.to_dict(include_connectivity=True) for t in things]
 
 
 iot_backends = BackendDict(IoTBackend, "iot")
