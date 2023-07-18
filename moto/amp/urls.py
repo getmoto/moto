@@ -16,6 +16,7 @@ url_paths = {
     "{0}/workspaces/(?P<workspace_id>[^/]+)/logging$": response.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces$": response.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces/(?P<name>[^/]+)$": response.dispatch,
+    "{0}/workspaces/(?P<workspace_id>[^/]+)/alertmanager/definition$": response.dispatch,
     "{0}/tags/(?P<resource_arn>[^/]+)$": response.dispatch,
     "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<workspace_id>[^/]+)$": response.tags,
     "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<workspace_id>[^/]+)/(?P<ns_name>[^/]+)$": response.tags,

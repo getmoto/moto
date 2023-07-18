@@ -169,3 +169,35 @@ class PrometheusServiceResponse(BaseResponse):
         workspace_id = unquote(self.path).split("/")[-2]
         self.amp_backend.delete_logging_configuration(workspace_id=workspace_id)
         return "{}"
+
+    def create_alert_manager_definition(self) -> str:
+        data = self._get_param("data")
+        workspace_id = self._get_param("workspaceId")
+        status = self.amp_backend.create_alert_manager_definition(
+            workspace_id=workspace_id, data=data
+        )
+        return json.dumps(status.to_dict())
+
+    def delete_alert_manager_definition(self) -> str:
+        workspace_id = self._get_param("workspaceId")
+        self.amp_backend.delete_alert_manager_definition(workspace_id=workspace_id)
+        import pytest; pytest.set_trace()
+        return "{}"
+
+    def describe_alert_manager_definition(self) -> str:
+        workspace_id = self._get_param("workspaceId")
+        alert_manager = self.amp_backend.describe_alert_manager_definition(
+            workspace_id=workspace_id
+        )
+        import pytest; pytest.set_trace()
+        if alert_manager is None:
+            return "{}"
+        return json.dumps({"alertManager": alert_manager.to_dict()})
+
+    def put_alert_manager_definition(self) -> str:
+        workspace_id = self._get_param("workspaceId")
+        data = self._get_param("data")
+        alert_manager = self.amp_backend.put_alert_manager_definition(
+            workspace_id=workspace_id, data=data
+        )
+        return json.dumps(alert_manager)

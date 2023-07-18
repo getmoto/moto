@@ -8,6 +8,34 @@ from moto.utilities.tagging_service import TaggingService
 from typing import Any, Callable, Dict, List, Optional
 from .exceptions import RuleGroupNamespaceNotFound, WorkspaceNotFound
 from .utils import PAGINATION_MODEL
+import pytest
+
+
+class Status(BaseModel):
+    def __init__(self):
+        self.status = {"statusCode": "ACTIVE", "statusReason": ""} 
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return self.status
+
+class AlertManagerDefinition(BaseModel):
+    def __init__(self, data: str):
+        self.createdAt = unix_time()
+        self.data = data
+        self.modifiedAt = unix_time()
+        self.status = Status()# I think for this to be returned create_alert_manager_definition() it needs to be returned as something that to_dict can be run
+
+    def update(self, new_data: str) -> None:
+        self.data = new_data
+        self.modifiedAt = unix_time()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "createdAt": self.createdAt,
+            "data": self.data,
+            "modifiedAt": self.modifiedAt,
+            "status": self.status.to_dict(),
+        }
 
 
 class RuleGroupNamespace(BaseModel):
@@ -60,6 +88,7 @@ class Workspace(BaseModel):
         self.tag_fn = tag_fn
         self.rule_group_namespaces: Dict[str, RuleGroupNamespace] = dict()
         self.logging_config: Optional[Dict[str, Any]] = None
+        self.alert_manager: Optional[AlertManagerDefinition] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -212,6 +241,33 @@ class PrometheusServiceBackend(BaseBackend):
         ws.logging_config["logGroupArn"] = log_group_arn  # type: ignore[index]
         ws.logging_config["modifiedAt"] = unix_time()  # type: ignore[index]
         return ws.logging_config["status"]  # type: ignore[index]
+
+    def create_alert_manager_definition(
+        self, data: str, workspace_id: str
+    ) -> Dict[str, str]:
+        ws = self.describe_workspace(workspace_id)
+        ws.alert_manager = AlertManagerDefinition(
+            data=data,
+        )
+        return ws.alert_manager.status
+
+    def describe_alert_manager_definition(
+        self, workspace_id: str
+    ) -> AlertManagerDefinition:
+        workspace = self.describe_workspace(workspace_id)
+        alert_manager = workspace.alert_manager
+        return alert_manager
+    
+    def delete_alert_manager_definition(self, workspace_id: str) -> None:
+        ws = self.describe_workspace(workspace_id)
+        ws.alert_manager = None
+
+    def put_alert_manager_definition(
+        self, workspace_id: str, data: str
+    ) -> Dict[str, str]:
+        ws = self.describe_workspace(workspace_id)
+        ws.alert_manager = AlertManagerDefinition(data=data)
+        return ws.alert_manager.status
 
 
 amp_backends = BackendDict(PrometheusServiceBackend, "amp")
