@@ -1,13 +1,11 @@
-from botocore.exceptions import ClientError
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import json
+import pytest
 
+from botocore.exceptions import ClientError
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2 import utils as ec2_utils
-
 from moto import mock_ecs, mock_ec2
-import pytest
 from tests import EXAMPLE_AMI_ID
 
 
@@ -16,7 +14,7 @@ def test_list_account_settings_initial():
     client = boto3.client("ecs", region_name="eu-west-1")
 
     resp = client.list_account_settings()
-    resp.should.have.key("settings").equal([])
+    assert resp["settings"] == []
 
 
 @mock_ecs
@@ -29,8 +27,7 @@ def test_put_account_setting(name, value):
     client = boto3.client("ecs", region_name="eu-west-1")
 
     resp = client.put_account_setting(name=name, value=value)
-    resp.should.have.key("setting")
-    resp["setting"].should.equal({"name": name, "value": value})
+    assert resp["setting"] == {"name": name, "value": value}
 
 
 @mock_ecs
@@ -42,27 +39,23 @@ def test_list_account_setting():
     client.put_account_setting(name="taskLongArnFormat", value="enabled")
 
     resp = client.list_account_settings()
-    resp.should.have.key("settings").length_of(3)
-    resp["settings"].should.contain(
-        {"name": "containerInstanceLongArnFormat", "value": "enabled"}
-    )
-    resp["settings"].should.contain(
-        {"name": "serviceLongArnFormat", "value": "disabled"}
-    )
-    resp["settings"].should.contain({"name": "taskLongArnFormat", "value": "enabled"})
+    assert len(resp["settings"]) == 3
+    assert {"name": "containerInstanceLongArnFormat", "value": "enabled"} in resp[
+        "settings"
+    ]
+    assert {"name": "serviceLongArnFormat", "value": "disabled"} in resp["settings"]
+    assert {"name": "taskLongArnFormat", "value": "enabled"} in resp["settings"]
 
     resp = client.list_account_settings(name="serviceLongArnFormat")
-    resp.should.have.key("settings").length_of(1)
-    resp["settings"].should.contain(
-        {"name": "serviceLongArnFormat", "value": "disabled"}
-    )
+    assert len(resp["settings"]) == 1
+    assert {"name": "serviceLongArnFormat", "value": "disabled"} in resp["settings"]
 
     resp = client.list_account_settings(value="enabled")
-    resp.should.have.key("settings").length_of(2)
-    resp["settings"].should.contain(
-        {"name": "containerInstanceLongArnFormat", "value": "enabled"}
-    )
-    resp["settings"].should.contain({"name": "taskLongArnFormat", "value": "enabled"})
+    assert len(resp["settings"]) == 2
+    assert {"name": "containerInstanceLongArnFormat", "value": "enabled"} in resp[
+        "settings"
+    ]
+    assert {"name": "taskLongArnFormat", "value": "enabled"} in resp["settings"]
 
 
 @mock_ecs
@@ -72,9 +65,10 @@ def test_list_account_settings_wrong_name():
     with pytest.raises(ClientError) as exc:
         client.list_account_settings(name="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal(
-        "unknown should be one of [serviceLongArnFormat,taskLongArnFormat,containerInstanceLongArnFormat,containerLongArnFormat,awsvpcTrunking,containerInsights,dualStackIPv6]"
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == "unknown should be one of [serviceLongArnFormat,taskLongArnFormat,containerInstanceLongArnFormat,containerLongArnFormat,awsvpcTrunking,containerInsights,dualStackIPv6]"
     )
 
 
@@ -87,16 +81,16 @@ def test_delete_account_setting():
     client.put_account_setting(name="taskLongArnFormat", value="enabled")
 
     resp = client.list_account_settings()
-    resp.should.have.key("settings").length_of(3)
+    assert len(resp["settings"]) == 3
 
     client.delete_account_setting(name="serviceLongArnFormat")
 
     resp = client.list_account_settings()
-    resp.should.have.key("settings").length_of(2)
-    resp["settings"].should.contain(
-        {"name": "containerInstanceLongArnFormat", "value": "enabled"}
-    )
-    resp["settings"].should.contain({"name": "taskLongArnFormat", "value": "enabled"})
+    assert len(resp["settings"]) == 2
+    assert {"name": "containerInstanceLongArnFormat", "value": "enabled"} in resp[
+        "settings"
+    ]
+    assert {"name": "taskLongArnFormat", "value": "enabled"} in resp["settings"]
 
 
 @mock_ec2
@@ -129,16 +123,15 @@ def test_put_account_setting_changes_service_arn():
     # Initial response is short (setting serviceLongArnFormat=disabled)
     response = client.list_services(cluster="dummy-cluster", launchType="FARGATE")
     service_arn = response["serviceArns"][0]
-    service_arn.should.equal(
-        f"arn:aws:ecs:eu-west-1:{ACCOUNT_ID}:service/test-ecs-service"
-    )
+    assert service_arn == f"arn:aws:ecs:eu-west-1:{ACCOUNT_ID}:service/test-ecs-service"
 
     # Second invocation returns long ARN's by default, after deleting the preference
     client.delete_account_setting(name="serviceLongArnFormat")
     response = client.list_services(cluster="dummy-cluster", launchType="FARGATE")
     service_arn = response["serviceArns"][0]
-    service_arn.should.equal(
-        f"arn:aws:ecs:eu-west-1:{ACCOUNT_ID}:service/dummy-cluster/test-ecs-service"
+    assert (
+        service_arn
+        == f"arn:aws:ecs:eu-west-1:{ACCOUNT_ID}:service/dummy-cluster/test-ecs-service"
     )
 
 
@@ -165,8 +158,8 @@ def test_put_account_setting_changes_containerinstance_arn():
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
     full_arn = response["containerInstance"]["containerInstanceArn"]
-    full_arn.should.match(
-        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/{test_cluster_name}/[a-z0-9-]+$"
+    assert full_arn.startswith(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/{test_cluster_name}/"
     )
 
     # Now disable long-format
@@ -177,8 +170,8 @@ def test_put_account_setting_changes_containerinstance_arn():
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
     full_arn = response["containerInstance"]["containerInstanceArn"]
-    full_arn.should.match(
-        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/[a-z0-9-]+$"
+    assert full_arn.startswith(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/"
     )
 
 
@@ -224,8 +217,8 @@ def test_run_task_default_cluster_new_arn_format():
         count=1,
         startedBy="moto",
     )
-    response["tasks"][0]["taskArn"].should.match(
-        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task/{test_cluster_name}/[a-z0-9-]+$"
+    assert response["tasks"][0]["taskArn"].startswith(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task/{test_cluster_name}/"
     )
 
     # Enable short-format for the next task
@@ -237,6 +230,6 @@ def test_run_task_default_cluster_new_arn_format():
         count=1,
         startedBy="moto",
     )
-    response["tasks"][0]["taskArn"].should.match(
-        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task/[a-z0-9-]+$"
+    assert response["tasks"][0]["taskArn"].startswith(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task/"
     )

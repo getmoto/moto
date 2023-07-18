@@ -1114,7 +1114,7 @@ def test_associate_route_table_by_gateway():
     assert verify[0]["Associations"][0]["Main"] is False
     assert verify[0]["Associations"][0]["GatewayId"] == igw_id
     assert verify[0]["Associations"][0]["RouteTableAssociationId"] == assoc_id
-    verify[0]["Associations"][0].doesnt.have.key("SubnetId")
+    assert "SubnetId" not in verify[0]["Associations"][0]
 
 
 @mock_ec2
@@ -1139,7 +1139,7 @@ def test_associate_route_table_by_subnet():
     assert verify[0]["Associations"][0]["Main"] is False
     assert verify[0]["Associations"][0]["SubnetId"] == subnet_id
     assert verify[0]["Associations"][0]["RouteTableAssociationId"] == assoc_id
-    verify[0]["Associations"][0].doesnt.have.key("GatewayId")
+    assert "GatewayId" not in verify[0]["Associations"][0]
 
 
 def setup_vpc():

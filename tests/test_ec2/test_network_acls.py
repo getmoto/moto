@@ -176,9 +176,9 @@ def test_delete_network_acl():
 
     updated_network_acls = client.describe_network_acls()["NetworkAcls"]
 
-    any(
+    assert not any(
         acl["NetworkAclId"] == network_acl.id for acl in updated_network_acls
-    ).shouldnt.be.ok
+    )
 
 
 @mock_ec2

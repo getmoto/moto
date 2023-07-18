@@ -29,15 +29,13 @@ def test_register_task_definition__use_efs_root():
     family = task_definition["taskDefinition"]["family"]
     task = client.describe_task_definition(taskDefinition=family)["taskDefinition"]
 
-    task["volumes"].should.equal(
-        [
-            {
-                "name": "vol1",
-                "efsVolumeConfiguration": {
-                    "fileSystemId": "sth",
-                    "rootDirectory": "/",
-                    "transitEncryption": "ENABLED",
-                },
-            }
-        ]
-    )
+    assert task["volumes"] == [
+        {
+            "name": "vol1",
+            "efsVolumeConfiguration": {
+                "fileSystemId": "sth",
+                "rootDirectory": "/",
+                "transitEncryption": "ENABLED",
+            },
+        }
+    ]
