@@ -139,7 +139,13 @@ def test_checksum_crc32():
 
 
 def test_checksum_crc32c():
-    compute_checksum(b"somedata", "CRC32C").should.equal(b"Uwy90A==")
+    try:
+        import crc32c  # noqa # pylint: disable=unused-import
+
+        compute_checksum(b"somedata", "CRC32C").should.equal(b"dB9qBQ==")
+    except:  # noqa: E722 Do not use bare except
+        # Optional library Can't be found - just revert to CRC32
+        compute_checksum(b"somedata", "CRC32C").should.equal(b"Uwy90A==")
 
 
 def test_cors_utils():
