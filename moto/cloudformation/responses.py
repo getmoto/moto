@@ -1122,6 +1122,9 @@ DESCRIBE_STACK_INSTANCE_TEMPLATE = """<DescribeStackInstanceResponse xmlns="http
       <Region>{{ instance["Region"] }}</Region>
       <Account>{{ instance["Account"] }}</Account>
       <Status>{{ instance["Status"] }}</Status>
+      <StackInstanceStatus>
+          <DetailedStatus>{{ instance["StackInstanceStatus"]["DetailedStatus"] }}</DetailedStatus>
+      </StackInstanceStatus>
     </StackInstance>
   </DescribeStackInstanceResult>
   <ResponseMetadata>
