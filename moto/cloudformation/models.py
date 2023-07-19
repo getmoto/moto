@@ -272,6 +272,7 @@ class FakeStackInstance(BaseModel):
             "Account": self.account_id,
             "Status": "CURRENT",
             "ParameterOverrides": self.parameters,
+            "StackInstanceStatus": {"DetailedStatus": "SUCCEEDED"},
         }
 
 
