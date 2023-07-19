@@ -135,97 +135,80 @@ class ManagedPrefixListBackend:
         managed_pl.state = "modify-complete"
         return managed_pl
 
+    def _create_aws_managed_prefix_list(
+        self, name: str, address_family: str, entries: list[dict[str, str]]
+    ) -> None:
+        managed_prefix_list = self.create_managed_prefix_list(
+            address_family=address_family,
+            entry=entries,
+            prefix_list_name=name,
+            owner_id="aws",
+        )
+        managed_prefix_list.version = None
+        managed_prefix_list.max_entries = None
+        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
+
     def create_default_pls(self) -> None:
         # See https://docs.aws.amazon.com/vpc/latest/userguide/working-with-aws-managed-prefix-lists.html
 
         # S3
-        entry = [
-            {"Cidr": "52.216.0.0/15", "Description": "default"},
-            {"Cidr": "3.5.0.0/19", "Description": "default"},
-            {"Cidr": "54.231.0.0/16", "Description": "default"},
-        ]
-
-        managed_prefix_list = self.create_managed_prefix_list(
+        self._create_aws_managed_prefix_list(
+            name=f"com.amazonaws.{self.region_name}.s3",
             address_family="IPv4",
-            entry=entry,
-            prefix_list_name=f"com.amazonaws.{self.region_name}.s3",  # type: ignore[attr-defined]
-            owner_id="aws",
+            entries=[
+                {"Cidr": "52.216.0.0/15", "Description": "default"},
+                {"Cidr": "3.5.0.0/19", "Description": "default"},
+                {"Cidr": "54.231.0.0/16", "Description": "default"},
+            ],
         )
-        managed_prefix_list.version = None
-        managed_prefix_list.max_entries = None
-        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
 
         # DynamoDB
-        entry = [
-            {"Cidr": "3.218.182.0/24", "Description": "default"},
-            {"Cidr": "3.218.180.0/23", "Description": "default"},
-            {"Cidr": "52.94.0.0/22", "Description": "default"},
-            {"Cidr": "52.119.224.0/20", "Description": "default"},
-        ]
-
-        managed_prefix_list = self.create_managed_prefix_list(
+        self._create_aws_managed_prefix_list(
+            name=f"com.amazonaws.{self.region_name}.dynamodb",  # type: ignore[attr-defined]
             address_family="IPv4",
-            entry=entry,
-            prefix_list_name=f"com.amazonaws.{self.region_name}.dynamodb",  # type: ignore[attr-defined]
-            owner_id="aws",
+            entries=[
+                {"Cidr": "3.218.182.0/24", "Description": "default"},
+                {"Cidr": "3.218.180.0/23", "Description": "default"},
+                {"Cidr": "52.94.0.0/22", "Description": "default"},
+                {"Cidr": "52.119.224.0/20", "Description": "default"},
+            ],
         )
-        managed_prefix_list.version = None
-        managed_prefix_list.max_entries = None
-        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
 
         # CloudFront
-        entry = [
-            {"Cidr": "13.124.199.0/24", "Description": "default"},
-            {"Cidr": "130.176.0.0/18", "Description": "default"},
-            {"Cidr": "15.158.0.0/16", "Description": "default"},
-            {"Cidr": "18.68.0.0/16", "Description": "default"},
-            {"Cidr": "204.246.166.0/24", "Description": "default"},
-            {"Cidr": "205.251.218.0/24", "Description": "default"},
-            {"Cidr": "3.172.0.0/18", "Description": "default"},
-            {"Cidr": "54.239.208.0/21", "Description": "default"},
-            {"Cidr": "64.252.64.0/18", "Description": "default"},
-            {"Cidr": "70.132.0.0/18", "Description": "default"},
-        ]
-
-        managed_prefix_list = self.create_managed_prefix_list(
+        self._create_aws_managed_prefix_list(
+            name="com.amazonaws.global.cloudfront.origin-facing",
             address_family="IPv4",
-            entry=entry,
-            prefix_list_name="com.amazonaws.global.cloudfront.origin-facing",
-            owner_id="aws",
+            entries=[
+                {"Cidr": "13.124.199.0/24", "Description": "default"},
+                {"Cidr": "130.176.0.0/18", "Description": "default"},
+                {"Cidr": "15.158.0.0/16", "Description": "default"},
+                {"Cidr": "18.68.0.0/16", "Description": "default"},
+                {"Cidr": "204.246.166.0/24", "Description": "default"},
+                {"Cidr": "205.251.218.0/24", "Description": "default"},
+                {"Cidr": "3.172.0.0/18", "Description": "default"},
+                {"Cidr": "54.239.208.0/21", "Description": "default"},
+                {"Cidr": "64.252.64.0/18", "Description": "default"},
+                {"Cidr": "70.132.0.0/18", "Description": "default"},
+            ],
         )
-        managed_prefix_list.version = None
-        managed_prefix_list.max_entries = None
-        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
 
         # Ground Station
-        managed_prefix_list = self.create_managed_prefix_list(
+        self._create_aws_managed_prefix_list(
+            name="com.amazonaws.global.groundstation",
             address_family="IPv4",
-            entry=[{"Cidr": "3.2.16.0/20", "Description": "default"}],
-            prefix_list_name="com.amazonaws.global.groundstation",
-            owner_id="aws",
+            entries=[{"Cidr": "3.2.16.0/20", "Description": "default"}],
         )
-        managed_prefix_list.version = None
-        managed_prefix_list.max_entries = None
-        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
 
         # VPC Lattice
-        managed_prefix_list = self.create_managed_prefix_list(
+        self._create_aws_managed_prefix_list(
+            name=f"com.amazonaws.{self.region_name}.vpc-lattice",
             address_family="IPv4",
-            entry=[{"Cidr": "169.254.171.0/24", "Description": "default"}],
-            prefix_list_name=f"com.amazonaws.{self.region_name}.vpc-lattice",
-            owner_id="aws",
+            entries=[{"Cidr": "169.254.171.0/24", "Description": "default"}],
         )
-        managed_prefix_list.version = None
-        managed_prefix_list.max_entries = None
-        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
 
         # VPC Lattice ipv6
-        managed_prefix_list = self.create_managed_prefix_list(
+        self._create_aws_managed_prefix_list(
+            name=f"com.amazonaws.{self.region_name}.ipv6.vpc-lattice",
             address_family="IPv6",
-            entry=[{"Cidr": "fd00:ec2:80::/64", "Description": "default"}],
-            prefix_list_name=f"com.amazonaws.{self.region_name}.ipv6.vpc-lattice",
-            owner_id="aws",
+            entries=[{"Cidr": "fd00:ec2:80::/64", "Description": "default"}],
         )
-        managed_prefix_list.version = None
-        managed_prefix_list.max_entries = None
-        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
