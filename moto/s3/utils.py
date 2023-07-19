@@ -199,7 +199,15 @@ class _VersionedKeyStore(dict):  # type: ignore
 def compute_checksum(body: bytes, algorithm: str) -> bytes:
     if algorithm == "SHA1":
         hashed_body = _hash(hashlib.sha1, (body,))
-    elif algorithm == "CRC32" or algorithm == "CRC32C":
+    elif algorithm == "CRC32C":
+        try:
+            import crc32c
+
+            hashed_body = crc32c.crc32c(body).to_bytes(4, "big")
+        except:  # noqa: E722 Do not use bare except
+            # Optional library Can't be found - just revert to CRC32
+            hashed_body = binascii.crc32(body).to_bytes(4, "big")
+    elif algorithm == "CRC32":
         hashed_body = binascii.crc32(body).to_bytes(4, "big")
     else:
         hashed_body = _hash(hashlib.sha256, (body,))
