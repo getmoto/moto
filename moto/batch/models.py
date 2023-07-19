@@ -484,7 +484,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         depends_on: Optional[List[Dict[str, str]]],
         all_jobs: Dict[str, "Job"],
         timeout: Optional[Dict[str, int]],
-        array_properties: Optional[Dict[str, Any]]
+        array_properties: Optional[Dict[str, Any]],
     ):
         threading.Thread.__init__(self)
         DockerModel.__init__(self)
@@ -580,12 +580,12 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     "STARTING": 0,
                     "FAILED": 0,
                     "RUNNING": 0,
-                    "SUCCEEDED": self.array_properties["size"],
+                    "SUCCEEDED": size,
                     "RUNNABLE": 0,
                     "SUBMITTED": 0,
-                    "PENDING": 0
+                    "PENDING": 0,
                 },
-                "size": self.array_properties["size"]
+                "size": size,
             }
         return result
 
@@ -1731,10 +1731,10 @@ class BatchBackend(BaseBackend):
         job_name: str,
         job_def_id: str,
         job_queue: str,
+        array_properties: Optional[Dict[str, int]],
         depends_on: Optional[List[Dict[str, str]]] = None,
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
-        array_properties: Optional[Dict[str, int]] = {}
     ) -> Tuple[str, str]:
         """
         Parameters RetryStrategy and Parameters are not yet implemented.
@@ -1752,25 +1752,25 @@ class BatchBackend(BaseBackend):
             raise ClientException(f"Job queue {job_queue} does not exist")
 
         job = Job(
-                job_name,
-                job_def,
-                queue,
-                log_backend=self.logs_backend,
-                container_overrides=container_overrides,
-                depends_on=depends_on,
-                all_jobs=self._jobs,
-                timeout=timeout,
-                array_properties=array_properties
-            )
+            job_name,
+            job_def,
+            queue,
+            log_backend=self.logs_backend,
+            container_overrides=container_overrides,
+            depends_on=depends_on,
+            all_jobs=self._jobs,
+            timeout=timeout,
+            array_properties=array_properties or {},
+        )
         self._jobs[job.job_id] = job
 
         # add child jobs if requested
         if array_properties:
-                for index in range(0, array_properties["size"]):
-                    child_job = copy(job)
-                    child_job.arn = f"{job.arn}:{index}"
-                    child_job.job_id = f"{job.job_id}:{index}"
-                    self._jobs[child_job.job_id] = child_job
+            for index in range(0, array_properties["size"]):
+                child_job = copy(job)
+                child_job.arn = f"{job.arn}:{index}"
+                child_job.job_id = f"{job.job_id}:{index}"
+                self._jobs[child_job.job_id] = child_job
 
         # Here comes the fun
         job.start()

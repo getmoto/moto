@@ -219,7 +219,7 @@ class BatchResponse(BaseResponse):
             depends_on=depends_on,
             container_overrides=container_overrides,
             timeout=timeout,
-            array_properties=array_properties
+            array_properties=array_properties,
         )
 
         result = {"jobId": job_id, "jobName": name}

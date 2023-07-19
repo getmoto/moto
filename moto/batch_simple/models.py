@@ -58,10 +58,10 @@ class BatchSimpleBackend(BaseBackend):
         job_name: str,
         job_def_id: str,
         job_queue: str,
+        array_properties: Optional[Dict[str, int]],
         depends_on: Optional[List[Dict[str, str]]] = None,
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
-            array_properties: Optional[Dict[str, int]] = {}
     ) -> Tuple[str, str]:
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
@@ -81,7 +81,7 @@ class BatchSimpleBackend(BaseBackend):
             depends_on=depends_on,
             all_jobs=self._jobs,
             timeout=timeout,
-            array_properties=array_properties
+            array_properties=array_properties or {},
         )
         self.backend._jobs[job.job_id] = job
 
@@ -91,11 +91,11 @@ class BatchSimpleBackend(BaseBackend):
 
         # add child jobs if requested
         if array_properties:
-                for index in range(0, array_properties["size"]):
-                    child_job = copy(job)
-                    child_job.arn = f"{job.arn}:{index}"
-                    child_job.job_id = f"{job.job_id}:{index}"
-                    self._jobs[child_job.job_id] = child_job
+            for index in range(0, array_properties["size"]):
+                child_job = copy(job)
+                child_job.arn = f"{job.arn}:{index}"
+                child_job.job_id = f"{job.job_id}:{index}"
+                self._jobs[child_job.job_id] = child_job
 
         # We don't want to actually run the job - just mark it as succeeded or failed
         # depending on whether env var MOTO_SIMPLE_BATCH_FAIL_AFTER is set
