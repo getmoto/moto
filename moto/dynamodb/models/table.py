@@ -320,7 +320,7 @@ class Table(CloudFormationModel):
     def has_cfn_attr(cls, attr: str) -> bool:
         return attr in ["Arn", "StreamArn"]
 
-    def get_cfn_attribute(self, attribute_name: str) -> Any:  # type: ignore[misc]
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "Arn":

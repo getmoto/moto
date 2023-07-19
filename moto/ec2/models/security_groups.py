@@ -1073,7 +1073,7 @@ class SecurityGroupBackend:
             ip_protocol,
             from_port,
             to_port,
-            ip_ranges,  # type: ignore[arg-type]
+            ip_ranges,
             _source_groups,
             prefix_list_ids,
         )

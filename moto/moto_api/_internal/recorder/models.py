@@ -41,7 +41,7 @@ class Recorder:
                     request_body = request.environ["wsgi.input"].read(request_body_size)
                     body_str, body_encoded = self._encode_body(body=request_body)
                 except (AttributeError, KeyError):
-                    body_str = ""  # type: ignore[]
+                    body_str = ""
                     body_encoded = False
                 finally:
                     if request_body is not None:

@@ -256,7 +256,7 @@ class SQSResponse(BaseResponse):
                 "AttributeName"
             ) or self.querystring.get("AttributeName")
 
-        attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)  # type: ignore
+        attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
 
         if self.is_json():
             if len(attributes) == 0:

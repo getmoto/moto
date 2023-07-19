@@ -135,7 +135,9 @@ class DataBrewBackend(BaseBackend):
         recipe.update(recipe_description, recipe_steps)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_recipes(self, recipe_version: Optional[str] = None) -> List["FakeRecipeVersion"]:  # type: ignore[misc]
+    def list_recipes(
+        self, recipe_version: Optional[str] = None
+    ) -> List["FakeRecipeVersion"]:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipes.html
         if recipe_version == FakeRecipe.LATEST_WORKING:
             version = "latest_working"
@@ -150,7 +152,7 @@ class DataBrewBackend(BaseBackend):
         return [r for r in recipes if r is not None]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_recipe_versions(self, recipe_name: str) -> List["FakeRecipeVersion"]:  # type: ignore[misc]
+    def list_recipe_versions(self, recipe_name: str) -> List["FakeRecipeVersion"]:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
         self.validate_length(recipe_name, "name", 255)
 
@@ -254,7 +256,7 @@ class DataBrewBackend(BaseBackend):
         return self.rulesets[ruleset_name]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_rulesets(self) -> List["FakeRuleset"]:  # type: ignore[misc]
+    def list_rulesets(self) -> List["FakeRuleset"]:
         return list(self.rulesets.values())
 
     def delete_ruleset(self, ruleset_name: str) -> None:
@@ -289,7 +291,7 @@ class DataBrewBackend(BaseBackend):
         return dataset
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_datasets(self) -> List["FakeDataset"]:  # type: ignore[misc]
+    def list_datasets(self) -> List["FakeDataset"]:
         return list(self.datasets.values())
 
     def update_dataset(
@@ -406,7 +408,9 @@ class DataBrewBackend(BaseBackend):
         return self.update_job(**kwargs)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_jobs(self, dataset_name: Optional[str] = None, project_name: Optional[str] = None) -> List["FakeJob"]:  # type: ignore[misc]
+    def list_jobs(
+        self, dataset_name: Optional[str] = None, project_name: Optional[str] = None
+    ) -> List["FakeJob"]:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListJobs.html
         if dataset_name is not None:
             self.validate_length(dataset_name, "datasetName", 255)
@@ -473,7 +477,7 @@ class FakeRecipe(BaseModel):
     def publish(self, description: Optional[str] = None) -> None:
         self.latest_published = self.latest_working
         self.latest_working = deepcopy(self.latest_working)
-        self.latest_published.publish(description)  # type: ignore[attr-defined]
+        self.latest_published.publish(description)
         del self.versions[self.latest_working.version]
         self.versions[self.latest_published.version] = self.latest_published
         self.latest_working.version = self.latest_published.version + 0.1
@@ -626,7 +630,7 @@ class FakeJob(BaseModel, metaclass=BaseModelABCMeta):  # type: ignore[misc]
 
     @property
     @abstractmethod
-    def local_attrs(self) -> List[str]:  # type: ignore[misc]
+    def local_attrs(self) -> List[str]:
         raise NotImplementedError
 
     def __init__(self, account_id: str, region_name: str, **kwargs: Any):

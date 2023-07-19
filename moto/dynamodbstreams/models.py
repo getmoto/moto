@@ -40,7 +40,7 @@ class ShardIterator(BaseModel):
         return {"ShardIterator": self.arn}
 
     def get(self, limit: int = 1000) -> Dict[str, Any]:
-        items = self.stream_shard.get(self.sequence_number, limit)  # type: ignore[no-untyped-call]
+        items = self.stream_shard.get(self.sequence_number, limit)
         try:
             last_sequence_number = max(
                 int(i["dynamodb"]["SequenceNumber"]) for i in items
@@ -76,7 +76,7 @@ class DynamoDBStreamsBackend(BaseBackend):
 
     def _get_table_from_arn(self, arn: str) -> Table:
         table_name = arn.split(":", 6)[5].split("/")[1]
-        return self.dynamodb.get_table(table_name)  # type: ignore[no-untyped-call]
+        return self.dynamodb.get_table(table_name)
 
     def describe_stream(self, arn: str) -> str:
         table = self._get_table_from_arn(arn)

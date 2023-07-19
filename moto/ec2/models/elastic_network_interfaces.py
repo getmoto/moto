@@ -253,7 +253,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         elif filter_name == "description":
             return self.description
         elif filter_name == "attachment.instance-id":
-            return self.instance.id if self.instance else None  # type: ignore[attr-defined]
+            return self.instance.id if self.instance else None
         elif filter_name == "attachment.instance-owner-id":
             return self.owner_id
         else:

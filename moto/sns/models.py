@@ -113,7 +113,7 @@ class Topic(CloudFormationModel):
         return json.dumps(self._policy_json, separators=(",", ":"))
 
     @policy.setter
-    def policy(self, policy: Any) -> None:  # type: ignore[misc]
+    def policy(self, policy: Any) -> None:
         self._policy_json = json.loads(policy)
 
     @staticmethod

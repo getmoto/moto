@@ -1713,7 +1713,7 @@ class RDSBackend(BaseBackend):
         preferred_backup_window = db_kwargs.get("preferred_backup_window")
         preferred_maintenance_window = db_kwargs.get("preferred_maintenance_window")
         msg = valid_preferred_maintenance_window(
-            preferred_maintenance_window, preferred_backup_window  # type: ignore
+            preferred_maintenance_window, preferred_backup_window
         )
         if msg:
             raise RDSClientError("InvalidParameterValue", msg)
@@ -2262,7 +2262,7 @@ class RDSBackend(BaseBackend):
         if tags is None:
             tags = source_snapshot.tags
         else:
-            tags = self._merge_tags(source_snapshot.tags, tags)  # type: ignore
+            tags = self._merge_tags(source_snapshot.tags, tags)
         return self.create_db_cluster_snapshot(
             db_cluster_identifier=source_snapshot.cluster.db_cluster_identifier,  # type: ignore
             db_snapshot_identifier=target_snapshot_identifier,

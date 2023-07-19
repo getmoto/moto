@@ -276,9 +276,7 @@ class LayerVersion(CloudFormationModel):
                     self.code_size,
                     self.code_sha_256,
                     self.code_digest,
-                ) = _s3_content(
-                    key
-                )  # type: ignore[assignment]
+                ) = _s3_content(key)
 
     @property
     def arn(self) -> str:
@@ -755,9 +753,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     self.code_size,
                     self.code_sha_256,
                     self.code_digest,
-                ) = _s3_content(
-                    key
-                )  # type: ignore[assignment]
+                ) = _s3_content(key)
                 self.code["S3Bucket"] = updated_spec["S3Bucket"]
                 self.code["S3Key"] = updated_spec["S3Key"]
 
@@ -1027,7 +1023,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def create_url_config(self, config: Dict[str, Any]) -> "FunctionUrlConfig":
         self.url_config = FunctionUrlConfig(function=self, config=config)
-        return self.url_config  # type: ignore[return-value]
+        return self.url_config
 
     def delete_url_config(self) -> None:
         self.url_config = None
@@ -1606,7 +1602,9 @@ class LambdaBackend(BaseBackend):
         self._layers = LayerStorage()
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, str]]:  # type: ignore[misc]
+    def default_vpc_endpoint_service(
+        service_region: str, zones: List[str]
+    ) -> List[Dict[str, str]]:
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "lambda"
@@ -1920,7 +1918,7 @@ class LambdaBackend(BaseBackend):
             ]
         }
         func = self._lambdas.get_function_by_name_or_arn(function_name, qualifier)
-        func.invoke(json.dumps(event), {}, {})  # type: ignore[union-attr]
+        func.invoke(json.dumps(event), {}, {})
 
     def send_dynamodb_items(
         self, function_arn: str, items: List[Any], source: str

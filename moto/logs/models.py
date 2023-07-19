@@ -172,7 +172,7 @@ class LogStream(BaseModel):
                 self.filter_name,
                 log_group_name,
                 log_stream_name,
-                formatted_log_events,  # type: ignore
+                formatted_log_events,
             )
         elif service == "firehose":
             from moto.firehose import firehose_backends
@@ -182,7 +182,7 @@ class LogStream(BaseModel):
                 self.filter_name,
                 log_group_name,
                 log_stream_name,
-                formatted_log_events,  # type: ignore
+                formatted_log_events,
             )
         elif service == "kinesis":
             from moto.kinesis import kinesis_backends
@@ -193,7 +193,7 @@ class LogStream(BaseModel):
                 self.filter_name,
                 log_group_name,
                 log_stream_name,
-                formatted_log_events,  # type: ignore
+                formatted_log_events,
             )
 
         return f"{self.upload_sequence_token:056d}"
@@ -725,7 +725,9 @@ class LogsBackend(BaseBackend):
         del self.groups[log_group_name]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def describe_log_groups(self, log_group_name_prefix: Optional[str] = None) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def describe_log_groups(
+        self, log_group_name_prefix: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         groups = [
             group.to_describe_dict()
             for name, group in self.groups.items()
