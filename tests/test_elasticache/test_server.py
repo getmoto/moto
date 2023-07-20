@@ -1,5 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
-
 import moto.server as server
 
 
@@ -10,5 +8,5 @@ def test_elasticache_describe_users():
     data = "Action=DescribeUsers"
     headers = {"Host": "elasticache.us-east-1.amazonaws.com"}
     resp = test_client.post("/", data=data, headers=headers)
-    resp.status_code.should.equal(200)
-    str(resp.data).should.contain("<UserId>default</UserId>")
+    assert resp.status_code == 200
+    assert "<UserId>default</UserId>" in str(resp.data)
