@@ -180,9 +180,7 @@ def test_submit_job_fail_bad_int():
 def test_submit_job_array_size():
     # Setup
     job_definition_name = f"sleep10_{str(uuid4())[0:6]}"
-    batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
-        job_definition_name
-    )
+    batch_client, _, queue_arn = setup_common_batch_simple(job_definition_name)
 
     # Execute
     resp = batch_client.submit_job(
