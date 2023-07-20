@@ -136,7 +136,7 @@ class ManagedPrefixListBackend:
         return managed_pl
 
     def _create_aws_managed_prefix_list(
-        self, name: str, address_family: str, entries: list[dict[str, str]]
+        self, name: str, address_family: str, entries: List[Dict[str, str]]
     ) -> None:
         managed_prefix_list = self.create_managed_prefix_list(
             address_family=address_family,
