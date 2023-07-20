@@ -153,7 +153,7 @@ class ManagedPrefixListBackend:
 
         # S3
         self._create_aws_managed_prefix_list(
-            name=f"com.amazonaws.{self.region_name}.s3",
+            name=f"com.amazonaws.{self.region_name}.s3",  # type: ignore[attr-defined]
             address_family="IPv4",
             entries=[
                 {"Cidr": "52.216.0.0/15", "Description": "default"},
@@ -201,14 +201,14 @@ class ManagedPrefixListBackend:
 
         # VPC Lattice
         self._create_aws_managed_prefix_list(
-            name=f"com.amazonaws.{self.region_name}.vpc-lattice",
+            name=f"com.amazonaws.{self.region_name}.vpc-lattice",  # type: ignore[attr-defined]
             address_family="IPv4",
             entries=[{"Cidr": "169.254.171.0/24", "Description": "default"}],
         )
 
         # VPC Lattice ipv6
         self._create_aws_managed_prefix_list(
-            name=f"com.amazonaws.{self.region_name}.ipv6.vpc-lattice",
+            name=f"com.amazonaws.{self.region_name}.ipv6.vpc-lattice",  # type: ignore[attr-defined]
             address_family="IPv6",
             entries=[{"Cidr": "fd00:ec2:80::/64", "Description": "default"}],
         )
