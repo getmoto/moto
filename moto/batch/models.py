@@ -484,7 +484,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         depends_on: Optional[List[Dict[str, str]]],
         all_jobs: Dict[str, "Job"],
         timeout: Optional[Dict[str, int]],
-        array_properties: Optional[Dict[str, Any]],
+        array_properties: Dict[str, Any],
     ):
         threading.Thread.__init__(self)
         DockerModel.__init__(self)
@@ -508,8 +508,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.depends_on = depends_on
         self.timeout = timeout
         self.all_jobs = all_jobs
-        self.array_properties: dict = array_properties
-        self.child_jobs: list = []
+        self.array_properties: Dict[str, Any] = array_properties
+        self.child_jobs: List[Job] = []
 
         self.arn = make_arn_for_job(
             job_def.backend.account_id, self.job_id, job_def._region
