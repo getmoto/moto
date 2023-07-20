@@ -277,7 +277,7 @@ def resource_class_from_type(resource_type: str) -> Type[CloudFormationModel]:
         logger.warning("No Moto CloudFormation support for %s", resource_type)
         return None  # type: ignore[return-value]
 
-    return get_model_map()[resource_type]  # type: ignore[return-value]
+    return get_model_map()[resource_type]
 
 
 def resource_name_property_from_type(resource_type: str) -> Optional[str]:
@@ -720,11 +720,8 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
             instance = self[resource]
             if isinstance(instance, TaggedEC2Resource):
                 self.tags["aws:cloudformation:logical-id"] = resource
-                ec2_models.ec2_backends[self._account_id][
-                    self._region_name
-                ].create_tags(
-                    [instance.physical_resource_id], self.tags
-                )  # type: ignore[attr-defined]
+                backend = ec2_models.ec2_backends[self._account_id][self._region_name]
+                backend.create_tags([instance.physical_resource_id], self.tags)
             if instance and not instance.is_created():
                 all_resources_ready = False
         return all_resources_ready
@@ -921,7 +918,7 @@ class OutputMap(collections_abc.Mapping):  # type: ignore[type-arg]
         return iter(self.outputs)
 
     def __len__(self) -> int:
-        return len(self._output_json_map)  # type: ignore[arg-type]
+        return len(self._output_json_map)
 
     @property
     def outputs(self) -> Iterable[str]:
@@ -931,7 +928,7 @@ class OutputMap(collections_abc.Mapping):  # type: ignore[type-arg]
     def exports(self) -> List["Export"]:
         exports = []
         if self.outputs:
-            for value in self._output_json_map.values():  # type: ignore[union-attr]
+            for value in self._output_json_map.values():
                 if value.get("Export"):
                     cleaned_name = clean_json(
                         value["Export"].get("Name"), self._resource_map

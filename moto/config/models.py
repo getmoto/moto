@@ -84,7 +84,7 @@ CAMEL_TO_SNAKE_REGEX = re.compile(r"(?<!^)(?=[A-Z])")
 MAX_TAGS_IN_ARG = 50
 
 MANAGED_RULES = load_resource(__name__, "resources/aws_managed_rules.json")
-MANAGED_RULES_CONSTRAINTS = MANAGED_RULES["ManagedRules"]  # type: ignore[index]
+MANAGED_RULES_CONSTRAINTS = MANAGED_RULES["ManagedRules"]
 
 
 def datetime2int(date: datetime) -> int:
@@ -844,12 +844,12 @@ class ConfigRule(ConfigEmptyDictable):
 
     def validate_managed_rule(self) -> None:
         """Validate parameters specific to managed rules."""
-        rule_info = MANAGED_RULES_CONSTRAINTS[self.source.source_identifier]  # type: ignore[index]
+        rule_info = MANAGED_RULES_CONSTRAINTS[self.source.source_identifier]
         param_names = self.input_parameters_dict.keys()
 
         # Verify input parameter names are actual parameters for the rule ID.
         if param_names:
-            allowed_names = {x["Name"] for x in rule_info["Parameters"]}  # type: ignore[index]
+            allowed_names = {x["Name"] for x in rule_info["Parameters"]}
             if not set(param_names).issubset(allowed_names):
                 raise InvalidParameterValueException(
                     f"Unknown parameters provided in the inputParameters: {self.input_parameters}"
@@ -857,7 +857,7 @@ class ConfigRule(ConfigEmptyDictable):
 
         # Verify all the required parameters are specified.
         required_names = {
-            x["Name"] for x in rule_info["Parameters"] if not x["Optional"]  # type: ignore[index]
+            x["Name"] for x in rule_info["Parameters"] if not x["Optional"]
         }
         diffs = required_names.difference(set(param_names))
         if diffs:
@@ -938,12 +938,12 @@ class ConfigBackend(BaseBackend):
         # Verify that each entry exists in the supported list:
         bad_list = []
         for resource in resource_list:
-            if resource not in self.config_schema.shapes["ResourceType"]["enum"]:  # type: ignore[index]
+            if resource not in self.config_schema.shapes["ResourceType"]["enum"]:
                 bad_list.append(resource)
 
         if bad_list:
             raise InvalidResourceTypeException(
-                bad_list, self.config_schema.shapes["ResourceType"]["enum"]  # type: ignore[index]
+                bad_list, self.config_schema.shapes["ResourceType"]["enum"]
             )
 
     def _validate_delivery_snapshot_properties(
@@ -957,11 +957,11 @@ class ConfigBackend(BaseBackend):
         # Verify that the deliveryFrequency is set to an acceptable value:
         if (
             properties.get("deliveryFrequency", None)
-            not in self.config_schema.shapes["MaximumExecutionFrequency"]["enum"]  # type: ignore[index]
+            not in self.config_schema.shapes["MaximumExecutionFrequency"]["enum"]
         ):
             raise InvalidDeliveryFrequency(
                 properties.get("deliveryFrequency", None),
-                self.config_schema.shapes["MaximumExecutionFrequency"]["enum"],  # type: ignore[index]
+                self.config_schema.shapes["MaximumExecutionFrequency"]["enum"],
             )
 
     def put_configuration_aggregator(

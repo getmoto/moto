@@ -1062,7 +1062,7 @@ class EC2ContainerServiceBackend(BaseBackend):
     def delete_capacity_provider(self, name_or_arn: str) -> CapacityProvider:
         provider: CapacityProvider = self._get_provider(name_or_arn)  # type: ignore[assignment]
         self.capacity_providers.pop(provider.name)
-        return provider  # type: ignore[return-value]
+        return provider
 
     def update_capacity_provider(
         self, name_or_arn: str, asg_provider: Dict[str, Any]
@@ -1975,7 +1975,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             yield task_fam
 
     @staticmethod
-    def _parse_resource_arn(resource_arn: str) -> Dict[str, str]:  # type: ignore[misc]
+    def _parse_resource_arn(resource_arn: str) -> Dict[str, str]:
         regexes = [
             "^arn:aws:ecs:(?P<region>[^:]+):(?P<account_id>[^:]+):(?P<service>[^:]+)/(?P<cluster_id>[^:]+)/(?P<service_id>[^:]+)/ecs-svc/(?P<id>.*)$",
             "^arn:aws:ecs:(?P<region>[^:]+):(?P<account_id>[^:]+):(?P<service>[^:]+)/(?P<cluster_id>[^:]+)/(?P<id>.*)$",

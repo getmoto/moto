@@ -243,10 +243,7 @@ class Broker(BaseModel):
                 "id": f"c-{mock_random.get_random_hex(6)}",
                 "revision": 1,
             }
-            self.configurations = {  # type: ignore[no-redef]
-                "current": current_config,
-                "history": [],
-            }
+            self.configurations = {"current": current_config, "history": []}
         if self.engine_type.upper() == "RABBITMQ":
             console_url = f"https://0000.mq.{region}.amazonaws.com"
             endpoints = ["amqps://mockmq:5671"]

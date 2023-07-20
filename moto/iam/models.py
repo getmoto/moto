@@ -2268,7 +2268,7 @@ class IAMBackend(BaseBackend):
             ref_key = key.lower()
             self._validate_tag_key(key, exception_param="tagKeys")
 
-            policy.tags.pop(ref_key, None)  # type: ignore[union-attr]
+            policy.tags.pop(ref_key, None)
 
     def create_policy_version(
         self, policy_arn: str, policy_document: str, set_as_default: str

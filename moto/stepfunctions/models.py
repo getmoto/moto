@@ -502,7 +502,7 @@ class StepFunctionBackend(BaseBackend):
             return state_machine
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_state_machines(self) -> Iterable[StateMachine]:  # type: ignore[misc]
+    def list_state_machines(self) -> Iterable[StateMachine]:
         return sorted(self.state_machines, key=lambda x: x.creation_date)
 
     def describe_state_machine(self, arn: str) -> StateMachine:
@@ -550,7 +550,9 @@ class StepFunctionBackend(BaseBackend):
         return state_machine.stop_execution(execution_arn)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_executions(self, state_machine_arn: str, status_filter: Optional[str] = None) -> Iterable[Execution]:  # type: ignore[misc]
+    def list_executions(
+        self, state_machine_arn: str, status_filter: Optional[str] = None
+    ) -> Iterable[Execution]:
         """
         The status of every execution is set to 'RUNNING' by default.
         Set the following environment variable if you want to get a FAILED status back:

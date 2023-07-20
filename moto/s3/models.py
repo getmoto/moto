@@ -1934,7 +1934,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             etag=etag,
             is_versioned=bucket.is_versioned,
             # AWS uses VersionId=null in both requests and responses
-            version_id=str(random.uuid4()) if bucket.is_versioned else "null",  # type: ignore
+            version_id=str(random.uuid4()) if bucket.is_versioned else "null",
             multipart=multipart,
             encryption=encryption,
             kms_key_id=kms_key_id,

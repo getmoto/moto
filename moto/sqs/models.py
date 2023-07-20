@@ -537,7 +537,9 @@ class Queue(CloudFormationModel):
         return result
 
     def url(self, request_url: ParseResult) -> str:
-        return f"{request_url.scheme}://{request_url.netloc}/{self.account_id}/{self.name}"  # type: ignore
+        return (
+            f"{request_url.scheme}://{request_url.netloc}/{self.account_id}/{self.name}"
+        )
 
     @property
     def messages(self) -> List[Message]:

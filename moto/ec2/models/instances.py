@@ -95,7 +95,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             template_version = ec2_backend._get_template_from_args(launch_template_arg)
             self.image_id = template_version.image_id
         else:
-            self.image_id = image_id  # type: ignore
+            self.image_id = image_id
         # Check if we have tags to process
         if launch_template_arg:
             template_version = ec2_backend._get_template_from_args(launch_template_arg)
@@ -214,7 +214,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         kms_key_id: Optional[str],
         volume_type: Optional[str],
     ) -> None:
-        volume = self.ec2_backend.create_volume(  # type: ignore[attr-defined]
+        volume = self.ec2_backend.create_volume(
             size=size,
             zone_name=self._placement.zone,
             snapshot_id=snapshot_id,
@@ -721,7 +721,7 @@ class InstanceBackend:
                     kms_key_id = block_device["Ebs"].get("KmsKeyId")
 
                     if block_device.get("NoDevice") != "":
-                        new_instance.add_block_device(  # type: ignore[attr-defined]
+                        new_instance.add_block_device(
                             volume_size,
                             device_name,
                             snapshot_id,

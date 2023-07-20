@@ -215,10 +215,8 @@ class IdentityStoreBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_group_memberships(
-        self,
-        identity_store_id: str,
-        group_id: str,
-    ) -> List[Any]:  # type: ignore
+        self, identity_store_id: str, group_id: str
+    ) -> List[Any]:
         identity_store = self.__get_identity_store(identity_store_id)
 
         return [

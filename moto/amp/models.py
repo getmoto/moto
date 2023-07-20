@@ -116,7 +116,7 @@ class PrometheusServiceBackend(BaseBackend):
         self.workspaces.pop(workspace_id, None)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_workspaces(self, alias: str) -> List[Workspace]:  # type: ignore[misc]
+    def list_workspaces(self, alias: str) -> List[Workspace]:
         if alias:
             return [w for w in self.workspaces.values() if w.alias == alias]
         return list(self.workspaces.values())
@@ -173,7 +173,9 @@ class PrometheusServiceBackend(BaseBackend):
         return ns
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_rule_groups_namespaces(self, name: str, workspace_id: str) -> List[RuleGroupNamespace]:  # type: ignore
+    def list_rule_groups_namespaces(
+        self, name: str, workspace_id: str
+    ) -> List[RuleGroupNamespace]:
         ws = self.describe_workspace(workspace_id)
         if name:
             return [

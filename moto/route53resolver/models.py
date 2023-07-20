@@ -755,7 +755,9 @@ class Route53ResolverBackend(BaseBackend):
         return self.resolver_rule_associations[resolver_rule_association_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_resolver_endpoint_ip_addresses(self, resolver_endpoint_id: str) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def list_resolver_endpoint_ip_addresses(
+        self, resolver_endpoint_id: str
+    ) -> List[Dict[str, Any]]:
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         endpoint = self.resolver_endpoints[resolver_endpoint_id]
         return endpoint.ip_descriptions()
@@ -814,7 +816,7 @@ class Route53ResolverBackend(BaseBackend):
         return True
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_resolver_endpoints(self, filters: Any) -> List[ResolverEndpoint]:  # type: ignore[misc]
+    def list_resolver_endpoints(self, filters: Any) -> List[ResolverEndpoint]:
         if not filters:
             filters = []
 
@@ -828,7 +830,7 @@ class Route53ResolverBackend(BaseBackend):
         return endpoints
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_resolver_rules(self, filters: Any) -> List[ResolverRule]:  # type: ignore[misc]
+    def list_resolver_rules(self, filters: Any) -> List[ResolverRule]:
         if not filters:
             filters = []
 
@@ -842,7 +844,9 @@ class Route53ResolverBackend(BaseBackend):
         return rules
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_resolver_rule_associations(self, filters: Any) -> List[ResolverRuleAssociation]:  # type: ignore[misc]
+    def list_resolver_rule_associations(
+        self, filters: Any
+    ) -> List[ResolverRuleAssociation]:
         if not filters:
             filters = []
 
@@ -870,7 +874,9 @@ class Route53ResolverBackend(BaseBackend):
         )
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_tags_for_resource(self, resource_arn: str) -> Optional[List[Dict[str, str]]]:  # type: ignore[misc]
+    def list_tags_for_resource(
+        self, resource_arn: str
+    ) -> Optional[List[Dict[str, str]]]:
         self._matched_arn(resource_arn)
         return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
 

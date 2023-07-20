@@ -1173,7 +1173,7 @@ class IoTBackend(BaseBackend):
             if version.version_id == version_id:
                 version.is_default = True
                 policy.default_version_id = version.version_id
-                policy.document = version.document  # type: ignore
+                policy.document = version.document
             else:
                 version.is_default = False
 
@@ -1729,7 +1729,9 @@ class IoTBackend(BaseBackend):
         return job_executions, next_token
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
-    def list_job_executions_for_thing(self, thing_name: str, status: Optional[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def list_job_executions_for_thing(
+        self, thing_name: str, status: Optional[str]
+    ) -> List[Dict[str, Any]]:
         job_executions = [
             self.job_executions[je].to_dict()
             for je in self.job_executions

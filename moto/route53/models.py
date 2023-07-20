@@ -677,10 +677,10 @@ class Route53Backend(BaseBackend):
         self, dnsnames: Optional[List[str]]
     ) -> Tuple[Optional[str], List[FakeZone]]:
         if dnsnames:
-            dnsname = dnsnames[0]  # type: ignore
+            dnsname = dnsnames[0]
             if dnsname[-1] != ".":
                 dnsname += "."
-            zones = [zone for zone in self.list_hosted_zones() if zone.name == dnsname]  # type: ignore
+            zones = [zone for zone in self.list_hosted_zones() if zone.name == dnsname]
         else:
             dnsname = None
             # sort by names, but with domain components reversed
@@ -694,7 +694,7 @@ class Route53Backend(BaseBackend):
 
             zones = self.list_hosted_zones()
             zones = sorted(zones, key=sort_key)
-        return dnsname, zones  # type: ignore
+        return dnsname, zones
 
     def list_hosted_zones_by_vpc(self, vpc_id: str) -> List[Dict[str, Any]]:
         """
@@ -881,7 +881,9 @@ class Route53Backend(BaseBackend):
         return self.query_logging_configs[query_logging_config_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_query_logging_configs(self, hosted_zone_id: Optional[str] = None) -> List[QueryLoggingConfig]:  # type: ignore
+    def list_query_logging_configs(
+        self, hosted_zone_id: Optional[str] = None
+    ) -> List[QueryLoggingConfig]:
         """Return a list of query logging configs."""
         if hosted_zone_id:
             # Does the hosted_zone_id exist?

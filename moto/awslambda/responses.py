@@ -124,7 +124,9 @@ class LambdaResponse(BaseResponse):
 
     @amz_crc32
     @amzn_request_id
-    def invoke(self, request: Any, full_url: str, headers: Any) -> Tuple[int, Dict[str, str], Union[str, bytes]]:  # type: ignore[misc]
+    def invoke(
+        self, request: Any, full_url: str, headers: Any
+    ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self._invoke(request)
@@ -133,7 +135,9 @@ class LambdaResponse(BaseResponse):
 
     @amz_crc32
     @amzn_request_id
-    def invoke_async(self, request: Any, full_url: str, headers: Any) -> Tuple[int, Dict[str, str], Union[str, bytes]]:  # type: ignore[misc]
+    def invoke_async(
+        self, request: Any, full_url: str, headers: Any
+    ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self._invoke_async()
