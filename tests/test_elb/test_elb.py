@@ -1,9 +1,7 @@
 import boto3
-import botocore
-from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
+from botocore.exceptions import ClientError
 from moto import mock_acm, mock_elb, mock_ec2, mock_iam
 from moto.core import DEFAULT_ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
@@ -35,24 +33,21 @@ def test_create_load_balancer(zones, region_name):
         Scheme="internal",
         SecurityGroups=[security_group.id],
     )
-    lb.should.have.key("DNSName").equal("my-lb.us-east-1.elb.amazonaws.com")
+    assert lb["DNSName"] == "my-lb.us-east-1.elb.amazonaws.com"
 
     describe = client.describe_load_balancers(LoadBalancerNames=["my-lb"])[
         "LoadBalancerDescriptions"
     ][0]
-    describe.should.have.key("LoadBalancerName").equal("my-lb")
-    describe.should.have.key("DNSName").equal("my-lb.us-east-1.elb.amazonaws.com")
-    describe.should.have.key("CanonicalHostedZoneName").equal(
-        "my-lb.us-east-1.elb.amazonaws.com"
-    )
-    describe.should.have.key("AvailabilityZones").equal(zones)
-    describe.should.have.key("VPCId")
-    describe.should.have.key("Subnets").length_of(zones)  # Default subnet for each zone
-    describe.should.have.key("SecurityGroups").equal([security_group.id])
-    describe.should.have.key("Scheme").equal("internal")
+    assert describe["LoadBalancerName"] == "my-lb"
+    assert describe["DNSName"] == "my-lb.us-east-1.elb.amazonaws.com"
+    assert describe["CanonicalHostedZoneName"] == "my-lb.us-east-1.elb.amazonaws.com"
+    assert describe["AvailabilityZones"] == zones
+    assert "VPCId" in describe
+    assert len(describe["Subnets"]) == len(zones)  # Default subnet for each zone
+    assert describe["SecurityGroups"] == [security_group.id]
+    assert describe["Scheme"] == "internal"
 
-    describe.should.have.key("ListenerDescriptions")
-    describe["ListenerDescriptions"].should.have.length_of(2)
+    assert len(describe["ListenerDescriptions"]) == 2
 
     tcp = [
         desc["Listener"]
@@ -64,24 +59,20 @@ def test_create_load_balancer(zones, region_name):
         for desc in describe["ListenerDescriptions"]
         if desc["Listener"]["Protocol"] == "HTTP"
     ][0]
-    tcp.should.equal(
-        {
-            "Protocol": "TCP",
-            "LoadBalancerPort": 80,
-            "InstanceProtocol": "TCP",
-            "InstancePort": 8080,
-            "SSLCertificateId": "None",
-        }
-    )
-    http.should.equal(
-        {
-            "Protocol": "HTTP",
-            "LoadBalancerPort": 81,
-            "InstanceProtocol": "HTTP",
-            "InstancePort": 9000,
-            "SSLCertificateId": "None",
-        }
-    )
+    assert tcp == {
+        "Protocol": "TCP",
+        "LoadBalancerPort": 80,
+        "InstanceProtocol": "TCP",
+        "InstancePort": 8080,
+        "SSLCertificateId": "None",
+    }
+    assert http == {
+        "Protocol": "HTTP",
+        "LoadBalancerPort": 81,
+        "InstanceProtocol": "HTTP",
+        "InstancePort": 9000,
+        "SSLCertificateId": "None",
+    }
 
 
 @mock_elb
@@ -90,10 +81,8 @@ def test_get_missing_elb():
     with pytest.raises(ClientError) as ex:
         client.describe_load_balancers(LoadBalancerNames=["unknown-lb"])
     err = ex.value.response["Error"]
-    err["Code"].should.equal("LoadBalancerNotFound")
-    err["Message"].should.equal(
-        "The specified load balancer does not exist: unknown-lb"
-    )
+    assert err["Code"] == "LoadBalancerNotFound"
+    assert err["Message"] == "The specified load balancer does not exist: unknown-lb"
 
 
 @mock_elb
@@ -119,15 +108,15 @@ def test_create_elb_in_multiple_region():
         lb["LoadBalancerName"]
         for lb in client_east.describe_load_balancers()["LoadBalancerDescriptions"]
     ]
-    east_names.should.contain(name_east)
-    east_names.shouldnt.contain(name_west)
+    assert name_east in east_names
+    assert name_west not in east_names
 
     west_names = [
         lb["LoadBalancerName"]
         for lb in client_west.describe_load_balancers()["LoadBalancerDescriptions"]
     ]
-    west_names.should.contain(name_west)
-    west_names.shouldnt.contain(name_east)
+    assert name_west in west_names
+    assert name_east not in west_names
 
 
 @mock_acm
@@ -161,11 +150,11 @@ def test_create_load_balancer_with_certificate():
     describe = client.describe_load_balancers(LoadBalancerNames=[name])[
         "LoadBalancerDescriptions"
     ][0]
-    describe["Scheme"].should.equal("internet-facing")
+    assert describe["Scheme"] == "internet-facing"
 
     listener = describe["ListenerDescriptions"][0]["Listener"]
-    listener.should.have.key("Protocol").equal("HTTPS")
-    listener.should.have.key("SSLCertificateId").equals(certificate_arn)
+    assert listener["Protocol"] == "HTTPS"
+    assert listener["SSLCertificateId"] == certificate_arn
 
 
 @mock_elb
@@ -188,7 +177,7 @@ def test_create_load_balancer_with_invalid_certificate():
             AvailabilityZones=["us-east-2a"],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("CertificateNotFoundException")
+    assert err["Code"] == "CertificateNotFoundException"
 
 
 @mock_elb
@@ -200,14 +189,10 @@ def test_create_and_delete_load_balancer():
         Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
         AvailabilityZones=["us-east-1a", "us-east-1b"],
     )
-    list(
-        client.describe_load_balancers()["LoadBalancerDescriptions"]
-    ).should.have.length_of(1)
+    assert len(client.describe_load_balancers()["LoadBalancerDescriptions"]) == 1
 
     client.delete_load_balancer(LoadBalancerName="my-lb")
-    list(
-        client.describe_load_balancers()["LoadBalancerDescriptions"]
-    ).should.have.length_of(0)
+    assert len(client.describe_load_balancers()["LoadBalancerDescriptions"]) == 0
 
 
 @mock_elb
@@ -236,7 +221,7 @@ def test_create_load_balancer_without_security_groups():
     describe = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
         "LoadBalancerDescriptions"
     ][0]
-    describe.should.have.key("SecurityGroups").length_of(1)
+    assert len(describe["SecurityGroups"]) == 1
     sec_group_id = describe["SecurityGroups"][0]
     sg = ec2.describe_security_groups(GroupIds=[sec_group_id])["SecurityGroups"][0]
     assert sg["GroupName"].startswith("default_elb_")
@@ -256,12 +241,12 @@ def test_describe_paginated_balancers():
         )
 
     resp = client.describe_load_balancers()
-    resp["LoadBalancerDescriptions"].should.have.length_of(50)
-    resp["NextMarker"].should.equal(
-        resp["LoadBalancerDescriptions"][-1]["LoadBalancerName"]
+    assert len(resp["LoadBalancerDescriptions"]) == 50
+    assert (
+        resp["NextMarker"] == resp["LoadBalancerDescriptions"][-1]["LoadBalancerName"]
     )
     resp2 = client.describe_load_balancers(Marker=resp["NextMarker"])
-    resp2["LoadBalancerDescriptions"].should.have.length_of(1)
+    assert len(resp2["LoadBalancerDescriptions"]) == 1
     assert "NextToken" not in resp2.keys()
 
 
@@ -309,31 +294,27 @@ def test_create_and_delete_listener():
         Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
         AvailabilityZones=["us-east-1a", "us-east-1b"],
     )
-    list(
-        client.describe_load_balancers()["LoadBalancerDescriptions"]
-    ).should.have.length_of(1)
+    assert len(client.describe_load_balancers()["LoadBalancerDescriptions"]) == 1
 
     client.create_load_balancer_listeners(
         LoadBalancerName="my-lb",
         Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 443, "InstancePort": 8443}],
     )
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
-    list(balancer["ListenerDescriptions"]).should.have.length_of(2)
-    balancer["ListenerDescriptions"][0]["Listener"]["Protocol"].should.equal("HTTP")
-    balancer["ListenerDescriptions"][0]["Listener"]["LoadBalancerPort"].should.equal(80)
-    balancer["ListenerDescriptions"][0]["Listener"]["InstancePort"].should.equal(8080)
-    balancer["ListenerDescriptions"][1]["Listener"]["Protocol"].should.equal("TCP")
-    balancer["ListenerDescriptions"][1]["Listener"]["LoadBalancerPort"].should.equal(
-        443
-    )
-    balancer["ListenerDescriptions"][1]["Listener"]["InstancePort"].should.equal(8443)
+    assert len(balancer["ListenerDescriptions"]) == 2
+    assert balancer["ListenerDescriptions"][0]["Listener"]["Protocol"] == "HTTP"
+    assert balancer["ListenerDescriptions"][0]["Listener"]["LoadBalancerPort"] == 80
+    assert balancer["ListenerDescriptions"][0]["Listener"]["InstancePort"] == 8080
+    assert balancer["ListenerDescriptions"][1]["Listener"]["Protocol"] == "TCP"
+    assert balancer["ListenerDescriptions"][1]["Listener"]["LoadBalancerPort"] == 443
+    assert balancer["ListenerDescriptions"][1]["Listener"]["InstancePort"] == 8443
 
     client.delete_load_balancer_listeners(
         LoadBalancerName="my-lb", LoadBalancerPorts=[443]
     )
 
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
-    list(balancer["ListenerDescriptions"]).should.have.length_of(1)
+    assert len(balancer["ListenerDescriptions"]) == 1
 
 
 @mock_elb
@@ -356,9 +337,10 @@ def test_create_duplicate_listener_different_protocols(first, second):
             ],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("DuplicateListener")
-    err["Message"].should.equal(
-        "A listener already exists for my-lb with LoadBalancerPort 80, but with a different InstancePort, Protocol, or SSLCertificateId"
+    assert err["Code"] == "DuplicateListener"
+    assert (
+        err["Message"]
+        == "A listener already exists for my-lb with LoadBalancerPort 80, but with a different InstancePort, Protocol, or SSLCertificateId"
     )
 
 
@@ -383,7 +365,7 @@ def test_create_duplicate_listener_same_details(first, second):
 
     # We still only have one though
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
-    list(balancer["ListenerDescriptions"]).should.have.length_of(1)
+    assert len(balancer["ListenerDescriptions"]) == 1
 
 
 @mock_acm
@@ -419,13 +401,13 @@ def test_create_lb_listener_with_ssl_certificate_from_acm():
     )
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
     listeners = balancer["ListenerDescriptions"]
-    listeners.should.have.length_of(2)
+    assert len(listeners) == 2
 
-    listeners[0]["Listener"]["Protocol"].should.equal("HTTP")
-    listeners[0]["Listener"]["SSLCertificateId"].should.equal("None")
+    assert listeners[0]["Listener"]["Protocol"] == "HTTP"
+    assert listeners[0]["Listener"]["SSLCertificateId"] == "None"
 
-    listeners[1]["Listener"]["Protocol"].should.equal("TCP")
-    listeners[1]["Listener"]["SSLCertificateId"].should.equal(certificate_arn)
+    assert listeners[1]["Listener"]["Protocol"] == "TCP"
+    assert listeners[1]["Listener"]["SSLCertificateId"] == certificate_arn
 
 
 @mock_iam
@@ -460,13 +442,13 @@ def test_create_lb_listener_with_ssl_certificate_from_iam():
     )
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
     listeners = balancer["ListenerDescriptions"]
-    listeners.should.have.length_of(2)
+    assert len(listeners) == 2
 
-    listeners[0]["Listener"]["Protocol"].should.equal("HTTP")
-    listeners[0]["Listener"]["SSLCertificateId"].should.equal("None")
+    assert listeners[0]["Listener"]["Protocol"] == "HTTP"
+    assert listeners[0]["Listener"]["SSLCertificateId"] == "None"
 
-    listeners[1]["Listener"]["Protocol"].should.equal("TCP")
-    listeners[1]["Listener"]["SSLCertificateId"].should.equal(certificate_arn)
+    assert listeners[1]["Listener"]["Protocol"] == "TCP"
+    assert listeners[1]["Listener"]["SSLCertificateId"] == certificate_arn
 
 
 @mock_acm
@@ -493,7 +475,7 @@ def test_create_lb_listener_with_invalid_ssl_certificate():
             ],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("CertificateNotFoundException")
+    assert err["Code"] == "CertificateNotFoundException"
 
 
 @mock_acm
@@ -527,12 +509,12 @@ def test_set_sslcertificate():
     elb = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
 
     listener = elb["ListenerDescriptions"][0]["Listener"]
-    listener.should.have.key("LoadBalancerPort").equals(80)
-    listener.should.have.key("SSLCertificateId").equals("None")
+    assert listener["LoadBalancerPort"] == 80
+    assert listener["SSLCertificateId"] == "None"
 
     listener = elb["ListenerDescriptions"][1]["Listener"]
-    listener.should.have.key("LoadBalancerPort").equals(81)
-    listener.should.have.key("SSLCertificateId").equals(certificate_arn)
+    assert listener["LoadBalancerPort"] == 81
+    assert listener["SSLCertificateId"] == certificate_arn
 
 
 @mock_elb
@@ -554,26 +536,26 @@ def test_get_load_balancers_by_name():
     )
 
     lbs = client.describe_load_balancers(LoadBalancerNames=[lb_name1])
-    lbs["LoadBalancerDescriptions"].should.have.length_of(1)
+    assert len(lbs["LoadBalancerDescriptions"]) == 1
 
     lbs = client.describe_load_balancers(LoadBalancerNames=[lb_name2])
-    lbs["LoadBalancerDescriptions"].should.have.length_of(1)
+    assert len(lbs["LoadBalancerDescriptions"]) == 1
 
     lbs = client.describe_load_balancers(LoadBalancerNames=[lb_name1, lb_name2])
-    lbs["LoadBalancerDescriptions"].should.have.length_of(2)
+    assert len(lbs["LoadBalancerDescriptions"]) == 2
 
     with pytest.raises(ClientError) as ex:
         client.describe_load_balancers(LoadBalancerNames=["unknownlb"])
     err = ex.value.response["Error"]
-    err["Code"].should.equal("LoadBalancerNotFound")
-    err["Message"].should.equal("The specified load balancer does not exist: unknownlb")
+    assert err["Code"] == "LoadBalancerNotFound"
+    assert err["Message"] == "The specified load balancer does not exist: unknownlb"
 
     with pytest.raises(ClientError) as ex:
         client.describe_load_balancers(LoadBalancerNames=[lb_name1, "unknownlb"])
     err = ex.value.response["Error"]
-    err["Code"].should.equal("LoadBalancerNotFound")
+    assert err["Code"] == "LoadBalancerNotFound"
     # Bug - message sometimes shows the lb that does exist
-    err["Message"].should.match("The specified load balancer does not exist:")
+    assert "The specified load balancer does not exist:" in err["Message"]
 
 
 @mock_elb
@@ -596,15 +578,15 @@ def test_delete_load_balancer():
 
     lbs = client.describe_load_balancers()["LoadBalancerDescriptions"]
     lb_names = [lb["LoadBalancerName"] for lb in lbs]
-    lb_names.should.contain(lb_name1)
-    lb_names.should.contain(lb_name2)
+    assert lb_name1 in lb_names
+    assert lb_name2 in lb_names
 
     client.delete_load_balancer(LoadBalancerName=lb_name1)
 
     lbs = client.describe_load_balancers()["LoadBalancerDescriptions"]
     lb_names = [lb["LoadBalancerName"] for lb in lbs]
-    lb_names.shouldnt.contain(lb_name1)
-    lb_names.should.contain(lb_name2)
+    assert lb_name1 not in lb_names
+    assert lb_name2 in lb_names
 
 
 @mock_elb
@@ -628,11 +610,11 @@ def test_create_health_check():
     )
 
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
-    balancer["HealthCheck"]["Target"].should.equal("HTTP:8080/health")
-    balancer["HealthCheck"]["Interval"].should.equal(20)
-    balancer["HealthCheck"]["Timeout"].should.equal(23)
-    balancer["HealthCheck"]["HealthyThreshold"].should.equal(3)
-    balancer["HealthCheck"]["UnhealthyThreshold"].should.equal(5)
+    assert balancer["HealthCheck"]["Target"] == "HTTP:8080/health"
+    assert balancer["HealthCheck"]["Interval"] == 20
+    assert balancer["HealthCheck"]["Timeout"] == 23
+    assert balancer["HealthCheck"]["HealthyThreshold"] == 3
+    assert balancer["HealthCheck"]["UnhealthyThreshold"] == 5
 
 
 @mock_ec2
@@ -655,7 +637,7 @@ def test_register_instances():
     )
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
     instance_ids = [instance["InstanceId"] for instance in balancer["Instances"]]
-    set(instance_ids).should.equal(set([instance_id1, instance_id2]))
+    assert set(instance_ids) == set([instance_id1, instance_id2])
 
 
 @mock_ec2
@@ -678,15 +660,15 @@ def test_deregister_instances():
     )
 
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
-    balancer["Instances"].should.have.length_of(2)
+    assert len(balancer["Instances"]) == 2
 
     client.deregister_instances_from_load_balancer(
         LoadBalancerName="my-lb", Instances=[{"InstanceId": instance_id1}]
     )
 
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
-    balancer["Instances"].should.have.length_of(1)
-    balancer["Instances"][0]["InstanceId"].should.equal(instance_id2)
+    assert len(balancer["Instances"]) == 1
+    assert balancer["Instances"][0]["InstanceId"] == instance_id2
 
 
 @mock_elb
@@ -703,10 +685,10 @@ def test_default_attributes():
     attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
         "LoadBalancerAttributes"
     ]
-    attributes.should.have.key("CrossZoneLoadBalancing").equal({"Enabled": False})
-    attributes.should.have.key("AccessLog").equal({"Enabled": False})
-    attributes.should.have.key("ConnectionDraining").equal({"Enabled": False})
-    attributes.should.have.key("ConnectionSettings").equal({"IdleTimeout": 60})
+    assert attributes["CrossZoneLoadBalancing"] == {"Enabled": False}
+    assert attributes["AccessLog"] == {"Enabled": False}
+    assert attributes["ConnectionDraining"] == {"Enabled": False}
+    assert attributes["ConnectionSettings"] == {"IdleTimeout": 60}
 
 
 @mock_elb
@@ -728,10 +710,10 @@ def test_cross_zone_load_balancing_attribute():
     attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
         "LoadBalancerAttributes"
     ]
-    attributes.should.have.key("CrossZoneLoadBalancing").equal({"Enabled": True})
-    attributes.should.have.key("AccessLog").equal({"Enabled": False})
-    attributes.should.have.key("ConnectionDraining").equal({"Enabled": False})
-    attributes.should.have.key("ConnectionSettings").equal({"IdleTimeout": 60})
+    assert attributes["CrossZoneLoadBalancing"] == {"Enabled": True}
+    assert attributes["AccessLog"] == {"Enabled": False}
+    assert attributes["ConnectionDraining"] == {"Enabled": False}
+    assert attributes["ConnectionSettings"] == {"IdleTimeout": 60}
 
     client.modify_load_balancer_attributes(
         LoadBalancerName=lb_name,
@@ -741,7 +723,7 @@ def test_cross_zone_load_balancing_attribute():
     attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
         "LoadBalancerAttributes"
     ]
-    attributes.should.have.key("CrossZoneLoadBalancing").equal({"Enabled": False})
+    assert attributes["CrossZoneLoadBalancing"] == {"Enabled": False}
 
 
 @mock_elb
@@ -763,9 +745,7 @@ def test_connection_draining_attribute():
     attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
         "LoadBalancerAttributes"
     ]
-    attributes.should.have.key("ConnectionDraining").equal(
-        {"Enabled": True, "Timeout": 42}
-    )
+    assert attributes["ConnectionDraining"] == {"Enabled": True, "Timeout": 42}
 
     client.modify_load_balancer_attributes(
         LoadBalancerName=lb_name,
@@ -775,9 +755,7 @@ def test_connection_draining_attribute():
     attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
         "LoadBalancerAttributes"
     ]
-    attributes.should.have.key("ConnectionDraining").equal(
-        {"Enabled": False, "Timeout": 300}
-    )
+    assert attributes["ConnectionDraining"] == {"Enabled": False, "Timeout": 300}
 
 
 @mock_elb
@@ -795,7 +773,7 @@ def test_access_log_attribute():
         "LoadBalancerAttributes"
     ]
     access_log = lb_attrs["AccessLog"]
-    access_log.should.equal({"Enabled": False})
+    assert access_log == {"Enabled": False}
 
     # Specify our AccessLog attributes
     client.modify_load_balancer_attributes(
@@ -813,14 +791,12 @@ def test_access_log_attribute():
         "LoadBalancerAttributes"
     ]
     access_log = lb_attrs["AccessLog"]
-    access_log.should.equal(
-        {
-            "Enabled": True,
-            "S3BucketName": "mb",
-            "EmitInterval": 42,
-            "S3BucketPrefix": "s3bf",
-        }
-    )
+    assert access_log == {
+        "Enabled": True,
+        "S3BucketName": "mb",
+        "EmitInterval": 42,
+        "S3BucketPrefix": "s3bf",
+    }
 
     # Verify the attribute can be reset
     client.modify_load_balancer_attributes(
@@ -831,7 +807,7 @@ def test_access_log_attribute():
         "LoadBalancerAttributes"
     ]
     access_log = lb_attrs["AccessLog"]
-    access_log.should.equal({"Enabled": False})
+    assert access_log == {"Enabled": False}
 
 
 @mock_elb
@@ -849,7 +825,7 @@ def test_connection_settings_attribute():
         "LoadBalancerAttributes"
     ]
     conn_settings = lb_attrs["ConnectionSettings"]
-    conn_settings.should.equal({"IdleTimeout": 60})
+    assert conn_settings == {"IdleTimeout": 60}
 
     # Specify our AccessLog attributes
     client.modify_load_balancer_attributes(
@@ -860,7 +836,7 @@ def test_connection_settings_attribute():
         "LoadBalancerAttributes"
     ]
     conn_settings = lb_attrs["ConnectionSettings"]
-    conn_settings.should.equal({"IdleTimeout": 123})
+    assert conn_settings == {"IdleTimeout": 123}
 
 
 @mock_ec2
@@ -887,7 +863,7 @@ def test_describe_instance_health():
     instances_health = elb.describe_instance_health(LoadBalancerName=lb_name)[
         "InstanceStates"
     ]
-    instances_health.should.have.length_of(2)
+    assert len(instances_health) == 2
 
 
 @mock_ec2
@@ -918,19 +894,19 @@ def test_describe_instance_health__with_instance_ids():
         LoadBalancerName=lb_name,
         Instances=[{"InstanceId": iid} for iid in instance_ids],
     )["InstanceStates"]
-    instances_health.should.have.length_of(3)
+    assert len(instances_health) == 3
 
     # The first instance is healthy
-    instances_health[0]["InstanceId"].should.equal(instance_ids[0])
-    instances_health[0]["State"].should.equal("InService")
+    assert instances_health[0]["InstanceId"] == instance_ids[0]
+    assert instances_health[0]["State"] == "InService"
 
     # The second instance was never known to ELB
-    instances_health[1]["InstanceId"].should.equal(instance_ids[1])
-    instances_health[1]["State"].should.equal("Unknown")
+    assert instances_health[1]["InstanceId"] == instance_ids[1]
+    assert instances_health[1]["State"] == "Unknown"
 
     # The third instance was stopped
-    instances_health[2]["InstanceId"].should.equal(instance_ids[2])
-    instances_health[2]["State"].should.equal("OutOfService")
+    assert instances_health[2]["InstanceId"] == instance_ids[2]
+    assert instances_health[2]["State"] == "OutOfService"
 
 
 @mock_elb
@@ -940,17 +916,16 @@ def test_describe_instance_health_of_unknown_lb():
     with pytest.raises(ClientError) as exc:
         elb.describe_instance_health(LoadBalancerName="what")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("LoadBalancerNotFound")
-    err["Message"].should.equal("There is no ACTIVE Load Balancer named 'what'")
+    assert err["Code"] == "LoadBalancerNotFound"
+    assert err["Message"] == "There is no ACTIVE Load Balancer named 'what'"
 
 
 @mock_elb
 def test_add_remove_tags():
     client = boto3.client("elb", region_name="us-east-1")
 
-    client.add_tags.when.called_with(
-        LoadBalancerNames=["my-lb"], Tags=[{"Key": "a", "Value": "b"}]
-    ).should.throw(botocore.exceptions.ClientError)
+    with pytest.raises(ClientError):
+        client.add_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "a", "Value": "b"}])
 
     client.create_load_balancer(
         LoadBalancerName="my-lb",
@@ -958,9 +933,7 @@ def test_add_remove_tags():
         AvailabilityZones=["us-east-1a", "us-east-1b"],
     )
 
-    list(
-        client.describe_load_balancers()["LoadBalancerDescriptions"]
-    ).should.have.length_of(1)
+    assert len(client.describe_load_balancers()["LoadBalancerDescriptions"]) == 1
 
     client.add_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "a", "Value": "b"}])
 
@@ -972,7 +945,7 @@ def test_add_remove_tags():
             ][0]["Tags"]
         ]
     )
-    tags.should.have.key("a").which.should.equal("b")
+    assert tags["a"] == "b"
 
     client.add_tags(
         LoadBalancerNames=["my-lb"],
@@ -990,9 +963,8 @@ def test_add_remove_tags():
         ],
     )
 
-    client.add_tags.when.called_with(
-        LoadBalancerNames=["my-lb"], Tags=[{"Key": "k", "Value": "b"}]
-    ).should.throw(botocore.exceptions.ClientError)
+    with pytest.raises(ClientError):
+        client.add_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "k", "Value": "b"}])
 
     client.add_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "j", "Value": "c"}])
 
@@ -1005,17 +977,17 @@ def test_add_remove_tags():
         ]
     )
 
-    tags.should.have.key("a").which.should.equal("b")
-    tags.should.have.key("b").which.should.equal("b")
-    tags.should.have.key("c").which.should.equal("b")
-    tags.should.have.key("d").which.should.equal("b")
-    tags.should.have.key("e").which.should.equal("b")
-    tags.should.have.key("f").which.should.equal("b")
-    tags.should.have.key("g").which.should.equal("b")
-    tags.should.have.key("h").which.should.equal("b")
-    tags.should.have.key("i").which.should.equal("b")
-    tags.should.have.key("j").which.should.equal("c")
-    tags.shouldnt.have.key("k")
+    assert tags["a"] == "b"
+    assert tags["b"] == "b"
+    assert tags["c"] == "b"
+    assert tags["d"] == "b"
+    assert tags["e"] == "b"
+    assert tags["f"] == "b"
+    assert tags["g"] == "b"
+    assert tags["h"] == "b"
+    assert tags["i"] == "b"
+    assert tags["j"] == "c"
+    assert "k" not in tags
 
     client.remove_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "a"}])
 
@@ -1028,16 +1000,16 @@ def test_add_remove_tags():
         ]
     )
 
-    tags.shouldnt.have.key("a")
-    tags.should.have.key("b").which.should.equal("b")
-    tags.should.have.key("c").which.should.equal("b")
-    tags.should.have.key("d").which.should.equal("b")
-    tags.should.have.key("e").which.should.equal("b")
-    tags.should.have.key("f").which.should.equal("b")
-    tags.should.have.key("g").which.should.equal("b")
-    tags.should.have.key("h").which.should.equal("b")
-    tags.should.have.key("i").which.should.equal("b")
-    tags.should.have.key("j").which.should.equal("c")
+    assert "a" not in tags
+    assert tags["b"] == "b"
+    assert tags["c"] == "b"
+    assert tags["d"] == "b"
+    assert tags["e"] == "b"
+    assert tags["f"] == "b"
+    assert tags["g"] == "b"
+    assert tags["h"] == "b"
+    assert tags["i"] == "b"
+    assert tags["j"] == "c"
 
     client.create_load_balancer(
         LoadBalancerName="other-lb",
@@ -1058,11 +1030,11 @@ def test_add_remove_tags():
         ]
     )
 
-    lb_tags.should.have.key("my-lb")
-    lb_tags.should.have.key("other-lb")
+    assert "my-lb" in lb_tags
+    assert "other-lb" in lb_tags
 
-    lb_tags["my-lb"].shouldnt.have.key("other")
-    lb_tags["other-lb"].should.have.key("other").which.should.equal("something")
+    assert "other" not in lb_tags["my-lb"]
+    assert lb_tags["other-lb"]["other"] == "something"
 
 
 @mock_elb
@@ -1082,7 +1054,7 @@ def test_create_with_tags():
             0
         ]["Tags"]
     )
-    tags.should.have.key("k").which.should.equal("v")
+    assert tags["k"] == "v"
 
 
 @mock_elb
@@ -1101,12 +1073,8 @@ def test_modify_attributes():
         LoadBalancerAttributes={"ConnectionDraining": {"Enabled": True}},
     )
     lb_attrs = client.describe_load_balancer_attributes(LoadBalancerName="my-lb")
-    lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Enabled"].should.equal(
-        True
-    )
-    lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Timeout"].should.equal(
-        300
-    )
+    assert lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Enabled"] is True
+    assert lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Timeout"] == 300
 
     # specify a custom ConnectionDraining timeout
     client.modify_load_balancer_attributes(
@@ -1114,10 +1082,8 @@ def test_modify_attributes():
         LoadBalancerAttributes={"ConnectionDraining": {"Enabled": True, "Timeout": 45}},
     )
     lb_attrs = client.describe_load_balancer_attributes(LoadBalancerName="my-lb")
-    lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Enabled"].should.equal(
-        True
-    )
-    lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Timeout"].should.equal(45)
+    assert lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Enabled"] is True
+    assert lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Timeout"] == 45
 
 
 @mock_ec2
@@ -1135,13 +1101,14 @@ def test_subnets():
 
     lb = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
 
-    lb.should.have.key("Subnets").which.should.have.length_of(1)
-    lb["Subnets"][0].should.equal(subnet.id)
+    assert len(lb["Subnets"]) == 1
+    assert lb["Subnets"][0] == subnet.id
 
-    lb.should.have.key("VPCId").which.should.equal(vpc.id)
-    lb.should.have.key("SourceSecurityGroup").equals(
-        {"OwnerAlias": f"{DEFAULT_ACCOUNT_ID}", "GroupName": "default"}
-    )
+    assert lb["VPCId"] == vpc.id
+    assert lb["SourceSecurityGroup"] == {
+        "OwnerAlias": f"{DEFAULT_ACCOUNT_ID}",
+        "GroupName": "default",
+    }
 
 
 @mock_elb
@@ -1161,7 +1128,8 @@ def test_create_load_balancer_duplicate():
             ],
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("DuplicateLoadBalancerName")
-    err["Message"].should.equal(
-        f"The specified load balancer name already exists for this account: {lb_name}"
+    assert err["Code"] == "DuplicateLoadBalancerName"
+    assert (
+        err["Message"]
+        == f"The specified load balancer name already exists for this account: {lb_name}"
     )

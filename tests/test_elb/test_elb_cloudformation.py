@@ -1,6 +1,5 @@
 import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudformation, mock_ec2, mock_elb
 from tests import EXAMPLE_AMI_ID
@@ -46,8 +45,8 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     reservations = ec2.describe_instances()["Reservations"][0]
     ec2_instance = reservations["Instances"][0]
 
-    load_balancer["Instances"][0]["InstanceId"].should.equal(ec2_instance["InstanceId"])
-    load_balancer["AvailabilityZones"].should.equal(["us-west-1a"])
+    assert load_balancer["Instances"][0]["InstanceId"] == ec2_instance["InstanceId"]
+    assert load_balancer["AvailabilityZones"] == ["us-west-1a"]
 
 
 @mock_elb
@@ -88,11 +87,11 @@ def test_stack_elb_integration_with_health_check():
     load_balancer = elb.describe_load_balancers()["LoadBalancerDescriptions"][0]
     health_check = load_balancer["HealthCheck"]
 
-    health_check.should.have.key("HealthyThreshold").equal(3)
-    health_check.should.have.key("Interval").equal(5)
-    health_check.should.have.key("Target").equal("HTTP:80/healthcheck")
-    health_check.should.have.key("Timeout").equal(4)
-    health_check.should.have.key("UnhealthyThreshold").equal(2)
+    assert health_check["HealthyThreshold"] == 3
+    assert health_check["Interval"] == 5
+    assert health_check["Target"] == "HTTP:80/healthcheck"
+    assert health_check["Timeout"] == 4
+    assert health_check["UnhealthyThreshold"] == 2
 
 
 @mock_elb
@@ -127,7 +126,7 @@ def test_stack_elb_integration_with_update():
     # then
     elb = boto3.client("elb", region_name="us-west-1")
     load_balancer = elb.describe_load_balancers()["LoadBalancerDescriptions"][0]
-    load_balancer["AvailabilityZones"].should.equal(["us-west-1a"])
+    assert load_balancer["AvailabilityZones"] == ["us-west-1a"]
 
     # when
     elb_template["Resources"]["MyELB"]["Properties"]["AvailabilityZones"] = [
@@ -138,4 +137,4 @@ def test_stack_elb_integration_with_update():
 
     # then
     load_balancer = elb.describe_load_balancers()["LoadBalancerDescriptions"][0]
-    load_balancer["AvailabilityZones"].should.equal(["us-west-1b"])
+    assert load_balancer["AvailabilityZones"] == ["us-west-1b"]

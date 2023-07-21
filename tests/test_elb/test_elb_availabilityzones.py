@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_elb, mock_ec2
 
@@ -26,30 +25,36 @@ def test_enable_and_disable_availability_zones():
     describe = client.describe_load_balancers(LoadBalancerNames=["my-lb"])[
         "LoadBalancerDescriptions"
     ][0]
-    describe["AvailabilityZones"].should.equal(["eu-north-1a", "eu-north-1b"])
+    assert describe["AvailabilityZones"] == ["eu-north-1a", "eu-north-1b"]
 
     # enable more az's
     resp = client.enable_availability_zones_for_load_balancer(
         LoadBalancerName="my-lb", AvailabilityZones=["eu-north-1c", "eu-north-1d"]
     )
-    resp.should.have.key("AvailabilityZones").equals(
-        ["eu-north-1a", "eu-north-1b", "eu-north-1c", "eu-north-1d"]
-    )
+    assert resp["AvailabilityZones"] == [
+        "eu-north-1a",
+        "eu-north-1b",
+        "eu-north-1c",
+        "eu-north-1d",
+    ]
 
     describe = client.describe_load_balancers(LoadBalancerNames=["my-lb"])[
         "LoadBalancerDescriptions"
     ][0]
-    describe["AvailabilityZones"].should.equal(
-        ["eu-north-1a", "eu-north-1b", "eu-north-1c", "eu-north-1d"]
-    )
+    assert describe["AvailabilityZones"] == [
+        "eu-north-1a",
+        "eu-north-1b",
+        "eu-north-1c",
+        "eu-north-1d",
+    ]
 
     # disable some az's
     resp = client.disable_availability_zones_for_load_balancer(
         LoadBalancerName="my-lb", AvailabilityZones=["eu-north-1b", "eu-north-1c"]
     )
-    resp.should.have.key("AvailabilityZones").equals(["eu-north-1a", "eu-north-1d"])
+    assert resp["AvailabilityZones"] == ["eu-north-1a", "eu-north-1d"]
 
     describe = client.describe_load_balancers(LoadBalancerNames=["my-lb"])[
         "LoadBalancerDescriptions"
     ][0]
-    describe["AvailabilityZones"].should.equal(["eu-north-1a", "eu-north-1d"])
+    assert describe["AvailabilityZones"] == ["eu-north-1a", "eu-north-1d"]

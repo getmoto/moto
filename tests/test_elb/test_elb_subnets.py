@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_elb
 
@@ -24,9 +23,9 @@ def test_elb_attach_load_balancer_to_subnets():
 
     lb = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
 
-    lb.should.have.key("Subnets").which.should.have.length_of(2)
-    lb["Subnets"].should.contain(subnet1.id)
-    lb["Subnets"].should.contain(subnet2.id)
+    assert len(lb["Subnets"]) == 2
+    assert subnet1.id in lb["Subnets"]
+    assert subnet2.id in lb["Subnets"]
 
 
 @mock_ec2
@@ -49,5 +48,5 @@ def test_elb_detach_load_balancer_to_subnets():
 
     lb = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
 
-    lb.should.have.key("Subnets").which.should.have.length_of(1)
-    lb["Subnets"].should.contain(subnet2.id)
+    assert len(lb["Subnets"]) == 1
+    assert subnet2.id in lb["Subnets"]
