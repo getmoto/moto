@@ -884,15 +884,8 @@ class SQSBackend(BaseBackend):
         ):
             raise InvalidBatchEntryId()
 
-        body_length = next(
-            (
-                len(entry["MessageBody"])
-                for entry in entries.values()
-                if len(entry["MessageBody"]) > MAXIMUM_MESSAGE_LENGTH
-            ),
-            False,
-        )
-        if body_length:
+        body_length = sum(len(entry["MessageBody"]) for entry in entries.values())
+        if body_length > MAXIMUM_MESSAGE_LENGTH:
             raise BatchRequestTooLong(body_length)
 
         duplicate_id = self._get_first_duplicate_id(
