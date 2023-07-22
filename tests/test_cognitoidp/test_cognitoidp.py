@@ -4375,6 +4375,60 @@ def test_admin_reset_password_multiple_invocations():
         assert user["UserStatus"] == "RESET_REQUIRED"
 
 
+@mock_cognitoidp
+def test_login_denied_if_account_disabled():
+    """Make sure a disabled account is denied login"""
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    temporary_password = "P2$Sword"
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_attribute_name = str(uuid.uuid4())
+    user_attribute_value = str(uuid.uuid4())
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=str(uuid.uuid4()),
+        ReadAttributes=[user_attribute_name],
+    )["UserPoolClient"]["ClientId"]
+
+    # Create a user and disable the account
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        TemporaryPassword=temporary_password,
+        UserAttributes=[{"Name": user_attribute_name, "Value": user_attribute_value}],
+    )
+    conn.admin_disable_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+    )
+
+    # User should not be able to login into a disabled account
+    with pytest.raises(conn.exceptions.NotAuthorizedException) as ex:
+        conn.initiate_auth(
+            ClientId=client_id,
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+        )
+
+    assert ex.value.response["Error"]["Code"] == "NotAuthorizedException"
+    assert ex.value.response["Error"]["Message"] == "User is disabled."
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+    # Using admin login should yield the same result
+    with pytest.raises(conn.exceptions.NotAuthorizedException) as ex:
+        conn.admin_initiate_auth(
+            UserPoolId=user_pool_id,
+            ClientId=client_id,
+            AuthFlow="ADMIN_NO_SRP_AUTH",
+            AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+        )
+
+    assert ex.value.response["Error"]["Code"] == "NotAuthorizedException"
+    assert ex.value.response["Error"]["Message"] == "User is disabled."
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
 # which isnt mocked in ServerMode
 if not settings.TEST_SERVER_MODE:
