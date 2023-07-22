@@ -1422,6 +1422,9 @@ class CognitoIdpBackend(BaseBackend):
             password: str = auth_parameters.get("PASSWORD")  # type: ignore[assignment]
             user = self.admin_get_user(user_pool_id, username)
 
+            if not user.enabled:
+                raise NotAuthorizedError("User is disabled.")
+
             if user.password != password:
                 raise NotAuthorizedError(username)
 
@@ -1813,6 +1816,9 @@ class CognitoIdpBackend(BaseBackend):
 
             user = self.admin_get_user(user_pool.id, username)
 
+            if not user.enabled:
+                raise NotAuthorizedError("User is disabled.")
+
             if user.status is UserStatus.UNCONFIRMED:
                 raise UserNotConfirmedException("User is not confirmed.")
 
@@ -1838,6 +1844,9 @@ class CognitoIdpBackend(BaseBackend):
 
             if not user:
                 raise UserNotFoundError(username)
+
+            if not user.enabled:
+                raise NotAuthorizedError("User is disabled.")
 
             if user.password != password:
                 raise NotAuthorizedError("Incorrect username or password.")
