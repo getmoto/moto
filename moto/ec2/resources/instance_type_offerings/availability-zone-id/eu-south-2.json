@@ -472,6 +472,22 @@
   "Location": "eus2-az1"
  },
  {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "x2idn.metal",
+  "Location": "eus2-az1"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "eus2-az2"
  },
@@ -941,6 +957,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "x2idn.metal",
   "Location": "eus2-az2"
  },
  {
