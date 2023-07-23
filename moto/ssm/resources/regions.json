@@ -11644,6 +11644,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "application-insights": {
+                "Value": "application-insights",
+                "endpoint": {
+                  "Value": "applicationinsights.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appsync": {
                 "Value": "appsync",
                 "endpoint": {
@@ -21151,15 +21160,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "managedblockchain": {
-                "Value": "managedblockchain",
-                "endpoint": {
-                  "Value": "managedblockchain.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "managedservices": {
                 "Value": "managedservices",
                 "endpoint": {
@@ -21212,6 +21212,15 @@
                 "Value": "mediapackage",
                 "endpoint": {
                   "Value": "mediapackage.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediapackage-vod": {
+                "Value": "mediapackage-vod",
+                "endpoint": {
+                  "Value": "mediapackage-vod.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27368,6 +27377,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "application-insights": {
+                "Value": "application-insights",
+                "endpoint": {
+                  "Value": "applicationinsights.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appsync": {
                 "Value": "appsync",
                 "endpoint": {
@@ -31779,6 +31797,15 @@
                 "Value": "appconfigdata",
                 "endpoint": {
                   "Value": "appconfigdata.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "application-insights": {
+                "Value": "application-insights",
+                "endpoint": {
+                  "Value": "applicationinsights.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -39723,6 +39750,15 @@
                 "Value": "appconfigdata",
                 "endpoint": {
                   "Value": "appconfigdata.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "application-insights": {
+                "Value": "application-insights",
+                "endpoint": {
+                  "Value": "applicationinsights.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
