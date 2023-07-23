@@ -470,5 +470,21 @@
  {
   "InstanceType": "t4g.xlarge",
   "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "x2idn.metal",
+  "Location": "eu-south-2"
  }
 ]
