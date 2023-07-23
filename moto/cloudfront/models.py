@@ -104,10 +104,8 @@ class CustomOriginConfig:
         self.keep_alive = config.get("OriginKeepaliveTimeout") or 5
         self.protocol_policy = config.get("OriginProtocolPolicy")
         self.read_timeout = config.get("OriginReadTimeout") or 30
-        self.ssl_protocols = (
-            config.get("OriginSslProtocols", {}).get("Items", {}).get("SslProtocol")
-            or []
-        )
+        protocols = config.get("OriginSslProtocols", {}).get("Items") or {}
+        self.ssl_protocols = protocols.get("SslProtocol") or []
 
 
 class Origin:
@@ -356,15 +354,20 @@ class CloudFrontBackend(BaseBackend):
             raise NoSuchDistribution
         dist = self.distributions[_id]
 
-        aliases = dist_config["Aliases"]["Items"]["CNAME"]
+        if dist_config.get("Aliases", {}).get("Items") is not None:
+            aliases = dist_config["Aliases"]["Items"]["CNAME"]
+            dist.distribution_config.aliases = aliases
         origin = dist_config["Origins"]["Items"]["Origin"]
         dist.distribution_config.config = dist_config
-        dist.distribution_config.aliases = aliases
         dist.distribution_config.origins = (
             [Origin(o) for o in origin]
             if isinstance(origin, list)
             else [Origin(origin)]
         )
+        if dist_config.get("DefaultRootObject") is not None:
+            dist.distribution_config.default_root_object = dist_config[
+                "DefaultRootObject"
+            ]
         self.distributions[_id] = dist
         dist.advance()
         return dist, dist.location, dist.etag
