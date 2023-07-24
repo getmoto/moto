@@ -1,7 +1,6 @@
 import boto3
 from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_elbv2, mock_ec2
 
@@ -117,24 +116,24 @@ def test_create_rule_condition(condition):
     )
 
     # assert create_rule response
-    response["Rules"].should.have.length_of(1)
+    assert len(response["Rules"]) == 1
     rule = response.get("Rules")[0]
-    rule["Priority"].should.equal("100")
-    rule["Conditions"].should.equal([condition])
+    assert rule["Priority"] == "100"
+    assert rule["Conditions"] == [condition]
 
     # assert describe_rules response
     response = conn.describe_rules(ListenerArn=http_listener_arn)
-    response["Rules"].should.have.length_of(2)  # including the default rule
+    assert len(response["Rules"]) == 2  # including the default rule
 
     # assert describe_rules with arn filter response
     rule = response["Rules"][0]
-    rule["Conditions"].should.equal([condition])
+    assert rule["Conditions"] == [condition]
     response = conn.describe_rules(RuleArns=[rule["RuleArn"]])
-    response["Rules"].should.equal([rule])
+    assert response["Rules"] == [rule]
 
     # assert describe_tags response
     response = conn.describe_tags(ResourceArns=[rule["RuleArn"]])
-    response["TagDescriptions"].should.have.length_of(1)
+    assert len(response["TagDescriptions"]) == 1
 
 
 @mock_elbv2
@@ -188,9 +187,9 @@ def test_modify_rule_condition(create_condition, modify_condition):
 
     # modify_rule
     response = conn.modify_rule(RuleArn=rule["RuleArn"], Conditions=[modify_condition])
-    response["Rules"].should.have.length_of(1)
+    assert len(response["Rules"]) == 1
     modified_rule = response.get("Rules")[0]
-    modified_rule["Conditions"].should.equal([modify_condition])
+    assert modified_rule["Conditions"] == [modify_condition]
 
 
 @mock_elbv2
@@ -309,8 +308,8 @@ def test_create_rule_validate_condition(condition, expected_message):
         )
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationError")
-    err["Message"].should.equal(expected_message)
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == expected_message
 
 
 @mock_elbv2
@@ -321,8 +320,8 @@ def test_describe_unknown_rule():
     with pytest.raises(ClientError) as exc:
         conn.describe_rules(RuleArns=["unknown_arn"])
     err = exc.value.response["Error"]
-    err["Code"].should.equal("RuleNotFound")
-    err["Message"].should.equal("One or more rules not found")
+    assert err["Code"] == "RuleNotFound"
+    assert err["Message"] == "One or more rules not found"
 
 
 @mock_elbv2
@@ -403,17 +402,17 @@ def test_create_rule_action(action):
     )
 
     # assert create_rule response
-    response["Rules"].should.have.length_of(1)
+    assert len(response["Rules"]) == 1
     rule = response.get("Rules")[0]
-    rule["Priority"].should.equal("100")
-    rule["Conditions"].should.equal([])
-    rule["Actions"].should.equal([action])
+    assert rule["Priority"] == "100"
+    assert rule["Conditions"] == []
+    assert rule["Actions"] == [action]
 
     # assert describe_rules response
     response = conn.describe_rules(ListenerArn=http_listener_arn)
-    response["Rules"].should.have.length_of(2)  # including the default rule
+    assert len(response["Rules"]) == 2  # including the default rule
     rule = response.get("Rules")[0]
-    rule["Actions"][0].should.equal(action)
+    assert rule["Actions"][0] == action
 
     # assert set_rule_priorities response
     rule_arn = response.get("Rules")[0]["RuleArn"]
@@ -421,11 +420,11 @@ def test_create_rule_action(action):
         RulePriorities=[{"RuleArn": rule_arn, "Priority": 99}]
     )
 
-    response["Rules"].should.have.length_of(1)
+    assert len(response["Rules"]) == 1
     rule = response.get("Rules")[0]
-    rule["Priority"].should.equal("99")
-    rule["Conditions"].should.equal([])
-    rule["Actions"][0].should.equal(action)
+    assert rule["Priority"] == "99"
+    assert rule["Conditions"] == []
+    assert rule["Actions"][0] == action
 
 
 @mock_elbv2
@@ -451,17 +450,17 @@ def test_create_rule_action_forward_config():
     )
 
     # assert create_rule response
-    response["Rules"].should.have.length_of(1)
+    assert len(response["Rules"]) == 1
     rule = response.get("Rules")[0]
-    rule["Priority"].should.equal("100")
-    rule["Conditions"].should.equal([])
-    rule["Actions"][0].should.equal(action)
+    assert rule["Priority"] == "100"
+    assert rule["Conditions"] == []
+    assert rule["Actions"][0] == action
 
     # assert describe_rules response
     response = conn.describe_rules(ListenerArn=http_listener_arn)
-    response["Rules"].should.have.length_of(2)  # including the default rule
+    assert len(response["Rules"]) == 2  # including the default rule
     rule = response.get("Rules")[0]
-    rule["Actions"][0].should.equal(action)
+    assert rule["Actions"][0] == action
 
     # assert set_rule_priorities response
     rule_arn = response.get("Rules")[0]["RuleArn"]
@@ -469,11 +468,11 @@ def test_create_rule_action_forward_config():
         RulePriorities=[{"RuleArn": rule_arn, "Priority": 99}]
     )
 
-    response["Rules"].should.have.length_of(1)
+    assert len(response["Rules"]) == 1
     rule = response.get("Rules")[0]
-    rule["Priority"].should.equal("99")
-    rule["Conditions"].should.equal([])
-    rule["Actions"][0].should.equal(action)
+    assert rule["Priority"] == "99"
+    assert rule["Conditions"] == []
+    assert rule["Actions"][0] == action
 
 
 @mock_elbv2
@@ -495,17 +494,17 @@ def test_create_rule_action_forward_target_group():
     )
 
     # assert create_rule response
-    response["Rules"].should.have.length_of(1)
+    assert len(response["Rules"]) == 1
     rule = response.get("Rules")[0]
-    rule["Priority"].should.equal("100")
-    rule["Conditions"].should.equal([])
-    rule["Actions"][0].should.equal(action)
+    assert rule["Priority"] == "100"
+    assert rule["Conditions"] == []
+    assert rule["Actions"][0] == action
 
     # assert describe_rules response
     response = conn.describe_rules(ListenerArn=http_listener_arn)
-    response["Rules"].should.have.length_of(2)  # including the default rule
+    assert len(response["Rules"]) == 2  # including the default rule
     rule = response.get("Rules")[0]
-    rule["Actions"][0].should.equal(action)
+    assert rule["Actions"][0] == action
 
     # assert set_rule_priorities
     rule_arn = response.get("Rules")[0]["RuleArn"]
@@ -514,8 +513,8 @@ def test_create_rule_action_forward_target_group():
     )
 
     # assert set_rule_priorities response
-    response["Rules"].should.have.length_of(1)
+    assert len(response["Rules"]) == 1
     rule = response.get("Rules")[0]
-    rule["Priority"].should.equal("99")
-    rule["Conditions"].should.equal([])
-    rule["Actions"][0].should.equal(action)
+    assert rule["Priority"] == "99"
+    assert rule["Conditions"] == []
+    assert rule["Actions"][0] == action
