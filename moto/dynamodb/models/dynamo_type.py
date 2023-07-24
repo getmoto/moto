@@ -302,7 +302,14 @@ class Item(BaseModel):
     def to_json(self) -> Dict[str, Any]:
         attributes = {}
         for attribute_key, attribute in self.attrs.items():
-            attributes[attribute_key] = {attribute.type: attribute.value}
+            if isinstance(attribute.value, dict):
+                attr_value = {
+                    key: value.to_regular_json()
+                    for key, value in attribute.value.items()
+                }
+                attributes[attribute_key] = {attribute.type: attr_value}
+            else:
+                attributes[attribute_key] = {attribute.type: attribute.value}
 
         return {"Attributes": attributes}
 

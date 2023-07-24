@@ -136,7 +136,8 @@ def test_invoke_function_from_dynamodb_put():
     assert response["EventSourceArn"] == table["TableDescription"]["LatestStreamArn"]
     assert response["State"] == "Enabled"
 
-    dynamodb.put_item(TableName=table_name, Item={"id": {"S": "item 1"}})
+    item_to_create = {"id": {"S": "item 1"}, "data": {"M": {"nested": {"S": "stuff"}}}}
+    dynamodb.put_item(TableName=table_name, Item=item_to_create)
 
     expected_msg = "get_test_zip_file3 success"
     log_group = f"/aws/lambda/{function_name}"
@@ -144,6 +145,9 @@ def test_invoke_function_from_dynamodb_put():
 
     assert msg_showed_up, (
         expected_msg + " was not found after a DDB insert. All logs: " + str(all_logs)
+    )
+    assert any(
+        [json.dumps(item_to_create, separators=(",", ":")) in msg for msg in all_logs]
     )
 
 
