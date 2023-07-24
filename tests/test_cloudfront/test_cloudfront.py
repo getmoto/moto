@@ -223,3 +223,27 @@ def test_update_distribution_dist_config_not_set():
     assert typename == "ParamValidationError"
     error_str = 'botocore.exceptions.ParamValidationError: Parameter validation failed:\nMissing required parameter in input: "DistributionConfig"'
     assert error.exconly() == error_str
+
+
+@mock_cloudfront
+def test_update_default_root_object():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+
+    config = scaffold.minimal_dist_custom_config("sth")
+    dist = client.create_distribution(DistributionConfig=config)
+
+    dist_id = dist["Distribution"]["Id"]
+    root_object = "index.html"
+    dist_config = client.get_distribution_config(Id=dist_id)
+
+    # Update the default root object
+    dist_config["DistributionConfig"]["DefaultRootObject"] = root_object
+
+    client.update_distribution(
+        DistributionConfig=dist_config["DistributionConfig"],
+        Id=dist_id,
+        IfMatch=dist_config["ETag"],
+    )
+
+    dist_config = client.get_distribution_config(Id=dist_id)
+    assert dist_config["DistributionConfig"]["DefaultRootObject"] == "index.html"
