@@ -177,14 +177,14 @@ def test_describe_prefix_lists():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
     default_lists = ec2.describe_prefix_lists()["PrefixLists"]
-    assert len(default_lists) == 2
+    assert len(default_lists) == 6
 
     ec2.create_managed_prefix_list(
         PrefixListName="examplelist", MaxEntries=2, AddressFamily="?"
     )
 
     all_lists = ec2.describe_prefix_lists()["PrefixLists"]
-    assert len(all_lists) == 2
+    assert len(all_lists) == 6
     for pl in all_lists:
         assert "com.amazonaws" in pl["PrefixListName"]
 
