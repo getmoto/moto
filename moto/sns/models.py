@@ -1043,6 +1043,7 @@ class SNSBackend(BaseBackend):
                     subject=entry.get("Subject"),
                     message_attributes=entry.get("MessageAttributes", {}),
                     group_id=entry.get("MessageGroupId"),
+                    deduplication_id=entry.get("MessageDeduplicationId"),
                 )
                 successful.append({"MessageId": message_id, "Id": entry["Id"]})
             except Exception as e:
