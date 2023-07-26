@@ -86,6 +86,50 @@ def test_submit_job_by_name():
     assert resp_jobs["jobs"][0]["jobDefinition"] == job_definition_arn
 
 
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_submit_job_array_size():
+    # Setup
+    job_definition_name = f"sleep10_{str(uuid4())[0:6]}"
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    commands = ["echo", "hello"]
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
+    job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_definition_name)
+
+    # Execute
+    resp = batch_client.submit_job(
+        jobName="test1",
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name,
+        arrayProperties={"size": 2},
+    )
+
+    # Verify
+    job_id = resp["jobId"]
+    child_job_1_id = f"{job_id}:0"
+    child_job_2_id = f"{job_id}:1"
+    non_existent_child_job_3_id = f"{job_id}:2"
+
+    resp_main_job = batch_client.describe_jobs(jobs=[job_id])
+    resp_child_job_1_id = batch_client.describe_jobs(jobs=[child_job_1_id])
+    resp_child_job_2_id = batch_client.describe_jobs(jobs=[child_job_2_id])
+    resp_non_existent_child_job_3_id = batch_client.describe_jobs(
+        jobs=[non_existent_child_job_3_id]
+    )
+
+    job = resp_main_job["jobs"][0]
+
+    assert "arrayProperties" in job
+    assert job["arrayProperties"]["size"] == 2
+    assert resp_child_job_1_id["jobs"]
+    assert resp_child_job_2_id["jobs"]
+    assert not resp_non_existent_child_job_3_id["jobs"]
+
+
 # SLOW TESTS
 
 

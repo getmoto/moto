@@ -83,7 +83,6 @@ def test_submit_job_array_size():
     assert not resp_non_existent_child_job_3_id["jobs"]
 
 
-
 @mock_batch_simple
 def test_update_job_definition():
     _, _, _, _, batch_client = _get_clients()
