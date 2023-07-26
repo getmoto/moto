@@ -994,7 +994,7 @@ class ModelPackage(BaseObject):
             _type="model-package",
             _id=model_package_name,
         )
-        datetime_now = datetime.now()
+        datetime_now = datetime.utcnow()
         self.model_package_name = model_package_name
         self.model_package_group_name = model_package_group_name
         self.model_package_version = model_package_version

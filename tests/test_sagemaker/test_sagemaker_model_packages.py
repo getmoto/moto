@@ -1,9 +1,9 @@
 """Unit tests for sagemaker-supported APIs."""
 import boto3
 from freezegun import freeze_time
-from mypy_boto3_sagemaker import SageMakerClient
 
-from moto import mock_sagemaker
+from moto import mock_sagemaker, settings
+from unittest import SkipTest
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -42,24 +42,8 @@ def test_list_model_packages():
 
 @mock_sagemaker
 def test_list_model_packages_creation_time_before():
-    client: SageMakerClient = boto3.client("sagemaker", region_name="eu-west-1")
-    with freeze_time("2020-01-01 00:00:00"):
-        client.create_model_package(
-            ModelPackageName="test-model-package",
-            ModelPackageDescription="test-model-package-description",
-        )
-    with freeze_time("2021-01-01 00:00:00"):
-        client.create_model_package(
-            ModelPackageName="test-model-package-2",
-            ModelPackageDescription="test-model-package-description-2",
-        )
-    resp = client.list_model_packages(CreationTimeBefore="2020-01-01T00:00:00Z")
-
-    assert len(resp["ModelPackageSummaryList"]) == 1
-
-
-@mock_sagemaker
-def test_list_model_packages_creation_time_after():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't freeze time in ServerMode")
     client = boto3.client("sagemaker", region_name="eu-west-1")
     with freeze_time("2020-01-01 00:00:00"):
         client.create_model_package(
@@ -71,7 +55,27 @@ def test_list_model_packages_creation_time_after():
             ModelPackageName="test-model-package-2",
             ModelPackageDescription="test-model-package-description-2",
         )
-    resp = client.list_model_packages(CreationTimeAfter="2020-01-01T00:00:00Z")
+    resp = client.list_model_packages(CreationTimeBefore="2020-01-01T02:00:00Z")
+
+    assert len(resp["ModelPackageSummaryList"]) == 1
+
+
+@mock_sagemaker
+def test_list_model_packages_creation_time_after():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't freeze time in ServerMode")
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    with freeze_time("2020-01-01 00:00:00"):
+        client.create_model_package(
+            ModelPackageName="test-model-package",
+            ModelPackageDescription="test-model-package-description",
+        )
+    with freeze_time("2021-01-01 00:00:00"):
+        client.create_model_package(
+            ModelPackageName="test-model-package-2",
+            ModelPackageDescription="test-model-package-description-2",
+        )
+    resp = client.list_model_packages(CreationTimeAfter="2020-01-02T00:00:00Z")
 
     assert len(resp["ModelPackageSummaryList"]) == 1
 
