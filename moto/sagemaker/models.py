@@ -974,7 +974,7 @@ class ModelPackage(BaseObject):
         domain: str,
         task: str,
         sample_payload_url: str,
-        additional_inference_specifications: list[Any],
+        additional_inference_specifications: List[Any],
         client_token: str,
         region_name: str,
         account_id: str,
@@ -2855,8 +2855,8 @@ class SageMakerModelBackend(BaseBackend):
             return True
         raise ValueError(f"Invalid model package type: {model_package_type}")
 
-    @paginate(pagination_model=PAGINATION_MODEL)
-    def list_model_packages(
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_model_packages(  # type: ignore[misc]
         self,
         creation_time_after: Optional[int],
         creation_time_before: Optional[int],
